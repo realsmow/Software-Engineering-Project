@@ -1,1621 +1,325 @@
-<!DOCTYPE html>
-<html lang="th">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>ULMs — ยืมง่าย คืนไว (UX Redesign)</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<style>
-/* ============================================================
-   ULMs — UX Redesign (Borrower-first / Mobile-first)
-   แนวคิดหลัก:
-   1. ผู้ยืมใช้มือถือ (ต้องถ่ายรูปรับ-คืน) => หน้าจอผู้ยืมเป็น mobile app
-   2. Staff / อาจารย์ / Admin ทำงานหน้าจอใหญ่ => desktop console
-   3. เรื่องเครดิต/แต้ม ซ่อนไว้ในโปรไฟล์ ไม่โผล่มากดดันใน flow ยืม-คืน
-   ============================================================ */
-:root{
-  --bg:#f3f5f2; --card:#ffffff; --line:#e3e8e2; --ink:#1c2b23; --mut:#6b7d72;
-  --pri:#0e7a46; --pri-2:#0a5c36; --pri-soft:#e3f2e9;
-  --amber:#92400e; --amber-soft:#fdf1df;
-  --red:#b91c1c;  --red-soft:#fdeaea;
-  --blue:#1e40af; --blue-soft:#e8effd;
-  --r:18px;
-  --sh:0 1px 2px rgba(16,42,28,.05), 0 10px 28px -14px rgba(16,42,28,.18);
-}
-*{box-sizing:border-box}
-html,body{margin:0;padding:0}
-body{font-family:'Sarabun',system-ui,sans-serif;background:#e7ebe6;color:var(--ink);-webkit-font-smoothing:antialiased;font-size:15px;line-height:1.55}
-button{font-family:inherit}
-svg{flex-shrink:0}
+erDiagram
+    LENDING_UNIT ||--o{ UNIT_MEMBERSHIP : "มีสมาชิก"
+    USER ||--o{ UNIT_MEMBERSHIP : "สังกัด (role ต่อ unit)"
+    LENDING_UNIT ||--o{ PERMISSION_RULE : "ตั้งสิทธิ์รายคน"
+    USER ||--o{ PERMISSION_RULE : "ถูกกำหนด allow/deny"
 
-/* ---------- Phone shell (ผู้ยืม) ---------- */
-.stage{min-height:100dvh;background:
-  radial-gradient(1200px 500px at 80% -10%, #dcebe0 0%, transparent 60%),
-  linear-gradient(165deg,#eef2ed,#e2e8e1)}
-.phone{position:relative;margin:0 auto;width:min(444px,100vw);min-height:100dvh;background:var(--bg);box-shadow:0 0 70px rgba(20,45,30,.16)}
-.page{padding:16px 18px 116px;animation:fade .25s ease-out}
-.appbar{position:sticky;top:0;z-index:30;background:rgba(243,245,242,.92);backdrop-filter:blur(10px);padding:14px 18px 10px;display:flex;align-items:center;gap:10px}
-.appbar .grow{flex:1}
-.h1{font-size:22px;font-weight:800;letter-spacing:-.01em;margin:0}
-.h2{font-size:16.5px;font-weight:800;margin:0}
-.h3{font-size:14.5px;font-weight:800;margin:0}
-.sub{font-size:13px;color:var(--mut)}
-.tiny{font-size:11.5px;color:var(--mut)}
-.sec{margin-top:22px}
-.sec-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
-.link{color:var(--pri);font-weight:700;font-size:13px;cursor:pointer;background:none;border:0;padding:0}
+    CREDIT_BAND ||--o{ USER : "จัดระดับเครดิต"
+    USER ||--o{ DEMERIT_EVENT : "ถูกหักเครดิต"
 
-/* ---------- Buttons ---------- */
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-weight:800;border-radius:14px;padding:13px 18px;border:0;cursor:pointer;font-size:15px;transition:transform .12s, filter .15s;text-decoration:none}
-.btn:active{transform:scale(.97)}
-.btn-pri{background:var(--pri);color:#fff}
-.btn-pri:hover{filter:brightness(1.06)}
-.btn-soft{background:var(--pri-soft);color:var(--pri-2)}
-.btn-line{background:#fff;border:1.5px solid var(--line);color:var(--ink)}
-.btn-ghost{background:transparent;color:var(--mut)}
-.btn-danger{background:var(--red-soft);color:var(--red)}
-.btn-block{width:100%}
-.btn-sm{padding:8px 13px;font-size:13px;border-radius:11px;font-weight:700}
-.iconbtn{width:42px;height:42px;border-radius:14px;border:1.5px solid var(--line);background:#fff;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;color:var(--ink);position:relative}
-.iconbtn .dot{position:absolute;top:9px;right:9px;width:8px;height:8px;border-radius:50%;background:#e11d48;border:2px solid #fff}
+    LENDING_UNIT ||--o{ EQUIPMENT_TYPE : "เป็นเจ้าของ"
+    LENDING_UNIT ||--o{ FACILITY : "เป็นเจ้าของ"
+    LENDING_UNIT ||--o{ CONSUMABLE_STOCK : "เป็นเจ้าของ"
+    CATEGORY ||--o{ EQUIPMENT_TYPE : "จัดหมวด"
+    TIER ||--o{ EQUIPMENT_TYPE : "ระดับ (T0-T2)"
+    TIER ||--o{ FACILITY : "ระดับ (T3)"
+    EQUIPMENT_TYPE ||--o{ EQUIPMENT_UNIT : "มีหลายชิ้น"
+    EQUIPMENT_TYPE ||--o{ ELIGIBILITY_RULE : "เงื่อนไขสิทธิ์กลุ่ม"
 
-/* ---------- Cards & chips ---------- */
-.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--sh)}
-.pad{padding:16px}
-.row{display:flex;align-items:center;gap:12px}
-.vgap{display:flex;flex-direction:column;gap:10px}
-.badge{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:800;padding:3.5px 9px;border-radius:99px;white-space:nowrap}
-.b-green{background:var(--pri-soft);color:var(--pri-2)}
-.b-amber{background:var(--amber-soft);color:var(--amber)}
-.b-red{background:var(--red-soft);color:var(--red)}
-.b-blue{background:var(--blue-soft);color:var(--blue)}
-.b-gray{background:#edf0ec;color:#5c6b62}
-.chiprow{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none}
-.chiprow::-webkit-scrollbar{display:none}
-.chip{padding:8px 15px;border-radius:99px;background:#fff;border:1.5px solid var(--line);font-size:13px;font-weight:700;color:var(--mut);white-space:nowrap;cursor:pointer}
-.chip.on{background:var(--ink);border-color:var(--ink);color:#fff}
+    USER ||--o{ LOAN_REQUEST : "ยื่นคำขอ (ตะกร้า)"
+    LOAN_REQUEST ||--|{ REQUEST_ITEM : "ประกอบด้วยหลายรายการ"
+    EQUIPMENT_TYPE |o--o{ REQUEST_ITEM : "ขอตามประเภท"
+    FACILITY |o--o{ REQUEST_ITEM : "ขอสถานที่"
+    CONSUMABLE_STOCK |o--o{ REQUEST_ITEM : "ขอของสิ้นเปลือง"
+    EQUIPMENT_UNIT |o--o{ REQUEST_ITEM : "ระบุชิ้น (T2)"
+    LOAN_REQUEST ||--o{ APPROVAL_STEP : "แยกอนุมัติต่อ unit"
+    LENDING_UNIT ||--o{ APPROVAL_STEP : "unit เจ้าของอนุมัติ"
+    USER ||--o{ APPROVAL_STEP : "ผู้อนุมัติ (nullable=ระบบ)"
 
-/* ---------- Search ---------- */
-.searchbox{display:flex;align-items:center;gap:10px;background:#fff;border:1.5px solid var(--line);border-radius:16px;padding:12px 15px;color:var(--mut);cursor:text}
-.searchbox input{flex:1;border:0;outline:0;font:inherit;background:none;color:var(--ink)}
+    USER ||--o{ CONSUMABLE_ISSUE : "รับของสิ้นเปลือง (จ่ายขาด)"
+    CONSUMABLE_STOCK ||--o{ CONSUMABLE_ISSUE : "ถูกจ่ายออก"
 
-/* ---------- Home: todo scroll ---------- */
-.todo-scroll{display:flex;gap:12px;overflow-x:auto;padding:2px 2px 6px;scrollbar-width:none}
-.todo-scroll::-webkit-scrollbar{display:none}
-.todo-card{min-width:250px;max-width:270px;flex-shrink:0}
+    USER ||--o{ RESERVATION : "จองล่วงหน้า"
+    EQUIPMENT_TYPE ||--o{ RESERVATION : "จองระดับประเภท"
+    REQUEST_ITEM ||--o{ ALLOCATION : "จัดสรรชิ้น (atomic)"
+    RESERVATION |o--o{ ALLOCATION : "ผูกชิ้นตอนใกล้รับ"
+    EQUIPMENT_UNIT ||--o{ ALLOCATION : "ถูกกันไว้"
+    USER ||--o{ ALLOCATION : "staff A ผู้เตรียม"
+    ALLOCATION ||--o| LOAN : "กลายเป็นการยืม"
 
-/* ---------- Item cards ---------- */
-.itemcard{display:flex;gap:13px;padding:14px;border-radius:var(--r);background:#fff;border:1px solid var(--line);cursor:pointer;box-shadow:var(--sh)}
-.thumb{width:56px;height:56px;border-radius:15px;background:var(--pri-soft);display:flex;align-items:center;justify-content:center;color:var(--pri);flex-shrink:0}
-.thumb.big{width:72px;height:72px;border-radius:18px}
-.thumb.gray{background:#eef1ee;color:var(--mut)}
+    USER ||--o{ LOAN : "ผู้ยืม"
+    EQUIPMENT_UNIT ||--o{ LOAN : "ถูกยืม (ต่อชิ้น)"
+    LOAN ||--o{ RENEWAL : "ต่ออายุ"
+    LOAN ||--o{ INSPECTION : "ตรวจ/รูป (รับ-คืน)"
+    LOAN ||--o| DAMAGE_REPORT : "ผลตรวจหลังคืน"
 
-/* ---------- Tab bar ---------- */
-.tabbar{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:min(444px,100vw);background:rgba(255,255,255,.95);backdrop-filter:blur(12px);border-top:1px solid var(--line);display:flex;z-index:40;padding-bottom:env(safe-area-inset-bottom)}
-.tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:10px 0 9px;color:#93a29a;font-size:10.5px;font-weight:800;background:none;border:0;cursor:pointer;position:relative}
-.tab.on{color:var(--pri)}
-.tab .cartn{position:absolute;top:5px;right:calc(50% - 22px);background:#e11d48;color:#fff;font-size:10px;min-width:17px;height:17px;border-radius:99px;display:flex;align-items:center;justify-content:center;padding:0 4px}
+    FACILITY ||--o{ FACILITY_BOOKING : "จองตามสล็อต"
+    USER ||--o{ FACILITY_BOOKING : "ผู้จอง"
+    FACILITY_BOOKING ||--o{ INSPECTION : "รูปก่อน-หลังใช้"
 
-/* ---------- Sheets / modals ---------- */
-.sheet-wrap{position:fixed;inset:0;z-index:60;display:flex;align-items:flex-end;justify-content:center;background:rgba(15,30,22,.48);backdrop-filter:blur(3px);animation:fade .2s}
-.sheet{width:min(444px,100vw);max-height:92dvh;overflow-y:auto;background:#fff;border-radius:24px 24px 0 0;padding:10px 20px 26px;animation:rise .24s ease-out}
-.sheet .grab{width:44px;height:5px;border-radius:99px;background:#dfe4de;margin:4px auto 14px}
-/* จอคอม (body.dt): sheet กลายเป็น modal กลางจอ */
-body.dt .sheet-wrap{align-items:center;padding:24px}
-body.dt .sheet{border-radius:24px;max-height:86vh}
-.sheet-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
-.xbtn{width:34px;height:34px;border-radius:50%;background:#f0f3ef;border:0;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--mut)}
+    EQUIPMENT_UNIT ||--o{ DAMAGE_REPORT : "ประวัติผูก serial"
+    DAMAGE_LEVEL ||--o{ DAMAGE_REPORT : "ระดับ B0-B3"
+    USER ||--o{ DAMAGE_REPORT : "ผู้ประเมิน (staff B)"
+    DAMAGE_REPORT ||--o| APPEAL : "ถูกอุทธรณ์"
+    USER ||--o{ APPEAL : "อาจารย์ตัดสิน"
+    DAMAGE_REPORT |o--o{ MAINTENANCE_RECORD : "นำไปสู่การซ่อม"
+    EQUIPMENT_UNIT ||--o{ MAINTENANCE_RECORD : "ส่งซ่อม / งดให้ยืม"
 
-/* ---------- Forms ---------- */
-.field{margin-bottom:14px}
-.label{font-size:12.5px;font-weight:800;color:var(--mut);margin-bottom:6px;display:block}
-.input,select.input,textarea.input{width:100%;padding:12px 14px;border-radius:14px;border:1.5px solid var(--line);font:inherit;background:#fff;color:var(--ink);outline-color:var(--pri)}
-textarea.input{resize:vertical;min-height:84px}
-.qty{display:flex;align-items:center;gap:16px}
-.qty button{width:38px;height:38px;border-radius:12px;border:1.5px solid var(--line);background:#fff;font-size:18px;cursor:pointer;color:var(--ink);display:flex;align-items:center;justify-content:center}
-.qty b{font-size:18px;min-width:24px;text-align:center}
-.kv{display:flex;justify-content:space-between;gap:12px;font-size:13.5px;padding:5.5px 0}
-.kv b{text-align:right}
-.hr{border:0;border-top:1px solid var(--line);margin:12px 0}
+    LOAN |o--o{ DEMERIT_EVENT : "ต้นเหตุ"
+    DAMAGE_REPORT |o--o{ DEMERIT_EVENT : "ต้นเหตุ"
 
-/* ---------- Serial picker / slots ---------- */
-.serial{display:flex;align-items:center;gap:12px;padding:12px 14px;border:1.5px solid var(--line);border-radius:15px;cursor:pointer;background:#fff}
-.serial.on{border-color:var(--pri);background:var(--pri-soft)}
-.serial.off{opacity:.45;pointer-events:none}
-.slotgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
-.slot{padding:10px 4px;border-radius:12px;border:1.5px solid var(--line);background:#fff;text-align:center;font-size:12.5px;font-weight:700;cursor:pointer;color:var(--ink)}
-.slot.on{background:var(--pri);color:#fff;border-color:var(--pri)}
-.slot.off{opacity:.35;text-decoration:line-through;pointer-events:none}
+    USER ||--o{ NOTIFICATION : "ได้รับ"
+    USER ||--o{ AUDIT_LOG : "สร้างบันทึก"
+    LENDING_UNIT |o--o{ SYSTEM_CONFIG : "กฎต่อ unit (nullable=กลาง)"
 
-/* ---------- Stepper (สถานะรายการยืม) ---------- */
-.stepper{display:flex;margin:14px 0 4px}
-.stp{flex:1;text-align:center;position:relative;font-size:9.5px;color:#9aa8a0;font-weight:800}
-.stp:not(:first-child)::before{content:'';position:absolute;top:9px;left:-50%;width:100%;height:2.5px;background:#e4e9e3}
-.stp.done:not(:first-child)::before{background:var(--pri)}
-.stp .d{width:19px;height:19px;margin:0 auto 5px;border-radius:50%;background:#fff;border:2.5px solid #dde3dd;position:relative;z-index:1;display:flex;align-items:center;justify-content:center;color:#fff}
-.stp.done{color:var(--pri-2)}
-.stp.done .d{background:var(--pri);border-color:var(--pri)}
-.stp.cur{color:var(--ink)}
-.stp.cur .d{border-color:var(--pri);box-shadow:0 0 0 4px var(--pri-soft)}
-
-/* ---------- Segmented control ---------- */
-.seg{display:flex;background:#e8ece7;border-radius:13px;padding:3.5px;gap:3px}
-.seg button{flex:1;border:0;background:none;padding:9px 4px;border-radius:10px;font-weight:800;font-size:13px;color:var(--mut);cursor:pointer}
-.seg button.on{background:#fff;color:var(--ink);box-shadow:0 1px 4px rgba(16,42,28,.12)}
-
-/* ---------- Photo capture tile ---------- */
-.photo{border:2px dashed #ccd5cd;border-radius:16px;padding:20px 14px;text-align:center;color:var(--mut);cursor:pointer;background:#fbfcfb;transition:.15s}
-.photo.done{border-style:solid;border-color:var(--pri);background:var(--pri-soft);color:var(--pri-2)}
-.photo-cmp{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.photo-cmp .ph{border-radius:14px;background:#eef1ee;border:1px solid var(--line);padding:22px 8px;text-align:center;color:var(--mut);font-size:12px}
-
-/* ---------- Notices ---------- */
-.notice{display:flex;gap:10px;padding:12px 14px;border-radius:14px;font-size:13px;line-height:1.55;align-items:flex-start}
-.notice.info{background:var(--blue-soft);color:#1e3a8a}
-.notice.warn{background:var(--amber-soft);color:var(--amber)}
-.notice.good{background:var(--pri-soft);color:var(--pri-2)}
-
-/* ---------- Profile ---------- */
-.avatar{width:54px;height:54px;border-radius:50%;background:linear-gradient(140deg,var(--pri),#0a4e30);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:21px}
-.creditbar{height:8px;border-radius:99px;background:#e7ebe6;overflow:hidden}
-.creditbar i{display:block;height:100%;background:var(--pri);border-radius:99px}
-details.acc{border:1px solid var(--line);border-radius:16px;background:#fff;padding:0 16px;box-shadow:var(--sh)}
-details.acc summary{list-style:none;cursor:pointer;padding:15px 0;font-weight:800;font-size:14.5px;display:flex;justify-content:space-between;align-items:center;gap:10px}
-details.acc summary::-webkit-details-marker{display:none}
-details.acc[open] summary{border-bottom:1px solid var(--line)}
-details.acc .acc-body{padding:13px 0 16px}
-.logrow{display:flex;justify-content:space-between;gap:10px;font-size:13px;padding:8px 0;border-bottom:1px dashed #e8ece7}
-.logrow:last-child{border:0}
-.switch{width:42px;height:24px;border-radius:99px;background:#d6ddd6;position:relative;cursor:pointer;border:0;transition:.15s;flex-shrink:0}
-.switch::after{content:'';position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:.15s;box-shadow:0 1px 3px rgba(0,0,0,.25)}
-.switch.on{background:var(--pri)}
-.switch.on::after{left:21px}
-
-/* ---------- Login ---------- */
-.login{min-height:100dvh;display:flex;align-items:center;justify-content:center;background:
-  radial-gradient(900px 480px at 15% -5%, rgba(255,255,255,.14), transparent 55%),
-  radial-gradient(700px 500px at 110% 110%, rgba(255,255,255,.1), transparent 55%),
-  linear-gradient(155deg,#0b5c35,#0e7a46 55%,#0a4e30);padding:24px}
-.login-card{width:min(400px,100%);background:#fff;border-radius:26px;padding:34px 30px;box-shadow:0 30px 70px -20px rgba(0,30,15,.5);text-align:center;animation:rise .3s ease-out}
-.logo-mark{width:74px;height:74px;border-radius:22px;background:var(--pri-soft);color:var(--pri);display:flex;align-items:center;justify-content:center;margin:0 auto 16px}
-
-/* ---------- Console (staff / supervisor / admin) ---------- */
-.cshell{min-height:100vh;background:var(--bg)}
-.ctop{background:#fff;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:30}
-.ctop-in{max-width:1160px;margin:0 auto;padding:0 22px;display:flex;align-items:center;gap:16px;height:62px}
-.clogo{display:flex;align-items:center;gap:10px;font-weight:800;font-size:17px}
-.clogo .m{width:34px;height:34px;border-radius:11px;background:var(--pri);color:#fff;display:flex;align-items:center;justify-content:center}
-.ctabs{display:flex;gap:4px;flex:1}
-.ctab{padding:9px 16px;border-radius:12px;font-weight:700;font-size:14px;color:var(--mut);cursor:pointer;border:0;background:none;display:flex;align-items:center;gap:7px}
-.ctab.on{background:var(--pri-soft);color:var(--pri-2)}
-.ctab .n{background:#e11d48;color:#fff;font-size:10.5px;min-width:17px;height:17px;border-radius:99px;display:inline-flex;align-items:center;justify-content:center;padding:0 4px}
-.cbody{max-width:1160px;margin:0 auto;padding:22px;display:flex;flex-direction:column;gap:16px;animation:fade .25s}
-.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
-.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-body.mb .grid4,body.mb .grid3{grid-template-columns:1fr 1fr}
-body.mb .grid2{grid-template-columns:1fr}
-.stat .n{font-size:27px;font-weight:800;line-height:1.15}
-.table{width:100%;border-collapse:collapse;font-size:13.5px}
-.table th{text-align:left;font-size:12px;color:var(--mut);padding:10px 12px;border-bottom:1.5px solid var(--line);font-weight:800;white-space:nowrap}
-.table td{padding:11px 12px;border-bottom:1px solid #eef1ee;vertical-align:middle}
-.bar{display:flex;align-items:center;gap:10px;font-size:12.5px}
-.bar .tk{width:52px;color:var(--mut);font-weight:700;text-align:right}
-.bar i{height:11px;border-radius:99px;background:var(--pri);display:block}
-
-/* ---------- Toast / demo bars ---------- */
-.toast{position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:#14231b;color:#fff;padding:12px 18px;border-radius:14px;font-size:13.5px;font-weight:600;z-index:99;box-shadow:0 14px 40px rgba(0,0,0,.35);display:flex;gap:9px;align-items:center;animation:rise .22s;max-width:min(400px,90vw)}
-.rolebar{position:fixed;left:14px;bottom:14px;z-index:80;background:#101c15;color:#fff;border-radius:16px;padding:10px 12px;font-size:11.5px;box-shadow:0 12px 32px rgba(0,0,0,.35);display:flex;flex-direction:column;gap:7px}
-.rb-row{display:flex;align-items:center;gap:5px}
-.rb-row>span{opacity:.55;font-weight:700;min-width:46px}
-.rolebar button{border:0;background:rgba(255,255,255,.08);color:#bcc9c1;border-radius:9px;padding:6px 10px;font-weight:700;font-size:11.5px;cursor:pointer;display:inline-flex;align-items:center;gap:4px}
-.rolebar button.on{background:var(--pri);color:#fff}
-.fabnotes{position:fixed;right:14px;bottom:14px;z-index:80;width:46px;height:46px;border-radius:50%;background:#14231b;color:#fff;border:0;font-weight:800;font-size:12px;cursor:pointer;box-shadow:0 12px 32px rgba(0,0,0,.35)}
-@media(max-width:560px){.rolebar{left:8px;bottom:64px;transform:scale(.88);transform-origin:bottom left}.fabnotes{display:none}}
-
-/* ---------- Responsive: มือถือ = แอป / คอม = เว็บเต็มจอ ---------- */
-.cardgrid{display:flex;flex-direction:column;gap:10px}   /* มือถือ: ลิสต์แนวตั้ง */
-.topnav{display:none}                                     /* โผล่เฉพาะจอคอม */
-.iconbtn .cartn2{position:absolute;top:-5px;right:-5px;background:#e11d48;color:#fff;font-size:10px;min-width:17px;height:17px;border-radius:99px;display:flex;align-items:center;justify-content:center;padding:0 4px;border:2px solid #fff}
-
-/* โหมดหน้าจอควบคุมด้วยคลาสที่ body — เพื่อให้กดสลับพรีวิวได้จากแถบ DEMO โดยไม่ต้อง deploy
-   body.dt = เลย์เอาต์คอม · body.mb = เลย์เอาต์มือถือ · body.framed = ครอบกรอบเครื่องมือถือจำลอง
-   (โหมด Auto: JS จะใส่ dt/mb ให้ตามขนาดหน้าต่างเอง เหมือน media query เดิม) */
-body.dt .stage{background:var(--bg)}
-body.dt .phone{width:100%;max-width:none;box-shadow:none}
-body.dt .tabbar{display:none}
-body.dt .m-only{display:none!important}
-body.dt .topnav{display:block;position:sticky;top:0;z-index:45;background:rgba(255,255,255,.93);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
-body.dt .topnav-in{max-width:1128px;margin:0 auto;display:flex;align-items:center;flex-wrap:wrap;gap:10px 22px;padding:8px 24px;min-height:64px}
-body.dt .tn-links{display:flex;gap:4px;flex:1}
-body.dt .tn-link{border:0;background:none;padding:9px 16px;border-radius:12px;font:inherit;font-weight:700;font-size:14.5px;color:var(--mut);cursor:pointer}
-body.dt .tn-link.on{background:var(--pri-soft);color:var(--pri-2)}
-body.dt .appbar{position:static;background:none;backdrop-filter:none;max-width:1128px;margin:0 auto;padding:28px 24px 0}
-body.dt .appbar.narrow{max-width:768px}
-body.dt .page{max-width:1128px;margin:0 auto;padding:14px 24px 70px}
-body.dt .page.narrow{max-width:768px}
-body.dt .h1{font-size:26px}
-body.dt .searchbox{max-width:560px}
-body.dt .cardgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:14px;align-items:start}
-body.dt .todo-scroll{flex-wrap:wrap;overflow:visible}
-body.dt .todo-card{flex:1;min-width:260px;max-width:360px}
-body.dt .seg{max-width:460px}
-body.dt .chiprow{flex-wrap:wrap}
-
-/* Console (Staff/อาจารย์/Admin) ในโหมดมือถือ */
-body.mb .ctop-in{height:auto;flex-wrap:wrap;padding:10px 14px;gap:8px}
-body.mb .ctabs{order:3;width:100%;overflow-x:auto;padding-bottom:4px}
-body.mb .ctab{white-space:nowrap}
-body.mb .cbody{padding:14px;padding-bottom:120px}
-
-/* กรอบเครื่องมือถือจำลอง — เมื่อบังคับโหมดมือถือบนจอกว้าง */
-body.framed .stage{padding:24px 0;min-height:100dvh}
-body.framed .phone{width:min(414px,100vw);height:calc(100dvh - 48px);min-height:0;overflow-y:auto;border-radius:44px;border:11px solid #14231b;box-shadow:0 34px 90px rgba(10,25,16,.45);display:flex;flex-direction:column;scrollbar-width:none}
-body.framed .phone::-webkit-scrollbar{display:none}
-body.framed .page{flex:1;padding-bottom:28px}
-body.framed .appbar{border-radius:33px 33px 0 0}
-body.framed .tabbar{position:sticky;bottom:0;left:auto;transform:none;width:100%;margin-top:auto;border-radius:0 0 33px 33px}
-body.framed .sheet{width:min(414px,96vw);margin-bottom:24px;border-radius:22px 22px 34px 34px}
-body.framed .cshell{width:min(414px,100vw);margin:24px auto;height:calc(100dvh - 48px);min-height:0;overflow-y:auto;border-radius:44px;border:11px solid #14231b;box-shadow:0 34px 90px rgba(10,25,16,.45);scrollbar-width:none}
-body.framed .cshell::-webkit-scrollbar{display:none}
-
-@keyframes fade{from{opacity:0}to{opacity:1}}
-@keyframes rise{from{transform:translateY(22px);opacity:0}to{transform:translateY(0);opacity:1}}
-.empty{padding:44px 20px;text-align:center;color:var(--mut)}
-.empty .thumb{margin:0 auto 12px}
-</style>
-</head>
-<body>
-<div id="root"></div>
-<div id="sheet-root"></div>
-<div id="toast-root"></div>
-<div id="demo-root"></div>
-
-<script>
-'use strict';
-/* ================= Helpers ================= */
-const d = n => new Date(Date.now() + n * 864e5);
-const fmtD = dt => dt.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' });
-const fmtDY = dt => dt.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' });
-const esc = s => String(s).replace(/</g, '&lt;');
-
-/* ================= Seed Data (อิงจาก Proposal ULMs) ================= */
-const TIER = {
-  0: { code: 'T0', human: 'ยืมได้ทันที',        approve: 'อนุมัติอัตโนมัติ',        credit: 0  },
-  1: { code: 'T1', human: 'เจ้าหน้าที่จัดของให้', approve: 'อนุมัติอัตโนมัติ',        credit: 5  },
-  2: { code: 'T2', human: 'ต้องขออนุมัติอาจารย์', approve: 'อาจารย์ผู้ดูแลพิจารณา',   credit: 10 },
-  3: { code: 'T3', human: 'จองเป็นรอบเวลา',      approve: 'ตรวจช่วงเวลาว่างอัตโนมัติ', credit: 0  },
-};
-const DMG = [
-  { lv: 'B0', name: 'สึกหรอจากการใช้งานปกติ', w: 0 },
-  { lv: 'B1', name: 'เสียหายเล็กน้อย ซ่อมได้', w: 1 },
-  { lv: 'B2', name: 'เสียหายปานกลาง ซ่อมยาก/แพง', w: 3 },
-  { lv: 'B3', name: 'เสียหายรุนแรง ใช้งานไม่ได้', w: 5 },
-];
-const CREDIT_LV = [
-  { lv: 'D0', name: 'ดี',        min: 80, days: 14, note: 'ยืมและต่ออายุออนไลน์ได้ตามปกติ' },
-  { lv: 'D1', name: 'เฝ้าระวัง', min: 50, days: 7,  note: 'ระยะยืมสูงสุด 7 วัน ต่อออนไลน์ได้' },
-  { lv: 'D2', name: 'เสี่ยง',    min: 30, days: 7,  note: 'ต่ออายุที่เจ้าหน้าที่ · ยืม T1/T2 ต้องให้อาจารย์อนุมัติ' },
-  { lv: 'D3', name: 'เสี่ยงสูง', min: 0,  days: 5,  note: 'ต้องส่งคำขอใหม่ทุกครั้ง · ยืม T1/T2 ต้องให้อาจารย์อนุมัติ' },
-];
-
-const DB = {
-  user: {
-    name: 'ภูมิพัฒน์ วงศ์ไผ่', sid: '6710504xxx', short: 'ภูมิพัฒน์',
-    faculty: 'วิศวกรรมคอมพิวเตอร์ · ชั้นปี 3', email: 'phumipat.w@ku.th', credit: 92,
-  },
-  items: [
-    { id:'i1', name:'สายจัมเปอร์ (ชุด 40 เส้น)', cat:'อิเล็กทรอนิกส์', tier:0, price:60, stock:37, unit:'ชุด', icon:'box',
-      loc:'ตู้ยืม ห้องชมรม E-Club ชั้น 2', desc:'สาย M-M / M-F / F-F คละแบบ สำหรับต่อวงจรบนเบรดบอร์ด' },
-    { id:'i2', name:'ตัวต้านทานคละค่า (ถุง 100 ตัว)', cat:'อิเล็กทรอนิกส์', tier:0, price:35, stock:120, unit:'ถุง', icon:'box',
-      loc:'ตู้ยืม ห้องชมรม E-Club ชั้น 2', desc:'ค่ามาตรฐาน 10Ω – 1MΩ ±5%' },
-    { id:'i3', name:'ลูกแบดมินตัน (หลอด 6 ลูก)', cat:'กีฬา / ชมรม', tier:0, price:90, stock:14, unit:'หลอด', icon:'star',
-      loc:'ห้องชมรมแบดมินตัน อาคารกีฬา', desc:'สำหรับสมาชิกชมรมและการเรียนวิชาพลศึกษา' },
-    { id:'i4', name:'Arduino UNO R3', cat:'อิเล็กทรอนิกส์', tier:1, price:890, stock:5, total:8, unit:'ชิ้น', icon:'chip',
-      loc:'ห้องพัสดุ ภาควิชาคอมฯ ชั้น 7', desc:'บอร์ดไมโครคอนโทรลเลอร์ พร้อมสาย USB · เจ้าหน้าที่จะเลือกชิ้นที่พร้อมใช้ให้' },
-    { id:'i5', name:'มัลติมิเตอร์ดิจิทัล UNI-T', cat:'เครื่องมือวัด', tier:1, price:750, stock:0, total:6, unit:'ชิ้น', icon:'meter',
-      nextFree:3, loc:'ห้องพัสดุ ภาควิชาคอมฯ ชั้น 7', desc:'วัดแรงดัน กระแส ความต้านทาน พร้อมสายวัด' },
-    { id:'i6', name:'หัวแร้งบัดกรี + ชุดอุปกรณ์', cat:'เครื่องมือวัด', tier:1, price:520, stock:3, total:4, unit:'ชุด', icon:'tool',
-      loc:'ห้องพัสดุ ภาควิชาคอมฯ ชั้น 7', desc:'หัวแร้งปรับอุณหภูมิ ตะกั่ว ฟลักซ์ และที่วาง' },
-    { id:'i7', name:'ออสซิลโลสโคป Rigol DS1054Z', cat:'เครื่องมือวัด', tier:2, price:12500, unit:'เครื่อง', icon:'scope',
-      loc:'ห้องแลปอิเล็กฯ 7602 (เบิกกับ Staff)', desc:'4 Channel 50MHz · อุปกรณ์มูลค่าสูง ต้องได้รับอนุมัติจากอาจารย์ผู้ดูแล',
-      serials: [
-        { sn:'OSC-01', free:0,    cond:'สภาพดี' },
-        { sn:'OSC-02', free:6,    cond:'มีรอยที่ฝาครอบ (บันทึก B1 เดิม)' },
-        { sn:'OSC-03', free:null, cond:'อยู่ระหว่างซ่อมบำรุง' },
-      ] },
-    { id:'i8', name:'เครื่องจ่ายไฟ DC 30V/5A', cat:'เครื่องมือวัด', tier:2, price:4200, unit:'เครื่อง', icon:'power',
-      loc:'ห้องแลปอิเล็กฯ 7602 (เบิกกับ Staff)', desc:'Bench power supply แบบปรับค่าได้ 2 แชนแนล',
-      serials: [
-        { sn:'PSU-01', free:0, cond:'สภาพดี' },
-        { sn:'PSU-02', free:0, cond:'สภาพดี' },
-      ] },
-    { id:'i9', name:'ห้องปฏิบัติการ 7603', cat:'ห้อง / สถานที่', tier:3, unit:'ที่นั่ง', icon:'room', seats:20,
-      loc:'อาคาร 7 ชั้น 6', desc:'ห้องแลปสำหรับทำโปรเจกต์ · จองเป็นรายชั่วโมง สูงสุด 2 ช่วงติดกัน' },
-    { id:'i10', name:'สนามแบดมินตัน คอร์ท 1', cat:'ห้อง / สถานที่', tier:3, unit:'คอร์ท', icon:'court',
-      loc:'อาคารกีฬา มก.', desc:'จองใช้ได้ภายในวันเดียวกัน ครั้งละไม่เกิน 2 ช่วงเวลา' },
-  ],
-  // คำขอยืม (ของฉัน + ของคนอื่น เพื่อให้ console ฝั่ง staff/อาจารย์ มีงานให้เห็น)
-  reqs: [
-    { id:'R-2841', itemId:'i5', owner:'me', qty:1, sn:'MM-04', status:'IN_USE',
-      start:d(-6), due:d(1), renewLeft:1, photos:{recv:true, ret:false} },
-    { id:'R-2857', itemId:'i4', owner:'me', qty:2, sn:'AR-02, AR-05', status:'READY',
-      start:d(0), due:d(7), pickupBy:d(1), renewLeft:1, photos:{recv:false, ret:false} },
-    { id:'R-2860', itemId:'i7', owner:'me', qty:1, sn:'OSC-01', status:'PENDING',
-      start:d(2), due:d(9), renewLeft:0, photos:{recv:false, ret:false} },
-    { id:'R-2799', itemId:'i6', owner:'me', qty:1, sn:'SD-01', status:'DONE',
-      start:d(-30), due:d(-23), damage:null, photos:{recv:true, ret:true} },
-    { id:'R-2762', itemId:'i4', owner:'me', qty:1, sn:'AR-07', status:'DONE',
-      start:d(-16), due:d(-12), damage:{ lv:'B1', discredit:5 }, photos:{recv:true, ret:true} },
-    // ของผู้ใช้อื่น — โผล่ในคิวของ Staff / อาจารย์
-    { id:'R-2856', itemId:'i5', owner:'ณิชา พิมพ์ใจ', qty:1, sn:'MM-02', status:'INSPECT',
-      start:d(-7), due:d(0), photos:{recv:true, ret:true} },
-    { id:'R-2858', itemId:'i4', owner:'ต้นกล้า สุขเกษม', qty:1, sn:null, status:'PREP',
-      start:d(0), due:d(7), photos:{recv:false, ret:false} },
-    { id:'R-2810', itemId:'i5', owner:'ศิรภัทร บุญมา', qty:1, sn:'MM-06', status:'IN_USE',
-      start:d(-9), due:d(-2), overdue:true, photos:{recv:true, ret:false} },
-    { id:'R-2862', itemId:'i4', owner:'กานต์ วารี', ownerCredit:42, qty:1, sn:null, status:'PENDING',
-      start:d(1), due:d(8), lowCredit:true, photos:{recv:false, ret:false} },
-  ],
-  appeals: [
-    { id:'AP-104', reqId:'R-2762', status:'PENDING', created:d(-2),
-      reason:'รอยขีดข่วนบริเวณพอร์ต USB มีมาก่อนรับของ มองเห็นได้ในรูปถ่ายตอนรับ',
-      staffLv:'B1' },
-  ],
-  creditLog: [
-    { at:d(-20), txt:'คืนช้า 4 วัน · มัลติมิเตอร์ดิจิทัล (R-2731)', v:-3 },
-    { at:d(-12), txt:'ผลประเมินความเสียหาย B1 · Arduino UNO (R-2762) — อยู่ระหว่างอุทธรณ์', v:-5 },
-  ],
-  notifs: [
-    { at:d(0),  icon:'clock', txt:'มัลติมิเตอร์ดิจิทัล ครบกำหนดคืน พรุ่งนี้ ก่อน 17:00 น.', unread:true },
-    { at:d(0),  icon:'check', txt:'คำขอ R-2857 (Arduino ×2) อนุมัติแล้ว — รับของภายในพรุ่งนี้', unread:true },
-    { at:d(-1), icon:'doc',   txt:'คำขอ R-2860 (ออสซิลโลสโคป) ส่งให้อาจารย์พิจารณาแล้ว', unread:false },
-    { at:d(-2), icon:'shield',txt:'ผลตรวจสภาพ R-2762 มีบันทึกความเสียหาย — ดูรายละเอียด / ยื่นอุทธรณ์ได้ที่โปรไฟล์', unread:false },
-  ],
-};
-/* ================= Icons (inline SVG, stroke style) ================= */
-const P = {
-  home: '<path d="m3.5 11 8.5-7.5L20.5 11"/><path d="M5.5 9.8V20h13V9.8"/><path d="M10 20v-5.5h4V20"/>',
-  grid: '<rect x="3.5" y="3.5" width="7" height="7" rx="2"/><rect x="13.5" y="3.5" width="7" height="7" rx="2"/><rect x="3.5" y="13.5" width="7" height="7" rx="2"/><rect x="13.5" y="13.5" width="7" height="7" rx="2"/>',
-  doc:  '<rect x="4.5" y="3" width="15" height="18" rx="3"/><path d="M8.5 8.5h7M8.5 12h7M8.5 15.5h4.5"/>',
-  user: '<circle cx="12" cy="8" r="3.6"/><path d="M4.8 20c1.2-3.4 4-5 7.2-5s6 1.6 7.2 5"/>',
-  bell: '<path d="M6 9.5a6 6 0 0 1 12 0c0 4 1.4 5.4 2 6H4c.6-.6 2-2 2-6Z"/><path d="M10 19a2.2 2.2 0 0 0 4 0"/>',
-  cart: '<path d="M6.5 8h11l1.2 12h-13.4z"/><path d="M9 10.5V6.5a3 3 0 0 1 6 0v4"/>',
-  search:'<circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/>',
-  camera:'<path d="M4 8h3l1.6-2.4h6.8L17 8h3a1 1 0 0 1 1 1v9.5a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1Z"/><circle cx="12" cy="13.4" r="3.4"/>',
-  check:'<path d="m5 12.5 4.5 4.5L19 7.5"/>',
-  x:    '<path d="M6 6l12 12M18 6 6 18"/>',
-  chev: '<path d="m9 5.5 6.5 6.5L9 18.5"/>',
-  cal:  '<rect x="3.5" y="5" width="17" height="16" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/>',
-  clock:'<circle cx="12" cy="12" r="8.5"/><path d="M12 7.2V12l3.4 2.2"/>',
-  pin:  '<path d="M12 21s-6.6-5.4-6.6-10.4a6.6 6.6 0 0 1 13.2 0C18.6 15.6 12 21 12 21Z"/><circle cx="12" cy="10.4" r="2.4"/>',
-  plus: '<path d="M12 5v14M5 12h14"/>',
-  arrow:'<path d="M4.5 12h15M14 6.5l5.5 5.5L14 17.5"/>',
-  shield:'<path d="M12 3 5 5.8v5.4c0 4.6 3 7.8 7 9.8 4-2 7-5.2 7-9.8V5.8Z"/><path d="m9 11.8 2.2 2.2L15.4 9.6"/>',
-  info: '<circle cx="12" cy="12" r="8.5"/><path d="M12 11v5M12 7.6v.3"/>',
-  box:  '<path d="M3.5 8 12 3.5 20.5 8v8L12 20.5 3.5 16Z"/><path d="M3.5 8 12 12.5 20.5 8M12 12.5v8"/>',
-  chip: '<rect x="6.5" y="6.5" width="11" height="11" rx="2"/><path d="M9 3.5v3M15 3.5v3M9 17.5v3M15 17.5v3M3.5 9h3M3.5 15h3M17.5 9h3M17.5 15h3"/>',
-  meter:'<circle cx="12" cy="13" r="8"/><path d="M12 13l3.6-3.6M8 21h8"/>',
-  tool: '<path d="m13.5 6.5 4 4L7 21H3v-4Z"/><path d="m15.5 4.5 2-2 4 4-2 2"/>',
-  scope:'<rect x="3" y="5" width="18" height="13" rx="2.5"/><path d="M6 12h3l1.6-3.4 2.8 6 1.6-2.6H18M9 21h6"/>',
-  power:'<rect x="4" y="4.5" width="16" height="15" rx="2.5"/><path d="M12 8v4M8.8 9.4a4.6 4.6 0 1 0 6.4 0"/>',
-  room: '<path d="M4 21V4.5L14 3v18"/><path d="M14 6.5 20 8v13M4 21h16M11 12h.5"/>',
-  court:'<rect x="3" y="6" width="18" height="12" rx="2"/><path d="M12 6v12M3 12h18"/>',
-  star: '<path d="m12 3.8 2.5 5 5.5.8-4 3.9.9 5.5-4.9-2.6-4.9 2.6.9-5.5-4-3.9 5.5-.8Z"/>',
-  logout:'<path d="M9.5 4H5a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h4.5"/><path d="M15 8.5 18.5 12 15 15.5M18.5 12H9"/>',
-  edit: '<path d="m14.5 5.5 4 4L8 20H4v-4Z"/>',
-  send: '<path d="M20.5 3.5 3.5 10.5l6 2.5 2.5 6Z"/><path d="M20.5 3.5 9.5 13"/>',
-  eye:  '<path d="M2.5 12S6 5.8 12 5.8 21.5 12 21.5 12 18 18.2 12 18.2 2.5 12 2.5 12Z"/><circle cx="12" cy="12" r="2.8"/>',
-  image:'<rect x="3.5" y="4.5" width="17" height="15" rx="3"/><circle cx="9" cy="10" r="1.6"/><path d="m5 18.5 5-5 3 3 3-2.5 3.5 3"/>',
-  refresh:'<path d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3L20 9"/><path d="M20 4.5V9h-4.5"/>',
-  scan: '<path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3M7.5 12h9"/>',
-  sliders:'<path d="M5 8h14M5 16h14"/><circle cx="9.5" cy="8" r="2.2" fill="#fff"/><circle cx="14.5" cy="16" r="2.2" fill="#fff"/>',
-  alert:'<path d="M12 4 2.8 19.5h18.4Z"/><path d="M12 10.5v4M12 17v.3"/>',
-  users:'<circle cx="9" cy="8.5" r="3.2"/><path d="M3 19.5c1-3 3.4-4.4 6-4.4s5 1.4 6 4.4"/><path d="M15.5 5.7a3.2 3.2 0 0 1 0 5.6M17.8 15.4c1.6.6 2.8 1.9 3.4 4.1"/>',
-  mobile:'<rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M10.8 18.5h2.4"/>',
-  monitor:'<rect x="3" y="4.5" width="18" height="12.5" rx="2"/><path d="M9.5 21h5M12 17v3.5"/>',
-};
-const ic = (n, s = 18, w = 2) =>
-  `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round">${P[n] || ''}</svg>`;
-
-/* ================= App State ================= */
-const S = {
-  logged: false,
-  role: 'student',            // student | staff | supervisor | admin
-  device: 'auto',             // auto | mobile | desktop — พรีวิวหน้าจอโดยไม่ต้อง deploy
-  route: 'home',              // (student) home | browse | mylist | profile | cart
-  ctab: 0,                    // console tab index
-  listSeg: 0,                 // segment ในหน้า "รายการของฉัน"
-  cat: 'ทั้งหมด',
-  q: '',
-  cart: [],                   // {itemId, qty, sn, days}
-  sheet: null,                // { type, ...payload }
-  snaps: {},                  // จำลองการถ่ายรูป
-  notifOpen: false,
-};
-
-const item = id => DB.items.find(i => i.id === id);
-const myReqs = () => DB.reqs.filter(r => r.owner === 'me');
-const creditLevel = c => CREDIT_LV.find(l => c >= l.min) || CREDIT_LV[3];
-const unread = () => DB.notifs.filter(n => n.unread).length;
-
-/* ================= Small view pieces ================= */
-function tierBadge(t, small) {
-  const cls = { 0:'b-green', 1:'b-green', 2:'b-amber', 3:'b-blue' }[t];
-  return `<span class="badge ${cls}">${TIER[t].human}${small ? '' : ' · ' + TIER[t].code}</span>`;
-}
-function availText(it) {
-  if (it.tier === 3) return `<span class="badge b-blue">${ic('cal',12)} ว่างวันนี้</span>`;
-  if (it.tier === 2) {
-    const free = it.serials.filter(s => s.free === 0).length;
-    return free ? `<span class="badge b-green">พร้อมยืม ${free} เครื่อง</span>`
-                : `<span class="badge b-amber">ว่างเร็วสุด ${fmtD(d(Math.min(...it.serials.filter(s=>s.free!=null).map(s=>s.free))))}</span>`;
-  }
-  if (it.stock > 0) return `<span class="badge b-green">พร้อมยืม ${it.stock} ${it.unit}</span>`;
-  return `<span class="badge b-amber">ว่างเร็วสุด ${fmtD(d(it.nextFree || 2))}</span>`;
-}
-function stepper(status, tier) {
-  const steps = tier === 3
-    ? ['จองสำเร็จ', 'เช็คอิน', 'ใช้งาน', 'คืนพื้นที่']
-    : ['ส่งคำขอ', 'อนุมัติ', 'รับของ', 'ใช้งาน', 'คืน & ตรวจ'];
-  const cur = tier === 3
-    ? { BOOKED:1, IN_USE:2, DONE:4 }[status] ?? 0
-    : { PENDING:1, PREP:2, READY:2, IN_USE:3, INSPECT:4, DONE:5 }[status] ?? 0;
-  return `<div class="stepper">${steps.map((t, i) => `
-    <div class="stp ${i < cur ? 'done' : ''} ${i === cur ? 'cur' : ''}">
-      <div class="d">${i < cur ? ic('check', 11, 3) : ''}</div>${t}
-    </div>`).join('')}</div>`;
-}
-const STATUS_BADGE = {
-  PENDING: ['b-amber', 'รออาจารย์อนุมัติ'],
-  PREP:    ['b-blue',  'กำลังเตรียมของ'],
-  READY:   ['b-blue',  'พร้อมรับของ'],
-  BOOKED:  ['b-blue',  'จองแล้ว'],
-  IN_USE:  ['b-green', 'กำลังยืม'],
-  INSPECT: ['b-gray',  'คืนแล้ว · รอตรวจสภาพ'],
-  DONE:    ['b-gray',  'เสร็จสิ้น'],
-  REJECTED:['b-red',   'ไม่อนุมัติ'],
-};
-const stBadge = r => {
-  if (r.overdue && r.status === 'IN_USE') return `<span class="badge b-red">เกินกำหนด</span>`;
-  const [c, t] = STATUS_BADGE[r.status] || ['b-gray', r.status];
-  return `<span class="badge ${c}">${t}</span>`;
-};
-
-/* ================= Router / Root render ================= */
-const root = document.getElementById('root');
-const sheetRoot = document.getElementById('sheet-root');
-const demoRoot = document.getElementById('demo-root');
-
-function render() {
-  if (!S.logged) { root.innerHTML = loginView(); sheetRoot.innerHTML = ''; demoRoot.innerHTML = ''; return; }
-  demoRoot.innerHTML = demoBars();
-  root.innerHTML = S.role === 'student' ? phoneShell() : consoleShell();
-  renderSheet();
-}
-function renderSheet() {
-  sheetRoot.innerHTML = S.sheet ? sheetView(S.sheet) : '';
-}
-
-/* ================= Login ================= */
-function loginView() {
-  return `
-  <div class="login">
-    <div class="login-card">
-      <div class="logo-mark">${ic('box', 36, 1.8)}</div>
-      <h1 class="h1" style="font-size:30px">ULMs</h1>
-      <p class="sub" style="margin:6px 0 2px">ระบบยืม–คืนอุปกรณ์มหาวิทยาลัย</p>
-      <p style="font-weight:800;color:var(--pri-2);margin:0 0 26px;font-size:15px">ยืมง่าย คืนไว ไม่ต้องจดกระดาษ</p>
-      <button class="btn btn-pri btn-block" onclick="A.login()">${ic('logout',18)} เข้าสู่ระบบด้วยบัญชีนนทรี (KU)</button>
-      <p class="tiny" style="margin-top:14px">รองรับอีเมล @ku.th ทุกบทบาท — ระบบจะพาไปหน้าจอตามสิทธิ์ของคุณโดยอัตโนมัติ</p>
-    </div>
-  </div>`;
-}
-
-/* ================= Phone shell (ผู้ยืม) ================= */
-function phoneShell() {
-  const pages = { home: homePage, browse: browsePage, mylist: myListPage, profile: profilePage, cart: cartPage };
-  return `
-  <div class="stage"><div class="phone">
-    ${topnav()}
-    ${(pages[S.route] || homePage)()}
-    ${tabbar()}
-  </div></div>`;
-}
-/* Navbar บนจอคอม (≥900px) — จอมือถือใช้ tabbar ด้านล่างแทน */
-function topnav() {
-  const links = [['home', 'หน้าแรก'], ['browse', 'อุปกรณ์'], ['mylist', 'รายการของฉัน'], ['profile', 'โปรไฟล์']];
-  return `<div class="topnav"><div class="topnav-in">
-    <div class="clogo" style="cursor:pointer" onclick="A.go('home')"><span class="m">${ic('box', 18)}</span> ULMs</div>
-    <nav class="tn-links">${links.map(([r, t]) =>
-      `<button class="tn-link ${S.route === r ? 'on' : ''}" onclick="A.go('${r}')">${t}</button>`).join('')}</nav>
-    <div class="row" style="gap:10px">
-      <button class="iconbtn" title="ตะกร้ายืม" onclick="A.go('cart')">${ic('cart', 19)}
-        ${S.cart.length ? `<span class="cartn2">${S.cart.length}</span>` : ''}</button>
-      <button class="iconbtn" title="การแจ้งเตือน" onclick="A.openNotif()">${ic('bell', 19)}${unread() ? '<span class="dot"></span>' : ''}</button>
-      <div class="avatar" style="width:38px;height:38px;font-size:15px;cursor:pointer" title="โปรไฟล์" onclick="A.go('profile')">${DB.user.short[0]}</div>
-    </div>
-  </div></div>`;
-}
-function tabbar() {
-  const tabs = [
-    ['home', 'home', 'หน้าแรก'],
-    ['browse', 'grid', 'อุปกรณ์'],
-    ['cart', 'cart', 'ตะกร้า'],
-    ['mylist', 'doc', 'รายการ'],
-    ['profile', 'user', 'โปรไฟล์'],
-  ];
-  return `<nav class="tabbar">${tabs.map(([r, i, t]) => `
-    <button class="tab ${S.route === r ? 'on' : ''}" onclick="A.go('${r}')">
-      ${ic(i, 21)}${t}
-      ${r === 'cart' && S.cart.length ? `<span class="cartn">${S.cart.length}</span>` : ''}
-    </button>`).join('')}</nav>`;
-}
-
-/* ================= หน้าแรก ================= */
-function homePage() {
-  const todos = buildTodos();
-  const popular = [item('i4'), item('i7'), item('i1')];
-  return `
-  <header class="appbar">
-    <div class="grow">
-      <div class="sub">สวัสดี 👋</div>
-      <h1 class="h1">${DB.user.short}</h1>
-    </div>
-    <button class="iconbtn m-only" onclick="A.openNotif()">${ic('bell', 20)}${unread() ? '<span class="dot"></span>' : ''}</button>
-  </header>
-  <div class="page">
-    <div class="searchbox" onclick="A.goSearch()">
-      ${ic('search', 19)}<input placeholder="ค้นหาอุปกรณ์ ห้อง หรือสนาม…" readonly>
-    </div>
-
-    ${todos.length ? `
-    <div class="sec">
-      <div class="sec-head"><h2 class="h2">ต้องทำตอนนี้</h2><span class="tiny">${todos.length} รายการ</span></div>
-      <div class="todo-scroll">${todos.join('')}</div>
-    </div>` : ''}
-
-    <div class="sec">
-      <div class="sec-head"><h2 class="h2">หมวดหมู่</h2></div>
-      <div class="chiprow">${['ทั้งหมด','อิเล็กทรอนิกส์','เครื่องมือวัด','ห้อง / สถานที่','กีฬา / ชมรม']
-        .map(c => `<button class="chip" onclick="A.pickCat('${c}')">${c}</button>`).join('')}</div>
-    </div>
-
-    <div class="sec">
-      <div class="sec-head"><h2 class="h2">ยืมบ่อยในภาควิชา</h2>
-        <button class="link" onclick="A.go('browse')">ดูทั้งหมด ${ic('chev', 12)}</button></div>
-      <div class="cardgrid">${popular.map(itemCard).join('')}</div>
-    </div>
-  </div>`;
-}
-function buildTodos() {
-  const out = [];
-  myReqs().forEach(r => {
-    const it = item(r.itemId);
-    if (r.status === 'READY') out.push(todoCard('cart', 'b-blue', 'พร้อมรับของ',
-      `${it.name} ×${r.qty}`, `รับที่ ${it.loc} · ภายใน ${fmtD(r.pickupBy)}`,
-      `<button class="btn btn-pri btn-sm" onclick="A.openPickup('${r.id}')">ยืนยันรับของ</button>`));
-    if (r.status === 'IN_USE' && !r.overdue) {
-      const days = Math.ceil((r.due - Date.now()) / 864e5);
-      if (days <= 2) out.push(todoCard('clock', days <= 1 ? 'b-amber' : 'b-gray',
-        days <= 0 ? 'ครบกำหนดวันนี้' : days === 1 ? 'ครบกำหนดพรุ่งนี้' : `ครบกำหนดใน ${days} วัน`,
-        it.name, `คืนก่อน 17:00 น. ที่ ${it.loc}`,
-        `<button class="btn btn-pri btn-sm" onclick="A.openReturn('${r.id}')">คืนของ</button>
-         <button class="btn btn-line btn-sm" onclick="A.openRenew('${r.id}')">ต่ออายุ</button>`));
+    LENDING_UNIT {
+        uuid unit_id PK
+        string name "ภาคคอม / ภาคไฟฟ้า / ชมรม / คณะ"
+        string type "department / club / faculty"
+        time open_time
+        time close_time "เวลาปิดรับคืน (เช่น 17:00)"
     }
-    if (r.status === 'PENDING') out.push(todoCard('doc', 'b-amber', 'รออาจารย์อนุมัติ',
-      it.name, `ส่งคำขอแล้ว · โดยปกติทราบผลภายใน 1 วัน`,
-      `<button class="btn btn-line btn-sm" onclick="A.go('mylist')">ติดตามสถานะ</button>`));
-  });
-  return out;
-}
-function todoCard(icon, badgeCls, badge, title, sub, actions) {
-  return `<div class="card pad todo-card">
-    <div class="row" style="margin-bottom:8px">
-      <span class="badge ${badgeCls}">${badge}</span>
-    </div>
-    <div class="h3">${title}</div>
-    <div class="tiny" style="margin:4px 0 12px">${sub}</div>
-    <div class="row">${actions}</div>
-  </div>`;
-}
-function itemCard(it) {
-  return `<div class="itemcard" onclick="A.openItem('${it.id}')">
-    <div class="thumb">${ic(it.icon, 26, 1.8)}</div>
-    <div style="flex:1;min-width:0">
-      <div class="h3" style="margin-bottom:3px">${it.name}</div>
-      <div class="tiny" style="margin-bottom:7px">${it.cat}</div>
-      <div class="row" style="gap:6px;flex-wrap:wrap">${availText(it)}${tierBadge(it.tier, true)}</div>
-    </div>
-    <div style="align-self:center;color:#b9c4bd">${ic('chev', 16)}</div>
-  </div>`;
-}
-
-/* ================= หน้าอุปกรณ์ (ค้นหา + กรอง) ================= */
-function browsePage() {
-  const cats = ['ทั้งหมด', 'อิเล็กทรอนิกส์', 'เครื่องมือวัด', 'ห้อง / สถานที่', 'กีฬา / ชมรม'];
-  const list = DB.items.filter(it =>
-    (S.cat === 'ทั้งหมด' || it.cat === S.cat) &&
-    (!S.q || it.name.toLowerCase().includes(S.q.toLowerCase())));
-  return `
-  <header class="appbar"><h1 class="h1">อุปกรณ์ทั้งหมด</h1></header>
-  <div class="page">
-    <div class="searchbox">${ic('search', 19)}
-      <input id="q" placeholder="พิมพ์ชื่ออุปกรณ์…" value="${esc(S.q)}"
-        oninput="A.search(this.value)" ${S.q !== '' || S._focusQ ? 'autofocus' : ''}>
-      ${S.q ? `<button class="xbtn" style="width:26px;height:26px" onclick="A.search('')">${ic('x', 13)}</button>` : ''}
-    </div>
-    <div class="chiprow" style="margin-top:12px">${cats.map(c =>
-      `<button class="chip ${S.cat === c ? 'on' : ''}" onclick="A.setCat('${c}')">${c}</button>`).join('')}</div>
-    <div class="cardgrid" style="margin-top:14px">
-      ${list.length ? list.map(itemCard).join('')
-        : `<div class="empty"><div class="thumb gray">${ic('search', 24)}</div>ไม่พบอุปกรณ์ที่ค้นหา<br><span class="tiny">ลองเปลี่ยนคำค้นหรือหมวดหมู่</span></div>`}
-    </div>
-  </div>`;
-}
-/* ================= Sheet dispatcher ================= */
-function sheetView(sh) {
-  const map = {
-    item: itemSheet, pickup: pickupSheet, ret: returnSheet, renew: renewSheet,
-    notif: notifSheet, appeal: appealSheet, assess: assessSheet,
-    notes: notesSheet, addItem: addItemSheet, retDone: retDoneSheet,
-  };
-  return `<div class="sheet-wrap" onclick="if(event.target===this)A.closeSheet()">
-    <div class="sheet">${(map[sh.type] || (() => ''))(sh)}</div></div>`;
-}
-const sheetHead = (title, sub) => `
-  <div class="grab"></div>
-  <div class="sheet-head">
-    <div><h2 class="h2">${title}</h2>${sub ? `<div class="tiny" style="margin-top:2px">${sub}</div>` : ''}</div>
-    <button class="xbtn" onclick="A.closeSheet()">${ic('x', 15)}</button>
-  </div>`;
-
-/* ---------- Sheet: รายละเอียดอุปกรณ์ + ตั้งค่าคำขอยืม ---------- */
-function itemSheet(sh) {
-  const it = item(sh.itemId);
-  const maxDays = creditLevel(DB.user.credit).days;   // เพดานวันตามเครดิต — ใช้เงียบๆ ไม่พูดถึงแต้ม
-  if (it.tier === 3) return roomSheetBody(it);
-  const canNow = it.tier === 2 ? it.serials.some(s => s.free === 0) : it.stock > 0;
-  return `
-  ${sheetHead(it.name, it.cat)}
-  <div class="row" style="margin:10px 0 6px">
-    <div class="thumb big">${ic(it.icon, 32, 1.7)}</div>
-    <div class="vgap" style="gap:6px">${availText(it)}${tierBadge(it.tier)}</div>
-  </div>
-  <p class="sub" style="margin:10px 0 14px">${it.desc}</p>
-
-  <div class="card pad" style="box-shadow:none;background:#fafbf9;margin-bottom:16px">
-    <div class="kv"><span class="tiny">จุดรับ–คืนของ</span><b style="font-size:13px">${it.loc}</b></div>
-    <div class="kv"><span class="tiny">ยืมได้ครั้งละ</span><b style="font-size:13px">สูงสุด ${maxDays} วัน · คืนก่อน 17:00 น.</b></div>
-    <div class="kv"><span class="tiny">การอนุมัติ</span><b style="font-size:13px">${TIER[it.tier].approve}</b></div>
-    ${it.tier === 1 ? `<div class="kv"><span class="tiny">การรับของ</span><b style="font-size:13px">เจ้าหน้าที่เลือกชิ้นที่พร้อมใช้ให้ · ขอเปลี่ยนได้ตอนรับ</b></div>` : ''}
-  </div>
-
-  ${it.tier === 2 ? serialPicker(it, sh) : `
-  <div class="field"><span class="label">จำนวน</span>
-    <div class="qty">
-      <button onclick="A.sheetQty(-1)">−</button><b>${sh.qty}</b><button onclick="A.sheetQty(1)">+</button>
-      <span class="tiny">จากที่ว่าง ${it.stock} ${it.unit}</span>
-    </div>
-  </div>`}
-
-  <div class="field"><span class="label">ระยะเวลายืม</span>
-    <div class="chiprow">${[1, 3, 5, 7, 14].filter(v => v <= maxDays).map(v =>
-      `<button class="chip ${sh.days === v ? 'on' : ''}" onclick="A.sheetDays(${v})">${v} วัน</button>`).join('')}
-    </div>
-    <div class="tiny" style="margin-top:7px">${ic('cal', 12)} รับของ ${fmtD(d(it.tier === 2 ? 2 : 0))} → คืน ${fmtD(d((it.tier === 2 ? 2 : 0) + sh.days))} ก่อน 17:00 น.</div>
-  </div>
-
-  ${it.tier === 2 ? `<div class="notice info" style="margin-bottom:14px">${ic('info', 16)}
-    คำขอนี้จะส่งให้อาจารย์ผู้ดูแลพิจารณา โดยปกติทราบผลภายใน 1 วัน — เราจะแจ้งเตือนทันทีที่มีผล</div>` : ''}
-  ${!canNow ? `<div class="notice warn" style="margin-bottom:14px">${ic('clock', 16)}
-    ตอนนี้ของถูกยืมครบทุกชิ้น สามารถ "จองคิวล่วงหน้า" ได้ — ระบบจะจัดคิวชิ้นที่ว่างเร็วที่สุดให้อัตโนมัติ</div>` : ''}
-
-  <div class="row">
-    <button class="btn btn-soft" style="flex:1" onclick="A.addCart('${it.id}')">${ic('cart', 17)} ใส่ตะกร้า</button>
-    <button class="btn btn-pri" style="flex:1.4" onclick="A.borrowNow('${it.id}')">
-      ${canNow ? 'ส่งคำขอยืม' : 'จองคิวล่วงหน้า'} ${ic('arrow', 17)}</button>
-  </div>`;
-}
-function serialPicker(it, sh) {
-  return `<div class="field"><span class="label">เลือกหมายเลขเครื่อง (Serial)</span>
-    <div class="vgap" style="gap:8px">${it.serials.map(s => `
-      <div class="serial ${sh.sn === s.sn ? 'on' : ''} ${s.free === null ? 'off' : ''}" onclick="A.sheetSn('${s.sn}')">
-        <span style="color:var(--pri)">${ic('scan', 18)}</span>
-        <div style="flex:1">
-          <b style="font-size:14px">${s.sn}</b>
-          <div class="tiny">${s.cond}</div>
-        </div>
-        ${s.free === null ? '<span class="badge b-gray">งดยืม</span>'
-          : s.free === 0 ? '<span class="badge b-green">ว่าง</span>'
-          : `<span class="badge b-amber">ว่าง ${fmtD(d(s.free))}</span>`}
-      </div>`).join('')}
-    </div>
-    <div class="tiny" style="margin-top:7px">${ic('info', 12)} ประวัติสภาพผูกกับหมายเลขเครื่อง เลือกชิ้นที่ตรงกับงานของคุณได้เลย</div>
-  </div>`;
-}
-/* ---------- Sheet: จองห้อง / สถานที่ (T3) ---------- */
-function roomSheetBody(it) {
-  const sh = S.sheet;
-  const slots = ['09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00'];
-  const busy = it.id === 'i9' ? ['10:00', '11:00'] : ['13:00'];
-  return `
-  ${sheetHead(it.name, it.cat)}
-  <div class="row" style="margin:10px 0 6px">
-    <div class="thumb big">${ic(it.icon, 32, 1.7)}</div>
-    <div class="vgap" style="gap:6px">${tierBadge(3)}${it.seats ? `<span class="badge b-gray">${it.seats} ที่นั่ง</span>` : ''}</div>
-  </div>
-  <p class="sub" style="margin:10px 0 14px">${it.desc}</p>
-
-  <div class="field"><span class="label">วันที่ใช้งาน</span>
-    <div class="chiprow">${['วันนี้', 'พรุ่งนี้'].map((t, i) =>
-      `<button class="chip ${((sh.day ?? 0) === i) ? 'on' : ''}" onclick="A.sheetDay(${i})">${t} · ${fmtD(d(i))}</button>`).join('')}</div>
-  </div>
-  <div class="field"><span class="label">เลือกช่วงเวลา (สูงสุด 2 ช่วง)</span>
-    <div class="slotgrid">${slots.map(t => `
-      <button class="slot ${(sh.slots || []).includes(t) ? 'on' : ''} ${busy.includes(t) ? 'off' : ''}"
-        onclick="A.sheetSlot('${t}')">${t}</button>`).join('')}</div>
-    <div class="tiny" style="margin-top:7px">${ic('camera', 12)} ก่อนใช้และหลังใช้ ถ่ายรูปสภาพพื้นที่เก็บไว้ในระบบ — ใช้เวลาไม่ถึงนาที</div>
-  </div>
-  <button class="btn btn-pri btn-block" onclick="A.submitBooking('${it.id}')">ยืนยันการจอง ${ic('check', 17)}</button>`;
-}
-
-/* ================= ตะกร้า (ยืมหลายรายการในคำขอเดียว) ================= */
-function cartPage() {
-  return `
-  <header class="appbar narrow"><h1 class="h1">ตะกร้ายืม</h1></header>
-  <div class="page narrow">
-    ${!S.cart.length ? `
-      <div class="empty">
-        <div class="thumb gray">${ic('cart', 26)}</div>
-        ยังไม่มีของในตะกร้า<br><span class="tiny">เลือกอุปกรณ์หลายชิ้นแล้วส่งคำขอครั้งเดียวได้</span>
-        <div style="margin-top:16px"><button class="btn btn-soft" onclick="A.go('browse')">เลือกอุปกรณ์</button></div>
-      </div>` : `
-      <div class="vgap">
-        ${S.cart.map((c, idx) => {
-          const it = item(c.itemId);
-          return `<div class="card pad row">
-            <div class="thumb">${ic(it.icon, 24, 1.8)}</div>
-            <div style="flex:1;min-width:0">
-              <div class="h3">${it.name}</div>
-              <div class="tiny">${c.sn ? 'เครื่อง ' + c.sn : '×' + c.qty} · ยืม ${c.days} วัน</div>
-              <div style="margin-top:5px">${tierBadge(it.tier, true)}</div>
-            </div>
-            <button class="xbtn" onclick="A.rmCart(${idx})">${ic('x', 14)}</button>
-          </div>`;
-        }).join('')}
-      </div>
-
-      <div class="card pad" style="margin-top:14px">
-        <div class="kv"><span class="tiny">รับของ</span><b style="font-size:13px">${fmtD(d(0))} – ${fmtD(d(1))} (ภายใน 1 วันหลังอนุมัติ)</b></div>
-        <div class="kv"><span class="tiny">การอนุมัติ</span><b style="font-size:13px">${cartApproveSummary()}</b></div>
-      </div>
-      <div class="notice info" style="margin:12px 0 16px">${ic('info', 16)}
-        แต่ละรายการเดินสถานะแยกกัน — รายการที่อนุมัติอัตโนมัติจะพร้อมรับก่อน ไม่ต้องรอกันและกัน</div>
-      <button class="btn btn-pri btn-block" onclick="A.submitCart()">ส่งคำขอยืม ${S.cart.length} รายการ ${ic('send', 17)}</button>`}
-  </div>`;
-}
-function cartApproveSummary() {
-  const auto = S.cart.filter(c => item(c.itemId).tier < 2).length;
-  const sup = S.cart.length - auto;
-  return [auto ? `อัตโนมัติ ${auto} รายการ` : '', sup ? `รออาจารย์ ${sup} รายการ` : ''].filter(Boolean).join(' · ');
-}
-
-/* ================= รายการของฉัน ================= */
-function myListPage() {
-  const segs = ['กำลังดำเนินการ', 'กำลังยืม', 'ประวัติ'];
-  const groups = [
-    r => ['PENDING', 'PREP', 'READY', 'BOOKED'].includes(r.status),
-    r => ['IN_USE', 'INSPECT'].includes(r.status),
-    r => ['DONE', 'REJECTED'].includes(r.status),
-  ];
-  const list = myReqs().filter(groups[S.listSeg]);
-  return `
-  <header class="appbar"><h1 class="h1">รายการของฉัน</h1></header>
-  <div class="page">
-    <div class="seg">${segs.map((t, i) =>
-      `<button class="${S.listSeg === i ? 'on' : ''}" onclick="A.seg(${i})">${t}</button>`).join('')}</div>
-    <div class="cardgrid" style="margin-top:14px">
-      ${list.length ? list.map(reqCard).join('')
-        : `<div class="empty"><div class="thumb gray">${ic('doc', 24)}</div>ไม่มีรายการในหมวดนี้</div>`}
-    </div>
-  </div>`;
-}
-function reqCard(r) {
-  const it = item(r.itemId);
-  return `<div class="card pad">
-    <div class="row" style="align-items:flex-start">
-      <div class="thumb">${ic(it.icon, 24, 1.8)}</div>
-      <div style="flex:1;min-width:0">
-        <div class="row" style="justify-content:space-between;gap:8px">
-          <div class="h3">${it.name}${r.qty > 1 ? ` ×${r.qty}` : ''}</div>${stBadge(r)}
-        </div>
-        <div class="tiny" style="margin-top:3px">
-          ${r.id}${r.sn ? ' · ' + r.sn : ''}${r.slots ? ' · ' + r.slots.join(', ') + ' น.' : ''}
-          · ${fmtD(r.start)} – ${fmtD(r.due)}
-        </div>
-      </div>
-    </div>
-    ${stepper(r.status, it.tier)}
-    ${reqActions(r, it)}
-  </div>`;
-}
-function reqActions(r, it) {
-  const b = [];
-  if (r.status === 'READY') b.push(`<button class="btn btn-pri btn-sm" onclick="A.openPickup('${r.id}')">${ic('camera', 15)} ยืนยันรับของ</button>`);
-  if (r.status === 'BOOKED') b.push(`<button class="btn btn-pri btn-sm" onclick="A.checkin('${r.id}')">${ic('camera', 15)} เช็คอิน + ถ่ายรูปก่อนใช้</button>`);
-  if (r.status === 'IN_USE' && it.tier === 3) b.push(`<button class="btn btn-pri btn-sm" onclick="A.openReturn('${r.id}')">${ic('camera', 15)} คืนพื้นที่</button>`);
-  if (r.status === 'IN_USE' && it.tier !== 3) {
-    b.push(`<button class="btn btn-pri btn-sm" onclick="A.openReturn('${r.id}')">${ic('camera', 15)} คืนของ</button>`);
-    b.push(`<button class="btn btn-line btn-sm" onclick="A.openRenew('${r.id}')">${ic('refresh', 15)} ต่ออายุ</button>`);
-  }
-  if (r.status === 'PENDING') b.push(`<button class="btn btn-line btn-sm" onclick="A.cancelReq('${r.id}')">ยกเลิกคำขอ</button>`);
-  if (r.status === 'DONE' && r.damage) b.push(
-    `<span class="badge b-amber">มีบันทึกความเสียหาย ${r.damage.lv}</span>
-     <button class="btn btn-line btn-sm" onclick="A.openAppeal('${r.id}')">ยื่นอุทธรณ์</button>`);
-  return b.length ? `<div class="row" style="flex-wrap:wrap;gap:8px;margin-top:10px">${b.join('')}</div>` : '';
-}
-
-/* ---------- Sheet: ยืนยันรับของ (ถ่ายรูป = หลักฐานของผู้ยืมเอง) ---------- */
-function pickupSheet(sh) {
-  const r = DB.reqs.find(x => x.id === sh.reqId), it = item(r.itemId);
-  const snapped = S.snaps['pk' + r.id];
-  return `
-  ${sheetHead('ยืนยันรับของ', r.id)}
-  <div class="card pad row" style="box-shadow:none;background:#fafbf9;margin:10px 0 14px">
-    <div class="thumb">${ic(it.icon, 24, 1.8)}</div>
-    <div><div class="h3">${it.name}${r.qty > 1 ? ` ×${r.qty}` : ''}</div>
-      <div class="tiny">หมายเลขเครื่องที่ได้รับ: <b>${r.sn}</b></div></div>
-  </div>
-  <div class="vgap" style="margin-bottom:14px">
-    <div class="row" style="gap:10px"><span class="badge b-green">1</span>
-      <span style="font-size:13.5px">ตรวจว่าหมายเลขบนตัวอุปกรณ์ตรงกับ <b>${r.sn}</b></span></div>
-    <div class="row" style="gap:10px"><span class="badge b-green">2</span>
-      <span style="font-size:13.5px">ถ่ายรูปสภาพอุปกรณ์ตอนรับ — เป็นหลักฐานฝั่งคุณ กันข้อพิพาทตอนคืน</span></div>
-  </div>
-  <div class="photo ${snapped ? 'done' : ''}" onclick="A.snap('pk${r.id}')">
-    ${ic(snapped ? 'check' : 'camera', 26)}
-    <div style="font-weight:800;margin-top:6px">${snapped ? 'ถ่ายรูปแล้ว · IMG_' + r.id + '.jpg' : 'แตะเพื่อถ่ายรูปตอนรับ'}</div>
-    <div class="tiny">${snapped ? 'แตะอีกครั้งเพื่อถ่ายใหม่' : 'ถ่ายให้เห็นตัวเครื่องและหมายเลขชัดเจน'}</div>
-  </div>
-  <button class="btn btn-pri btn-block" style="margin-top:14px" ${snapped ? '' : 'disabled style="margin-top:14px;opacity:.45"'}
-    onclick="A.confirmPickup('${r.id}')">ยืนยันรับของ · เริ่มนับเวลายืม ${ic('check', 17)}</button>`;
-}
-
-/* ---------- Sheet: คืนของ ---------- */
-function returnSheet(sh) {
-  const r = DB.reqs.find(x => x.id === sh.reqId), it = item(r.itemId);
-  const snapped = S.snaps['rt' + r.id];
-  const isRoom = it.tier === 3;
-  return `
-  ${sheetHead(isRoom ? 'คืนพื้นที่' : 'คืนของ', r.id)}
-  <div class="card pad row" style="box-shadow:none;background:#fafbf9;margin:10px 0 14px">
-    <div class="thumb">${ic(it.icon, 24, 1.8)}</div>
-    <div><div class="h3">${it.name}</div>
-      <div class="tiny">${isRoom ? 'ช่วงเวลา ' + (r.slots || []).join(', ') + ' น.' : 'กำหนดคืน ' + fmtD(r.due) + ' ก่อน 17:00 น.'}</div></div>
-  </div>
-  <div class="photo ${snapped ? 'done' : ''}" onclick="A.snap('rt${r.id}')">
-    ${ic(snapped ? 'check' : 'camera', 26)}
-    <div style="font-weight:800;margin-top:6px">${snapped ? 'ถ่ายรูปแล้ว · IMG_' + r.id + 'R.jpg' : (isRoom ? 'ถ่ายรูปสภาพพื้นที่หลังใช้' : 'ถ่ายรูปสภาพของตอนคืน')}</div>
-    <div class="tiny">ระบบจะเก็บคู่กับรูปตอนรับ เพื่อให้การตรวจสภาพโปร่งใส</div>
-  </div>
-  ${isRoom ? '' : `<div class="notice info" style="margin-top:12px">${ic('info', 16)}
-    ส่งของที่ ${it.loc} — เจ้าหน้าที่จะตรวจสภาพและปิดรายการ โดยแจ้งผลให้ทราบในระบบ</div>`}
-  <button class="btn btn-pri btn-block" style="margin-top:14px" ${snapped ? '' : 'disabled style="margin-top:14px;opacity:.45"'}
-    onclick="A.confirmReturn('${r.id}')">${isRoom ? 'ยืนยันคืนพื้นที่' : 'ยืนยันคืนของ'} ${ic('check', 17)}</button>`;
-}
-function retDoneSheet(sh) {
-  return `
-  ${sheetHead('คืนของเรียบร้อย 🎉')}
-  <div style="text-align:center;padding:10px 0 6px">
-    <div class="thumb big" style="margin:0 auto 14px;background:var(--pri-soft)">${ic('check', 34, 2.2)}</div>
-    <p class="sub" style="margin:0 0 4px">ขอบคุณที่คืนตรงเวลา!</p>
-    <p style="font-weight:800;margin:0 0 18px">เจ้าหน้าที่กำลังตรวจสภาพ · แจ้งผลให้ทราบเร็ว ๆ นี้</p>
-    <button class="btn btn-soft btn-block" onclick="A.closeSheet()">เสร็จสิ้น</button>
-  </div>`;
-}
-
-/* ---------- Sheet: ต่ออายุ ---------- */
-function renewSheet(sh) {
-  const r = DB.reqs.find(x => x.id === sh.reqId), it = item(r.itemId);
-  const online = it.tier !== 2 && r.renewLeft > 0;
-  return `
-  ${sheetHead('ต่ออายุการยืม', `${it.name} · ครบกำหนด ${fmtD(r.due)}`)}
-  ${it.tier === 2 ? `
-    <div class="notice info" style="margin:12px 0">${ic('info', 16)}
-      อุปกรณ์นี้ต่ออายุโดยส่งคำขอให้อาจารย์พิจารณา — ระหว่างรอยังใช้งานได้ตามกำหนดเดิม</div>
-    <button class="btn btn-pri btn-block" onclick="A.doRenew('${r.id}', 'sup')">ส่งคำขอต่ออายุถึงอาจารย์ ${ic('send', 16)}</button>`
-  : online ? `
-    <div class="card pad" style="box-shadow:none;background:#fafbf9;margin:12px 0">
-      <div class="kv"><span class="tiny">ต่อออนไลน์ได้อีก</span><b>${r.renewLeft} ครั้ง</b></div>
-      <div class="kv"><span class="tiny">กำหนดคืนใหม่</span><b>${fmtD(new Date(+r.due + 7 * 864e5))} ก่อน 17:00 น.</b></div>
-    </div>
-    <div class="tiny" style="margin-bottom:14px">${ic('info', 12)} ครั้งถัดไปต้องนำอุปกรณ์มาให้เจ้าหน้าที่ตรวจสภาพก่อน จึงต่อออนไลน์ได้อีก</div>
-    <button class="btn btn-pri btn-block" onclick="A.doRenew('${r.id}', 'online')">ต่ออายุ +7 วัน ${ic('refresh', 16)}</button>`
-  : `
-    <div class="notice warn" style="margin:12px 0">${ic('info', 16)}
-      สิทธิ์ต่อออนไลน์รอบนี้ถูกใช้แล้ว — นำอุปกรณ์มาให้เจ้าหน้าที่ตรวจสภาพที่ ${it.loc} เพื่อต่ออายุครั้งถัดไป</div>
-    <button class="btn btn-soft btn-block" onclick="A.closeSheet()">รับทราบ</button>`}`;
-}
-
-/* ---------- Sheet: การแจ้งเตือน ---------- */
-function notifSheet() {
-  return `
-  ${sheetHead('การแจ้งเตือน')}
-  <div class="vgap" style="margin-top:8px">
-    ${DB.notifs.map(n => `
-      <div class="row" style="align-items:flex-start;padding:4px 0">
-        <div class="thumb" style="width:40px;height:40px;border-radius:12px;${n.unread ? '' : 'background:#eef1ee;color:var(--mut)'}">${ic(n.icon, 18)}</div>
-        <div style="flex:1">
-          <div style="font-size:13.5px;${n.unread ? 'font-weight:700' : 'color:var(--mut)'}">${n.txt}</div>
-          <div class="tiny">${fmtDY(n.at)}</div>
-        </div>
-      </div>`).join('')}
-  </div>`;
-}
-
-/* ---------- Sheet: ยื่นอุทธรณ์ (เข้าถึงจากประวัติ/โปรไฟล์เท่านั้น) ---------- */
-function appealSheet(sh) {
-  const r = DB.reqs.find(x => x.id === sh.reqId), it = item(r.itemId);
-  const snapped = S.snaps['ap' + r.id];
-  return `
-  ${sheetHead('ยื่นอุทธรณ์ผลตรวจสภาพ', `${it.name} · ${r.id}`)}
-  <div class="photo-cmp" style="margin:12px 0">
-    <div class="ph">${ic('image', 20)}<br>รูปตอนรับ<br><b style="color:var(--ink)">IMG_${r.id}.jpg</b></div>
-    <div class="ph">${ic('image', 20)}<br>รูปตอนคืน<br><b style="color:var(--ink)">IMG_${r.id}R.jpg</b></div>
-  </div>
-  <div class="kv" style="margin-bottom:10px"><span class="tiny">ผลประเมินโดยเจ้าหน้าที่</span>
-    <span class="badge b-amber">${r.damage?.lv} · ${DMG.find(x => x.lv === r.damage?.lv)?.name || ''}</span></div>
-  <div class="field"><span class="label">สิ่งที่ต้องการโต้แย้ง</span>
-    <textarea class="input" id="appeal-reason" placeholder="อธิบายเหตุผล เช่น ร่องรอยนี้มีมาก่อนรับของ…"></textarea></div>
-  <div class="photo ${snapped ? 'done' : ''}" onclick="A.snap('ap${r.id}')" style="margin-bottom:14px">
-    ${ic(snapped ? 'check' : 'image', 22)}
-    <div style="font-weight:800;margin-top:4px">${snapped ? 'แนบหลักฐานแล้ว' : 'แนบรูป/หลักฐานเพิ่มเติม (ถ้ามี)'}</div>
-  </div>
-  <div class="tiny" style="margin-bottom:12px">${ic('shield', 12)} อาจารย์ผู้ตัดสินไม่ใช่คนเดียวกับผู้ประเมิน — เพื่อความเป็นธรรมกับทุกฝ่าย</div>
-  <button class="btn btn-pri btn-block" onclick="A.submitAppeal('${r.id}')">ส่งคำอุทธรณ์ ${ic('send', 16)}</button>`;
-}
-
-/* ================= โปรไฟล์ (ที่อยู่ของเรื่องแต้ม/เครดิต ทั้งหมด) ================= */
-function profilePage() {
-  const u = DB.user, lv = creditLevel(u.credit);
-  const active = myReqs().filter(r => ['IN_USE'].includes(r.status)).length;
-  const wait = myReqs().filter(r => ['PENDING', 'PREP', 'READY', 'BOOKED'].includes(r.status)).length;
-  const myAppeals = DB.appeals;
-  return `
-  <header class="appbar narrow"><h1 class="h1">โปรไฟล์</h1></header>
-  <div class="page narrow">
-    <div class="card pad row" style="margin-bottom:14px">
-      <div class="avatar">${u.short[0]}</div>
-      <div style="flex:1">
-        <div class="h3">${u.name}</div>
-        <div class="tiny">${u.sid} · ${u.faculty}</div>
-        <div class="tiny">${u.email}</div>
-      </div>
-    </div>
-
-    <div class="grid2" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
-      <div class="card pad" style="text-align:center;cursor:pointer" onclick="A.go('mylist')">
-        <div class="h1" style="color:var(--pri)">${active}</div><div class="tiny">กำลังยืมอยู่</div></div>
-      <div class="card pad" style="text-align:center;cursor:pointer" onclick="A.go('mylist')">
-        <div class="h1" style="color:var(--blue)">${wait}</div><div class="tiny">รอดำเนินการ</div></div>
-    </div>
-
-    <div class="vgap">
-      <!-- เครดิต: อยู่ที่นี่ที่เดียว โทนเป็นกลาง ไม่ขู่ผู้ใช้ -->
-      <details class="acc">
-        <summary>
-          <span class="row" style="gap:10px">${ic('shield', 19)} สถานะสิทธิ์การยืมของฉัน</span>
-          <span class="badge ${u.credit >= 80 ? 'b-green' : u.credit >= 50 ? 'b-amber' : 'b-red'}">${lv.name} (${lv.lv})</span>
-        </summary>
-        <div class="acc-body">
-          <div class="row" style="justify-content:space-between;margin-bottom:6px">
-            <span class="tiny">คะแนนความน่าเชื่อถือ</span><b>${u.credit} / 100</b></div>
-          <div class="creditbar"><i style="width:${u.credit}%"></i></div>
-          <p class="tiny" style="margin:10px 0 4px">${lv.note}</p>
-          <p class="tiny" style="margin:0 0 12px">ระยะยืมสูงสุดของคุณตอนนี้: <b>${lv.days} วัน</b> ต่อรอบ</p>
-          <hr class="hr">
-          <div class="label">ความเคลื่อนไหวล่าสุด</div>
-          ${DB.creditLog.map(l => `
-            <div class="logrow"><span>${l.txt}<br><span class="tiny">${fmtDY(l.at)}</span></span>
-              <b style="color:${l.v < 0 ? 'var(--red)' : 'var(--pri)'}">${l.v > 0 ? '+' : ''}${l.v}</b></div>`).join('')}
-          <p class="tiny" style="margin-top:10px">${ic('info', 12)} คะแนนใช้เพื่อความโปร่งใสในการดูแลอุปกรณ์ส่วนกลาง
-            บทลงโทษมีอายุจำกัดและคะแนนจะฟื้นกลับอัตโนมัติเมื่อครบกำหนด</p>
-        </div>
-      </details>
-
-      <details class="acc">
-        <summary><span class="row" style="gap:10px">${ic('doc', 19)} การอุทธรณ์ของฉัน</span>
-          ${myAppeals.length ? `<span class="badge b-amber">${myAppeals.length} เรื่อง</span>` : '<span class="tiny">ไม่มี</span>'}</summary>
-        <div class="acc-body">
-          ${myAppeals.length ? myAppeals.map(a => {
-            const r = DB.reqs.find(x => x.id === a.reqId), it = item(r.itemId);
-            return `<div class="logrow">
-              <span><b>${a.id}</b> · ${it.name} (ผล ${a.staffLv})<br>
-                <span class="tiny">"${a.reason}"</span></span>
-              <span class="badge ${a.status === 'PENDING' ? 'b-amber' : a.status === 'APPROVED' ? 'b-green' : 'b-gray'}">
-                ${a.status === 'PENDING' ? 'รอพิจารณา' : a.status === 'APPROVED' ? 'อนุมัติ · คืนคะแนนแล้ว' : 'ยืนตามเดิม'}</span>
-            </div>`;
-          }).join('') : '<p class="tiny">หากไม่เห็นด้วยกับผลตรวจสภาพ สามารถยื่นอุทธรณ์ได้จากรายการในหน้า "ประวัติ"</p>'}
-        </div>
-      </details>
-
-      <details class="acc">
-        <summary><span class="row" style="gap:10px">${ic('clock', 19)} ประวัติการยืมทั้งหมด</span>${ic('chev', 15)}</summary>
-        <div class="acc-body">
-          ${myReqs().filter(r => r.status === 'DONE').map(r => {
-            const it = item(r.itemId);
-            return `<div class="logrow"><span>${it.name}<br>
-              <span class="tiny">${r.id} · ${fmtD(r.start)} – ${fmtD(r.due)}</span></span>
-              ${r.damage ? `<span class="badge b-amber">${r.damage.lv}</span>` : `<span class="badge b-green">ปกติ</span>`}</div>`;
-          }).join('')}
-        </div>
-      </details>
-
-      <details class="acc">
-        <summary><span class="row" style="gap:10px">${ic('bell', 19)} การแจ้งเตือน</span>${ic('chev', 15)}</summary>
-        <div class="acc-body vgap">
-          ${[['แจ้งก่อนครบกำหนดคืน (ล่วงหน้า 1 วัน)', true], ['ผลการอนุมัติคำขอ', true], ['ผลตรวจสภาพหลังคืน', true], ['ข่าวสารจากชมรม/ภาควิชา', false]]
-            .map(([t, on], i) => `<div class="row" style="justify-content:space-between">
-              <span style="font-size:13.5px">${t}</span>
-              <button class="switch ${on ? 'on' : ''}" onclick="this.classList.toggle('on')"></button></div>`).join('')}
-        </div>
-      </details>
-
-      <button class="btn btn-line btn-block" onclick="A.logout()" style="color:var(--red)">${ic('logout', 17)} ออกจากระบบ</button>
-    </div>
-  </div>`;
-}
-/* ================= Console (Staff / อาจารย์ / Admin) ================= */
-const ROLE_META = {
-  staff:      { name: 'เจ้าหน้าที่ (Staff)', tabs: ['งานวันนี้', 'ตรวจรับคืน', 'คลังอุปกรณ์'], icons: ['clock', 'shield', 'box'] },
-  supervisor: { name: 'อาจารย์ (Supervisor)', tabs: ['คำขอรออนุมัติ', 'อุทธรณ์'], icons: ['doc', 'shield'] },
-  admin:      { name: 'ผู้ดูแลระบบ (Admin)', tabs: ['ภาพรวม', 'ผู้ใช้งาน', 'ตั้งค่าระบบ'], icons: ['grid', 'users', 'sliders'] },
-};
-function consoleShell() {
-  const m = ROLE_META[S.role];
-  const counts = consoleCounts();
-  const body = {
-    staff:      [staffToday, staffInspect, staffInventory],
-    supervisor: [supApprovals, supAppeals],
-    admin:      [adminOverview, adminUsers, adminSettings],
-  }[S.role][S.ctab]();
-  return `
-  <div class="cshell">
-    <div class="ctop"><div class="ctop-in">
-      <div class="clogo"><span class="m">${ic('box', 18)}</span> ULMs <span class="tiny" style="font-weight:700">· ${m.name}</span></div>
-      <div class="ctabs">${m.tabs.map((t, i) => `
-        <button class="ctab ${S.ctab === i ? 'on' : ''}" onclick="A.ctab(${i})">${ic(m.icons[i], 16)} ${t}
-          ${counts[i] ? `<span class="n">${counts[i]}</span>` : ''}</button>`).join('')}</div>
-      <span class="badge b-gray">${fmtDY(d(0))}</span>
-    </div></div>
-    <div class="cbody">${body}</div>
-  </div>`;
-}
-function consoleCounts() {
-  if (S.role === 'staff') return [
-    DB.reqs.filter(r => r.status === 'PREP').length + DB.reqs.filter(r => r.overdue && r.status === 'IN_USE').length,
-    DB.reqs.filter(r => r.status === 'INSPECT').length, 0];
-  if (S.role === 'supervisor') return [
-    DB.reqs.filter(r => r.status === 'PENDING').length,
-    DB.appeals.filter(a => a.status === 'PENDING').length];
-  return [0, 0, 0];
-}
-
-/* ---------- Staff: งานวันนี้ ---------- */
-function staffToday() {
-  const prep = DB.reqs.filter(r => r.status === 'PREP');
-  const ready = DB.reqs.filter(r => r.status === 'READY');
-  const overdue = DB.reqs.filter(r => r.overdue && r.status === 'IN_USE');
-  const stat = (n, t, c) => `<div class="card pad stat"><div class="n" style="color:${c}">${n}</div><div class="tiny">${t}</div></div>`;
-  return `
-  <div class="grid4">
-    ${stat(prep.length, 'รอเตรียมของ', 'var(--blue)')}
-    ${stat(ready.length, 'นัดรับของวันนี้', 'var(--pri)')}
-    ${stat(DB.reqs.filter(r => r.status === 'INSPECT').length, 'รอตรวจสภาพ', 'var(--amber)')}
-    ${stat(overdue.length, 'เกินกำหนด', 'var(--red)')}
-  </div>
-  <div class="grid2">
-    <div class="card pad">
-      <div class="sec-head"><h3 class="h2">คิวเตรียมของ</h3><span class="badge b-blue">${prep.length} รายการ</span></div>
-      <div class="vgap">${prep.length ? prep.map(r => {
-        const it = item(r.itemId);
-        return `<div class="card pad" style="box-shadow:none;background:#fafbf9">
-          <div class="row" style="justify-content:space-between">
-            <div><b>${it.name}</b> ×${r.qty}<div class="tiny">${r.id} · ผู้ยืม: ${r.owner} · รับ ${fmtD(r.start)}</div></div>
-            <button class="btn btn-pri btn-sm" onclick="A.staffPrep('${r.id}')">${ic('scan', 14)} เลือกชิ้น + พร้อมส่งมอบ</button>
-          </div></div>`;
-      }).join('') : '<p class="tiny">ไม่มีคิวค้าง 🎉</p>'}</div>
-    </div>
-    <div class="card pad">
-      <div class="sec-head"><h3 class="h2">นัดรับของ / เกินกำหนด</h3></div>
-      <div class="vgap">
-        ${ready.map(r => {
-          const it = item(r.itemId);
-          return `<div class="row" style="justify-content:space-between;padding:6px 0;border-bottom:1px dashed var(--line)">
-            <div><b>${it.name}</b> ×${r.qty} — ${r.owner === 'me' ? DB.user.name : r.owner}
-              <div class="tiny">${r.id} · ${r.sn} · รับภายใน ${fmtD(r.pickupBy || r.start)} มิฉะนั้นระบบยกเลิกอัตโนมัติ</div></div>
-            <span class="badge b-blue">รอผู้ยืมกดยืนยัน</span></div>`;
-        }).join('')}
-        ${overdue.map(r => {
-          const it = item(r.itemId);
-          return `<div class="row" style="justify-content:space-between;padding:6px 0">
-            <div><b>${it.name}</b> — ${r.owner}
-              <div class="tiny">${r.id} · เกินกำหนด ${Math.ceil((Date.now() - r.due) / 864e5)} วัน (ครบ ${fmtD(r.due)})</div></div>
-            <button class="btn btn-line btn-sm" onclick="A.toast('ส่งอีเมล + แจ้งเตือนในแอปถึงผู้ยืมแล้ว')">${ic('bell', 14)} แจ้งเตือน</button></div>`;
-        }).join('')}
-      </div>
-    </div>
-  </div>`;
-}
-
-/* ---------- Staff: ตรวจรับคืน ---------- */
-function staffInspect() {
-  const q = DB.reqs.filter(r => r.status === 'INSPECT');
-  return `
-  <div class="card pad">
-    <div class="sec-head"><h3 class="h2">รอตรวจสภาพหลังคืน</h3>
-      <span class="tiny">ผู้ตรวจต้องไม่ใช่ผู้เตรียมของชิ้นเดียวกัน (T2)</span></div>
-    <div class="vgap">${q.length ? q.map(r => {
-      const it = item(r.itemId);
-      return `<div class="card pad row" style="box-shadow:none;background:#fafbf9;justify-content:space-between">
-        <div class="row"><div class="thumb">${ic(it.icon, 22, 1.8)}</div>
-          <div><b>${it.name}</b><div class="tiny">${r.id} · ${r.sn} · ผู้ยืม: ${r.owner === 'me' ? DB.user.name : r.owner} · คืนวันนี้</div></div></div>
-        <button class="btn btn-pri btn-sm" onclick="A.openAssess('${r.id}')">${ic('eye', 14)} ตรวจสภาพ</button>
-      </div>`;
-    }).join('') : '<p class="tiny">ไม่มีรายการรอตรวจ</p>'}</div>
-  </div>`;
-}
-
-/* ---------- Sheet: ประเมินสภาพ (Staff) ---------- */
-function assessSheet(sh) {
-  const r = DB.reqs.find(x => x.id === sh.reqId), it = item(r.itemId);
-  const w = TIER[it.tier].credit;
-  const sel = sh.dmg ?? 'B0';
-  const dm = DMG.find(x => x.lv === sel);
-  const dis = w * dm.w;
-  return `
-  ${sheetHead('ประเมินสภาพของคืน', `${it.name} · ${r.sn} · ${r.id}`)}
-  <div class="photo-cmp" style="margin:12px 0">
-    <div class="ph">${ic('image', 20)}<br>รูปตอนรับ</div>
-    <div class="ph">${ic('image', 20)}<br>รูปตอนคืน</div>
-  </div>
-  <div class="field"><span class="label">ระดับความเสียหาย</span>
-    <div class="vgap" style="gap:8px">${DMG.map(x => `
-      <div class="serial ${sel === x.lv ? 'on' : ''}" onclick="A.pickDmg('${x.lv}')">
-        <b style="min-width:26px">${x.lv}</b>
-        <div style="flex:1;font-size:13.5px">${x.name}</div>
-        <span class="tiny">น้ำหนัก ${x.w}</span>
-      </div>`).join('')}</div>
-  </div>
-  <div class="card pad" style="box-shadow:none;background:#fafbf9;margin-bottom:14px">
-    <div class="kv"><span class="tiny">discredit = เครดิตอุปกรณ์ (${w}) × น้ำหนัก (${dm.w})</span><b style="color:${dis ? 'var(--red)' : 'var(--pri)'}">${dis ? '−' + dis + ' คะแนน' : 'ไม่หักคะแนน'}</b></div>
-    ${dis ? `<div class="kv"><span class="tiny">อายุบทลงโทษ (discredit × 2)</span><b>${dis * 2} วัน</b></div>` : ''}
-    <div class="tiny" style="margin-top:4px">${ic('info', 12)} ผลจะบันทึกเข้าประวัติหมายเลข ${r.sn} และแจ้งผู้ยืมพร้อมสิทธิ์อุทธรณ์</div>
-  </div>
-  <button class="btn btn-pri btn-block" onclick="A.confirmAssess('${r.id}')">บันทึกผลตรวจ + ปิดรายการ ${ic('check', 16)}</button>`;
-}
-
-/* ---------- Staff: คลังอุปกรณ์ ---------- */
-function staffInventory() {
-  return `
-  <div class="card pad">
-    <div class="sec-head"><h3 class="h2">คลังอุปกรณ์</h3>
-      <button class="btn btn-pri btn-sm" onclick="A.openAddItem()">${ic('plus', 15)} ลงทะเบียนอุปกรณ์</button></div>
-    <div style="overflow-x:auto"><table class="table">
-      <tr><th>อุปกรณ์</th><th>ระดับ</th><th>คงเหลือ / ทั้งหมด</th><th>จุดรับ–คืน</th><th>สถานะ</th></tr>
-      ${DB.items.map(it => `<tr>
-        <td><b>${it.name}</b><div class="tiny">${it.cat}</div></td>
-        <td>${tierBadge(it.tier, true)}</td>
-        <td>${it.tier === 3 ? (it.seats ? it.seats + ' ที่นั่ง' : 'ตามสล็อต')
-            : it.tier === 2 ? it.serials.filter(s => s.free === 0).length + ' / ' + it.serials.length + ' เครื่อง'
-            : (it.stock ?? 0) + (it.total ? ' / ' + it.total : '') + ' ' + it.unit}</td>
-        <td class="tiny">${it.loc}</td>
-        <td><select class="input" style="padding:7px 10px;border-radius:10px;font-size:12.5px;width:auto"
-              onchange="A.toast('เปลี่ยนสถานะ ${esc(it.name)} เป็น: ' + this.value + ' (หลุดจากคิวยืม/จองทันที)')">
-            <option>พร้อมให้ยืม</option><option>งดยืมชั่วคราว</option><option>ส่งซ่อมบำรุง</option></select></td>
-      </tr>`).join('')}
-    </table></div>
-  </div>`;
-}
-function addItemSheet() {
-  return `
-  ${sheetHead('ลงทะเบียนอุปกรณ์ใหม่', 'ระบบจะจัดระดับ (Tier) จากราคาให้อัตโนมัติ')}
-  <div class="field"><span class="label">ชื่ออุปกรณ์ / สถานที่</span><input class="input" placeholder="เช่น Raspberry Pi 5"></div>
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-    <div class="field"><span class="label">ราคาประมาณ (บาท)</span><input class="input" type="number" placeholder="890"></div>
-    <div class="field"><span class="label">วันจัดเตรียมของ (prep)</span><input class="input" type="number" value="1"></div>
-  </div>
-  <div class="notice info" style="margin-bottom:12px">${ic('info', 15)}
-    &lt;100 → T0 · ≤1,000 → T1 · &gt;1,000 → T2 (ผูก Serial รายชิ้น) · สถานที่ → T3 (ตั้งสล็อตเวลา)</div>
-  <div class="field"><span class="label">จำนวน หรือรายการ Serial Number</span><input class="input" placeholder="เช่น RPI-01, RPI-02, RPI-03"></div>
-  <div class="field"><span class="label">สิทธิ์การเข้าใช้ (ชั้นปี / วิชา / สาขา)</span><input class="input" placeholder="เช่น ปี 2 ขึ้นไป · วิชา 01204223"></div>
-  <button class="btn btn-pri btn-block" onclick="A.toast('บันทึกอุปกรณ์ใหม่แล้ว (เดโม)'); A.closeSheet()">บันทึก ${ic('check', 16)}</button>`;
-}
-
-/* ---------- Supervisor: คำขอรออนุมัติ ---------- */
-function supApprovals() {
-  const q = DB.reqs.filter(r => r.status === 'PENDING');
-  return `
-  <div class="notice info">${ic('shield', 17)} ผู้อนุมัติต้องไม่ใช่ผู้ขอ — ทุกการตัดสินใจถูกบันทึกใน Audit Log อัตโนมัติ</div>
-  <div class="grid2">
-    ${q.length ? q.map(r => {
-      const it = item(r.itemId);
-      const isMe = r.owner === 'me';
-      const credit = isMe ? DB.user.credit : (r.ownerCredit ?? 88);
-      const lv = creditLevel(credit);
-      const sn = it.serials?.find(s => s.sn === r.sn);
-      return `<div class="card pad">
-        <div class="row" style="justify-content:space-between;margin-bottom:8px">
-          <b>${r.id}</b>
-          <span class="badge ${r.lowCredit ? 'b-amber' : 'b-blue'}">${r.lowCredit ? 'เครดิตต่ำ ยืม T1 — ต้องอาจารย์อนุมัติ' : 'อุปกรณ์มูลค่าสูง (T2)'}</span>
-        </div>
-        <div class="row" style="margin-bottom:10px"><div class="thumb">${ic(it.icon, 22, 1.8)}</div>
-          <div><b>${it.name}</b>${r.sn ? ` · ${r.sn}` : ''} ×${r.qty}
-            <div class="tiny">${fmtD(r.start)} – ${fmtD(r.due)} (${Math.round((r.due - r.start) / 864e5)} วัน)</div></div></div>
-        <div class="card pad" style="box-shadow:none;background:#fafbf9;margin-bottom:12px">
-          <div class="kv"><span class="tiny">ผู้ขอ</span><b>${isMe ? DB.user.name : r.owner}</b></div>
-          <div class="kv"><span class="tiny">เครดิต</span><b>${credit}/100 · ${lv.name} (${lv.lv})</b></div>
-          <div class="kv"><span class="tiny">ประวัติผู้ขอ</span><b>ยืม 12 ครั้ง · คืนช้า 1 · เสียหาย ${isMe ? '1 (B1 อยู่ระหว่างอุทธรณ์)' : '0'}</b></div>
-          ${sn ? `<div class="kv"><span class="tiny">ประวัติเครื่อง ${sn.sn}</span><b>${sn.cond}</b></div>` : ''}
-        </div>
-        <div class="row">
-          <button class="btn btn-danger btn-sm" style="flex:1" onclick="A.supReject('${r.id}')">ปฏิเสธ</button>
-          <button class="btn btn-pri btn-sm" style="flex:2" onclick="A.supApprove('${r.id}')">${ic('check', 15)} อนุมัติ</button>
-        </div>
-      </div>`;
-    }).join('') : '<div class="card pad empty">ไม่มีคำขอค้างพิจารณา 🎉</div>'}
-  </div>`;
-}
-
-/* ---------- Supervisor: อุทธรณ์ ---------- */
-function supAppeals() {
-  const q = DB.appeals.filter(a => a.status === 'PENDING');
-  return `
-  <div class="notice info">${ic('shield', 17)} ผู้ตัดสินอุทธรณ์ต้องไม่ใช่ผู้ประเมินความเสียหาย</div>
-  <div class="grid2">
-    ${q.length ? q.map(a => {
-      const r = DB.reqs.find(x => x.id === a.reqId), it = item(r.itemId);
-      return `<div class="card pad">
-        <div class="row" style="justify-content:space-between;margin-bottom:8px">
-          <b>${a.id}</b><span class="badge b-amber">รอพิจารณา</span></div>
-        <div style="margin-bottom:10px"><b>${it.name}</b> · ${r.sn} · ${r.id}
-          <div class="tiny">ผลประเมินโดย Staff: <b>${a.staffLv}</b> (−${TIER[item(r.itemId).tier].credit * DMG.find(x => x.lv === a.staffLv).w} คะแนน)</div></div>
-        <div class="photo-cmp" style="margin-bottom:10px">
-          <div class="ph">${ic('image', 18)}<br>รูปตอนรับ</div>
-          <div class="ph">${ic('image', 18)}<br>รูปตอนคืน</div></div>
-        <div class="notice warn" style="margin-bottom:12px">${ic('doc', 15)} ข้อโต้แย้งผู้ยืม: "${a.reason}"</div>
-        <div class="row">
-          <button class="btn btn-line btn-sm" style="flex:1" onclick="A.supAppealDecide('${a.id}', false)">ยืนผลเดิม</button>
-          <button class="btn btn-pri btn-sm" style="flex:1.6" onclick="A.supAppealDecide('${a.id}', true)">${ic('check', 15)} รับอุทธรณ์ · ปรับเป็น B0 คืนคะแนน</button>
-        </div>
-      </div>`;
-    }).join('') : '<div class="card pad empty">ไม่มีอุทธรณ์ค้างพิจารณา</div>'}
-  </div>`;
-}
-
-/* ---------- Admin ---------- */
-function adminOverview() {
-  const weeks = [['สัปดาห์ 1', 18], ['สัปดาห์ 2', 24], ['สัปดาห์ 3', 31], ['สัปดาห์ 4', 28]];
-  const mx = 31;
-  const stat = (n, t, c) => `<div class="card pad stat"><div class="n" style="color:${c}">${n}</div><div class="tiny">${t}</div></div>`;
-  return `
-  <div class="grid4">
-    ${stat('128', 'รายการยืมเดือนนี้', 'var(--pri)')}
-    ${stat('92%', 'คืนตรงเวลา', 'var(--blue)')}
-    ${stat('4', 'รายงานความเสียหาย', 'var(--amber)')}
-    ${stat('2', 'อยู่ระหว่างซ่อมบำรุง', 'var(--red)')}
-  </div>
-  <div class="grid2">
-    <div class="card pad">
-      <h3 class="h2" style="margin-bottom:14px">จำนวนการยืมรายสัปดาห์</h3>
-      <div class="vgap">${weeks.map(([t, v]) => `
-        <div class="bar"><span class="tk">${t}</span><i style="width:${v / mx * 82}%"></i><b style="font-size:12.5px">${v}</b></div>`).join('')}</div>
-      <p class="tiny" style="margin-top:12px">${ic('info', 12)} ใช้วางแผนจัดซื้อ: Arduino และมัลติมิเตอร์คือกลุ่มที่คิวเต็มบ่อยที่สุด</p>
-    </div>
-    <div class="card pad">
-      <h3 class="h2" style="margin-bottom:14px">อุปกรณ์ยอดนิยม</h3>
-      <div class="vgap">${[['Arduino UNO R3', 42, 'chip'], ['มัลติมิเตอร์ดิจิทัล', 35, 'meter'], ['ห้องปฏิบัติการ 7603', 28, 'room'], ['ออสซิลโลสโคป', 12, 'scope']]
-        .map(([n, v, i]) => `<div class="row" style="justify-content:space-between;padding:4px 0">
-          <span class="row" style="gap:10px"><span class="thumb" style="width:38px;height:38px;border-radius:11px">${ic(i, 18, 1.8)}</span><b style="font-size:13.5px">${n}</b></span>
-          <span class="tiny">${v} ครั้ง</span></div>`).join('')}</div>
-    </div>
-  </div>`;
-}
-function adminUsers() {
-  const users = [
-    [DB.user.name, DB.user.sid, 'ผู้ยืม', 92, 'ปกติ'],
-    ['ณิชา พิมพ์ใจ', '6710503xxx', 'ผู้ยืม', 96, 'ปกติ'],
-    ['กานต์ วารี', '6610502xxx', 'ผู้ยืม', 42, 'เฝ้าระวัง'],
-    ['พี่โอ๊ต (E-Club)', 'staff-014', 'Staff', '—', 'ปกติ'],
-    ['อ.ปรีดา เลิศพงศ์วิภูษณะ', 'plw@ku.ac.th', 'อาจารย์', '—', 'ปกติ'],
-  ];
-  return `
-  <div class="card pad">
-    <div class="sec-head"><h3 class="h2">บัญชีผู้ใช้</h3>
-      <div class="searchbox" style="padding:8px 13px;width:260px">${ic('search', 16)}<input placeholder="ค้นหาชื่อ / รหัสนิสิต…"></div></div>
-    <div style="overflow-x:auto"><table class="table">
-      <tr><th>ชื่อ</th><th>รหัส / อีเมล</th><th>บทบาท</th><th>เครดิต</th><th>สถานะ</th><th></th></tr>
-      ${users.map(([n, id, role, cr, st]) => `<tr>
-        <td><b>${n}</b></td><td class="tiny">${id}</td>
-        <td><select class="input" style="padding:7px 10px;border-radius:10px;font-size:12.5px;width:auto"
-              onchange="A.toast('เปลี่ยนบทบาท ${n} → ' + this.value + ' · บันทึก Audit Log แล้ว')">
-            ${['ผู้ยืม', 'Staff', 'อาจารย์', 'Admin'].map(x => `<option ${x === role ? 'selected' : ''}>${x}</option>`).join('')}</select></td>
-        <td>${cr}</td>
-        <td><span class="badge ${st === 'ปกติ' ? 'b-green' : 'b-amber'}">${st}</span></td>
-        <td><button class="btn btn-line btn-sm" onclick="A.toast('ระงับบัญชีชั่วคราวแล้ว (เดโม)')">ระงับ</button></td>
-      </tr>`).join('')}
-    </table></div>
-  </div>`;
-}
-function adminSettings() {
-  const num = (l, v, unit) => `<div class="field"><span class="label">${l}</span>
-    <div class="row"><input class="input" type="number" value="${v}" style="width:110px"><span class="tiny">${unit}</span></div></div>`;
-  return `
-  <div class="grid2">
-    <div class="card pad">
-      <h3 class="h2" style="margin-bottom:14px">กติกาการยืม</h3>
-      ${num('ระยะยืมสูงสุดต่อรอบ', 14, 'วัน')}
-      ${num('รับของภายใน (หลังอนุมัติ)', 1, 'วัน — เกินกำหนดระบบยกเลิกและคืนคิวอัตโนมัติ')}
-      ${num('เวลาคืนของภายใน', 17, ':00 น. ของวันครบกำหนด')}
-      ${num('จองล่วงหน้าได้ไม่เกิน', 3, 'เดือน (ไม่เกินวันสิ้นภาคเรียน)')}
-      ${num('ถือว่าสูญหายเมื่อเกินกำหนด', 14, 'วัน')}
-    </div>
-    <div class="card pad">
-      <h3 class="h2" style="margin-bottom:14px">ระบบเครดิต & แจ้งเตือน</h3>
-      ${num('ตัวคูณอายุบทลงโทษ (discredit ×)', 2, 'วัน')}
-      <div class="field"><span class="label">ระยะยืมตามระดับเครดิต (D0 / D1 / D2 / D3)</span>
-        <div class="row">${[14, 7, 7, 5].map(v => `<input class="input" type="number" value="${v}" style="width:64px">`).join('')}<span class="tiny">วัน</span></div></div>
-      <hr class="hr">
-      ${[['แจ้งเตือนก่อนครบกำหนดคืน (อีเมล + ในแอป)', true], ['แจ้งเตือนคำขอค้างพิจารณาถึงอาจารย์', true], ['สรุปรายงานรายสัปดาห์ถึง Staff', false]]
-        .map(([t, on]) => `<div class="row" style="justify-content:space-between;padding:6px 0">
-          <span style="font-size:13.5px">${t}</span><button class="switch ${on ? 'on' : ''}" onclick="this.classList.toggle('on')"></button></div>`).join('')}
-      <button class="btn btn-pri btn-block" style="margin-top:14px" onclick="A.toast('บันทึกการตั้งค่าแล้ว · มีผลกับคำขอใหม่ทันที')">บันทึกการตั้งค่า</button>
-    </div>
-  </div>`;
-}
-
-/* ---------- Sheet: UX Design Notes ---------- */
-function notesSheet() {
-  const li = (t, s) => `<div style="margin-bottom:11px"><b style="font-size:13.5px">• ${t}</b><div class="tiny" style="margin-left:12px">${s}</div></div>`;
-  return `
-  ${sheetHead('บันทึกแนวคิดการออกแบบ (UX Notes)')}
-  <div style="margin-top:6px">
-    ${li('Borrower-first / Mobile-first', 'ผู้ยืมต้องถ่ายรูปตอนรับ–คืนด้วยมือถืออยู่แล้ว หน้าจอผู้ยืมจึงเป็นแอปมือถือ ส่วน Staff/อาจารย์/Admin ใช้ console จอใหญ่')}
-    ${li('ซ่อนเรื่องแต้มไว้ในโปรไฟล์', 'ใน flow ยืม–คืนไม่มีการโชว์คะแนน ระบบใช้เครดิตคำนวณเงียบ ๆ แล้วแสดงแค่ผลลัพธ์ เช่น "ยืมได้สูงสุด 14 วัน" — ไม่ทำให้ผู้ใช้รู้สึกถูกจับผิด')}
-    ${li('แปลง Tier เป็นภาษาคน', 'ไม่โชว์ศัพท์ T0–T3 นำ แต่บอกผลที่ผู้ใช้เจอ: "ยืมได้ทันที" / "ต้องขออนุมัติอาจารย์" / "จองเป็นรอบเวลา"')}
-    ${li('หน้าแรก = สิ่งที่ต้องทำ ไม่ใช่เมนู', 'การ์ด "รับของ / คืนพรุ่งนี้ / รออนุมัติ" ขึ้นก่อนเสมอ ลดของหลุดคืนช้าโดยไม่ต้องขู่ผู้ใช้')}
-    ${li('ถ่ายรูป = การปกป้องผู้ยืม', 'ตีความการถ่ายรูปว่าเป็น "หลักฐานฝั่งคุณ" เปลี่ยนงานที่น่ารำคาญให้เป็นประโยชน์กับผู้ใช้เอง')}
-    ${li('แต่ละรายการเดินสถานะแยกกัน', 'ยืมหลายชิ้นในคำขอเดียวได้ (ตะกร้า) แต่ชิ้นที่อนุมัติอัตโนมัติไม่ต้องรอชิ้นที่รออาจารย์')}
-    ${li('ความโปร่งใสสองทาง', 'ผลตรวจสภาพแนบรูปเทียบก่อน–หลัง + อุทธรณ์ได้เสมอ ผู้ตัดสินไม่ใช่ผู้ประเมิน (แสดงในหน้าจออาจารย์)')}
-    ${li('เดโมครบวงจร', 'ใช้แถบสลับบทบาทซ้ายล่าง: ผู้ยืมส่งคำขอ T2 → อาจารย์อนุมัติ → Staff เตรียมของ → ผู้ยืมรับ/คืน → Staff ตรวจสภาพ → ผู้ยืมอุทธรณ์ → อาจารย์ตัดสิน')}
-    ${li('พรีวิวมือถือได้โดยไม่ต้อง deploy', 'แถบ DEMO เลือก "หน้าจอ: มือถือ" เพื่อจำลองหน้าจอโทรศัพท์พร้อมกรอบเครื่องบนคอม หรือ "คอม" เพื่อดูเลย์เอาต์เดสก์ท็อป — โหมด Auto จะสลับตามขนาดหน้าต่างจริงเหมือนตอนใช้งาน')}
-  </div>`;
-}
-
-/* ================= Demo bars ================= */
-function demoBars() {
-  const roles = [['student', 'ผู้ยืม'], ['staff', 'Staff'], ['supervisor', 'อาจารย์'], ['admin', 'Admin']];
-  const devs = [['auto', 'Auto', ''], ['mobile', 'มือถือ', 'mobile'], ['desktop', 'คอม', 'monitor']];
-  return `
-  <div class="rolebar">
-    <div class="rb-row"><span>บทบาท</span>
-      ${roles.map(([r, t]) => `<button class="${S.role === r ? 'on' : ''}" onclick="A.setRole('${r}')">${t}</button>`).join('')}</div>
-    <div class="rb-row"><span>หน้าจอ</span>
-      ${devs.map(([v, t, i]) => `<button class="${S.device === v ? 'on' : ''}" onclick="A.setDevice('${v}')">${i ? ic(i, 13) : ''}${t}</button>`).join('')}</div>
-  </div>
-  <button class="fabnotes" onclick="A.openNotes()" title="แนวคิดการออกแบบ">UX</button>`;
-}
-/* โหมดหน้าจอ: auto = ตามขนาดหน้าต่างจริง / mobile / desktop = บังคับเพื่อพรีวิว
-   framed = บังคับมือถือบนจอกว้าง → ครอบกรอบเครื่องจำลองให้เหมือนเทสบนโทรศัพท์ */
-function applyDevice() {
-  const wide = window.innerWidth >= 900;
-  const mode = S.device === 'auto' ? (wide ? 'desktop' : 'mobile') : S.device;
-  document.body.classList.toggle('dt', mode === 'desktop');
-  document.body.classList.toggle('mb', mode === 'mobile');
-  document.body.classList.toggle('framed', mode === 'mobile' && wide);
-}
-
-/* ================= Actions ================= */
-const A = {
-  login()  { S.logged = true; render(); },
-  logout() { S.logged = false; S.role = 'student'; render(); },
-  setRole(r) { S.role = r; S.ctab = 0; S.sheet = null; render(); },
-  setDevice(v) {
-    S.device = v; applyDevice(); render();
-    A.toast(v === 'auto' ? 'ปรับตามขนาดหน้าต่างอัตโนมัติ'
-      : v === 'mobile' ? 'พรีวิวหน้าจอมือถือ — ลองกดใช้งานได้เหมือนบนโทรศัพท์'
-      : 'พรีวิวหน้าจอคอม', v === 'mobile' ? 'mobile' : v === 'desktop' ? 'monitor' : 'refresh');
-  },
-  go(r)    { S.route = r; S.sheet = null; render(); window.scrollTo(0, 0); },
-  ctab(i)  { S.ctab = i; render(); },
-  seg(i)   { S.listSeg = i; render(); },
-  goSearch() { S.route = 'browse'; S._focusQ = true; render(); document.getElementById('q')?.focus(); },
-  pickCat(c) { S.cat = c; S.route = 'browse'; render(); },
-  setCat(c)  { S.cat = c; render(); },
-  search(v)  { S.q = v; render(); const el = document.getElementById('q'); if (el) { el.focus(); el.setSelectionRange(v.length, v.length); } },
-
-  /* ----- sheets ----- */
-  openItem(id) {
-    const it = item(id);
-    S.sheet = { type: 'item', itemId: id, qty: 1, days: Math.min(7, creditLevel(DB.user.credit).days), sn: it.serials?.find(s => s.free === 0)?.sn || null, day: 0, slots: [] };
-    renderSheet();
-  },
-  closeSheet() { S.sheet = null; renderSheet(); },
-  sheetQty(v) { const it = item(S.sheet.itemId); S.sheet.qty = Math.max(1, Math.min((it.stock || 1), S.sheet.qty + v)); renderSheet(); },
-  sheetDays(v) { S.sheet.days = v; renderSheet(); },
-  sheetSn(sn) { S.sheet.sn = sn; renderSheet(); },
-  sheetDay(i) { S.sheet.day = i; S.sheet.slots = []; renderSheet(); },
-  sheetSlot(t) {
-    const sl = S.sheet.slots;
-    if (sl.includes(t)) S.sheet.slots = sl.filter(x => x !== t);
-    else if (sl.length >= 2) return A.toast('จองได้สูงสุด 2 ช่วงเวลาต่อครั้ง');
-    else sl.push(t);
-    renderSheet();
-  },
-  snap(k) { S.snaps[k] = !S.snaps[k]; renderSheet(); },
-
-  /* ----- ยืม / ตะกร้า ----- */
-  addCart(id) {
-    const sh = S.sheet;
-    S.cart.push({ itemId: id, qty: sh.qty, sn: sh.sn, days: sh.days });
-    S.sheet = null; render();
-    A.toast('ใส่ตะกร้าแล้ว — เลือกชิ้นอื่นต่อได้เลย', 'cart');
-  },
-  borrowNow(id) {
-    const sh = S.sheet, it = item(id);
-    const auto = it.tier < 2;
-    DB.reqs.unshift({
-      id: 'R-' + Math.floor(2900 + Math.random() * 90), itemId: id, owner: 'me',
-      qty: sh.qty, sn: it.tier === 2 ? sh.sn : null,
-      status: auto ? 'PREP' : 'PENDING',
-      start: d(it.tier === 2 ? 2 : 0), due: d((it.tier === 2 ? 2 : 0) + sh.days),
-      pickupBy: d(1), renewLeft: 1, photos: { recv: false, ret: false },
-    });
-    S.sheet = null; S.route = 'mylist'; S.listSeg = 0; render();
-    A.toast(auto ? 'อนุมัติแล้ว! เจ้าหน้าที่กำลังเตรียมของ' : 'ส่งคำขอแล้ว — รออาจารย์พิจารณา (ปกติภายใน 1 วัน)', 'check');
-  },
-  rmCart(i) { S.cart.splice(i, 1); render(); },
-  submitCart() {
-    const auto = S.cart.filter(c => item(c.itemId).tier < 2).length;
-    S.cart.forEach(c => {
-      const it = item(c.itemId);
-      DB.reqs.unshift({
-        id: 'R-' + Math.floor(2900 + Math.random() * 90), itemId: c.itemId, owner: 'me',
-        qty: c.qty, sn: it.tier === 2 ? c.sn : null,
-        status: it.tier < 2 ? 'PREP' : 'PENDING',
-        start: d(it.tier === 2 ? 2 : 0), due: d((it.tier === 2 ? 2 : 0) + c.days),
-        pickupBy: d(1), renewLeft: 1, photos: { recv: false, ret: false },
-      });
-    });
-    const sup = S.cart.length - auto;
-    S.cart = []; S.route = 'mylist'; S.listSeg = 0; render();
-    A.toast(`ส่งคำขอแล้ว · อนุมัติทันที ${auto} รายการ${sup ? ` · รออาจารย์ ${sup} รายการ` : ''}`, 'check');
-  },
-  submitBooking(id) {
-    const sh = S.sheet;
-    if (!sh.slots.length) return A.toast('เลือกช่วงเวลาอย่างน้อย 1 ช่วงก่อนนะ');
-    DB.reqs.unshift({
-      id: 'B-' + Math.floor(700 + Math.random() * 90), itemId: id, owner: 'me', qty: 1,
-      slots: [...sh.slots].sort(), status: 'BOOKED',
-      start: d(sh.day), due: d(sh.day), renewLeft: 1, photos: { recv: false, ret: false },
-    });
-    S.sheet = null; S.route = 'mylist'; S.listSeg = 0; render();
-    A.toast('จองสำเร็จ! ระบบกันคิวให้แล้ว', 'check');
-  },
-
-  /* ----- รับ / คืน / ต่ออายุ ----- */
-  openPickup(id) { S.sheet = { type: 'pickup', reqId: id }; renderSheet(); },
-  confirmPickup(id) {
-    const r = DB.reqs.find(x => x.id === id);
-    r.status = 'IN_USE'; r.photos.recv = true;
-    S.sheet = null; S.route = 'mylist'; S.listSeg = 1; render();
-    A.toast(`เริ่มนับเวลายืมแล้ว · คืนภายใน ${fmtD(r.due)} ก่อน 17:00 น.`, 'check');
-  },
-  checkin(id) {
-    const r = DB.reqs.find(x => x.id === id);
-    r.status = 'IN_USE'; r.photos.recv = true; render();
-    A.toast('เช็คอินแล้ว ใช้งานได้เลย', 'check');
-  },
-  openReturn(id) { S.sheet = { type: 'ret', reqId: id }; renderSheet(); },
-  confirmReturn(id) {
-    const r = DB.reqs.find(x => x.id === id), it = item(r.itemId);
-    r.photos.ret = true;
-    r.status = it.tier === 3 ? 'DONE' : 'INSPECT';
-    S.sheet = { type: 'retDone' }; render();
-  },
-  openRenew(id) { S.sheet = { type: 'renew', reqId: id }; renderSheet(); },
-  doRenew(id, mode) {
-    const r = DB.reqs.find(x => x.id === id);
-    if (mode === 'online') { r.renewLeft--; r.due = new Date(+r.due + 7 * 864e5); r.overdue = false; }
-    S.sheet = null; render();
-    A.toast(mode === 'online' ? `ต่ออายุแล้ว · กำหนดคืนใหม่ ${fmtD(r.due)}` : 'ส่งคำขอต่ออายุถึงอาจารย์แล้ว', 'check');
-  },
-  cancelReq(id) {
-    DB.reqs = DB.reqs.filter(x => x.id !== id); render();
-    A.toast('ยกเลิกคำขอแล้ว · คิวถูกคืนให้ผู้อื่นทันที');
-  },
-  openNotif() { DB.notifs.forEach(n => n.unread = false); S.sheet = { type: 'notif' }; render(); },
-  openNotes() { S.sheet = { type: 'notes' }; renderSheet(); },
-
-  /* ----- อุทธรณ์ ----- */
-  openAppeal(id) { S.sheet = { type: 'appeal', reqId: id }; renderSheet(); },
-  submitAppeal(id) {
-    const reason = document.getElementById('appeal-reason')?.value || '(ไม่ระบุ)';
-    DB.appeals.unshift({
-      id: 'AP-' + Math.floor(110 + Math.random() * 80), reqId: id, status: 'PENDING',
-      created: d(0), reason, staffLv: DB.reqs.find(x => x.id === id)?.damage?.lv || 'B1',
-    });
-    S.sheet = null; render();
-    A.toast('ส่งคำอุทธรณ์แล้ว — ติดตามผลได้ในโปรไฟล์', 'check');
-  },
-
-  /* ----- Staff ----- */
-  staffPrep(id) {
-    const r = DB.reqs.find(x => x.id === id);
-    r.status = 'READY'; r.sn = r.sn || 'AR-0' + (2 + Math.floor(Math.random() * 6)); r.pickupBy = d(1);
-    render(); A.toast(`บันทึกแล้ว · แจ้งผู้ยืมมารับ ${r.sn} ภายใน ${fmtD(r.pickupBy)}`, 'check');
-  },
-  openAssess(id) { S.sheet = { type: 'assess', reqId: id, dmg: 'B0' }; renderSheet(); },
-  pickDmg(lv) { S.sheet.dmg = lv; renderSheet(); },
-  confirmAssess(id) {
-    const r = DB.reqs.find(x => x.id === id), it = item(r.itemId);
-    const dm = DMG.find(x => x.lv === S.sheet.dmg);
-    const dis = TIER[it.tier].credit * dm.w;
-    r.status = 'DONE';
-    if (dis > 0) {
-      r.damage = { lv: dm.lv, discredit: dis };
-      if (r.owner === 'me') {
-        DB.user.credit = Math.max(0, DB.user.credit - dis);
-        DB.creditLog.unshift({ at: d(0), txt: `ผลประเมินความเสียหาย ${dm.lv} · ${it.name} (${r.id})`, v: -dis });
-        DB.notifs.unshift({ at: d(0), icon: 'shield', txt: `ผลตรวจสภาพ ${r.id}: ${dm.lv} — ยื่นอุทธรณ์ได้ในโปรไฟล์`, unread: true });
-      }
+    UNIT_MEMBERSHIP {
+        uuid membership_id PK
+        uuid user_id FK
+        uuid unit_id FK
+        string role "student / staff / supervisor / admin (ต่อ unit)"
     }
-    S.sheet = null; render();
-    A.toast(dis ? `บันทึกผล ${dm.lv} · หัก ${dis} คะแนน · แจ้งผู้ยืมพร้อมสิทธิ์อุทธรณ์แล้ว` : 'ปิดรายการเรียบร้อย · สภาพปกติ', 'check');
-  },
-  openAddItem() { S.sheet = { type: 'addItem' }; renderSheet(); },
-
-  /* ----- Supervisor ----- */
-  supApprove(id) {
-    const r = DB.reqs.find(x => x.id === id);
-    r.status = 'PREP';
-    if (r.owner === 'me') DB.notifs.unshift({ at: d(0), icon: 'check', txt: `คำขอ ${r.id} ได้รับอนุมัติแล้ว — เจ้าหน้าที่กำลังเตรียมของ`, unread: true });
-    render(); A.toast('อนุมัติแล้ว · ส่งต่อคิวเตรียมของให้ Staff · บันทึก Audit Log', 'check');
-  },
-  supReject(id) {
-    const r = DB.reqs.find(x => x.id === id);
-    r.status = 'REJECTED'; r.reason = 'ช่วงเวลาที่ขอชนกับการเรียนการสอน';
-    if (r.owner === 'me') DB.notifs.unshift({ at: d(0), icon: 'x', txt: `คำขอ ${r.id} ไม่ได้รับอนุมัติ — ปรับช่วงเวลาแล้วส่งใหม่ได้`, unread: true });
-    render(); A.toast('บันทึกการปฏิเสธพร้อมเหตุผล · ผู้ยืมส่งคำขอใหม่ได้');
-  },
-  supAppealDecide(id, ok) {
-    const a = DB.appeals.find(x => x.id === id);
-    a.status = ok ? 'APPROVED' : 'DENIED';
-    const r = DB.reqs.find(x => x.id === a.reqId);
-    if (ok && r?.owner === 'me' && r.damage) {
-      DB.user.credit = Math.min(100, DB.user.credit + r.damage.discredit);
-      DB.creditLog.unshift({ at: d(0), txt: `อุทธรณ์ ${a.id} ผ่าน · คืนคะแนน (${item(r.itemId).name})`, v: +r.damage.discredit });
-      DB.notifs.unshift({ at: d(0), icon: 'check', txt: `อุทธรณ์ ${a.id} ได้รับการอนุมัติ · ปรับผลเป็น B0 และคืนคะแนนแล้ว`, unread: true });
-      r.damage = null;
+    PERMISSION_RULE {
+        uuid rule_id PK
+        uuid unit_id FK
+        uuid user_id FK
+        string effect "allow / deny (deny ชนะ allow)"
+        string scope "all / category / type"
+        uuid target_id "nullable"
     }
-    render(); A.toast(ok ? 'รับอุทธรณ์ · ปรับผลและคืนคะแนนให้ผู้ยืมแล้ว' : 'ยืนผลประเมินเดิม · แจ้งผู้ยืมแล้ว', 'check');
-  },
-
-  /* ----- Toast ----- */
-  toast(msg, icon) {
-    const t = document.createElement('div');
-    t.className = 'toast';
-    t.innerHTML = `${ic(icon || 'info', 17)}<span>${msg}</span>`;
-    document.getElementById('toast-root').appendChild(t);
-    setTimeout(() => { t.style.transition = 'opacity .3s'; t.style.opacity = 0; setTimeout(() => t.remove(), 320); }, 2600);
-  },
-};
-
-window.addEventListener('resize', applyDevice);
-applyDevice();
-render();
-</script>
-</body>
-</html>
+    USER {
+        uuid user_id PK
+        string email UK "KU e-mail"
+        string password_hash
+        string full_name
+        string faculty "แก้เองไม่ได้ ต้องผ่าน admin + audit"
+        string band_id FK "cache ระดับเครดิต"
+        int credit_score "100 - demerit ที่ยังไม่หมดอายุ (พื้น 0)"
+        boolean is_system_admin
+        datetime created_at
+    }
+    CREDIT_BAND {
+        string band_id PK "D0 / D1 / D2 / D3"
+        int credit_min
+        int credit_max
+        int loan_days "14 / 7 / 7 / 5"
+        string renewal_policy
+        boolean needs_supervisor "D2,D3 ยืม T1,T2"
+    }
+    DEMERIT_EVENT {
+        uuid demerit_id PK
+        uuid user_id FK
+        uuid owner_unit_id FK "nullable — ถ้าเครดิตแยกต่อ unit"
+        uuid loan_id FK "nullable"
+        uuid report_id FK "nullable"
+        string cause "damage / late / lost / no_show"
+        int points "credit_อุปกรณ์ x credit_ความเสียหาย"
+        datetime effective_at
+        datetime starts_counting_at
+        datetime expires_at "= points x 2 วัน"
+        string status "active / expired / revoked"
+    }
+    CATEGORY {
+        int category_id PK
+        string name
+    }
+    TIER {
+        string tier_id PK "T0 / T1 / T2 / T3"
+        int credit_weight "0 / 5 / 10 / 0"
+        boolean needs_serial "T1-T2"
+        boolean needs_supervisor "T2"
+        boolean separate_assessor "T2 (staff A != staff B)"
+    }
+    EQUIPMENT_TYPE {
+        uuid type_id PK
+        uuid owner_unit_id FK "เจ้าของ (multi-tenant)"
+        int category_id FK
+        string tier_id FK
+        string name
+        decimal unit_price
+        int prep_days "วันจัดเตรียม"
+        string image_url
+    }
+    EQUIPMENT_UNIT {
+        uuid unit_id PK
+        uuid type_id FK
+        string serial_no UK "T1-T2"
+        string status "available / reserved / borrowed / maintenance / unavailable / lost"
+        date acquired_at
+        int service_life_days
+    }
+    CONSUMABLE_STOCK {
+        uuid consumable_id PK
+        uuid owner_unit_id FK
+        int category_id FK
+        string name "สายจัมเปอร์ / ตัวต้านทาน"
+        int qty_available "จ่ายขาด ไม่ต้องคืน"
+        int quota_per_user
+    }
+    FACILITY {
+        uuid facility_id PK
+        uuid owner_unit_id FK
+        string tier_id FK "T3"
+        string name "ห้องแลป"
+        string location
+        int slot_minutes
+    }
+    ELIGIBILITY_RULE {
+        uuid rule_id PK
+        uuid type_id FK
+        string criteria "ชั้นปี / วิชา / สาขา"
+        int max_concurrent
+    }
+    LOAN_REQUEST {
+        uuid request_id PK
+        uuid requester_id FK
+        string status "requested / partly_approved / approved / rejected / cancelled"
+        datetime created_at
+    }
+    REQUEST_ITEM {
+        uuid request_item_id PK
+        uuid request_id FK
+        string kind "equipment / facility / consumable"
+        uuid type_id FK "nullable"
+        uuid facility_id FK "nullable"
+        uuid consumable_id FK "nullable"
+        uuid unit_id FK "nullable (T2 ระบุชิ้น)"
+        uuid owner_unit_id FK "denormalized เพื่อจัดกลุ่มอนุมัติ"
+        int quantity
+        datetime requested_start
+        datetime requested_end "ยืม 1-14 วัน"
+        string item_status "pending / approved / rejected (อนุมัติแยกได้)"
+    }
+    APPROVAL_STEP {
+        uuid step_id PK
+        uuid request_id FK
+        uuid owner_unit_id FK "อนุมัติเฉพาะรายการของ unit นี้"
+        uuid approver_id FK "nullable = ระบบ"
+        string level "system / staff / supervisor"
+        string decision "approved / rejected"
+        datetime decided_at
+    }
+    CONSUMABLE_ISSUE {
+        uuid issue_id PK
+        uuid consumable_id FK
+        uuid user_id FK
+        uuid issued_by FK "staff"
+        int quantity
+        datetime issued_at
+    }
+    RESERVATION {
+        uuid reservation_id PK
+        uuid user_id FK
+        uuid type_id FK "จองระดับประเภท ไม่ผูกชิ้น"
+        uuid owner_unit_id FK
+        datetime reserve_start "horizon = min(3 เดือน, สิ้นเทอม)"
+        datetime reserve_end
+        string status "booked / fulfilled / failed / cancelled"
+        datetime created_at
+    }
+    ALLOCATION {
+        uuid allocation_id PK
+        uuid request_item_id FK "nullable"
+        uuid reservation_id FK "nullable"
+        uuid unit_id FK
+        uuid prepared_by FK "staff A"
+        string status "reserved / picked_up / released"
+        datetime reserved_at
+        datetime expires_at "timeout รับของ 1 วัน"
+    }
+    LOAN {
+        uuid loan_id PK
+        uuid allocation_id FK
+        uuid borrower_id FK
+        uuid unit_id FK
+        uuid checked_out_by FK
+        uuid checked_in_by FK "nullable"
+        datetime checkout_at
+        datetime due_at "วันที่ + เวลาปิด 17:00"
+        datetime return_at "nullable"
+        int online_renew_left
+        string status "in_use / returned / overdue / lost"
+    }
+    RENEWAL {
+        uuid renewal_id PK
+        uuid loan_id FK
+        uuid requested_by FK
+        uuid approved_by FK "nullable = ระบบ"
+        datetime old_due_at
+        datetime new_due_at
+        datetime created_at
+    }
+    INSPECTION {
+        uuid inspection_id PK
+        uuid loan_id FK "nullable"
+        uuid booking_id FK "nullable (facility)"
+        string phase "pickup / return / before_use / after_use"
+        uuid actor_id FK "pickup = ผู้ยืมยืนยัน"
+        string photo_urls
+        string condition_note
+        datetime created_at
+    }
+    FACILITY_BOOKING {
+        uuid booking_id PK
+        uuid facility_id FK
+        uuid booked_by FK
+        datetime slot_start
+        datetime slot_end
+        string status "booked / in_use / done / cancelled"
+        datetime created_at
+    }
+    DAMAGE_LEVEL {
+        string level_id PK "B0 / B1 / B2 / B3"
+        string description
+        int credit_weight "0 / 1 / 3 / 5"
+    }
+    DAMAGE_REPORT {
+        uuid report_id PK
+        uuid loan_id FK "nullable"
+        uuid unit_id FK
+        string level_id FK
+        uuid assessed_by FK "staff B (!= ผู้เตรียม)"
+        string description
+        string photo_url
+        string status "final / under_appeal / overturned"
+        datetime created_at
+    }
+    APPEAL {
+        uuid appeal_id PK
+        uuid report_id FK
+        uuid submitted_by FK "ผู้ยืม"
+        uuid decided_by FK "อาจารย์ (!= ผู้ประเมิน)"
+        string claim
+        string evidence_urls
+        string new_level_id "nullable"
+        string decision "pending / upheld / overturned"
+        datetime decided_at
+    }
+    MAINTENANCE_RECORD {
+        uuid maintenance_id PK
+        uuid unit_id FK
+        uuid report_id FK "nullable = ซ่อมตามรอบ"
+        string status "scheduled / in_progress / done / retired"
+        date start_at
+        date end_at "nullable"
+    }
+    NOTIFICATION {
+        uuid notification_id PK
+        uuid user_id FK
+        string channel "in_app / email"
+        string ref_type
+        uuid ref_id
+        string message
+        boolean is_read
+        datetime created_at
+    }
+    AUDIT_LOG {
+        uuid log_id PK
+        uuid actor_id FK
+        string action
+        string entity
+        uuid entity_id
+        datetime created_at
+    }
+    SYSTEM_CONFIG {
+        uuid config_id PK
+        uuid unit_id FK "nullable = ค่ากลาง"
+        string key "prep_days / buffer / horizon / close_time / credit_formula"
+        string value
+    }
