@@ -1,0 +1,251 @@
+erDiagram
+    ROLE ||--o{ USER : "กำหนดบทบาท"
+    CREDIT_BAND ||--o{ USER : "จัดระดับตามเครดิต"
+
+    CATEGORY ||--o{ EQUIPMENT_TYPE : "จัดหมวด"
+    TIER ||--o{ EQUIPMENT_TYPE : "กำหนดระดับ (T0-T2)"
+    TIER ||--o{ FACILITY : "กำหนดระดับ (T3)"
+    EQUIPMENT_TYPE ||--o{ ELIGIBILITY_RULE : "เงื่อนไขสิทธิ์"
+    EQUIPMENT_TYPE ||--o{ EQUIPMENT_UNIT : "มีหลายชิ้น (T1-T2 มี serial)"
+
+    USER ||--o{ LOAN_REQUEST : "ยื่นคำขอ"
+    LOAN_REQUEST ||--|{ LOAN_REQUEST_ITEM : "ประกอบด้วย"
+    EQUIPMENT_TYPE ||--o{ LOAN_REQUEST_ITEM : "ขอตามประเภท (T0-T1)"
+    EQUIPMENT_UNIT |o--o{ LOAN_REQUEST_ITEM : "ระบุชิ้น (T2 เท่านั้น)"
+    LOAN_REQUEST ||--o{ APPROVAL_STEP : "ผ่านขั้นอนุมัติ"
+    USER ||--o{ APPROVAL_STEP : "ผู้อนุมัติ (nullable = ระบบ)"
+
+    LOAN_REQUEST_ITEM ||--o{ ALLOCATION : "จัดสรรชิ้น (atomic)"
+    EQUIPMENT_UNIT ||--o{ ALLOCATION : "ถูกกันไว้"
+    USER ||--o{ ALLOCATION : "staff ผู้เตรียม (staff A)"
+    ALLOCATION ||--o| LOAN : "กลายเป็นการยืมเมื่อรับของ"
+
+    USER ||--o{ LOAN : "ผู้ยืม"
+    LOAN ||--o{ INSPECTION : "ตรวจ/ถ่ายรูป (รับ-คืน)"
+    LOAN ||--o{ RENEWAL : "ต่ออายุ"
+    LOAN ||--o| DAMAGE_REPORT : "ผลตรวจหลังคืน"
+    EQUIPMENT_UNIT ||--o{ DAMAGE_REPORT : "ประวัติผูกกับ serial"
+    DAMAGE_LEVEL ||--o{ DAMAGE_REPORT : "ระดับ B0-B3"
+    USER ||--o{ DAMAGE_REPORT : "ผู้ประเมิน (staff B)"
+    DAMAGE_REPORT ||--o| APPEAL : "ถูกอุทธรณ์"
+    USER ||--o{ APPEAL : "อาจารย์ผู้ตัดสิน"
+    DAMAGE_REPORT |o--o{ MAINTENANCE_RECORD : "นำไปสู่การซ่อม"
+    EQUIPMENT_UNIT ||--o{ MAINTENANCE_RECORD : "เข้าซ่อม"
+
+    USER ||--o{ DEMERIT_EVENT : "ถูกหักเครดิต"
+    LOAN |o--o{ DEMERIT_EVENT : "ต้นเหตุ"
+    DAMAGE_REPORT |o--o{ DEMERIT_EVENT : "ต้นเหตุ"
+
+    FACILITY ||--o{ FACILITY_BOOKING : "ถูกจองตามสล็อต"
+    USER ||--o{ FACILITY_BOOKING : "ผู้จอง"
+    FACILITY_BOOKING ||--o{ INSPECTION : "ถ่ายรูปก่อน-หลังใช้"
+
+    USER ||--o{ NOTIFICATION : "ได้รับ"
+    USER ||--o{ AUDIT_LOG : "สร้างบันทึก"
+
+    ROLE {
+        int role_id PK
+        string name "student / staff / supervisor / admin"
+    }
+    CREDIT_BAND {
+        string band_id PK "D0 / D1 / D2 / D3"
+        int credit_min "80 / 50 / 30 / 0"
+        int credit_max "100 / 79 / 49 / 29"
+        int loan_days "14 / 7 / 7 / 5"
+        string renewal_policy "online / online / at_staff / new_request"
+        boolean needs_supervisor "D2,D3 = true (ยืม T1,T2)"
+    }
+    USER {
+        uuid user_id PK
+        int role_id FK
+        string band_id FK "cache ระดับปัจจุบัน"
+        string email UK "email KU"
+        string password_hash
+        string full_name
+        string student_id
+        int credit_score "100 - demerit ที่ยังไม่หมดอายุ (พื้น 0)"
+        datetime created_at
+    }
+    TIER {
+        string tier_id PK "T0 / T1 / T2 / T3"
+        string name "ยืมง่าย / ยืมได้ / ยืมยาก / ของติดที่"
+        int credit_weight "0 / 5 / 10 / 0"
+        boolean needs_serial "T1-T2 = true"
+        boolean needs_supervisor "T2 = true"
+        boolean separate_assessor "T2 = true (staff A != staff B)"
+    }
+    CATEGORY {
+        int category_id PK
+        string name
+    }
+    EQUIPMENT_TYPE {
+        uuid type_id PK
+        int category_id FK
+        string tier_id FK
+        string name "เช่น Arduino Uno R3"
+        decimal unit_price "ใช้จัด tier"
+        string image_url
+    }
+    ELIGIBILITY_RULE {
+        uuid rule_id PK
+        uuid type_id FK
+        string criteria "ชั้นปี / วิชา / สาขา"
+        int max_concurrent "จำนวนที่ยืมได้พร้อมกัน"
+    }
+    EQUIPMENT_UNIT {
+        uuid unit_id PK
+        uuid type_id FK
+        string serial_no UK "T1-T2 เท่านั้น"
+        string status "available / reserved / borrowed / maintenance / lost"
+        date acquired_at
+        int service_life_days "อายุการใช้งานสะสม"
+    }
+    FACILITY {
+        uuid facility_id PK
+        string tier_id FK "T3"
+        string name "ห้องแลป"
+        string location
+        int slot_minutes "60 = จองรายชั่วโมง"
+    }
+    FACILITY_BOOKING {
+        uuid booking_id PK
+        uuid facility_id FK
+        uuid booked_by FK
+        datetime slot_start
+        datetime slot_end
+        string status "booked / in_use / done / cancelled"
+        datetime created_at
+    }
+    LOAN_REQUEST {
+        uuid request_id PK
+        uuid requester_id FK
+        string status "requested / approved / rejected / expired / cancelled"
+        datetime pickup_at "วัน-เวลาที่จะมารับของ"
+        datetime pickup_deadline "= pickup_at + 1 วัน มิฉะนั้นยกเลิก"
+        datetime due_at "ตาม loan_days ของ credit band"
+        string justification "เหตุผล (กรณี D2/D3 ขออาจารย์)"
+        string reject_reason "nullable"
+        datetime created_at
+    }
+    LOAN_REQUEST_ITEM {
+        uuid request_item_id PK
+        uuid request_id FK
+        uuid type_id FK
+        uuid unit_id FK "T2: ผู้ยืมเลือก serial เอง / T0-T1: null"
+        int quantity "T0-T1 ขอตามจำนวน"
+    }
+    APPROVAL_STEP {
+        uuid step_id PK
+        uuid request_id FK
+        uuid approver_id FK "nullable = ระบบอนุมัติ"
+        string level "system / supervisor"
+        string reason "auth+credit+isLeft / tier_T2 / low_credit"
+        string decision "approved / rejected"
+        datetime decided_at
+    }
+    ALLOCATION {
+        uuid allocation_id PK
+        uuid request_item_id FK
+        uuid unit_id FK "ผูกชิ้นจริง"
+        uuid prepared_by FK "staff A"
+        string status "reserved / picked_up / released"
+        datetime reserved_at
+        datetime expires_at "หมดอายุ = คืนของเข้าคลัง (กัน no-show)"
+    }
+    LOAN {
+        uuid loan_id PK
+        uuid allocation_id FK
+        uuid borrower_id FK
+        uuid unit_id FK
+        uuid checked_out_by FK "staff"
+        uuid checked_in_by FK "nullable"
+        datetime checkout_at
+        datetime due_at
+        datetime return_at "nullable"
+        int online_renew_left "0 หรือ 1 (สลับกับตรวจสภาพ)"
+        string status "in_use / returned / overdue / lost"
+    }
+    RENEWAL {
+        uuid renewal_id PK
+        uuid loan_id FK
+        uuid approved_by FK "nullable = ระบบ (T2/D2 = อาจารย์/staff)"
+        string channel "online / at_staff / supervisor"
+        datetime old_due_at
+        datetime new_due_at
+        datetime created_at
+    }
+    INSPECTION {
+        uuid inspection_id PK
+        uuid loan_id FK "nullable (กรณี facility)"
+        uuid booking_id FK "nullable (กรณี loan)"
+        string phase "pickup / return / before_use / after_use"
+        uuid actor_id FK "pickup = ผู้ยืมกดยืนยัน"
+        string photo_urls "หลักฐานเทียบรับ-คืน"
+        string condition_note
+        datetime created_at
+    }
+    DAMAGE_LEVEL {
+        string level_id PK "B0 / B1 / B2 / B3"
+        string description
+        int credit_weight "0 / 1 / 3 / 5"
+    }
+    DAMAGE_REPORT {
+        uuid report_id PK
+        uuid loan_id FK "nullable"
+        uuid unit_id FK
+        string level_id FK
+        uuid assessed_by FK "staff B (T2 ต้องคนละคนกับ staff A)"
+        string description
+        string photo_url
+        string status "final / under_appeal / overturned"
+        datetime created_at
+    }
+    APPEAL {
+        uuid appeal_id PK
+        uuid report_id FK
+        uuid submitted_by FK "ผู้ยืม"
+        uuid decided_by FK "อาจารย์ (ไม่ใช่ staff ผู้ประเมิน)"
+        string claim "สิ่งที่ต้องการแย้ง"
+        string evidence_urls "รูปก่อน-หลังใช้งาน"
+        string new_level_id "ระดับใหม่หลังตัดสิน (nullable)"
+        string decision "pending / upheld / overturned"
+        datetime decided_at
+    }
+    MAINTENANCE_RECORD {
+        uuid maintenance_id PK
+        uuid unit_id FK
+        uuid report_id FK "nullable = ซ่อมตามรอบ"
+        date start_at
+        date end_at "nullable"
+        string status "scheduled / in_progress / done"
+    }
+    DEMERIT_EVENT {
+        uuid demerit_id PK
+        uuid user_id FK
+        uuid loan_id FK "nullable"
+        uuid report_id FK "nullable"
+        string cause "damage / late / lost"
+        int points "damage: tier x level | late: (tier/7) x days"
+        datetime effective_at "late = วันแรกที่ไม่คืน"
+        datetime starts_counting_at "เริ่มนับอายุโทษเมื่อคืน/รายงานตัว"
+        datetime expires_at "= starts_counting_at + (points x 2 วัน)"
+        string status "active / expired / revoked"
+    }
+    NOTIFICATION {
+        uuid notification_id PK
+        uuid user_id FK
+        string channel "in_app / email"
+        string ref_type
+        uuid ref_id
+        string message
+        boolean is_read
+        datetime created_at
+    }
+    AUDIT_LOG {
+        uuid log_id PK
+        uuid actor_id FK
+        string action
+        string entity
+        uuid entity_id
+        datetime created_at
+    }
