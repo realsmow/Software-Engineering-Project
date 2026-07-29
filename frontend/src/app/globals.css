@@ -1,0 +1,99 @@
+@import url("https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/**
+ * ULMs Design Tokens (CSS Variables)
+ * ทุกสีเก็บเป็น HSL เพื่อให้ Tailwind opacity modifiers ทำงานถูก
+ * เช่น bg-primary/50 = primary 50% opacity
+ */
+@layer base {
+  :root {
+    /* Backgrounds */
+    --background: 96 12% 96%;           /* #f3f5f2 */
+    --foreground: 148 21% 14%;          /* #1c2b23 */
+    --card: 0 0% 100%;                  /* #ffffff */
+    --card-foreground: 148 21% 14%;
+
+    /* Primary (KU Green) */
+    --primary: 148 79% 27%;             /* #0e7a46 */
+    --primary-foreground: 0 0% 100%;
+    --primary-hover: 148 79% 20%;       /* #0a5c36 */
+    --primary-soft: 140 39% 92%;        /* #e3f2e9 */
+
+    /* Secondary + Muted */
+    --secondary: 140 39% 92%;
+    --secondary-foreground: 148 79% 20%;
+    --muted: 96 12% 92%;
+    --muted-foreground: 148 8% 45%;     /* #6b7d72 */
+
+    /* Border + Input + Ring */
+    --border: 96 10% 89%;               /* #e3e8e2 */
+    --input: 96 10% 89%;
+    --ring: 148 79% 27%;
+
+    /* Destructive (Error) */
+    --destructive: 0 74% 42%;           /* #b91c1c */
+    --destructive-foreground: 0 0% 100%;
+    --destructive-soft: 0 88% 96%;      /* #fdeaea */
+
+    /* Warning (สีเหลือง/ส้ม) */
+    --warning: 25 88% 30%;              /* #92400e */
+    --warning-foreground: 0 0% 100%;
+    --warning-soft: 40 88% 93%;         /* #fdf1df */
+
+    /* Tier colors (แยกระดับอุปกรณ์ T0-T3) */
+    --tier-t0: 142 44% 63%;             /* T0 = ยืมง่าย (เขียวอ่อน) */
+    --tier-t1: 148 79% 40%;             /* T1 = ยืมได้ (เขียวกลาง) */
+    --tier-t2: 25 88% 45%;              /* T2 = ยืมยาก (ส้มเข้ม) */
+    --tier-t3: 220 60% 55%;             /* T3 = ของติดที่ (น้ำเงิน) */
+
+    /* Credit band colors (D0-D3) */
+    --credit-d0: 148 79% 40%;           /* ดี (เขียว) */
+    --credit-d1: 42 90% 55%;            /* เฝ้าระวัง (เหลือง) */
+    --credit-d2: 25 88% 55%;            /* เสี่ยง (ส้ม) */
+    --credit-d3: 0 74% 55%;             /* เสี่ยงสูง (แดง) */
+
+    /* Radius */
+    --radius: 14px;
+  }
+
+  .dark {
+    /* Dark mode สำหรับอนาคต — ยังไม่ต้องใช้ใน R01 */
+    --background: 148 21% 8%;
+    --foreground: 96 12% 96%;
+    --card: 148 21% 12%;
+    --card-foreground: 96 12% 96%;
+    --primary: 148 60% 45%;
+    --primary-foreground: 148 21% 8%;
+    --primary-hover: 148 60% 55%;
+    --primary-soft: 148 40% 20%;
+    --border: 148 21% 20%;
+    --input: 148 21% 20%;
+    --muted: 148 21% 15%;
+    --muted-foreground: 148 8% 65%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-size: 15px;
+    line-height: 1.55;
+  }
+  h1, h2, h3, h4 {
+    @apply font-extrabold tracking-tight;
+  }
+}
+
+/* Focus ring ที่ชัดเจนเพื่อ accessibility */
+@layer utilities {
+  .focus-ring {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2;
+  }
+}
