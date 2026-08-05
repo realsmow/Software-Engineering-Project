@@ -4,6 +4,7 @@ import { AppService } from './app.service';
 import { PrismaService } from './prisma.service';
 import { PrismaModule } from './prisma.module'
 import { ConfigModule } from '@nestjs/config';
+import { TRPCModule } from 'nestjs-trpc';
 
 @Module({
   imports: [
@@ -11,6 +12,7 @@ import { ConfigModule } from '@nestjs/config';
       isGlobal: true,
     }),
     PrismaModule,
+    TRPCModule.forRoot(),
   ],
 })
 export class AppModule {}
