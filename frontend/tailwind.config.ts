@@ -18,7 +18,35 @@ export default {
     },
     extend: {
       colors: {
-        // Semantic tokens (shadcn convention)
+        // ---- ULMs raw design tokens (from reference HTML) ----
+        // Hex/rgba tokens referenced via var() so utilities like
+        // bg-accent / text-t1 / border-line map to the contract tokens.
+        accent: {
+          DEFAULT: "var(--accent)",
+          hover: "var(--accent-h)",
+          pressed: "var(--accent-p)",
+          soft: "var(--accent-soft)",
+          border: "var(--accent-border)",
+          blue: "var(--accent-blue)",
+          orange: "var(--accent-orange)",
+          red: "var(--accent-red)",
+        },
+        surface: {
+          DEFAULT: "var(--s-surface)",
+          bg: "var(--s-bg)",
+          subtle: "var(--s-subtle)",
+          inset: "var(--s-inset)",
+        },
+        line: {
+          DEFAULT: "var(--s-line)",
+          strong: "var(--s-line-strong)",
+        },
+        t1: "var(--s-t1)",
+        t2: "var(--s-t2)",
+        t3: "var(--s-t3)",
+        t4: "var(--s-t4)",
+
+        // Semantic tokens (shadcn convention — legacy, kept for existing UI)
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
@@ -68,12 +96,20 @@ export default {
         },
       },
       borderRadius: {
+        // ULMs strict scale: 4–6px, never larger than 8px.
+        sm: "4px",
+        DEFAULT: "5px",
+        md: "6px",
+        lg: "8px",
+        // Legacy keys kept so existing button.tsx/card.tsx compile.
         xl: "14px",
         "2xl": "18px",
         "3xl": "22px",
       },
       fontFamily: {
-        sans: ["Sarabun", "system-ui", "sans-serif"],
+        // Prompt is the ULMs UI font (reference HTML); JetBrains Mono for numerics.
+        sans: ["Prompt", "Inter", "system-ui", "sans-serif"],
+        prompt: ["Prompt", "Inter", "system-ui", "sans-serif"],
         mono: ["JetBrains Mono", "ui-monospace", "monospace"],
       },
       fontSize: {
@@ -86,6 +122,11 @@ export default {
         tiny: ["11.5px", { lineHeight: "1.5" }],
       },
       boxShadow: {
+        // ULMs shadow tokens (from reference HTML)
+        sm: "var(--shadow-sm)",
+        md: "var(--shadow-md)",
+        lg: "var(--shadow-lg)",
+        // Legacy shadows kept for existing UI
         card: "0 1px 2px rgba(16,30,20,.04), 0 24px 40px -30px rgba(16,30,20,.25)",
         popover: "0 30px 60px -34px rgba(16,40,24,.5)",
       },

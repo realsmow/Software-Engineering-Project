@@ -71,11 +71,66 @@ export const ROUTES = {
   STAFF_HANDOVER: "/staff/handover",
   STAFF_INSPECTION: "/staff/inspection",
   STAFF_INVENTORY: "/staff/inventory",
+  // Department management (shared by staff + supervisor, jurisdiction-scoped)
+  STAFF_USERS: "/staff/users",
+  STAFF_PERMISSIONS: "/staff/permissions",
+  STAFF_SETTINGS: "/staff/settings",
+  // Reports (shared by staff + supervisor)
+  REPORT_ANALYTICS: "/reports/analytics",
+  REPORT_EXPORT: "/reports/export",
   // Supervisor
   SUPERVISOR_APPROVALS: "/supervisor/approvals",
   SUPERVISOR_APPEALS: "/supervisor/appeals",
   // Admin
   ADMIN_USERS: "/admin/users",
+  ADMIN_STATUS: "/admin/status",
+  ADMIN_AUDIT: "/admin/audit",
+  ADMIN_CONFIG: "/admin/config",
   ADMIN_SETTINGS: "/admin/settings",
   ADMIN_REPORTS: "/admin/reports",
+} as const;
+
+/**
+ * Role → set of ROUTES the role may access.
+ * Borrower routes are the shared base for every authenticated role.
+ * Used by both the router guards and the sidebar nav.
+ */
+export const ROLE_ROUTES = {
+  borrower: [
+    ROUTES.HOME,
+    ROUTES.CATALOG,
+    ROUTES.EQUIPMENT_DETAIL,
+    ROUTES.MY_LOANS,
+    ROUTES.MY_HISTORY,
+    ROUTES.MY_CREDIT,
+    ROUTES.APPEALS,
+  ],
+  staff: [
+    ROUTES.STAFF_DASHBOARD,
+    ROUTES.STAFF_HANDOVER,
+    ROUTES.STAFF_INSPECTION,
+    ROUTES.STAFF_INVENTORY,
+    ROUTES.STAFF_USERS,
+    ROUTES.STAFF_PERMISSIONS,
+    ROUTES.STAFF_SETTINGS,
+    ROUTES.REPORT_ANALYTICS,
+    ROUTES.REPORT_EXPORT,
+  ],
+  supervisor: [
+    ROUTES.SUPERVISOR_APPROVALS,
+    ROUTES.SUPERVISOR_APPEALS,
+    ROUTES.STAFF_USERS,
+    ROUTES.STAFF_PERMISSIONS,
+    ROUTES.STAFF_SETTINGS,
+    ROUTES.REPORT_ANALYTICS,
+    ROUTES.REPORT_EXPORT,
+  ],
+  admin: [
+    ROUTES.ADMIN_USERS,
+    ROUTES.ADMIN_STATUS,
+    ROUTES.ADMIN_AUDIT,
+    ROUTES.ADMIN_CONFIG,
+    ROUTES.ADMIN_SETTINGS,
+    ROUTES.ADMIN_REPORTS,
+  ],
 } as const;
