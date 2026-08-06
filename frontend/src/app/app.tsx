@@ -1,10 +1,10 @@
 import { useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { BrowserRouter } from "react-router-dom";
 import { queryClient } from "@/lib/query-client";
 import { useAuthStore } from "@/features/auth/auth.store";
-import { DevRoleSwitcher } from "@/components/shared/dev-role-switcher";
 import { AppRouter } from "./router";
 
 /**
@@ -20,17 +20,21 @@ import { AppRouter } from "./router";
  */
 export function App() {
   const hydrate = useAuthStore((s) => s.hydrate);
+  const { i18n } = useTranslation();
 
   useEffect(() => {
     hydrate();
   }, [hydrate]);
 
+  // Keep <html lang> in sync with the active locale (accessibility).
+  useEffect(() => {
+    document.documentElement.lang = i18n.language;
+  }, [i18n.language]);
+
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <AppRouter />
-        {/* Dev-only: switch/enter any role from anywhere, including login. */}
-        {import.meta.env.DEV && <DevRoleSwitcher />}
       </BrowserRouter>
       {import.meta.env.DEV && <ReactQueryDevtools initialIsOpen={false} />}
     </QueryClientProvider>

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ChevronDown, Lock } from "lucide-react";
@@ -16,17 +17,28 @@ export function LoginMethodLocal({
 }: {
   open: boolean;
   onToggle: () => void;
-  onSubmit: (values: LocalLoginValues) => void;
+  /** Returns a Thai error message to display, or null/undefined on success. */
+  onSubmit: (values: LocalLoginValues) => string | null | void;
 }) {
+  const { t } = useTranslation();
   const [showPass, setShowPass] = useState(false);
   const {
     register,
     handleSubmit,
+    setError,
+    clearErrors,
     formState: { errors },
   } = useForm<LocalLoginValues>({
     resolver: zodResolver(localLoginSchema),
     defaultValues: { username: "", password: "", remember: true },
   });
+
+  // Run field validation first, then the credential check from the parent.
+  const handleValid = (values: LocalLoginValues) => {
+    clearErrors("root");
+    const error = onSubmit(values);
+    if (error) setError("root", { type: "manual", message: error });
+  };
 
   return (
     <div className={cn("login-method", open && "open")} id="m-local">
@@ -40,25 +52,23 @@ export function LoginMethodLocal({
           <Lock size={16} strokeWidth={2} />
         </div>
         <div className="login-method-text">
-          <div className="login-method-title">บัญชีภายในระบบ</div>
-          <div className="login-method-sub">
-            สำหรับเจ้าหน้าที่ประจำภาค · ชมรม · Local login
-          </div>
+          <div className="login-method-title">{t("auth.localAccount")}</div>
+          <div className="login-method-sub">{t("auth.localAccountHint")}</div>
         </div>
         <ChevronDown size={16} strokeWidth={2.2} className="login-method-chevron" />
       </button>
 
       {open && (
-        <form className="login-method-body" onSubmit={handleSubmit(onSubmit)} noValidate>
+        <form className="login-method-body" onSubmit={handleSubmit(handleValid)} noValidate>
           <div className="field-group">
             <label className="field-label" htmlFor="loc-user">
-              ชื่อผู้ใช้
+              {t("auth.username")}
             </label>
             <input
               type="text"
               id="loc-user"
               className="field-input"
-              placeholder="ชื่อผู้ใช้ที่ผู้ดูแลระบบกำหนดให้"
+              placeholder={t("auth.usernamePlaceholder")}
               autoComplete="username"
               {...register("username")}
             />
@@ -69,14 +79,14 @@ export function LoginMethodLocal({
 
           <div className="field-group">
             <label className="field-label" htmlFor="loc-pass">
-              รหัสผ่าน
+              {t("auth.password")}
             </label>
             <div className="field-input-with-suffix">
               <input
                 type={showPass ? "text" : "password"}
                 id="loc-pass"
                 className="field-input"
-                placeholder="รหัสผ่าน"
+                placeholder={t("auth.password")}
                 autoComplete="current-password"
                 {...register("password")}
               />
@@ -85,7 +95,7 @@ export function LoginMethodLocal({
                 className="field-input-suffix"
                 onClick={() => setShowPass((v) => !v)}
               >
-                {showPass ? "ซ่อน" : "แสดง"}
+                {showPass ? t("auth.hidePassword") : t("auth.showPassword")}
               </button>
             </div>
             {errors.password && (
@@ -96,21 +106,22 @@ export function LoginMethodLocal({
           <div className="field-row">
             <label className="field-checkbox">
               <input type="checkbox" {...register("remember")} />
-              จดจำการเข้าสู่ระบบ
+              {t("auth.rememberMe")}
             </label>
             <a href="#" className="field-link">
-              ติดต่อผู้ดูแล
+              {t("auth.contactAdmin")}
             </a>
           </div>
 
-          <button type="submit" className="submit-btn">
-            เข้าสู่ระบบด้วยบัญชีภายใน
-          </button>
+          {errors.root && (
+            <div className="field-error" role="alert">
+              {errors.root.message}
+            </div>
+          )}
 
-          <div className="login-notice">
-            <b>บัญชีภายในต้องได้รับอนุญาต</b> จากเจ้าหน้าที่ประจำภาควิชาหรือหัวหน้าชมรม
-            ก่อนใช้งาน หากยังไม่มีบัญชี ให้ติดต่อผู้ดูแลของหน่วยงานท่าน
-          </div>
+          <button type="submit" className="submit-btn">
+            {t("auth.signInWithLocal")}
+          </button>
         </form>
       )}
     </div>

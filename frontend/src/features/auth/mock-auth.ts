@@ -49,3 +49,22 @@ export const MOCK_USERS: Record<Role, User> = {
 };
 
 export const MOCK_USER_STORAGE_KEY = "ulms-mock-user";
+
+/**
+ * TEMPORARY test credentials for the local-account login (no backend yet).
+ * Each entry maps a fixed username/password to a non-borrower role so the
+ * team can reach staff / supervisor / admin views during development.
+ * Borrower is reached via the KU email method instead.
+ *
+ * ⚠️ REMOVE THIS once the real /auth backend lands — the server must be the
+ * source of truth for credentials and roles. See README "Test credentials".
+ */
+export const MOCK_LOCAL_CREDENTIALS: {
+  username: string;
+  password: string;
+  role: Exclude<Role, "borrower">;
+}[] = [
+  { username: "test_staff", password: "staff1234", role: "staff" },
+  { username: "test_supervisor", password: "supervisor1234", role: "supervisor" },
+  { username: "test_admin", password: "admin1234", role: "admin" },
+];

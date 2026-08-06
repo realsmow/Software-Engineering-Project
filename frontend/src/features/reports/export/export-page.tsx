@@ -2,5 +2,5 @@ import { PlaceholderPage } from "@/components/shared/placeholder-page";
 
 /** Placeholder route — real content pending. */
 export default function ReportExportPage() {
-  return <PlaceholderPage title="ส่งออกข้อมูล" />;
+  return <PlaceholderPage titleKey="nav.exportData" />;
 }

@@ -2,5 +2,5 @@ import { PlaceholderPage } from "@/components/shared/placeholder-page";
 
 /** Placeholder route — real content pending. */
 export default function HomePage() {
-  return <PlaceholderPage title="หน้าแรก" />;
+  return <PlaceholderPage titleKey="nav.home" />;
 }

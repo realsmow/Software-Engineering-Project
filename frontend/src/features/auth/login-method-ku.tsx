@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ChevronDown } from "lucide-react";
@@ -19,6 +20,7 @@ export function LoginMethodKu({
   onToggle: () => void;
   onSubmit: (values: KuLoginValues) => void;
 }) {
+  const { t } = useTranslation();
   const [showPass, setShowPass] = useState(false);
   const {
     register,
@@ -39,10 +41,8 @@ export function LoginMethodKu({
       >
         <div className="login-method-icon ku">KU</div>
         <div className="login-method-text">
-          <div className="login-method-title">อีเมล KU</div>
-          <div className="login-method-sub">
-            สำหรับนิสิตและอาจารย์ · @ku.ac.th, @ku.th
-          </div>
+          <div className="login-method-title">{t("auth.kuMail")}</div>
+          <div className="login-method-sub">{t("auth.kuMailHint")}</div>
         </div>
         <ChevronDown size={16} strokeWidth={2.2} className="login-method-chevron" />
       </button>
@@ -51,7 +51,7 @@ export function LoginMethodKu({
         <form className="login-method-body" onSubmit={handleSubmit(onSubmit)} noValidate>
           <div className="field-group">
             <label className="field-label" htmlFor="ku-email">
-              อีเมล KU
+              {t("auth.email")}
             </label>
             <input
               type="email"
@@ -66,14 +66,14 @@ export function LoginMethodKu({
 
           <div className="field-group">
             <label className="field-label" htmlFor="ku-pass">
-              รหัสผ่าน
+              {t("auth.password")}
             </label>
             <div className="field-input-with-suffix">
               <input
                 type={showPass ? "text" : "password"}
                 id="ku-pass"
                 className="field-input"
-                placeholder="รหัสผ่านนนทรี"
+                placeholder={t("auth.password")}
                 autoComplete="current-password"
                 {...register("password")}
               />
@@ -82,7 +82,7 @@ export function LoginMethodKu({
                 className="field-input-suffix"
                 onClick={() => setShowPass((v) => !v)}
               >
-                {showPass ? "ซ่อน" : "แสดง"}
+                {showPass ? t("auth.hidePassword") : t("auth.showPassword")}
               </button>
             </div>
             {errors.password && (
@@ -93,10 +93,10 @@ export function LoginMethodKu({
           <div className="field-row">
             <label className="field-checkbox">
               <input type="checkbox" {...register("remember")} />
-              จดจำการเข้าสู่ระบบ
+              {t("auth.rememberMe")}
             </label>
             <a href="#" className="field-link">
-              ลืมรหัสผ่าน?
+              {t("auth.forgotPassword")}
             </a>
           </div>
 
@@ -104,7 +104,7 @@ export function LoginMethodKu({
             <span className="google-icon" aria-hidden="true">
               <GoogleLogo />
             </span>
-            เข้าสู่ระบบด้วยอีเมล KU
+            {t("auth.signInWithKuMail")}
           </button>
         </form>
       )}

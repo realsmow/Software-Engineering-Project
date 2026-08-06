@@ -2,5 +2,5 @@ import { PlaceholderPage } from "@/components/shared/placeholder-page";
 
 /** Placeholder route — real content pending. */
 export default function StaffSettingsPage() {
-  return <PlaceholderPage title="ตั้งค่าการยืม" />;
+  return <PlaceholderPage titleKey="nav.lendingSettings" />;
 }

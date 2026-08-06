@@ -2,5 +2,5 @@ import { PlaceholderPage } from "@/components/shared/placeholder-page";
 
 /** Placeholder route — real content pending. */
 export default function AdminStatusPage() {
-  return <PlaceholderPage title="สถานะระบบ" />;
+  return <PlaceholderPage titleKey="nav.systemStatus" />;
 }

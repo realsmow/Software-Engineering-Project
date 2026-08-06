@@ -1,4 +1,5 @@
 import { LogOut } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
 import { KULogo } from "./ku-logo";
 import { NavIcon } from "./nav-icon";
@@ -13,6 +14,7 @@ import { cn } from "@/lib/utils";
  * current user's role; active item is derived from the URL.
  */
 export function Sidebar() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
   const user = useAuthStore((s) => s.user);
@@ -32,18 +34,19 @@ export function Sidebar() {
         <KULogo variant="onLight" size={36} />
         <div className="side-head-text">
           <div className="side-head-title">ULMs</div>
-          <div className="side-head-sub">คณะวิศวกรรมศาสตร์</div>
+          <div className="side-head-sub">{t("common.university")}</div>
         </div>
       </div>
 
       <nav className="side-nav">
         {sections.map((section) => (
-          <div className="side-section" key={section.label}>
-            <div className="side-section-label">{section.label}</div>
+          <div className="side-section" key={section.labelKey}>
+            <div className="side-section-label">{t(section.labelKey)}</div>
             {section.items.map((item) => {
               const isActive = item.route
                 ? location.pathname === item.route
                 : false;
+              const label = t(item.labelKey);
               return (
                 <button
                   key={item.key}
@@ -51,10 +54,10 @@ export function Sidebar() {
                   className={cn("side-item", isActive && "active")}
                   disabled={!item.route}
                   onClick={() => item.route && navigate(item.route)}
-                  title={item.label}
+                  title={label}
                 >
                   <NavIcon name={item.icon} />
-                  <span className="side-item-label">{item.label}</span>
+                  <span className="side-item-label">{label}</span>
                   {item.count != null && <span className="count tnum">{item.count}</span>}
                 </button>
               );
@@ -72,8 +75,8 @@ export function Sidebar() {
         <button
           type="button"
           className="side-logout"
-          title="ออกจากระบบ"
-          aria-label="ออกจากระบบ"
+          title={t("common.signOut")}
+          aria-label={t("common.signOut")}
           onClick={handleLogout}
         >
           <LogOut size={15} strokeWidth={2} />

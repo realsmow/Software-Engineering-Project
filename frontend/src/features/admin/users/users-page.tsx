@@ -2,5 +2,5 @@ import { PlaceholderPage } from "@/components/shared/placeholder-page";
 
 /** Placeholder route — real content pending. */
 export default function AdminUsersPage() {
-  return <PlaceholderPage title="ผู้ใช้ระบบ" />;
+  return <PlaceholderPage titleKey="nav.systemUsers" />;
 }

@@ -2,6 +2,21 @@
 
 ระบบบริหารจัดการการยืม–คืนอุปกรณ์มหาวิทยาลัย (University Lending Management System) — ฝั่ง Frontend
 
+## Test credentials (ชั่วคราว — ลบออกหลังมี backend)
+
+> ⚠️ **TEMPORARY / DEV ONLY.** ยังไม่มี backend (`/auth`) จริง จึง mock การเข้าสู่ระบบไว้ก่อน
+> เมื่อ backend พร้อมแล้ว **ต้องลบ** ข้อมูลนี้และตาราง `MOCK_LOCAL_CREDENTIALS`
+> ใน `src/features/auth/mock-auth.ts` ออก แล้วให้ server เป็นผู้ตรวจสอบบัญชี/สิทธิ์แทน
+
+- **ผู้ยืม (borrower)** — เข้าผ่าน **อีเมล KU**: กรอกอีเมล `@ku.ac.th` หรือ `@ku.th` ใด ๆ + รหัสผ่านอะไรก็ได้
+- **บทบาทอื่น** — เข้าผ่าน **บัญชีภายในระบบ (local login)** ด้วยบัญชีทดสอบด้านล่าง:
+
+| บทบาท | ชื่อผู้ใช้ (username) | รหัสผ่าน (password) |
+|---|---|---|
+| เจ้าหน้าที่ (staff) | `test_staff` | `staff1234` |
+| หัวหน้า (supervisor) | `test_supervisor` | `supervisor1234` |
+| แอดมิน (admin) | `test_admin` | `admin1234` |
+
 ## Tech Stack
 
 - **Core**: Vite + React 18 + TypeScript + React Router 6
