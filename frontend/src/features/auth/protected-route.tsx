@@ -2,7 +2,7 @@ import { Navigate, useLocation } from "react-router-dom";
 import type { ReactNode } from "react";
 import type { Role } from "@/types/domain";
 import { useAuthStore } from "./auth.store";
-import { ROUTES } from "@/constants";
+import { ROUTES, HOME_ROUTE_BY_ROLE } from "@/constants";
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -32,7 +32,7 @@ export function ProtectedRoute({
   }
 
   if (allowedRoles && !allowedRoles.includes(user.role)) {
-    return <Navigate to={ROUTES.HOME} replace />;
+    return <Navigate to={HOME_ROUTE_BY_ROLE[user.role]} replace />;
   }
 
   return <>{children}</>;

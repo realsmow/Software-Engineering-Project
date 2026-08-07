@@ -5,7 +5,7 @@ import { Moon, Sun } from "lucide-react";
 import { KULogo } from "@/components/layout/ku-logo";
 import { LanguageToggle } from "@/components/shared/language-toggle";
 import { useTheme } from "@/hooks/use-theme";
-import { ROUTES } from "@/constants";
+import { HOME_ROUTE_BY_ROLE } from "@/constants";
 import { useAuthStore } from "./auth.store";
 import { MOCK_LOCAL_CREDENTIALS } from "./mock-auth";
 import type { LocalLoginValues } from "./login.schema";
@@ -39,7 +39,7 @@ export function LoginPage() {
   // KU email → borrower only (students & faculty).
   const handleKuLogin = () => {
     loginAs("borrower");
-    navigate(ROUTES.HOME, { replace: true });
+    navigate(HOME_ROUTE_BY_ROLE.borrower, { replace: true });
   };
 
   // Local account → staff/supervisor/admin, gated by the mock credential table.
@@ -50,7 +50,7 @@ export function LoginPage() {
     );
     if (!match) return t("auth.invalidCredentials");
     loginAs(match.role);
-    navigate(ROUTES.HOME, { replace: true });
+    navigate(HOME_ROUTE_BY_ROLE[match.role], { replace: true });
     return null;
   };
 

@@ -1,8 +1,10 @@
 import { Bell, Moon, Search, Sun } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { ROUTE_TITLE_KEYS } from "@/constants/navigation";
+import { HOME_ROUTE_BY_ROLE } from "@/constants";
 import { LanguageToggle } from "@/components/shared/language-toggle";
+import { useAuthStore } from "@/features/auth/auth.store";
 import { useTheme } from "@/hooks/use-theme";
 
 /**
@@ -12,16 +14,32 @@ import { useTheme } from "@/hooks/use-theme";
 export function Topbar() {
   const { t } = useTranslation();
   const location = useLocation();
+  const navigate = useNavigate();
+  const role = useAuthStore((s) => s.user?.role) ?? "borrower";
   const { isDark, toggleTheme } = useTheme();
 
+  // Breadcrumb root is the role's own landing page (admin → System overview),
+  // not a generic "Home". On the landing page itself we show a single crumb
+  // instead of a redundant "Home › Home".
+  const homeRoute = HOME_ROUTE_BY_ROLE[role];
+  const homeLabel = t(ROUTE_TITLE_KEYS[homeRoute] ?? "nav.home");
   const current = t(ROUTE_TITLE_KEYS[location.pathname] ?? "nav.overview");
+  const atHome = location.pathname === homeRoute;
 
   return (
     <header className="top">
       <div className="top-crumb">
-        <span className="lbl">{t("nav.home")}</span>
-        <span className="sep">›</span>
-        <span className="cur">{current}</span>
+        {atHome ? (
+          <span className="cur">{current}</span>
+        ) : (
+          <>
+            <button type="button" className="lbl lbl-link" onClick={() => navigate(homeRoute)}>
+              {homeLabel}
+            </button>
+            <span className="sep">›</span>
+            <span className="cur">{current}</span>
+          </>
+        )}
       </div>
 
       <div className="top-right">
@@ -31,7 +49,7 @@ export function Topbar() {
           <span className="kbd">⌘K</span>
         </button>
 
-        <LanguageToggle className="icon-btn" />
+        <LanguageToggle className="lang-btn" />
 
         <button
           type="button"

@@ -11,6 +11,7 @@ import {
   FileText,
   Home,
   Inbox,
+  LayoutDashboard,
   LayoutGrid,
   Package,
   Server,
@@ -28,6 +29,7 @@ import {
  */
 const NAV_ICON: Record<string, LucideIcon> = {
   home: Home,
+  "layout-dashboard": LayoutDashboard,
   grid: LayoutGrid,
   file: File,
   clock: Clock,

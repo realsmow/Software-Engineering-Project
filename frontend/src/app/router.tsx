@@ -61,6 +61,9 @@ const SupervisorAppealsPage = lazy(
 );
 
 // Admin
+const AdminDashboardPage = lazy(
+  () => import("@/features/admin/dashboard/dashboard-page"),
+);
 const AdminUsersPage = lazy(() => import("@/features/admin/users/users-page"));
 const AdminStatusPage = lazy(() => import("@/features/admin/status/status-page"));
 const AdminAuditPage = lazy(() => import("@/features/admin/audit/audit-page"));
@@ -129,6 +132,7 @@ export function AppRouter() {
 
           {/* Admin — admin only */}
           <Route element={<RoleGuard allowedRoles={["admin"]} />}>
+            <Route path={ROUTES.ADMIN_DASHBOARD} element={<AdminDashboardPage />} />
             <Route path={ROUTES.ADMIN_USERS} element={<AdminUsersPage />} />
             <Route path={ROUTES.ADMIN_STATUS} element={<AdminStatusPage />} />
             <Route path={ROUTES.ADMIN_AUDIT} element={<AdminAuditPage />} />
