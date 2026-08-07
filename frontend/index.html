@@ -9,6 +9,24 @@
   </head>
   <body>
     <div id="root"></div>
+    <script>
+      // Apply the saved theme synchronously, before React paints, so there is
+      // no flash of light mode on load (esp. the green login panel). Mirrors
+      // getInitialTheme() in src/lib/theme.ts.
+      (function () {
+        try {
+          var stored = localStorage.getItem("ulms-theme");
+          var dark =
+            stored === "dark" ||
+            (!stored &&
+              window.matchMedia &&
+              window.matchMedia("(prefers-color-scheme: dark)").matches);
+          if (dark) document.body.classList.add("dark");
+        } catch (e) {
+          /* ignore */
+        }
+      })();
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

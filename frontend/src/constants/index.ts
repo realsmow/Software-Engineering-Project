@@ -2,6 +2,7 @@
  * ค่าคงที่ของระบบ ULMs
  * ตรงกับ business rules ในเอกสาร proposal
  */
+import type { Role } from "@/types/domain";
 
 // ==================== Polling Intervals (ms) ====================
 export const POLLING = {
@@ -82,6 +83,7 @@ export const ROUTES = {
   SUPERVISOR_APPROVALS: "/supervisor/approvals",
   SUPERVISOR_APPEALS: "/supervisor/appeals",
   // Admin
+  ADMIN_DASHBOARD: "/admin",
   ADMIN_USERS: "/admin/users",
   ADMIN_STATUS: "/admin/status",
   ADMIN_AUDIT: "/admin/audit",
@@ -126,6 +128,7 @@ export const ROLE_ROUTES = {
     ROUTES.REPORT_EXPORT,
   ],
   admin: [
+    ROUTES.ADMIN_DASHBOARD,
     ROUTES.ADMIN_USERS,
     ROUTES.ADMIN_STATUS,
     ROUTES.ADMIN_AUDIT,
@@ -134,3 +137,14 @@ export const ROLE_ROUTES = {
     ROUTES.ADMIN_REPORTS,
   ],
 } as const;
+
+/**
+ * Role → landing route after login (and the target of the breadcrumb root).
+ * Each role starts on its own home instead of the shared borrower Home page.
+ */
+export const HOME_ROUTE_BY_ROLE: Record<Role, string> = {
+  borrower: ROUTES.HOME,
+  staff: ROUTES.STAFF_DASHBOARD,
+  supervisor: ROUTES.SUPERVISOR_APPROVALS,
+  admin: ROUTES.ADMIN_DASHBOARD,
+};
