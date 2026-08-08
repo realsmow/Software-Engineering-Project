@@ -136,7 +136,8 @@ export const NAV_CONFIG: Record<Role, RoleNav> = {
       {
         labelKey: "nav.admin",
         items: [
-          { key: "sys-users", labelKey: "nav.systemUsers", icon: "users", active: true, route: ROUTES.ADMIN_USERS },
+          { key: "sys-dashboard", labelKey: "nav.adminDashboard", icon: "layout-dashboard", route: ROUTES.ADMIN_DASHBOARD },
+          { key: "sys-users", labelKey: "nav.systemUsers", icon: "users", route: ROUTES.ADMIN_USERS },
           { key: "sys-status", labelKey: "nav.systemStatus", icon: "activity", route: ROUTES.ADMIN_STATUS },
           { key: "sys-audit", labelKey: "nav.auditLog", icon: "file-text", route: ROUTES.ADMIN_AUDIT },
           { key: "sys-config", labelKey: "nav.techConfig", icon: "server", route: ROUTES.ADMIN_CONFIG },

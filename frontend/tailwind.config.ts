@@ -23,6 +23,7 @@ export default {
         // bg-accent / text-t1 / border-line map to the contract tokens.
         accent: {
           DEFAULT: "var(--accent)",
+          foreground: "#ffffff",
           hover: "var(--accent-h)",
           pressed: "var(--accent-p)",
           soft: "var(--accent-soft)",
@@ -46,39 +47,45 @@ export default {
         t3: "var(--s-t3)",
         t4: "var(--s-t4)",
 
-        // Semantic tokens (shadcn convention — legacy, kept for existing UI)
-        border: "hsl(var(--border))",
-        input: "hsl(var(--input))",
-        ring: "hsl(var(--ring))",
-        background: "hsl(var(--background))",
-        foreground: "hsl(var(--foreground))",
+        // Semantic tokens (shadcn convention) — bridged to the ULMs --s-*
+        // palette so shadcn components inherit the exact colors + dark mode
+        // (body.dark) as the rest of the app. No HSL indirection.
+        border: "var(--s-line)",
+        input: "var(--s-line)",
+        ring: "var(--accent)",
+        background: "var(--s-bg)",
+        foreground: "var(--s-t1)",
         primary: {
-          DEFAULT: "hsl(var(--primary))",
-          foreground: "hsl(var(--primary-foreground))",
-          hover: "hsl(var(--primary-hover))",
-          soft: "hsl(var(--primary-soft))",
+          DEFAULT: "var(--accent)",
+          foreground: "#ffffff",
+          hover: "var(--accent-h)",
+          soft: "var(--accent-soft)",
         },
         secondary: {
-          DEFAULT: "hsl(var(--secondary))",
-          foreground: "hsl(var(--secondary-foreground))",
+          DEFAULT: "var(--s-subtle)",
+          foreground: "var(--s-t1)",
         },
         muted: {
-          DEFAULT: "hsl(var(--muted))",
-          foreground: "hsl(var(--muted-foreground))",
+          DEFAULT: "var(--s-subtle)",
+          foreground: "var(--s-t3)",
         },
         destructive: {
-          DEFAULT: "hsl(var(--destructive))",
-          foreground: "hsl(var(--destructive-foreground))",
-          soft: "hsl(var(--destructive-soft))",
+          DEFAULT: "var(--accent-red)",
+          foreground: "#ffffff",
+          soft: "var(--s-alert-bg)",
         },
         warning: {
-          DEFAULT: "hsl(var(--warning))",
-          foreground: "hsl(var(--warning-foreground))",
-          soft: "hsl(var(--warning-soft))",
+          DEFAULT: "var(--s-warn-t)",
+          foreground: "#ffffff",
+          soft: "var(--s-warn-bg)",
+        },
+        popover: {
+          DEFAULT: "var(--s-surface)",
+          foreground: "var(--s-t1)",
         },
         card: {
-          DEFAULT: "hsl(var(--card))",
-          foreground: "hsl(var(--card-foreground))",
+          DEFAULT: "var(--s-surface)",
+          foreground: "var(--s-t1)",
         },
         // Tier colors (สำหรับแยกระดับอุปกรณ์)
         tier: {
