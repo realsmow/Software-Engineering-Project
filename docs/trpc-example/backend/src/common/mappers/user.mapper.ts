@@ -1,6 +1,6 @@
 /**
  * วาระ ว-09 + ว-10 · ชั้นแปลงจากรูปร่างฐานข้อมูลเป็นรูปร่างของสัญญา
- * ปลายทางจริง: backend-preview/backend/src/common/mappers/user.mapper.ts
+ * ปลายทางจริง: backend/src/common/mappers/user.mapper.ts
  *
  * ชั้นนี้ราคาไม่แพงแต่ซื้ออิสรภาพสองทาง:
  *   - เปลี่ยนชื่อคอลัมน์ในฐานข้อมูลได้โดยหน้าเว็บไม่พัง
@@ -9,8 +9,12 @@
  * ในรีโปนี้จำเป็นกว่าปกติ เพราะ schema ใช้ PascalCase และไม่มี enum เลยสักตัว
  */
 
-import { mapStatus, userRole, type CreditTier } from '../schemas/status.schema';
-import type { UserOutput } from '../schemas/user.schema';
+import {
+  mapStatus,
+  userRole,
+  type CreditTier,
+  type UserOutput,
+} from '@ulms/contract';
 
 /**
  * รูปร่างที่ mapper ต้องการ — ประกาศเองแทนที่จะ import type จาก Prisma

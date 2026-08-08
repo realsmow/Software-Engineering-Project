@@ -36,6 +36,8 @@
 ตัวอย่างการใช้งานฝั่ง frontend ที่รวมทุกมติไว้ในไฟล์เดียว:
 `frontend/src/features/loan/use-loans.ts`
 
+**อยากรู้ว่าไฟล์เหล่านี้ต้องไปวางที่ไหนจริง ๆ และใครดูแล → [`STRUCTURE.md`](STRUCTURE.md)**
+
 ---
 
 ## เส้นที่ควรทำให้วิ่งก่อน (vertical slice)
@@ -66,12 +68,35 @@ cd frontend && npm i zod@^4
 # ตรวจให้ผ่านก่อนไปต่อ: schemas/loan-request.schema.ts และ @hookform/resolvers
 npm run typecheck
 
-# ว-01 — ฝั่ง frontend ยังไม่มีแพ็กเกจของ tRPC เลย
-cd frontend && npm i @trpc/client @trpc/tanstack-react-query
+# ว-01 — ฝั่ง frontend ยังไม่มีแพ็กเกจของ tRPC เลยสักตัว
+cd frontend
+npm i    @trpc/client @trpc/tanstack-react-query
+npm i -D @trpc/server          # types only — ดูเหตุผลข้างล่าง
 
 # ว-03 — backend ยังไม่มีตัวอ่าน cookie
 cd backend-preview/backend && npm i cookie-parser && npm i -D @types/cookie-parser
 ```
+
+> ### ทำไม frontend ต้องมี `@trpc/server` ด้วย
+>
+> ถ้าเลือก**ทางเลือก ข. (คัดลอกไฟล์)** ไฟล์สัญญาที่คัดลอกมา **ไม่ใช่ type ล้วน ๆ**
+> ข้างในมันมี `import { z } from 'zod'` และ `import { initTRPC } from '@trpc/server'`
+> ของมันเอง ฝั่งที่รับจึงต้อง resolve สองตัวนั้นได้ ไม่งั้น type จะกลายเป็น `any` เงียบ ๆ
+>
+> **เวอร์ชันต้องตรงกับฝั่ง backend เป๊ะ** (`zod` 4.x, `@trpc/server` 11.18) ถ้าไม่ตรง
+> จะเจอ error หน้าตา `Type 'ZodString' is not assignable to type 'ZodString'`
+> ซึ่งอ่านแล้วเดาสาเหตุไม่ถูก
+>
+> ถ้าเลือก**ทางเลือก ก. (workspaces)** ปัญหานี้หายไปเอง เพราะ `node_modules`
+> เหลือกองเดียว — ไม่ต้องลง `@trpc/server` ซ้ำ
+>
+> **และต้องเขียน `import type` เสมอ:**
+> ```ts
+> import type { AppRouter } from '@/server-types/appRouter';  // ถูก
+> import { AppRouter } from '@/server-types/appRouter';       // ผิด
+> ```
+> บรรทัดล่างจะลาก `@trpc/server` ทั้งก้อนเข้า bundle ของเบราว์เซอร์ โดย build ยังผ่านปกติ
+> กันด้วยกฎ ESLint `consistent-type-imports`
 
 เพิ่มสคริปต์ที่ `package.json` ระดับรากรีโป:
 
@@ -119,6 +144,8 @@ cd backend-preview/backend && npm i cookie-parser && npm i -D @types/cookie-pars
 
 | ไฟล์ | เนื้อหา |
 |---|---|
+| `STRUCTURE.md` (โฟลเดอร์นี้) | **ของจริงควรอยู่ที่ไหน และใครรับผิดชอบ** — โครงเป้าหมายทั้งสองแบบ, ตารางแมปไฟล์ → ปลายทาง, ลำดับการย้าย |
+| `CONTRACT.md` (โฟลเดอร์นี้) | ตารางสัญญา: procedure มีอะไรบ้าง input/output หน้าตาไหน |
 | `../report/trpc-guide.pdf` | หลักการของ tRPC · ทางเดินของ request · ความเสี่ยง 8 ข้อในรีโปนี้ |
 | `../report/trpc-meeting.pdf` | วาระประชุม 19 วาระ พร้อมตัวเลือกและเหตุผลของแต่ละข้อเสนอ |
 | `../../รายการเรียกใช้งานจาก Backend.pdf` | ร่างสัญญาฉบับแรกของทีม — ต้นทางของตารางใน `CONTRACT.md` |

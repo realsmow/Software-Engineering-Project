@@ -1,6 +1,6 @@
 /**
  * วาระ ว-03 · รูปร่างของ ctx.user และวิธีส่งข้อมูลยืนยันตัวตน
- * ปลายทางจริง: backend-preview/backend/src/trpc/context.ts
+ * ปลายทางจริง: backend/src/trpc/context.ts
  *
  * สมมติว่าที่ประชุมเลือกตามข้อเสนอ:
  *   - ใช้ httpOnly cookie (frontend/src/lib/api-client.ts ตั้ง credentials:"include" ไว้แล้ว)
@@ -14,14 +14,19 @@
 import { Injectable } from '@nestjs/common';
 import type { ContextOptions, TRPCContext } from 'nestjs-trpc';
 import type { Request, Response } from 'express';
+import type { UserRole } from '@ulms/contract';
 import { PrismaService } from '../prisma.service';
 
 /** ผู้ใช้ที่ล็อกอินแล้ว — รูปร่างนี้คือสิ่งที่ทุก procedure พึ่งพา */
 export interface TrpcUser {
   /** AccountInfo.AccountKey */
   accountKey: number;
-  /** RoleInfo.RoleName แปลงเป็นสตริงคงที่แล้ว ดู common/schemas/status.schema.ts */
-  role: 'borrower' | 'staff' | 'supervisor' | 'admin';
+  /**
+   * RoleInfo.RoleName แปลงเป็นสตริงคงที่แล้ว
+   * ชนิดมาจาก @ulms/contract ไม่ประกาศซ้ำที่นี่ — ถ้าเพิ่มบทบาทใหม่ในสัญญา
+   * ไฟล์นี้กับ middleware จะ compile ฟ้องให้เองว่ายังจัดการไม่ครบ
+   */
+  role: UserRole;
   /** FacultyInfo.FacultyKey — ใช้กับกฎการยืมที่ผูกกับสังกัด */
   facultyKey: number | null;
   /**
@@ -98,7 +103,7 @@ export class AppContext implements TRPCContext {
  * RoleInfo เป็น "ตาราง" ไม่ใช่ enum (schema.prisma ไม่มี enum เลยสักตัว)
  * จึงต้องแปลงเป็นสตริงคงที่ตรงนี้ ห้ามปล่อยเลข RoleKey ออกไปนอกชั้นนี้ — ดู ว-10
  */
-function mapRoleName(roleName: string): TrpcUser['role'] {
+function mapRoleName(roleName: string): UserRole {
   switch (roleName.toLowerCase()) {
     case 'student':
     case 'borrower':

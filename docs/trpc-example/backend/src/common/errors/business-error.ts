@@ -1,6 +1,6 @@
 /**
  * วาระ ว-06 · ตัวโยน error ที่บังคับให้ทำถูกตามสัญญา
- * ปลายทางจริง: backend-preview/backend/src/common/errors/business-error.ts
+ * ปลายทางจริง: backend/src/common/errors/business-error.ts
  *
  * เหตุผลที่ต้องมีฟังก์ชันนี้แทนที่จะ new TRPCError เอาเอง:
  *   1. บังคับให้ทุกที่แนบ "รหัสธุรกิจ" ไม่ใช่แค่รหัส tRPC กว้าง ๆ
@@ -14,7 +14,7 @@ import {
   BUSINESS_ERROR,
   type BusinessErrorCode,
   type BusinessErrorData,
-} from './error-codes';
+} from '@ulms/contract';
 
 /** จับคู่รหัสธุรกิจกับรหัสมาตรฐานของ tRPC — ตัดสินใจครั้งเดียวที่นี่ */
 const TRPC_CODE: Record<BusinessErrorCode, TRPCError['code']> = {

@@ -1,6 +1,6 @@
 /**
  * วาระ ว-03 + ว-05 · ตรวจสิทธิ์ด้วย middleware ไม่ใช่ if ใน service
- * ปลายทางจริง: backend-preview/backend/src/trpc/auth.middleware.ts
+ * ปลายทางจริง: backend/src/trpc/auth.middleware.ts
  *
  * สมมติว่าที่ประชุมยืนยันตามข้อเสนอ ว-05:
  *   จัดกลุ่ม procedure ตาม "โดเมน" แล้วคุมสิทธิ์ด้วย middleware

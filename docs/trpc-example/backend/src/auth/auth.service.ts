@@ -1,5 +1,5 @@
 /**
- * ปลายทางจริง: backend-preview/backend/src/auth/auth.service.ts
+ * ปลายทางจริง: backend/src/auth/auth.service.ts
  *
  * แสดงสองอย่าง:
  *   1. select เฉพาะฟิลด์ที่ต้องใช้ ไม่ดึงทั้งแถว (AccountInfo มี HashedPassword)
@@ -10,8 +10,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { toUserOutput, type BorrowLimits } from '../common/mappers/user.mapper';
-import type { UserOutput } from '../common/schemas/user.schema';
-import type { CreditTier } from '../common/schemas/status.schema';
+import type { CreditTier, UserOutput } from '@ulms/contract';
 
 @Injectable()
 export class AuthService {

@@ -1,6 +1,6 @@
 /**
  * เส้นแรกที่ควรทำให้วิ่งครบ (vertical slice) — ภาค 5 ของ trpc-guide.tex
- * ปลายทางจริง: backend-preview/backend/src/auth/auth.router.ts
+ * ปลายทางจริง: backend/src/auth/auth.router.ts
  *
  * ทำไมเลือก auth.me เป็น procedure ตัวแรก:
  *   ทุกหน้าใช้ และมันบังคับให้เราต้องแก้เรื่อง cookie, CORS, context และการ
@@ -16,7 +16,7 @@
 import { Ctx, Query, Router, UseMiddlewares } from 'nestjs-trpc';
 import { AuthMiddleware } from '../trpc/auth.middleware';
 import type { TrpcContext } from '../trpc/context';
-import { userOutput } from '../common/schemas/user.schema';
+import { userOutput } from '@ulms/contract';
 import { AuthService } from './auth.service';
 
 @Router({ alias: 'auth' })

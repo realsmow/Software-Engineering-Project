@@ -11,7 +11,7 @@
  * — เป็นตัวอย่างที่ชัดที่สุดว่าสัญญาช่วยอะไร
  */
 
-import type { BusinessErrorCode } from '../server-types/appRouter';
+import type { BusinessErrorCode } from '@ulms/contract';
 
 /** ข้อความคงที่ที่ไม่ต้องใช้ข้อมูลประกอบ */
 const STATIC_MESSAGES: Record<BusinessErrorCode, string> = {
