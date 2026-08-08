@@ -1,6 +1,6 @@
 /**
  * วาระ ว-03 · เปิด CORS พร้อม credentials และอ่าน cookie
- * ปลายทางจริง: backend-preview/backend/src/main.ts (แทนที่ของเดิม)
+ * ปลายทางจริง: backend/src/main.ts (แทนที่ของเดิม)
  *
  * ของเดิมในรีโปมีแค่ NestFactory.create กับ app.listen — ไม่มี enableCors
  * ไม่มีการอ่าน cookie ขณะที่ frontend/src/lib/api-client.ts ตั้ง

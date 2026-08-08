@@ -1,0 +1,23 @@
+{
+  "_comment": "วาระ ว-01 · ทางเลือก ก. — workspace root ที่รากรีโป (ไฟล์นี้ยังไม่มีในรีโปจริง) ทั้งรีโปมี node_modules กองเดียว จึงไม่มีปัญหา 'zod สองชุด' อีกต่อไป",
+  "name": "ulms",
+  "version": "0.0.0",
+  "private": true,
+  "workspaces": [
+    "frontend",
+    "backend",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:fe": "npm run dev -w frontend",
+    "dev:be": "npm run start:dev -w backend",
+    "build": "npm run build -w frontend && npm run build -w backend",
+    "typecheck": "npm run typecheck -w frontend && npm run typecheck -w backend",
+    "db:generate": "npm run prisma:generate -w backend",
+    "db:migrate": "npm run prisma:migrate -w backend"
+  },
+  "engines": {
+    "node": ">=22.0.0",
+    "npm": ">=10.0.0"
+  }
+}

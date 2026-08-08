@@ -17,7 +17,7 @@
 
 | เรื่อง | ข้อตกลง | วาระ |
 |---|---|---|
-| การขนส่งสัญญา | `autoSchemaFile: './src/@generated'` → `npm run sync:contract` → `frontend/src/server-types/` | ว-01 |
+| การขนส่งสัญญา | **npm workspaces** — `autoSchemaFile` เขียนลง `packages/contract/src/generated/` ทั้งสองฝั่ง `import` จาก `@ulms/contract` ไม่มีขั้นตอนคัดลอก | ว-01 |
 | เวอร์ชัน zod | 4.x ทั้งสองฝั่ง | ว-02 |
 | การยืนยันตัวตน | httpOnly cookie ชื่อ `ulms_session` + `credentials: 'include'` | ว-03 |
 | การจัดกลุ่ม | ตามโดเมน ไม่ใช่ตามบทบาท คุมสิทธิ์ด้วย middleware | ว-05 |
@@ -31,7 +31,7 @@
 
 ### รหัสข้อผิดพลาดทางธุรกิจ
 
-ที่มา: `backend/src/common/errors/error-codes.ts`
+ที่มา: `packages/contract/src/errors/error-codes.ts`
 
 | รหัส | รหัส tRPC | ข้อมูลประกอบ |
 |---|---|---|

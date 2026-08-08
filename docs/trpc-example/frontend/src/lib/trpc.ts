@@ -6,13 +6,17 @@
  * ถ้าบรรทัดนั้น resolve ไม่ได้ แปลว่าเรายังไม่มีสัญญา มีแต่ REST ที่เขียนด้วย
  * ไวยากรณ์ของ tRPC
  *
- * ต้องลงเพิ่ม (ยังไม่มีใน frontend/package.json):
- *   npm i @trpc/client @trpc/tanstack-react-query
- * และต้องยก zod เป็น 4 ให้ตรงกับ backend ก่อน (ว-02)
+ * ต้องลงเพิ่มใน frontend/package.json:
+ *   "@trpc/client": "^11.18.0"
+ *   "@trpc/tanstack-react-query": "^11.18.0"
+ *   "@ulms/contract": "*"          <- workspace ไม่ต้องระบุเวอร์ชัน
+ *
+ * ไม่ต้องลง @trpc/server และไม่ต้องลง zod ซ้ำ เพราะทางเลือก ก. มี node_modules
+ * กองเดียว — แพ็กเกจ contract ประกาศไว้แล้ว frontend เห็นผ่าน workspace
  */
 
 import { createTRPCClient, httpBatchLink, httpLink, splitLink } from '@trpc/client';
-import type { AppRouter } from '../server-types/appRouter';
+import type { AppRouter } from '@ulms/contract';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 

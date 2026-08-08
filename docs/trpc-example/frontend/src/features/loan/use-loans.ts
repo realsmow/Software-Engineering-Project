@@ -13,7 +13,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { TRPCClientError } from '@trpc/client';
 import { trpcClient } from '../../lib/trpc';
 import { formatBusinessError } from '../../lib/error-messages';
-import type { BusinessErrorCode } from '../../server-types/appRouter';
+import type { BusinessErrorCode } from '@ulms/contract';
 
 /** รายการที่กำลังยืมอยู่ของตัวเอง */
 export function useMyLoans(page = 1) {

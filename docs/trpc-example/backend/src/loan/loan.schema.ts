@@ -1,6 +1,6 @@
 /**
  * วาระ ว-07 + ว-08 + ว-09 + ว-10 มาบรรจบกันในไฟล์เดียว
- * ปลายทางจริง: backend-preview/backend/src/loan/loan.schema.ts
+ * ปลายทางจริง: backend/src/loan/loan.schema.ts
  *
  * ไฟล์นี้คือตัวอย่างว่า "สัญญาของหนึ่งโดเมน" หน้าตาเป็นอย่างไรเมื่อทุกมติถูกนำมาใช้:
  *   ว-07 แบ่งหน้าตามเลขหน้า           -> paginationInput / paginated()
@@ -11,15 +11,13 @@
 
 import { z } from 'zod';
 import {
+  approveStatus,
   isoDate,
   isoDateTime,
   isoDateTimeNullable,
-} from '../common/schemas/datetime.schema';
-import {
   paginated,
   paginationInput,
-} from '../common/schemas/pagination.schema';
-import { approveStatus } from '../common/schemas/status.schema';
+} from '@ulms/contract';
 
 // ---------------------------------------------------------------------------
 //  INPUT

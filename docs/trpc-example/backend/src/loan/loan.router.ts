@@ -1,6 +1,6 @@
 /**
  * วาระ ว-05 · โครงและการตั้งชื่อ router กับ procedure
- * ปลายทางจริง: backend-preview/backend/src/loan/loan.router.ts
+ * ปลายทางจริง: backend/src/loan/loan.router.ts
  *
  * สมมติว่าที่ประชุมยืนยันตามข้อเสนอ:
  *   - จัดกลุ่มตาม "โดเมน" (loan) ไม่ใช่ตามบทบาท (staff/supervisor)

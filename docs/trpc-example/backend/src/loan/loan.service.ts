@@ -1,6 +1,6 @@
 /**
  * ตัวอย่าง "stub ที่คืนค่า mock ตาม output schema"
- * ปลายทางจริง: backend-preview/backend/src/loan/loan.service.ts
+ * ปลายทางจริง: backend/src/loan/loan.service.ts
  *
  * นี่คือประโยชน์ที่แท้จริงของการทำสัญญาก่อน:
  *   หลังตกลง output schema แล้ว backend เขียนไฟล์นี้แบบคืนข้อมูลปลอมได้ทันที
@@ -15,7 +15,7 @@
 
 import { Injectable } from '@nestjs/common';
 import { businessError } from '../common/errors/business-error';
-import { toDueDate, toIso } from '../common/schemas/datetime.schema';
+import { toDueDate, toIso } from '@ulms/contract';
 import type {
   CreateLoanInput,
   ListLoansInput,
