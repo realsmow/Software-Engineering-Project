@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Bell, Check, CheckCheck } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Bell, CheckCheck, ChevronRight } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { NavIcon } from "@/components/layout/nav-icon";
 import type { BadgeTone } from "@/components/ui/badge";
@@ -36,6 +37,7 @@ function useRelativeTime() {
 export function NotificationsMenu() {
   const { t } = useTranslation();
   const rel = useRelativeTime();
+  const navigate = useNavigate();
   const [items, setItems] = useState<AppNotification[]>(MOCK_NOTIFICATIONS);
   const [open, setOpen] = useState(false);
 
@@ -46,6 +48,13 @@ export function NotificationsMenu() {
   }
   function markAll() {
     setItems((prev) => prev.map((n) => ({ ...n, read: true })));
+  }
+
+  /** Open a notification: mark it read, close the menu, and jump to its target. */
+  function openNotification(n: AppNotification) {
+    markOne(n.id);
+    setOpen(false);
+    if (n.route) navigate(n.route);
   }
 
   return (
@@ -88,10 +97,15 @@ export function NotificationsMenu() {
             <div className="flex flex-col divide-y divide-border">
               {items.map((n) => {
                 const meta = NOTIFICATION_META[n.kind];
+                const clickable = Boolean(n.route);
                 return (
-                  <div
+                  <button
                     key={n.id}
-                    className={`group flex gap-3 px-3.5 py-3 ${n.read ? "" : "bg-secondary/50"}`}
+                    type="button"
+                    onClick={() => openNotification(n)}
+                    className={`group flex w-full gap-3 px-3.5 py-3 text-left transition-colors hover:bg-secondary ${
+                      n.read ? "" : "bg-secondary/50"
+                    }`}
                   >
                     <span
                       className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
@@ -111,19 +125,15 @@ export function NotificationsMenu() {
                       </p>
                       <div className="mt-1 flex items-center justify-between">
                         <span className="text-[11px] text-muted-foreground">{rel(n.at)}</span>
-                        {!n.read ? (
-                          <button
-                            type="button"
-                            onClick={() => markOne(n.id)}
-                            className="flex items-center gap-1 text-[11px] font-medium text-muted-foreground opacity-0 transition-opacity hover:text-foreground group-hover:opacity-100"
-                          >
-                            <Check size={12} strokeWidth={2} />
-                            {t("notifications.markRead")}
-                          </button>
+                        {clickable ? (
+                          <span className="flex items-center gap-0.5 text-[11px] font-medium text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100">
+                            {t("notifications.view")}
+                            <ChevronRight size={12} strokeWidth={2} />
+                          </span>
                         ) : null}
                       </div>
                     </div>
-                  </div>
+                  </button>
                 );
               })}
             </div>
