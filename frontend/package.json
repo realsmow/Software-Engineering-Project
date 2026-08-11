@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "lint": "eslint .",
     "format": "prettier --write \"src/**/*.{ts,tsx,css}\"",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test:ac": "esbuild src/lib/__checks__/ac-checks.ts --bundle --platform=node --format=esm --alias:@=./src --define:import.meta.env={} --outfile=node_modules/.cache/ac-checks.mjs && node node_modules/.cache/ac-checks.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
