@@ -29,6 +29,17 @@ const ERROR_MESSAGES: Record<string, string> = {
   PICKUP_EXPIRED: "หมดเวลารับของแล้ว คำขอถูกยกเลิก",
   ALREADY_RETURNED: "อุปกรณ์นี้ถูกคืนไปแล้ว",
 
+  // Backend business error codes (ว-06). Aliased to the same user-facing copy
+  // as the frontend codes above so either spelling resolves correctly.
+  ITEM_UNAVAILABLE: "อุปกรณ์ชิ้นนี้ถูกยืมไปแล้ว กรุณาเลือกใหม่", // → CONFLICT_UNIT_TAKEN
+  SLOT_TAKEN: "ช่วงเวลานี้ไม่ว่างแล้ว", // → SLOT_UNAVAILABLE
+  SLOT_LIMIT_EXCEEDED: "จองห้อง/สล็อตพร้อมกันได้ไม่เกิน 2 รายการ",
+  NOT_ELIGIBLE: "คุณไม่ตรงเงื่อนไขการยืมอุปกรณ์นี้", // → ELIGIBILITY_NOT_MET
+  ALREADY_DECIDED: "คำขอนี้ถูกดำเนินการไปแล้ว ไม่สามารถแก้ไขได้",
+  LOAN_PERIOD_EXCEEDS_LIMIT: "ระยะเวลายืมเกินสิทธิ์ที่คุณได้รับ",
+  EXTENSION_QUOTA_EXCEEDED: "คุณต่ออายุออนไลน์ครบแล้ว ต้องนำอุปกรณ์มาให้เจ้าหน้าที่ตรวจ", // → RENEWAL_LIMIT_REACHED
+  APPEAL_WINDOW_CLOSED: "หมดเวลายื่นอุทธรณ์สำหรับรายการนี้แล้ว",
+
   // File upload
   FILE_TOO_LARGE: "ไฟล์ใหญ่เกินไป (สูงสุด 5 MB)",
   INVALID_FILE_TYPE: "ไฟล์ต้องเป็นรูปภาพเท่านั้น (JPG, PNG)",
@@ -41,12 +52,59 @@ const ERROR_MESSAGES: Record<string, string> = {
   UNKNOWN_ERROR: "เกิดข้อผิดพลาดที่ไม่ทราบสาเหตุ",
 };
 
+/**
+ * Extract the business error code from any error shape we might receive:
+ *   - ApiClientError (REST wrapper) → `.code`
+ *   - TRPCClientError → business code carried in `.data.code` / `.data.businessCode`
+ *     / `.shape.data.code`, or the tRPC status code (CONFLICT, NOT_FOUND, ...)
+ *   - a bare string that is itself a known code
+ * Duck-typed so we don't couple this module to @trpc/client types.
+ */
+export function extractErrorCode(error: unknown): string | undefined {
+  if (error instanceof ApiClientError) return error.code;
+  if (typeof error === "string") return error;
+  if (error && typeof error === "object") {
+    const e = error as Record<string, unknown>;
+    const data = (e.data ?? (e.shape as Record<string, unknown>)?.data) as
+      | Record<string, unknown>
+      | undefined;
+    const candidate =
+      (data?.businessCode as string | undefined) ??
+      (data?.code as string | undefined) ??
+      (e.code as string | undefined);
+    if (typeof candidate === "string") return candidate;
+  }
+  return undefined;
+}
+
+/**
+ * Structured payload attached to a business error (e.g. `{ itemId,
+ * nextAvailableAt }`, `{ roomId, startTime }`, `{ decidedAt }`). Lets the UI
+ * render specifics like the next-available time. Returns `undefined` if none.
+ */
+export function getErrorPayload(error: unknown): Record<string, unknown> | undefined {
+  if (error instanceof ApiClientError) return error.details;
+  if (error && typeof error === "object") {
+    const e = error as Record<string, unknown>;
+    const data = (e.data ?? (e.shape as Record<string, unknown>)?.data) as
+      | Record<string, unknown>
+      | undefined;
+    const payload = (data?.payload ?? data?.cause ?? data) as
+      | Record<string, unknown>
+      | undefined;
+    return payload;
+  }
+  return undefined;
+}
+
 export function getErrorMessage(error: unknown): string {
+  const code = extractErrorCode(error);
+  if (code && ERROR_MESSAGES[code]) return ERROR_MESSAGES[code];
   if (error instanceof ApiClientError) {
-    return ERROR_MESSAGES[error.code] || error.message || ERROR_MESSAGES.UNKNOWN_ERROR;
+    return error.message || ERROR_MESSAGES.UNKNOWN_ERROR;
   }
   if (error instanceof Error) {
-    return error.message;
+    return error.message || ERROR_MESSAGES.UNKNOWN_ERROR;
   }
   return ERROR_MESSAGES.UNKNOWN_ERROR;
 }
