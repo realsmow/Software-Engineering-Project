@@ -60,6 +60,8 @@ export const DAMAGE_LEVELS = {
 export const ROUTES = {
   LOGIN: "/login",
   HOME: "/",
+  // Account (any authenticated role)
+  PROFILE: "/profile",
   // Borrower
   CATALOG: "/catalog",
   EQUIPMENT_DETAIL: "/catalog/:id",

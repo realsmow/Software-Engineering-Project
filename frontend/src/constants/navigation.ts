@@ -155,10 +155,14 @@ export const NAV_CONFIG: Record<Role, RoleNav> = {
 export const ROUTE_TITLE_KEYS: Record<string, string> = Object.values(NAV_CONFIG)
   .flatMap((r) => r.sections)
   .flatMap((s) => s.items)
-  .reduce<Record<string, string>>((acc, item) => {
-    if (item.route) acc[item.route] = item.labelKey;
-    return acc;
-  }, {});
+  .reduce<Record<string, string>>(
+    (acc, item) => {
+      if (item.route) acc[item.route] = item.labelKey;
+      return acc;
+    },
+    // Routes reached from the shell but not listed in the nav.
+    { [ROUTES.PROFILE]: "profile.title" },
+  );
 
 export function getNavForRole(role: Role): RoleNav {
   return NAV_CONFIG[role];

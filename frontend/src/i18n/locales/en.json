@@ -47,6 +47,35 @@
     "searchPlaceholder": "Search...",
     "filterAll": "All"
   },
+  "command": {
+    "placeholder": "Search pages...",
+    "empty": "No pages found"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "markAllRead": "Mark all read",
+    "markRead": "Mark read",
+    "empty": "You're all caught up"
+  },
+  "profile": {
+    "title": "My profile",
+    "subtitle": "Your account information. Profile editing will be available once the backend is connected.",
+    "viewProfile": "View profile",
+    "identity": "Identity",
+    "accountDetails": "Account details",
+    "credit": "Credit",
+    "userId": "User ID",
+    "studentId": "Student / staff ID",
+    "department": "Department",
+    "authMethod": "Sign-in method",
+    "authKu": "KU email",
+    "authLocal": "Local account",
+    "creditScore": "Credit score",
+    "creditBand": "Credit band",
+    "editProfile": "Edit profile",
+    "editHint": "Editing is disabled until the backend is connected.",
+    "mockNotice": "Showing mock account data — no backend is connected yet."
+  },
   "auth": {
     "universityAccount": "University account",
     "chooseMethod": "Choose a sign-in method below. Students and faculty should use their KU email; staff without a KU email should use a local account.",
