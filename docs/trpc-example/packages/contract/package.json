@@ -1,0 +1,24 @@
+{
+  "_comment": "วาระ ว-01 · ทางเลือก ก. — สัญญาเป็น workspace ของตัวเอง ทั้ง frontend และ backend ประกาศ '@ulms/contract': '*' ใน dependencies แล้ว import ด้วยชื่อแพ็กเกจ ไม่ใช่พาธสัมพัทธ์",
+  "name": "@ulms/contract",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+
+  "_comment_exports": "ส่งออกเป็นซอร์ส TypeScript ตรง ๆ ไม่ build เป็น dist ก่อน — อ่านง่ายและแก้แล้วเห็นผลทันทีตอน dev แต่มีผลกับ tsconfig ของ backend ดูหัวข้อ 'กับดัก' ใน README",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+
+  "dependencies": {
+    "zod": "^4.4.3"
+  },
+  "peerDependencies": {
+    "@trpc/server": "^11.18.0"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  }
+}
