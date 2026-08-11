@@ -1,6 +1,7 @@
 import { Outlet } from "react-router-dom";
 import { Sidebar } from "./sidebar";
 import { Topbar } from "./topbar";
+import { MobileTabBar } from "./mobile-tab-bar";
 
 /**
  * AppShell: the authenticated layout. `.shell` is a 240px sidebar + main grid;
@@ -20,6 +21,7 @@ export function AppShell() {
           </div>
         </div>
       </div>
+      <MobileTabBar />
     </div>
   );
 }
