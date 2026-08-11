@@ -49,6 +49,7 @@ export const NAV_CONFIG: Record<Role, RoleNav> = {
         items: [
           { key: "home", labelKey: "nav.home", icon: "home", route: ROUTES.HOME },
           { key: "catalog", labelKey: "nav.catalog", icon: "grid", count: 148, route: ROUTES.CATALOG },
+          { key: "rooms", labelKey: "nav.rooms", icon: "building", count: 8, route: ROUTES.ROOMS },
           { key: "requests", labelKey: "nav.myRequests", icon: "file", count: 2, route: ROUTES.MY_LOANS },
           { key: "history", labelKey: "nav.loanHistory", icon: "clock", route: ROUTES.MY_HISTORY },
           { key: "credit", labelKey: "nav.creditScore", icon: "award", route: ROUTES.MY_CREDIT },
@@ -66,6 +67,7 @@ export const NAV_CONFIG: Record<Role, RoleNav> = {
         items: [
           { key: "home", labelKey: "nav.home", icon: "home", route: ROUTES.HOME },
           { key: "catalog", labelKey: "nav.catalog", icon: "grid", count: 148, route: ROUTES.CATALOG },
+          { key: "rooms", labelKey: "nav.rooms", icon: "building", count: 8, route: ROUTES.ROOMS },
           { key: "requests", labelKey: "nav.myRequests", icon: "file", route: ROUTES.MY_LOANS },
         ],
       },
@@ -103,6 +105,7 @@ export const NAV_CONFIG: Record<Role, RoleNav> = {
         items: [
           { key: "home", labelKey: "nav.home", icon: "home", route: ROUTES.HOME },
           { key: "catalog", labelKey: "nav.catalog", icon: "grid", route: ROUTES.CATALOG },
+          { key: "rooms", labelKey: "nav.rooms", icon: "building", route: ROUTES.ROOMS },
           { key: "requests", labelKey: "nav.myRequests", icon: "file", route: ROUTES.MY_LOANS },
         ],
       },

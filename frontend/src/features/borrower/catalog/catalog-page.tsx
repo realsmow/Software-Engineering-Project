@@ -30,8 +30,8 @@ import {
   type CatalogItem,
 } from "../mock-data";
 import { fmtDateTime } from "../format";
+import { FacetFilters, type FilterGroup } from "../facet-filters";
 import { useEquipmentTypes } from "./use-equipment-types";
-import { CatalogFilters, type FilterGroup } from "./catalog-filters";
 
 /** Facet groups, in rail order. Keys namespace the option keys ("dept:ee"). */
 const GROUP_KEYS = ["dept", "cat", "tier", "st"] as const;
@@ -247,7 +247,7 @@ export default function CatalogPage() {
           onClick={() => setFiltersOpen(true)}
         >
           <SlidersHorizontal size={15} strokeWidth={2} />
-          {t("borrower.catalog.filterButton")}
+          {t("borrower.filters.button")}
           {selected.size > 0 ? ` (${selected.size})` : ""}
         </Button>
         <SortSelect value={sort} onChange={setSort} />
@@ -269,7 +269,7 @@ export default function CatalogPage() {
 
       <div className="grid items-start gap-4 lg:grid-cols-[224px_minmax(0,1fr)]">
         <aside className="hidden overflow-hidden rounded-lg border border-border bg-card shadow-sm lg:block">
-          <CatalogFilters
+          <FacetFilters
             groups={groups}
             selected={selected}
             onToggle={toggleFilter}
@@ -319,7 +319,7 @@ export default function CatalogPage() {
                 onClick={() => setFiltersOpen(true)}
               >
                 <SlidersHorizontal size={15} strokeWidth={2} />
-                {t("borrower.catalog.filterButton")}
+                {t("borrower.filters.button")}
                 {selected.size > 0 ? ` (${selected.size})` : ""}
               </Button>
               <SortSelect value={sort} onChange={setSort} className="flex-1" />
@@ -359,10 +359,10 @@ export default function CatalogPage() {
       <Sheet open={filtersOpen} onOpenChange={setFiltersOpen}>
         <SheetContent side="left" className="flex flex-col gap-0 p-0" aria-describedby={undefined}>
           <SheetHeader className="border-b border-border px-4 py-3.5">
-            <SheetTitle>{t("borrower.catalog.filters")}</SheetTitle>
+            <SheetTitle>{t("borrower.filters.title")}</SheetTitle>
           </SheetHeader>
           <div className="flex-1 overflow-y-auto">
-            <CatalogFilters
+            <FacetFilters
               groups={groups}
               selected={selected}
               onToggle={toggleFilter}
@@ -372,7 +372,7 @@ export default function CatalogPage() {
           </div>
           <div className="flex items-center gap-2 border-t border-border bg-secondary px-4 py-3">
             <Button type="button" variant="outline" className="flex-1" onClick={clearFilters}>
-              {t("borrower.catalog.clear")}
+              {t("borrower.filters.clear")}
             </Button>
             <Button type="button" className="flex-1" onClick={() => setFiltersOpen(false)}>
               {t("borrower.catalog.showing", { shown: rows.length, total: items.length })}
@@ -424,7 +424,7 @@ function ChipsStrip({
     <div className="flex flex-wrap items-center gap-1.5 border-b border-border bg-secondary px-3.5 py-2">
       {chips.length > 0 ? (
         <>
-          <span className="mr-1 text-xs text-t3">{t("borrower.catalog.activeFilters")}</span>
+          <span className="mr-1 text-xs text-t3">{t("borrower.filters.active")}</span>
           {chips.map((c) => (
             <Chip key={c.key} label={c.label} onRemove={() => onRemove(c.key)} />
           ))}
@@ -552,7 +552,7 @@ function EmptyState({ onClear }: { onClear: () => void }) {
       </div>
       <div className="text-xs text-t3">{t("borrower.catalog.emptyDesc")}</div>
       <Button type="button" variant="outline" size="sm" className="mt-3" onClick={onClear}>
-        {t("borrower.catalog.clearFilters")}
+        {t("borrower.filters.clearAll")}
       </Button>
     </div>
   );
