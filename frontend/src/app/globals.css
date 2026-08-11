@@ -768,6 +768,23 @@ body.dark .submit-btn.google {
   gap: 10px;
   flex-shrink: 0;
 }
+.side-profile {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+  background: none;
+  border: 0;
+  padding: 4px;
+  margin: -4px;
+  border-radius: 7px;
+  cursor: pointer;
+  text-align: left;
+}
+.side-profile:hover {
+  background: var(--s-subtle);
+}
 .side-avatar {
   width: 34px;
   height: 34px;
@@ -2022,8 +2039,93 @@ body.dark .modal-overlay {
   }
 }
 
+/* ---- Mobile bottom tab bar + nav drawer (hidden on desktop) ---- */
+.tabbar {
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 40;
+  background: var(--s-surface);
+  border-top: 1px solid var(--s-line);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.tabbar-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 8px 4px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--s-t3);
+  min-height: 56px;
+}
+.tabbar-item.active {
+  color: var(--accent);
+}
+.tabbar-label {
+  font-size: 10.5px;
+  font-weight: 500;
+  line-height: 1;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mobile-drawer {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+}
+.mobile-drawer-backdrop {
+  position: absolute;
+  inset: 0;
+  border: none;
+  background: rgba(0, 0, 0, 0.45);
+  cursor: pointer;
+}
+.mobile-drawer-panel {
+  position: relative;
+  width: 240px;
+  max-width: 82vw;
+  height: 100%;
+  background: var(--s-surface);
+  box-shadow: 2px 0 16px rgba(0, 0, 0, 0.25);
+  animation: drawer-in 0.18s ease-out;
+}
+.mobile-drawer-panel .side {
+  display: flex;
+  height: 100%;
+}
+.mobile-drawer-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 1;
+}
+@keyframes drawer-in {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
 /* Responsive */
 @media (max-width: 900px) {
+  .tabbar {
+    display: flex;
+  }
+  .app-body {
+    padding-bottom: calc(56px + env(safe-area-inset-bottom) + 20px);
+  }
   .login {
     grid-template-columns: 1fr;
   }

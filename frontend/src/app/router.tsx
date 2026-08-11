@@ -29,6 +29,9 @@ const MyHistoryPage = lazy(() => import("@/features/borrower/loans/my-history-pa
 const MyCreditPage = lazy(() => import("@/features/borrower/credit/my-credit-page"));
 const AppealsPage = lazy(() => import("@/features/borrower/appeals/appeals-page"));
 
+// Account (any authenticated role)
+const ProfilePage = lazy(() => import("@/features/account/profile-page"));
+
 // Staff ops
 const StaffDashboardPage = lazy(() => import("@/features/staff/dashboard/dashboard-page"));
 const StaffHandoverPage = lazy(() => import("@/features/staff/handover/handover-page"));
@@ -106,6 +109,7 @@ export function AppRouter() {
           <Route path={ROUTES.MY_HISTORY} element={<MyHistoryPage />} />
           <Route path={ROUTES.MY_CREDIT} element={<MyCreditPage />} />
           <Route path={ROUTES.APPEALS} element={<AppealsPage />} />
+          <Route path={ROUTES.PROFILE} element={<ProfilePage />} />
 
           {/* Staff operations — staff + admin */}
           <Route element={<RoleGuard allowedRoles={["staff", "admin"]} />}>
