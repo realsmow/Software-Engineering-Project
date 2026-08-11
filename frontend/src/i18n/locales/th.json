@@ -74,6 +74,12 @@
     "creditBand": "ระดับเครดิต",
     "editProfile": "แก้ไขโปรไฟล์",
     "editHint": "การแก้ไขถูกปิดไว้จนกว่าจะเชื่อมต่อกับ backend",
+    "avatarChange": "เปลี่ยนรูปโปรไฟล์",
+    "avatarRemove": "ลบรูป",
+    "avatarHint": "JPG หรือ PNG · สูงสุด 5 MB",
+    "avatarTooLarge": "ไฟล์ใหญ่เกินไป (สูงสุด 5 MB)",
+    "avatarInvalidType": "รองรับเฉพาะไฟล์ JPG หรือ PNG",
+    "avatarPreviewNotice": "แสดงตัวอย่างในเครื่องเท่านั้น — จะบันทึกได้เมื่อเชื่อมต่อ backend แล้ว",
     "mockNotice": "กำลังแสดงข้อมูลบัญชีจำลอง — ยังไม่ได้เชื่อมต่อ backend"
   },
   "auth": {
@@ -187,6 +193,13 @@
       "changeRole": "เปลี่ยนบทบาท",
       "detailTitle": "รายละเอียดบัญชี",
       "accountInfo": "ข้อมูลบัญชี",
+      "statTotal": "ผู้ใช้ทั้งหมด",
+      "statActive": "ใช้งาน",
+      "statSuspended": "ระงับ",
+      "statInvited": "รอเปิดใช้",
+      "resendInvite": "ส่งคำเชิญอีกครั้ง",
+      "inviteSent": "ส่งคำเชิญแล้ว",
+      "resetSent": "ส่งลิงก์รีเซ็ตแล้ว",
       "userId": "รหัสผู้ใช้",
       "studentId": "รหัสนิสิต/พนักงาน",
       "createUserTitle": "สร้างบัญชีผู้ใช้ใหม่",
@@ -235,6 +248,7 @@
       "colTarget": "เป้าหมาย",
       "colIp": "IP",
       "filterAction": "ประเภท",
+      "allActions": "ทุกประเภท",
       "actLogin": "เข้าสู่ระบบ",
       "actCreate": "สร้าง",
       "actUpdate": "แก้ไข",
@@ -244,7 +258,12 @@
       "detailTitle": "รายละเอียดเหตุการณ์",
       "eventId": "รหัสเหตุการณ์",
       "userAgent": "อุปกรณ์/เบราว์เซอร์",
-      "changes": "สิ่งที่เปลี่ยนแปลง"
+      "changes": "สิ่งที่เปลี่ยนแปลง",
+      "timeRange": "ช่วงเวลา",
+      "rangeAll": "ทั้งหมด",
+      "range24h": "24 ชม. ล่าสุด",
+      "range7d": "7 วันล่าสุด",
+      "resultCount": "{{count}} รายการ"
     },
     "config": {
       "title": "ตั้งค่าเทคนิค",

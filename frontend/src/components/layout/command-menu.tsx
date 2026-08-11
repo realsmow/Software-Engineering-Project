@@ -133,7 +133,7 @@ export function CommandMenu({ triggerClassName }: { triggerClassName?: string })
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder={t("command.placeholder")}
-              className="h-11 w-full bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
+              className="h-11 w-full bg-transparent text-sm text-foreground outline-none shadow-none focus:shadow-none focus-visible:shadow-none focus-visible:outline-none placeholder:text-muted-foreground"
             />
           </div>
 

@@ -32,6 +32,16 @@ export const BUSINESS = {
   RETURN_CUTOFF_HOUR: 17, // 17:00 หลังจากนี้นับช้า 1 วัน
 } as const;
 
+// ==================== File Upload (client-side guard) ====================
+// First line of defense before the pre-signed PUT — the backend re-validates.
+// Matches the FILE_TOO_LARGE / INVALID_FILE_TYPE copy in error-messages.ts.
+export const UPLOAD = {
+  MAX_MB: 5,
+  MAX_BYTES: 5 * 1024 * 1024,
+  ALLOWED_MIME: ["image/jpeg", "image/png"],
+  ALLOWED_EXT: [".jpg", ".jpeg", ".png"],
+} as const;
+
 // ==================== Tier Config ====================
 export const TIER_CONFIG = {
   T0: { label: "ยืมง่าย", creditWeight: 0, priceMax: 100 },

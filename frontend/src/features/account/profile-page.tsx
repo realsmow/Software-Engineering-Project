@@ -1,10 +1,12 @@
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Mail, IdCard, Building2, KeyRound, Award } from "lucide-react";
+import { Mail, IdCard, Building2, KeyRound, Award, Camera, X } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CREDIT_BANDS } from "@/constants";
 import { useAuthStore } from "@/features/auth/auth.store";
+import { validateUploadFile, uploadAcceptAttr } from "@/lib/upload-validation";
 import type { Role } from "@/types/domain";
 
 /** Role → badge tone. */
@@ -51,9 +53,7 @@ export default function ProfilePage() {
             <CardTitle>{t("profile.identity")}</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col items-center gap-3 py-6 text-center">
-            <div className="flex h-20 w-20 items-center justify-center rounded-full bg-secondary text-2xl font-semibold text-foreground">
-              {initials}
-            </div>
+            <AvatarUpload initials={initials} />
             <div>
               <div className="text-lg font-semibold text-foreground">{user.name}</div>
               <div className="mt-0.5 text-sm text-muted-foreground">{user.email}</div>
@@ -119,6 +119,104 @@ export default function ProfilePage() {
       </div>
 
       <p className="mt-4 text-xs text-muted-foreground">{t("profile.mockNotice")}</p>
+    </div>
+  );
+}
+
+/**
+ * Avatar with a photo-upload control. Validates size/type client-side via
+ * {@link validateUploadFile} and shows a local preview. Persisting the image
+ * needs the backend profile procedures (see chat note) — for now this is a
+ * preview-only affordance so the flow is testable end-to-end on the client.
+ */
+function AvatarUpload({ initials }: { initials: string }) {
+  const { t } = useTranslation();
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  // Revoke the object URL when it changes or the component unmounts.
+  useEffect(() => {
+    return () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+    };
+  }, [previewUrl]);
+
+  function onPick(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // allow re-picking the same file
+    if (!file) return;
+    const result = validateUploadFile(file);
+    if (!result.ok) {
+      setError(
+        result.code === "FILE_TOO_LARGE"
+          ? t("profile.avatarTooLarge")
+          : t("profile.avatarInvalidType"),
+      );
+      return;
+    }
+    setError(null);
+    setPreviewUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return URL.createObjectURL(file);
+    });
+  }
+
+  function onRemove() {
+    setPreviewUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return null;
+    });
+    setError(null);
+  }
+
+  return (
+    <div className="flex flex-col items-center gap-2">
+      <div className="relative">
+        <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-full bg-secondary text-2xl font-semibold text-foreground">
+          {previewUrl ? (
+            <img src={previewUrl} alt="" className="h-full w-full object-cover" />
+          ) : (
+            initials
+          )}
+        </div>
+        <button
+          type="button"
+          onClick={() => inputRef.current?.click()}
+          aria-label={t("profile.avatarChange")}
+          className="absolute -bottom-1 -right-1 flex h-8 w-8 items-center justify-center rounded-full border-2 border-background bg-primary text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
+        >
+          <Camera size={15} />
+        </button>
+        <input
+          ref={inputRef}
+          type="file"
+          accept={uploadAcceptAttr()}
+          onChange={onPick}
+          className="sr-only"
+        />
+      </div>
+
+      {previewUrl && (
+        <button
+          type="button"
+          onClick={onRemove}
+          className="flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
+        >
+          <X size={12} />
+          {t("profile.avatarRemove")}
+        </button>
+      )}
+
+      {error ? (
+        <p className="max-w-[12rem] text-xs text-destructive">{error}</p>
+      ) : previewUrl ? (
+        <p className="max-w-[12rem] text-xs text-muted-foreground">
+          {t("profile.avatarPreviewNotice")}
+        </p>
+      ) : (
+        <p className="text-xs text-muted-foreground">{t("profile.avatarHint")}</p>
+      )}
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import { useMemo, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { Download, Plus, Search } from "lucide-react";
+import { Check, Download, Plus, Search } from "lucide-react";
 import { Bar, BarChart, CartesianGrid, Cell, Tooltip, XAxis, YAxis } from "recharts";
 import { PageHeader } from "@/components/shared/page-header";
 import { Button } from "@/components/ui/button";
@@ -66,6 +66,44 @@ const EMPTY_FORM: NewUserForm = {
   auth: "local",
 };
 
+/**
+ * Clickable summary chip that doubles as a status quick-filter. `active` draws
+ * the accent ring; the coloured dot echoes the matching status badge tone.
+ */
+function StatChip({
+  label,
+  value,
+  tone,
+  active,
+  onClick,
+}: {
+  label: string;
+  value: number;
+  tone?: "ok" | "alert" | "warn";
+  active: boolean;
+  onClick: () => void;
+}) {
+  const dotColor = tone
+    ? { ok: "var(--s-ok-t)", alert: "var(--s-alert-t)", warn: "var(--s-warn-t)" }[tone]
+    : "var(--muted-foreground)";
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-left transition-colors ${
+        active
+          ? "border-primary bg-secondary"
+          : "border-border bg-card hover:border-primary/40 hover:bg-secondary/60"
+      }`}
+    >
+      <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: dotColor }} />
+      <span className="text-lg font-semibold tabular-nums text-foreground">{value}</span>
+      <span className="text-xs text-muted-foreground">{label}</span>
+    </button>
+  );
+}
+
 function UserKvRow({ label, mono, children }: { label: string; mono?: boolean; children: ReactNode }) {
   return (
     <div className="flex items-start justify-between gap-4 py-2.5">
@@ -84,6 +122,15 @@ export default function AdminUsersPage() {
   const [selected, setSelected] = useState<AdminUser | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [form, setForm] = useState<NewUserForm>(EMPTY_FORM);
+  // Transient "…sent" confirmation shown in the detail slide-over.
+  const [notice, setNotice] = useState<string | null>(null);
+
+  // Status counts for the quick-filter stat strip (whole dataset, not filtered).
+  const counts = useMemo(() => {
+    const c = { all: users.length, active: 0, suspended: 0, invited: 0 };
+    for (const u of users) c[u.status]++;
+    return c;
+  }, [users]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -211,6 +258,36 @@ export default function AdminUsersPage() {
         }
       />
 
+      <div className="mb-4 flex flex-wrap gap-2">
+        <StatChip
+          label={t("admin.users.statTotal")}
+          value={counts.all}
+          active={statusFilter === "all"}
+          onClick={() => setStatusFilter("all")}
+        />
+        <StatChip
+          label={t("admin.users.statActive")}
+          value={counts.active}
+          tone="ok"
+          active={statusFilter === "active"}
+          onClick={() => setStatusFilter((s) => (s === "active" ? "all" : "active"))}
+        />
+        <StatChip
+          label={t("admin.users.statSuspended")}
+          value={counts.suspended}
+          tone="alert"
+          active={statusFilter === "suspended"}
+          onClick={() => setStatusFilter((s) => (s === "suspended" ? "all" : "suspended"))}
+        />
+        <StatChip
+          label={t("admin.users.statInvited")}
+          value={counts.invited}
+          tone="warn"
+          active={statusFilter === "invited"}
+          onClick={() => setStatusFilter((s) => (s === "invited" ? "all" : "invited"))}
+        />
+      </div>
+
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <div className="relative max-w-xs flex-1">
           <Search
@@ -267,7 +344,10 @@ export default function AdminUsersPage() {
         columns={columns}
         rows={filtered}
         rowKey={(u) => u.id}
-        onRowClick={setSelected}
+        onRowClick={(u) => {
+          setNotice(null);
+          setSelected(u);
+        }}
         pageSize={10}
         emptyTitle={t("table.empty")}
         emptyDescription={t("table.emptyDesc")}
@@ -312,6 +392,15 @@ export default function AdminUsersPage() {
         footer={
           selected ? (
             <>
+              {selected.status === "invited" && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setNotice(t("admin.users.inviteSent"))}
+                >
+                  {t("admin.users.resendInvite")}
+                </Button>
+              )}
               {selected.status === "active" ? (
                 <Button
                   type="button"
@@ -320,11 +409,11 @@ export default function AdminUsersPage() {
                 >
                   {t("admin.users.deactivate")}
                 </Button>
-              ) : (
+              ) : selected.status === "suspended" ? (
                 <Button type="button" variant="outline" onClick={() => setStatus(selected.id, "active")}>
                   {t("admin.users.activate")}
                 </Button>
-              )}
+              ) : null}
               <Button type="button" onClick={() => setSelected(null)}>
                 {t("common.close")}
               </Button>
@@ -381,9 +470,21 @@ export default function AdminUsersPage() {
               </Select>
             </div>
 
-            <Button type="button" variant="outline" className="mt-3 w-full">
+            <Button
+              type="button"
+              variant="outline"
+              className="mt-3 w-full"
+              onClick={() => setNotice(t("admin.users.resetSent"))}
+            >
               {t("admin.users.resetPassword")}
             </Button>
+
+            {notice && (
+              <div className="mt-3 flex items-center gap-2 rounded-md border border-[var(--s-ok-b)] bg-[var(--s-ok-bg)] px-3 py-2 text-sm text-[var(--s-ok-t)]">
+                <Check size={15} strokeWidth={2.5} />
+                {notice}
+              </div>
+            )}
           </div>
         ) : null}
       </SlideOver>
