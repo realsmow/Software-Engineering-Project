@@ -67,11 +67,19 @@ export function Sidebar() {
       </nav>
 
       <div className="side-foot">
-        <div className="side-avatar">{persona.avatar}</div>
-        <div className="side-user">
-          <div className="side-user-name">{persona.name}</div>
-          <div className="side-user-role">{persona.role}</div>
-        </div>
+        <button
+          type="button"
+          className="side-profile"
+          onClick={() => navigate(ROUTES.PROFILE)}
+          title={t("profile.viewProfile")}
+          aria-label={t("profile.viewProfile")}
+        >
+          <div className="side-avatar">{persona.avatar}</div>
+          <div className="side-user">
+            <div className="side-user-name">{persona.name}</div>
+            <div className="side-user-role">{persona.role}</div>
+          </div>
+        </button>
         <button
           type="button"
           className="side-logout"

@@ -13,7 +13,13 @@ export default defineConfig({
     port: 5173,
     // proxy API calls to backend during development
     proxy: {
+      // REST fallback (legacy api-client)
       "/api": {
+        target: "http://localhost:3000",
+        changeOrigin: true,
+      },
+      // tRPC endpoint (nestjs-trpc default basePath)
+      "/trpc": {
         target: "http://localhost:3000",
         changeOrigin: true,
       },

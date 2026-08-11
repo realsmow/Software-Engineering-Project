@@ -153,10 +153,12 @@ export const NAV_CONFIG: Record<Role, RoleNav> = {
 };
 
 /**
- * Title keys for routes that exist but are not nav items — detail pages reached
- * by clicking a row rather than the sidebar. Keyed by route *pattern*.
+ * Routes reached from the shell but not listed in the nav — the profile page
+ * behind the avatar, and detail pages opened by clicking a row. Keys may be
+ * route *patterns* ("/catalog/:id"), which `routeTitleKey` resolves.
  */
 const NON_NAV_TITLE_KEYS: Record<string, string> = {
+  [ROUTES.PROFILE]: "profile.title",
   [ROUTES.EQUIPMENT_DETAIL]: "nav.equipmentDetail",
 };
 

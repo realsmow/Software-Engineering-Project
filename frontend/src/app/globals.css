@@ -768,6 +768,23 @@ body.dark .submit-btn.google {
   gap: 10px;
   flex-shrink: 0;
 }
+.side-profile {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+  background: none;
+  border: 0;
+  padding: 4px;
+  margin: -4px;
+  border-radius: 7px;
+  cursor: pointer;
+  text-align: left;
+}
+.side-profile:hover {
+  background: var(--s-subtle);
+}
 .side-avatar {
   width: 34px;
   height: 34px;

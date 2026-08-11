@@ -1,9 +1,10 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { BrowserRouter } from "react-router-dom";
 import { queryClient } from "@/lib/query-client";
+import { TRPCProvider, createUlmsTrpcClient } from "@/lib/trpc";
 import { useAuthStore } from "@/features/auth/auth.store";
 import { AppRouter } from "./router";
 
@@ -21,6 +22,8 @@ import { AppRouter } from "./router";
 export function App() {
   const hydrate = useAuthStore((s) => s.hydrate);
   const { i18n } = useTranslation();
+  // One tRPC client per app instance (kept stable across renders).
+  const [trpcClient] = useState(() => createUlmsTrpcClient());
 
   useEffect(() => {
     hydrate();
@@ -33,10 +36,12 @@ export function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <AppRouter />
-      </BrowserRouter>
-      {import.meta.env.DEV && <ReactQueryDevtools initialIsOpen={false} />}
+      <TRPCProvider trpcClient={trpcClient} queryClient={queryClient}>
+        <BrowserRouter>
+          <AppRouter />
+        </BrowserRouter>
+        {import.meta.env.DEV && <ReactQueryDevtools initialIsOpen={false} />}
+      </TRPCProvider>
     </QueryClientProvider>
   );
 }
