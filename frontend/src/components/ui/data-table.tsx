@@ -23,6 +23,11 @@ interface DataTableProps<T> {
   title?: ReactNode;
   /** Optional actions rendered on the right of the title bar. */
   headerActions?: ReactNode;
+  /**
+   * Optional strip rendered inside the frame, between the title bar and the
+   * table head (filter chips, legends, inline notices).
+   */
+  beforeRows?: ReactNode;
   /** Localized empty-state strings. */
   emptyTitle?: string;
   emptyDescription?: string;
@@ -52,6 +57,7 @@ export function DataTable<T>({
   pageSize = 10,
   title,
   headerActions,
+  beforeRows,
   emptyTitle = "No data",
   emptyDescription,
   rangeLabel = (s, e, t) => `${s}–${e} of ${t}`,
@@ -85,6 +91,8 @@ export function DataTable<T>({
           {headerActions ? <div className="flex items-center gap-2">{headerActions}</div> : null}
         </div>
       ) : null}
+
+      {beforeRows}
 
       <Table>
         <TableHeader>

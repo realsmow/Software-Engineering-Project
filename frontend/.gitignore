@@ -12,3 +12,4 @@ dist-ssr
 .vscode/*
 !.vscode/extensions.json
 .idea
+tsconfig.tsbuildinfo

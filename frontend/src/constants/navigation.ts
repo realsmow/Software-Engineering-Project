@@ -1,3 +1,4 @@
+import { matchPath } from "react-router-dom";
 import type { Role } from "@/types/domain";
 import { ROUTES } from "@/constants";
 
@@ -151,14 +152,39 @@ export const NAV_CONFIG: Record<Role, RoleNav> = {
   },
 };
 
+/**
+ * Title keys for routes that exist but are not nav items — detail pages reached
+ * by clicking a row rather than the sidebar. Keyed by route *pattern*.
+ */
+const NON_NAV_TITLE_KEYS: Record<string, string> = {
+  [ROUTES.EQUIPMENT_DETAIL]: "nav.equipmentDetail",
+};
+
 /** Flat lookup: route path → i18n label key (for breadcrumb + placeholder title). */
-export const ROUTE_TITLE_KEYS: Record<string, string> = Object.values(NAV_CONFIG)
-  .flatMap((r) => r.sections)
-  .flatMap((s) => s.items)
-  .reduce<Record<string, string>>((acc, item) => {
-    if (item.route) acc[item.route] = item.labelKey;
-    return acc;
-  }, {});
+export const ROUTE_TITLE_KEYS: Record<string, string> = {
+  ...Object.values(NAV_CONFIG)
+    .flatMap((r) => r.sections)
+    .flatMap((s) => s.items)
+    .reduce<Record<string, string>>((acc, item) => {
+      if (item.route) acc[item.route] = item.labelKey;
+      return acc;
+    }, {}),
+  ...NON_NAV_TITLE_KEYS,
+};
+
+/**
+ * Title key for a concrete pathname. Exact match first, then parameterised
+ * patterns ("/catalog/:id") — without the second pass a detail page would fall
+ * back to the generic "overview" crumb.
+ */
+export function routeTitleKey(pathname: string): string | undefined {
+  const exact = ROUTE_TITLE_KEYS[pathname];
+  if (exact) return exact;
+  const pattern = Object.keys(ROUTE_TITLE_KEYS).find(
+    (p) => p.includes(":") && matchPath(p, pathname) !== null,
+  );
+  return pattern ? ROUTE_TITLE_KEYS[pattern] : undefined;
+}
 
 export function getNavForRole(role: Role): RoleNav {
   return NAV_CONFIG[role];

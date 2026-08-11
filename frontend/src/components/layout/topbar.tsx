@@ -1,7 +1,7 @@
 import { Bell, Moon, Search, Sun } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
-import { ROUTE_TITLE_KEYS } from "@/constants/navigation";
+import { ROUTE_TITLE_KEYS, routeTitleKey } from "@/constants/navigation";
 import { HOME_ROUTE_BY_ROLE } from "@/constants";
 import { LanguageToggle } from "@/components/shared/language-toggle";
 import { useAuthStore } from "@/features/auth/auth.store";
@@ -23,7 +23,7 @@ export function Topbar() {
   // instead of a redundant "Home › Home".
   const homeRoute = HOME_ROUTE_BY_ROLE[role];
   const homeLabel = t(ROUTE_TITLE_KEYS[homeRoute] ?? "nav.home");
-  const current = t(ROUTE_TITLE_KEYS[location.pathname] ?? "nav.overview");
+  const current = t(routeTitleKey(location.pathname) ?? "nav.overview");
   const atHome = location.pathname === homeRoute;
 
   return (
