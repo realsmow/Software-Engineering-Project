@@ -74,6 +74,12 @@
     "creditBand": "Credit band",
     "editProfile": "Edit profile",
     "editHint": "Editing is disabled until the backend is connected.",
+    "avatarChange": "Change photo",
+    "avatarRemove": "Remove",
+    "avatarHint": "JPG or PNG · up to 5 MB",
+    "avatarTooLarge": "File too large (max 5 MB)",
+    "avatarInvalidType": "Only JPG or PNG files are allowed",
+    "avatarPreviewNotice": "Local preview only — saving will work once the backend is connected.",
     "mockNotice": "Showing mock account data — no backend is connected yet."
   },
   "auth": {
@@ -187,6 +193,13 @@
       "changeRole": "Change role",
       "detailTitle": "Account details",
       "accountInfo": "Account information",
+      "statTotal": "All users",
+      "statActive": "Active",
+      "statSuspended": "Suspended",
+      "statInvited": "Invited",
+      "resendInvite": "Resend invite",
+      "inviteSent": "Invitation sent",
+      "resetSent": "Reset link sent",
       "userId": "User ID",
       "studentId": "Student / staff ID",
       "createUserTitle": "Create new user account",
@@ -235,6 +248,7 @@
       "colTarget": "Target",
       "colIp": "IP",
       "filterAction": "Type",
+      "allActions": "All actions",
       "actLogin": "Login",
       "actCreate": "Create",
       "actUpdate": "Update",
@@ -244,7 +258,12 @@
       "detailTitle": "Event details",
       "eventId": "Event ID",
       "userAgent": "Device / browser",
-      "changes": "Changes"
+      "changes": "Changes",
+      "timeRange": "Time range",
+      "rangeAll": "All time",
+      "range24h": "Last 24h",
+      "range7d": "Last 7 days",
+      "resultCount": "{{count}} events"
     },
     "config": {
       "title": "Technical config",

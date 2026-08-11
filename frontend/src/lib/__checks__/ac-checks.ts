@@ -12,6 +12,7 @@ import {
 } from "@/lib/business-rules";
 import { isIsoDate, isIsoDateTime } from "@/lib/validation";
 import { getErrorMessage, extractErrorCode, getErrorPayload } from "@/lib/error-messages";
+import { validateUploadFile } from "@/lib/upload-validation";
 
 let passed = 0;
 const failures: string[] = [];
@@ -88,6 +89,24 @@ eq("2.2 ALREADY_DECIDED code extracted", extractErrorCode({ data: { code: "ALREA
 eq("2.3 PICKUP_EXPIRED message", getErrorMessage({ data: { code: "PICKUP_EXPIRED" } }), "หมดเวลารับของแล้ว คำขอถูกยกเลิก");
 const payload = getErrorPayload({ data: { code: "ITEM_UNAVAILABLE", payload: { itemId: "x1", nextAvailableAt: "2026-08-12T10:00:00.000Z" } } });
 eq("2.1 payload itemId surfaced", payload?.itemId as string, "x1");
+
+// ── §4 File-upload validation (size + type agreement) ───────────────────────
+const okImg = { name: "receipt.png", type: "image/png", size: 2 * 1024 * 1024 };
+eq("4 valid png accepted", validateUploadFile(okImg).ok, true);
+eq("4 oversized rejected", validateUploadFile({ ...okImg, size: 6 * 1024 * 1024 }).ok, false);
+eq(
+  "4 oversized → FILE_TOO_LARGE",
+  (validateUploadFile({ ...okImg, size: 6 * 1024 * 1024 }) as { code?: string }).code,
+  "FILE_TOO_LARGE",
+);
+eq("4 wrong mime rejected", validateUploadFile({ name: "a.png", type: "application/x-msdownload", size: 10 }).ok, false);
+eq("4 wrong ext rejected (renamed exe)", validateUploadFile({ name: "virus.exe", type: "image/png", size: 10 }).ok, false);
+eq(
+  "4 wrong type → INVALID_FILE_TYPE",
+  (validateUploadFile({ name: "virus.exe", type: "image/png", size: 10 }) as { code?: string }).code,
+  "INVALID_FILE_TYPE",
+);
+eq("4 empty file rejected", validateUploadFile({ ...okImg, size: 0 }).ok, false);
 
 // ── Report ──────────────────────────────────────────────────────────────────
 if (failures.length) {

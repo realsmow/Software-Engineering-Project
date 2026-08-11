@@ -969,6 +969,13 @@ body.dark .submit-btn.google {
 .top-search:hover {
   background: var(--s-inset);
 }
+/* No big focus-ring glow on the search trigger (it lingers after the command
+   palette closes). Keep a subtle border tint for keyboard accessibility. */
+.top-search:focus-visible {
+  outline: none;
+  box-shadow: none;
+  border-color: var(--accent);
+}
 .top-search .kbd {
   margin-left: auto;
   padding: 1px 5px;
