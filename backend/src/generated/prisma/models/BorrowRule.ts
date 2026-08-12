@@ -192,17 +192,17 @@ export type BorrowRuleWhereInput = {
   NOT?: Prisma.BorrowRuleWhereInput | Prisma.BorrowRuleWhereInput[]
   BorrowRuleKey?: Prisma.IntFilter<"BorrowRule"> | number
   RuleName?: Prisma.StringNullableFilter<"BorrowRule"> | string | null
-  Resources?: Prisma.ResourceInfoListRelationFilter
+  Resources?: Prisma.ResourceListRelationFilter
   PenaltyRules?: Prisma.PenaltyRuleListRelationFilter
-  BorrowConstraints?: Prisma.BorrowConstraintsListRelationFilter
+  BorrowConstraints?: Prisma.BorrowConstraintListRelationFilter
 }
 
 export type BorrowRuleOrderByWithRelationInput = {
   BorrowRuleKey?: Prisma.SortOrder
   RuleName?: Prisma.SortOrderInput | Prisma.SortOrder
-  Resources?: Prisma.ResourceInfoOrderByRelationAggregateInput
+  Resources?: Prisma.ResourceOrderByRelationAggregateInput
   PenaltyRules?: Prisma.PenaltyRuleOrderByRelationAggregateInput
-  BorrowConstraints?: Prisma.BorrowConstraintsOrderByRelationAggregateInput
+  BorrowConstraints?: Prisma.BorrowConstraintOrderByRelationAggregateInput
 }
 
 export type BorrowRuleWhereUniqueInput = Prisma.AtLeast<{
@@ -211,9 +211,9 @@ export type BorrowRuleWhereUniqueInput = Prisma.AtLeast<{
   OR?: Prisma.BorrowRuleWhereInput[]
   NOT?: Prisma.BorrowRuleWhereInput | Prisma.BorrowRuleWhereInput[]
   RuleName?: Prisma.StringNullableFilter<"BorrowRule"> | string | null
-  Resources?: Prisma.ResourceInfoListRelationFilter
+  Resources?: Prisma.ResourceListRelationFilter
   PenaltyRules?: Prisma.PenaltyRuleListRelationFilter
-  BorrowConstraints?: Prisma.BorrowConstraintsListRelationFilter
+  BorrowConstraints?: Prisma.BorrowConstraintListRelationFilter
 }, "BorrowRuleKey">
 
 export type BorrowRuleOrderByWithAggregationInput = {
@@ -236,32 +236,32 @@ export type BorrowRuleScalarWhereWithAggregatesInput = {
 
 export type BorrowRuleCreateInput = {
   RuleName?: string | null
-  Resources?: Prisma.ResourceInfoCreateNestedManyWithoutBorrowRuleInfoInput
+  Resources?: Prisma.ResourceCreateNestedManyWithoutBorrowRuleInput
   PenaltyRules?: Prisma.PenaltyRuleCreateNestedManyWithoutBorrowRuleInput
-  BorrowConstraints?: Prisma.BorrowConstraintsCreateNestedManyWithoutBorrowRuleInput
+  BorrowConstraints?: Prisma.BorrowConstraintCreateNestedManyWithoutBorrowRuleInput
 }
 
 export type BorrowRuleUncheckedCreateInput = {
   BorrowRuleKey?: number
   RuleName?: string | null
-  Resources?: Prisma.ResourceInfoUncheckedCreateNestedManyWithoutBorrowRuleInfoInput
+  Resources?: Prisma.ResourceUncheckedCreateNestedManyWithoutBorrowRuleInput
   PenaltyRules?: Prisma.PenaltyRuleUncheckedCreateNestedManyWithoutBorrowRuleInput
-  BorrowConstraints?: Prisma.BorrowConstraintsUncheckedCreateNestedManyWithoutBorrowRuleInput
+  BorrowConstraints?: Prisma.BorrowConstraintUncheckedCreateNestedManyWithoutBorrowRuleInput
 }
 
 export type BorrowRuleUpdateInput = {
   RuleName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  Resources?: Prisma.ResourceInfoUpdateManyWithoutBorrowRuleInfoNestedInput
+  Resources?: Prisma.ResourceUpdateManyWithoutBorrowRuleNestedInput
   PenaltyRules?: Prisma.PenaltyRuleUpdateManyWithoutBorrowRuleNestedInput
-  BorrowConstraints?: Prisma.BorrowConstraintsUpdateManyWithoutBorrowRuleNestedInput
+  BorrowConstraints?: Prisma.BorrowConstraintUpdateManyWithoutBorrowRuleNestedInput
 }
 
 export type BorrowRuleUncheckedUpdateInput = {
   BorrowRuleKey?: Prisma.IntFieldUpdateOperationsInput | number
   RuleName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  Resources?: Prisma.ResourceInfoUncheckedUpdateManyWithoutBorrowRuleInfoNestedInput
+  Resources?: Prisma.ResourceUncheckedUpdateManyWithoutBorrowRuleNestedInput
   PenaltyRules?: Prisma.PenaltyRuleUncheckedUpdateManyWithoutBorrowRuleNestedInput
-  BorrowConstraints?: Prisma.BorrowConstraintsUncheckedUpdateManyWithoutBorrowRuleNestedInput
+  BorrowConstraints?: Prisma.BorrowConstraintUncheckedUpdateManyWithoutBorrowRuleNestedInput
 }
 
 export type BorrowRuleCreateManyInput = {
@@ -351,14 +351,14 @@ export type BorrowRuleUpdateOneRequiredWithoutPenaltyRulesNestedInput = {
 export type BorrowRuleCreateWithoutResourcesInput = {
   RuleName?: string | null
   PenaltyRules?: Prisma.PenaltyRuleCreateNestedManyWithoutBorrowRuleInput
-  BorrowConstraints?: Prisma.BorrowConstraintsCreateNestedManyWithoutBorrowRuleInput
+  BorrowConstraints?: Prisma.BorrowConstraintCreateNestedManyWithoutBorrowRuleInput
 }
 
 export type BorrowRuleUncheckedCreateWithoutResourcesInput = {
   BorrowRuleKey?: number
   RuleName?: string | null
   PenaltyRules?: Prisma.PenaltyRuleUncheckedCreateNestedManyWithoutBorrowRuleInput
-  BorrowConstraints?: Prisma.BorrowConstraintsUncheckedCreateNestedManyWithoutBorrowRuleInput
+  BorrowConstraints?: Prisma.BorrowConstraintUncheckedCreateNestedManyWithoutBorrowRuleInput
 }
 
 export type BorrowRuleCreateOrConnectWithoutResourcesInput = {
@@ -380,26 +380,26 @@ export type BorrowRuleUpdateToOneWithWhereWithoutResourcesInput = {
 export type BorrowRuleUpdateWithoutResourcesInput = {
   RuleName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   PenaltyRules?: Prisma.PenaltyRuleUpdateManyWithoutBorrowRuleNestedInput
-  BorrowConstraints?: Prisma.BorrowConstraintsUpdateManyWithoutBorrowRuleNestedInput
+  BorrowConstraints?: Prisma.BorrowConstraintUpdateManyWithoutBorrowRuleNestedInput
 }
 
 export type BorrowRuleUncheckedUpdateWithoutResourcesInput = {
   BorrowRuleKey?: Prisma.IntFieldUpdateOperationsInput | number
   RuleName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   PenaltyRules?: Prisma.PenaltyRuleUncheckedUpdateManyWithoutBorrowRuleNestedInput
-  BorrowConstraints?: Prisma.BorrowConstraintsUncheckedUpdateManyWithoutBorrowRuleNestedInput
+  BorrowConstraints?: Prisma.BorrowConstraintUncheckedUpdateManyWithoutBorrowRuleNestedInput
 }
 
 export type BorrowRuleCreateWithoutBorrowConstraintsInput = {
   RuleName?: string | null
-  Resources?: Prisma.ResourceInfoCreateNestedManyWithoutBorrowRuleInfoInput
+  Resources?: Prisma.ResourceCreateNestedManyWithoutBorrowRuleInput
   PenaltyRules?: Prisma.PenaltyRuleCreateNestedManyWithoutBorrowRuleInput
 }
 
 export type BorrowRuleUncheckedCreateWithoutBorrowConstraintsInput = {
   BorrowRuleKey?: number
   RuleName?: string | null
-  Resources?: Prisma.ResourceInfoUncheckedCreateNestedManyWithoutBorrowRuleInfoInput
+  Resources?: Prisma.ResourceUncheckedCreateNestedManyWithoutBorrowRuleInput
   PenaltyRules?: Prisma.PenaltyRuleUncheckedCreateNestedManyWithoutBorrowRuleInput
 }
 
@@ -421,28 +421,28 @@ export type BorrowRuleUpdateToOneWithWhereWithoutBorrowConstraintsInput = {
 
 export type BorrowRuleUpdateWithoutBorrowConstraintsInput = {
   RuleName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  Resources?: Prisma.ResourceInfoUpdateManyWithoutBorrowRuleInfoNestedInput
+  Resources?: Prisma.ResourceUpdateManyWithoutBorrowRuleNestedInput
   PenaltyRules?: Prisma.PenaltyRuleUpdateManyWithoutBorrowRuleNestedInput
 }
 
 export type BorrowRuleUncheckedUpdateWithoutBorrowConstraintsInput = {
   BorrowRuleKey?: Prisma.IntFieldUpdateOperationsInput | number
   RuleName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  Resources?: Prisma.ResourceInfoUncheckedUpdateManyWithoutBorrowRuleInfoNestedInput
+  Resources?: Prisma.ResourceUncheckedUpdateManyWithoutBorrowRuleNestedInput
   PenaltyRules?: Prisma.PenaltyRuleUncheckedUpdateManyWithoutBorrowRuleNestedInput
 }
 
 export type BorrowRuleCreateWithoutPenaltyRulesInput = {
   RuleName?: string | null
-  Resources?: Prisma.ResourceInfoCreateNestedManyWithoutBorrowRuleInfoInput
-  BorrowConstraints?: Prisma.BorrowConstraintsCreateNestedManyWithoutBorrowRuleInput
+  Resources?: Prisma.ResourceCreateNestedManyWithoutBorrowRuleInput
+  BorrowConstraints?: Prisma.BorrowConstraintCreateNestedManyWithoutBorrowRuleInput
 }
 
 export type BorrowRuleUncheckedCreateWithoutPenaltyRulesInput = {
   BorrowRuleKey?: number
   RuleName?: string | null
-  Resources?: Prisma.ResourceInfoUncheckedCreateNestedManyWithoutBorrowRuleInfoInput
-  BorrowConstraints?: Prisma.BorrowConstraintsUncheckedCreateNestedManyWithoutBorrowRuleInput
+  Resources?: Prisma.ResourceUncheckedCreateNestedManyWithoutBorrowRuleInput
+  BorrowConstraints?: Prisma.BorrowConstraintUncheckedCreateNestedManyWithoutBorrowRuleInput
 }
 
 export type BorrowRuleCreateOrConnectWithoutPenaltyRulesInput = {
@@ -463,15 +463,15 @@ export type BorrowRuleUpdateToOneWithWhereWithoutPenaltyRulesInput = {
 
 export type BorrowRuleUpdateWithoutPenaltyRulesInput = {
   RuleName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  Resources?: Prisma.ResourceInfoUpdateManyWithoutBorrowRuleInfoNestedInput
-  BorrowConstraints?: Prisma.BorrowConstraintsUpdateManyWithoutBorrowRuleNestedInput
+  Resources?: Prisma.ResourceUpdateManyWithoutBorrowRuleNestedInput
+  BorrowConstraints?: Prisma.BorrowConstraintUpdateManyWithoutBorrowRuleNestedInput
 }
 
 export type BorrowRuleUncheckedUpdateWithoutPenaltyRulesInput = {
   BorrowRuleKey?: Prisma.IntFieldUpdateOperationsInput | number
   RuleName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  Resources?: Prisma.ResourceInfoUncheckedUpdateManyWithoutBorrowRuleInfoNestedInput
-  BorrowConstraints?: Prisma.BorrowConstraintsUncheckedUpdateManyWithoutBorrowRuleNestedInput
+  Resources?: Prisma.ResourceUncheckedUpdateManyWithoutBorrowRuleNestedInput
+  BorrowConstraints?: Prisma.BorrowConstraintUncheckedUpdateManyWithoutBorrowRuleNestedInput
 }
 
 
@@ -505,7 +505,7 @@ export type BorrowRuleCountOutputTypeDefaultArgs<ExtArgs extends runtime.Types.E
  * BorrowRuleCountOutputType without action
  */
 export type BorrowRuleCountOutputTypeCountResourcesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  where?: Prisma.ResourceInfoWhereInput
+  where?: Prisma.ResourceWhereInput
 }
 
 /**
@@ -519,7 +519,7 @@ export type BorrowRuleCountOutputTypeCountPenaltyRulesArgs<ExtArgs extends runti
  * BorrowRuleCountOutputType without action
  */
 export type BorrowRuleCountOutputTypeCountBorrowConstraintsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  where?: Prisma.BorrowConstraintsWhereInput
+  where?: Prisma.BorrowConstraintWhereInput
 }
 
 
@@ -560,9 +560,9 @@ export type BorrowRuleIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.E
 export type $BorrowRulePayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "BorrowRule"
   objects: {
-    Resources: Prisma.$ResourceInfoPayload<ExtArgs>[]
+    Resources: Prisma.$ResourcePayload<ExtArgs>[]
     PenaltyRules: Prisma.$PenaltyRulePayload<ExtArgs>[]
-    BorrowConstraints: Prisma.$BorrowConstraintsPayload<ExtArgs>[]
+    BorrowConstraints: Prisma.$BorrowConstraintPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     BorrowRuleKey: number
@@ -961,9 +961,9 @@ readonly fields: BorrowRuleFieldRefs;
  */
 export interface Prisma__BorrowRuleClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
-  Resources<T extends Prisma.BorrowRule$ResourcesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.BorrowRule$ResourcesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ResourceInfoPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  Resources<T extends Prisma.BorrowRule$ResourcesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.BorrowRule$ResourcesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ResourcePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   PenaltyRules<T extends Prisma.BorrowRule$PenaltyRulesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.BorrowRule$PenaltyRulesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$PenaltyRulePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
-  BorrowConstraints<T extends Prisma.BorrowRule$BorrowConstraintsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.BorrowRule$BorrowConstraintsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$BorrowConstraintsPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  BorrowConstraints<T extends Prisma.BorrowRule$BorrowConstraintsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.BorrowRule$BorrowConstraintsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$BorrowConstraintPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1392,23 +1392,23 @@ export type BorrowRuleDeleteManyArgs<ExtArgs extends runtime.Types.Extensions.In
  */
 export type BorrowRule$ResourcesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   /**
-   * Select specific fields to fetch from the ResourceInfo
+   * Select specific fields to fetch from the Resource
    */
-  select?: Prisma.ResourceInfoSelect<ExtArgs> | null
+  select?: Prisma.ResourceSelect<ExtArgs> | null
   /**
-   * Omit specific fields from the ResourceInfo
+   * Omit specific fields from the Resource
    */
-  omit?: Prisma.ResourceInfoOmit<ExtArgs> | null
+  omit?: Prisma.ResourceOmit<ExtArgs> | null
   /**
    * Choose, which related nodes to fetch as well
    */
-  include?: Prisma.ResourceInfoInclude<ExtArgs> | null
-  where?: Prisma.ResourceInfoWhereInput
-  orderBy?: Prisma.ResourceInfoOrderByWithRelationInput | Prisma.ResourceInfoOrderByWithRelationInput[]
-  cursor?: Prisma.ResourceInfoWhereUniqueInput
+  include?: Prisma.ResourceInclude<ExtArgs> | null
+  where?: Prisma.ResourceWhereInput
+  orderBy?: Prisma.ResourceOrderByWithRelationInput | Prisma.ResourceOrderByWithRelationInput[]
+  cursor?: Prisma.ResourceWhereUniqueInput
   take?: number
   skip?: number
-  distinct?: Prisma.ResourceInfoScalarFieldEnum | Prisma.ResourceInfoScalarFieldEnum[]
+  distinct?: Prisma.ResourceScalarFieldEnum | Prisma.ResourceScalarFieldEnum[]
 }
 
 /**
@@ -1440,23 +1440,23 @@ export type BorrowRule$PenaltyRulesArgs<ExtArgs extends runtime.Types.Extensions
  */
 export type BorrowRule$BorrowConstraintsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   /**
-   * Select specific fields to fetch from the BorrowConstraints
+   * Select specific fields to fetch from the BorrowConstraint
    */
-  select?: Prisma.BorrowConstraintsSelect<ExtArgs> | null
+  select?: Prisma.BorrowConstraintSelect<ExtArgs> | null
   /**
-   * Omit specific fields from the BorrowConstraints
+   * Omit specific fields from the BorrowConstraint
    */
-  omit?: Prisma.BorrowConstraintsOmit<ExtArgs> | null
+  omit?: Prisma.BorrowConstraintOmit<ExtArgs> | null
   /**
    * Choose, which related nodes to fetch as well
    */
-  include?: Prisma.BorrowConstraintsInclude<ExtArgs> | null
-  where?: Prisma.BorrowConstraintsWhereInput
-  orderBy?: Prisma.BorrowConstraintsOrderByWithRelationInput | Prisma.BorrowConstraintsOrderByWithRelationInput[]
-  cursor?: Prisma.BorrowConstraintsWhereUniqueInput
+  include?: Prisma.BorrowConstraintInclude<ExtArgs> | null
+  where?: Prisma.BorrowConstraintWhereInput
+  orderBy?: Prisma.BorrowConstraintOrderByWithRelationInput | Prisma.BorrowConstraintOrderByWithRelationInput[]
+  cursor?: Prisma.BorrowConstraintWhereUniqueInput
   take?: number
   skip?: number
-  distinct?: Prisma.BorrowConstraintsScalarFieldEnum | Prisma.BorrowConstraintsScalarFieldEnum[]
+  distinct?: Prisma.BorrowConstraintScalarFieldEnum | Prisma.BorrowConstraintScalarFieldEnum[]
 }
 
 /**

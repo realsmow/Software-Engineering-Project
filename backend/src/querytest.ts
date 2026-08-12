@@ -11,7 +11,7 @@ const adapter = new PrismaPg({
 export const prisma = new PrismaClient({ adapter });
 
 async function main() {
-    const types = await prisma.groupType.findMany();
+    const types = await prisma.account.findMany();
 
     console.log(types)
 }

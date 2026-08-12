@@ -30,7 +30,7 @@ export type InspectionAvgAggregateOutputType = {
   InspectionKey: number | null
   UsageKey: number | null
   ResourceKey: number | null
-  InspectorKey: number | null
+  AccountKey_Inspectedby: number | null
   ConditionKey: number | null
   AppealKey: number | null
   PenaltyKey: number | null
@@ -40,7 +40,7 @@ export type InspectionSumAggregateOutputType = {
   InspectionKey: number | null
   UsageKey: number | null
   ResourceKey: number | null
-  InspectorKey: number | null
+  AccountKey_Inspectedby: number | null
   ConditionKey: number | null
   AppealKey: number | null
   PenaltyKey: number | null
@@ -50,8 +50,9 @@ export type InspectionMinAggregateOutputType = {
   InspectionKey: number | null
   UsageKey: number | null
   ResourceKey: number | null
-  InspectorKey: number | null
+  AccountKey_Inspectedby: number | null
   ConditionKey: number | null
+  Verdict: $Enums.Verdict | null
   AppealKey: number | null
   PenaltyKey: number | null
   ActionTime: Date | null
@@ -62,8 +63,9 @@ export type InspectionMaxAggregateOutputType = {
   InspectionKey: number | null
   UsageKey: number | null
   ResourceKey: number | null
-  InspectorKey: number | null
+  AccountKey_Inspectedby: number | null
   ConditionKey: number | null
+  Verdict: $Enums.Verdict | null
   AppealKey: number | null
   PenaltyKey: number | null
   ActionTime: Date | null
@@ -74,8 +76,9 @@ export type InspectionCountAggregateOutputType = {
   InspectionKey: number
   UsageKey: number
   ResourceKey: number
-  InspectorKey: number
+  AccountKey_Inspectedby: number
   ConditionKey: number
+  Verdict: number
   AppealKey: number
   PenaltyKey: number
   ActionTime: number
@@ -88,7 +91,7 @@ export type InspectionAvgAggregateInputType = {
   InspectionKey?: true
   UsageKey?: true
   ResourceKey?: true
-  InspectorKey?: true
+  AccountKey_Inspectedby?: true
   ConditionKey?: true
   AppealKey?: true
   PenaltyKey?: true
@@ -98,7 +101,7 @@ export type InspectionSumAggregateInputType = {
   InspectionKey?: true
   UsageKey?: true
   ResourceKey?: true
-  InspectorKey?: true
+  AccountKey_Inspectedby?: true
   ConditionKey?: true
   AppealKey?: true
   PenaltyKey?: true
@@ -108,8 +111,9 @@ export type InspectionMinAggregateInputType = {
   InspectionKey?: true
   UsageKey?: true
   ResourceKey?: true
-  InspectorKey?: true
+  AccountKey_Inspectedby?: true
   ConditionKey?: true
+  Verdict?: true
   AppealKey?: true
   PenaltyKey?: true
   ActionTime?: true
@@ -120,8 +124,9 @@ export type InspectionMaxAggregateInputType = {
   InspectionKey?: true
   UsageKey?: true
   ResourceKey?: true
-  InspectorKey?: true
+  AccountKey_Inspectedby?: true
   ConditionKey?: true
+  Verdict?: true
   AppealKey?: true
   PenaltyKey?: true
   ActionTime?: true
@@ -132,8 +137,9 @@ export type InspectionCountAggregateInputType = {
   InspectionKey?: true
   UsageKey?: true
   ResourceKey?: true
-  InspectorKey?: true
+  AccountKey_Inspectedby?: true
   ConditionKey?: true
+  Verdict?: true
   AppealKey?: true
   PenaltyKey?: true
   ActionTime?: true
@@ -231,11 +237,12 @@ export type InspectionGroupByOutputType = {
   InspectionKey: number
   UsageKey: number
   ResourceKey: number
-  InspectorKey: number
+  AccountKey_Inspectedby: number
   ConditionKey: number
+  Verdict: $Enums.Verdict
   AppealKey: number | null
   PenaltyKey: number | null
-  ActionTime: Date | null
+  ActionTime: Date
   Notes: string | null
   _count: InspectionCountAggregateOutputType | null
   _avg: InspectionAvgAggregateOutputType | null
@@ -266,38 +273,36 @@ export type InspectionWhereInput = {
   InspectionKey?: Prisma.IntFilter<"Inspection"> | number
   UsageKey?: Prisma.IntFilter<"Inspection"> | number
   ResourceKey?: Prisma.IntFilter<"Inspection"> | number
-  InspectorKey?: Prisma.IntFilter<"Inspection"> | number
+  AccountKey_Inspectedby?: Prisma.IntFilter<"Inspection"> | number
   ConditionKey?: Prisma.IntFilter<"Inspection"> | number
+  Verdict?: Prisma.EnumVerdictFilter<"Inspection"> | $Enums.Verdict
   AppealKey?: Prisma.IntNullableFilter<"Inspection"> | number | null
   PenaltyKey?: Prisma.IntNullableFilter<"Inspection"> | number | null
-  ActionTime?: Prisma.DateTimeNullableFilter<"Inspection"> | Date | string | null
+  ActionTime?: Prisma.DateTimeFilter<"Inspection"> | Date | string
   Notes?: Prisma.StringNullableFilter<"Inspection"> | string | null
-  Usage?: Prisma.XOR<Prisma.UsageLogScalarRelationFilter, Prisma.UsageLogWhereInput>
-  Resource?: Prisma.XOR<Prisma.ResourceInfoScalarRelationFilter, Prisma.ResourceInfoWhereInput>
-  Inspector?: Prisma.XOR<Prisma.AccountInfoScalarRelationFilter, Prisma.AccountInfoWhereInput>
-  Condition?: Prisma.XOR<Prisma.ConditionLogScalarRelationFilter, Prisma.ConditionLogWhereInput>
-  Appeal?: Prisma.XOR<Prisma.AppealInfoNullableScalarRelationFilter, Prisma.AppealInfoWhereInput> | null
-  Penalty?: Prisma.XOR<Prisma.PenaltyInfoNullableScalarRelationFilter, Prisma.PenaltyInfoWhereInput> | null
-  Images?: Prisma.ImagesListRelationFilter
+  Usage?: Prisma.XOR<Prisma.UsageScalarRelationFilter, Prisma.UsageWhereInput>
+  Resource?: Prisma.XOR<Prisma.ResourceScalarRelationFilter, Prisma.ResourceWhereInput>
+  InspectedByAccount?: Prisma.XOR<Prisma.AccountScalarRelationFilter, Prisma.AccountWhereInput>
+  Condition?: Prisma.XOR<Prisma.ConditionScalarRelationFilter, Prisma.ConditionWhereInput>
+  Images?: Prisma.ImageListRelationFilter
 }
 
 export type InspectionOrderByWithRelationInput = {
   InspectionKey?: Prisma.SortOrder
   UsageKey?: Prisma.SortOrder
   ResourceKey?: Prisma.SortOrder
-  InspectorKey?: Prisma.SortOrder
+  AccountKey_Inspectedby?: Prisma.SortOrder
   ConditionKey?: Prisma.SortOrder
+  Verdict?: Prisma.SortOrder
   AppealKey?: Prisma.SortOrderInput | Prisma.SortOrder
   PenaltyKey?: Prisma.SortOrderInput | Prisma.SortOrder
-  ActionTime?: Prisma.SortOrderInput | Prisma.SortOrder
+  ActionTime?: Prisma.SortOrder
   Notes?: Prisma.SortOrderInput | Prisma.SortOrder
-  Usage?: Prisma.UsageLogOrderByWithRelationInput
-  Resource?: Prisma.ResourceInfoOrderByWithRelationInput
-  Inspector?: Prisma.AccountInfoOrderByWithRelationInput
-  Condition?: Prisma.ConditionLogOrderByWithRelationInput
-  Appeal?: Prisma.AppealInfoOrderByWithRelationInput
-  Penalty?: Prisma.PenaltyInfoOrderByWithRelationInput
-  Images?: Prisma.ImagesOrderByRelationAggregateInput
+  Usage?: Prisma.UsageOrderByWithRelationInput
+  Resource?: Prisma.ResourceOrderByWithRelationInput
+  InspectedByAccount?: Prisma.AccountOrderByWithRelationInput
+  Condition?: Prisma.ConditionOrderByWithRelationInput
+  Images?: Prisma.ImageOrderByRelationAggregateInput
 }
 
 export type InspectionWhereUniqueInput = Prisma.AtLeast<{
@@ -307,30 +312,30 @@ export type InspectionWhereUniqueInput = Prisma.AtLeast<{
   NOT?: Prisma.InspectionWhereInput | Prisma.InspectionWhereInput[]
   UsageKey?: Prisma.IntFilter<"Inspection"> | number
   ResourceKey?: Prisma.IntFilter<"Inspection"> | number
-  InspectorKey?: Prisma.IntFilter<"Inspection"> | number
+  AccountKey_Inspectedby?: Prisma.IntFilter<"Inspection"> | number
   ConditionKey?: Prisma.IntFilter<"Inspection"> | number
+  Verdict?: Prisma.EnumVerdictFilter<"Inspection"> | $Enums.Verdict
   AppealKey?: Prisma.IntNullableFilter<"Inspection"> | number | null
   PenaltyKey?: Prisma.IntNullableFilter<"Inspection"> | number | null
-  ActionTime?: Prisma.DateTimeNullableFilter<"Inspection"> | Date | string | null
+  ActionTime?: Prisma.DateTimeFilter<"Inspection"> | Date | string
   Notes?: Prisma.StringNullableFilter<"Inspection"> | string | null
-  Usage?: Prisma.XOR<Prisma.UsageLogScalarRelationFilter, Prisma.UsageLogWhereInput>
-  Resource?: Prisma.XOR<Prisma.ResourceInfoScalarRelationFilter, Prisma.ResourceInfoWhereInput>
-  Inspector?: Prisma.XOR<Prisma.AccountInfoScalarRelationFilter, Prisma.AccountInfoWhereInput>
-  Condition?: Prisma.XOR<Prisma.ConditionLogScalarRelationFilter, Prisma.ConditionLogWhereInput>
-  Appeal?: Prisma.XOR<Prisma.AppealInfoNullableScalarRelationFilter, Prisma.AppealInfoWhereInput> | null
-  Penalty?: Prisma.XOR<Prisma.PenaltyInfoNullableScalarRelationFilter, Prisma.PenaltyInfoWhereInput> | null
-  Images?: Prisma.ImagesListRelationFilter
+  Usage?: Prisma.XOR<Prisma.UsageScalarRelationFilter, Prisma.UsageWhereInput>
+  Resource?: Prisma.XOR<Prisma.ResourceScalarRelationFilter, Prisma.ResourceWhereInput>
+  InspectedByAccount?: Prisma.XOR<Prisma.AccountScalarRelationFilter, Prisma.AccountWhereInput>
+  Condition?: Prisma.XOR<Prisma.ConditionScalarRelationFilter, Prisma.ConditionWhereInput>
+  Images?: Prisma.ImageListRelationFilter
 }, "InspectionKey">
 
 export type InspectionOrderByWithAggregationInput = {
   InspectionKey?: Prisma.SortOrder
   UsageKey?: Prisma.SortOrder
   ResourceKey?: Prisma.SortOrder
-  InspectorKey?: Prisma.SortOrder
+  AccountKey_Inspectedby?: Prisma.SortOrder
   ConditionKey?: Prisma.SortOrder
+  Verdict?: Prisma.SortOrder
   AppealKey?: Prisma.SortOrderInput | Prisma.SortOrder
   PenaltyKey?: Prisma.SortOrderInput | Prisma.SortOrder
-  ActionTime?: Prisma.SortOrderInput | Prisma.SortOrder
+  ActionTime?: Prisma.SortOrder
   Notes?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.InspectionCountOrderByAggregateInput
   _avg?: Prisma.InspectionAvgOrderByAggregateInput
@@ -346,78 +351,87 @@ export type InspectionScalarWhereWithAggregatesInput = {
   InspectionKey?: Prisma.IntWithAggregatesFilter<"Inspection"> | number
   UsageKey?: Prisma.IntWithAggregatesFilter<"Inspection"> | number
   ResourceKey?: Prisma.IntWithAggregatesFilter<"Inspection"> | number
-  InspectorKey?: Prisma.IntWithAggregatesFilter<"Inspection"> | number
+  AccountKey_Inspectedby?: Prisma.IntWithAggregatesFilter<"Inspection"> | number
   ConditionKey?: Prisma.IntWithAggregatesFilter<"Inspection"> | number
+  Verdict?: Prisma.EnumVerdictWithAggregatesFilter<"Inspection"> | $Enums.Verdict
   AppealKey?: Prisma.IntNullableWithAggregatesFilter<"Inspection"> | number | null
   PenaltyKey?: Prisma.IntNullableWithAggregatesFilter<"Inspection"> | number | null
-  ActionTime?: Prisma.DateTimeNullableWithAggregatesFilter<"Inspection"> | Date | string | null
+  ActionTime?: Prisma.DateTimeWithAggregatesFilter<"Inspection"> | Date | string
   Notes?: Prisma.StringNullableWithAggregatesFilter<"Inspection"> | string | null
 }
 
 export type InspectionCreateInput = {
-  ActionTime?: Date | string | null
+  Verdict: $Enums.Verdict
+  AppealKey?: number | null
+  PenaltyKey?: number | null
+  ActionTime: Date | string
   Notes?: string | null
-  Usage: Prisma.UsageLogCreateNestedOneWithoutInspectionsInput
-  Resource: Prisma.ResourceInfoCreateNestedOneWithoutInspectionsInput
-  Inspector: Prisma.AccountInfoCreateNestedOneWithoutInspectionsPerformedInput
-  Condition: Prisma.ConditionLogCreateNestedOneWithoutInspectionsInput
-  Appeal?: Prisma.AppealInfoCreateNestedOneWithoutInspectionsInput
-  Penalty?: Prisma.PenaltyInfoCreateNestedOneWithoutInspectionsInput
-  Images?: Prisma.ImagesCreateNestedManyWithoutInspectionInput
+  Usage: Prisma.UsageCreateNestedOneWithoutInspectionsInput
+  Resource: Prisma.ResourceCreateNestedOneWithoutInspectionsInput
+  InspectedByAccount: Prisma.AccountCreateNestedOneWithoutInspectionsInput
+  Condition: Prisma.ConditionCreateNestedOneWithoutInspectionsInput
+  Images?: Prisma.ImageCreateNestedManyWithoutInspectionInput
 }
 
 export type InspectionUncheckedCreateInput = {
   InspectionKey?: number
   UsageKey: number
   ResourceKey: number
-  InspectorKey: number
+  AccountKey_Inspectedby: number
   ConditionKey: number
+  Verdict: $Enums.Verdict
   AppealKey?: number | null
   PenaltyKey?: number | null
-  ActionTime?: Date | string | null
+  ActionTime: Date | string
   Notes?: string | null
-  Images?: Prisma.ImagesUncheckedCreateNestedManyWithoutInspectionInput
+  Images?: Prisma.ImageUncheckedCreateNestedManyWithoutInspectionInput
 }
 
 export type InspectionUpdateInput = {
-  ActionTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  Verdict?: Prisma.EnumVerdictFieldUpdateOperationsInput | $Enums.Verdict
+  AppealKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  PenaltyKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  ActionTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   Notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  Usage?: Prisma.UsageLogUpdateOneRequiredWithoutInspectionsNestedInput
-  Resource?: Prisma.ResourceInfoUpdateOneRequiredWithoutInspectionsNestedInput
-  Inspector?: Prisma.AccountInfoUpdateOneRequiredWithoutInspectionsPerformedNestedInput
-  Condition?: Prisma.ConditionLogUpdateOneRequiredWithoutInspectionsNestedInput
-  Appeal?: Prisma.AppealInfoUpdateOneWithoutInspectionsNestedInput
-  Penalty?: Prisma.PenaltyInfoUpdateOneWithoutInspectionsNestedInput
-  Images?: Prisma.ImagesUpdateManyWithoutInspectionNestedInput
+  Usage?: Prisma.UsageUpdateOneRequiredWithoutInspectionsNestedInput
+  Resource?: Prisma.ResourceUpdateOneRequiredWithoutInspectionsNestedInput
+  InspectedByAccount?: Prisma.AccountUpdateOneRequiredWithoutInspectionsNestedInput
+  Condition?: Prisma.ConditionUpdateOneRequiredWithoutInspectionsNestedInput
+  Images?: Prisma.ImageUpdateManyWithoutInspectionNestedInput
 }
 
 export type InspectionUncheckedUpdateInput = {
   InspectionKey?: Prisma.IntFieldUpdateOperationsInput | number
   UsageKey?: Prisma.IntFieldUpdateOperationsInput | number
   ResourceKey?: Prisma.IntFieldUpdateOperationsInput | number
-  InspectorKey?: Prisma.IntFieldUpdateOperationsInput | number
+  AccountKey_Inspectedby?: Prisma.IntFieldUpdateOperationsInput | number
   ConditionKey?: Prisma.IntFieldUpdateOperationsInput | number
+  Verdict?: Prisma.EnumVerdictFieldUpdateOperationsInput | $Enums.Verdict
   AppealKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   PenaltyKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  ActionTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  ActionTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   Notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  Images?: Prisma.ImagesUncheckedUpdateManyWithoutInspectionNestedInput
+  Images?: Prisma.ImageUncheckedUpdateManyWithoutInspectionNestedInput
 }
 
 export type InspectionCreateManyInput = {
   InspectionKey?: number
   UsageKey: number
   ResourceKey: number
-  InspectorKey: number
+  AccountKey_Inspectedby: number
   ConditionKey: number
+  Verdict: $Enums.Verdict
   AppealKey?: number | null
   PenaltyKey?: number | null
-  ActionTime?: Date | string | null
+  ActionTime: Date | string
   Notes?: string | null
 }
 
 export type InspectionUpdateManyMutationInput = {
-  ActionTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  Verdict?: Prisma.EnumVerdictFieldUpdateOperationsInput | $Enums.Verdict
+  AppealKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  PenaltyKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  ActionTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   Notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
@@ -425,11 +439,12 @@ export type InspectionUncheckedUpdateManyInput = {
   InspectionKey?: Prisma.IntFieldUpdateOperationsInput | number
   UsageKey?: Prisma.IntFieldUpdateOperationsInput | number
   ResourceKey?: Prisma.IntFieldUpdateOperationsInput | number
-  InspectorKey?: Prisma.IntFieldUpdateOperationsInput | number
+  AccountKey_Inspectedby?: Prisma.IntFieldUpdateOperationsInput | number
   ConditionKey?: Prisma.IntFieldUpdateOperationsInput | number
+  Verdict?: Prisma.EnumVerdictFieldUpdateOperationsInput | $Enums.Verdict
   AppealKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   PenaltyKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  ActionTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  ActionTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   Notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
@@ -447,8 +462,9 @@ export type InspectionCountOrderByAggregateInput = {
   InspectionKey?: Prisma.SortOrder
   UsageKey?: Prisma.SortOrder
   ResourceKey?: Prisma.SortOrder
-  InspectorKey?: Prisma.SortOrder
+  AccountKey_Inspectedby?: Prisma.SortOrder
   ConditionKey?: Prisma.SortOrder
+  Verdict?: Prisma.SortOrder
   AppealKey?: Prisma.SortOrder
   PenaltyKey?: Prisma.SortOrder
   ActionTime?: Prisma.SortOrder
@@ -459,7 +475,7 @@ export type InspectionAvgOrderByAggregateInput = {
   InspectionKey?: Prisma.SortOrder
   UsageKey?: Prisma.SortOrder
   ResourceKey?: Prisma.SortOrder
-  InspectorKey?: Prisma.SortOrder
+  AccountKey_Inspectedby?: Prisma.SortOrder
   ConditionKey?: Prisma.SortOrder
   AppealKey?: Prisma.SortOrder
   PenaltyKey?: Prisma.SortOrder
@@ -469,8 +485,9 @@ export type InspectionMaxOrderByAggregateInput = {
   InspectionKey?: Prisma.SortOrder
   UsageKey?: Prisma.SortOrder
   ResourceKey?: Prisma.SortOrder
-  InspectorKey?: Prisma.SortOrder
+  AccountKey_Inspectedby?: Prisma.SortOrder
   ConditionKey?: Prisma.SortOrder
+  Verdict?: Prisma.SortOrder
   AppealKey?: Prisma.SortOrder
   PenaltyKey?: Prisma.SortOrder
   ActionTime?: Prisma.SortOrder
@@ -481,8 +498,9 @@ export type InspectionMinOrderByAggregateInput = {
   InspectionKey?: Prisma.SortOrder
   UsageKey?: Prisma.SortOrder
   ResourceKey?: Prisma.SortOrder
-  InspectorKey?: Prisma.SortOrder
+  AccountKey_Inspectedby?: Prisma.SortOrder
   ConditionKey?: Prisma.SortOrder
+  Verdict?: Prisma.SortOrder
   AppealKey?: Prisma.SortOrder
   PenaltyKey?: Prisma.SortOrder
   ActionTime?: Prisma.SortOrder
@@ -493,7 +511,7 @@ export type InspectionSumOrderByAggregateInput = {
   InspectionKey?: Prisma.SortOrder
   UsageKey?: Prisma.SortOrder
   ResourceKey?: Prisma.SortOrder
-  InspectorKey?: Prisma.SortOrder
+  AccountKey_Inspectedby?: Prisma.SortOrder
   ConditionKey?: Prisma.SortOrder
   AppealKey?: Prisma.SortOrder
   PenaltyKey?: Prisma.SortOrder
@@ -504,45 +522,45 @@ export type InspectionNullableScalarRelationFilter = {
   isNot?: Prisma.InspectionWhereInput | null
 }
 
-export type InspectionCreateNestedManyWithoutInspectorInput = {
-  create?: Prisma.XOR<Prisma.InspectionCreateWithoutInspectorInput, Prisma.InspectionUncheckedCreateWithoutInspectorInput> | Prisma.InspectionCreateWithoutInspectorInput[] | Prisma.InspectionUncheckedCreateWithoutInspectorInput[]
-  connectOrCreate?: Prisma.InspectionCreateOrConnectWithoutInspectorInput | Prisma.InspectionCreateOrConnectWithoutInspectorInput[]
-  createMany?: Prisma.InspectionCreateManyInspectorInputEnvelope
+export type InspectionCreateNestedManyWithoutInspectedByAccountInput = {
+  create?: Prisma.XOR<Prisma.InspectionCreateWithoutInspectedByAccountInput, Prisma.InspectionUncheckedCreateWithoutInspectedByAccountInput> | Prisma.InspectionCreateWithoutInspectedByAccountInput[] | Prisma.InspectionUncheckedCreateWithoutInspectedByAccountInput[]
+  connectOrCreate?: Prisma.InspectionCreateOrConnectWithoutInspectedByAccountInput | Prisma.InspectionCreateOrConnectWithoutInspectedByAccountInput[]
+  createMany?: Prisma.InspectionCreateManyInspectedByAccountInputEnvelope
   connect?: Prisma.InspectionWhereUniqueInput | Prisma.InspectionWhereUniqueInput[]
 }
 
-export type InspectionUncheckedCreateNestedManyWithoutInspectorInput = {
-  create?: Prisma.XOR<Prisma.InspectionCreateWithoutInspectorInput, Prisma.InspectionUncheckedCreateWithoutInspectorInput> | Prisma.InspectionCreateWithoutInspectorInput[] | Prisma.InspectionUncheckedCreateWithoutInspectorInput[]
-  connectOrCreate?: Prisma.InspectionCreateOrConnectWithoutInspectorInput | Prisma.InspectionCreateOrConnectWithoutInspectorInput[]
-  createMany?: Prisma.InspectionCreateManyInspectorInputEnvelope
+export type InspectionUncheckedCreateNestedManyWithoutInspectedByAccountInput = {
+  create?: Prisma.XOR<Prisma.InspectionCreateWithoutInspectedByAccountInput, Prisma.InspectionUncheckedCreateWithoutInspectedByAccountInput> | Prisma.InspectionCreateWithoutInspectedByAccountInput[] | Prisma.InspectionUncheckedCreateWithoutInspectedByAccountInput[]
+  connectOrCreate?: Prisma.InspectionCreateOrConnectWithoutInspectedByAccountInput | Prisma.InspectionCreateOrConnectWithoutInspectedByAccountInput[]
+  createMany?: Prisma.InspectionCreateManyInspectedByAccountInputEnvelope
   connect?: Prisma.InspectionWhereUniqueInput | Prisma.InspectionWhereUniqueInput[]
 }
 
-export type InspectionUpdateManyWithoutInspectorNestedInput = {
-  create?: Prisma.XOR<Prisma.InspectionCreateWithoutInspectorInput, Prisma.InspectionUncheckedCreateWithoutInspectorInput> | Prisma.InspectionCreateWithoutInspectorInput[] | Prisma.InspectionUncheckedCreateWithoutInspectorInput[]
-  connectOrCreate?: Prisma.InspectionCreateOrConnectWithoutInspectorInput | Prisma.InspectionCreateOrConnectWithoutInspectorInput[]
-  upsert?: Prisma.InspectionUpsertWithWhereUniqueWithoutInspectorInput | Prisma.InspectionUpsertWithWhereUniqueWithoutInspectorInput[]
-  createMany?: Prisma.InspectionCreateManyInspectorInputEnvelope
+export type InspectionUpdateManyWithoutInspectedByAccountNestedInput = {
+  create?: Prisma.XOR<Prisma.InspectionCreateWithoutInspectedByAccountInput, Prisma.InspectionUncheckedCreateWithoutInspectedByAccountInput> | Prisma.InspectionCreateWithoutInspectedByAccountInput[] | Prisma.InspectionUncheckedCreateWithoutInspectedByAccountInput[]
+  connectOrCreate?: Prisma.InspectionCreateOrConnectWithoutInspectedByAccountInput | Prisma.InspectionCreateOrConnectWithoutInspectedByAccountInput[]
+  upsert?: Prisma.InspectionUpsertWithWhereUniqueWithoutInspectedByAccountInput | Prisma.InspectionUpsertWithWhereUniqueWithoutInspectedByAccountInput[]
+  createMany?: Prisma.InspectionCreateManyInspectedByAccountInputEnvelope
   set?: Prisma.InspectionWhereUniqueInput | Prisma.InspectionWhereUniqueInput[]
   disconnect?: Prisma.InspectionWhereUniqueInput | Prisma.InspectionWhereUniqueInput[]
   delete?: Prisma.InspectionWhereUniqueInput | Prisma.InspectionWhereUniqueInput[]
   connect?: Prisma.InspectionWhereUniqueInput | Prisma.InspectionWhereUniqueInput[]
-  update?: Prisma.InspectionUpdateWithWhereUniqueWithoutInspectorInput | Prisma.InspectionUpdateWithWhereUniqueWithoutInspectorInput[]
-  updateMany?: Prisma.InspectionUpdateManyWithWhereWithoutInspectorInput | Prisma.InspectionUpdateManyWithWhereWithoutInspectorInput[]
+  update?: Prisma.InspectionUpdateWithWhereUniqueWithoutInspectedByAccountInput | Prisma.InspectionUpdateWithWhereUniqueWithoutInspectedByAccountInput[]
+  updateMany?: Prisma.InspectionUpdateManyWithWhereWithoutInspectedByAccountInput | Prisma.InspectionUpdateManyWithWhereWithoutInspectedByAccountInput[]
   deleteMany?: Prisma.InspectionScalarWhereInput | Prisma.InspectionScalarWhereInput[]
 }
 
-export type InspectionUncheckedUpdateManyWithoutInspectorNestedInput = {
-  create?: Prisma.XOR<Prisma.InspectionCreateWithoutInspectorInput, Prisma.InspectionUncheckedCreateWithoutInspectorInput> | Prisma.InspectionCreateWithoutInspectorInput[] | Prisma.InspectionUncheckedCreateWithoutInspectorInput[]
-  connectOrCreate?: Prisma.InspectionCreateOrConnectWithoutInspectorInput | Prisma.InspectionCreateOrConnectWithoutInspectorInput[]
-  upsert?: Prisma.InspectionUpsertWithWhereUniqueWithoutInspectorInput | Prisma.InspectionUpsertWithWhereUniqueWithoutInspectorInput[]
-  createMany?: Prisma.InspectionCreateManyInspectorInputEnvelope
+export type InspectionUncheckedUpdateManyWithoutInspectedByAccountNestedInput = {
+  create?: Prisma.XOR<Prisma.InspectionCreateWithoutInspectedByAccountInput, Prisma.InspectionUncheckedCreateWithoutInspectedByAccountInput> | Prisma.InspectionCreateWithoutInspectedByAccountInput[] | Prisma.InspectionUncheckedCreateWithoutInspectedByAccountInput[]
+  connectOrCreate?: Prisma.InspectionCreateOrConnectWithoutInspectedByAccountInput | Prisma.InspectionCreateOrConnectWithoutInspectedByAccountInput[]
+  upsert?: Prisma.InspectionUpsertWithWhereUniqueWithoutInspectedByAccountInput | Prisma.InspectionUpsertWithWhereUniqueWithoutInspectedByAccountInput[]
+  createMany?: Prisma.InspectionCreateManyInspectedByAccountInputEnvelope
   set?: Prisma.InspectionWhereUniqueInput | Prisma.InspectionWhereUniqueInput[]
   disconnect?: Prisma.InspectionWhereUniqueInput | Prisma.InspectionWhereUniqueInput[]
   delete?: Prisma.InspectionWhereUniqueInput | Prisma.InspectionWhereUniqueInput[]
   connect?: Prisma.InspectionWhereUniqueInput | Prisma.InspectionWhereUniqueInput[]
-  update?: Prisma.InspectionUpdateWithWhereUniqueWithoutInspectorInput | Prisma.InspectionUpdateWithWhereUniqueWithoutInspectorInput[]
-  updateMany?: Prisma.InspectionUpdateManyWithWhereWithoutInspectorInput | Prisma.InspectionUpdateManyWithWhereWithoutInspectorInput[]
+  update?: Prisma.InspectionUpdateWithWhereUniqueWithoutInspectedByAccountInput | Prisma.InspectionUpdateWithWhereUniqueWithoutInspectedByAccountInput[]
+  updateMany?: Prisma.InspectionUpdateManyWithWhereWithoutInspectedByAccountInput | Prisma.InspectionUpdateManyWithWhereWithoutInspectedByAccountInput[]
   deleteMany?: Prisma.InspectionScalarWhereInput | Prisma.InspectionScalarWhereInput[]
 }
 
@@ -672,88 +690,8 @@ export type InspectionUncheckedUpdateManyWithoutUsageNestedInput = {
   deleteMany?: Prisma.InspectionScalarWhereInput | Prisma.InspectionScalarWhereInput[]
 }
 
-export type InspectionCreateNestedManyWithoutPenaltyInput = {
-  create?: Prisma.XOR<Prisma.InspectionCreateWithoutPenaltyInput, Prisma.InspectionUncheckedCreateWithoutPenaltyInput> | Prisma.InspectionCreateWithoutPenaltyInput[] | Prisma.InspectionUncheckedCreateWithoutPenaltyInput[]
-  connectOrCreate?: Prisma.InspectionCreateOrConnectWithoutPenaltyInput | Prisma.InspectionCreateOrConnectWithoutPenaltyInput[]
-  createMany?: Prisma.InspectionCreateManyPenaltyInputEnvelope
-  connect?: Prisma.InspectionWhereUniqueInput | Prisma.InspectionWhereUniqueInput[]
-}
-
-export type InspectionUncheckedCreateNestedManyWithoutPenaltyInput = {
-  create?: Prisma.XOR<Prisma.InspectionCreateWithoutPenaltyInput, Prisma.InspectionUncheckedCreateWithoutPenaltyInput> | Prisma.InspectionCreateWithoutPenaltyInput[] | Prisma.InspectionUncheckedCreateWithoutPenaltyInput[]
-  connectOrCreate?: Prisma.InspectionCreateOrConnectWithoutPenaltyInput | Prisma.InspectionCreateOrConnectWithoutPenaltyInput[]
-  createMany?: Prisma.InspectionCreateManyPenaltyInputEnvelope
-  connect?: Prisma.InspectionWhereUniqueInput | Prisma.InspectionWhereUniqueInput[]
-}
-
-export type InspectionUpdateManyWithoutPenaltyNestedInput = {
-  create?: Prisma.XOR<Prisma.InspectionCreateWithoutPenaltyInput, Prisma.InspectionUncheckedCreateWithoutPenaltyInput> | Prisma.InspectionCreateWithoutPenaltyInput[] | Prisma.InspectionUncheckedCreateWithoutPenaltyInput[]
-  connectOrCreate?: Prisma.InspectionCreateOrConnectWithoutPenaltyInput | Prisma.InspectionCreateOrConnectWithoutPenaltyInput[]
-  upsert?: Prisma.InspectionUpsertWithWhereUniqueWithoutPenaltyInput | Prisma.InspectionUpsertWithWhereUniqueWithoutPenaltyInput[]
-  createMany?: Prisma.InspectionCreateManyPenaltyInputEnvelope
-  set?: Prisma.InspectionWhereUniqueInput | Prisma.InspectionWhereUniqueInput[]
-  disconnect?: Prisma.InspectionWhereUniqueInput | Prisma.InspectionWhereUniqueInput[]
-  delete?: Prisma.InspectionWhereUniqueInput | Prisma.InspectionWhereUniqueInput[]
-  connect?: Prisma.InspectionWhereUniqueInput | Prisma.InspectionWhereUniqueInput[]
-  update?: Prisma.InspectionUpdateWithWhereUniqueWithoutPenaltyInput | Prisma.InspectionUpdateWithWhereUniqueWithoutPenaltyInput[]
-  updateMany?: Prisma.InspectionUpdateManyWithWhereWithoutPenaltyInput | Prisma.InspectionUpdateManyWithWhereWithoutPenaltyInput[]
-  deleteMany?: Prisma.InspectionScalarWhereInput | Prisma.InspectionScalarWhereInput[]
-}
-
-export type InspectionUncheckedUpdateManyWithoutPenaltyNestedInput = {
-  create?: Prisma.XOR<Prisma.InspectionCreateWithoutPenaltyInput, Prisma.InspectionUncheckedCreateWithoutPenaltyInput> | Prisma.InspectionCreateWithoutPenaltyInput[] | Prisma.InspectionUncheckedCreateWithoutPenaltyInput[]
-  connectOrCreate?: Prisma.InspectionCreateOrConnectWithoutPenaltyInput | Prisma.InspectionCreateOrConnectWithoutPenaltyInput[]
-  upsert?: Prisma.InspectionUpsertWithWhereUniqueWithoutPenaltyInput | Prisma.InspectionUpsertWithWhereUniqueWithoutPenaltyInput[]
-  createMany?: Prisma.InspectionCreateManyPenaltyInputEnvelope
-  set?: Prisma.InspectionWhereUniqueInput | Prisma.InspectionWhereUniqueInput[]
-  disconnect?: Prisma.InspectionWhereUniqueInput | Prisma.InspectionWhereUniqueInput[]
-  delete?: Prisma.InspectionWhereUniqueInput | Prisma.InspectionWhereUniqueInput[]
-  connect?: Prisma.InspectionWhereUniqueInput | Prisma.InspectionWhereUniqueInput[]
-  update?: Prisma.InspectionUpdateWithWhereUniqueWithoutPenaltyInput | Prisma.InspectionUpdateWithWhereUniqueWithoutPenaltyInput[]
-  updateMany?: Prisma.InspectionUpdateManyWithWhereWithoutPenaltyInput | Prisma.InspectionUpdateManyWithWhereWithoutPenaltyInput[]
-  deleteMany?: Prisma.InspectionScalarWhereInput | Prisma.InspectionScalarWhereInput[]
-}
-
-export type InspectionCreateNestedManyWithoutAppealInput = {
-  create?: Prisma.XOR<Prisma.InspectionCreateWithoutAppealInput, Prisma.InspectionUncheckedCreateWithoutAppealInput> | Prisma.InspectionCreateWithoutAppealInput[] | Prisma.InspectionUncheckedCreateWithoutAppealInput[]
-  connectOrCreate?: Prisma.InspectionCreateOrConnectWithoutAppealInput | Prisma.InspectionCreateOrConnectWithoutAppealInput[]
-  createMany?: Prisma.InspectionCreateManyAppealInputEnvelope
-  connect?: Prisma.InspectionWhereUniqueInput | Prisma.InspectionWhereUniqueInput[]
-}
-
-export type InspectionUncheckedCreateNestedManyWithoutAppealInput = {
-  create?: Prisma.XOR<Prisma.InspectionCreateWithoutAppealInput, Prisma.InspectionUncheckedCreateWithoutAppealInput> | Prisma.InspectionCreateWithoutAppealInput[] | Prisma.InspectionUncheckedCreateWithoutAppealInput[]
-  connectOrCreate?: Prisma.InspectionCreateOrConnectWithoutAppealInput | Prisma.InspectionCreateOrConnectWithoutAppealInput[]
-  createMany?: Prisma.InspectionCreateManyAppealInputEnvelope
-  connect?: Prisma.InspectionWhereUniqueInput | Prisma.InspectionWhereUniqueInput[]
-}
-
-export type InspectionUpdateManyWithoutAppealNestedInput = {
-  create?: Prisma.XOR<Prisma.InspectionCreateWithoutAppealInput, Prisma.InspectionUncheckedCreateWithoutAppealInput> | Prisma.InspectionCreateWithoutAppealInput[] | Prisma.InspectionUncheckedCreateWithoutAppealInput[]
-  connectOrCreate?: Prisma.InspectionCreateOrConnectWithoutAppealInput | Prisma.InspectionCreateOrConnectWithoutAppealInput[]
-  upsert?: Prisma.InspectionUpsertWithWhereUniqueWithoutAppealInput | Prisma.InspectionUpsertWithWhereUniqueWithoutAppealInput[]
-  createMany?: Prisma.InspectionCreateManyAppealInputEnvelope
-  set?: Prisma.InspectionWhereUniqueInput | Prisma.InspectionWhereUniqueInput[]
-  disconnect?: Prisma.InspectionWhereUniqueInput | Prisma.InspectionWhereUniqueInput[]
-  delete?: Prisma.InspectionWhereUniqueInput | Prisma.InspectionWhereUniqueInput[]
-  connect?: Prisma.InspectionWhereUniqueInput | Prisma.InspectionWhereUniqueInput[]
-  update?: Prisma.InspectionUpdateWithWhereUniqueWithoutAppealInput | Prisma.InspectionUpdateWithWhereUniqueWithoutAppealInput[]
-  updateMany?: Prisma.InspectionUpdateManyWithWhereWithoutAppealInput | Prisma.InspectionUpdateManyWithWhereWithoutAppealInput[]
-  deleteMany?: Prisma.InspectionScalarWhereInput | Prisma.InspectionScalarWhereInput[]
-}
-
-export type InspectionUncheckedUpdateManyWithoutAppealNestedInput = {
-  create?: Prisma.XOR<Prisma.InspectionCreateWithoutAppealInput, Prisma.InspectionUncheckedCreateWithoutAppealInput> | Prisma.InspectionCreateWithoutAppealInput[] | Prisma.InspectionUncheckedCreateWithoutAppealInput[]
-  connectOrCreate?: Prisma.InspectionCreateOrConnectWithoutAppealInput | Prisma.InspectionCreateOrConnectWithoutAppealInput[]
-  upsert?: Prisma.InspectionUpsertWithWhereUniqueWithoutAppealInput | Prisma.InspectionUpsertWithWhereUniqueWithoutAppealInput[]
-  createMany?: Prisma.InspectionCreateManyAppealInputEnvelope
-  set?: Prisma.InspectionWhereUniqueInput | Prisma.InspectionWhereUniqueInput[]
-  disconnect?: Prisma.InspectionWhereUniqueInput | Prisma.InspectionWhereUniqueInput[]
-  delete?: Prisma.InspectionWhereUniqueInput | Prisma.InspectionWhereUniqueInput[]
-  connect?: Prisma.InspectionWhereUniqueInput | Prisma.InspectionWhereUniqueInput[]
-  update?: Prisma.InspectionUpdateWithWhereUniqueWithoutAppealInput | Prisma.InspectionUpdateWithWhereUniqueWithoutAppealInput[]
-  updateMany?: Prisma.InspectionUpdateManyWithWhereWithoutAppealInput | Prisma.InspectionUpdateManyWithWhereWithoutAppealInput[]
-  deleteMany?: Prisma.InspectionScalarWhereInput | Prisma.InspectionScalarWhereInput[]
+export type EnumVerdictFieldUpdateOperationsInput = {
+  set?: $Enums.Verdict
 }
 
 export type InspectionCreateNestedOneWithoutImagesInput = {
@@ -772,53 +710,55 @@ export type InspectionUpdateOneWithoutImagesNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.InspectionUpdateToOneWithWhereWithoutImagesInput, Prisma.InspectionUpdateWithoutImagesInput>, Prisma.InspectionUncheckedUpdateWithoutImagesInput>
 }
 
-export type InspectionCreateWithoutInspectorInput = {
-  ActionTime?: Date | string | null
+export type InspectionCreateWithoutInspectedByAccountInput = {
+  Verdict: $Enums.Verdict
+  AppealKey?: number | null
+  PenaltyKey?: number | null
+  ActionTime: Date | string
   Notes?: string | null
-  Usage: Prisma.UsageLogCreateNestedOneWithoutInspectionsInput
-  Resource: Prisma.ResourceInfoCreateNestedOneWithoutInspectionsInput
-  Condition: Prisma.ConditionLogCreateNestedOneWithoutInspectionsInput
-  Appeal?: Prisma.AppealInfoCreateNestedOneWithoutInspectionsInput
-  Penalty?: Prisma.PenaltyInfoCreateNestedOneWithoutInspectionsInput
-  Images?: Prisma.ImagesCreateNestedManyWithoutInspectionInput
+  Usage: Prisma.UsageCreateNestedOneWithoutInspectionsInput
+  Resource: Prisma.ResourceCreateNestedOneWithoutInspectionsInput
+  Condition: Prisma.ConditionCreateNestedOneWithoutInspectionsInput
+  Images?: Prisma.ImageCreateNestedManyWithoutInspectionInput
 }
 
-export type InspectionUncheckedCreateWithoutInspectorInput = {
+export type InspectionUncheckedCreateWithoutInspectedByAccountInput = {
   InspectionKey?: number
   UsageKey: number
   ResourceKey: number
   ConditionKey: number
+  Verdict: $Enums.Verdict
   AppealKey?: number | null
   PenaltyKey?: number | null
-  ActionTime?: Date | string | null
+  ActionTime: Date | string
   Notes?: string | null
-  Images?: Prisma.ImagesUncheckedCreateNestedManyWithoutInspectionInput
+  Images?: Prisma.ImageUncheckedCreateNestedManyWithoutInspectionInput
 }
 
-export type InspectionCreateOrConnectWithoutInspectorInput = {
+export type InspectionCreateOrConnectWithoutInspectedByAccountInput = {
   where: Prisma.InspectionWhereUniqueInput
-  create: Prisma.XOR<Prisma.InspectionCreateWithoutInspectorInput, Prisma.InspectionUncheckedCreateWithoutInspectorInput>
+  create: Prisma.XOR<Prisma.InspectionCreateWithoutInspectedByAccountInput, Prisma.InspectionUncheckedCreateWithoutInspectedByAccountInput>
 }
 
-export type InspectionCreateManyInspectorInputEnvelope = {
-  data: Prisma.InspectionCreateManyInspectorInput | Prisma.InspectionCreateManyInspectorInput[]
+export type InspectionCreateManyInspectedByAccountInputEnvelope = {
+  data: Prisma.InspectionCreateManyInspectedByAccountInput | Prisma.InspectionCreateManyInspectedByAccountInput[]
   skipDuplicates?: boolean
 }
 
-export type InspectionUpsertWithWhereUniqueWithoutInspectorInput = {
+export type InspectionUpsertWithWhereUniqueWithoutInspectedByAccountInput = {
   where: Prisma.InspectionWhereUniqueInput
-  update: Prisma.XOR<Prisma.InspectionUpdateWithoutInspectorInput, Prisma.InspectionUncheckedUpdateWithoutInspectorInput>
-  create: Prisma.XOR<Prisma.InspectionCreateWithoutInspectorInput, Prisma.InspectionUncheckedCreateWithoutInspectorInput>
+  update: Prisma.XOR<Prisma.InspectionUpdateWithoutInspectedByAccountInput, Prisma.InspectionUncheckedUpdateWithoutInspectedByAccountInput>
+  create: Prisma.XOR<Prisma.InspectionCreateWithoutInspectedByAccountInput, Prisma.InspectionUncheckedCreateWithoutInspectedByAccountInput>
 }
 
-export type InspectionUpdateWithWhereUniqueWithoutInspectorInput = {
+export type InspectionUpdateWithWhereUniqueWithoutInspectedByAccountInput = {
   where: Prisma.InspectionWhereUniqueInput
-  data: Prisma.XOR<Prisma.InspectionUpdateWithoutInspectorInput, Prisma.InspectionUncheckedUpdateWithoutInspectorInput>
+  data: Prisma.XOR<Prisma.InspectionUpdateWithoutInspectedByAccountInput, Prisma.InspectionUncheckedUpdateWithoutInspectedByAccountInput>
 }
 
-export type InspectionUpdateManyWithWhereWithoutInspectorInput = {
+export type InspectionUpdateManyWithWhereWithoutInspectedByAccountInput = {
   where: Prisma.InspectionScalarWhereInput
-  data: Prisma.XOR<Prisma.InspectionUpdateManyMutationInput, Prisma.InspectionUncheckedUpdateManyWithoutInspectorInput>
+  data: Prisma.XOR<Prisma.InspectionUpdateManyMutationInput, Prisma.InspectionUncheckedUpdateManyWithoutInspectedByAccountInput>
 }
 
 export type InspectionScalarWhereInput = {
@@ -828,35 +768,38 @@ export type InspectionScalarWhereInput = {
   InspectionKey?: Prisma.IntFilter<"Inspection"> | number
   UsageKey?: Prisma.IntFilter<"Inspection"> | number
   ResourceKey?: Prisma.IntFilter<"Inspection"> | number
-  InspectorKey?: Prisma.IntFilter<"Inspection"> | number
+  AccountKey_Inspectedby?: Prisma.IntFilter<"Inspection"> | number
   ConditionKey?: Prisma.IntFilter<"Inspection"> | number
+  Verdict?: Prisma.EnumVerdictFilter<"Inspection"> | $Enums.Verdict
   AppealKey?: Prisma.IntNullableFilter<"Inspection"> | number | null
   PenaltyKey?: Prisma.IntNullableFilter<"Inspection"> | number | null
-  ActionTime?: Prisma.DateTimeNullableFilter<"Inspection"> | Date | string | null
+  ActionTime?: Prisma.DateTimeFilter<"Inspection"> | Date | string
   Notes?: Prisma.StringNullableFilter<"Inspection"> | string | null
 }
 
 export type InspectionCreateWithoutResourceInput = {
-  ActionTime?: Date | string | null
+  Verdict: $Enums.Verdict
+  AppealKey?: number | null
+  PenaltyKey?: number | null
+  ActionTime: Date | string
   Notes?: string | null
-  Usage: Prisma.UsageLogCreateNestedOneWithoutInspectionsInput
-  Inspector: Prisma.AccountInfoCreateNestedOneWithoutInspectionsPerformedInput
-  Condition: Prisma.ConditionLogCreateNestedOneWithoutInspectionsInput
-  Appeal?: Prisma.AppealInfoCreateNestedOneWithoutInspectionsInput
-  Penalty?: Prisma.PenaltyInfoCreateNestedOneWithoutInspectionsInput
-  Images?: Prisma.ImagesCreateNestedManyWithoutInspectionInput
+  Usage: Prisma.UsageCreateNestedOneWithoutInspectionsInput
+  InspectedByAccount: Prisma.AccountCreateNestedOneWithoutInspectionsInput
+  Condition: Prisma.ConditionCreateNestedOneWithoutInspectionsInput
+  Images?: Prisma.ImageCreateNestedManyWithoutInspectionInput
 }
 
 export type InspectionUncheckedCreateWithoutResourceInput = {
   InspectionKey?: number
   UsageKey: number
-  InspectorKey: number
+  AccountKey_Inspectedby: number
   ConditionKey: number
+  Verdict: $Enums.Verdict
   AppealKey?: number | null
   PenaltyKey?: number | null
-  ActionTime?: Date | string | null
+  ActionTime: Date | string
   Notes?: string | null
-  Images?: Prisma.ImagesUncheckedCreateNestedManyWithoutInspectionInput
+  Images?: Prisma.ImageUncheckedCreateNestedManyWithoutInspectionInput
 }
 
 export type InspectionCreateOrConnectWithoutResourceInput = {
@@ -886,26 +829,28 @@ export type InspectionUpdateManyWithWhereWithoutResourceInput = {
 }
 
 export type InspectionCreateWithoutConditionInput = {
-  ActionTime?: Date | string | null
+  Verdict: $Enums.Verdict
+  AppealKey?: number | null
+  PenaltyKey?: number | null
+  ActionTime: Date | string
   Notes?: string | null
-  Usage: Prisma.UsageLogCreateNestedOneWithoutInspectionsInput
-  Resource: Prisma.ResourceInfoCreateNestedOneWithoutInspectionsInput
-  Inspector: Prisma.AccountInfoCreateNestedOneWithoutInspectionsPerformedInput
-  Appeal?: Prisma.AppealInfoCreateNestedOneWithoutInspectionsInput
-  Penalty?: Prisma.PenaltyInfoCreateNestedOneWithoutInspectionsInput
-  Images?: Prisma.ImagesCreateNestedManyWithoutInspectionInput
+  Usage: Prisma.UsageCreateNestedOneWithoutInspectionsInput
+  Resource: Prisma.ResourceCreateNestedOneWithoutInspectionsInput
+  InspectedByAccount: Prisma.AccountCreateNestedOneWithoutInspectionsInput
+  Images?: Prisma.ImageCreateNestedManyWithoutInspectionInput
 }
 
 export type InspectionUncheckedCreateWithoutConditionInput = {
   InspectionKey?: number
   UsageKey: number
   ResourceKey: number
-  InspectorKey: number
+  AccountKey_Inspectedby: number
+  Verdict: $Enums.Verdict
   AppealKey?: number | null
   PenaltyKey?: number | null
-  ActionTime?: Date | string | null
+  ActionTime: Date | string
   Notes?: string | null
-  Images?: Prisma.ImagesUncheckedCreateNestedManyWithoutInspectionInput
+  Images?: Prisma.ImageUncheckedCreateNestedManyWithoutInspectionInput
 }
 
 export type InspectionCreateOrConnectWithoutConditionInput = {
@@ -935,26 +880,28 @@ export type InspectionUpdateManyWithWhereWithoutConditionInput = {
 }
 
 export type InspectionCreateWithoutUsageInput = {
-  ActionTime?: Date | string | null
+  Verdict: $Enums.Verdict
+  AppealKey?: number | null
+  PenaltyKey?: number | null
+  ActionTime: Date | string
   Notes?: string | null
-  Resource: Prisma.ResourceInfoCreateNestedOneWithoutInspectionsInput
-  Inspector: Prisma.AccountInfoCreateNestedOneWithoutInspectionsPerformedInput
-  Condition: Prisma.ConditionLogCreateNestedOneWithoutInspectionsInput
-  Appeal?: Prisma.AppealInfoCreateNestedOneWithoutInspectionsInput
-  Penalty?: Prisma.PenaltyInfoCreateNestedOneWithoutInspectionsInput
-  Images?: Prisma.ImagesCreateNestedManyWithoutInspectionInput
+  Resource: Prisma.ResourceCreateNestedOneWithoutInspectionsInput
+  InspectedByAccount: Prisma.AccountCreateNestedOneWithoutInspectionsInput
+  Condition: Prisma.ConditionCreateNestedOneWithoutInspectionsInput
+  Images?: Prisma.ImageCreateNestedManyWithoutInspectionInput
 }
 
 export type InspectionUncheckedCreateWithoutUsageInput = {
   InspectionKey?: number
   ResourceKey: number
-  InspectorKey: number
+  AccountKey_Inspectedby: number
   ConditionKey: number
+  Verdict: $Enums.Verdict
   AppealKey?: number | null
   PenaltyKey?: number | null
-  ActionTime?: Date | string | null
+  ActionTime: Date | string
   Notes?: string | null
-  Images?: Prisma.ImagesUncheckedCreateNestedManyWithoutInspectionInput
+  Images?: Prisma.ImageUncheckedCreateNestedManyWithoutInspectionInput
 }
 
 export type InspectionCreateOrConnectWithoutUsageInput = {
@@ -983,124 +930,28 @@ export type InspectionUpdateManyWithWhereWithoutUsageInput = {
   data: Prisma.XOR<Prisma.InspectionUpdateManyMutationInput, Prisma.InspectionUncheckedUpdateManyWithoutUsageInput>
 }
 
-export type InspectionCreateWithoutPenaltyInput = {
-  ActionTime?: Date | string | null
-  Notes?: string | null
-  Usage: Prisma.UsageLogCreateNestedOneWithoutInspectionsInput
-  Resource: Prisma.ResourceInfoCreateNestedOneWithoutInspectionsInput
-  Inspector: Prisma.AccountInfoCreateNestedOneWithoutInspectionsPerformedInput
-  Condition: Prisma.ConditionLogCreateNestedOneWithoutInspectionsInput
-  Appeal?: Prisma.AppealInfoCreateNestedOneWithoutInspectionsInput
-  Images?: Prisma.ImagesCreateNestedManyWithoutInspectionInput
-}
-
-export type InspectionUncheckedCreateWithoutPenaltyInput = {
-  InspectionKey?: number
-  UsageKey: number
-  ResourceKey: number
-  InspectorKey: number
-  ConditionKey: number
-  AppealKey?: number | null
-  ActionTime?: Date | string | null
-  Notes?: string | null
-  Images?: Prisma.ImagesUncheckedCreateNestedManyWithoutInspectionInput
-}
-
-export type InspectionCreateOrConnectWithoutPenaltyInput = {
-  where: Prisma.InspectionWhereUniqueInput
-  create: Prisma.XOR<Prisma.InspectionCreateWithoutPenaltyInput, Prisma.InspectionUncheckedCreateWithoutPenaltyInput>
-}
-
-export type InspectionCreateManyPenaltyInputEnvelope = {
-  data: Prisma.InspectionCreateManyPenaltyInput | Prisma.InspectionCreateManyPenaltyInput[]
-  skipDuplicates?: boolean
-}
-
-export type InspectionUpsertWithWhereUniqueWithoutPenaltyInput = {
-  where: Prisma.InspectionWhereUniqueInput
-  update: Prisma.XOR<Prisma.InspectionUpdateWithoutPenaltyInput, Prisma.InspectionUncheckedUpdateWithoutPenaltyInput>
-  create: Prisma.XOR<Prisma.InspectionCreateWithoutPenaltyInput, Prisma.InspectionUncheckedCreateWithoutPenaltyInput>
-}
-
-export type InspectionUpdateWithWhereUniqueWithoutPenaltyInput = {
-  where: Prisma.InspectionWhereUniqueInput
-  data: Prisma.XOR<Prisma.InspectionUpdateWithoutPenaltyInput, Prisma.InspectionUncheckedUpdateWithoutPenaltyInput>
-}
-
-export type InspectionUpdateManyWithWhereWithoutPenaltyInput = {
-  where: Prisma.InspectionScalarWhereInput
-  data: Prisma.XOR<Prisma.InspectionUpdateManyMutationInput, Prisma.InspectionUncheckedUpdateManyWithoutPenaltyInput>
-}
-
-export type InspectionCreateWithoutAppealInput = {
-  ActionTime?: Date | string | null
-  Notes?: string | null
-  Usage: Prisma.UsageLogCreateNestedOneWithoutInspectionsInput
-  Resource: Prisma.ResourceInfoCreateNestedOneWithoutInspectionsInput
-  Inspector: Prisma.AccountInfoCreateNestedOneWithoutInspectionsPerformedInput
-  Condition: Prisma.ConditionLogCreateNestedOneWithoutInspectionsInput
-  Penalty?: Prisma.PenaltyInfoCreateNestedOneWithoutInspectionsInput
-  Images?: Prisma.ImagesCreateNestedManyWithoutInspectionInput
-}
-
-export type InspectionUncheckedCreateWithoutAppealInput = {
-  InspectionKey?: number
-  UsageKey: number
-  ResourceKey: number
-  InspectorKey: number
-  ConditionKey: number
-  PenaltyKey?: number | null
-  ActionTime?: Date | string | null
-  Notes?: string | null
-  Images?: Prisma.ImagesUncheckedCreateNestedManyWithoutInspectionInput
-}
-
-export type InspectionCreateOrConnectWithoutAppealInput = {
-  where: Prisma.InspectionWhereUniqueInput
-  create: Prisma.XOR<Prisma.InspectionCreateWithoutAppealInput, Prisma.InspectionUncheckedCreateWithoutAppealInput>
-}
-
-export type InspectionCreateManyAppealInputEnvelope = {
-  data: Prisma.InspectionCreateManyAppealInput | Prisma.InspectionCreateManyAppealInput[]
-  skipDuplicates?: boolean
-}
-
-export type InspectionUpsertWithWhereUniqueWithoutAppealInput = {
-  where: Prisma.InspectionWhereUniqueInput
-  update: Prisma.XOR<Prisma.InspectionUpdateWithoutAppealInput, Prisma.InspectionUncheckedUpdateWithoutAppealInput>
-  create: Prisma.XOR<Prisma.InspectionCreateWithoutAppealInput, Prisma.InspectionUncheckedCreateWithoutAppealInput>
-}
-
-export type InspectionUpdateWithWhereUniqueWithoutAppealInput = {
-  where: Prisma.InspectionWhereUniqueInput
-  data: Prisma.XOR<Prisma.InspectionUpdateWithoutAppealInput, Prisma.InspectionUncheckedUpdateWithoutAppealInput>
-}
-
-export type InspectionUpdateManyWithWhereWithoutAppealInput = {
-  where: Prisma.InspectionScalarWhereInput
-  data: Prisma.XOR<Prisma.InspectionUpdateManyMutationInput, Prisma.InspectionUncheckedUpdateManyWithoutAppealInput>
-}
-
 export type InspectionCreateWithoutImagesInput = {
-  ActionTime?: Date | string | null
+  Verdict: $Enums.Verdict
+  AppealKey?: number | null
+  PenaltyKey?: number | null
+  ActionTime: Date | string
   Notes?: string | null
-  Usage: Prisma.UsageLogCreateNestedOneWithoutInspectionsInput
-  Resource: Prisma.ResourceInfoCreateNestedOneWithoutInspectionsInput
-  Inspector: Prisma.AccountInfoCreateNestedOneWithoutInspectionsPerformedInput
-  Condition: Prisma.ConditionLogCreateNestedOneWithoutInspectionsInput
-  Appeal?: Prisma.AppealInfoCreateNestedOneWithoutInspectionsInput
-  Penalty?: Prisma.PenaltyInfoCreateNestedOneWithoutInspectionsInput
+  Usage: Prisma.UsageCreateNestedOneWithoutInspectionsInput
+  Resource: Prisma.ResourceCreateNestedOneWithoutInspectionsInput
+  InspectedByAccount: Prisma.AccountCreateNestedOneWithoutInspectionsInput
+  Condition: Prisma.ConditionCreateNestedOneWithoutInspectionsInput
 }
 
 export type InspectionUncheckedCreateWithoutImagesInput = {
   InspectionKey?: number
   UsageKey: number
   ResourceKey: number
-  InspectorKey: number
+  AccountKey_Inspectedby: number
   ConditionKey: number
+  Verdict: $Enums.Verdict
   AppealKey?: number | null
   PenaltyKey?: number | null
-  ActionTime?: Date | string | null
+  ActionTime: Date | string
   Notes?: string | null
 }
 
@@ -1121,115 +972,125 @@ export type InspectionUpdateToOneWithWhereWithoutImagesInput = {
 }
 
 export type InspectionUpdateWithoutImagesInput = {
-  ActionTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  Verdict?: Prisma.EnumVerdictFieldUpdateOperationsInput | $Enums.Verdict
+  AppealKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  PenaltyKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  ActionTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   Notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  Usage?: Prisma.UsageLogUpdateOneRequiredWithoutInspectionsNestedInput
-  Resource?: Prisma.ResourceInfoUpdateOneRequiredWithoutInspectionsNestedInput
-  Inspector?: Prisma.AccountInfoUpdateOneRequiredWithoutInspectionsPerformedNestedInput
-  Condition?: Prisma.ConditionLogUpdateOneRequiredWithoutInspectionsNestedInput
-  Appeal?: Prisma.AppealInfoUpdateOneWithoutInspectionsNestedInput
-  Penalty?: Prisma.PenaltyInfoUpdateOneWithoutInspectionsNestedInput
+  Usage?: Prisma.UsageUpdateOneRequiredWithoutInspectionsNestedInput
+  Resource?: Prisma.ResourceUpdateOneRequiredWithoutInspectionsNestedInput
+  InspectedByAccount?: Prisma.AccountUpdateOneRequiredWithoutInspectionsNestedInput
+  Condition?: Prisma.ConditionUpdateOneRequiredWithoutInspectionsNestedInput
 }
 
 export type InspectionUncheckedUpdateWithoutImagesInput = {
   InspectionKey?: Prisma.IntFieldUpdateOperationsInput | number
   UsageKey?: Prisma.IntFieldUpdateOperationsInput | number
   ResourceKey?: Prisma.IntFieldUpdateOperationsInput | number
-  InspectorKey?: Prisma.IntFieldUpdateOperationsInput | number
+  AccountKey_Inspectedby?: Prisma.IntFieldUpdateOperationsInput | number
   ConditionKey?: Prisma.IntFieldUpdateOperationsInput | number
+  Verdict?: Prisma.EnumVerdictFieldUpdateOperationsInput | $Enums.Verdict
   AppealKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   PenaltyKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  ActionTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  ActionTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   Notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
-export type InspectionCreateManyInspectorInput = {
+export type InspectionCreateManyInspectedByAccountInput = {
   InspectionKey?: number
   UsageKey: number
   ResourceKey: number
   ConditionKey: number
+  Verdict: $Enums.Verdict
   AppealKey?: number | null
   PenaltyKey?: number | null
-  ActionTime?: Date | string | null
+  ActionTime: Date | string
   Notes?: string | null
 }
 
-export type InspectionUpdateWithoutInspectorInput = {
-  ActionTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+export type InspectionUpdateWithoutInspectedByAccountInput = {
+  Verdict?: Prisma.EnumVerdictFieldUpdateOperationsInput | $Enums.Verdict
+  AppealKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  PenaltyKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  ActionTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   Notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  Usage?: Prisma.UsageLogUpdateOneRequiredWithoutInspectionsNestedInput
-  Resource?: Prisma.ResourceInfoUpdateOneRequiredWithoutInspectionsNestedInput
-  Condition?: Prisma.ConditionLogUpdateOneRequiredWithoutInspectionsNestedInput
-  Appeal?: Prisma.AppealInfoUpdateOneWithoutInspectionsNestedInput
-  Penalty?: Prisma.PenaltyInfoUpdateOneWithoutInspectionsNestedInput
-  Images?: Prisma.ImagesUpdateManyWithoutInspectionNestedInput
+  Usage?: Prisma.UsageUpdateOneRequiredWithoutInspectionsNestedInput
+  Resource?: Prisma.ResourceUpdateOneRequiredWithoutInspectionsNestedInput
+  Condition?: Prisma.ConditionUpdateOneRequiredWithoutInspectionsNestedInput
+  Images?: Prisma.ImageUpdateManyWithoutInspectionNestedInput
 }
 
-export type InspectionUncheckedUpdateWithoutInspectorInput = {
+export type InspectionUncheckedUpdateWithoutInspectedByAccountInput = {
   InspectionKey?: Prisma.IntFieldUpdateOperationsInput | number
   UsageKey?: Prisma.IntFieldUpdateOperationsInput | number
   ResourceKey?: Prisma.IntFieldUpdateOperationsInput | number
   ConditionKey?: Prisma.IntFieldUpdateOperationsInput | number
+  Verdict?: Prisma.EnumVerdictFieldUpdateOperationsInput | $Enums.Verdict
   AppealKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   PenaltyKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  ActionTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  ActionTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   Notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  Images?: Prisma.ImagesUncheckedUpdateManyWithoutInspectionNestedInput
+  Images?: Prisma.ImageUncheckedUpdateManyWithoutInspectionNestedInput
 }
 
-export type InspectionUncheckedUpdateManyWithoutInspectorInput = {
+export type InspectionUncheckedUpdateManyWithoutInspectedByAccountInput = {
   InspectionKey?: Prisma.IntFieldUpdateOperationsInput | number
   UsageKey?: Prisma.IntFieldUpdateOperationsInput | number
   ResourceKey?: Prisma.IntFieldUpdateOperationsInput | number
   ConditionKey?: Prisma.IntFieldUpdateOperationsInput | number
+  Verdict?: Prisma.EnumVerdictFieldUpdateOperationsInput | $Enums.Verdict
   AppealKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   PenaltyKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  ActionTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  ActionTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   Notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type InspectionCreateManyResourceInput = {
   InspectionKey?: number
   UsageKey: number
-  InspectorKey: number
+  AccountKey_Inspectedby: number
   ConditionKey: number
+  Verdict: $Enums.Verdict
   AppealKey?: number | null
   PenaltyKey?: number | null
-  ActionTime?: Date | string | null
+  ActionTime: Date | string
   Notes?: string | null
 }
 
 export type InspectionUpdateWithoutResourceInput = {
-  ActionTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  Verdict?: Prisma.EnumVerdictFieldUpdateOperationsInput | $Enums.Verdict
+  AppealKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  PenaltyKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  ActionTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   Notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  Usage?: Prisma.UsageLogUpdateOneRequiredWithoutInspectionsNestedInput
-  Inspector?: Prisma.AccountInfoUpdateOneRequiredWithoutInspectionsPerformedNestedInput
-  Condition?: Prisma.ConditionLogUpdateOneRequiredWithoutInspectionsNestedInput
-  Appeal?: Prisma.AppealInfoUpdateOneWithoutInspectionsNestedInput
-  Penalty?: Prisma.PenaltyInfoUpdateOneWithoutInspectionsNestedInput
-  Images?: Prisma.ImagesUpdateManyWithoutInspectionNestedInput
+  Usage?: Prisma.UsageUpdateOneRequiredWithoutInspectionsNestedInput
+  InspectedByAccount?: Prisma.AccountUpdateOneRequiredWithoutInspectionsNestedInput
+  Condition?: Prisma.ConditionUpdateOneRequiredWithoutInspectionsNestedInput
+  Images?: Prisma.ImageUpdateManyWithoutInspectionNestedInput
 }
 
 export type InspectionUncheckedUpdateWithoutResourceInput = {
   InspectionKey?: Prisma.IntFieldUpdateOperationsInput | number
   UsageKey?: Prisma.IntFieldUpdateOperationsInput | number
-  InspectorKey?: Prisma.IntFieldUpdateOperationsInput | number
+  AccountKey_Inspectedby?: Prisma.IntFieldUpdateOperationsInput | number
   ConditionKey?: Prisma.IntFieldUpdateOperationsInput | number
+  Verdict?: Prisma.EnumVerdictFieldUpdateOperationsInput | $Enums.Verdict
   AppealKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   PenaltyKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  ActionTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  ActionTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   Notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  Images?: Prisma.ImagesUncheckedUpdateManyWithoutInspectionNestedInput
+  Images?: Prisma.ImageUncheckedUpdateManyWithoutInspectionNestedInput
 }
 
 export type InspectionUncheckedUpdateManyWithoutResourceInput = {
   InspectionKey?: Prisma.IntFieldUpdateOperationsInput | number
   UsageKey?: Prisma.IntFieldUpdateOperationsInput | number
-  InspectorKey?: Prisma.IntFieldUpdateOperationsInput | number
+  AccountKey_Inspectedby?: Prisma.IntFieldUpdateOperationsInput | number
   ConditionKey?: Prisma.IntFieldUpdateOperationsInput | number
+  Verdict?: Prisma.EnumVerdictFieldUpdateOperationsInput | $Enums.Verdict
   AppealKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   PenaltyKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  ActionTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  ActionTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   Notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
@@ -1237,179 +1098,97 @@ export type InspectionCreateManyConditionInput = {
   InspectionKey?: number
   UsageKey: number
   ResourceKey: number
-  InspectorKey: number
+  AccountKey_Inspectedby: number
+  Verdict: $Enums.Verdict
   AppealKey?: number | null
   PenaltyKey?: number | null
-  ActionTime?: Date | string | null
+  ActionTime: Date | string
   Notes?: string | null
 }
 
 export type InspectionUpdateWithoutConditionInput = {
-  ActionTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  Verdict?: Prisma.EnumVerdictFieldUpdateOperationsInput | $Enums.Verdict
+  AppealKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  PenaltyKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  ActionTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   Notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  Usage?: Prisma.UsageLogUpdateOneRequiredWithoutInspectionsNestedInput
-  Resource?: Prisma.ResourceInfoUpdateOneRequiredWithoutInspectionsNestedInput
-  Inspector?: Prisma.AccountInfoUpdateOneRequiredWithoutInspectionsPerformedNestedInput
-  Appeal?: Prisma.AppealInfoUpdateOneWithoutInspectionsNestedInput
-  Penalty?: Prisma.PenaltyInfoUpdateOneWithoutInspectionsNestedInput
-  Images?: Prisma.ImagesUpdateManyWithoutInspectionNestedInput
+  Usage?: Prisma.UsageUpdateOneRequiredWithoutInspectionsNestedInput
+  Resource?: Prisma.ResourceUpdateOneRequiredWithoutInspectionsNestedInput
+  InspectedByAccount?: Prisma.AccountUpdateOneRequiredWithoutInspectionsNestedInput
+  Images?: Prisma.ImageUpdateManyWithoutInspectionNestedInput
 }
 
 export type InspectionUncheckedUpdateWithoutConditionInput = {
   InspectionKey?: Prisma.IntFieldUpdateOperationsInput | number
   UsageKey?: Prisma.IntFieldUpdateOperationsInput | number
   ResourceKey?: Prisma.IntFieldUpdateOperationsInput | number
-  InspectorKey?: Prisma.IntFieldUpdateOperationsInput | number
+  AccountKey_Inspectedby?: Prisma.IntFieldUpdateOperationsInput | number
+  Verdict?: Prisma.EnumVerdictFieldUpdateOperationsInput | $Enums.Verdict
   AppealKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   PenaltyKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  ActionTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  ActionTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   Notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  Images?: Prisma.ImagesUncheckedUpdateManyWithoutInspectionNestedInput
+  Images?: Prisma.ImageUncheckedUpdateManyWithoutInspectionNestedInput
 }
 
 export type InspectionUncheckedUpdateManyWithoutConditionInput = {
   InspectionKey?: Prisma.IntFieldUpdateOperationsInput | number
   UsageKey?: Prisma.IntFieldUpdateOperationsInput | number
   ResourceKey?: Prisma.IntFieldUpdateOperationsInput | number
-  InspectorKey?: Prisma.IntFieldUpdateOperationsInput | number
+  AccountKey_Inspectedby?: Prisma.IntFieldUpdateOperationsInput | number
+  Verdict?: Prisma.EnumVerdictFieldUpdateOperationsInput | $Enums.Verdict
   AppealKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   PenaltyKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  ActionTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  ActionTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   Notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type InspectionCreateManyUsageInput = {
   InspectionKey?: number
   ResourceKey: number
-  InspectorKey: number
+  AccountKey_Inspectedby: number
   ConditionKey: number
+  Verdict: $Enums.Verdict
   AppealKey?: number | null
   PenaltyKey?: number | null
-  ActionTime?: Date | string | null
+  ActionTime: Date | string
   Notes?: string | null
 }
 
 export type InspectionUpdateWithoutUsageInput = {
-  ActionTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  Verdict?: Prisma.EnumVerdictFieldUpdateOperationsInput | $Enums.Verdict
+  AppealKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  PenaltyKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  ActionTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   Notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  Resource?: Prisma.ResourceInfoUpdateOneRequiredWithoutInspectionsNestedInput
-  Inspector?: Prisma.AccountInfoUpdateOneRequiredWithoutInspectionsPerformedNestedInput
-  Condition?: Prisma.ConditionLogUpdateOneRequiredWithoutInspectionsNestedInput
-  Appeal?: Prisma.AppealInfoUpdateOneWithoutInspectionsNestedInput
-  Penalty?: Prisma.PenaltyInfoUpdateOneWithoutInspectionsNestedInput
-  Images?: Prisma.ImagesUpdateManyWithoutInspectionNestedInput
+  Resource?: Prisma.ResourceUpdateOneRequiredWithoutInspectionsNestedInput
+  InspectedByAccount?: Prisma.AccountUpdateOneRequiredWithoutInspectionsNestedInput
+  Condition?: Prisma.ConditionUpdateOneRequiredWithoutInspectionsNestedInput
+  Images?: Prisma.ImageUpdateManyWithoutInspectionNestedInput
 }
 
 export type InspectionUncheckedUpdateWithoutUsageInput = {
   InspectionKey?: Prisma.IntFieldUpdateOperationsInput | number
   ResourceKey?: Prisma.IntFieldUpdateOperationsInput | number
-  InspectorKey?: Prisma.IntFieldUpdateOperationsInput | number
+  AccountKey_Inspectedby?: Prisma.IntFieldUpdateOperationsInput | number
   ConditionKey?: Prisma.IntFieldUpdateOperationsInput | number
+  Verdict?: Prisma.EnumVerdictFieldUpdateOperationsInput | $Enums.Verdict
   AppealKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   PenaltyKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  ActionTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  ActionTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   Notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  Images?: Prisma.ImagesUncheckedUpdateManyWithoutInspectionNestedInput
+  Images?: Prisma.ImageUncheckedUpdateManyWithoutInspectionNestedInput
 }
 
 export type InspectionUncheckedUpdateManyWithoutUsageInput = {
   InspectionKey?: Prisma.IntFieldUpdateOperationsInput | number
   ResourceKey?: Prisma.IntFieldUpdateOperationsInput | number
-  InspectorKey?: Prisma.IntFieldUpdateOperationsInput | number
+  AccountKey_Inspectedby?: Prisma.IntFieldUpdateOperationsInput | number
   ConditionKey?: Prisma.IntFieldUpdateOperationsInput | number
+  Verdict?: Prisma.EnumVerdictFieldUpdateOperationsInput | $Enums.Verdict
   AppealKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   PenaltyKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  ActionTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  Notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-}
-
-export type InspectionCreateManyPenaltyInput = {
-  InspectionKey?: number
-  UsageKey: number
-  ResourceKey: number
-  InspectorKey: number
-  ConditionKey: number
-  AppealKey?: number | null
-  ActionTime?: Date | string | null
-  Notes?: string | null
-}
-
-export type InspectionUpdateWithoutPenaltyInput = {
-  ActionTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  Notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  Usage?: Prisma.UsageLogUpdateOneRequiredWithoutInspectionsNestedInput
-  Resource?: Prisma.ResourceInfoUpdateOneRequiredWithoutInspectionsNestedInput
-  Inspector?: Prisma.AccountInfoUpdateOneRequiredWithoutInspectionsPerformedNestedInput
-  Condition?: Prisma.ConditionLogUpdateOneRequiredWithoutInspectionsNestedInput
-  Appeal?: Prisma.AppealInfoUpdateOneWithoutInspectionsNestedInput
-  Images?: Prisma.ImagesUpdateManyWithoutInspectionNestedInput
-}
-
-export type InspectionUncheckedUpdateWithoutPenaltyInput = {
-  InspectionKey?: Prisma.IntFieldUpdateOperationsInput | number
-  UsageKey?: Prisma.IntFieldUpdateOperationsInput | number
-  ResourceKey?: Prisma.IntFieldUpdateOperationsInput | number
-  InspectorKey?: Prisma.IntFieldUpdateOperationsInput | number
-  ConditionKey?: Prisma.IntFieldUpdateOperationsInput | number
-  AppealKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  ActionTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  Notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  Images?: Prisma.ImagesUncheckedUpdateManyWithoutInspectionNestedInput
-}
-
-export type InspectionUncheckedUpdateManyWithoutPenaltyInput = {
-  InspectionKey?: Prisma.IntFieldUpdateOperationsInput | number
-  UsageKey?: Prisma.IntFieldUpdateOperationsInput | number
-  ResourceKey?: Prisma.IntFieldUpdateOperationsInput | number
-  InspectorKey?: Prisma.IntFieldUpdateOperationsInput | number
-  ConditionKey?: Prisma.IntFieldUpdateOperationsInput | number
-  AppealKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  ActionTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  Notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-}
-
-export type InspectionCreateManyAppealInput = {
-  InspectionKey?: number
-  UsageKey: number
-  ResourceKey: number
-  InspectorKey: number
-  ConditionKey: number
-  PenaltyKey?: number | null
-  ActionTime?: Date | string | null
-  Notes?: string | null
-}
-
-export type InspectionUpdateWithoutAppealInput = {
-  ActionTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  Notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  Usage?: Prisma.UsageLogUpdateOneRequiredWithoutInspectionsNestedInput
-  Resource?: Prisma.ResourceInfoUpdateOneRequiredWithoutInspectionsNestedInput
-  Inspector?: Prisma.AccountInfoUpdateOneRequiredWithoutInspectionsPerformedNestedInput
-  Condition?: Prisma.ConditionLogUpdateOneRequiredWithoutInspectionsNestedInput
-  Penalty?: Prisma.PenaltyInfoUpdateOneWithoutInspectionsNestedInput
-  Images?: Prisma.ImagesUpdateManyWithoutInspectionNestedInput
-}
-
-export type InspectionUncheckedUpdateWithoutAppealInput = {
-  InspectionKey?: Prisma.IntFieldUpdateOperationsInput | number
-  UsageKey?: Prisma.IntFieldUpdateOperationsInput | number
-  ResourceKey?: Prisma.IntFieldUpdateOperationsInput | number
-  InspectorKey?: Prisma.IntFieldUpdateOperationsInput | number
-  ConditionKey?: Prisma.IntFieldUpdateOperationsInput | number
-  PenaltyKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  ActionTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  Notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  Images?: Prisma.ImagesUncheckedUpdateManyWithoutInspectionNestedInput
-}
-
-export type InspectionUncheckedUpdateManyWithoutAppealInput = {
-  InspectionKey?: Prisma.IntFieldUpdateOperationsInput | number
-  UsageKey?: Prisma.IntFieldUpdateOperationsInput | number
-  ResourceKey?: Prisma.IntFieldUpdateOperationsInput | number
-  InspectorKey?: Prisma.IntFieldUpdateOperationsInput | number
-  ConditionKey?: Prisma.IntFieldUpdateOperationsInput | number
-  PenaltyKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  ActionTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  ActionTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   Notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
@@ -1440,7 +1219,7 @@ export type InspectionCountOutputTypeDefaultArgs<ExtArgs extends runtime.Types.E
  * InspectionCountOutputType without action
  */
 export type InspectionCountOutputTypeCountImagesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  where?: Prisma.ImagesWhereInput
+  where?: Prisma.ImageWhereInput
 }
 
 
@@ -1448,18 +1227,17 @@ export type InspectionSelect<ExtArgs extends runtime.Types.Extensions.InternalAr
   InspectionKey?: boolean
   UsageKey?: boolean
   ResourceKey?: boolean
-  InspectorKey?: boolean
+  AccountKey_Inspectedby?: boolean
   ConditionKey?: boolean
+  Verdict?: boolean
   AppealKey?: boolean
   PenaltyKey?: boolean
   ActionTime?: boolean
   Notes?: boolean
-  Usage?: boolean | Prisma.UsageLogDefaultArgs<ExtArgs>
-  Resource?: boolean | Prisma.ResourceInfoDefaultArgs<ExtArgs>
-  Inspector?: boolean | Prisma.AccountInfoDefaultArgs<ExtArgs>
-  Condition?: boolean | Prisma.ConditionLogDefaultArgs<ExtArgs>
-  Appeal?: boolean | Prisma.Inspection$AppealArgs<ExtArgs>
-  Penalty?: boolean | Prisma.Inspection$PenaltyArgs<ExtArgs>
+  Usage?: boolean | Prisma.UsageDefaultArgs<ExtArgs>
+  Resource?: boolean | Prisma.ResourceDefaultArgs<ExtArgs>
+  InspectedByAccount?: boolean | Prisma.AccountDefaultArgs<ExtArgs>
+  Condition?: boolean | Prisma.ConditionDefaultArgs<ExtArgs>
   Images?: boolean | Prisma.Inspection$ImagesArgs<ExtArgs>
   _count?: boolean | Prisma.InspectionCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["inspection"]>
@@ -1468,98 +1246,90 @@ export type InspectionSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Ex
   InspectionKey?: boolean
   UsageKey?: boolean
   ResourceKey?: boolean
-  InspectorKey?: boolean
+  AccountKey_Inspectedby?: boolean
   ConditionKey?: boolean
+  Verdict?: boolean
   AppealKey?: boolean
   PenaltyKey?: boolean
   ActionTime?: boolean
   Notes?: boolean
-  Usage?: boolean | Prisma.UsageLogDefaultArgs<ExtArgs>
-  Resource?: boolean | Prisma.ResourceInfoDefaultArgs<ExtArgs>
-  Inspector?: boolean | Prisma.AccountInfoDefaultArgs<ExtArgs>
-  Condition?: boolean | Prisma.ConditionLogDefaultArgs<ExtArgs>
-  Appeal?: boolean | Prisma.Inspection$AppealArgs<ExtArgs>
-  Penalty?: boolean | Prisma.Inspection$PenaltyArgs<ExtArgs>
+  Usage?: boolean | Prisma.UsageDefaultArgs<ExtArgs>
+  Resource?: boolean | Prisma.ResourceDefaultArgs<ExtArgs>
+  InspectedByAccount?: boolean | Prisma.AccountDefaultArgs<ExtArgs>
+  Condition?: boolean | Prisma.ConditionDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["inspection"]>
 
 export type InspectionSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   InspectionKey?: boolean
   UsageKey?: boolean
   ResourceKey?: boolean
-  InspectorKey?: boolean
+  AccountKey_Inspectedby?: boolean
   ConditionKey?: boolean
+  Verdict?: boolean
   AppealKey?: boolean
   PenaltyKey?: boolean
   ActionTime?: boolean
   Notes?: boolean
-  Usage?: boolean | Prisma.UsageLogDefaultArgs<ExtArgs>
-  Resource?: boolean | Prisma.ResourceInfoDefaultArgs<ExtArgs>
-  Inspector?: boolean | Prisma.AccountInfoDefaultArgs<ExtArgs>
-  Condition?: boolean | Prisma.ConditionLogDefaultArgs<ExtArgs>
-  Appeal?: boolean | Prisma.Inspection$AppealArgs<ExtArgs>
-  Penalty?: boolean | Prisma.Inspection$PenaltyArgs<ExtArgs>
+  Usage?: boolean | Prisma.UsageDefaultArgs<ExtArgs>
+  Resource?: boolean | Prisma.ResourceDefaultArgs<ExtArgs>
+  InspectedByAccount?: boolean | Prisma.AccountDefaultArgs<ExtArgs>
+  Condition?: boolean | Prisma.ConditionDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["inspection"]>
 
 export type InspectionSelectScalar = {
   InspectionKey?: boolean
   UsageKey?: boolean
   ResourceKey?: boolean
-  InspectorKey?: boolean
+  AccountKey_Inspectedby?: boolean
   ConditionKey?: boolean
+  Verdict?: boolean
   AppealKey?: boolean
   PenaltyKey?: boolean
   ActionTime?: boolean
   Notes?: boolean
 }
 
-export type InspectionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"InspectionKey" | "UsageKey" | "ResourceKey" | "InspectorKey" | "ConditionKey" | "AppealKey" | "PenaltyKey" | "ActionTime" | "Notes", ExtArgs["result"]["inspection"]>
+export type InspectionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"InspectionKey" | "UsageKey" | "ResourceKey" | "AccountKey_Inspectedby" | "ConditionKey" | "Verdict" | "AppealKey" | "PenaltyKey" | "ActionTime" | "Notes", ExtArgs["result"]["inspection"]>
 export type InspectionInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  Usage?: boolean | Prisma.UsageLogDefaultArgs<ExtArgs>
-  Resource?: boolean | Prisma.ResourceInfoDefaultArgs<ExtArgs>
-  Inspector?: boolean | Prisma.AccountInfoDefaultArgs<ExtArgs>
-  Condition?: boolean | Prisma.ConditionLogDefaultArgs<ExtArgs>
-  Appeal?: boolean | Prisma.Inspection$AppealArgs<ExtArgs>
-  Penalty?: boolean | Prisma.Inspection$PenaltyArgs<ExtArgs>
+  Usage?: boolean | Prisma.UsageDefaultArgs<ExtArgs>
+  Resource?: boolean | Prisma.ResourceDefaultArgs<ExtArgs>
+  InspectedByAccount?: boolean | Prisma.AccountDefaultArgs<ExtArgs>
+  Condition?: boolean | Prisma.ConditionDefaultArgs<ExtArgs>
   Images?: boolean | Prisma.Inspection$ImagesArgs<ExtArgs>
   _count?: boolean | Prisma.InspectionCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type InspectionIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  Usage?: boolean | Prisma.UsageLogDefaultArgs<ExtArgs>
-  Resource?: boolean | Prisma.ResourceInfoDefaultArgs<ExtArgs>
-  Inspector?: boolean | Prisma.AccountInfoDefaultArgs<ExtArgs>
-  Condition?: boolean | Prisma.ConditionLogDefaultArgs<ExtArgs>
-  Appeal?: boolean | Prisma.Inspection$AppealArgs<ExtArgs>
-  Penalty?: boolean | Prisma.Inspection$PenaltyArgs<ExtArgs>
+  Usage?: boolean | Prisma.UsageDefaultArgs<ExtArgs>
+  Resource?: boolean | Prisma.ResourceDefaultArgs<ExtArgs>
+  InspectedByAccount?: boolean | Prisma.AccountDefaultArgs<ExtArgs>
+  Condition?: boolean | Prisma.ConditionDefaultArgs<ExtArgs>
 }
 export type InspectionIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  Usage?: boolean | Prisma.UsageLogDefaultArgs<ExtArgs>
-  Resource?: boolean | Prisma.ResourceInfoDefaultArgs<ExtArgs>
-  Inspector?: boolean | Prisma.AccountInfoDefaultArgs<ExtArgs>
-  Condition?: boolean | Prisma.ConditionLogDefaultArgs<ExtArgs>
-  Appeal?: boolean | Prisma.Inspection$AppealArgs<ExtArgs>
-  Penalty?: boolean | Prisma.Inspection$PenaltyArgs<ExtArgs>
+  Usage?: boolean | Prisma.UsageDefaultArgs<ExtArgs>
+  Resource?: boolean | Prisma.ResourceDefaultArgs<ExtArgs>
+  InspectedByAccount?: boolean | Prisma.AccountDefaultArgs<ExtArgs>
+  Condition?: boolean | Prisma.ConditionDefaultArgs<ExtArgs>
 }
 
 export type $InspectionPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "Inspection"
   objects: {
-    Usage: Prisma.$UsageLogPayload<ExtArgs>
-    Resource: Prisma.$ResourceInfoPayload<ExtArgs>
-    Inspector: Prisma.$AccountInfoPayload<ExtArgs>
-    Condition: Prisma.$ConditionLogPayload<ExtArgs>
-    Appeal: Prisma.$AppealInfoPayload<ExtArgs> | null
-    Penalty: Prisma.$PenaltyInfoPayload<ExtArgs> | null
-    Images: Prisma.$ImagesPayload<ExtArgs>[]
+    Usage: Prisma.$UsagePayload<ExtArgs>
+    Resource: Prisma.$ResourcePayload<ExtArgs>
+    InspectedByAccount: Prisma.$AccountPayload<ExtArgs>
+    Condition: Prisma.$ConditionPayload<ExtArgs>
+    Images: Prisma.$ImagePayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     InspectionKey: number
     UsageKey: number
     ResourceKey: number
-    InspectorKey: number
+    AccountKey_Inspectedby: number
     ConditionKey: number
+    Verdict: $Enums.Verdict
     AppealKey: number | null
     PenaltyKey: number | null
-    ActionTime: Date | null
+    ActionTime: Date
     Notes: string | null
   }, ExtArgs["result"]["inspection"]>
   composites: {}
@@ -1955,13 +1725,11 @@ readonly fields: InspectionFieldRefs;
  */
 export interface Prisma__InspectionClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
-  Usage<T extends Prisma.UsageLogDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.UsageLogDefaultArgs<ExtArgs>>): Prisma.Prisma__UsageLogClient<runtime.Types.Result.GetResult<Prisma.$UsageLogPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
-  Resource<T extends Prisma.ResourceInfoDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ResourceInfoDefaultArgs<ExtArgs>>): Prisma.Prisma__ResourceInfoClient<runtime.Types.Result.GetResult<Prisma.$ResourceInfoPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
-  Inspector<T extends Prisma.AccountInfoDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AccountInfoDefaultArgs<ExtArgs>>): Prisma.Prisma__AccountInfoClient<runtime.Types.Result.GetResult<Prisma.$AccountInfoPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
-  Condition<T extends Prisma.ConditionLogDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ConditionLogDefaultArgs<ExtArgs>>): Prisma.Prisma__ConditionLogClient<runtime.Types.Result.GetResult<Prisma.$ConditionLogPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
-  Appeal<T extends Prisma.Inspection$AppealArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Inspection$AppealArgs<ExtArgs>>): Prisma.Prisma__AppealInfoClient<runtime.Types.Result.GetResult<Prisma.$AppealInfoPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
-  Penalty<T extends Prisma.Inspection$PenaltyArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Inspection$PenaltyArgs<ExtArgs>>): Prisma.Prisma__PenaltyInfoClient<runtime.Types.Result.GetResult<Prisma.$PenaltyInfoPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
-  Images<T extends Prisma.Inspection$ImagesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Inspection$ImagesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ImagesPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  Usage<T extends Prisma.UsageDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.UsageDefaultArgs<ExtArgs>>): Prisma.Prisma__UsageClient<runtime.Types.Result.GetResult<Prisma.$UsagePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+  Resource<T extends Prisma.ResourceDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ResourceDefaultArgs<ExtArgs>>): Prisma.Prisma__ResourceClient<runtime.Types.Result.GetResult<Prisma.$ResourcePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+  InspectedByAccount<T extends Prisma.AccountDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AccountDefaultArgs<ExtArgs>>): Prisma.Prisma__AccountClient<runtime.Types.Result.GetResult<Prisma.$AccountPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+  Condition<T extends Prisma.ConditionDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ConditionDefaultArgs<ExtArgs>>): Prisma.Prisma__ConditionClient<runtime.Types.Result.GetResult<Prisma.$ConditionPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+  Images<T extends Prisma.Inspection$ImagesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Inspection$ImagesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ImagePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1994,8 +1762,9 @@ export interface InspectionFieldRefs {
   readonly InspectionKey: Prisma.FieldRef<"Inspection", 'Int'>
   readonly UsageKey: Prisma.FieldRef<"Inspection", 'Int'>
   readonly ResourceKey: Prisma.FieldRef<"Inspection", 'Int'>
-  readonly InspectorKey: Prisma.FieldRef<"Inspection", 'Int'>
+  readonly AccountKey_Inspectedby: Prisma.FieldRef<"Inspection", 'Int'>
   readonly ConditionKey: Prisma.FieldRef<"Inspection", 'Int'>
+  readonly Verdict: Prisma.FieldRef<"Inspection", 'Verdict'>
   readonly AppealKey: Prisma.FieldRef<"Inspection", 'Int'>
   readonly PenaltyKey: Prisma.FieldRef<"Inspection", 'Int'>
   readonly ActionTime: Prisma.FieldRef<"Inspection", 'DateTime'>
@@ -2401,65 +2170,27 @@ export type InspectionDeleteManyArgs<ExtArgs extends runtime.Types.Extensions.In
 }
 
 /**
- * Inspection.Appeal
- */
-export type Inspection$AppealArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  /**
-   * Select specific fields to fetch from the AppealInfo
-   */
-  select?: Prisma.AppealInfoSelect<ExtArgs> | null
-  /**
-   * Omit specific fields from the AppealInfo
-   */
-  omit?: Prisma.AppealInfoOmit<ExtArgs> | null
-  /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.AppealInfoInclude<ExtArgs> | null
-  where?: Prisma.AppealInfoWhereInput
-}
-
-/**
- * Inspection.Penalty
- */
-export type Inspection$PenaltyArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  /**
-   * Select specific fields to fetch from the PenaltyInfo
-   */
-  select?: Prisma.PenaltyInfoSelect<ExtArgs> | null
-  /**
-   * Omit specific fields from the PenaltyInfo
-   */
-  omit?: Prisma.PenaltyInfoOmit<ExtArgs> | null
-  /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.PenaltyInfoInclude<ExtArgs> | null
-  where?: Prisma.PenaltyInfoWhereInput
-}
-
-/**
  * Inspection.Images
  */
 export type Inspection$ImagesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   /**
-   * Select specific fields to fetch from the Images
+   * Select specific fields to fetch from the Image
    */
-  select?: Prisma.ImagesSelect<ExtArgs> | null
+  select?: Prisma.ImageSelect<ExtArgs> | null
   /**
-   * Omit specific fields from the Images
+   * Omit specific fields from the Image
    */
-  omit?: Prisma.ImagesOmit<ExtArgs> | null
+  omit?: Prisma.ImageOmit<ExtArgs> | null
   /**
    * Choose, which related nodes to fetch as well
    */
-  include?: Prisma.ImagesInclude<ExtArgs> | null
-  where?: Prisma.ImagesWhereInput
-  orderBy?: Prisma.ImagesOrderByWithRelationInput | Prisma.ImagesOrderByWithRelationInput[]
-  cursor?: Prisma.ImagesWhereUniqueInput
+  include?: Prisma.ImageInclude<ExtArgs> | null
+  where?: Prisma.ImageWhereInput
+  orderBy?: Prisma.ImageOrderByWithRelationInput | Prisma.ImageOrderByWithRelationInput[]
+  cursor?: Prisma.ImageWhereUniqueInput
   take?: number
   skip?: number
-  distinct?: Prisma.ImagesScalarFieldEnum | Prisma.ImagesScalarFieldEnum[]
+  distinct?: Prisma.ImageScalarFieldEnum | Prisma.ImageScalarFieldEnum[]
 }
 
 /**

@@ -29,8 +29,8 @@ export * from "./enums.js"
  * const prisma = new PrismaClient({
  *   adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL })
  * })
- * // Fetch zero or more AccountInfos
- * const accountInfos = await prisma.accountInfo.findMany()
+ * // Fetch zero or more Accounts
+ * const accounts = await prisma.account.findMany()
  * ```
  * 
  * Read more in our [docs](https://pris.ly/d/client).
@@ -40,30 +40,30 @@ export type PrismaClient<LogOpts extends Prisma.LogLevel = never, OmitOpts exten
 export { Prisma }
 
 /**
- * Model AccountInfo
+ * Model Account
  * 
  */
-export type AccountInfo = Prisma.AccountInfoModel
-/**
- * Model RoleInfo
- * 
- */
-export type RoleInfo = Prisma.RoleInfoModel
-/**
- * Model FacultyInfo
- * 
- */
-export type FacultyInfo = Prisma.FacultyInfoModel
+export type Account = Prisma.AccountModel
 /**
  * Model ManagementGroup
  * 
  */
 export type ManagementGroup = Prisma.ManagementGroupModel
 /**
- * Model GroupType
+ * Model Branch
  * 
  */
-export type GroupType = Prisma.GroupTypeModel
+export type Branch = Prisma.BranchModel
+/**
+ * Model Faculty
+ * 
+ */
+export type Faculty = Prisma.FacultyModel
+/**
+ * Model Club
+ * 
+ */
+export type Club = Prisma.ClubModel
 /**
  * Model Authority
  * 
@@ -75,65 +75,45 @@ export type Authority = Prisma.AuthorityModel
  */
 export type AuthorityRole = Prisma.AuthorityRoleModel
 /**
- * Model ClubInfo
+ * Model Resource
  * 
  */
-export type ClubInfo = Prisma.ClubInfoModel
+export type Resource = Prisma.ResourceModel
 /**
- * Model ItemInfo
+ * Model ItemUnit
  * 
  */
-export type ItemInfo = Prisma.ItemInfoModel
+export type ItemUnit = Prisma.ItemUnitModel
 /**
- * Model ItemIndiv
+ * Model Item
  * 
  */
-export type ItemIndiv = Prisma.ItemIndivModel
+export type Item = Prisma.ItemModel
 /**
- * Model RoomInfo
+ * Model Room
  * 
  */
-export type RoomInfo = Prisma.RoomInfoModel
+export type Room = Prisma.RoomModel
 /**
- * Model ResourceInfo
+ * Model Condition
  * 
  */
-export type ResourceInfo = Prisma.ResourceInfoModel
-/**
- * Model ResourceStatus
- * 
- */
-export type ResourceStatus = Prisma.ResourceStatusModel
-/**
- * Model ConditionLog
- * 
- */
-export type ConditionLog = Prisma.ConditionLogModel
-/**
- * Model ConditionType
- * 
- */
-export type ConditionType = Prisma.ConditionTypeModel
+export type Condition = Prisma.ConditionModel
 /**
  * Model BorrowRule
  * 
  */
 export type BorrowRule = Prisma.BorrowRuleModel
 /**
- * Model BorrowConstraints
+ * Model BorrowConstraint
  * 
  */
-export type BorrowConstraints = Prisma.BorrowConstraintsModel
+export type BorrowConstraint = Prisma.BorrowConstraintModel
 /**
  * Model PenaltyRule
  * 
  */
 export type PenaltyRule = Prisma.PenaltyRuleModel
-/**
- * Model PenaltyType
- * 
- */
-export type PenaltyType = Prisma.PenaltyTypeModel
 /**
  * Model Eligibility
  * 
@@ -145,20 +125,15 @@ export type Eligibility = Prisma.EligibilityModel
  */
 export type CreditTier = Prisma.CreditTierModel
 /**
- * Model Reservations
+ * Model Reservation
  * 
  */
-export type Reservations = Prisma.ReservationsModel
+export type Reservation = Prisma.ReservationModel
 /**
- * Model ApproveStatus
+ * Model Usage
  * 
  */
-export type ApproveStatus = Prisma.ApproveStatusModel
-/**
- * Model UsageLog
- * 
- */
-export type UsageLog = Prisma.UsageLogModel
+export type Usage = Prisma.UsageModel
 /**
  * Model ExtensionRequest
  * 
@@ -170,37 +145,27 @@ export type ExtensionRequest = Prisma.ExtensionRequestModel
  */
 export type Inspection = Prisma.InspectionModel
 /**
- * Model PenaltyInfo
+ * Model Penalty
  * 
  */
-export type PenaltyInfo = Prisma.PenaltyInfoModel
+export type Penalty = Prisma.PenaltyModel
 /**
- * Model AppealInfo
+ * Model Appeal
  * 
  */
-export type AppealInfo = Prisma.AppealInfoModel
+export type Appeal = Prisma.AppealModel
 /**
- * Model Images
+ * Model Image
  * 
  */
-export type Images = Prisma.ImagesModel
-/**
- * Model ImageSubmissionType
- * 
- */
-export type ImageSubmissionType = Prisma.ImageSubmissionTypeModel
+export type Image = Prisma.ImageModel
 /**
  * Model Notification
  * 
  */
 export type Notification = Prisma.NotificationModel
 /**
- * Model NotificationType
+ * Model Repair
  * 
  */
-export type NotificationType = Prisma.NotificationTypeModel
-/**
- * Model RepairLog
- * 
- */
-export type RepairLog = Prisma.RepairLogModel
+export type Repair = Prisma.RepairModel
