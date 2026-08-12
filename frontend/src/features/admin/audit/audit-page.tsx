@@ -57,21 +57,31 @@ const ROLE_TONE: Record<Role, BadgeTone> = {
 };
 
 type AuditView = "hour" | "type" | "role";
+type TimeRange = "all" | "24h" | "7d";
 const ROLE_KEYS: Role[] = ["borrower", "staff", "supervisor", "admin"];
+const RANGE_MS: Record<Exclude<TimeRange, "all">, number> = {
+  "24h": 24 * 60 * 60 * 1000,
+  "7d": 7 * 24 * 60 * 60 * 1000,
+};
 
 export default function AdminAuditPage() {
   const { t } = useTranslation();
   const [query, setQuery] = useState("");
   const [action, setAction] = useState<AuditAction | "all">("all");
+  const [range, setRange] = useState<TimeRange>("all");
   const [selected, setSelected] = useState<AuditEvent | null>(null);
   const [view, setView] = useState<AuditView>("hour");
+  // Bumped by the Refresh button; also the reference "now" for relative ranges.
+  const [refreshedAt, setRefreshedAt] = useState(() => Date.now());
 
   const peakEvents = useMemo(() => Math.max(...AUDIT_BY_HOUR.map((h) => h.events)), []);
 
   const rows = useMemo(() => {
     const q = query.trim().toLowerCase();
+    const cutoff = range === "all" ? 0 : refreshedAt - RANGE_MS[range];
     return AUDIT_EVENTS.filter((e) => {
       if (action !== "all" && e.action !== action) return false;
+      if (cutoff && new Date(e.at).getTime() < cutoff) return false;
       if (!q) return true;
       return (
         e.actorName.toLowerCase().includes(q) ||
@@ -80,7 +90,14 @@ export default function AdminAuditPage() {
         e.ip.includes(q)
       );
     });
-  }, [query, action]);
+  }, [query, action, range, refreshedAt]);
+
+  const lastUpdated = useMemo(
+    () => new Date(refreshedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+    [refreshedAt],
+  );
+
+  const exportRows = () => exportCsv(rows);
 
   const columns: Column<AuditEvent>[] = [
     {
@@ -126,11 +143,14 @@ export default function AdminAuditPage() {
         title={t("admin.audit.title")}
         actions={
           <>
-            <Button type="button" variant="outline" onClick={exportCsv}>
+            <span className="mr-1 hidden text-xs text-muted-foreground sm:inline">
+              {t("common.lastUpdated")} {lastUpdated}
+            </span>
+            <Button type="button" variant="outline" onClick={exportRows}>
               <Download size={15} strokeWidth={2} />
               {t("common.export")}
             </Button>
-            <Button type="button" variant="outline">
+            <Button type="button" variant="outline" onClick={() => setRefreshedAt(Date.now())}>
               <RefreshCw size={15} strokeWidth={2} />
               {t("common.refresh")}
             </Button>
@@ -236,6 +256,19 @@ export default function AdminAuditPage() {
             ))}
           </SelectContent>
         </Select>
+        <Select value={range} onValueChange={(v) => setRange(v as TimeRange)}>
+          <SelectTrigger className="w-40" aria-label={t("admin.audit.timeRange")}>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{t("admin.audit.rangeAll")}</SelectItem>
+            <SelectItem value="24h">{t("admin.audit.range24h")}</SelectItem>
+            <SelectItem value="7d">{t("admin.audit.range7d")}</SelectItem>
+          </SelectContent>
+        </Select>
+        <span className="ml-auto text-xs text-muted-foreground">
+          {t("admin.audit.resultCount", { count: rows.length })}
+        </span>
       </div>
 
       <DataTable
@@ -302,9 +335,9 @@ function cap(s: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
-function exportCsv(): void {
+function exportCsv(events: AuditEvent[]): void {
   const header = ["id", "at", "actor", "role", "action", "target", "ip", "detail"];
-  const lines = AUDIT_EVENTS.map((e) =>
+  const lines = events.map((e) =>
     [e.id, e.at, e.actorName, e.actorRole, e.action, e.target, e.ip, e.detail]
       .map((v) => `"${String(v).replace(/"/g, '""')}"`)
       .join(","),

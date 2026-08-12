@@ -9,17 +9,21 @@ export type BadgeTone = "ok" | "warn" | "hot" | "info" | "alert" | "neutral";
  * Colors use the --s-*-bg/-t/-b tokens directly so they follow dark mode.
  * `dot` prepends a small dot; `mono` renders the label in the mono font.
  */
+// More formal look: uniform hairline border (not the saturated per-tone one),
+// medium weight instead of bold, and a soft tinted surface. The status colour
+// carries through the text and the optional `dot`, so tone stays legible
+// without the pills feeling loud.
 const badgeVariants = cva(
-  "inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-[11.5px] font-semibold leading-5 whitespace-nowrap",
+  "inline-flex items-center gap-1.5 rounded-md border border-[var(--s-line)] px-2 py-0.5 text-[11px] font-medium leading-5 whitespace-nowrap",
   {
     variants: {
       tone: {
-        ok: "bg-[var(--s-ok-bg)] text-[var(--s-ok-t)] border-[var(--s-ok-b)]",
-        warn: "bg-[var(--s-warn-bg)] text-[var(--s-warn-t)] border-[var(--s-warn-b)]",
-        hot: "bg-[var(--s-hot-bg)] text-[var(--s-hot-t)] border-[var(--s-hot-b)]",
-        info: "bg-[var(--s-info-bg)] text-[var(--s-info-t)] border-[var(--s-info-b)]",
-        alert: "bg-[var(--s-alert-bg)] text-[var(--s-alert-t)] border-[var(--s-alert-b)]",
-        neutral: "bg-[var(--s-subtle)] text-[var(--s-t2)] border-[var(--s-line)]",
+        ok: "bg-[var(--s-ok-bg)] text-[var(--s-ok-t)]",
+        warn: "bg-[var(--s-warn-bg)] text-[var(--s-warn-t)]",
+        hot: "bg-[var(--s-hot-bg)] text-[var(--s-hot-t)]",
+        info: "bg-[var(--s-info-bg)] text-[var(--s-info-t)]",
+        alert: "bg-[var(--s-alert-bg)] text-[var(--s-alert-t)]",
+        neutral: "bg-[var(--s-subtle)] text-[var(--s-t2)]",
       },
     },
     defaultVariants: { tone: "neutral" },
@@ -41,7 +45,7 @@ export function Badge({
 }) {
   return (
     <span className={cn(badgeVariants({ tone }), mono && "font-mono", className)}>
-      {dot ? <span className="h-1.5 w-1.5 rounded-full bg-current" /> : null}
+      {dot ? <span className="h-1.5 w-1.5 rounded-full bg-current opacity-90" /> : null}
       {children}
     </span>
   );

@@ -1,12 +1,12 @@
 import { format } from "date-fns";
 import { th } from "date-fns/locale";
 
-/** "6 ส.ค. 09:50" — compact date+time for tables. Returns "—" for "-"/empty. */
+/** "6 ส.ค. 2569 09:50" — compact date+time for tables (Buddhist year). Returns "—" for "-"/empty. */
 export function fmtDateTime(iso: string): string {
   if (!iso || iso === "-") return "—";
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "—";
-  return `${format(d, "d MMM", { locale: th })} ${format(d, "HH:mm")}`;
+  return `${format(d, "d MMM", { locale: th })} ${d.getFullYear() + 543} ${format(d, "HH:mm")}`;
 }
 
 /** "6 ส.ค. 2569" — date only, Buddhist year. */
