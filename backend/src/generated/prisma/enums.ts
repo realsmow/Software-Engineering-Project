@@ -9,7 +9,105 @@
 * 🟢 You can import this file directly.
 */
 
+export const GroupType = {
+  Club: 'Club',
+  Faculty: 'Faculty'
+} as const
+
+export type GroupType = (typeof GroupType)[keyof typeof GroupType]
 
 
-// This file is empty because there are no enums in the schema.
-export {}
+export const ResourceStatus = {
+  InStorage: 'InStorage',
+  Lending: 'Lending',
+  Missing: 'Missing'
+} as const
+
+export type ResourceStatus = (typeof ResourceStatus)[keyof typeof ResourceStatus]
+
+
+export const ResourceType = {
+  Room: 'Room',
+  Item: 'Item'
+} as const
+
+export type ResourceType = (typeof ResourceType)[keyof typeof ResourceType]
+
+
+export const ConditionStatus = {
+  Usable: 'Usable',
+  MinorDamage: 'MinorDamage',
+  Broken: 'Broken',
+  Missing: 'Missing'
+} as const
+
+export type ConditionStatus = (typeof ConditionStatus)[keyof typeof ConditionStatus]
+
+
+export const ApproveStatus = {
+  Pending: 'Pending',
+  Approved: 'Approved',
+  Denied: 'Denied',
+  Canceled: 'Canceled'
+} as const
+
+export type ApproveStatus = (typeof ApproveStatus)[keyof typeof ApproveStatus]
+
+
+export const CurrentStatus = {
+  Pending: 'Pending',
+  Prepared: 'Prepared',
+  Lended: 'Lended',
+  Returned: 'Returned',
+  Inspected: 'Inspected'
+} as const
+
+export type CurrentStatus = (typeof CurrentStatus)[keyof typeof CurrentStatus]
+
+
+export const PenaltyReason = {
+  DamagedItem: 'DamagedItem',
+  BrokenItem: 'BrokenItem',
+  LostItem: 'LostItem',
+  DidntReturn: 'DidntReturn',
+  ReturnLate: 'ReturnLate'
+} as const
+
+export type PenaltyReason = (typeof PenaltyReason)[keyof typeof PenaltyReason]
+
+
+export const Verdict = {
+  NoProblem: 'NoProblem',
+  MinorDamage: 'MinorDamage',
+  SignificantDamage: 'SignificantDamage',
+  Broken: 'Broken'
+} as const
+
+export type Verdict = (typeof Verdict)[keyof typeof Verdict]
+
+
+export const PenaltyStatus = {
+  InEffect: 'InEffect',
+  Appealed: 'Appealed',
+  Ended: 'Ended'
+} as const
+
+export type PenaltyStatus = (typeof PenaltyStatus)[keyof typeof PenaltyStatus]
+
+
+export const NotificationType = {
+  Announcement: 'Announcement',
+  Approval: 'Approval',
+  Warning: 'Warning'
+} as const
+
+export type NotificationType = (typeof NotificationType)[keyof typeof NotificationType]
+
+
+export const SubmissionType = {
+  BeforePicture: 'BeforePicture',
+  AfterPicture: 'AfterPicture',
+  InspectionPicture: 'InspectionPicture'
+} as const
+
+export type SubmissionType = (typeof SubmissionType)[keyof typeof SubmissionType]

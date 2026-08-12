@@ -51,39 +51,32 @@ export const AnyNull = runtime.AnyNull
 
 
 export const ModelName = {
-  AccountInfo: 'AccountInfo',
-  RoleInfo: 'RoleInfo',
-  FacultyInfo: 'FacultyInfo',
+  Account: 'Account',
   ManagementGroup: 'ManagementGroup',
-  GroupType: 'GroupType',
+  Branch: 'Branch',
+  Faculty: 'Faculty',
+  Club: 'Club',
   Authority: 'Authority',
   AuthorityRole: 'AuthorityRole',
-  ClubInfo: 'ClubInfo',
-  ItemInfo: 'ItemInfo',
-  ItemIndiv: 'ItemIndiv',
-  RoomInfo: 'RoomInfo',
-  ResourceInfo: 'ResourceInfo',
-  ResourceStatus: 'ResourceStatus',
-  ConditionLog: 'ConditionLog',
-  ConditionType: 'ConditionType',
+  Resource: 'Resource',
+  ItemUnit: 'ItemUnit',
+  Item: 'Item',
+  Room: 'Room',
+  Condition: 'Condition',
   BorrowRule: 'BorrowRule',
-  BorrowConstraints: 'BorrowConstraints',
+  BorrowConstraint: 'BorrowConstraint',
   PenaltyRule: 'PenaltyRule',
-  PenaltyType: 'PenaltyType',
   Eligibility: 'Eligibility',
   CreditTier: 'CreditTier',
-  Reservations: 'Reservations',
-  ApproveStatus: 'ApproveStatus',
-  UsageLog: 'UsageLog',
+  Reservation: 'Reservation',
+  Usage: 'Usage',
   ExtensionRequest: 'ExtensionRequest',
   Inspection: 'Inspection',
-  PenaltyInfo: 'PenaltyInfo',
-  AppealInfo: 'AppealInfo',
-  Images: 'Images',
-  ImageSubmissionType: 'ImageSubmissionType',
+  Penalty: 'Penalty',
+  Appeal: 'Appeal',
+  Image: 'Image',
   Notification: 'Notification',
-  NotificationType: 'NotificationType',
-  RepairLog: 'RepairLog'
+  Repair: 'Repair'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -102,36 +95,19 @@ export const TransactionIsolationLevel = runtime.makeStrictEnum({
 export type TransactionIsolationLevel = (typeof TransactionIsolationLevel)[keyof typeof TransactionIsolationLevel]
 
 
-export const AccountInfoScalarFieldEnum = {
+export const AccountScalarFieldEnum = {
   AccountKey: 'AccountKey',
   Email: 'Email',
   HashedPassword: 'HashedPassword',
-  UserID: 'UserID',
-  UserFName: 'UserFName',
-  UserLName: 'UserLName',
-  UserCredit: 'UserCredit',
-  RoleKey: 'RoleKey'
+  AccountID: 'AccountID',
+  FName: 'FName',
+  LName: 'LName',
+  Credit: 'Credit',
+  IsAdmin: 'IsAdmin',
+  IsSuspended: 'IsSuspended'
 } as const
 
-export type AccountInfoScalarFieldEnum = (typeof AccountInfoScalarFieldEnum)[keyof typeof AccountInfoScalarFieldEnum]
-
-
-export const RoleInfoScalarFieldEnum = {
-  RoleKey: 'RoleKey',
-  RoleName: 'RoleName'
-} as const
-
-export type RoleInfoScalarFieldEnum = (typeof RoleInfoScalarFieldEnum)[keyof typeof RoleInfoScalarFieldEnum]
-
-
-export const FacultyInfoScalarFieldEnum = {
-  FacultyKey: 'FacultyKey',
-  FacultyName: 'FacultyName',
-  BranchName: 'BranchName',
-  ManageGroupKey: 'ManageGroupKey'
-} as const
-
-export type FacultyInfoScalarFieldEnum = (typeof FacultyInfoScalarFieldEnum)[keyof typeof FacultyInfoScalarFieldEnum]
+export type AccountScalarFieldEnum = (typeof AccountScalarFieldEnum)[keyof typeof AccountScalarFieldEnum]
 
 
 export const ManagementGroupScalarFieldEnum = {
@@ -142,12 +118,31 @@ export const ManagementGroupScalarFieldEnum = {
 export type ManagementGroupScalarFieldEnum = (typeof ManagementGroupScalarFieldEnum)[keyof typeof ManagementGroupScalarFieldEnum]
 
 
-export const GroupTypeScalarFieldEnum = {
-  GroupTypeKey: 'GroupTypeKey',
-  GroupTypeName: 'GroupTypeName'
+export const BranchScalarFieldEnum = {
+  BranchKey: 'BranchKey',
+  ManageGroupKey: 'ManageGroupKey',
+  FacultyKey: 'FacultyKey',
+  BranchName: 'BranchName'
 } as const
 
-export type GroupTypeScalarFieldEnum = (typeof GroupTypeScalarFieldEnum)[keyof typeof GroupTypeScalarFieldEnum]
+export type BranchScalarFieldEnum = (typeof BranchScalarFieldEnum)[keyof typeof BranchScalarFieldEnum]
+
+
+export const FacultyScalarFieldEnum = {
+  FacultyKey: 'FacultyKey',
+  FacultyName: 'FacultyName'
+} as const
+
+export type FacultyScalarFieldEnum = (typeof FacultyScalarFieldEnum)[keyof typeof FacultyScalarFieldEnum]
+
+
+export const ClubScalarFieldEnum = {
+  ClubKey: 'ClubKey',
+  ManageGroupKey: 'ManageGroupKey',
+  ClubName: 'ClubName'
+} as const
+
+export type ClubScalarFieldEnum = (typeof ClubScalarFieldEnum)[keyof typeof ClubScalarFieldEnum]
 
 
 export const AuthorityScalarFieldEnum = {
@@ -169,89 +164,65 @@ export const AuthorityRoleScalarFieldEnum = {
 export type AuthorityRoleScalarFieldEnum = (typeof AuthorityRoleScalarFieldEnum)[keyof typeof AuthorityRoleScalarFieldEnum]
 
 
-export const ClubInfoScalarFieldEnum = {
-  ClubKey: 'ClubKey',
-  ClubName: 'ClubName',
-  ManageGroupKey: 'ManageGroupKey'
+export const ResourceScalarFieldEnum = {
+  ResourceKey: 'ResourceKey',
+  ManageGroupKey: 'ManageGroupKey',
+  BorrowRuleKey: 'BorrowRuleKey',
+  ConditionKey: 'ConditionKey',
+  ResourceStatus: 'ResourceStatus',
+  ResourceType: 'ResourceType',
+  ResourceDescription: 'ResourceDescription',
+  BufferTime: 'BufferTime',
+  IsBorrowAllowed: 'IsBorrowAllowed'
 } as const
 
-export type ClubInfoScalarFieldEnum = (typeof ClubInfoScalarFieldEnum)[keyof typeof ClubInfoScalarFieldEnum]
+export type ResourceScalarFieldEnum = (typeof ResourceScalarFieldEnum)[keyof typeof ResourceScalarFieldEnum]
 
 
-export const ItemInfoScalarFieldEnum = {
-  ItemKey: 'ItemKey',
-  ItemName: 'ItemName',
-  ItemDesc: 'ItemDesc',
-  ImageURL: 'ImageURL',
-  CreditWeight: 'CreditWeight'
-} as const
-
-export type ItemInfoScalarFieldEnum = (typeof ItemInfoScalarFieldEnum)[keyof typeof ItemInfoScalarFieldEnum]
-
-
-export const ItemIndivScalarFieldEnum = {
-  IndivKey: 'IndivKey',
+export const ItemUnitScalarFieldEnum = {
+  ItemUnitKey: 'ItemUnitKey',
   ResourceKey: 'ResourceKey',
   ItemKey: 'ItemKey',
   ItemID: 'ItemID',
-  ImageURL: 'ImageURL'
+  IsDeleted: 'IsDeleted'
 } as const
 
-export type ItemIndivScalarFieldEnum = (typeof ItemIndivScalarFieldEnum)[keyof typeof ItemIndivScalarFieldEnum]
+export type ItemUnitScalarFieldEnum = (typeof ItemUnitScalarFieldEnum)[keyof typeof ItemUnitScalarFieldEnum]
 
 
-export const RoomInfoScalarFieldEnum = {
+export const ItemScalarFieldEnum = {
+  ItemKey: 'ItemKey',
+  ItemName: 'ItemName',
+  ItemDesc: 'ItemDesc',
+  CreditWeight: 'CreditWeight',
+  IsDeleted: 'IsDeleted'
+} as const
+
+export type ItemScalarFieldEnum = (typeof ItemScalarFieldEnum)[keyof typeof ItemScalarFieldEnum]
+
+
+export const RoomScalarFieldEnum = {
   RoomKey: 'RoomKey',
   ResourceKey: 'ResourceKey',
   RoomName: 'RoomName',
-  RoomDesc: 'RoomDesc',
   RoomLocation: 'RoomLocation',
-  ImageURL: 'ImageURL',
-  CreditWeight: 'CreditWeight'
+  CreditWeight: 'CreditWeight',
+  IsDeleted: 'IsDeleted'
 } as const
 
-export type RoomInfoScalarFieldEnum = (typeof RoomInfoScalarFieldEnum)[keyof typeof RoomInfoScalarFieldEnum]
+export type RoomScalarFieldEnum = (typeof RoomScalarFieldEnum)[keyof typeof RoomScalarFieldEnum]
 
 
-export const ResourceInfoScalarFieldEnum = {
-  ResourceKey: 'ResourceKey',
-  ManagedBy: 'ManagedBy',
-  BorrowRule: 'BorrowRule',
-  ConditionKey: 'ConditionKey',
-  ResourceStatus: 'ResourceStatus',
-  BufferTime: 'BufferTime',
-  AllowBorrow: 'AllowBorrow'
-} as const
-
-export type ResourceInfoScalarFieldEnum = (typeof ResourceInfoScalarFieldEnum)[keyof typeof ResourceInfoScalarFieldEnum]
-
-
-export const ResourceStatusScalarFieldEnum = {
-  StatusKey: 'StatusKey',
-  StatusName: 'StatusName'
-} as const
-
-export type ResourceStatusScalarFieldEnum = (typeof ResourceStatusScalarFieldEnum)[keyof typeof ResourceStatusScalarFieldEnum]
-
-
-export const ConditionLogScalarFieldEnum = {
+export const ConditionScalarFieldEnum = {
   ConditionKey: 'ConditionKey',
   ResourceKey: 'ResourceKey',
-  LoggedBy: 'LoggedBy',
-  Condition: 'Condition',
+  AccountKey_Checkedby: 'AccountKey_Checkedby',
+  ConditionStatus: 'ConditionStatus',
   Notes: 'Notes',
-  LoggedAt: 'LoggedAt'
+  CheckedAt: 'CheckedAt'
 } as const
 
-export type ConditionLogScalarFieldEnum = (typeof ConditionLogScalarFieldEnum)[keyof typeof ConditionLogScalarFieldEnum]
-
-
-export const ConditionTypeScalarFieldEnum = {
-  ConditionTypeKey: 'ConditionTypeKey',
-  ConditionName: 'ConditionName'
-} as const
-
-export type ConditionTypeScalarFieldEnum = (typeof ConditionTypeScalarFieldEnum)[keyof typeof ConditionTypeScalarFieldEnum]
+export type ConditionScalarFieldEnum = (typeof ConditionScalarFieldEnum)[keyof typeof ConditionScalarFieldEnum]
 
 
 export const BorrowRuleScalarFieldEnum = {
@@ -262,8 +233,8 @@ export const BorrowRuleScalarFieldEnum = {
 export type BorrowRuleScalarFieldEnum = (typeof BorrowRuleScalarFieldEnum)[keyof typeof BorrowRuleScalarFieldEnum]
 
 
-export const BorrowConstraintsScalarFieldEnum = {
-  ConstraintsKey: 'ConstraintsKey',
+export const BorrowConstraintScalarFieldEnum = {
+  BorrowConstraintKey: 'BorrowConstraintKey',
   BorrowRuleKey: 'BorrowRuleKey',
   CreditTierKey: 'CreditTierKey',
   MinimumAuthorityLevel: 'MinimumAuthorityLevel',
@@ -271,33 +242,25 @@ export const BorrowConstraintsScalarFieldEnum = {
   MaxExtendTime: 'MaxExtendTime'
 } as const
 
-export type BorrowConstraintsScalarFieldEnum = (typeof BorrowConstraintsScalarFieldEnum)[keyof typeof BorrowConstraintsScalarFieldEnum]
+export type BorrowConstraintScalarFieldEnum = (typeof BorrowConstraintScalarFieldEnum)[keyof typeof BorrowConstraintScalarFieldEnum]
 
 
 export const PenaltyRuleScalarFieldEnum = {
   PenaltyRuleKey: 'PenaltyRuleKey',
   BorrowRuleKey: 'BorrowRuleKey',
-  PenaltyTypeKey: 'PenaltyTypeKey',
-  PenaltyAmount: 'PenaltyAmount',
-  PenaltyLength: 'PenaltyLength'
+  CreditDeducted: 'CreditDeducted',
+  PenaltyTimeLength: 'PenaltyTimeLength',
+  PenaltyReason: 'PenaltyReason'
 } as const
 
 export type PenaltyRuleScalarFieldEnum = (typeof PenaltyRuleScalarFieldEnum)[keyof typeof PenaltyRuleScalarFieldEnum]
 
 
-export const PenaltyTypeScalarFieldEnum = {
-  PenaltyTypeKey: 'PenaltyTypeKey',
-  PenaltyType: 'PenaltyType'
-} as const
-
-export type PenaltyTypeScalarFieldEnum = (typeof PenaltyTypeScalarFieldEnum)[keyof typeof PenaltyTypeScalarFieldEnum]
-
-
 export const EligibilityScalarFieldEnum = {
-  EliKey: 'EliKey',
+  EligibilityKey: 'EligibilityKey',
   ResourceKey: 'ResourceKey',
-  GroupKey: 'GroupKey',
-  RoleKey: 'RoleKey'
+  ManageGroupKey: 'ManageGroupKey',
+  AuthorityRoleKey: 'AuthorityRoleKey'
 } as const
 
 export type EligibilityScalarFieldEnum = (typeof EligibilityScalarFieldEnum)[keyof typeof EligibilityScalarFieldEnum]
@@ -313,58 +276,50 @@ export const CreditTierScalarFieldEnum = {
 export type CreditTierScalarFieldEnum = (typeof CreditTierScalarFieldEnum)[keyof typeof CreditTierScalarFieldEnum]
 
 
-export const ReservationsScalarFieldEnum = {
+export const ReservationScalarFieldEnum = {
   ReservationKey: 'ReservationKey',
   ResourceKey: 'ResourceKey',
-  ReservedBy: 'ReservedBy',
+  AccountKey_Reservedby: 'AccountKey_Reservedby',
   Reason: 'Reason',
   StartTime: 'StartTime',
   EndTime: 'EndTime',
-  ApproveStatus: 'ApproveStatus',
-  ApprovedBy: 'ApprovedBy',
-  ReservationExpiration: 'ReservationExpiration',
   ActionTime: 'ActionTime',
+  ApproveStatus: 'ApproveStatus',
+  AccountKey_Approvedby: 'AccountKey_Approvedby',
+  ReservationExpiration: 'ReservationExpiration',
   ResolvedAt: 'ResolvedAt'
 } as const
 
-export type ReservationsScalarFieldEnum = (typeof ReservationsScalarFieldEnum)[keyof typeof ReservationsScalarFieldEnum]
+export type ReservationScalarFieldEnum = (typeof ReservationScalarFieldEnum)[keyof typeof ReservationScalarFieldEnum]
 
 
-export const ApproveStatusScalarFieldEnum = {
-  ApproveStatusKey: 'ApproveStatusKey',
-  StatusName: 'StatusName'
-} as const
-
-export type ApproveStatusScalarFieldEnum = (typeof ApproveStatusScalarFieldEnum)[keyof typeof ApproveStatusScalarFieldEnum]
-
-
-export const UsageLogScalarFieldEnum = {
+export const UsageScalarFieldEnum = {
   UsageKey: 'UsageKey',
   ReservationKey: 'ReservationKey',
-  AccountKey: 'AccountKey',
+  AccountKey_Usedby: 'AccountKey_Usedby',
   ResourceKey: 'ResourceKey',
   CurrentStatus: 'CurrentStatus',
   DueTime: 'DueTime',
-  PendingExtension: 'PendingExtension',
+  ExtensionRequestKey_Pending: 'ExtensionRequestKey_Pending',
   CheckoutTime: 'CheckoutTime',
   CheckInTime: 'CheckInTime',
-  CheckoutCondition: 'CheckoutCondition',
-  CheckInCondition: 'CheckInCondition'
+  ConditionKey_Checkout: 'ConditionKey_Checkout',
+  ConditionKey_CheckIn: 'ConditionKey_CheckIn'
 } as const
 
-export type UsageLogScalarFieldEnum = (typeof UsageLogScalarFieldEnum)[keyof typeof UsageLogScalarFieldEnum]
+export type UsageScalarFieldEnum = (typeof UsageScalarFieldEnum)[keyof typeof UsageScalarFieldEnum]
 
 
 export const ExtensionRequestScalarFieldEnum = {
-  ExtensionKey: 'ExtensionKey',
+  ExtensionRequestKey: 'ExtensionRequestKey',
   UsageKey: 'UsageKey',
-  RequestedBy: 'RequestedBy',
+  AccountKey_Requestedby: 'AccountKey_Requestedby',
   ExtendNo: 'ExtendNo',
   PreviousDueTime: 'PreviousDueTime',
   RequestedDueTime: 'RequestedDueTime',
-  ApproveStatus: 'ApproveStatus',
-  ApprovedBy: 'ApprovedBy',
   RequestedAt: 'RequestedAt',
+  ApproveStatus: 'ApproveStatus',
+  AccountKey_Approvedby: 'AccountKey_Approvedby',
   ResolvedAt: 'ResolvedAt'
 } as const
 
@@ -375,8 +330,9 @@ export const InspectionScalarFieldEnum = {
   InspectionKey: 'InspectionKey',
   UsageKey: 'UsageKey',
   ResourceKey: 'ResourceKey',
-  InspectorKey: 'InspectorKey',
+  AccountKey_Inspectedby: 'AccountKey_Inspectedby',
   ConditionKey: 'ConditionKey',
+  Verdict: 'Verdict',
   AppealKey: 'AppealKey',
   PenaltyKey: 'PenaltyKey',
   ActionTime: 'ActionTime',
@@ -386,56 +342,50 @@ export const InspectionScalarFieldEnum = {
 export type InspectionScalarFieldEnum = (typeof InspectionScalarFieldEnum)[keyof typeof InspectionScalarFieldEnum]
 
 
-export const PenaltyInfoScalarFieldEnum = {
+export const PenaltyScalarFieldEnum = {
   PenaltyKey: 'PenaltyKey',
   AccountKey: 'AccountKey',
   UsageKey: 'UsageKey',
   Reason: 'Reason',
   CreditDeducted: 'CreditDeducted',
   ActionTime: 'ActionTime',
-  ExpirationTime: 'ExpirationTime',
-  Appealed: 'Appealed',
-  InEffect: 'InEffect'
+  ExpirationDate: 'ExpirationDate',
+  PenaltyStatus: 'PenaltyStatus',
+  AppealKey: 'AppealKey',
+  IsDeleted: 'IsDeleted'
 } as const
 
-export type PenaltyInfoScalarFieldEnum = (typeof PenaltyInfoScalarFieldEnum)[keyof typeof PenaltyInfoScalarFieldEnum]
+export type PenaltyScalarFieldEnum = (typeof PenaltyScalarFieldEnum)[keyof typeof PenaltyScalarFieldEnum]
 
 
-export const AppealInfoScalarFieldEnum = {
+export const AppealScalarFieldEnum = {
   AppealKey: 'AppealKey',
-  OriginalPenalty: 'OriginalPenalty',
-  NewPenalty: 'NewPenalty',
-  FiledBy: 'FiledBy',
-  ResolvedBy: 'ResolvedBy',
+  PenaltyKey_Original: 'PenaltyKey_Original',
+  PenaltyKey_New: 'PenaltyKey_New',
+  AccountKey_Filedby: 'AccountKey_Filedby',
+  ActionTime: 'ActionTime',
+  AccountKey_Resolvedby: 'AccountKey_Resolvedby',
   AppealReason: 'AppealReason',
   ApproveStatus: 'ApproveStatus',
-  ActionTime: 'ActionTime',
   ResolvedAt: 'ResolvedAt'
 } as const
 
-export type AppealInfoScalarFieldEnum = (typeof AppealInfoScalarFieldEnum)[keyof typeof AppealInfoScalarFieldEnum]
+export type AppealScalarFieldEnum = (typeof AppealScalarFieldEnum)[keyof typeof AppealScalarFieldEnum]
 
 
-export const ImagesScalarFieldEnum = {
+export const ImageScalarFieldEnum = {
   ImageKey: 'ImageKey',
-  SubmittedBy: 'SubmittedBy',
+  AccountKey_Submittedby: 'AccountKey_Submittedby',
   UsageKey: 'UsageKey',
   ResourceKey: 'ResourceKey',
   InspectionKey: 'InspectionKey',
   ImageURL: 'ImageURL',
   SubmissionType: 'SubmissionType',
-  ActionTime: 'ActionTime'
+  ActionTime: 'ActionTime',
+  IsDeleted: 'IsDeleted'
 } as const
 
-export type ImagesScalarFieldEnum = (typeof ImagesScalarFieldEnum)[keyof typeof ImagesScalarFieldEnum]
-
-
-export const ImageSubmissionTypeScalarFieldEnum = {
-  SubmissionTypeKey: 'SubmissionTypeKey',
-  SubmissionType: 'SubmissionType'
-} as const
-
-export type ImageSubmissionTypeScalarFieldEnum = (typeof ImageSubmissionTypeScalarFieldEnum)[keyof typeof ImageSubmissionTypeScalarFieldEnum]
+export type ImageScalarFieldEnum = (typeof ImageScalarFieldEnum)[keyof typeof ImageScalarFieldEnum]
 
 
 export const NotificationScalarFieldEnum = {
@@ -444,32 +394,25 @@ export const NotificationScalarFieldEnum = {
   NotificationType: 'NotificationType',
   NotificationContent: 'NotificationContent',
   SentTime: 'SentTime',
-  IsRead: 'IsRead'
+  IsRead: 'IsRead',
+  IsDeleted: 'IsDeleted'
 } as const
 
 export type NotificationScalarFieldEnum = (typeof NotificationScalarFieldEnum)[keyof typeof NotificationScalarFieldEnum]
 
 
-export const NotificationTypeScalarFieldEnum = {
-  NotificationTypeKey: 'NotificationTypeKey',
-  NotificationTypeName: 'NotificationTypeName'
-} as const
-
-export type NotificationTypeScalarFieldEnum = (typeof NotificationTypeScalarFieldEnum)[keyof typeof NotificationTypeScalarFieldEnum]
-
-
-export const RepairLogScalarFieldEnum = {
+export const RepairScalarFieldEnum = {
   RepairKey: 'RepairKey',
   ReservationKey: 'ReservationKey',
-  RepairedBy: 'RepairedBy',
+  AccountKey_Repairedby: 'AccountKey_Repairedby',
   ResourceKey: 'ResourceKey',
   BeginRepairDate: 'BeginRepairDate',
   EndRepairDate: 'EndRepairDate',
-  ConditionBeforeRepair: 'ConditionBeforeRepair',
-  ConditionAfterRepair: 'ConditionAfterRepair'
+  ConditionKey_BeforeRepair: 'ConditionKey_BeforeRepair',
+  ConditionKey_AfterRepair: 'ConditionKey_AfterRepair'
 } as const
 
-export type RepairLogScalarFieldEnum = (typeof RepairLogScalarFieldEnum)[keyof typeof RepairLogScalarFieldEnum]
+export type RepairScalarFieldEnum = (typeof RepairScalarFieldEnum)[keyof typeof RepairScalarFieldEnum]
 
 
 export const SortOrder = {

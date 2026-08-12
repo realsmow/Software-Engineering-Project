@@ -220,8 +220,8 @@ export type AuthorityWhereInput = {
   AccountKey?: Prisma.IntFilter<"Authority"> | number
   ManageGroupKey?: Prisma.IntFilter<"Authority"> | number
   AuthorityRoleKey?: Prisma.IntFilter<"Authority"> | number
-  Account?: Prisma.XOR<Prisma.AccountInfoScalarRelationFilter, Prisma.AccountInfoWhereInput>
-  ManageGroup?: Prisma.XOR<Prisma.ManagementGroupScalarRelationFilter, Prisma.ManagementGroupWhereInput>
+  Account?: Prisma.XOR<Prisma.AccountScalarRelationFilter, Prisma.AccountWhereInput>
+  ManagementGroup?: Prisma.XOR<Prisma.ManagementGroupScalarRelationFilter, Prisma.ManagementGroupWhereInput>
   AuthorityRole?: Prisma.XOR<Prisma.AuthorityRoleScalarRelationFilter, Prisma.AuthorityRoleWhereInput>
 }
 
@@ -230,8 +230,8 @@ export type AuthorityOrderByWithRelationInput = {
   AccountKey?: Prisma.SortOrder
   ManageGroupKey?: Prisma.SortOrder
   AuthorityRoleKey?: Prisma.SortOrder
-  Account?: Prisma.AccountInfoOrderByWithRelationInput
-  ManageGroup?: Prisma.ManagementGroupOrderByWithRelationInput
+  Account?: Prisma.AccountOrderByWithRelationInput
+  ManagementGroup?: Prisma.ManagementGroupOrderByWithRelationInput
   AuthorityRole?: Prisma.AuthorityRoleOrderByWithRelationInput
 }
 
@@ -244,8 +244,8 @@ export type AuthorityWhereUniqueInput = Prisma.AtLeast<{
   AccountKey?: Prisma.IntFilter<"Authority"> | number
   ManageGroupKey?: Prisma.IntFilter<"Authority"> | number
   AuthorityRoleKey?: Prisma.IntFilter<"Authority"> | number
-  Account?: Prisma.XOR<Prisma.AccountInfoScalarRelationFilter, Prisma.AccountInfoWhereInput>
-  ManageGroup?: Prisma.XOR<Prisma.ManagementGroupScalarRelationFilter, Prisma.ManagementGroupWhereInput>
+  Account?: Prisma.XOR<Prisma.AccountScalarRelationFilter, Prisma.AccountWhereInput>
+  ManagementGroup?: Prisma.XOR<Prisma.ManagementGroupScalarRelationFilter, Prisma.ManagementGroupWhereInput>
   AuthorityRole?: Prisma.XOR<Prisma.AuthorityRoleScalarRelationFilter, Prisma.AuthorityRoleWhereInput>
 }, "AuthorityKey" | "AccountKey_ManageGroupKey">
 
@@ -272,8 +272,8 @@ export type AuthorityScalarWhereWithAggregatesInput = {
 }
 
 export type AuthorityCreateInput = {
-  Account: Prisma.AccountInfoCreateNestedOneWithoutAuthoritiesInput
-  ManageGroup: Prisma.ManagementGroupCreateNestedOneWithoutAuthoritiesInput
+  Account: Prisma.AccountCreateNestedOneWithoutAuthoritiesInput
+  ManagementGroup: Prisma.ManagementGroupCreateNestedOneWithoutAuthoritiesInput
   AuthorityRole: Prisma.AuthorityRoleCreateNestedOneWithoutAuthoritiesInput
 }
 
@@ -285,8 +285,8 @@ export type AuthorityUncheckedCreateInput = {
 }
 
 export type AuthorityUpdateInput = {
-  Account?: Prisma.AccountInfoUpdateOneRequiredWithoutAuthoritiesNestedInput
-  ManageGroup?: Prisma.ManagementGroupUpdateOneRequiredWithoutAuthoritiesNestedInput
+  Account?: Prisma.AccountUpdateOneRequiredWithoutAuthoritiesNestedInput
+  ManagementGroup?: Prisma.ManagementGroupUpdateOneRequiredWithoutAuthoritiesNestedInput
   AuthorityRole?: Prisma.AuthorityRoleUpdateOneRequiredWithoutAuthoritiesNestedInput
 }
 
@@ -407,45 +407,45 @@ export type AuthorityUncheckedUpdateManyWithoutAccountNestedInput = {
   deleteMany?: Prisma.AuthorityScalarWhereInput | Prisma.AuthorityScalarWhereInput[]
 }
 
-export type AuthorityCreateNestedManyWithoutManageGroupInput = {
-  create?: Prisma.XOR<Prisma.AuthorityCreateWithoutManageGroupInput, Prisma.AuthorityUncheckedCreateWithoutManageGroupInput> | Prisma.AuthorityCreateWithoutManageGroupInput[] | Prisma.AuthorityUncheckedCreateWithoutManageGroupInput[]
-  connectOrCreate?: Prisma.AuthorityCreateOrConnectWithoutManageGroupInput | Prisma.AuthorityCreateOrConnectWithoutManageGroupInput[]
-  createMany?: Prisma.AuthorityCreateManyManageGroupInputEnvelope
+export type AuthorityCreateNestedManyWithoutManagementGroupInput = {
+  create?: Prisma.XOR<Prisma.AuthorityCreateWithoutManagementGroupInput, Prisma.AuthorityUncheckedCreateWithoutManagementGroupInput> | Prisma.AuthorityCreateWithoutManagementGroupInput[] | Prisma.AuthorityUncheckedCreateWithoutManagementGroupInput[]
+  connectOrCreate?: Prisma.AuthorityCreateOrConnectWithoutManagementGroupInput | Prisma.AuthorityCreateOrConnectWithoutManagementGroupInput[]
+  createMany?: Prisma.AuthorityCreateManyManagementGroupInputEnvelope
   connect?: Prisma.AuthorityWhereUniqueInput | Prisma.AuthorityWhereUniqueInput[]
 }
 
-export type AuthorityUncheckedCreateNestedManyWithoutManageGroupInput = {
-  create?: Prisma.XOR<Prisma.AuthorityCreateWithoutManageGroupInput, Prisma.AuthorityUncheckedCreateWithoutManageGroupInput> | Prisma.AuthorityCreateWithoutManageGroupInput[] | Prisma.AuthorityUncheckedCreateWithoutManageGroupInput[]
-  connectOrCreate?: Prisma.AuthorityCreateOrConnectWithoutManageGroupInput | Prisma.AuthorityCreateOrConnectWithoutManageGroupInput[]
-  createMany?: Prisma.AuthorityCreateManyManageGroupInputEnvelope
+export type AuthorityUncheckedCreateNestedManyWithoutManagementGroupInput = {
+  create?: Prisma.XOR<Prisma.AuthorityCreateWithoutManagementGroupInput, Prisma.AuthorityUncheckedCreateWithoutManagementGroupInput> | Prisma.AuthorityCreateWithoutManagementGroupInput[] | Prisma.AuthorityUncheckedCreateWithoutManagementGroupInput[]
+  connectOrCreate?: Prisma.AuthorityCreateOrConnectWithoutManagementGroupInput | Prisma.AuthorityCreateOrConnectWithoutManagementGroupInput[]
+  createMany?: Prisma.AuthorityCreateManyManagementGroupInputEnvelope
   connect?: Prisma.AuthorityWhereUniqueInput | Prisma.AuthorityWhereUniqueInput[]
 }
 
-export type AuthorityUpdateManyWithoutManageGroupNestedInput = {
-  create?: Prisma.XOR<Prisma.AuthorityCreateWithoutManageGroupInput, Prisma.AuthorityUncheckedCreateWithoutManageGroupInput> | Prisma.AuthorityCreateWithoutManageGroupInput[] | Prisma.AuthorityUncheckedCreateWithoutManageGroupInput[]
-  connectOrCreate?: Prisma.AuthorityCreateOrConnectWithoutManageGroupInput | Prisma.AuthorityCreateOrConnectWithoutManageGroupInput[]
-  upsert?: Prisma.AuthorityUpsertWithWhereUniqueWithoutManageGroupInput | Prisma.AuthorityUpsertWithWhereUniqueWithoutManageGroupInput[]
-  createMany?: Prisma.AuthorityCreateManyManageGroupInputEnvelope
+export type AuthorityUpdateManyWithoutManagementGroupNestedInput = {
+  create?: Prisma.XOR<Prisma.AuthorityCreateWithoutManagementGroupInput, Prisma.AuthorityUncheckedCreateWithoutManagementGroupInput> | Prisma.AuthorityCreateWithoutManagementGroupInput[] | Prisma.AuthorityUncheckedCreateWithoutManagementGroupInput[]
+  connectOrCreate?: Prisma.AuthorityCreateOrConnectWithoutManagementGroupInput | Prisma.AuthorityCreateOrConnectWithoutManagementGroupInput[]
+  upsert?: Prisma.AuthorityUpsertWithWhereUniqueWithoutManagementGroupInput | Prisma.AuthorityUpsertWithWhereUniqueWithoutManagementGroupInput[]
+  createMany?: Prisma.AuthorityCreateManyManagementGroupInputEnvelope
   set?: Prisma.AuthorityWhereUniqueInput | Prisma.AuthorityWhereUniqueInput[]
   disconnect?: Prisma.AuthorityWhereUniqueInput | Prisma.AuthorityWhereUniqueInput[]
   delete?: Prisma.AuthorityWhereUniqueInput | Prisma.AuthorityWhereUniqueInput[]
   connect?: Prisma.AuthorityWhereUniqueInput | Prisma.AuthorityWhereUniqueInput[]
-  update?: Prisma.AuthorityUpdateWithWhereUniqueWithoutManageGroupInput | Prisma.AuthorityUpdateWithWhereUniqueWithoutManageGroupInput[]
-  updateMany?: Prisma.AuthorityUpdateManyWithWhereWithoutManageGroupInput | Prisma.AuthorityUpdateManyWithWhereWithoutManageGroupInput[]
+  update?: Prisma.AuthorityUpdateWithWhereUniqueWithoutManagementGroupInput | Prisma.AuthorityUpdateWithWhereUniqueWithoutManagementGroupInput[]
+  updateMany?: Prisma.AuthorityUpdateManyWithWhereWithoutManagementGroupInput | Prisma.AuthorityUpdateManyWithWhereWithoutManagementGroupInput[]
   deleteMany?: Prisma.AuthorityScalarWhereInput | Prisma.AuthorityScalarWhereInput[]
 }
 
-export type AuthorityUncheckedUpdateManyWithoutManageGroupNestedInput = {
-  create?: Prisma.XOR<Prisma.AuthorityCreateWithoutManageGroupInput, Prisma.AuthorityUncheckedCreateWithoutManageGroupInput> | Prisma.AuthorityCreateWithoutManageGroupInput[] | Prisma.AuthorityUncheckedCreateWithoutManageGroupInput[]
-  connectOrCreate?: Prisma.AuthorityCreateOrConnectWithoutManageGroupInput | Prisma.AuthorityCreateOrConnectWithoutManageGroupInput[]
-  upsert?: Prisma.AuthorityUpsertWithWhereUniqueWithoutManageGroupInput | Prisma.AuthorityUpsertWithWhereUniqueWithoutManageGroupInput[]
-  createMany?: Prisma.AuthorityCreateManyManageGroupInputEnvelope
+export type AuthorityUncheckedUpdateManyWithoutManagementGroupNestedInput = {
+  create?: Prisma.XOR<Prisma.AuthorityCreateWithoutManagementGroupInput, Prisma.AuthorityUncheckedCreateWithoutManagementGroupInput> | Prisma.AuthorityCreateWithoutManagementGroupInput[] | Prisma.AuthorityUncheckedCreateWithoutManagementGroupInput[]
+  connectOrCreate?: Prisma.AuthorityCreateOrConnectWithoutManagementGroupInput | Prisma.AuthorityCreateOrConnectWithoutManagementGroupInput[]
+  upsert?: Prisma.AuthorityUpsertWithWhereUniqueWithoutManagementGroupInput | Prisma.AuthorityUpsertWithWhereUniqueWithoutManagementGroupInput[]
+  createMany?: Prisma.AuthorityCreateManyManagementGroupInputEnvelope
   set?: Prisma.AuthorityWhereUniqueInput | Prisma.AuthorityWhereUniqueInput[]
   disconnect?: Prisma.AuthorityWhereUniqueInput | Prisma.AuthorityWhereUniqueInput[]
   delete?: Prisma.AuthorityWhereUniqueInput | Prisma.AuthorityWhereUniqueInput[]
   connect?: Prisma.AuthorityWhereUniqueInput | Prisma.AuthorityWhereUniqueInput[]
-  update?: Prisma.AuthorityUpdateWithWhereUniqueWithoutManageGroupInput | Prisma.AuthorityUpdateWithWhereUniqueWithoutManageGroupInput[]
-  updateMany?: Prisma.AuthorityUpdateManyWithWhereWithoutManageGroupInput | Prisma.AuthorityUpdateManyWithWhereWithoutManageGroupInput[]
+  update?: Prisma.AuthorityUpdateWithWhereUniqueWithoutManagementGroupInput | Prisma.AuthorityUpdateWithWhereUniqueWithoutManagementGroupInput[]
+  updateMany?: Prisma.AuthorityUpdateManyWithWhereWithoutManagementGroupInput | Prisma.AuthorityUpdateManyWithWhereWithoutManagementGroupInput[]
   deleteMany?: Prisma.AuthorityScalarWhereInput | Prisma.AuthorityScalarWhereInput[]
 }
 
@@ -492,7 +492,7 @@ export type AuthorityUncheckedUpdateManyWithoutAuthorityRoleNestedInput = {
 }
 
 export type AuthorityCreateWithoutAccountInput = {
-  ManageGroup: Prisma.ManagementGroupCreateNestedOneWithoutAuthoritiesInput
+  ManagementGroup: Prisma.ManagementGroupCreateNestedOneWithoutAuthoritiesInput
   AuthorityRole: Prisma.AuthorityRoleCreateNestedOneWithoutAuthoritiesInput
 }
 
@@ -538,46 +538,46 @@ export type AuthorityScalarWhereInput = {
   AuthorityRoleKey?: Prisma.IntFilter<"Authority"> | number
 }
 
-export type AuthorityCreateWithoutManageGroupInput = {
-  Account: Prisma.AccountInfoCreateNestedOneWithoutAuthoritiesInput
+export type AuthorityCreateWithoutManagementGroupInput = {
+  Account: Prisma.AccountCreateNestedOneWithoutAuthoritiesInput
   AuthorityRole: Prisma.AuthorityRoleCreateNestedOneWithoutAuthoritiesInput
 }
 
-export type AuthorityUncheckedCreateWithoutManageGroupInput = {
+export type AuthorityUncheckedCreateWithoutManagementGroupInput = {
   AuthorityKey?: number
   AccountKey: number
   AuthorityRoleKey: number
 }
 
-export type AuthorityCreateOrConnectWithoutManageGroupInput = {
+export type AuthorityCreateOrConnectWithoutManagementGroupInput = {
   where: Prisma.AuthorityWhereUniqueInput
-  create: Prisma.XOR<Prisma.AuthorityCreateWithoutManageGroupInput, Prisma.AuthorityUncheckedCreateWithoutManageGroupInput>
+  create: Prisma.XOR<Prisma.AuthorityCreateWithoutManagementGroupInput, Prisma.AuthorityUncheckedCreateWithoutManagementGroupInput>
 }
 
-export type AuthorityCreateManyManageGroupInputEnvelope = {
-  data: Prisma.AuthorityCreateManyManageGroupInput | Prisma.AuthorityCreateManyManageGroupInput[]
+export type AuthorityCreateManyManagementGroupInputEnvelope = {
+  data: Prisma.AuthorityCreateManyManagementGroupInput | Prisma.AuthorityCreateManyManagementGroupInput[]
   skipDuplicates?: boolean
 }
 
-export type AuthorityUpsertWithWhereUniqueWithoutManageGroupInput = {
+export type AuthorityUpsertWithWhereUniqueWithoutManagementGroupInput = {
   where: Prisma.AuthorityWhereUniqueInput
-  update: Prisma.XOR<Prisma.AuthorityUpdateWithoutManageGroupInput, Prisma.AuthorityUncheckedUpdateWithoutManageGroupInput>
-  create: Prisma.XOR<Prisma.AuthorityCreateWithoutManageGroupInput, Prisma.AuthorityUncheckedCreateWithoutManageGroupInput>
+  update: Prisma.XOR<Prisma.AuthorityUpdateWithoutManagementGroupInput, Prisma.AuthorityUncheckedUpdateWithoutManagementGroupInput>
+  create: Prisma.XOR<Prisma.AuthorityCreateWithoutManagementGroupInput, Prisma.AuthorityUncheckedCreateWithoutManagementGroupInput>
 }
 
-export type AuthorityUpdateWithWhereUniqueWithoutManageGroupInput = {
+export type AuthorityUpdateWithWhereUniqueWithoutManagementGroupInput = {
   where: Prisma.AuthorityWhereUniqueInput
-  data: Prisma.XOR<Prisma.AuthorityUpdateWithoutManageGroupInput, Prisma.AuthorityUncheckedUpdateWithoutManageGroupInput>
+  data: Prisma.XOR<Prisma.AuthorityUpdateWithoutManagementGroupInput, Prisma.AuthorityUncheckedUpdateWithoutManagementGroupInput>
 }
 
-export type AuthorityUpdateManyWithWhereWithoutManageGroupInput = {
+export type AuthorityUpdateManyWithWhereWithoutManagementGroupInput = {
   where: Prisma.AuthorityScalarWhereInput
-  data: Prisma.XOR<Prisma.AuthorityUpdateManyMutationInput, Prisma.AuthorityUncheckedUpdateManyWithoutManageGroupInput>
+  data: Prisma.XOR<Prisma.AuthorityUpdateManyMutationInput, Prisma.AuthorityUncheckedUpdateManyWithoutManagementGroupInput>
 }
 
 export type AuthorityCreateWithoutAuthorityRoleInput = {
-  Account: Prisma.AccountInfoCreateNestedOneWithoutAuthoritiesInput
-  ManageGroup: Prisma.ManagementGroupCreateNestedOneWithoutAuthoritiesInput
+  Account: Prisma.AccountCreateNestedOneWithoutAuthoritiesInput
+  ManagementGroup: Prisma.ManagementGroupCreateNestedOneWithoutAuthoritiesInput
 }
 
 export type AuthorityUncheckedCreateWithoutAuthorityRoleInput = {
@@ -619,7 +619,7 @@ export type AuthorityCreateManyAccountInput = {
 }
 
 export type AuthorityUpdateWithoutAccountInput = {
-  ManageGroup?: Prisma.ManagementGroupUpdateOneRequiredWithoutAuthoritiesNestedInput
+  ManagementGroup?: Prisma.ManagementGroupUpdateOneRequiredWithoutAuthoritiesNestedInput
   AuthorityRole?: Prisma.AuthorityRoleUpdateOneRequiredWithoutAuthoritiesNestedInput
 }
 
@@ -635,24 +635,24 @@ export type AuthorityUncheckedUpdateManyWithoutAccountInput = {
   AuthorityRoleKey?: Prisma.IntFieldUpdateOperationsInput | number
 }
 
-export type AuthorityCreateManyManageGroupInput = {
+export type AuthorityCreateManyManagementGroupInput = {
   AuthorityKey?: number
   AccountKey: number
   AuthorityRoleKey: number
 }
 
-export type AuthorityUpdateWithoutManageGroupInput = {
-  Account?: Prisma.AccountInfoUpdateOneRequiredWithoutAuthoritiesNestedInput
+export type AuthorityUpdateWithoutManagementGroupInput = {
+  Account?: Prisma.AccountUpdateOneRequiredWithoutAuthoritiesNestedInput
   AuthorityRole?: Prisma.AuthorityRoleUpdateOneRequiredWithoutAuthoritiesNestedInput
 }
 
-export type AuthorityUncheckedUpdateWithoutManageGroupInput = {
+export type AuthorityUncheckedUpdateWithoutManagementGroupInput = {
   AuthorityKey?: Prisma.IntFieldUpdateOperationsInput | number
   AccountKey?: Prisma.IntFieldUpdateOperationsInput | number
   AuthorityRoleKey?: Prisma.IntFieldUpdateOperationsInput | number
 }
 
-export type AuthorityUncheckedUpdateManyWithoutManageGroupInput = {
+export type AuthorityUncheckedUpdateManyWithoutManagementGroupInput = {
   AuthorityKey?: Prisma.IntFieldUpdateOperationsInput | number
   AccountKey?: Prisma.IntFieldUpdateOperationsInput | number
   AuthorityRoleKey?: Prisma.IntFieldUpdateOperationsInput | number
@@ -665,8 +665,8 @@ export type AuthorityCreateManyAuthorityRoleInput = {
 }
 
 export type AuthorityUpdateWithoutAuthorityRoleInput = {
-  Account?: Prisma.AccountInfoUpdateOneRequiredWithoutAuthoritiesNestedInput
-  ManageGroup?: Prisma.ManagementGroupUpdateOneRequiredWithoutAuthoritiesNestedInput
+  Account?: Prisma.AccountUpdateOneRequiredWithoutAuthoritiesNestedInput
+  ManagementGroup?: Prisma.ManagementGroupUpdateOneRequiredWithoutAuthoritiesNestedInput
 }
 
 export type AuthorityUncheckedUpdateWithoutAuthorityRoleInput = {
@@ -688,8 +688,8 @@ export type AuthoritySelect<ExtArgs extends runtime.Types.Extensions.InternalArg
   AccountKey?: boolean
   ManageGroupKey?: boolean
   AuthorityRoleKey?: boolean
-  Account?: boolean | Prisma.AccountInfoDefaultArgs<ExtArgs>
-  ManageGroup?: boolean | Prisma.ManagementGroupDefaultArgs<ExtArgs>
+  Account?: boolean | Prisma.AccountDefaultArgs<ExtArgs>
+  ManagementGroup?: boolean | Prisma.ManagementGroupDefaultArgs<ExtArgs>
   AuthorityRole?: boolean | Prisma.AuthorityRoleDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["authority"]>
 
@@ -698,8 +698,8 @@ export type AuthoritySelectCreateManyAndReturn<ExtArgs extends runtime.Types.Ext
   AccountKey?: boolean
   ManageGroupKey?: boolean
   AuthorityRoleKey?: boolean
-  Account?: boolean | Prisma.AccountInfoDefaultArgs<ExtArgs>
-  ManageGroup?: boolean | Prisma.ManagementGroupDefaultArgs<ExtArgs>
+  Account?: boolean | Prisma.AccountDefaultArgs<ExtArgs>
+  ManagementGroup?: boolean | Prisma.ManagementGroupDefaultArgs<ExtArgs>
   AuthorityRole?: boolean | Prisma.AuthorityRoleDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["authority"]>
 
@@ -708,8 +708,8 @@ export type AuthoritySelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Ext
   AccountKey?: boolean
   ManageGroupKey?: boolean
   AuthorityRoleKey?: boolean
-  Account?: boolean | Prisma.AccountInfoDefaultArgs<ExtArgs>
-  ManageGroup?: boolean | Prisma.ManagementGroupDefaultArgs<ExtArgs>
+  Account?: boolean | Prisma.AccountDefaultArgs<ExtArgs>
+  ManagementGroup?: boolean | Prisma.ManagementGroupDefaultArgs<ExtArgs>
   AuthorityRole?: boolean | Prisma.AuthorityRoleDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["authority"]>
 
@@ -722,26 +722,26 @@ export type AuthoritySelectScalar = {
 
 export type AuthorityOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"AuthorityKey" | "AccountKey" | "ManageGroupKey" | "AuthorityRoleKey", ExtArgs["result"]["authority"]>
 export type AuthorityInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  Account?: boolean | Prisma.AccountInfoDefaultArgs<ExtArgs>
-  ManageGroup?: boolean | Prisma.ManagementGroupDefaultArgs<ExtArgs>
+  Account?: boolean | Prisma.AccountDefaultArgs<ExtArgs>
+  ManagementGroup?: boolean | Prisma.ManagementGroupDefaultArgs<ExtArgs>
   AuthorityRole?: boolean | Prisma.AuthorityRoleDefaultArgs<ExtArgs>
 }
 export type AuthorityIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  Account?: boolean | Prisma.AccountInfoDefaultArgs<ExtArgs>
-  ManageGroup?: boolean | Prisma.ManagementGroupDefaultArgs<ExtArgs>
+  Account?: boolean | Prisma.AccountDefaultArgs<ExtArgs>
+  ManagementGroup?: boolean | Prisma.ManagementGroupDefaultArgs<ExtArgs>
   AuthorityRole?: boolean | Prisma.AuthorityRoleDefaultArgs<ExtArgs>
 }
 export type AuthorityIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  Account?: boolean | Prisma.AccountInfoDefaultArgs<ExtArgs>
-  ManageGroup?: boolean | Prisma.ManagementGroupDefaultArgs<ExtArgs>
+  Account?: boolean | Prisma.AccountDefaultArgs<ExtArgs>
+  ManagementGroup?: boolean | Prisma.ManagementGroupDefaultArgs<ExtArgs>
   AuthorityRole?: boolean | Prisma.AuthorityRoleDefaultArgs<ExtArgs>
 }
 
 export type $AuthorityPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "Authority"
   objects: {
-    Account: Prisma.$AccountInfoPayload<ExtArgs>
-    ManageGroup: Prisma.$ManagementGroupPayload<ExtArgs>
+    Account: Prisma.$AccountPayload<ExtArgs>
+    ManagementGroup: Prisma.$ManagementGroupPayload<ExtArgs>
     AuthorityRole: Prisma.$AuthorityRolePayload<ExtArgs>
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
@@ -1143,8 +1143,8 @@ readonly fields: AuthorityFieldRefs;
  */
 export interface Prisma__AuthorityClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
-  Account<T extends Prisma.AccountInfoDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AccountInfoDefaultArgs<ExtArgs>>): Prisma.Prisma__AccountInfoClient<runtime.Types.Result.GetResult<Prisma.$AccountInfoPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
-  ManageGroup<T extends Prisma.ManagementGroupDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ManagementGroupDefaultArgs<ExtArgs>>): Prisma.Prisma__ManagementGroupClient<runtime.Types.Result.GetResult<Prisma.$ManagementGroupPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+  Account<T extends Prisma.AccountDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AccountDefaultArgs<ExtArgs>>): Prisma.Prisma__AccountClient<runtime.Types.Result.GetResult<Prisma.$AccountPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+  ManagementGroup<T extends Prisma.ManagementGroupDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ManagementGroupDefaultArgs<ExtArgs>>): Prisma.Prisma__ManagementGroupClient<runtime.Types.Result.GetResult<Prisma.$ManagementGroupPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   AuthorityRole<T extends Prisma.AuthorityRoleDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AuthorityRoleDefaultArgs<ExtArgs>>): Prisma.Prisma__AuthorityRoleClient<runtime.Types.Result.GetResult<Prisma.$AuthorityRolePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
