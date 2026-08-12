@@ -241,3 +241,107 @@ function item(
     nextAvailableAt: extra?.nextAvailableAt,
   };
 }
+
+/* ==================== Bookable rooms & spaces (T3) ==================== */
+
+/**
+ * Room booking is a separate flow from equipment lending: rooms are booked by
+ * time slot rather than allocated as units, so they get their own view type
+ * instead of being squeezed into CatalogItem.
+ */
+export type RoomType = "lab" | "meet" | "lect" | "shop";
+
+export interface RoomTypeDef {
+  id: RoomType;
+  /** i18n key suffix under borrower.rooms (typeLab, typeMeet, ...). */
+  labelKey: string;
+}
+
+export const ROOM_TYPES: RoomTypeDef[] = [
+  { id: "lab", labelKey: "typeLab" },
+  { id: "meet", labelKey: "typeMeet" },
+  { id: "lect", labelKey: "typeLect" },
+  { id: "shop", labelKey: "typeShop" },
+];
+
+export interface Building {
+  id: string;
+  name: string;
+}
+
+export const BUILDINGS: Building[] = [
+  { id: "b2", name: "อาคาร 2" },
+  { id: "b4", name: "อาคาร 4" },
+  { id: "b9", name: "อาคาร 9" },
+];
+
+export function buildingName(id: string): string {
+  return BUILDINGS.find((b) => b.id === id)?.name ?? id;
+}
+
+/** Capacity buckets for the filter rail — derived from `capacity`, not stored. */
+export type CapacityBand = "s" | "m" | "l";
+
+export const CAPACITY_BANDS: CapacityBand[] = ["s", "m", "l"];
+
+export function capacityBand(capacity: number): CapacityBand {
+  if (capacity <= 20) return "s";
+  if (capacity <= 50) return "m";
+  return "l";
+}
+
+export interface Room {
+  id: string;
+  /** Room code on the door plate, e.g. "FAC-CAD2". */
+  code: string;
+  name: string;
+  buildingId: string;
+  type: RoomType;
+  /** Seats. */
+  capacity: number;
+  /** Bookable one-hour slots still open today, out of `totalSlots`. */
+  freeSlots: number;
+  totalSlots: number;
+  /** First slot open after today; absent when the room is free today. */
+  nextAvailableAt?: string;
+}
+
+/**
+ * Every room runs the same 8 bookable hours a day (09:00–17:00).
+ * Declared above ROOMS on purpose: `room()` hoists, but this `const` does not,
+ * so building the array first would read it inside its temporal dead zone.
+ */
+const SLOTS_PER_DAY = 8;
+
+export const ROOMS: Room[] = [
+  room("FAC-CAD2", "ห้องปฏิบัติการ CAD 2", "b9", "lab", 40, 3, "2026-08-12T15:00:00+07:00"),
+  room("FAC-COM1", "ห้องปฏิบัติการคอมพิวเตอร์ 1", "b9", "lab", 50, 5, "2026-08-12T09:00:00+07:00"),
+  room("FAC-MTG-EE", "ห้องประชุมภาควิชาไฟฟ้า", "b4", "meet", 12, 6, "2026-08-12T09:00:00+07:00"),
+  room("FAC-MTG-L3", "ห้องประชุมใหญ่ ชั้น 3", "b9", "meet", 30, 2, "2026-08-13T13:00:00+07:00"),
+  room("FAC-LEC-201", "ห้องบรรยาย 9-201", "b9", "lect", 120, 4, "2026-08-12T11:00:00+07:00"),
+  room("FAC-LEC-105", "ห้องบรรยาย 4-105", "b4", "lect", 80, 0, "2026-08-14T09:00:00+07:00"),
+  room("FAC-WS-ME", "โรงประลองเครื่องกล", "b2", "shop", 24, 3, "2026-08-12T13:00:00+07:00"),
+  room("FAC-STU-1", "ห้องสตูดิโอออกแบบ", "b9", "shop", 20, 7),
+];
+
+function room(
+  code: string,
+  name: string,
+  buildingId: string,
+  type: RoomType,
+  capacity: number,
+  freeSlots: number,
+  nextAvailableAt?: string,
+): Room {
+  return {
+    id: `room-${code.toLowerCase()}`,
+    code,
+    name,
+    buildingId,
+    type,
+    capacity,
+    freeSlots,
+    totalSlots: SLOTS_PER_DAY,
+    nextAvailableAt,
+  };
+}

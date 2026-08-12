@@ -75,6 +75,7 @@ export const ROUTES = {
   // Borrower
   CATALOG: "/catalog",
   EQUIPMENT_DETAIL: "/catalog/:id",
+  ROOMS: "/rooms",
   MY_LOANS: "/my/loans",
   MY_HISTORY: "/my/history",
   MY_CREDIT: "/my/credit",
@@ -114,6 +115,7 @@ export const ROLE_ROUTES = {
     ROUTES.HOME,
     ROUTES.CATALOG,
     ROUTES.EQUIPMENT_DETAIL,
+    ROUTES.ROOMS,
     ROUTES.MY_LOANS,
     ROUTES.MY_HISTORY,
     ROUTES.MY_CREDIT,

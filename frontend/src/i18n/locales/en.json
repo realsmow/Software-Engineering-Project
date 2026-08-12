@@ -119,6 +119,7 @@
     "more": "More",
     "home": "Home",
     "catalog": "Equipment catalog",
+    "rooms": "Room list",
     "myRequests": "My requests",
     "loanHistory": "Loan history",
     "creditScore": "Credit score",
@@ -348,18 +349,20 @@
     }
   },
   "borrower": {
+    "filters": {
+      "title": "Filters",
+      "button": "Filters",
+      "clear": "Clear",
+      "clearAll": "Clear filters",
+      "active": "Active filters:"
+    },
     "catalog": {
       "subtitle": "Browse equipment available across the faculty, check live stock, and add what you need to a borrow request",
-      "filters": "Filters",
-      "filterButton": "Filters",
-      "clear": "Clear",
-      "clearFilters": "Clear filters",
       "searchPlaceholder": "Search by name, code or brand",
       "sortLabel": "Sort by",
       "sortAvail": "Most available",
       "sortName": "Name A–Z",
       "sortPopular": "Most popular",
-      "activeFilters": "Active filters:",
       "showing": "Showing {{shown}} of {{total}} items",
       "colItem": "Equipment",
       "colDept": "Department",
@@ -418,6 +421,36 @@
       "days": "{{count}} days",
       "notFound": "Equipment not found",
       "notFoundDesc": "This item may have been removed from the system. Try finding it again from the catalog."
+    },
+    "rooms": {
+      "subtitle": "Browse labs, meeting rooms, and shared spaces across the faculty. Check today's free slots and book one.",
+      "searchPlaceholder": "Search room name or code",
+      "note": "Room booking is separate from equipment borrowing. If you also need equipment in the room, create a separate equipment request.",
+      "colRoom": "Room",
+      "colBuilding": "Building",
+      "colType": "Type",
+      "colCap": "Capacity",
+      "colSlotFree": "Free slots today",
+      "colNext": "Next available",
+      "book": "Book this room",
+      "full": "Fully booked",
+      "picked": "Selected: {{name}}",
+      "fType": "Room type",
+      "fBuilding": "Building",
+      "fCapacity": "Capacity",
+      "typeLab": "Laboratory",
+      "typeMeet": "Meeting room",
+      "typeLect": "Lecture hall",
+      "typeShop": "Workshop & studio",
+      "capS": "Up to 20 seats",
+      "capM": "21–50 seats",
+      "capL": "More than 50 seats",
+      "seats": "{{count}} seats",
+      "slots": "{{free}} / {{total}} slots",
+      "showing": "Showing {{shown}} of {{total}} rooms",
+      "emptyTitle": "No rooms match your filters",
+      "emptyDesc": "Try removing a filter or changing your search term.",
+      "photoPlaceholder": "Room photo"
     }
   }
 }

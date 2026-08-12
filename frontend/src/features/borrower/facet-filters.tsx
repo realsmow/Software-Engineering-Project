@@ -7,7 +7,7 @@ export interface FilterOption {
   label: string;
   /** Label for the active-filter chip when the rail label needs disambiguating ("Tier: T2"). */
   chipLabel?: string;
-  /** How many items in the full catalog match, not the filtered view. */
+  /** How many items in the full list match, not the filtered view. */
   count: number;
 }
 
@@ -18,13 +18,15 @@ export interface FilterGroup {
 }
 
 /**
- * Catalog filter list. Chrome-free on purpose — the desktop rail wraps it in a
+ * Faceted filter list shared by the borrower's browse pages (equipment
+ * catalog, room list). Chrome-free on purpose — the desktop rail wraps it in a
  * card and the mobile Sheet renders it as the drawer body, so both share one
  * implementation.
  *
- * Options are OR-ed within a group and AND-ed across groups (see catalog-page).
+ * Options are OR-ed within a group and AND-ed across groups; the owning page
+ * does the actual filtering.
  */
-export function CatalogFilters({
+export function FacetFilters({
   groups,
   selected,
   onToggle,
@@ -46,14 +48,14 @@ export function CatalogFilters({
       {showHeader ? (
         <div className="flex items-center justify-between gap-2 px-3.5 py-2.5">
           <span className="text-[11px] font-semibold uppercase tracking-[0.07em] text-t3">
-            {t("borrower.catalog.filters")}
+            {t("borrower.filters.title")}
           </span>
           <button
             type="button"
             onClick={onClear}
             className="text-xs font-medium text-accent transition-colors hover:text-accent-hover"
           >
-            {t("borrower.catalog.clear")}
+            {t("borrower.filters.clear")}
           </button>
         </div>
       ) : null}
@@ -89,4 +91,4 @@ export function CatalogFilters({
   );
 }
 
-export default CatalogFilters;
+export default FacetFilters;
