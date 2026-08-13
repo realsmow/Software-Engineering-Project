@@ -2,7 +2,7 @@
  * ค่าคงที่ของระบบ ULMs
  * ตรงกับ business rules ในเอกสาร proposal
  */
-import type { Role } from "@/types/domain";
+import type { CreditBand, Role } from "@/types/domain";
 
 // ==================== Polling Intervals (ms) ====================
 export const POLLING = {
@@ -58,6 +58,24 @@ export const CREDIT_BANDS = [
   { band: "D3", min: 0, max: 29, loanDays: 5, label: "เสี่ยงสูง" },
 ] as const;
 
+/**
+ * What each credit band is allowed to do when opening a request.
+ * - `needsSupervisor`: D2/D3 must get supervisor sign-off on T1 items too, not
+ *   just the usual T2 ones.
+ * - `blocked`: D3 cannot open a new request until outstanding items are cleared.
+ * Kept beside CREDIT_BANDS rather than inside it so the band table stays the
+ * plain score → loan-days lookup that other screens already read.
+ */
+export const CREDIT_BAND_POLICY: Record<
+  CreditBand,
+  { needsSupervisor: boolean; blocked: boolean }
+> = {
+  D0: { needsSupervisor: false, blocked: false },
+  D1: { needsSupervisor: false, blocked: false },
+  D2: { needsSupervisor: true, blocked: false },
+  D3: { needsSupervisor: true, blocked: true },
+};
+
 // ==================== Damage Level Config ====================
 export const DAMAGE_LEVELS = {
   B0: { label: "ตามการใช้งานปรกติ", weight: 0 },
@@ -76,6 +94,8 @@ export const ROUTES = {
   CATALOG: "/catalog",
   EQUIPMENT_DETAIL: "/catalog/:id",
   ROOMS: "/rooms",
+  ROOM_BOOKING: "/rooms/:id/book",
+  REQUEST: "/request",
   MY_LOANS: "/my/loans",
   MY_HISTORY: "/my/history",
   MY_CREDIT: "/my/credit",
@@ -116,6 +136,8 @@ export const ROLE_ROUTES = {
     ROUTES.CATALOG,
     ROUTES.EQUIPMENT_DETAIL,
     ROUTES.ROOMS,
+    ROUTES.ROOM_BOOKING,
+    ROUTES.REQUEST,
     ROUTES.MY_LOANS,
     ROUTES.MY_HISTORY,
     ROUTES.MY_CREDIT,

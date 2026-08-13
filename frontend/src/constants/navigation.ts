@@ -17,6 +17,12 @@ export interface NavItem {
   /** i18n key (e.g. "nav.home") resolved with t() at render time. */
   labelKey: string;
   icon: string;
+  /**
+   * Badge number. Left unset on the borrower items: the mockup's figures were
+   * decoration (it claimed 148 catalog rows against 13 real ones), and a wrong
+   * count is worse than none. Wire these to live totals when the API lands —
+   * from a hook in the feature, not from a literal here.
+   */
   count?: number;
   active?: boolean;
   /** Existing ROUTES value. `undefined` = route not defined yet (TODO). */
@@ -48,9 +54,10 @@ export const NAV_CONFIG: Record<Role, RoleNav> = {
         labelKey: "nav.borrower",
         items: [
           { key: "home", labelKey: "nav.home", icon: "home", route: ROUTES.HOME },
-          { key: "catalog", labelKey: "nav.catalog", icon: "grid", count: 148, route: ROUTES.CATALOG },
-          { key: "rooms", labelKey: "nav.rooms", icon: "building", count: 8, route: ROUTES.ROOMS },
-          { key: "requests", labelKey: "nav.myRequests", icon: "file", count: 2, route: ROUTES.MY_LOANS },
+          { key: "catalog", labelKey: "nav.catalog", icon: "grid", route: ROUTES.CATALOG },
+          { key: "rooms", labelKey: "nav.rooms", icon: "building", route: ROUTES.ROOMS },
+          { key: "new-request", labelKey: "nav.newRequest", icon: "file-plus", route: ROUTES.REQUEST },
+          { key: "requests", labelKey: "nav.myRequests", icon: "file", route: ROUTES.MY_LOANS },
           { key: "history", labelKey: "nav.loanHistory", icon: "clock", route: ROUTES.MY_HISTORY },
           { key: "credit", labelKey: "nav.creditScore", icon: "award", route: ROUTES.MY_CREDIT },
           { key: "appeals", labelKey: "nav.appeals", icon: "shield", route: ROUTES.APPEALS },
@@ -66,8 +73,9 @@ export const NAV_CONFIG: Record<Role, RoleNav> = {
         labelKey: "nav.borrower",
         items: [
           { key: "home", labelKey: "nav.home", icon: "home", route: ROUTES.HOME },
-          { key: "catalog", labelKey: "nav.catalog", icon: "grid", count: 148, route: ROUTES.CATALOG },
-          { key: "rooms", labelKey: "nav.rooms", icon: "building", count: 8, route: ROUTES.ROOMS },
+          { key: "catalog", labelKey: "nav.catalog", icon: "grid", route: ROUTES.CATALOG },
+          { key: "rooms", labelKey: "nav.rooms", icon: "building", route: ROUTES.ROOMS },
+          { key: "new-request", labelKey: "nav.newRequest", icon: "file-plus", route: ROUTES.REQUEST },
           { key: "requests", labelKey: "nav.myRequests", icon: "file", route: ROUTES.MY_LOANS },
         ],
       },
@@ -106,6 +114,7 @@ export const NAV_CONFIG: Record<Role, RoleNav> = {
           { key: "home", labelKey: "nav.home", icon: "home", route: ROUTES.HOME },
           { key: "catalog", labelKey: "nav.catalog", icon: "grid", route: ROUTES.CATALOG },
           { key: "rooms", labelKey: "nav.rooms", icon: "building", route: ROUTES.ROOMS },
+          { key: "new-request", labelKey: "nav.newRequest", icon: "file-plus", route: ROUTES.REQUEST },
           { key: "requests", labelKey: "nav.myRequests", icon: "file", route: ROUTES.MY_LOANS },
         ],
       },
@@ -163,6 +172,7 @@ export const NAV_CONFIG: Record<Role, RoleNav> = {
 const NON_NAV_TITLE_KEYS: Record<string, string> = {
   [ROUTES.PROFILE]: "profile.title",
   [ROUTES.EQUIPMENT_DETAIL]: "nav.equipmentDetail",
+  [ROUTES.ROOM_BOOKING]: "nav.roomBooking",
 };
 
 /** Flat lookup: route path → i18n label key (for breadcrumb + placeholder title). */
