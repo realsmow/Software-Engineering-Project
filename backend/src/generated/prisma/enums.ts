@@ -17,9 +17,20 @@ export const GroupType = {
 export type GroupType = (typeof GroupType)[keyof typeof GroupType]
 
 
+export const ConditionType = {
+  Normal: 'Normal',
+  MinorDamage: 'MinorDamage',
+  MajorDamage: 'MajorDamage',
+  Broken: 'Broken',
+  Missing: 'Missing'
+} as const
+
+export type ConditionType = (typeof ConditionType)[keyof typeof ConditionType]
+
+
 export const ResourceStatus = {
   InStorage: 'InStorage',
-  Lending: 'Lending',
+  Lended: 'Lended',
   Missing: 'Missing'
 } as const
 
@@ -32,26 +43,6 @@ export const ResourceType = {
 } as const
 
 export type ResourceType = (typeof ResourceType)[keyof typeof ResourceType]
-
-
-export const ConditionStatus = {
-  Usable: 'Usable',
-  MinorDamage: 'MinorDamage',
-  Broken: 'Broken',
-  Missing: 'Missing'
-} as const
-
-export type ConditionStatus = (typeof ConditionStatus)[keyof typeof ConditionStatus]
-
-
-export const ApproveStatus = {
-  Pending: 'Pending',
-  Approved: 'Approved',
-  Denied: 'Denied',
-  Canceled: 'Canceled'
-} as const
-
-export type ApproveStatus = (typeof ApproveStatus)[keyof typeof ApproveStatus]
 
 
 export const CurrentStatus = {
@@ -76,27 +67,18 @@ export const PenaltyReason = {
 export type PenaltyReason = (typeof PenaltyReason)[keyof typeof PenaltyReason]
 
 
-export const Verdict = {
-  NoProblem: 'NoProblem',
-  MinorDamage: 'MinorDamage',
-  SignificantDamage: 'SignificantDamage',
-  Broken: 'Broken'
+export const ApproveStatus = {
+  Pending: 'Pending',
+  Approved: 'Approved',
+  Rejected: 'Rejected',
+  Canceled: 'Canceled'
 } as const
 
-export type Verdict = (typeof Verdict)[keyof typeof Verdict]
-
-
-export const PenaltyStatus = {
-  InEffect: 'InEffect',
-  Appealed: 'Appealed',
-  Ended: 'Ended'
-} as const
-
-export type PenaltyStatus = (typeof PenaltyStatus)[keyof typeof PenaltyStatus]
+export type ApproveStatus = (typeof ApproveStatus)[keyof typeof ApproveStatus]
 
 
 export const NotificationType = {
-  Announcement: 'Announcement',
+  Anonuncement: 'Anonuncement',
   Approval: 'Approval',
   Warning: 'Warning'
 } as const

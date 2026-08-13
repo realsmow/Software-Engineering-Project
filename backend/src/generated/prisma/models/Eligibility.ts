@@ -27,75 +27,75 @@ export type AggregateEligibility = {
 }
 
 export type EligibilityAvgAggregateOutputType = {
-  EligibilityKey: number | null
+  EliKey: number | null
   ResourceKey: number | null
-  ManageGroupKey: number | null
-  AuthorityRoleKey: number | null
+  GroupKey: number | null
+  RoleKey: number | null
 }
 
 export type EligibilitySumAggregateOutputType = {
-  EligibilityKey: number | null
+  EliKey: number | null
   ResourceKey: number | null
-  ManageGroupKey: number | null
-  AuthorityRoleKey: number | null
+  GroupKey: number | null
+  RoleKey: number | null
 }
 
 export type EligibilityMinAggregateOutputType = {
-  EligibilityKey: number | null
+  EliKey: number | null
   ResourceKey: number | null
-  ManageGroupKey: number | null
-  AuthorityRoleKey: number | null
+  GroupKey: number | null
+  RoleKey: number | null
 }
 
 export type EligibilityMaxAggregateOutputType = {
-  EligibilityKey: number | null
+  EliKey: number | null
   ResourceKey: number | null
-  ManageGroupKey: number | null
-  AuthorityRoleKey: number | null
+  GroupKey: number | null
+  RoleKey: number | null
 }
 
 export type EligibilityCountAggregateOutputType = {
-  EligibilityKey: number
+  EliKey: number
   ResourceKey: number
-  ManageGroupKey: number
-  AuthorityRoleKey: number
+  GroupKey: number
+  RoleKey: number
   _all: number
 }
 
 
 export type EligibilityAvgAggregateInputType = {
-  EligibilityKey?: true
+  EliKey?: true
   ResourceKey?: true
-  ManageGroupKey?: true
-  AuthorityRoleKey?: true
+  GroupKey?: true
+  RoleKey?: true
 }
 
 export type EligibilitySumAggregateInputType = {
-  EligibilityKey?: true
+  EliKey?: true
   ResourceKey?: true
-  ManageGroupKey?: true
-  AuthorityRoleKey?: true
+  GroupKey?: true
+  RoleKey?: true
 }
 
 export type EligibilityMinAggregateInputType = {
-  EligibilityKey?: true
+  EliKey?: true
   ResourceKey?: true
-  ManageGroupKey?: true
-  AuthorityRoleKey?: true
+  GroupKey?: true
+  RoleKey?: true
 }
 
 export type EligibilityMaxAggregateInputType = {
-  EligibilityKey?: true
+  EliKey?: true
   ResourceKey?: true
-  ManageGroupKey?: true
-  AuthorityRoleKey?: true
+  GroupKey?: true
+  RoleKey?: true
 }
 
 export type EligibilityCountAggregateInputType = {
-  EligibilityKey?: true
+  EliKey?: true
   ResourceKey?: true
-  ManageGroupKey?: true
-  AuthorityRoleKey?: true
+  GroupKey?: true
+  RoleKey?: true
   _all?: true
 }
 
@@ -186,10 +186,10 @@ export type EligibilityGroupByArgs<ExtArgs extends runtime.Types.Extensions.Inte
 }
 
 export type EligibilityGroupByOutputType = {
-  EligibilityKey: number
+  EliKey: number
   ResourceKey: number
-  ManageGroupKey: number
-  AuthorityRoleKey: number
+  GroupKey: number
+  RoleKey: number
   _count: EligibilityCountAggregateOutputType | null
   _avg: EligibilityAvgAggregateOutputType | null
   _sum: EligibilitySumAggregateOutputType | null
@@ -216,44 +216,44 @@ export type EligibilityWhereInput = {
   AND?: Prisma.EligibilityWhereInput | Prisma.EligibilityWhereInput[]
   OR?: Prisma.EligibilityWhereInput[]
   NOT?: Prisma.EligibilityWhereInput | Prisma.EligibilityWhereInput[]
-  EligibilityKey?: Prisma.IntFilter<"Eligibility"> | number
+  EliKey?: Prisma.IntFilter<"Eligibility"> | number
   ResourceKey?: Prisma.IntFilter<"Eligibility"> | number
-  ManageGroupKey?: Prisma.IntFilter<"Eligibility"> | number
-  AuthorityRoleKey?: Prisma.IntFilter<"Eligibility"> | number
-  Resource?: Prisma.XOR<Prisma.ResourceScalarRelationFilter, Prisma.ResourceWhereInput>
-  ManagementGroup?: Prisma.XOR<Prisma.ManagementGroupScalarRelationFilter, Prisma.ManagementGroupWhereInput>
-  AuthorityRole?: Prisma.XOR<Prisma.AuthorityRoleScalarRelationFilter, Prisma.AuthorityRoleWhereInput>
+  GroupKey?: Prisma.IntFilter<"Eligibility"> | number
+  RoleKey?: Prisma.IntFilter<"Eligibility"> | number
+  Resource?: Prisma.XOR<Prisma.ResourceInfoScalarRelationFilter, Prisma.ResourceInfoWhereInput>
+  Group?: Prisma.XOR<Prisma.ManagementGroupScalarRelationFilter, Prisma.ManagementGroupWhereInput>
+  Role?: Prisma.XOR<Prisma.AuthorityRoleScalarRelationFilter, Prisma.AuthorityRoleWhereInput>
 }
 
 export type EligibilityOrderByWithRelationInput = {
-  EligibilityKey?: Prisma.SortOrder
+  EliKey?: Prisma.SortOrder
   ResourceKey?: Prisma.SortOrder
-  ManageGroupKey?: Prisma.SortOrder
-  AuthorityRoleKey?: Prisma.SortOrder
-  Resource?: Prisma.ResourceOrderByWithRelationInput
-  ManagementGroup?: Prisma.ManagementGroupOrderByWithRelationInput
-  AuthorityRole?: Prisma.AuthorityRoleOrderByWithRelationInput
+  GroupKey?: Prisma.SortOrder
+  RoleKey?: Prisma.SortOrder
+  Resource?: Prisma.ResourceInfoOrderByWithRelationInput
+  Group?: Prisma.ManagementGroupOrderByWithRelationInput
+  Role?: Prisma.AuthorityRoleOrderByWithRelationInput
 }
 
 export type EligibilityWhereUniqueInput = Prisma.AtLeast<{
-  EligibilityKey?: number
-  ManageGroupKey_ResourceKey_AuthorityRoleKey?: Prisma.EligibilityManageGroupKeyResourceKeyAuthorityRoleKeyCompoundUniqueInput
+  EliKey?: number
+  GroupKey_ResourceKey_RoleKey?: Prisma.EligibilityGroupKeyResourceKeyRoleKeyCompoundUniqueInput
   AND?: Prisma.EligibilityWhereInput | Prisma.EligibilityWhereInput[]
   OR?: Prisma.EligibilityWhereInput[]
   NOT?: Prisma.EligibilityWhereInput | Prisma.EligibilityWhereInput[]
   ResourceKey?: Prisma.IntFilter<"Eligibility"> | number
-  ManageGroupKey?: Prisma.IntFilter<"Eligibility"> | number
-  AuthorityRoleKey?: Prisma.IntFilter<"Eligibility"> | number
-  Resource?: Prisma.XOR<Prisma.ResourceScalarRelationFilter, Prisma.ResourceWhereInput>
-  ManagementGroup?: Prisma.XOR<Prisma.ManagementGroupScalarRelationFilter, Prisma.ManagementGroupWhereInput>
-  AuthorityRole?: Prisma.XOR<Prisma.AuthorityRoleScalarRelationFilter, Prisma.AuthorityRoleWhereInput>
-}, "EligibilityKey" | "ManageGroupKey_ResourceKey_AuthorityRoleKey">
+  GroupKey?: Prisma.IntFilter<"Eligibility"> | number
+  RoleKey?: Prisma.IntFilter<"Eligibility"> | number
+  Resource?: Prisma.XOR<Prisma.ResourceInfoScalarRelationFilter, Prisma.ResourceInfoWhereInput>
+  Group?: Prisma.XOR<Prisma.ManagementGroupScalarRelationFilter, Prisma.ManagementGroupWhereInput>
+  Role?: Prisma.XOR<Prisma.AuthorityRoleScalarRelationFilter, Prisma.AuthorityRoleWhereInput>
+}, "EliKey" | "GroupKey_ResourceKey_RoleKey">
 
 export type EligibilityOrderByWithAggregationInput = {
-  EligibilityKey?: Prisma.SortOrder
+  EliKey?: Prisma.SortOrder
   ResourceKey?: Prisma.SortOrder
-  ManageGroupKey?: Prisma.SortOrder
-  AuthorityRoleKey?: Prisma.SortOrder
+  GroupKey?: Prisma.SortOrder
+  RoleKey?: Prisma.SortOrder
   _count?: Prisma.EligibilityCountOrderByAggregateInput
   _avg?: Prisma.EligibilityAvgOrderByAggregateInput
   _max?: Prisma.EligibilityMaxOrderByAggregateInput
@@ -265,43 +265,43 @@ export type EligibilityScalarWhereWithAggregatesInput = {
   AND?: Prisma.EligibilityScalarWhereWithAggregatesInput | Prisma.EligibilityScalarWhereWithAggregatesInput[]
   OR?: Prisma.EligibilityScalarWhereWithAggregatesInput[]
   NOT?: Prisma.EligibilityScalarWhereWithAggregatesInput | Prisma.EligibilityScalarWhereWithAggregatesInput[]
-  EligibilityKey?: Prisma.IntWithAggregatesFilter<"Eligibility"> | number
+  EliKey?: Prisma.IntWithAggregatesFilter<"Eligibility"> | number
   ResourceKey?: Prisma.IntWithAggregatesFilter<"Eligibility"> | number
-  ManageGroupKey?: Prisma.IntWithAggregatesFilter<"Eligibility"> | number
-  AuthorityRoleKey?: Prisma.IntWithAggregatesFilter<"Eligibility"> | number
+  GroupKey?: Prisma.IntWithAggregatesFilter<"Eligibility"> | number
+  RoleKey?: Prisma.IntWithAggregatesFilter<"Eligibility"> | number
 }
 
 export type EligibilityCreateInput = {
-  Resource: Prisma.ResourceCreateNestedOneWithoutEligibilitiesInput
-  ManagementGroup: Prisma.ManagementGroupCreateNestedOneWithoutEligibilitiesInput
-  AuthorityRole: Prisma.AuthorityRoleCreateNestedOneWithoutEligibilitiesInput
+  Resource: Prisma.ResourceInfoCreateNestedOneWithoutEligibilitiesInput
+  Group: Prisma.ManagementGroupCreateNestedOneWithoutEligibilitiesInput
+  Role: Prisma.AuthorityRoleCreateNestedOneWithoutEligibilitiesInput
 }
 
 export type EligibilityUncheckedCreateInput = {
-  EligibilityKey?: number
+  EliKey?: number
   ResourceKey: number
-  ManageGroupKey: number
-  AuthorityRoleKey: number
+  GroupKey: number
+  RoleKey: number
 }
 
 export type EligibilityUpdateInput = {
-  Resource?: Prisma.ResourceUpdateOneRequiredWithoutEligibilitiesNestedInput
-  ManagementGroup?: Prisma.ManagementGroupUpdateOneRequiredWithoutEligibilitiesNestedInput
-  AuthorityRole?: Prisma.AuthorityRoleUpdateOneRequiredWithoutEligibilitiesNestedInput
+  Resource?: Prisma.ResourceInfoUpdateOneRequiredWithoutEligibilitiesNestedInput
+  Group?: Prisma.ManagementGroupUpdateOneRequiredWithoutEligibilitiesNestedInput
+  Role?: Prisma.AuthorityRoleUpdateOneRequiredWithoutEligibilitiesNestedInput
 }
 
 export type EligibilityUncheckedUpdateInput = {
-  EligibilityKey?: Prisma.IntFieldUpdateOperationsInput | number
+  EliKey?: Prisma.IntFieldUpdateOperationsInput | number
   ResourceKey?: Prisma.IntFieldUpdateOperationsInput | number
-  ManageGroupKey?: Prisma.IntFieldUpdateOperationsInput | number
-  AuthorityRoleKey?: Prisma.IntFieldUpdateOperationsInput | number
+  GroupKey?: Prisma.IntFieldUpdateOperationsInput | number
+  RoleKey?: Prisma.IntFieldUpdateOperationsInput | number
 }
 
 export type EligibilityCreateManyInput = {
-  EligibilityKey?: number
+  EliKey?: number
   ResourceKey: number
-  ManageGroupKey: number
-  AuthorityRoleKey: number
+  GroupKey: number
+  RoleKey: number
 }
 
 export type EligibilityUpdateManyMutationInput = {
@@ -309,10 +309,10 @@ export type EligibilityUpdateManyMutationInput = {
 }
 
 export type EligibilityUncheckedUpdateManyInput = {
-  EligibilityKey?: Prisma.IntFieldUpdateOperationsInput | number
+  EliKey?: Prisma.IntFieldUpdateOperationsInput | number
   ResourceKey?: Prisma.IntFieldUpdateOperationsInput | number
-  ManageGroupKey?: Prisma.IntFieldUpdateOperationsInput | number
-  AuthorityRoleKey?: Prisma.IntFieldUpdateOperationsInput | number
+  GroupKey?: Prisma.IntFieldUpdateOperationsInput | number
+  RoleKey?: Prisma.IntFieldUpdateOperationsInput | number
 }
 
 export type EligibilityListRelationFilter = {
@@ -325,128 +325,128 @@ export type EligibilityOrderByRelationAggregateInput = {
   _count?: Prisma.SortOrder
 }
 
-export type EligibilityManageGroupKeyResourceKeyAuthorityRoleKeyCompoundUniqueInput = {
-  ManageGroupKey: number
+export type EligibilityGroupKeyResourceKeyRoleKeyCompoundUniqueInput = {
+  GroupKey: number
   ResourceKey: number
-  AuthorityRoleKey: number
+  RoleKey: number
 }
 
 export type EligibilityCountOrderByAggregateInput = {
-  EligibilityKey?: Prisma.SortOrder
+  EliKey?: Prisma.SortOrder
   ResourceKey?: Prisma.SortOrder
-  ManageGroupKey?: Prisma.SortOrder
-  AuthorityRoleKey?: Prisma.SortOrder
+  GroupKey?: Prisma.SortOrder
+  RoleKey?: Prisma.SortOrder
 }
 
 export type EligibilityAvgOrderByAggregateInput = {
-  EligibilityKey?: Prisma.SortOrder
+  EliKey?: Prisma.SortOrder
   ResourceKey?: Prisma.SortOrder
-  ManageGroupKey?: Prisma.SortOrder
-  AuthorityRoleKey?: Prisma.SortOrder
+  GroupKey?: Prisma.SortOrder
+  RoleKey?: Prisma.SortOrder
 }
 
 export type EligibilityMaxOrderByAggregateInput = {
-  EligibilityKey?: Prisma.SortOrder
+  EliKey?: Prisma.SortOrder
   ResourceKey?: Prisma.SortOrder
-  ManageGroupKey?: Prisma.SortOrder
-  AuthorityRoleKey?: Prisma.SortOrder
+  GroupKey?: Prisma.SortOrder
+  RoleKey?: Prisma.SortOrder
 }
 
 export type EligibilityMinOrderByAggregateInput = {
-  EligibilityKey?: Prisma.SortOrder
+  EliKey?: Prisma.SortOrder
   ResourceKey?: Prisma.SortOrder
-  ManageGroupKey?: Prisma.SortOrder
-  AuthorityRoleKey?: Prisma.SortOrder
+  GroupKey?: Prisma.SortOrder
+  RoleKey?: Prisma.SortOrder
 }
 
 export type EligibilitySumOrderByAggregateInput = {
-  EligibilityKey?: Prisma.SortOrder
+  EliKey?: Prisma.SortOrder
   ResourceKey?: Prisma.SortOrder
-  ManageGroupKey?: Prisma.SortOrder
-  AuthorityRoleKey?: Prisma.SortOrder
+  GroupKey?: Prisma.SortOrder
+  RoleKey?: Prisma.SortOrder
 }
 
-export type EligibilityCreateNestedManyWithoutManagementGroupInput = {
-  create?: Prisma.XOR<Prisma.EligibilityCreateWithoutManagementGroupInput, Prisma.EligibilityUncheckedCreateWithoutManagementGroupInput> | Prisma.EligibilityCreateWithoutManagementGroupInput[] | Prisma.EligibilityUncheckedCreateWithoutManagementGroupInput[]
-  connectOrCreate?: Prisma.EligibilityCreateOrConnectWithoutManagementGroupInput | Prisma.EligibilityCreateOrConnectWithoutManagementGroupInput[]
-  createMany?: Prisma.EligibilityCreateManyManagementGroupInputEnvelope
+export type EligibilityCreateNestedManyWithoutGroupInput = {
+  create?: Prisma.XOR<Prisma.EligibilityCreateWithoutGroupInput, Prisma.EligibilityUncheckedCreateWithoutGroupInput> | Prisma.EligibilityCreateWithoutGroupInput[] | Prisma.EligibilityUncheckedCreateWithoutGroupInput[]
+  connectOrCreate?: Prisma.EligibilityCreateOrConnectWithoutGroupInput | Prisma.EligibilityCreateOrConnectWithoutGroupInput[]
+  createMany?: Prisma.EligibilityCreateManyGroupInputEnvelope
   connect?: Prisma.EligibilityWhereUniqueInput | Prisma.EligibilityWhereUniqueInput[]
 }
 
-export type EligibilityUncheckedCreateNestedManyWithoutManagementGroupInput = {
-  create?: Prisma.XOR<Prisma.EligibilityCreateWithoutManagementGroupInput, Prisma.EligibilityUncheckedCreateWithoutManagementGroupInput> | Prisma.EligibilityCreateWithoutManagementGroupInput[] | Prisma.EligibilityUncheckedCreateWithoutManagementGroupInput[]
-  connectOrCreate?: Prisma.EligibilityCreateOrConnectWithoutManagementGroupInput | Prisma.EligibilityCreateOrConnectWithoutManagementGroupInput[]
-  createMany?: Prisma.EligibilityCreateManyManagementGroupInputEnvelope
+export type EligibilityUncheckedCreateNestedManyWithoutGroupInput = {
+  create?: Prisma.XOR<Prisma.EligibilityCreateWithoutGroupInput, Prisma.EligibilityUncheckedCreateWithoutGroupInput> | Prisma.EligibilityCreateWithoutGroupInput[] | Prisma.EligibilityUncheckedCreateWithoutGroupInput[]
+  connectOrCreate?: Prisma.EligibilityCreateOrConnectWithoutGroupInput | Prisma.EligibilityCreateOrConnectWithoutGroupInput[]
+  createMany?: Prisma.EligibilityCreateManyGroupInputEnvelope
   connect?: Prisma.EligibilityWhereUniqueInput | Prisma.EligibilityWhereUniqueInput[]
 }
 
-export type EligibilityUpdateManyWithoutManagementGroupNestedInput = {
-  create?: Prisma.XOR<Prisma.EligibilityCreateWithoutManagementGroupInput, Prisma.EligibilityUncheckedCreateWithoutManagementGroupInput> | Prisma.EligibilityCreateWithoutManagementGroupInput[] | Prisma.EligibilityUncheckedCreateWithoutManagementGroupInput[]
-  connectOrCreate?: Prisma.EligibilityCreateOrConnectWithoutManagementGroupInput | Prisma.EligibilityCreateOrConnectWithoutManagementGroupInput[]
-  upsert?: Prisma.EligibilityUpsertWithWhereUniqueWithoutManagementGroupInput | Prisma.EligibilityUpsertWithWhereUniqueWithoutManagementGroupInput[]
-  createMany?: Prisma.EligibilityCreateManyManagementGroupInputEnvelope
+export type EligibilityUpdateManyWithoutGroupNestedInput = {
+  create?: Prisma.XOR<Prisma.EligibilityCreateWithoutGroupInput, Prisma.EligibilityUncheckedCreateWithoutGroupInput> | Prisma.EligibilityCreateWithoutGroupInput[] | Prisma.EligibilityUncheckedCreateWithoutGroupInput[]
+  connectOrCreate?: Prisma.EligibilityCreateOrConnectWithoutGroupInput | Prisma.EligibilityCreateOrConnectWithoutGroupInput[]
+  upsert?: Prisma.EligibilityUpsertWithWhereUniqueWithoutGroupInput | Prisma.EligibilityUpsertWithWhereUniqueWithoutGroupInput[]
+  createMany?: Prisma.EligibilityCreateManyGroupInputEnvelope
   set?: Prisma.EligibilityWhereUniqueInput | Prisma.EligibilityWhereUniqueInput[]
   disconnect?: Prisma.EligibilityWhereUniqueInput | Prisma.EligibilityWhereUniqueInput[]
   delete?: Prisma.EligibilityWhereUniqueInput | Prisma.EligibilityWhereUniqueInput[]
   connect?: Prisma.EligibilityWhereUniqueInput | Prisma.EligibilityWhereUniqueInput[]
-  update?: Prisma.EligibilityUpdateWithWhereUniqueWithoutManagementGroupInput | Prisma.EligibilityUpdateWithWhereUniqueWithoutManagementGroupInput[]
-  updateMany?: Prisma.EligibilityUpdateManyWithWhereWithoutManagementGroupInput | Prisma.EligibilityUpdateManyWithWhereWithoutManagementGroupInput[]
+  update?: Prisma.EligibilityUpdateWithWhereUniqueWithoutGroupInput | Prisma.EligibilityUpdateWithWhereUniqueWithoutGroupInput[]
+  updateMany?: Prisma.EligibilityUpdateManyWithWhereWithoutGroupInput | Prisma.EligibilityUpdateManyWithWhereWithoutGroupInput[]
   deleteMany?: Prisma.EligibilityScalarWhereInput | Prisma.EligibilityScalarWhereInput[]
 }
 
-export type EligibilityUncheckedUpdateManyWithoutManagementGroupNestedInput = {
-  create?: Prisma.XOR<Prisma.EligibilityCreateWithoutManagementGroupInput, Prisma.EligibilityUncheckedCreateWithoutManagementGroupInput> | Prisma.EligibilityCreateWithoutManagementGroupInput[] | Prisma.EligibilityUncheckedCreateWithoutManagementGroupInput[]
-  connectOrCreate?: Prisma.EligibilityCreateOrConnectWithoutManagementGroupInput | Prisma.EligibilityCreateOrConnectWithoutManagementGroupInput[]
-  upsert?: Prisma.EligibilityUpsertWithWhereUniqueWithoutManagementGroupInput | Prisma.EligibilityUpsertWithWhereUniqueWithoutManagementGroupInput[]
-  createMany?: Prisma.EligibilityCreateManyManagementGroupInputEnvelope
+export type EligibilityUncheckedUpdateManyWithoutGroupNestedInput = {
+  create?: Prisma.XOR<Prisma.EligibilityCreateWithoutGroupInput, Prisma.EligibilityUncheckedCreateWithoutGroupInput> | Prisma.EligibilityCreateWithoutGroupInput[] | Prisma.EligibilityUncheckedCreateWithoutGroupInput[]
+  connectOrCreate?: Prisma.EligibilityCreateOrConnectWithoutGroupInput | Prisma.EligibilityCreateOrConnectWithoutGroupInput[]
+  upsert?: Prisma.EligibilityUpsertWithWhereUniqueWithoutGroupInput | Prisma.EligibilityUpsertWithWhereUniqueWithoutGroupInput[]
+  createMany?: Prisma.EligibilityCreateManyGroupInputEnvelope
   set?: Prisma.EligibilityWhereUniqueInput | Prisma.EligibilityWhereUniqueInput[]
   disconnect?: Prisma.EligibilityWhereUniqueInput | Prisma.EligibilityWhereUniqueInput[]
   delete?: Prisma.EligibilityWhereUniqueInput | Prisma.EligibilityWhereUniqueInput[]
   connect?: Prisma.EligibilityWhereUniqueInput | Prisma.EligibilityWhereUniqueInput[]
-  update?: Prisma.EligibilityUpdateWithWhereUniqueWithoutManagementGroupInput | Prisma.EligibilityUpdateWithWhereUniqueWithoutManagementGroupInput[]
-  updateMany?: Prisma.EligibilityUpdateManyWithWhereWithoutManagementGroupInput | Prisma.EligibilityUpdateManyWithWhereWithoutManagementGroupInput[]
+  update?: Prisma.EligibilityUpdateWithWhereUniqueWithoutGroupInput | Prisma.EligibilityUpdateWithWhereUniqueWithoutGroupInput[]
+  updateMany?: Prisma.EligibilityUpdateManyWithWhereWithoutGroupInput | Prisma.EligibilityUpdateManyWithWhereWithoutGroupInput[]
   deleteMany?: Prisma.EligibilityScalarWhereInput | Prisma.EligibilityScalarWhereInput[]
 }
 
-export type EligibilityCreateNestedManyWithoutAuthorityRoleInput = {
-  create?: Prisma.XOR<Prisma.EligibilityCreateWithoutAuthorityRoleInput, Prisma.EligibilityUncheckedCreateWithoutAuthorityRoleInput> | Prisma.EligibilityCreateWithoutAuthorityRoleInput[] | Prisma.EligibilityUncheckedCreateWithoutAuthorityRoleInput[]
-  connectOrCreate?: Prisma.EligibilityCreateOrConnectWithoutAuthorityRoleInput | Prisma.EligibilityCreateOrConnectWithoutAuthorityRoleInput[]
-  createMany?: Prisma.EligibilityCreateManyAuthorityRoleInputEnvelope
+export type EligibilityCreateNestedManyWithoutRoleInput = {
+  create?: Prisma.XOR<Prisma.EligibilityCreateWithoutRoleInput, Prisma.EligibilityUncheckedCreateWithoutRoleInput> | Prisma.EligibilityCreateWithoutRoleInput[] | Prisma.EligibilityUncheckedCreateWithoutRoleInput[]
+  connectOrCreate?: Prisma.EligibilityCreateOrConnectWithoutRoleInput | Prisma.EligibilityCreateOrConnectWithoutRoleInput[]
+  createMany?: Prisma.EligibilityCreateManyRoleInputEnvelope
   connect?: Prisma.EligibilityWhereUniqueInput | Prisma.EligibilityWhereUniqueInput[]
 }
 
-export type EligibilityUncheckedCreateNestedManyWithoutAuthorityRoleInput = {
-  create?: Prisma.XOR<Prisma.EligibilityCreateWithoutAuthorityRoleInput, Prisma.EligibilityUncheckedCreateWithoutAuthorityRoleInput> | Prisma.EligibilityCreateWithoutAuthorityRoleInput[] | Prisma.EligibilityUncheckedCreateWithoutAuthorityRoleInput[]
-  connectOrCreate?: Prisma.EligibilityCreateOrConnectWithoutAuthorityRoleInput | Prisma.EligibilityCreateOrConnectWithoutAuthorityRoleInput[]
-  createMany?: Prisma.EligibilityCreateManyAuthorityRoleInputEnvelope
+export type EligibilityUncheckedCreateNestedManyWithoutRoleInput = {
+  create?: Prisma.XOR<Prisma.EligibilityCreateWithoutRoleInput, Prisma.EligibilityUncheckedCreateWithoutRoleInput> | Prisma.EligibilityCreateWithoutRoleInput[] | Prisma.EligibilityUncheckedCreateWithoutRoleInput[]
+  connectOrCreate?: Prisma.EligibilityCreateOrConnectWithoutRoleInput | Prisma.EligibilityCreateOrConnectWithoutRoleInput[]
+  createMany?: Prisma.EligibilityCreateManyRoleInputEnvelope
   connect?: Prisma.EligibilityWhereUniqueInput | Prisma.EligibilityWhereUniqueInput[]
 }
 
-export type EligibilityUpdateManyWithoutAuthorityRoleNestedInput = {
-  create?: Prisma.XOR<Prisma.EligibilityCreateWithoutAuthorityRoleInput, Prisma.EligibilityUncheckedCreateWithoutAuthorityRoleInput> | Prisma.EligibilityCreateWithoutAuthorityRoleInput[] | Prisma.EligibilityUncheckedCreateWithoutAuthorityRoleInput[]
-  connectOrCreate?: Prisma.EligibilityCreateOrConnectWithoutAuthorityRoleInput | Prisma.EligibilityCreateOrConnectWithoutAuthorityRoleInput[]
-  upsert?: Prisma.EligibilityUpsertWithWhereUniqueWithoutAuthorityRoleInput | Prisma.EligibilityUpsertWithWhereUniqueWithoutAuthorityRoleInput[]
-  createMany?: Prisma.EligibilityCreateManyAuthorityRoleInputEnvelope
+export type EligibilityUpdateManyWithoutRoleNestedInput = {
+  create?: Prisma.XOR<Prisma.EligibilityCreateWithoutRoleInput, Prisma.EligibilityUncheckedCreateWithoutRoleInput> | Prisma.EligibilityCreateWithoutRoleInput[] | Prisma.EligibilityUncheckedCreateWithoutRoleInput[]
+  connectOrCreate?: Prisma.EligibilityCreateOrConnectWithoutRoleInput | Prisma.EligibilityCreateOrConnectWithoutRoleInput[]
+  upsert?: Prisma.EligibilityUpsertWithWhereUniqueWithoutRoleInput | Prisma.EligibilityUpsertWithWhereUniqueWithoutRoleInput[]
+  createMany?: Prisma.EligibilityCreateManyRoleInputEnvelope
   set?: Prisma.EligibilityWhereUniqueInput | Prisma.EligibilityWhereUniqueInput[]
   disconnect?: Prisma.EligibilityWhereUniqueInput | Prisma.EligibilityWhereUniqueInput[]
   delete?: Prisma.EligibilityWhereUniqueInput | Prisma.EligibilityWhereUniqueInput[]
   connect?: Prisma.EligibilityWhereUniqueInput | Prisma.EligibilityWhereUniqueInput[]
-  update?: Prisma.EligibilityUpdateWithWhereUniqueWithoutAuthorityRoleInput | Prisma.EligibilityUpdateWithWhereUniqueWithoutAuthorityRoleInput[]
-  updateMany?: Prisma.EligibilityUpdateManyWithWhereWithoutAuthorityRoleInput | Prisma.EligibilityUpdateManyWithWhereWithoutAuthorityRoleInput[]
+  update?: Prisma.EligibilityUpdateWithWhereUniqueWithoutRoleInput | Prisma.EligibilityUpdateWithWhereUniqueWithoutRoleInput[]
+  updateMany?: Prisma.EligibilityUpdateManyWithWhereWithoutRoleInput | Prisma.EligibilityUpdateManyWithWhereWithoutRoleInput[]
   deleteMany?: Prisma.EligibilityScalarWhereInput | Prisma.EligibilityScalarWhereInput[]
 }
 
-export type EligibilityUncheckedUpdateManyWithoutAuthorityRoleNestedInput = {
-  create?: Prisma.XOR<Prisma.EligibilityCreateWithoutAuthorityRoleInput, Prisma.EligibilityUncheckedCreateWithoutAuthorityRoleInput> | Prisma.EligibilityCreateWithoutAuthorityRoleInput[] | Prisma.EligibilityUncheckedCreateWithoutAuthorityRoleInput[]
-  connectOrCreate?: Prisma.EligibilityCreateOrConnectWithoutAuthorityRoleInput | Prisma.EligibilityCreateOrConnectWithoutAuthorityRoleInput[]
-  upsert?: Prisma.EligibilityUpsertWithWhereUniqueWithoutAuthorityRoleInput | Prisma.EligibilityUpsertWithWhereUniqueWithoutAuthorityRoleInput[]
-  createMany?: Prisma.EligibilityCreateManyAuthorityRoleInputEnvelope
+export type EligibilityUncheckedUpdateManyWithoutRoleNestedInput = {
+  create?: Prisma.XOR<Prisma.EligibilityCreateWithoutRoleInput, Prisma.EligibilityUncheckedCreateWithoutRoleInput> | Prisma.EligibilityCreateWithoutRoleInput[] | Prisma.EligibilityUncheckedCreateWithoutRoleInput[]
+  connectOrCreate?: Prisma.EligibilityCreateOrConnectWithoutRoleInput | Prisma.EligibilityCreateOrConnectWithoutRoleInput[]
+  upsert?: Prisma.EligibilityUpsertWithWhereUniqueWithoutRoleInput | Prisma.EligibilityUpsertWithWhereUniqueWithoutRoleInput[]
+  createMany?: Prisma.EligibilityCreateManyRoleInputEnvelope
   set?: Prisma.EligibilityWhereUniqueInput | Prisma.EligibilityWhereUniqueInput[]
   disconnect?: Prisma.EligibilityWhereUniqueInput | Prisma.EligibilityWhereUniqueInput[]
   delete?: Prisma.EligibilityWhereUniqueInput | Prisma.EligibilityWhereUniqueInput[]
   connect?: Prisma.EligibilityWhereUniqueInput | Prisma.EligibilityWhereUniqueInput[]
-  update?: Prisma.EligibilityUpdateWithWhereUniqueWithoutAuthorityRoleInput | Prisma.EligibilityUpdateWithWhereUniqueWithoutAuthorityRoleInput[]
-  updateMany?: Prisma.EligibilityUpdateManyWithWhereWithoutAuthorityRoleInput | Prisma.EligibilityUpdateManyWithWhereWithoutAuthorityRoleInput[]
+  update?: Prisma.EligibilityUpdateWithWhereUniqueWithoutRoleInput | Prisma.EligibilityUpdateWithWhereUniqueWithoutRoleInput[]
+  updateMany?: Prisma.EligibilityUpdateManyWithWhereWithoutRoleInput | Prisma.EligibilityUpdateManyWithWhereWithoutRoleInput[]
   deleteMany?: Prisma.EligibilityScalarWhereInput | Prisma.EligibilityScalarWhereInput[]
 }
 
@@ -492,99 +492,99 @@ export type EligibilityUncheckedUpdateManyWithoutResourceNestedInput = {
   deleteMany?: Prisma.EligibilityScalarWhereInput | Prisma.EligibilityScalarWhereInput[]
 }
 
-export type EligibilityCreateWithoutManagementGroupInput = {
-  Resource: Prisma.ResourceCreateNestedOneWithoutEligibilitiesInput
-  AuthorityRole: Prisma.AuthorityRoleCreateNestedOneWithoutEligibilitiesInput
+export type EligibilityCreateWithoutGroupInput = {
+  Resource: Prisma.ResourceInfoCreateNestedOneWithoutEligibilitiesInput
+  Role: Prisma.AuthorityRoleCreateNestedOneWithoutEligibilitiesInput
 }
 
-export type EligibilityUncheckedCreateWithoutManagementGroupInput = {
-  EligibilityKey?: number
+export type EligibilityUncheckedCreateWithoutGroupInput = {
+  EliKey?: number
   ResourceKey: number
-  AuthorityRoleKey: number
+  RoleKey: number
 }
 
-export type EligibilityCreateOrConnectWithoutManagementGroupInput = {
+export type EligibilityCreateOrConnectWithoutGroupInput = {
   where: Prisma.EligibilityWhereUniqueInput
-  create: Prisma.XOR<Prisma.EligibilityCreateWithoutManagementGroupInput, Prisma.EligibilityUncheckedCreateWithoutManagementGroupInput>
+  create: Prisma.XOR<Prisma.EligibilityCreateWithoutGroupInput, Prisma.EligibilityUncheckedCreateWithoutGroupInput>
 }
 
-export type EligibilityCreateManyManagementGroupInputEnvelope = {
-  data: Prisma.EligibilityCreateManyManagementGroupInput | Prisma.EligibilityCreateManyManagementGroupInput[]
+export type EligibilityCreateManyGroupInputEnvelope = {
+  data: Prisma.EligibilityCreateManyGroupInput | Prisma.EligibilityCreateManyGroupInput[]
   skipDuplicates?: boolean
 }
 
-export type EligibilityUpsertWithWhereUniqueWithoutManagementGroupInput = {
+export type EligibilityUpsertWithWhereUniqueWithoutGroupInput = {
   where: Prisma.EligibilityWhereUniqueInput
-  update: Prisma.XOR<Prisma.EligibilityUpdateWithoutManagementGroupInput, Prisma.EligibilityUncheckedUpdateWithoutManagementGroupInput>
-  create: Prisma.XOR<Prisma.EligibilityCreateWithoutManagementGroupInput, Prisma.EligibilityUncheckedCreateWithoutManagementGroupInput>
+  update: Prisma.XOR<Prisma.EligibilityUpdateWithoutGroupInput, Prisma.EligibilityUncheckedUpdateWithoutGroupInput>
+  create: Prisma.XOR<Prisma.EligibilityCreateWithoutGroupInput, Prisma.EligibilityUncheckedCreateWithoutGroupInput>
 }
 
-export type EligibilityUpdateWithWhereUniqueWithoutManagementGroupInput = {
+export type EligibilityUpdateWithWhereUniqueWithoutGroupInput = {
   where: Prisma.EligibilityWhereUniqueInput
-  data: Prisma.XOR<Prisma.EligibilityUpdateWithoutManagementGroupInput, Prisma.EligibilityUncheckedUpdateWithoutManagementGroupInput>
+  data: Prisma.XOR<Prisma.EligibilityUpdateWithoutGroupInput, Prisma.EligibilityUncheckedUpdateWithoutGroupInput>
 }
 
-export type EligibilityUpdateManyWithWhereWithoutManagementGroupInput = {
+export type EligibilityUpdateManyWithWhereWithoutGroupInput = {
   where: Prisma.EligibilityScalarWhereInput
-  data: Prisma.XOR<Prisma.EligibilityUpdateManyMutationInput, Prisma.EligibilityUncheckedUpdateManyWithoutManagementGroupInput>
+  data: Prisma.XOR<Prisma.EligibilityUpdateManyMutationInput, Prisma.EligibilityUncheckedUpdateManyWithoutGroupInput>
 }
 
 export type EligibilityScalarWhereInput = {
   AND?: Prisma.EligibilityScalarWhereInput | Prisma.EligibilityScalarWhereInput[]
   OR?: Prisma.EligibilityScalarWhereInput[]
   NOT?: Prisma.EligibilityScalarWhereInput | Prisma.EligibilityScalarWhereInput[]
-  EligibilityKey?: Prisma.IntFilter<"Eligibility"> | number
+  EliKey?: Prisma.IntFilter<"Eligibility"> | number
   ResourceKey?: Prisma.IntFilter<"Eligibility"> | number
-  ManageGroupKey?: Prisma.IntFilter<"Eligibility"> | number
-  AuthorityRoleKey?: Prisma.IntFilter<"Eligibility"> | number
+  GroupKey?: Prisma.IntFilter<"Eligibility"> | number
+  RoleKey?: Prisma.IntFilter<"Eligibility"> | number
 }
 
-export type EligibilityCreateWithoutAuthorityRoleInput = {
-  Resource: Prisma.ResourceCreateNestedOneWithoutEligibilitiesInput
-  ManagementGroup: Prisma.ManagementGroupCreateNestedOneWithoutEligibilitiesInput
+export type EligibilityCreateWithoutRoleInput = {
+  Resource: Prisma.ResourceInfoCreateNestedOneWithoutEligibilitiesInput
+  Group: Prisma.ManagementGroupCreateNestedOneWithoutEligibilitiesInput
 }
 
-export type EligibilityUncheckedCreateWithoutAuthorityRoleInput = {
-  EligibilityKey?: number
+export type EligibilityUncheckedCreateWithoutRoleInput = {
+  EliKey?: number
   ResourceKey: number
-  ManageGroupKey: number
+  GroupKey: number
 }
 
-export type EligibilityCreateOrConnectWithoutAuthorityRoleInput = {
+export type EligibilityCreateOrConnectWithoutRoleInput = {
   where: Prisma.EligibilityWhereUniqueInput
-  create: Prisma.XOR<Prisma.EligibilityCreateWithoutAuthorityRoleInput, Prisma.EligibilityUncheckedCreateWithoutAuthorityRoleInput>
+  create: Prisma.XOR<Prisma.EligibilityCreateWithoutRoleInput, Prisma.EligibilityUncheckedCreateWithoutRoleInput>
 }
 
-export type EligibilityCreateManyAuthorityRoleInputEnvelope = {
-  data: Prisma.EligibilityCreateManyAuthorityRoleInput | Prisma.EligibilityCreateManyAuthorityRoleInput[]
+export type EligibilityCreateManyRoleInputEnvelope = {
+  data: Prisma.EligibilityCreateManyRoleInput | Prisma.EligibilityCreateManyRoleInput[]
   skipDuplicates?: boolean
 }
 
-export type EligibilityUpsertWithWhereUniqueWithoutAuthorityRoleInput = {
+export type EligibilityUpsertWithWhereUniqueWithoutRoleInput = {
   where: Prisma.EligibilityWhereUniqueInput
-  update: Prisma.XOR<Prisma.EligibilityUpdateWithoutAuthorityRoleInput, Prisma.EligibilityUncheckedUpdateWithoutAuthorityRoleInput>
-  create: Prisma.XOR<Prisma.EligibilityCreateWithoutAuthorityRoleInput, Prisma.EligibilityUncheckedCreateWithoutAuthorityRoleInput>
+  update: Prisma.XOR<Prisma.EligibilityUpdateWithoutRoleInput, Prisma.EligibilityUncheckedUpdateWithoutRoleInput>
+  create: Prisma.XOR<Prisma.EligibilityCreateWithoutRoleInput, Prisma.EligibilityUncheckedCreateWithoutRoleInput>
 }
 
-export type EligibilityUpdateWithWhereUniqueWithoutAuthorityRoleInput = {
+export type EligibilityUpdateWithWhereUniqueWithoutRoleInput = {
   where: Prisma.EligibilityWhereUniqueInput
-  data: Prisma.XOR<Prisma.EligibilityUpdateWithoutAuthorityRoleInput, Prisma.EligibilityUncheckedUpdateWithoutAuthorityRoleInput>
+  data: Prisma.XOR<Prisma.EligibilityUpdateWithoutRoleInput, Prisma.EligibilityUncheckedUpdateWithoutRoleInput>
 }
 
-export type EligibilityUpdateManyWithWhereWithoutAuthorityRoleInput = {
+export type EligibilityUpdateManyWithWhereWithoutRoleInput = {
   where: Prisma.EligibilityScalarWhereInput
-  data: Prisma.XOR<Prisma.EligibilityUpdateManyMutationInput, Prisma.EligibilityUncheckedUpdateManyWithoutAuthorityRoleInput>
+  data: Prisma.XOR<Prisma.EligibilityUpdateManyMutationInput, Prisma.EligibilityUncheckedUpdateManyWithoutRoleInput>
 }
 
 export type EligibilityCreateWithoutResourceInput = {
-  ManagementGroup: Prisma.ManagementGroupCreateNestedOneWithoutEligibilitiesInput
-  AuthorityRole: Prisma.AuthorityRoleCreateNestedOneWithoutEligibilitiesInput
+  Group: Prisma.ManagementGroupCreateNestedOneWithoutEligibilitiesInput
+  Role: Prisma.AuthorityRoleCreateNestedOneWithoutEligibilitiesInput
 }
 
 export type EligibilityUncheckedCreateWithoutResourceInput = {
-  EligibilityKey?: number
-  ManageGroupKey: number
-  AuthorityRoleKey: number
+  EliKey?: number
+  GroupKey: number
+  RoleKey: number
 }
 
 export type EligibilityCreateOrConnectWithoutResourceInput = {
@@ -613,143 +613,143 @@ export type EligibilityUpdateManyWithWhereWithoutResourceInput = {
   data: Prisma.XOR<Prisma.EligibilityUpdateManyMutationInput, Prisma.EligibilityUncheckedUpdateManyWithoutResourceInput>
 }
 
-export type EligibilityCreateManyManagementGroupInput = {
-  EligibilityKey?: number
+export type EligibilityCreateManyGroupInput = {
+  EliKey?: number
   ResourceKey: number
-  AuthorityRoleKey: number
+  RoleKey: number
 }
 
-export type EligibilityUpdateWithoutManagementGroupInput = {
-  Resource?: Prisma.ResourceUpdateOneRequiredWithoutEligibilitiesNestedInput
-  AuthorityRole?: Prisma.AuthorityRoleUpdateOneRequiredWithoutEligibilitiesNestedInput
+export type EligibilityUpdateWithoutGroupInput = {
+  Resource?: Prisma.ResourceInfoUpdateOneRequiredWithoutEligibilitiesNestedInput
+  Role?: Prisma.AuthorityRoleUpdateOneRequiredWithoutEligibilitiesNestedInput
 }
 
-export type EligibilityUncheckedUpdateWithoutManagementGroupInput = {
-  EligibilityKey?: Prisma.IntFieldUpdateOperationsInput | number
+export type EligibilityUncheckedUpdateWithoutGroupInput = {
+  EliKey?: Prisma.IntFieldUpdateOperationsInput | number
   ResourceKey?: Prisma.IntFieldUpdateOperationsInput | number
-  AuthorityRoleKey?: Prisma.IntFieldUpdateOperationsInput | number
+  RoleKey?: Prisma.IntFieldUpdateOperationsInput | number
 }
 
-export type EligibilityUncheckedUpdateManyWithoutManagementGroupInput = {
-  EligibilityKey?: Prisma.IntFieldUpdateOperationsInput | number
+export type EligibilityUncheckedUpdateManyWithoutGroupInput = {
+  EliKey?: Prisma.IntFieldUpdateOperationsInput | number
   ResourceKey?: Prisma.IntFieldUpdateOperationsInput | number
-  AuthorityRoleKey?: Prisma.IntFieldUpdateOperationsInput | number
+  RoleKey?: Prisma.IntFieldUpdateOperationsInput | number
 }
 
-export type EligibilityCreateManyAuthorityRoleInput = {
-  EligibilityKey?: number
+export type EligibilityCreateManyRoleInput = {
+  EliKey?: number
   ResourceKey: number
-  ManageGroupKey: number
+  GroupKey: number
 }
 
-export type EligibilityUpdateWithoutAuthorityRoleInput = {
-  Resource?: Prisma.ResourceUpdateOneRequiredWithoutEligibilitiesNestedInput
-  ManagementGroup?: Prisma.ManagementGroupUpdateOneRequiredWithoutEligibilitiesNestedInput
+export type EligibilityUpdateWithoutRoleInput = {
+  Resource?: Prisma.ResourceInfoUpdateOneRequiredWithoutEligibilitiesNestedInput
+  Group?: Prisma.ManagementGroupUpdateOneRequiredWithoutEligibilitiesNestedInput
 }
 
-export type EligibilityUncheckedUpdateWithoutAuthorityRoleInput = {
-  EligibilityKey?: Prisma.IntFieldUpdateOperationsInput | number
+export type EligibilityUncheckedUpdateWithoutRoleInput = {
+  EliKey?: Prisma.IntFieldUpdateOperationsInput | number
   ResourceKey?: Prisma.IntFieldUpdateOperationsInput | number
-  ManageGroupKey?: Prisma.IntFieldUpdateOperationsInput | number
+  GroupKey?: Prisma.IntFieldUpdateOperationsInput | number
 }
 
-export type EligibilityUncheckedUpdateManyWithoutAuthorityRoleInput = {
-  EligibilityKey?: Prisma.IntFieldUpdateOperationsInput | number
+export type EligibilityUncheckedUpdateManyWithoutRoleInput = {
+  EliKey?: Prisma.IntFieldUpdateOperationsInput | number
   ResourceKey?: Prisma.IntFieldUpdateOperationsInput | number
-  ManageGroupKey?: Prisma.IntFieldUpdateOperationsInput | number
+  GroupKey?: Prisma.IntFieldUpdateOperationsInput | number
 }
 
 export type EligibilityCreateManyResourceInput = {
-  EligibilityKey?: number
-  ManageGroupKey: number
-  AuthorityRoleKey: number
+  EliKey?: number
+  GroupKey: number
+  RoleKey: number
 }
 
 export type EligibilityUpdateWithoutResourceInput = {
-  ManagementGroup?: Prisma.ManagementGroupUpdateOneRequiredWithoutEligibilitiesNestedInput
-  AuthorityRole?: Prisma.AuthorityRoleUpdateOneRequiredWithoutEligibilitiesNestedInput
+  Group?: Prisma.ManagementGroupUpdateOneRequiredWithoutEligibilitiesNestedInput
+  Role?: Prisma.AuthorityRoleUpdateOneRequiredWithoutEligibilitiesNestedInput
 }
 
 export type EligibilityUncheckedUpdateWithoutResourceInput = {
-  EligibilityKey?: Prisma.IntFieldUpdateOperationsInput | number
-  ManageGroupKey?: Prisma.IntFieldUpdateOperationsInput | number
-  AuthorityRoleKey?: Prisma.IntFieldUpdateOperationsInput | number
+  EliKey?: Prisma.IntFieldUpdateOperationsInput | number
+  GroupKey?: Prisma.IntFieldUpdateOperationsInput | number
+  RoleKey?: Prisma.IntFieldUpdateOperationsInput | number
 }
 
 export type EligibilityUncheckedUpdateManyWithoutResourceInput = {
-  EligibilityKey?: Prisma.IntFieldUpdateOperationsInput | number
-  ManageGroupKey?: Prisma.IntFieldUpdateOperationsInput | number
-  AuthorityRoleKey?: Prisma.IntFieldUpdateOperationsInput | number
+  EliKey?: Prisma.IntFieldUpdateOperationsInput | number
+  GroupKey?: Prisma.IntFieldUpdateOperationsInput | number
+  RoleKey?: Prisma.IntFieldUpdateOperationsInput | number
 }
 
 
 
 export type EligibilitySelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
-  EligibilityKey?: boolean
+  EliKey?: boolean
   ResourceKey?: boolean
-  ManageGroupKey?: boolean
-  AuthorityRoleKey?: boolean
-  Resource?: boolean | Prisma.ResourceDefaultArgs<ExtArgs>
-  ManagementGroup?: boolean | Prisma.ManagementGroupDefaultArgs<ExtArgs>
-  AuthorityRole?: boolean | Prisma.AuthorityRoleDefaultArgs<ExtArgs>
+  GroupKey?: boolean
+  RoleKey?: boolean
+  Resource?: boolean | Prisma.ResourceInfoDefaultArgs<ExtArgs>
+  Group?: boolean | Prisma.ManagementGroupDefaultArgs<ExtArgs>
+  Role?: boolean | Prisma.AuthorityRoleDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["eligibility"]>
 
 export type EligibilitySelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
-  EligibilityKey?: boolean
+  EliKey?: boolean
   ResourceKey?: boolean
-  ManageGroupKey?: boolean
-  AuthorityRoleKey?: boolean
-  Resource?: boolean | Prisma.ResourceDefaultArgs<ExtArgs>
-  ManagementGroup?: boolean | Prisma.ManagementGroupDefaultArgs<ExtArgs>
-  AuthorityRole?: boolean | Prisma.AuthorityRoleDefaultArgs<ExtArgs>
+  GroupKey?: boolean
+  RoleKey?: boolean
+  Resource?: boolean | Prisma.ResourceInfoDefaultArgs<ExtArgs>
+  Group?: boolean | Prisma.ManagementGroupDefaultArgs<ExtArgs>
+  Role?: boolean | Prisma.AuthorityRoleDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["eligibility"]>
 
 export type EligibilitySelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
-  EligibilityKey?: boolean
+  EliKey?: boolean
   ResourceKey?: boolean
-  ManageGroupKey?: boolean
-  AuthorityRoleKey?: boolean
-  Resource?: boolean | Prisma.ResourceDefaultArgs<ExtArgs>
-  ManagementGroup?: boolean | Prisma.ManagementGroupDefaultArgs<ExtArgs>
-  AuthorityRole?: boolean | Prisma.AuthorityRoleDefaultArgs<ExtArgs>
+  GroupKey?: boolean
+  RoleKey?: boolean
+  Resource?: boolean | Prisma.ResourceInfoDefaultArgs<ExtArgs>
+  Group?: boolean | Prisma.ManagementGroupDefaultArgs<ExtArgs>
+  Role?: boolean | Prisma.AuthorityRoleDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["eligibility"]>
 
 export type EligibilitySelectScalar = {
-  EligibilityKey?: boolean
+  EliKey?: boolean
   ResourceKey?: boolean
-  ManageGroupKey?: boolean
-  AuthorityRoleKey?: boolean
+  GroupKey?: boolean
+  RoleKey?: boolean
 }
 
-export type EligibilityOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"EligibilityKey" | "ResourceKey" | "ManageGroupKey" | "AuthorityRoleKey", ExtArgs["result"]["eligibility"]>
+export type EligibilityOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"EliKey" | "ResourceKey" | "GroupKey" | "RoleKey", ExtArgs["result"]["eligibility"]>
 export type EligibilityInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  Resource?: boolean | Prisma.ResourceDefaultArgs<ExtArgs>
-  ManagementGroup?: boolean | Prisma.ManagementGroupDefaultArgs<ExtArgs>
-  AuthorityRole?: boolean | Prisma.AuthorityRoleDefaultArgs<ExtArgs>
+  Resource?: boolean | Prisma.ResourceInfoDefaultArgs<ExtArgs>
+  Group?: boolean | Prisma.ManagementGroupDefaultArgs<ExtArgs>
+  Role?: boolean | Prisma.AuthorityRoleDefaultArgs<ExtArgs>
 }
 export type EligibilityIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  Resource?: boolean | Prisma.ResourceDefaultArgs<ExtArgs>
-  ManagementGroup?: boolean | Prisma.ManagementGroupDefaultArgs<ExtArgs>
-  AuthorityRole?: boolean | Prisma.AuthorityRoleDefaultArgs<ExtArgs>
+  Resource?: boolean | Prisma.ResourceInfoDefaultArgs<ExtArgs>
+  Group?: boolean | Prisma.ManagementGroupDefaultArgs<ExtArgs>
+  Role?: boolean | Prisma.AuthorityRoleDefaultArgs<ExtArgs>
 }
 export type EligibilityIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  Resource?: boolean | Prisma.ResourceDefaultArgs<ExtArgs>
-  ManagementGroup?: boolean | Prisma.ManagementGroupDefaultArgs<ExtArgs>
-  AuthorityRole?: boolean | Prisma.AuthorityRoleDefaultArgs<ExtArgs>
+  Resource?: boolean | Prisma.ResourceInfoDefaultArgs<ExtArgs>
+  Group?: boolean | Prisma.ManagementGroupDefaultArgs<ExtArgs>
+  Role?: boolean | Prisma.AuthorityRoleDefaultArgs<ExtArgs>
 }
 
 export type $EligibilityPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "Eligibility"
   objects: {
-    Resource: Prisma.$ResourcePayload<ExtArgs>
-    ManagementGroup: Prisma.$ManagementGroupPayload<ExtArgs>
-    AuthorityRole: Prisma.$AuthorityRolePayload<ExtArgs>
+    Resource: Prisma.$ResourceInfoPayload<ExtArgs>
+    Group: Prisma.$ManagementGroupPayload<ExtArgs>
+    Role: Prisma.$AuthorityRolePayload<ExtArgs>
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
-    EligibilityKey: number
+    EliKey: number
     ResourceKey: number
-    ManageGroupKey: number
-    AuthorityRoleKey: number
+    GroupKey: number
+    RoleKey: number
   }, ExtArgs["result"]["eligibility"]>
   composites: {}
 }
@@ -833,8 +833,8 @@ export interface EligibilityDelegate<ExtArgs extends runtime.Types.Extensions.In
    * // Get first 10 Eligibilities
    * const eligibilities = await prisma.eligibility.findMany({ take: 10 })
    * 
-   * // Only select the `EligibilityKey`
-   * const eligibilityWithEligibilityKeyOnly = await prisma.eligibility.findMany({ select: { EligibilityKey: true } })
+   * // Only select the `EliKey`
+   * const eligibilityWithEliKeyOnly = await prisma.eligibility.findMany({ select: { EliKey: true } })
    * 
    */
   findMany<T extends EligibilityFindManyArgs>(args?: Prisma.SelectSubset<T, EligibilityFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$EligibilityPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
@@ -878,9 +878,9 @@ export interface EligibilityDelegate<ExtArgs extends runtime.Types.Extensions.In
    *   ]
    * })
    * 
-   * // Create many Eligibilities and only return the `EligibilityKey`
-   * const eligibilityWithEligibilityKeyOnly = await prisma.eligibility.createManyAndReturn({
-   *   select: { EligibilityKey: true },
+   * // Create many Eligibilities and only return the `EliKey`
+   * const eligibilityWithEliKeyOnly = await prisma.eligibility.createManyAndReturn({
+   *   select: { EliKey: true },
    *   data: [
    *     // ... provide data here
    *   ]
@@ -969,9 +969,9 @@ export interface EligibilityDelegate<ExtArgs extends runtime.Types.Extensions.In
    *   ]
    * })
    * 
-   * // Update zero or more Eligibilities and only return the `EligibilityKey`
-   * const eligibilityWithEligibilityKeyOnly = await prisma.eligibility.updateManyAndReturn({
-   *   select: { EligibilityKey: true },
+   * // Update zero or more Eligibilities and only return the `EliKey`
+   * const eligibilityWithEliKeyOnly = await prisma.eligibility.updateManyAndReturn({
+   *   select: { EliKey: true },
    *   where: {
    *     // ... provide filter here
    *   },
@@ -1144,9 +1144,9 @@ readonly fields: EligibilityFieldRefs;
  */
 export interface Prisma__EligibilityClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
-  Resource<T extends Prisma.ResourceDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ResourceDefaultArgs<ExtArgs>>): Prisma.Prisma__ResourceClient<runtime.Types.Result.GetResult<Prisma.$ResourcePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
-  ManagementGroup<T extends Prisma.ManagementGroupDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ManagementGroupDefaultArgs<ExtArgs>>): Prisma.Prisma__ManagementGroupClient<runtime.Types.Result.GetResult<Prisma.$ManagementGroupPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
-  AuthorityRole<T extends Prisma.AuthorityRoleDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AuthorityRoleDefaultArgs<ExtArgs>>): Prisma.Prisma__AuthorityRoleClient<runtime.Types.Result.GetResult<Prisma.$AuthorityRolePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+  Resource<T extends Prisma.ResourceInfoDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ResourceInfoDefaultArgs<ExtArgs>>): Prisma.Prisma__ResourceInfoClient<runtime.Types.Result.GetResult<Prisma.$ResourceInfoPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+  Group<T extends Prisma.ManagementGroupDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ManagementGroupDefaultArgs<ExtArgs>>): Prisma.Prisma__ManagementGroupClient<runtime.Types.Result.GetResult<Prisma.$ManagementGroupPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+  Role<T extends Prisma.AuthorityRoleDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AuthorityRoleDefaultArgs<ExtArgs>>): Prisma.Prisma__AuthorityRoleClient<runtime.Types.Result.GetResult<Prisma.$AuthorityRolePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1176,10 +1176,10 @@ export interface Prisma__EligibilityClient<T, Null = never, ExtArgs extends runt
  * Fields of the Eligibility model
  */
 export interface EligibilityFieldRefs {
-  readonly EligibilityKey: Prisma.FieldRef<"Eligibility", 'Int'>
+  readonly EliKey: Prisma.FieldRef<"Eligibility", 'Int'>
   readonly ResourceKey: Prisma.FieldRef<"Eligibility", 'Int'>
-  readonly ManageGroupKey: Prisma.FieldRef<"Eligibility", 'Int'>
-  readonly AuthorityRoleKey: Prisma.FieldRef<"Eligibility", 'Int'>
+  readonly GroupKey: Prisma.FieldRef<"Eligibility", 'Int'>
+  readonly RoleKey: Prisma.FieldRef<"Eligibility", 'Int'>
 }
     
 

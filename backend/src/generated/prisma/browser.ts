@@ -18,30 +18,30 @@ export { Prisma }
 export * as $Enums from './enums.js'
 export * from './enums.js';
 /**
- * Model Account
+ * Model AccountInfo
  * 
  */
-export type Account = Prisma.AccountModel
+export type AccountInfo = Prisma.AccountInfoModel
+/**
+ * Model RoleInfo
+ * 
+ */
+export type RoleInfo = Prisma.RoleInfoModel
+/**
+ * Model FacultyInfo
+ * 
+ */
+export type FacultyInfo = Prisma.FacultyInfoModel
+/**
+ * Model BranchInfo
+ * 
+ */
+export type BranchInfo = Prisma.BranchInfoModel
 /**
  * Model ManagementGroup
  * 
  */
 export type ManagementGroup = Prisma.ManagementGroupModel
-/**
- * Model Branch
- * 
- */
-export type Branch = Prisma.BranchModel
-/**
- * Model Faculty
- * 
- */
-export type Faculty = Prisma.FacultyModel
-/**
- * Model Club
- * 
- */
-export type Club = Prisma.ClubModel
 /**
  * Model Authority
  * 
@@ -53,40 +53,45 @@ export type Authority = Prisma.AuthorityModel
  */
 export type AuthorityRole = Prisma.AuthorityRoleModel
 /**
- * Model Resource
+ * Model ClubInfo
  * 
  */
-export type Resource = Prisma.ResourceModel
+export type ClubInfo = Prisma.ClubInfoModel
 /**
- * Model ItemUnit
+ * Model ItemInfo
  * 
  */
-export type ItemUnit = Prisma.ItemUnitModel
+export type ItemInfo = Prisma.ItemInfoModel
 /**
- * Model Item
+ * Model ItemIndiv
  * 
  */
-export type Item = Prisma.ItemModel
+export type ItemIndiv = Prisma.ItemIndivModel
 /**
- * Model Room
+ * Model RoomInfo
  * 
  */
-export type Room = Prisma.RoomModel
+export type RoomInfo = Prisma.RoomInfoModel
 /**
- * Model Condition
+ * Model ResourceInfo
  * 
  */
-export type Condition = Prisma.ConditionModel
+export type ResourceInfo = Prisma.ResourceInfoModel
+/**
+ * Model ConditionLog
+ * 
+ */
+export type ConditionLog = Prisma.ConditionLogModel
 /**
  * Model BorrowRule
  * 
  */
 export type BorrowRule = Prisma.BorrowRuleModel
 /**
- * Model BorrowConstraint
+ * Model BorrowConstraints
  * 
  */
-export type BorrowConstraint = Prisma.BorrowConstraintModel
+export type BorrowConstraints = Prisma.BorrowConstraintsModel
 /**
  * Model PenaltyRule
  * 
@@ -103,15 +108,15 @@ export type Eligibility = Prisma.EligibilityModel
  */
 export type CreditTier = Prisma.CreditTierModel
 /**
- * Model Reservation
+ * Model Reservations
  * 
  */
-export type Reservation = Prisma.ReservationModel
+export type Reservations = Prisma.ReservationsModel
 /**
- * Model Usage
+ * Model UsageLog
  * 
  */
-export type Usage = Prisma.UsageModel
+export type UsageLog = Prisma.UsageLogModel
 /**
  * Model ExtensionRequest
  * 
@@ -123,27 +128,27 @@ export type ExtensionRequest = Prisma.ExtensionRequestModel
  */
 export type Inspection = Prisma.InspectionModel
 /**
- * Model Penalty
+ * Model PenaltyInfo
  * 
  */
-export type Penalty = Prisma.PenaltyModel
+export type PenaltyInfo = Prisma.PenaltyInfoModel
 /**
- * Model Appeal
+ * Model AppealInfo
  * 
  */
-export type Appeal = Prisma.AppealModel
+export type AppealInfo = Prisma.AppealInfoModel
 /**
- * Model Image
+ * Model Images
  * 
  */
-export type Image = Prisma.ImageModel
+export type Images = Prisma.ImagesModel
 /**
  * Model Notification
  * 
  */
 export type Notification = Prisma.NotificationModel
 /**
- * Model Repair
+ * Model RepairLog
  * 
  */
-export type Repair = Prisma.RepairModel
+export type RepairLog = Prisma.RepairLogModel
