@@ -251,7 +251,7 @@ export type AuthorityRoleCreateInput = {
   AuthorityName: string
   AuthorityLevel?: number | null
   Authorities?: Prisma.AuthorityCreateNestedManyWithoutAuthorityRoleInput
-  Eligibilities?: Prisma.EligibilityCreateNestedManyWithoutAuthorityRoleInput
+  Eligibilities?: Prisma.EligibilityCreateNestedManyWithoutRoleInput
 }
 
 export type AuthorityRoleUncheckedCreateInput = {
@@ -259,14 +259,14 @@ export type AuthorityRoleUncheckedCreateInput = {
   AuthorityName: string
   AuthorityLevel?: number | null
   Authorities?: Prisma.AuthorityUncheckedCreateNestedManyWithoutAuthorityRoleInput
-  Eligibilities?: Prisma.EligibilityUncheckedCreateNestedManyWithoutAuthorityRoleInput
+  Eligibilities?: Prisma.EligibilityUncheckedCreateNestedManyWithoutRoleInput
 }
 
 export type AuthorityRoleUpdateInput = {
   AuthorityName?: Prisma.StringFieldUpdateOperationsInput | string
   AuthorityLevel?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   Authorities?: Prisma.AuthorityUpdateManyWithoutAuthorityRoleNestedInput
-  Eligibilities?: Prisma.EligibilityUpdateManyWithoutAuthorityRoleNestedInput
+  Eligibilities?: Prisma.EligibilityUpdateManyWithoutRoleNestedInput
 }
 
 export type AuthorityRoleUncheckedUpdateInput = {
@@ -274,7 +274,7 @@ export type AuthorityRoleUncheckedUpdateInput = {
   AuthorityName?: Prisma.StringFieldUpdateOperationsInput | string
   AuthorityLevel?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   Authorities?: Prisma.AuthorityUncheckedUpdateManyWithoutAuthorityRoleNestedInput
-  Eligibilities?: Prisma.EligibilityUncheckedUpdateManyWithoutAuthorityRoleNestedInput
+  Eligibilities?: Prisma.EligibilityUncheckedUpdateManyWithoutRoleNestedInput
 }
 
 export type AuthorityRoleCreateManyInput = {
@@ -341,6 +341,14 @@ export type AuthorityRoleUpdateOneRequiredWithoutAuthoritiesNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.AuthorityRoleUpdateToOneWithWhereWithoutAuthoritiesInput, Prisma.AuthorityRoleUpdateWithoutAuthoritiesInput>, Prisma.AuthorityRoleUncheckedUpdateWithoutAuthoritiesInput>
 }
 
+export type NullableIntFieldUpdateOperationsInput = {
+  set?: number | null
+  increment?: number
+  decrement?: number
+  multiply?: number
+  divide?: number
+}
+
 export type AuthorityRoleCreateNestedOneWithoutEligibilitiesInput = {
   create?: Prisma.XOR<Prisma.AuthorityRoleCreateWithoutEligibilitiesInput, Prisma.AuthorityRoleUncheckedCreateWithoutEligibilitiesInput>
   connectOrCreate?: Prisma.AuthorityRoleCreateOrConnectWithoutEligibilitiesInput
@@ -358,14 +366,14 @@ export type AuthorityRoleUpdateOneRequiredWithoutEligibilitiesNestedInput = {
 export type AuthorityRoleCreateWithoutAuthoritiesInput = {
   AuthorityName: string
   AuthorityLevel?: number | null
-  Eligibilities?: Prisma.EligibilityCreateNestedManyWithoutAuthorityRoleInput
+  Eligibilities?: Prisma.EligibilityCreateNestedManyWithoutRoleInput
 }
 
 export type AuthorityRoleUncheckedCreateWithoutAuthoritiesInput = {
   AuthorityRoleKey?: number
   AuthorityName: string
   AuthorityLevel?: number | null
-  Eligibilities?: Prisma.EligibilityUncheckedCreateNestedManyWithoutAuthorityRoleInput
+  Eligibilities?: Prisma.EligibilityUncheckedCreateNestedManyWithoutRoleInput
 }
 
 export type AuthorityRoleCreateOrConnectWithoutAuthoritiesInput = {
@@ -387,14 +395,14 @@ export type AuthorityRoleUpdateToOneWithWhereWithoutAuthoritiesInput = {
 export type AuthorityRoleUpdateWithoutAuthoritiesInput = {
   AuthorityName?: Prisma.StringFieldUpdateOperationsInput | string
   AuthorityLevel?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  Eligibilities?: Prisma.EligibilityUpdateManyWithoutAuthorityRoleNestedInput
+  Eligibilities?: Prisma.EligibilityUpdateManyWithoutRoleNestedInput
 }
 
 export type AuthorityRoleUncheckedUpdateWithoutAuthoritiesInput = {
   AuthorityRoleKey?: Prisma.IntFieldUpdateOperationsInput | number
   AuthorityName?: Prisma.StringFieldUpdateOperationsInput | string
   AuthorityLevel?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  Eligibilities?: Prisma.EligibilityUncheckedUpdateManyWithoutAuthorityRoleNestedInput
+  Eligibilities?: Prisma.EligibilityUncheckedUpdateManyWithoutRoleNestedInput
 }
 
 export type AuthorityRoleCreateWithoutEligibilitiesInput = {

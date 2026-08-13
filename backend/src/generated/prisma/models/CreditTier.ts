@@ -216,7 +216,7 @@ export type CreditTierWhereInput = {
   CreditTierName?: Prisma.StringNullableFilter<"CreditTier"> | string | null
   CreditMin?: Prisma.IntFilter<"CreditTier"> | number
   CreditMax?: Prisma.IntFilter<"CreditTier"> | number
-  BorrowConstraints?: Prisma.BorrowConstraintListRelationFilter
+  BorrowConstraints?: Prisma.BorrowConstraintsListRelationFilter
 }
 
 export type CreditTierOrderByWithRelationInput = {
@@ -224,7 +224,7 @@ export type CreditTierOrderByWithRelationInput = {
   CreditTierName?: Prisma.SortOrderInput | Prisma.SortOrder
   CreditMin?: Prisma.SortOrder
   CreditMax?: Prisma.SortOrder
-  BorrowConstraints?: Prisma.BorrowConstraintOrderByRelationAggregateInput
+  BorrowConstraints?: Prisma.BorrowConstraintsOrderByRelationAggregateInput
 }
 
 export type CreditTierWhereUniqueInput = Prisma.AtLeast<{
@@ -235,7 +235,7 @@ export type CreditTierWhereUniqueInput = Prisma.AtLeast<{
   CreditTierName?: Prisma.StringNullableFilter<"CreditTier"> | string | null
   CreditMin?: Prisma.IntFilter<"CreditTier"> | number
   CreditMax?: Prisma.IntFilter<"CreditTier"> | number
-  BorrowConstraints?: Prisma.BorrowConstraintListRelationFilter
+  BorrowConstraints?: Prisma.BorrowConstraintsListRelationFilter
 }, "CreditTierKey">
 
 export type CreditTierOrderByWithAggregationInput = {
@@ -264,7 +264,7 @@ export type CreditTierCreateInput = {
   CreditTierName?: string | null
   CreditMin: number
   CreditMax: number
-  BorrowConstraints?: Prisma.BorrowConstraintCreateNestedManyWithoutCreditTierInput
+  BorrowConstraints?: Prisma.BorrowConstraintsCreateNestedManyWithoutCreditTierInput
 }
 
 export type CreditTierUncheckedCreateInput = {
@@ -272,14 +272,14 @@ export type CreditTierUncheckedCreateInput = {
   CreditTierName?: string | null
   CreditMin: number
   CreditMax: number
-  BorrowConstraints?: Prisma.BorrowConstraintUncheckedCreateNestedManyWithoutCreditTierInput
+  BorrowConstraints?: Prisma.BorrowConstraintsUncheckedCreateNestedManyWithoutCreditTierInput
 }
 
 export type CreditTierUpdateInput = {
   CreditTierName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   CreditMin?: Prisma.IntFieldUpdateOperationsInput | number
   CreditMax?: Prisma.IntFieldUpdateOperationsInput | number
-  BorrowConstraints?: Prisma.BorrowConstraintUpdateManyWithoutCreditTierNestedInput
+  BorrowConstraints?: Prisma.BorrowConstraintsUpdateManyWithoutCreditTierNestedInput
 }
 
 export type CreditTierUncheckedUpdateInput = {
@@ -287,7 +287,7 @@ export type CreditTierUncheckedUpdateInput = {
   CreditTierName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   CreditMin?: Prisma.IntFieldUpdateOperationsInput | number
   CreditMax?: Prisma.IntFieldUpdateOperationsInput | number
-  BorrowConstraints?: Prisma.BorrowConstraintUncheckedUpdateManyWithoutCreditTierNestedInput
+  BorrowConstraints?: Prisma.BorrowConstraintsUncheckedUpdateManyWithoutCreditTierNestedInput
 }
 
 export type CreditTierCreateManyInput = {
@@ -431,7 +431,7 @@ export type CreditTierCountOutputTypeDefaultArgs<ExtArgs extends runtime.Types.E
  * CreditTierCountOutputType without action
  */
 export type CreditTierCountOutputTypeCountBorrowConstraintsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  where?: Prisma.BorrowConstraintWhereInput
+  where?: Prisma.BorrowConstraintsWhereInput
 }
 
 
@@ -476,7 +476,7 @@ export type CreditTierIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.E
 export type $CreditTierPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "CreditTier"
   objects: {
-    BorrowConstraints: Prisma.$BorrowConstraintPayload<ExtArgs>[]
+    BorrowConstraints: Prisma.$BorrowConstraintsPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     CreditTierKey: number
@@ -877,7 +877,7 @@ readonly fields: CreditTierFieldRefs;
  */
 export interface Prisma__CreditTierClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
-  BorrowConstraints<T extends Prisma.CreditTier$BorrowConstraintsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.CreditTier$BorrowConstraintsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$BorrowConstraintPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  BorrowConstraints<T extends Prisma.CreditTier$BorrowConstraintsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.CreditTier$BorrowConstraintsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$BorrowConstraintsPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1308,23 +1308,23 @@ export type CreditTierDeleteManyArgs<ExtArgs extends runtime.Types.Extensions.In
  */
 export type CreditTier$BorrowConstraintsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   /**
-   * Select specific fields to fetch from the BorrowConstraint
+   * Select specific fields to fetch from the BorrowConstraints
    */
-  select?: Prisma.BorrowConstraintSelect<ExtArgs> | null
+  select?: Prisma.BorrowConstraintsSelect<ExtArgs> | null
   /**
-   * Omit specific fields from the BorrowConstraint
+   * Omit specific fields from the BorrowConstraints
    */
-  omit?: Prisma.BorrowConstraintOmit<ExtArgs> | null
+  omit?: Prisma.BorrowConstraintsOmit<ExtArgs> | null
   /**
    * Choose, which related nodes to fetch as well
    */
-  include?: Prisma.BorrowConstraintInclude<ExtArgs> | null
-  where?: Prisma.BorrowConstraintWhereInput
-  orderBy?: Prisma.BorrowConstraintOrderByWithRelationInput | Prisma.BorrowConstraintOrderByWithRelationInput[]
-  cursor?: Prisma.BorrowConstraintWhereUniqueInput
+  include?: Prisma.BorrowConstraintsInclude<ExtArgs> | null
+  where?: Prisma.BorrowConstraintsWhereInput
+  orderBy?: Prisma.BorrowConstraintsOrderByWithRelationInput | Prisma.BorrowConstraintsOrderByWithRelationInput[]
+  cursor?: Prisma.BorrowConstraintsWhereUniqueInput
   take?: number
   skip?: number
-  distinct?: Prisma.BorrowConstraintScalarFieldEnum | Prisma.BorrowConstraintScalarFieldEnum[]
+  distinct?: Prisma.BorrowConstraintsScalarFieldEnum | Prisma.BorrowConstraintsScalarFieldEnum[]
 }
 
 /**

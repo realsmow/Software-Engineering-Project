@@ -29,39 +29,39 @@ export type AggregatePenaltyRule = {
 export type PenaltyRuleAvgAggregateOutputType = {
   PenaltyRuleKey: number | null
   BorrowRuleKey: number | null
-  CreditDeducted: number | null
-  PenaltyTimeLength: number | null
+  PenaltyAmount: number | null
+  PenaltyLength: number | null
 }
 
 export type PenaltyRuleSumAggregateOutputType = {
   PenaltyRuleKey: number | null
   BorrowRuleKey: number | null
-  CreditDeducted: number | null
-  PenaltyTimeLength: number | null
+  PenaltyAmount: number | null
+  PenaltyLength: number | null
 }
 
 export type PenaltyRuleMinAggregateOutputType = {
   PenaltyRuleKey: number | null
   BorrowRuleKey: number | null
-  CreditDeducted: number | null
-  PenaltyTimeLength: number | null
   PenaltyReason: $Enums.PenaltyReason | null
+  PenaltyAmount: number | null
+  PenaltyLength: number | null
 }
 
 export type PenaltyRuleMaxAggregateOutputType = {
   PenaltyRuleKey: number | null
   BorrowRuleKey: number | null
-  CreditDeducted: number | null
-  PenaltyTimeLength: number | null
   PenaltyReason: $Enums.PenaltyReason | null
+  PenaltyAmount: number | null
+  PenaltyLength: number | null
 }
 
 export type PenaltyRuleCountAggregateOutputType = {
   PenaltyRuleKey: number
   BorrowRuleKey: number
-  CreditDeducted: number
-  PenaltyTimeLength: number
   PenaltyReason: number
+  PenaltyAmount: number
+  PenaltyLength: number
   _all: number
 }
 
@@ -69,39 +69,39 @@ export type PenaltyRuleCountAggregateOutputType = {
 export type PenaltyRuleAvgAggregateInputType = {
   PenaltyRuleKey?: true
   BorrowRuleKey?: true
-  CreditDeducted?: true
-  PenaltyTimeLength?: true
+  PenaltyAmount?: true
+  PenaltyLength?: true
 }
 
 export type PenaltyRuleSumAggregateInputType = {
   PenaltyRuleKey?: true
   BorrowRuleKey?: true
-  CreditDeducted?: true
-  PenaltyTimeLength?: true
+  PenaltyAmount?: true
+  PenaltyLength?: true
 }
 
 export type PenaltyRuleMinAggregateInputType = {
   PenaltyRuleKey?: true
   BorrowRuleKey?: true
-  CreditDeducted?: true
-  PenaltyTimeLength?: true
   PenaltyReason?: true
+  PenaltyAmount?: true
+  PenaltyLength?: true
 }
 
 export type PenaltyRuleMaxAggregateInputType = {
   PenaltyRuleKey?: true
   BorrowRuleKey?: true
-  CreditDeducted?: true
-  PenaltyTimeLength?: true
   PenaltyReason?: true
+  PenaltyAmount?: true
+  PenaltyLength?: true
 }
 
 export type PenaltyRuleCountAggregateInputType = {
   PenaltyRuleKey?: true
   BorrowRuleKey?: true
-  CreditDeducted?: true
-  PenaltyTimeLength?: true
   PenaltyReason?: true
+  PenaltyAmount?: true
+  PenaltyLength?: true
   _all?: true
 }
 
@@ -194,9 +194,9 @@ export type PenaltyRuleGroupByArgs<ExtArgs extends runtime.Types.Extensions.Inte
 export type PenaltyRuleGroupByOutputType = {
   PenaltyRuleKey: number
   BorrowRuleKey: number
-  CreditDeducted: number
-  PenaltyTimeLength: number
   PenaltyReason: $Enums.PenaltyReason
+  PenaltyAmount: number
+  PenaltyLength: number
   _count: PenaltyRuleCountAggregateOutputType | null
   _avg: PenaltyRuleAvgAggregateOutputType | null
   _sum: PenaltyRuleSumAggregateOutputType | null
@@ -225,18 +225,18 @@ export type PenaltyRuleWhereInput = {
   NOT?: Prisma.PenaltyRuleWhereInput | Prisma.PenaltyRuleWhereInput[]
   PenaltyRuleKey?: Prisma.IntFilter<"PenaltyRule"> | number
   BorrowRuleKey?: Prisma.IntFilter<"PenaltyRule"> | number
-  CreditDeducted?: Prisma.IntFilter<"PenaltyRule"> | number
-  PenaltyTimeLength?: Prisma.IntFilter<"PenaltyRule"> | number
   PenaltyReason?: Prisma.EnumPenaltyReasonFilter<"PenaltyRule"> | $Enums.PenaltyReason
+  PenaltyAmount?: Prisma.IntFilter<"PenaltyRule"> | number
+  PenaltyLength?: Prisma.IntFilter<"PenaltyRule"> | number
   BorrowRule?: Prisma.XOR<Prisma.BorrowRuleScalarRelationFilter, Prisma.BorrowRuleWhereInput>
 }
 
 export type PenaltyRuleOrderByWithRelationInput = {
   PenaltyRuleKey?: Prisma.SortOrder
   BorrowRuleKey?: Prisma.SortOrder
-  CreditDeducted?: Prisma.SortOrder
-  PenaltyTimeLength?: Prisma.SortOrder
   PenaltyReason?: Prisma.SortOrder
+  PenaltyAmount?: Prisma.SortOrder
+  PenaltyLength?: Prisma.SortOrder
   BorrowRule?: Prisma.BorrowRuleOrderByWithRelationInput
 }
 
@@ -247,18 +247,18 @@ export type PenaltyRuleWhereUniqueInput = Prisma.AtLeast<{
   OR?: Prisma.PenaltyRuleWhereInput[]
   NOT?: Prisma.PenaltyRuleWhereInput | Prisma.PenaltyRuleWhereInput[]
   BorrowRuleKey?: Prisma.IntFilter<"PenaltyRule"> | number
-  CreditDeducted?: Prisma.IntFilter<"PenaltyRule"> | number
-  PenaltyTimeLength?: Prisma.IntFilter<"PenaltyRule"> | number
   PenaltyReason?: Prisma.EnumPenaltyReasonFilter<"PenaltyRule"> | $Enums.PenaltyReason
+  PenaltyAmount?: Prisma.IntFilter<"PenaltyRule"> | number
+  PenaltyLength?: Prisma.IntFilter<"PenaltyRule"> | number
   BorrowRule?: Prisma.XOR<Prisma.BorrowRuleScalarRelationFilter, Prisma.BorrowRuleWhereInput>
 }, "PenaltyRuleKey" | "BorrowRuleKey_PenaltyReason">
 
 export type PenaltyRuleOrderByWithAggregationInput = {
   PenaltyRuleKey?: Prisma.SortOrder
   BorrowRuleKey?: Prisma.SortOrder
-  CreditDeducted?: Prisma.SortOrder
-  PenaltyTimeLength?: Prisma.SortOrder
   PenaltyReason?: Prisma.SortOrder
+  PenaltyAmount?: Prisma.SortOrder
+  PenaltyLength?: Prisma.SortOrder
   _count?: Prisma.PenaltyRuleCountOrderByAggregateInput
   _avg?: Prisma.PenaltyRuleAvgOrderByAggregateInput
   _max?: Prisma.PenaltyRuleMaxOrderByAggregateInput
@@ -272,61 +272,61 @@ export type PenaltyRuleScalarWhereWithAggregatesInput = {
   NOT?: Prisma.PenaltyRuleScalarWhereWithAggregatesInput | Prisma.PenaltyRuleScalarWhereWithAggregatesInput[]
   PenaltyRuleKey?: Prisma.IntWithAggregatesFilter<"PenaltyRule"> | number
   BorrowRuleKey?: Prisma.IntWithAggregatesFilter<"PenaltyRule"> | number
-  CreditDeducted?: Prisma.IntWithAggregatesFilter<"PenaltyRule"> | number
-  PenaltyTimeLength?: Prisma.IntWithAggregatesFilter<"PenaltyRule"> | number
   PenaltyReason?: Prisma.EnumPenaltyReasonWithAggregatesFilter<"PenaltyRule"> | $Enums.PenaltyReason
+  PenaltyAmount?: Prisma.IntWithAggregatesFilter<"PenaltyRule"> | number
+  PenaltyLength?: Prisma.IntWithAggregatesFilter<"PenaltyRule"> | number
 }
 
 export type PenaltyRuleCreateInput = {
-  CreditDeducted: number
-  PenaltyTimeLength: number
   PenaltyReason: $Enums.PenaltyReason
+  PenaltyAmount: number
+  PenaltyLength: number
   BorrowRule: Prisma.BorrowRuleCreateNestedOneWithoutPenaltyRulesInput
 }
 
 export type PenaltyRuleUncheckedCreateInput = {
   PenaltyRuleKey?: number
   BorrowRuleKey: number
-  CreditDeducted: number
-  PenaltyTimeLength: number
   PenaltyReason: $Enums.PenaltyReason
+  PenaltyAmount: number
+  PenaltyLength: number
 }
 
 export type PenaltyRuleUpdateInput = {
-  CreditDeducted?: Prisma.IntFieldUpdateOperationsInput | number
-  PenaltyTimeLength?: Prisma.IntFieldUpdateOperationsInput | number
   PenaltyReason?: Prisma.EnumPenaltyReasonFieldUpdateOperationsInput | $Enums.PenaltyReason
+  PenaltyAmount?: Prisma.IntFieldUpdateOperationsInput | number
+  PenaltyLength?: Prisma.IntFieldUpdateOperationsInput | number
   BorrowRule?: Prisma.BorrowRuleUpdateOneRequiredWithoutPenaltyRulesNestedInput
 }
 
 export type PenaltyRuleUncheckedUpdateInput = {
   PenaltyRuleKey?: Prisma.IntFieldUpdateOperationsInput | number
   BorrowRuleKey?: Prisma.IntFieldUpdateOperationsInput | number
-  CreditDeducted?: Prisma.IntFieldUpdateOperationsInput | number
-  PenaltyTimeLength?: Prisma.IntFieldUpdateOperationsInput | number
   PenaltyReason?: Prisma.EnumPenaltyReasonFieldUpdateOperationsInput | $Enums.PenaltyReason
+  PenaltyAmount?: Prisma.IntFieldUpdateOperationsInput | number
+  PenaltyLength?: Prisma.IntFieldUpdateOperationsInput | number
 }
 
 export type PenaltyRuleCreateManyInput = {
   PenaltyRuleKey?: number
   BorrowRuleKey: number
-  CreditDeducted: number
-  PenaltyTimeLength: number
   PenaltyReason: $Enums.PenaltyReason
+  PenaltyAmount: number
+  PenaltyLength: number
 }
 
 export type PenaltyRuleUpdateManyMutationInput = {
-  CreditDeducted?: Prisma.IntFieldUpdateOperationsInput | number
-  PenaltyTimeLength?: Prisma.IntFieldUpdateOperationsInput | number
   PenaltyReason?: Prisma.EnumPenaltyReasonFieldUpdateOperationsInput | $Enums.PenaltyReason
+  PenaltyAmount?: Prisma.IntFieldUpdateOperationsInput | number
+  PenaltyLength?: Prisma.IntFieldUpdateOperationsInput | number
 }
 
 export type PenaltyRuleUncheckedUpdateManyInput = {
   PenaltyRuleKey?: Prisma.IntFieldUpdateOperationsInput | number
   BorrowRuleKey?: Prisma.IntFieldUpdateOperationsInput | number
-  CreditDeducted?: Prisma.IntFieldUpdateOperationsInput | number
-  PenaltyTimeLength?: Prisma.IntFieldUpdateOperationsInput | number
   PenaltyReason?: Prisma.EnumPenaltyReasonFieldUpdateOperationsInput | $Enums.PenaltyReason
+  PenaltyAmount?: Prisma.IntFieldUpdateOperationsInput | number
+  PenaltyLength?: Prisma.IntFieldUpdateOperationsInput | number
 }
 
 export type PenaltyRuleListRelationFilter = {
@@ -347,39 +347,39 @@ export type PenaltyRuleBorrowRuleKeyPenaltyReasonCompoundUniqueInput = {
 export type PenaltyRuleCountOrderByAggregateInput = {
   PenaltyRuleKey?: Prisma.SortOrder
   BorrowRuleKey?: Prisma.SortOrder
-  CreditDeducted?: Prisma.SortOrder
-  PenaltyTimeLength?: Prisma.SortOrder
   PenaltyReason?: Prisma.SortOrder
+  PenaltyAmount?: Prisma.SortOrder
+  PenaltyLength?: Prisma.SortOrder
 }
 
 export type PenaltyRuleAvgOrderByAggregateInput = {
   PenaltyRuleKey?: Prisma.SortOrder
   BorrowRuleKey?: Prisma.SortOrder
-  CreditDeducted?: Prisma.SortOrder
-  PenaltyTimeLength?: Prisma.SortOrder
+  PenaltyAmount?: Prisma.SortOrder
+  PenaltyLength?: Prisma.SortOrder
 }
 
 export type PenaltyRuleMaxOrderByAggregateInput = {
   PenaltyRuleKey?: Prisma.SortOrder
   BorrowRuleKey?: Prisma.SortOrder
-  CreditDeducted?: Prisma.SortOrder
-  PenaltyTimeLength?: Prisma.SortOrder
   PenaltyReason?: Prisma.SortOrder
+  PenaltyAmount?: Prisma.SortOrder
+  PenaltyLength?: Prisma.SortOrder
 }
 
 export type PenaltyRuleMinOrderByAggregateInput = {
   PenaltyRuleKey?: Prisma.SortOrder
   BorrowRuleKey?: Prisma.SortOrder
-  CreditDeducted?: Prisma.SortOrder
-  PenaltyTimeLength?: Prisma.SortOrder
   PenaltyReason?: Prisma.SortOrder
+  PenaltyAmount?: Prisma.SortOrder
+  PenaltyLength?: Prisma.SortOrder
 }
 
 export type PenaltyRuleSumOrderByAggregateInput = {
   PenaltyRuleKey?: Prisma.SortOrder
   BorrowRuleKey?: Prisma.SortOrder
-  CreditDeducted?: Prisma.SortOrder
-  PenaltyTimeLength?: Prisma.SortOrder
+  PenaltyAmount?: Prisma.SortOrder
+  PenaltyLength?: Prisma.SortOrder
 }
 
 export type PenaltyRuleCreateNestedManyWithoutBorrowRuleInput = {
@@ -429,16 +429,16 @@ export type EnumPenaltyReasonFieldUpdateOperationsInput = {
 }
 
 export type PenaltyRuleCreateWithoutBorrowRuleInput = {
-  CreditDeducted: number
-  PenaltyTimeLength: number
   PenaltyReason: $Enums.PenaltyReason
+  PenaltyAmount: number
+  PenaltyLength: number
 }
 
 export type PenaltyRuleUncheckedCreateWithoutBorrowRuleInput = {
   PenaltyRuleKey?: number
-  CreditDeducted: number
-  PenaltyTimeLength: number
   PenaltyReason: $Enums.PenaltyReason
+  PenaltyAmount: number
+  PenaltyLength: number
 }
 
 export type PenaltyRuleCreateOrConnectWithoutBorrowRuleInput = {
@@ -473,36 +473,36 @@ export type PenaltyRuleScalarWhereInput = {
   NOT?: Prisma.PenaltyRuleScalarWhereInput | Prisma.PenaltyRuleScalarWhereInput[]
   PenaltyRuleKey?: Prisma.IntFilter<"PenaltyRule"> | number
   BorrowRuleKey?: Prisma.IntFilter<"PenaltyRule"> | number
-  CreditDeducted?: Prisma.IntFilter<"PenaltyRule"> | number
-  PenaltyTimeLength?: Prisma.IntFilter<"PenaltyRule"> | number
   PenaltyReason?: Prisma.EnumPenaltyReasonFilter<"PenaltyRule"> | $Enums.PenaltyReason
+  PenaltyAmount?: Prisma.IntFilter<"PenaltyRule"> | number
+  PenaltyLength?: Prisma.IntFilter<"PenaltyRule"> | number
 }
 
 export type PenaltyRuleCreateManyBorrowRuleInput = {
   PenaltyRuleKey?: number
-  CreditDeducted: number
-  PenaltyTimeLength: number
   PenaltyReason: $Enums.PenaltyReason
+  PenaltyAmount: number
+  PenaltyLength: number
 }
 
 export type PenaltyRuleUpdateWithoutBorrowRuleInput = {
-  CreditDeducted?: Prisma.IntFieldUpdateOperationsInput | number
-  PenaltyTimeLength?: Prisma.IntFieldUpdateOperationsInput | number
   PenaltyReason?: Prisma.EnumPenaltyReasonFieldUpdateOperationsInput | $Enums.PenaltyReason
+  PenaltyAmount?: Prisma.IntFieldUpdateOperationsInput | number
+  PenaltyLength?: Prisma.IntFieldUpdateOperationsInput | number
 }
 
 export type PenaltyRuleUncheckedUpdateWithoutBorrowRuleInput = {
   PenaltyRuleKey?: Prisma.IntFieldUpdateOperationsInput | number
-  CreditDeducted?: Prisma.IntFieldUpdateOperationsInput | number
-  PenaltyTimeLength?: Prisma.IntFieldUpdateOperationsInput | number
   PenaltyReason?: Prisma.EnumPenaltyReasonFieldUpdateOperationsInput | $Enums.PenaltyReason
+  PenaltyAmount?: Prisma.IntFieldUpdateOperationsInput | number
+  PenaltyLength?: Prisma.IntFieldUpdateOperationsInput | number
 }
 
 export type PenaltyRuleUncheckedUpdateManyWithoutBorrowRuleInput = {
   PenaltyRuleKey?: Prisma.IntFieldUpdateOperationsInput | number
-  CreditDeducted?: Prisma.IntFieldUpdateOperationsInput | number
-  PenaltyTimeLength?: Prisma.IntFieldUpdateOperationsInput | number
   PenaltyReason?: Prisma.EnumPenaltyReasonFieldUpdateOperationsInput | $Enums.PenaltyReason
+  PenaltyAmount?: Prisma.IntFieldUpdateOperationsInput | number
+  PenaltyLength?: Prisma.IntFieldUpdateOperationsInput | number
 }
 
 
@@ -510,39 +510,39 @@ export type PenaltyRuleUncheckedUpdateManyWithoutBorrowRuleInput = {
 export type PenaltyRuleSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   PenaltyRuleKey?: boolean
   BorrowRuleKey?: boolean
-  CreditDeducted?: boolean
-  PenaltyTimeLength?: boolean
   PenaltyReason?: boolean
+  PenaltyAmount?: boolean
+  PenaltyLength?: boolean
   BorrowRule?: boolean | Prisma.BorrowRuleDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["penaltyRule"]>
 
 export type PenaltyRuleSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   PenaltyRuleKey?: boolean
   BorrowRuleKey?: boolean
-  CreditDeducted?: boolean
-  PenaltyTimeLength?: boolean
   PenaltyReason?: boolean
+  PenaltyAmount?: boolean
+  PenaltyLength?: boolean
   BorrowRule?: boolean | Prisma.BorrowRuleDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["penaltyRule"]>
 
 export type PenaltyRuleSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   PenaltyRuleKey?: boolean
   BorrowRuleKey?: boolean
-  CreditDeducted?: boolean
-  PenaltyTimeLength?: boolean
   PenaltyReason?: boolean
+  PenaltyAmount?: boolean
+  PenaltyLength?: boolean
   BorrowRule?: boolean | Prisma.BorrowRuleDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["penaltyRule"]>
 
 export type PenaltyRuleSelectScalar = {
   PenaltyRuleKey?: boolean
   BorrowRuleKey?: boolean
-  CreditDeducted?: boolean
-  PenaltyTimeLength?: boolean
   PenaltyReason?: boolean
+  PenaltyAmount?: boolean
+  PenaltyLength?: boolean
 }
 
-export type PenaltyRuleOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"PenaltyRuleKey" | "BorrowRuleKey" | "CreditDeducted" | "PenaltyTimeLength" | "PenaltyReason", ExtArgs["result"]["penaltyRule"]>
+export type PenaltyRuleOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"PenaltyRuleKey" | "BorrowRuleKey" | "PenaltyReason" | "PenaltyAmount" | "PenaltyLength", ExtArgs["result"]["penaltyRule"]>
 export type PenaltyRuleInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   BorrowRule?: boolean | Prisma.BorrowRuleDefaultArgs<ExtArgs>
 }
@@ -561,9 +561,9 @@ export type $PenaltyRulePayload<ExtArgs extends runtime.Types.Extensions.Interna
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     PenaltyRuleKey: number
     BorrowRuleKey: number
-    CreditDeducted: number
-    PenaltyTimeLength: number
     PenaltyReason: $Enums.PenaltyReason
+    PenaltyAmount: number
+    PenaltyLength: number
   }, ExtArgs["result"]["penaltyRule"]>
   composites: {}
 }
@@ -990,9 +990,9 @@ export interface Prisma__PenaltyRuleClient<T, Null = never, ExtArgs extends runt
 export interface PenaltyRuleFieldRefs {
   readonly PenaltyRuleKey: Prisma.FieldRef<"PenaltyRule", 'Int'>
   readonly BorrowRuleKey: Prisma.FieldRef<"PenaltyRule", 'Int'>
-  readonly CreditDeducted: Prisma.FieldRef<"PenaltyRule", 'Int'>
-  readonly PenaltyTimeLength: Prisma.FieldRef<"PenaltyRule", 'Int'>
   readonly PenaltyReason: Prisma.FieldRef<"PenaltyRule", 'PenaltyReason'>
+  readonly PenaltyAmount: Prisma.FieldRef<"PenaltyRule", 'Int'>
+  readonly PenaltyLength: Prisma.FieldRef<"PenaltyRule", 'Int'>
 }
     
 

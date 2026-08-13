@@ -192,21 +192,21 @@ export type ManagementGroupWhereInput = {
   NOT?: Prisma.ManagementGroupWhereInput | Prisma.ManagementGroupWhereInput[]
   ManageGroupKey?: Prisma.IntFilter<"ManagementGroup"> | number
   GroupType?: Prisma.EnumGroupTypeFilter<"ManagementGroup"> | $Enums.GroupType
-  Branch?: Prisma.XOR<Prisma.BranchNullableScalarRelationFilter, Prisma.BranchWhereInput> | null
-  Club?: Prisma.XOR<Prisma.ClubNullableScalarRelationFilter, Prisma.ClubWhereInput> | null
+  Branch?: Prisma.XOR<Prisma.BranchInfoNullableScalarRelationFilter, Prisma.BranchInfoWhereInput> | null
+  Club?: Prisma.XOR<Prisma.ClubInfoNullableScalarRelationFilter, Prisma.ClubInfoWhereInput> | null
   Authorities?: Prisma.AuthorityListRelationFilter
-  Resources?: Prisma.ResourceListRelationFilter
   Eligibilities?: Prisma.EligibilityListRelationFilter
+  Resources?: Prisma.ResourceInfoListRelationFilter
 }
 
 export type ManagementGroupOrderByWithRelationInput = {
   ManageGroupKey?: Prisma.SortOrder
   GroupType?: Prisma.SortOrder
-  Branch?: Prisma.BranchOrderByWithRelationInput
-  Club?: Prisma.ClubOrderByWithRelationInput
+  Branch?: Prisma.BranchInfoOrderByWithRelationInput
+  Club?: Prisma.ClubInfoOrderByWithRelationInput
   Authorities?: Prisma.AuthorityOrderByRelationAggregateInput
-  Resources?: Prisma.ResourceOrderByRelationAggregateInput
   Eligibilities?: Prisma.EligibilityOrderByRelationAggregateInput
+  Resources?: Prisma.ResourceInfoOrderByRelationAggregateInput
 }
 
 export type ManagementGroupWhereUniqueInput = Prisma.AtLeast<{
@@ -215,11 +215,11 @@ export type ManagementGroupWhereUniqueInput = Prisma.AtLeast<{
   OR?: Prisma.ManagementGroupWhereInput[]
   NOT?: Prisma.ManagementGroupWhereInput | Prisma.ManagementGroupWhereInput[]
   GroupType?: Prisma.EnumGroupTypeFilter<"ManagementGroup"> | $Enums.GroupType
-  Branch?: Prisma.XOR<Prisma.BranchNullableScalarRelationFilter, Prisma.BranchWhereInput> | null
-  Club?: Prisma.XOR<Prisma.ClubNullableScalarRelationFilter, Prisma.ClubWhereInput> | null
+  Branch?: Prisma.XOR<Prisma.BranchInfoNullableScalarRelationFilter, Prisma.BranchInfoWhereInput> | null
+  Club?: Prisma.XOR<Prisma.ClubInfoNullableScalarRelationFilter, Prisma.ClubInfoWhereInput> | null
   Authorities?: Prisma.AuthorityListRelationFilter
-  Resources?: Prisma.ResourceListRelationFilter
   Eligibilities?: Prisma.EligibilityListRelationFilter
+  Resources?: Prisma.ResourceInfoListRelationFilter
 }, "ManageGroupKey">
 
 export type ManagementGroupOrderByWithAggregationInput = {
@@ -242,40 +242,40 @@ export type ManagementGroupScalarWhereWithAggregatesInput = {
 
 export type ManagementGroupCreateInput = {
   GroupType: $Enums.GroupType
-  Branch?: Prisma.BranchCreateNestedOneWithoutManagementGroupInput
-  Club?: Prisma.ClubCreateNestedOneWithoutManagementGroupInput
-  Authorities?: Prisma.AuthorityCreateNestedManyWithoutManagementGroupInput
-  Resources?: Prisma.ResourceCreateNestedManyWithoutManagementGroupInput
-  Eligibilities?: Prisma.EligibilityCreateNestedManyWithoutManagementGroupInput
+  Branch?: Prisma.BranchInfoCreateNestedOneWithoutManageGroupInput
+  Club?: Prisma.ClubInfoCreateNestedOneWithoutManageGroupInput
+  Authorities?: Prisma.AuthorityCreateNestedManyWithoutManageGroupInput
+  Eligibilities?: Prisma.EligibilityCreateNestedManyWithoutGroupInput
+  Resources?: Prisma.ResourceInfoCreateNestedManyWithoutManagementGroupInput
 }
 
 export type ManagementGroupUncheckedCreateInput = {
   ManageGroupKey?: number
   GroupType: $Enums.GroupType
-  Branch?: Prisma.BranchUncheckedCreateNestedOneWithoutManagementGroupInput
-  Club?: Prisma.ClubUncheckedCreateNestedOneWithoutManagementGroupInput
-  Authorities?: Prisma.AuthorityUncheckedCreateNestedManyWithoutManagementGroupInput
-  Resources?: Prisma.ResourceUncheckedCreateNestedManyWithoutManagementGroupInput
-  Eligibilities?: Prisma.EligibilityUncheckedCreateNestedManyWithoutManagementGroupInput
+  Branch?: Prisma.BranchInfoUncheckedCreateNestedOneWithoutManageGroupInput
+  Club?: Prisma.ClubInfoUncheckedCreateNestedOneWithoutManageGroupInput
+  Authorities?: Prisma.AuthorityUncheckedCreateNestedManyWithoutManageGroupInput
+  Eligibilities?: Prisma.EligibilityUncheckedCreateNestedManyWithoutGroupInput
+  Resources?: Prisma.ResourceInfoUncheckedCreateNestedManyWithoutManagementGroupInput
 }
 
 export type ManagementGroupUpdateInput = {
   GroupType?: Prisma.EnumGroupTypeFieldUpdateOperationsInput | $Enums.GroupType
-  Branch?: Prisma.BranchUpdateOneWithoutManagementGroupNestedInput
-  Club?: Prisma.ClubUpdateOneWithoutManagementGroupNestedInput
-  Authorities?: Prisma.AuthorityUpdateManyWithoutManagementGroupNestedInput
-  Resources?: Prisma.ResourceUpdateManyWithoutManagementGroupNestedInput
-  Eligibilities?: Prisma.EligibilityUpdateManyWithoutManagementGroupNestedInput
+  Branch?: Prisma.BranchInfoUpdateOneWithoutManageGroupNestedInput
+  Club?: Prisma.ClubInfoUpdateOneWithoutManageGroupNestedInput
+  Authorities?: Prisma.AuthorityUpdateManyWithoutManageGroupNestedInput
+  Eligibilities?: Prisma.EligibilityUpdateManyWithoutGroupNestedInput
+  Resources?: Prisma.ResourceInfoUpdateManyWithoutManagementGroupNestedInput
 }
 
 export type ManagementGroupUncheckedUpdateInput = {
   ManageGroupKey?: Prisma.IntFieldUpdateOperationsInput | number
   GroupType?: Prisma.EnumGroupTypeFieldUpdateOperationsInput | $Enums.GroupType
-  Branch?: Prisma.BranchUncheckedUpdateOneWithoutManagementGroupNestedInput
-  Club?: Prisma.ClubUncheckedUpdateOneWithoutManagementGroupNestedInput
-  Authorities?: Prisma.AuthorityUncheckedUpdateManyWithoutManagementGroupNestedInput
-  Resources?: Prisma.ResourceUncheckedUpdateManyWithoutManagementGroupNestedInput
-  Eligibilities?: Prisma.EligibilityUncheckedUpdateManyWithoutManagementGroupNestedInput
+  Branch?: Prisma.BranchInfoUncheckedUpdateOneWithoutManageGroupNestedInput
+  Club?: Prisma.ClubInfoUncheckedUpdateOneWithoutManageGroupNestedInput
+  Authorities?: Prisma.AuthorityUncheckedUpdateManyWithoutManageGroupNestedInput
+  Eligibilities?: Prisma.EligibilityUncheckedUpdateManyWithoutGroupNestedInput
+  Resources?: Prisma.ResourceInfoUncheckedUpdateManyWithoutManagementGroupNestedInput
 }
 
 export type ManagementGroupCreateManyInput = {
@@ -290,6 +290,11 @@ export type ManagementGroupUpdateManyMutationInput = {
 export type ManagementGroupUncheckedUpdateManyInput = {
   ManageGroupKey?: Prisma.IntFieldUpdateOperationsInput | number
   GroupType?: Prisma.EnumGroupTypeFieldUpdateOperationsInput | $Enums.GroupType
+}
+
+export type ManagementGroupScalarRelationFilter = {
+  is?: Prisma.ManagementGroupWhereInput
+  isNot?: Prisma.ManagementGroupWhereInput
 }
 
 export type ManagementGroupCountOrderByAggregateInput = {
@@ -315,15 +320,6 @@ export type ManagementGroupSumOrderByAggregateInput = {
   ManageGroupKey?: Prisma.SortOrder
 }
 
-export type ManagementGroupScalarRelationFilter = {
-  is?: Prisma.ManagementGroupWhereInput
-  isNot?: Prisma.ManagementGroupWhereInput
-}
-
-export type EnumGroupTypeFieldUpdateOperationsInput = {
-  set?: $Enums.GroupType
-}
-
 export type ManagementGroupCreateNestedOneWithoutBranchInput = {
   create?: Prisma.XOR<Prisma.ManagementGroupCreateWithoutBranchInput, Prisma.ManagementGroupUncheckedCreateWithoutBranchInput>
   connectOrCreate?: Prisma.ManagementGroupCreateOrConnectWithoutBranchInput
@@ -338,18 +334,8 @@ export type ManagementGroupUpdateOneRequiredWithoutBranchNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.ManagementGroupUpdateToOneWithWhereWithoutBranchInput, Prisma.ManagementGroupUpdateWithoutBranchInput>, Prisma.ManagementGroupUncheckedUpdateWithoutBranchInput>
 }
 
-export type ManagementGroupCreateNestedOneWithoutClubInput = {
-  create?: Prisma.XOR<Prisma.ManagementGroupCreateWithoutClubInput, Prisma.ManagementGroupUncheckedCreateWithoutClubInput>
-  connectOrCreate?: Prisma.ManagementGroupCreateOrConnectWithoutClubInput
-  connect?: Prisma.ManagementGroupWhereUniqueInput
-}
-
-export type ManagementGroupUpdateOneRequiredWithoutClubNestedInput = {
-  create?: Prisma.XOR<Prisma.ManagementGroupCreateWithoutClubInput, Prisma.ManagementGroupUncheckedCreateWithoutClubInput>
-  connectOrCreate?: Prisma.ManagementGroupCreateOrConnectWithoutClubInput
-  upsert?: Prisma.ManagementGroupUpsertWithoutClubInput
-  connect?: Prisma.ManagementGroupWhereUniqueInput
-  update?: Prisma.XOR<Prisma.XOR<Prisma.ManagementGroupUpdateToOneWithWhereWithoutClubInput, Prisma.ManagementGroupUpdateWithoutClubInput>, Prisma.ManagementGroupUncheckedUpdateWithoutClubInput>
+export type EnumGroupTypeFieldUpdateOperationsInput = {
+  set?: $Enums.GroupType
 }
 
 export type ManagementGroupCreateNestedOneWithoutAuthoritiesInput = {
@@ -364,6 +350,20 @@ export type ManagementGroupUpdateOneRequiredWithoutAuthoritiesNestedInput = {
   upsert?: Prisma.ManagementGroupUpsertWithoutAuthoritiesInput
   connect?: Prisma.ManagementGroupWhereUniqueInput
   update?: Prisma.XOR<Prisma.XOR<Prisma.ManagementGroupUpdateToOneWithWhereWithoutAuthoritiesInput, Prisma.ManagementGroupUpdateWithoutAuthoritiesInput>, Prisma.ManagementGroupUncheckedUpdateWithoutAuthoritiesInput>
+}
+
+export type ManagementGroupCreateNestedOneWithoutClubInput = {
+  create?: Prisma.XOR<Prisma.ManagementGroupCreateWithoutClubInput, Prisma.ManagementGroupUncheckedCreateWithoutClubInput>
+  connectOrCreate?: Prisma.ManagementGroupCreateOrConnectWithoutClubInput
+  connect?: Prisma.ManagementGroupWhereUniqueInput
+}
+
+export type ManagementGroupUpdateOneRequiredWithoutClubNestedInput = {
+  create?: Prisma.XOR<Prisma.ManagementGroupCreateWithoutClubInput, Prisma.ManagementGroupUncheckedCreateWithoutClubInput>
+  connectOrCreate?: Prisma.ManagementGroupCreateOrConnectWithoutClubInput
+  upsert?: Prisma.ManagementGroupUpsertWithoutClubInput
+  connect?: Prisma.ManagementGroupWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.ManagementGroupUpdateToOneWithWhereWithoutClubInput, Prisma.ManagementGroupUpdateWithoutClubInput>, Prisma.ManagementGroupUncheckedUpdateWithoutClubInput>
 }
 
 export type ManagementGroupCreateNestedOneWithoutResourcesInput = {
@@ -396,19 +396,19 @@ export type ManagementGroupUpdateOneRequiredWithoutEligibilitiesNestedInput = {
 
 export type ManagementGroupCreateWithoutBranchInput = {
   GroupType: $Enums.GroupType
-  Club?: Prisma.ClubCreateNestedOneWithoutManagementGroupInput
-  Authorities?: Prisma.AuthorityCreateNestedManyWithoutManagementGroupInput
-  Resources?: Prisma.ResourceCreateNestedManyWithoutManagementGroupInput
-  Eligibilities?: Prisma.EligibilityCreateNestedManyWithoutManagementGroupInput
+  Club?: Prisma.ClubInfoCreateNestedOneWithoutManageGroupInput
+  Authorities?: Prisma.AuthorityCreateNestedManyWithoutManageGroupInput
+  Eligibilities?: Prisma.EligibilityCreateNestedManyWithoutGroupInput
+  Resources?: Prisma.ResourceInfoCreateNestedManyWithoutManagementGroupInput
 }
 
 export type ManagementGroupUncheckedCreateWithoutBranchInput = {
   ManageGroupKey?: number
   GroupType: $Enums.GroupType
-  Club?: Prisma.ClubUncheckedCreateNestedOneWithoutManagementGroupInput
-  Authorities?: Prisma.AuthorityUncheckedCreateNestedManyWithoutManagementGroupInput
-  Resources?: Prisma.ResourceUncheckedCreateNestedManyWithoutManagementGroupInput
-  Eligibilities?: Prisma.EligibilityUncheckedCreateNestedManyWithoutManagementGroupInput
+  Club?: Prisma.ClubInfoUncheckedCreateNestedOneWithoutManageGroupInput
+  Authorities?: Prisma.AuthorityUncheckedCreateNestedManyWithoutManageGroupInput
+  Eligibilities?: Prisma.EligibilityUncheckedCreateNestedManyWithoutGroupInput
+  Resources?: Prisma.ResourceInfoUncheckedCreateNestedManyWithoutManagementGroupInput
 }
 
 export type ManagementGroupCreateOrConnectWithoutBranchInput = {
@@ -429,86 +429,36 @@ export type ManagementGroupUpdateToOneWithWhereWithoutBranchInput = {
 
 export type ManagementGroupUpdateWithoutBranchInput = {
   GroupType?: Prisma.EnumGroupTypeFieldUpdateOperationsInput | $Enums.GroupType
-  Club?: Prisma.ClubUpdateOneWithoutManagementGroupNestedInput
-  Authorities?: Prisma.AuthorityUpdateManyWithoutManagementGroupNestedInput
-  Resources?: Prisma.ResourceUpdateManyWithoutManagementGroupNestedInput
-  Eligibilities?: Prisma.EligibilityUpdateManyWithoutManagementGroupNestedInput
+  Club?: Prisma.ClubInfoUpdateOneWithoutManageGroupNestedInput
+  Authorities?: Prisma.AuthorityUpdateManyWithoutManageGroupNestedInput
+  Eligibilities?: Prisma.EligibilityUpdateManyWithoutGroupNestedInput
+  Resources?: Prisma.ResourceInfoUpdateManyWithoutManagementGroupNestedInput
 }
 
 export type ManagementGroupUncheckedUpdateWithoutBranchInput = {
   ManageGroupKey?: Prisma.IntFieldUpdateOperationsInput | number
   GroupType?: Prisma.EnumGroupTypeFieldUpdateOperationsInput | $Enums.GroupType
-  Club?: Prisma.ClubUncheckedUpdateOneWithoutManagementGroupNestedInput
-  Authorities?: Prisma.AuthorityUncheckedUpdateManyWithoutManagementGroupNestedInput
-  Resources?: Prisma.ResourceUncheckedUpdateManyWithoutManagementGroupNestedInput
-  Eligibilities?: Prisma.EligibilityUncheckedUpdateManyWithoutManagementGroupNestedInput
-}
-
-export type ManagementGroupCreateWithoutClubInput = {
-  GroupType: $Enums.GroupType
-  Branch?: Prisma.BranchCreateNestedOneWithoutManagementGroupInput
-  Authorities?: Prisma.AuthorityCreateNestedManyWithoutManagementGroupInput
-  Resources?: Prisma.ResourceCreateNestedManyWithoutManagementGroupInput
-  Eligibilities?: Prisma.EligibilityCreateNestedManyWithoutManagementGroupInput
-}
-
-export type ManagementGroupUncheckedCreateWithoutClubInput = {
-  ManageGroupKey?: number
-  GroupType: $Enums.GroupType
-  Branch?: Prisma.BranchUncheckedCreateNestedOneWithoutManagementGroupInput
-  Authorities?: Prisma.AuthorityUncheckedCreateNestedManyWithoutManagementGroupInput
-  Resources?: Prisma.ResourceUncheckedCreateNestedManyWithoutManagementGroupInput
-  Eligibilities?: Prisma.EligibilityUncheckedCreateNestedManyWithoutManagementGroupInput
-}
-
-export type ManagementGroupCreateOrConnectWithoutClubInput = {
-  where: Prisma.ManagementGroupWhereUniqueInput
-  create: Prisma.XOR<Prisma.ManagementGroupCreateWithoutClubInput, Prisma.ManagementGroupUncheckedCreateWithoutClubInput>
-}
-
-export type ManagementGroupUpsertWithoutClubInput = {
-  update: Prisma.XOR<Prisma.ManagementGroupUpdateWithoutClubInput, Prisma.ManagementGroupUncheckedUpdateWithoutClubInput>
-  create: Prisma.XOR<Prisma.ManagementGroupCreateWithoutClubInput, Prisma.ManagementGroupUncheckedCreateWithoutClubInput>
-  where?: Prisma.ManagementGroupWhereInput
-}
-
-export type ManagementGroupUpdateToOneWithWhereWithoutClubInput = {
-  where?: Prisma.ManagementGroupWhereInput
-  data: Prisma.XOR<Prisma.ManagementGroupUpdateWithoutClubInput, Prisma.ManagementGroupUncheckedUpdateWithoutClubInput>
-}
-
-export type ManagementGroupUpdateWithoutClubInput = {
-  GroupType?: Prisma.EnumGroupTypeFieldUpdateOperationsInput | $Enums.GroupType
-  Branch?: Prisma.BranchUpdateOneWithoutManagementGroupNestedInput
-  Authorities?: Prisma.AuthorityUpdateManyWithoutManagementGroupNestedInput
-  Resources?: Prisma.ResourceUpdateManyWithoutManagementGroupNestedInput
-  Eligibilities?: Prisma.EligibilityUpdateManyWithoutManagementGroupNestedInput
-}
-
-export type ManagementGroupUncheckedUpdateWithoutClubInput = {
-  ManageGroupKey?: Prisma.IntFieldUpdateOperationsInput | number
-  GroupType?: Prisma.EnumGroupTypeFieldUpdateOperationsInput | $Enums.GroupType
-  Branch?: Prisma.BranchUncheckedUpdateOneWithoutManagementGroupNestedInput
-  Authorities?: Prisma.AuthorityUncheckedUpdateManyWithoutManagementGroupNestedInput
-  Resources?: Prisma.ResourceUncheckedUpdateManyWithoutManagementGroupNestedInput
-  Eligibilities?: Prisma.EligibilityUncheckedUpdateManyWithoutManagementGroupNestedInput
+  Club?: Prisma.ClubInfoUncheckedUpdateOneWithoutManageGroupNestedInput
+  Authorities?: Prisma.AuthorityUncheckedUpdateManyWithoutManageGroupNestedInput
+  Eligibilities?: Prisma.EligibilityUncheckedUpdateManyWithoutGroupNestedInput
+  Resources?: Prisma.ResourceInfoUncheckedUpdateManyWithoutManagementGroupNestedInput
 }
 
 export type ManagementGroupCreateWithoutAuthoritiesInput = {
   GroupType: $Enums.GroupType
-  Branch?: Prisma.BranchCreateNestedOneWithoutManagementGroupInput
-  Club?: Prisma.ClubCreateNestedOneWithoutManagementGroupInput
-  Resources?: Prisma.ResourceCreateNestedManyWithoutManagementGroupInput
-  Eligibilities?: Prisma.EligibilityCreateNestedManyWithoutManagementGroupInput
+  Branch?: Prisma.BranchInfoCreateNestedOneWithoutManageGroupInput
+  Club?: Prisma.ClubInfoCreateNestedOneWithoutManageGroupInput
+  Eligibilities?: Prisma.EligibilityCreateNestedManyWithoutGroupInput
+  Resources?: Prisma.ResourceInfoCreateNestedManyWithoutManagementGroupInput
 }
 
 export type ManagementGroupUncheckedCreateWithoutAuthoritiesInput = {
   ManageGroupKey?: number
   GroupType: $Enums.GroupType
-  Branch?: Prisma.BranchUncheckedCreateNestedOneWithoutManagementGroupInput
-  Club?: Prisma.ClubUncheckedCreateNestedOneWithoutManagementGroupInput
-  Resources?: Prisma.ResourceUncheckedCreateNestedManyWithoutManagementGroupInput
-  Eligibilities?: Prisma.EligibilityUncheckedCreateNestedManyWithoutManagementGroupInput
+  Branch?: Prisma.BranchInfoUncheckedCreateNestedOneWithoutManageGroupInput
+  Club?: Prisma.ClubInfoUncheckedCreateNestedOneWithoutManageGroupInput
+  Eligibilities?: Prisma.EligibilityUncheckedCreateNestedManyWithoutGroupInput
+  Resources?: Prisma.ResourceInfoUncheckedCreateNestedManyWithoutManagementGroupInput
 }
 
 export type ManagementGroupCreateOrConnectWithoutAuthoritiesInput = {
@@ -529,36 +479,86 @@ export type ManagementGroupUpdateToOneWithWhereWithoutAuthoritiesInput = {
 
 export type ManagementGroupUpdateWithoutAuthoritiesInput = {
   GroupType?: Prisma.EnumGroupTypeFieldUpdateOperationsInput | $Enums.GroupType
-  Branch?: Prisma.BranchUpdateOneWithoutManagementGroupNestedInput
-  Club?: Prisma.ClubUpdateOneWithoutManagementGroupNestedInput
-  Resources?: Prisma.ResourceUpdateManyWithoutManagementGroupNestedInput
-  Eligibilities?: Prisma.EligibilityUpdateManyWithoutManagementGroupNestedInput
+  Branch?: Prisma.BranchInfoUpdateOneWithoutManageGroupNestedInput
+  Club?: Prisma.ClubInfoUpdateOneWithoutManageGroupNestedInput
+  Eligibilities?: Prisma.EligibilityUpdateManyWithoutGroupNestedInput
+  Resources?: Prisma.ResourceInfoUpdateManyWithoutManagementGroupNestedInput
 }
 
 export type ManagementGroupUncheckedUpdateWithoutAuthoritiesInput = {
   ManageGroupKey?: Prisma.IntFieldUpdateOperationsInput | number
   GroupType?: Prisma.EnumGroupTypeFieldUpdateOperationsInput | $Enums.GroupType
-  Branch?: Prisma.BranchUncheckedUpdateOneWithoutManagementGroupNestedInput
-  Club?: Prisma.ClubUncheckedUpdateOneWithoutManagementGroupNestedInput
-  Resources?: Prisma.ResourceUncheckedUpdateManyWithoutManagementGroupNestedInput
-  Eligibilities?: Prisma.EligibilityUncheckedUpdateManyWithoutManagementGroupNestedInput
+  Branch?: Prisma.BranchInfoUncheckedUpdateOneWithoutManageGroupNestedInput
+  Club?: Prisma.ClubInfoUncheckedUpdateOneWithoutManageGroupNestedInput
+  Eligibilities?: Prisma.EligibilityUncheckedUpdateManyWithoutGroupNestedInput
+  Resources?: Prisma.ResourceInfoUncheckedUpdateManyWithoutManagementGroupNestedInput
+}
+
+export type ManagementGroupCreateWithoutClubInput = {
+  GroupType: $Enums.GroupType
+  Branch?: Prisma.BranchInfoCreateNestedOneWithoutManageGroupInput
+  Authorities?: Prisma.AuthorityCreateNestedManyWithoutManageGroupInput
+  Eligibilities?: Prisma.EligibilityCreateNestedManyWithoutGroupInput
+  Resources?: Prisma.ResourceInfoCreateNestedManyWithoutManagementGroupInput
+}
+
+export type ManagementGroupUncheckedCreateWithoutClubInput = {
+  ManageGroupKey?: number
+  GroupType: $Enums.GroupType
+  Branch?: Prisma.BranchInfoUncheckedCreateNestedOneWithoutManageGroupInput
+  Authorities?: Prisma.AuthorityUncheckedCreateNestedManyWithoutManageGroupInput
+  Eligibilities?: Prisma.EligibilityUncheckedCreateNestedManyWithoutGroupInput
+  Resources?: Prisma.ResourceInfoUncheckedCreateNestedManyWithoutManagementGroupInput
+}
+
+export type ManagementGroupCreateOrConnectWithoutClubInput = {
+  where: Prisma.ManagementGroupWhereUniqueInput
+  create: Prisma.XOR<Prisma.ManagementGroupCreateWithoutClubInput, Prisma.ManagementGroupUncheckedCreateWithoutClubInput>
+}
+
+export type ManagementGroupUpsertWithoutClubInput = {
+  update: Prisma.XOR<Prisma.ManagementGroupUpdateWithoutClubInput, Prisma.ManagementGroupUncheckedUpdateWithoutClubInput>
+  create: Prisma.XOR<Prisma.ManagementGroupCreateWithoutClubInput, Prisma.ManagementGroupUncheckedCreateWithoutClubInput>
+  where?: Prisma.ManagementGroupWhereInput
+}
+
+export type ManagementGroupUpdateToOneWithWhereWithoutClubInput = {
+  where?: Prisma.ManagementGroupWhereInput
+  data: Prisma.XOR<Prisma.ManagementGroupUpdateWithoutClubInput, Prisma.ManagementGroupUncheckedUpdateWithoutClubInput>
+}
+
+export type ManagementGroupUpdateWithoutClubInput = {
+  GroupType?: Prisma.EnumGroupTypeFieldUpdateOperationsInput | $Enums.GroupType
+  Branch?: Prisma.BranchInfoUpdateOneWithoutManageGroupNestedInput
+  Authorities?: Prisma.AuthorityUpdateManyWithoutManageGroupNestedInput
+  Eligibilities?: Prisma.EligibilityUpdateManyWithoutGroupNestedInput
+  Resources?: Prisma.ResourceInfoUpdateManyWithoutManagementGroupNestedInput
+}
+
+export type ManagementGroupUncheckedUpdateWithoutClubInput = {
+  ManageGroupKey?: Prisma.IntFieldUpdateOperationsInput | number
+  GroupType?: Prisma.EnumGroupTypeFieldUpdateOperationsInput | $Enums.GroupType
+  Branch?: Prisma.BranchInfoUncheckedUpdateOneWithoutManageGroupNestedInput
+  Authorities?: Prisma.AuthorityUncheckedUpdateManyWithoutManageGroupNestedInput
+  Eligibilities?: Prisma.EligibilityUncheckedUpdateManyWithoutGroupNestedInput
+  Resources?: Prisma.ResourceInfoUncheckedUpdateManyWithoutManagementGroupNestedInput
 }
 
 export type ManagementGroupCreateWithoutResourcesInput = {
   GroupType: $Enums.GroupType
-  Branch?: Prisma.BranchCreateNestedOneWithoutManagementGroupInput
-  Club?: Prisma.ClubCreateNestedOneWithoutManagementGroupInput
-  Authorities?: Prisma.AuthorityCreateNestedManyWithoutManagementGroupInput
-  Eligibilities?: Prisma.EligibilityCreateNestedManyWithoutManagementGroupInput
+  Branch?: Prisma.BranchInfoCreateNestedOneWithoutManageGroupInput
+  Club?: Prisma.ClubInfoCreateNestedOneWithoutManageGroupInput
+  Authorities?: Prisma.AuthorityCreateNestedManyWithoutManageGroupInput
+  Eligibilities?: Prisma.EligibilityCreateNestedManyWithoutGroupInput
 }
 
 export type ManagementGroupUncheckedCreateWithoutResourcesInput = {
   ManageGroupKey?: number
   GroupType: $Enums.GroupType
-  Branch?: Prisma.BranchUncheckedCreateNestedOneWithoutManagementGroupInput
-  Club?: Prisma.ClubUncheckedCreateNestedOneWithoutManagementGroupInput
-  Authorities?: Prisma.AuthorityUncheckedCreateNestedManyWithoutManagementGroupInput
-  Eligibilities?: Prisma.EligibilityUncheckedCreateNestedManyWithoutManagementGroupInput
+  Branch?: Prisma.BranchInfoUncheckedCreateNestedOneWithoutManageGroupInput
+  Club?: Prisma.ClubInfoUncheckedCreateNestedOneWithoutManageGroupInput
+  Authorities?: Prisma.AuthorityUncheckedCreateNestedManyWithoutManageGroupInput
+  Eligibilities?: Prisma.EligibilityUncheckedCreateNestedManyWithoutGroupInput
 }
 
 export type ManagementGroupCreateOrConnectWithoutResourcesInput = {
@@ -579,36 +579,36 @@ export type ManagementGroupUpdateToOneWithWhereWithoutResourcesInput = {
 
 export type ManagementGroupUpdateWithoutResourcesInput = {
   GroupType?: Prisma.EnumGroupTypeFieldUpdateOperationsInput | $Enums.GroupType
-  Branch?: Prisma.BranchUpdateOneWithoutManagementGroupNestedInput
-  Club?: Prisma.ClubUpdateOneWithoutManagementGroupNestedInput
-  Authorities?: Prisma.AuthorityUpdateManyWithoutManagementGroupNestedInput
-  Eligibilities?: Prisma.EligibilityUpdateManyWithoutManagementGroupNestedInput
+  Branch?: Prisma.BranchInfoUpdateOneWithoutManageGroupNestedInput
+  Club?: Prisma.ClubInfoUpdateOneWithoutManageGroupNestedInput
+  Authorities?: Prisma.AuthorityUpdateManyWithoutManageGroupNestedInput
+  Eligibilities?: Prisma.EligibilityUpdateManyWithoutGroupNestedInput
 }
 
 export type ManagementGroupUncheckedUpdateWithoutResourcesInput = {
   ManageGroupKey?: Prisma.IntFieldUpdateOperationsInput | number
   GroupType?: Prisma.EnumGroupTypeFieldUpdateOperationsInput | $Enums.GroupType
-  Branch?: Prisma.BranchUncheckedUpdateOneWithoutManagementGroupNestedInput
-  Club?: Prisma.ClubUncheckedUpdateOneWithoutManagementGroupNestedInput
-  Authorities?: Prisma.AuthorityUncheckedUpdateManyWithoutManagementGroupNestedInput
-  Eligibilities?: Prisma.EligibilityUncheckedUpdateManyWithoutManagementGroupNestedInput
+  Branch?: Prisma.BranchInfoUncheckedUpdateOneWithoutManageGroupNestedInput
+  Club?: Prisma.ClubInfoUncheckedUpdateOneWithoutManageGroupNestedInput
+  Authorities?: Prisma.AuthorityUncheckedUpdateManyWithoutManageGroupNestedInput
+  Eligibilities?: Prisma.EligibilityUncheckedUpdateManyWithoutGroupNestedInput
 }
 
 export type ManagementGroupCreateWithoutEligibilitiesInput = {
   GroupType: $Enums.GroupType
-  Branch?: Prisma.BranchCreateNestedOneWithoutManagementGroupInput
-  Club?: Prisma.ClubCreateNestedOneWithoutManagementGroupInput
-  Authorities?: Prisma.AuthorityCreateNestedManyWithoutManagementGroupInput
-  Resources?: Prisma.ResourceCreateNestedManyWithoutManagementGroupInput
+  Branch?: Prisma.BranchInfoCreateNestedOneWithoutManageGroupInput
+  Club?: Prisma.ClubInfoCreateNestedOneWithoutManageGroupInput
+  Authorities?: Prisma.AuthorityCreateNestedManyWithoutManageGroupInput
+  Resources?: Prisma.ResourceInfoCreateNestedManyWithoutManagementGroupInput
 }
 
 export type ManagementGroupUncheckedCreateWithoutEligibilitiesInput = {
   ManageGroupKey?: number
   GroupType: $Enums.GroupType
-  Branch?: Prisma.BranchUncheckedCreateNestedOneWithoutManagementGroupInput
-  Club?: Prisma.ClubUncheckedCreateNestedOneWithoutManagementGroupInput
-  Authorities?: Prisma.AuthorityUncheckedCreateNestedManyWithoutManagementGroupInput
-  Resources?: Prisma.ResourceUncheckedCreateNestedManyWithoutManagementGroupInput
+  Branch?: Prisma.BranchInfoUncheckedCreateNestedOneWithoutManageGroupInput
+  Club?: Prisma.ClubInfoUncheckedCreateNestedOneWithoutManageGroupInput
+  Authorities?: Prisma.AuthorityUncheckedCreateNestedManyWithoutManageGroupInput
+  Resources?: Prisma.ResourceInfoUncheckedCreateNestedManyWithoutManagementGroupInput
 }
 
 export type ManagementGroupCreateOrConnectWithoutEligibilitiesInput = {
@@ -629,19 +629,19 @@ export type ManagementGroupUpdateToOneWithWhereWithoutEligibilitiesInput = {
 
 export type ManagementGroupUpdateWithoutEligibilitiesInput = {
   GroupType?: Prisma.EnumGroupTypeFieldUpdateOperationsInput | $Enums.GroupType
-  Branch?: Prisma.BranchUpdateOneWithoutManagementGroupNestedInput
-  Club?: Prisma.ClubUpdateOneWithoutManagementGroupNestedInput
-  Authorities?: Prisma.AuthorityUpdateManyWithoutManagementGroupNestedInput
-  Resources?: Prisma.ResourceUpdateManyWithoutManagementGroupNestedInput
+  Branch?: Prisma.BranchInfoUpdateOneWithoutManageGroupNestedInput
+  Club?: Prisma.ClubInfoUpdateOneWithoutManageGroupNestedInput
+  Authorities?: Prisma.AuthorityUpdateManyWithoutManageGroupNestedInput
+  Resources?: Prisma.ResourceInfoUpdateManyWithoutManagementGroupNestedInput
 }
 
 export type ManagementGroupUncheckedUpdateWithoutEligibilitiesInput = {
   ManageGroupKey?: Prisma.IntFieldUpdateOperationsInput | number
   GroupType?: Prisma.EnumGroupTypeFieldUpdateOperationsInput | $Enums.GroupType
-  Branch?: Prisma.BranchUncheckedUpdateOneWithoutManagementGroupNestedInput
-  Club?: Prisma.ClubUncheckedUpdateOneWithoutManagementGroupNestedInput
-  Authorities?: Prisma.AuthorityUncheckedUpdateManyWithoutManagementGroupNestedInput
-  Resources?: Prisma.ResourceUncheckedUpdateManyWithoutManagementGroupNestedInput
+  Branch?: Prisma.BranchInfoUncheckedUpdateOneWithoutManageGroupNestedInput
+  Club?: Prisma.ClubInfoUncheckedUpdateOneWithoutManageGroupNestedInput
+  Authorities?: Prisma.AuthorityUncheckedUpdateManyWithoutManageGroupNestedInput
+  Resources?: Prisma.ResourceInfoUncheckedUpdateManyWithoutManagementGroupNestedInput
 }
 
 
@@ -651,14 +651,14 @@ export type ManagementGroupUncheckedUpdateWithoutEligibilitiesInput = {
 
 export type ManagementGroupCountOutputType = {
   Authorities: number
-  Resources: number
   Eligibilities: number
+  Resources: number
 }
 
 export type ManagementGroupCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   Authorities?: boolean | ManagementGroupCountOutputTypeCountAuthoritiesArgs
-  Resources?: boolean | ManagementGroupCountOutputTypeCountResourcesArgs
   Eligibilities?: boolean | ManagementGroupCountOutputTypeCountEligibilitiesArgs
+  Resources?: boolean | ManagementGroupCountOutputTypeCountResourcesArgs
 }
 
 /**
@@ -681,15 +681,15 @@ export type ManagementGroupCountOutputTypeCountAuthoritiesArgs<ExtArgs extends r
 /**
  * ManagementGroupCountOutputType without action
  */
-export type ManagementGroupCountOutputTypeCountResourcesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  where?: Prisma.ResourceWhereInput
+export type ManagementGroupCountOutputTypeCountEligibilitiesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.EligibilityWhereInput
 }
 
 /**
  * ManagementGroupCountOutputType without action
  */
-export type ManagementGroupCountOutputTypeCountEligibilitiesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  where?: Prisma.EligibilityWhereInput
+export type ManagementGroupCountOutputTypeCountResourcesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.ResourceInfoWhereInput
 }
 
 
@@ -699,8 +699,8 @@ export type ManagementGroupSelect<ExtArgs extends runtime.Types.Extensions.Inter
   Branch?: boolean | Prisma.ManagementGroup$BranchArgs<ExtArgs>
   Club?: boolean | Prisma.ManagementGroup$ClubArgs<ExtArgs>
   Authorities?: boolean | Prisma.ManagementGroup$AuthoritiesArgs<ExtArgs>
-  Resources?: boolean | Prisma.ManagementGroup$ResourcesArgs<ExtArgs>
   Eligibilities?: boolean | Prisma.ManagementGroup$EligibilitiesArgs<ExtArgs>
+  Resources?: boolean | Prisma.ManagementGroup$ResourcesArgs<ExtArgs>
   _count?: boolean | Prisma.ManagementGroupCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["managementGroup"]>
 
@@ -724,8 +724,8 @@ export type ManagementGroupInclude<ExtArgs extends runtime.Types.Extensions.Inte
   Branch?: boolean | Prisma.ManagementGroup$BranchArgs<ExtArgs>
   Club?: boolean | Prisma.ManagementGroup$ClubArgs<ExtArgs>
   Authorities?: boolean | Prisma.ManagementGroup$AuthoritiesArgs<ExtArgs>
-  Resources?: boolean | Prisma.ManagementGroup$ResourcesArgs<ExtArgs>
   Eligibilities?: boolean | Prisma.ManagementGroup$EligibilitiesArgs<ExtArgs>
+  Resources?: boolean | Prisma.ManagementGroup$ResourcesArgs<ExtArgs>
   _count?: boolean | Prisma.ManagementGroupCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type ManagementGroupIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
@@ -734,11 +734,11 @@ export type ManagementGroupIncludeUpdateManyAndReturn<ExtArgs extends runtime.Ty
 export type $ManagementGroupPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "ManagementGroup"
   objects: {
-    Branch: Prisma.$BranchPayload<ExtArgs> | null
-    Club: Prisma.$ClubPayload<ExtArgs> | null
+    Branch: Prisma.$BranchInfoPayload<ExtArgs> | null
+    Club: Prisma.$ClubInfoPayload<ExtArgs> | null
     Authorities: Prisma.$AuthorityPayload<ExtArgs>[]
-    Resources: Prisma.$ResourcePayload<ExtArgs>[]
     Eligibilities: Prisma.$EligibilityPayload<ExtArgs>[]
+    Resources: Prisma.$ResourceInfoPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     ManageGroupKey: number
@@ -1137,11 +1137,11 @@ readonly fields: ManagementGroupFieldRefs;
  */
 export interface Prisma__ManagementGroupClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
-  Branch<T extends Prisma.ManagementGroup$BranchArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ManagementGroup$BranchArgs<ExtArgs>>): Prisma.Prisma__BranchClient<runtime.Types.Result.GetResult<Prisma.$BranchPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
-  Club<T extends Prisma.ManagementGroup$ClubArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ManagementGroup$ClubArgs<ExtArgs>>): Prisma.Prisma__ClubClient<runtime.Types.Result.GetResult<Prisma.$ClubPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  Branch<T extends Prisma.ManagementGroup$BranchArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ManagementGroup$BranchArgs<ExtArgs>>): Prisma.Prisma__BranchInfoClient<runtime.Types.Result.GetResult<Prisma.$BranchInfoPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  Club<T extends Prisma.ManagementGroup$ClubArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ManagementGroup$ClubArgs<ExtArgs>>): Prisma.Prisma__ClubInfoClient<runtime.Types.Result.GetResult<Prisma.$ClubInfoPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   Authorities<T extends Prisma.ManagementGroup$AuthoritiesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ManagementGroup$AuthoritiesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AuthorityPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
-  Resources<T extends Prisma.ManagementGroup$ResourcesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ManagementGroup$ResourcesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ResourcePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   Eligibilities<T extends Prisma.ManagementGroup$EligibilitiesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ManagementGroup$EligibilitiesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$EligibilityPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  Resources<T extends Prisma.ManagementGroup$ResourcesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ManagementGroup$ResourcesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ResourceInfoPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1570,18 +1570,18 @@ export type ManagementGroupDeleteManyArgs<ExtArgs extends runtime.Types.Extensio
  */
 export type ManagementGroup$BranchArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   /**
-   * Select specific fields to fetch from the Branch
+   * Select specific fields to fetch from the BranchInfo
    */
-  select?: Prisma.BranchSelect<ExtArgs> | null
+  select?: Prisma.BranchInfoSelect<ExtArgs> | null
   /**
-   * Omit specific fields from the Branch
+   * Omit specific fields from the BranchInfo
    */
-  omit?: Prisma.BranchOmit<ExtArgs> | null
+  omit?: Prisma.BranchInfoOmit<ExtArgs> | null
   /**
    * Choose, which related nodes to fetch as well
    */
-  include?: Prisma.BranchInclude<ExtArgs> | null
-  where?: Prisma.BranchWhereInput
+  include?: Prisma.BranchInfoInclude<ExtArgs> | null
+  where?: Prisma.BranchInfoWhereInput
 }
 
 /**
@@ -1589,18 +1589,18 @@ export type ManagementGroup$BranchArgs<ExtArgs extends runtime.Types.Extensions.
  */
 export type ManagementGroup$ClubArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   /**
-   * Select specific fields to fetch from the Club
+   * Select specific fields to fetch from the ClubInfo
    */
-  select?: Prisma.ClubSelect<ExtArgs> | null
+  select?: Prisma.ClubInfoSelect<ExtArgs> | null
   /**
-   * Omit specific fields from the Club
+   * Omit specific fields from the ClubInfo
    */
-  omit?: Prisma.ClubOmit<ExtArgs> | null
+  omit?: Prisma.ClubInfoOmit<ExtArgs> | null
   /**
    * Choose, which related nodes to fetch as well
    */
-  include?: Prisma.ClubInclude<ExtArgs> | null
-  where?: Prisma.ClubWhereInput
+  include?: Prisma.ClubInfoInclude<ExtArgs> | null
+  where?: Prisma.ClubInfoWhereInput
 }
 
 /**
@@ -1628,30 +1628,6 @@ export type ManagementGroup$AuthoritiesArgs<ExtArgs extends runtime.Types.Extens
 }
 
 /**
- * ManagementGroup.Resources
- */
-export type ManagementGroup$ResourcesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  /**
-   * Select specific fields to fetch from the Resource
-   */
-  select?: Prisma.ResourceSelect<ExtArgs> | null
-  /**
-   * Omit specific fields from the Resource
-   */
-  omit?: Prisma.ResourceOmit<ExtArgs> | null
-  /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.ResourceInclude<ExtArgs> | null
-  where?: Prisma.ResourceWhereInput
-  orderBy?: Prisma.ResourceOrderByWithRelationInput | Prisma.ResourceOrderByWithRelationInput[]
-  cursor?: Prisma.ResourceWhereUniqueInput
-  take?: number
-  skip?: number
-  distinct?: Prisma.ResourceScalarFieldEnum | Prisma.ResourceScalarFieldEnum[]
-}
-
-/**
  * ManagementGroup.Eligibilities
  */
 export type ManagementGroup$EligibilitiesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1673,6 +1649,30 @@ export type ManagementGroup$EligibilitiesArgs<ExtArgs extends runtime.Types.Exte
   take?: number
   skip?: number
   distinct?: Prisma.EligibilityScalarFieldEnum | Prisma.EligibilityScalarFieldEnum[]
+}
+
+/**
+ * ManagementGroup.Resources
+ */
+export type ManagementGroup$ResourcesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the ResourceInfo
+   */
+  select?: Prisma.ResourceInfoSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the ResourceInfo
+   */
+  omit?: Prisma.ResourceInfoOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ResourceInfoInclude<ExtArgs> | null
+  where?: Prisma.ResourceInfoWhereInput
+  orderBy?: Prisma.ResourceInfoOrderByWithRelationInput | Prisma.ResourceInfoOrderByWithRelationInput[]
+  cursor?: Prisma.ResourceInfoWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.ResourceInfoScalarFieldEnum | Prisma.ResourceInfoScalarFieldEnum[]
 }
 
 /**
