@@ -81,9 +81,13 @@ enum SubmissionType {
 
 model AccountInfo {
   AccountKey     Int    @id @default(autoincrement())
-  Email          String
+  // @unique on Email and UserID: the login flow looks an account up by one of
+  // these two columns. Without the constraint the database accepts duplicates
+  // and the lookup has to fall back to findFirst, which returns an arbitrary
+  // matching row — for a login system that is a way in with the wrong account.
+  Email          String @unique
   HashedPassword String
-  UserID         String
+  UserID         String @unique
   UserFName      String
   UserLName      String
   UserCredit     Int

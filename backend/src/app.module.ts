@@ -15,6 +15,7 @@ import {
 
 import { AuthRouter } from './auth/auth.router';
 import { AuthService } from './auth/auth.service';
+import { SessionService } from './auth/session';
 
 @Module({
   imports: [
@@ -33,6 +34,9 @@ import { AuthService } from './auth/auth.service';
   controllers: [AppController],
   providers: [
     AppService,
+
+    // session signing/verification - injected into AppContext and AuthRouter
+    SessionService,
 
     // context + middleware
     AppContext,

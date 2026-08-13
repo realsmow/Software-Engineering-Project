@@ -3,6 +3,7 @@ import type { ContextOptions, TRPCContext } from 'nestjs-trpc';
 import type { Request, Response } from 'express';
 import { mapUserRole, type UserRole } from '../common/schemas/status.schema';
 import { PrismaService } from '../prisma.service';
+import { SESSION_COOKIE, SessionService } from '../auth/session';
 
 /** Logged-in user — the shape every procedure relies on */
 export interface TrpcUser {
@@ -32,7 +33,10 @@ export interface TrpcContext {
 
 @Injectable()
 export class AppContext implements TRPCContext {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly session: SessionService,
+  ) {}
 
   async create(opts: ContextOptions): Promise<TrpcContext> {
     const req = opts.req as Request;
@@ -51,10 +55,13 @@ export class AppContext implements TRPCContext {
    * else in the app only ever sees ctx.user.
    */
   private async resolveUser(req: Request): Promise<TrpcUser | null> {
-    const token = req.cookies?.['ulms_session'];
+    const token = req.cookies?.[SESSION_COOKIE] as string | undefined;
     if (!token) return null;
 
-    const accountKey = await this.verifySessionToken(token);
+    // Signature and expiry only. Whether the account still exists, and what
+    // role it has today, is read from the database below on every request --
+    // the token deliberately carries neither. See session.ts.
+    const accountKey = this.session.verify(token);
     if (accountKey === null) return null;
 
     const account = await this.prisma.accountInfo.findUnique({
@@ -77,8 +84,4 @@ export class AppContext implements TRPCContext {
     };
   }
 
-  /** TODO: replace with real session/JWT verification */
-  private async verifySessionToken(_token: string): Promise<number | null> {
-    return null;
-  }
 }
