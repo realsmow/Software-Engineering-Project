@@ -27,7 +27,12 @@ const appRouter = t.router({
       studentId: z.string(),
       firstName: z.string(),
       lastName: z.string(),
-      email: z.email(),
+      // z.string().email(), not z.email(): this shape is copied verbatim into
+      // the generated contract, which the frontend compiles against. The
+      // frontend is still on zod 3, where top-level z.email() does not exist.
+      // z.string().email() is valid in both 3 and 4, so the contract can land
+      // before the frontend's zod bump instead of being blocked on it.
+      email: z.string().email(),
       role: z.enum(['borrower', 'staff', 'supervisor', 'admin']),
       facultyName: z.string().nullable(),
       creditScore: z.number().int(),
@@ -42,7 +47,12 @@ const appRouter = t.router({
       studentId: z.string(),
       firstName: z.string(),
       lastName: z.string(),
-      email: z.email(),
+      // z.string().email(), not z.email(): this shape is copied verbatim into
+      // the generated contract, which the frontend compiles against. The
+      // frontend is still on zod 3, where top-level z.email() does not exist.
+      // z.string().email() is valid in both 3 and 4, so the contract can land
+      // before the frontend's zod bump instead of being blocked on it.
+      email: z.string().email(),
       role: z.enum(['borrower', 'staff', 'supervisor', 'admin']),
       facultyName: z.string().nullable(),
       creditScore: z.number().int(),
