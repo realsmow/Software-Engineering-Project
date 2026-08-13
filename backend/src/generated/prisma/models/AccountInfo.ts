@@ -291,12 +291,12 @@ export type AccountInfoOrderByWithRelationInput = {
 
 export type AccountInfoWhereUniqueInput = Prisma.AtLeast<{
   AccountKey?: number
+  Email?: string
+  UserID?: string
   AND?: Prisma.AccountInfoWhereInput | Prisma.AccountInfoWhereInput[]
   OR?: Prisma.AccountInfoWhereInput[]
   NOT?: Prisma.AccountInfoWhereInput | Prisma.AccountInfoWhereInput[]
-  Email?: Prisma.StringFilter<"AccountInfo"> | string
   HashedPassword?: Prisma.StringFilter<"AccountInfo"> | string
-  UserID?: Prisma.StringFilter<"AccountInfo"> | string
   UserFName?: Prisma.StringFilter<"AccountInfo"> | string
   UserLName?: Prisma.StringFilter<"AccountInfo"> | string
   UserCredit?: Prisma.IntFilter<"AccountInfo"> | number
@@ -315,7 +315,7 @@ export type AccountInfoWhereUniqueInput = Prisma.AtLeast<{
   ImagesSubmitted?: Prisma.ImagesListRelationFilter
   Notifications?: Prisma.NotificationListRelationFilter
   RepairsPerformed?: Prisma.RepairLogListRelationFilter
-}, "AccountKey">
+}, "AccountKey" | "Email" | "UserID">
 
 export type AccountInfoOrderByWithAggregationInput = {
   AccountKey?: Prisma.SortOrder
