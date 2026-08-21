@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { BUSINESS, CREDIT_BANDS, CREDIT_BAND_POLICY, ROUTES } from "@/constants";
 import { useAuthStore } from "@/features/auth/auth.store";
+import { useSubmittedRequests } from "../loans/submitted-requests.store";
 import { cn } from "@/lib/utils";
 import { CATALOG_ITEMS, unitsOf, type CatalogItem, type UnitState } from "../mock-data";
 import {
@@ -60,6 +61,7 @@ export default function RequestPage() {
   const setStartDate = useRequestDraft((s) => s.setStartDate);
   const setEndDate = useRequestDraft((s) => s.setEndDate);
   const clear = useRequestDraft((s) => s.clear);
+  const addEquipmentRequest = useSubmittedRequests((s) => s.addEquipmentRequest);
 
   const band = user?.creditBand ?? "D0";
   const score = user?.creditScore ?? 100;
@@ -153,10 +155,10 @@ export default function RequestPage() {
   }
 
   function submit() {
-    if (!canSubmit) return;
-    // TODO: POST /loan-requests with `units` — one request item per unit,
-    // plus startDate/endDate. Until then the draft is just cleared.
-    void units;
+    if (!canSubmit || endDate === null) return;
+    // TODO: POST /loan-requests with these units. Until then the request is
+    // pushed to the session store so it shows up under "my requests".
+    addEquipmentRequest({ units, startDate, endDate, needsSupervisor });
     clear();
     navigate(ROUTES.MY_LOANS);
   }

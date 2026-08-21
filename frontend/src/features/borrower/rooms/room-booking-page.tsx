@@ -17,6 +17,7 @@ import {
   slotsAdjacent,
   type Room,
 } from "../mock-data";
+import { useSubmittedRequests } from "../loans/submitted-requests.store";
 import { useRoom } from "./use-rooms";
 
 /**
@@ -35,6 +36,7 @@ export default function RoomBookingPage() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const { data: room, isLoading } = useRoom(id);
+  const addRoomBooking = useSubmittedRequests((s) => s.addRoomBooking);
 
   const [picked, setPicked] = useState<Set<number>>(new Set());
 
@@ -96,8 +98,10 @@ export default function RoomBookingPage() {
       : `${TIME_SLOTS[pickedIdx[0]].start}–${TIME_SLOTS[pickedIdx[pickedIdx.length - 1]].end}`;
 
   function submit() {
-    if (!canSubmit) return;
-    // TODO: POST /facilities/:id/bookings with { date, slots }.
+    if (!canSubmit || !room) return;
+    // TODO: POST /facilities/:id/bookings with { date, slots }. Until then the
+    // booking is pushed to the session store so it shows up under "my requests".
+    addRoomBooking({ room, date: todayIso() });
     navigate(ROUTES.MY_LOANS);
   }
 

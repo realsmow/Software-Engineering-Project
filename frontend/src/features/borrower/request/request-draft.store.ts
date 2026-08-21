@@ -39,9 +39,9 @@ interface RequestDraftState {
 
 /**
  * One entry per physical unit. The draft groups by equipment type so the cart
- * stays editable, but a submitted request is tracked per unit: each unit is
- * approved, handed over, and returned on its own — which is also why T2 units
- * carry their own serial.
+ * stays editable, but on submission each unit becomes its own request with its
+ * own number, approved and handed over and returned on its own — which is also
+ * why T2 units carry their own serial.
  */
 export interface RequestUnit {
   itemId: string;

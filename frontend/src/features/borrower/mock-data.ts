@@ -6,8 +6,8 @@
  *
  * ⚠️ Replace with real endpoints when the equipment API lands.
  */
-import { TIER_CONFIG } from "@/constants";
-import type { EquipmentType, Tier } from "@/types/domain";
+import { DAMAGE_LEVELS, TIER_CONFIG } from "@/constants";
+import type { DamageLevel, EquipmentType, Tier } from "@/types/domain";
 
 /**
  * Catalog row = the domain EquipmentType plus the columns the catalog table
@@ -425,5 +425,276 @@ function room(
     capacity,
     freeSlots,
     totalSlots: TIME_SLOTS.length,
+  };
+}
+
+/* ==================== My requests (borrow + booking history) ==================== */
+
+/**
+ * Requests are atomic: one physical item is one request, with its own number
+ * and its own approval — matching `Reservations` in the backend schema, where
+ * every row carries a `ReservationKey` and an `ApproveStatus` of its own and
+ * nothing groups them into a parent document.
+ *
+ * So submitting a basket of five items produces five independent requests that
+ * move at their own speed: a T2 item can sit waiting for a supervisor while the
+ * T0 item sent alongside it is already collected.
+ */
+export type RequestKind = "equipment" | "room";
+
+export type MyRequestStatus =
+  | "pending"
+  | "approved"
+  | "preparing"
+  | "ready"
+  | "inUse"
+  | "returned"
+  | "inspecting"
+  | "done"
+  | "rejected"
+  | "cancelled";
+
+/**
+ * Progress steps shown under each card. Equipment runs the full handling
+ * chain; a room is checked in and out with photos instead of being issued and
+ * inspected, so it gets its own shorter track.
+ *
+ * Returning and inspecting are one step, not two: the borrower hands the item
+ * back at the counter and staff photograph it and check its condition right
+ * there, in the same visit. Splitting them would imply the borrower has a
+ * second thing to do after returning, which they do not — so the `returned`
+ * and `inspecting` statuses both sit on that final step.
+ */
+export const EQUIPMENT_STEPS = [
+  "stepSubmit",
+  "stepApprove",
+  "stepPrepare",
+  "stepPickup",
+  "stepUse",
+  "stepReturnInspect",
+] as const;
+
+export const ROOM_STEPS = [
+  "stepSubmit",
+  "stepConfirm",
+  "stepPhotoBefore",
+  "stepRoomUse",
+  "stepPhotoAfter",
+] as const;
+
+export function stepsOf(kind: RequestKind): readonly string[] {
+  return kind === "room" ? ROOM_STEPS : EQUIPMENT_STEPS;
+}
+
+/**
+ * How far along the track each status sits — the index of the step currently
+ * in play. Terminal failures stay where they stopped rather than pretending to
+ * have advanced.
+ *
+ * Because the highlighted step is the one *being worked on*, its label has to
+ * name a stage, not an outcome: "Approval", never "Approved". A past-tense
+ * label lands a bold green "Approved" right beside the "Awaiting approval"
+ * badge and reads as the opposite of the truth.
+ */
+const EQUIPMENT_STEP_AT: Record<MyRequestStatus, number> = {
+  pending: 1,
+  approved: 2,
+  preparing: 2,
+  ready: 3,
+  inUse: 4,
+  // Both sit on the last step: returning and inspecting are one counter visit,
+  // not two (see EQUIPMENT_STEPS).
+  returned: 5,
+  inspecting: 5,
+  done: EQUIPMENT_STEPS.length,
+  rejected: 1,
+  cancelled: 0,
+};
+
+const ROOM_STEP_AT: Record<MyRequestStatus, number> = {
+  pending: 1,
+  approved: 1,
+  preparing: 1,
+  ready: 2,
+  inUse: 3,
+  returned: 4,
+  inspecting: 4,
+  done: ROOM_STEPS.length,
+  rejected: 1,
+  cancelled: 0,
+};
+
+export function stepAt(status: MyRequestStatus, kind: RequestKind): number {
+  return kind === "room" ? ROOM_STEP_AT[status] : EQUIPMENT_STEP_AT[status];
+}
+
+export type RequestTab = "active" | "using" | "history";
+
+export const REQUEST_TABS: RequestTab[] = ["active", "using", "history"];
+
+export const STATUS_TAB: Record<MyRequestStatus, RequestTab> = {
+  pending: "active",
+  approved: "active",
+  preparing: "active",
+  ready: "active",
+  inUse: "using",
+  returned: "history",
+  inspecting: "history",
+  done: "history",
+  rejected: "history",
+  cancelled: "history",
+};
+
+/** Staff verdict on a returned item, and the appeal window it opens. */
+export interface InspectionResult {
+  damage: DamageLevel;
+  inspectedAt: string;
+  inspectedBy: string;
+  /** Empty for B0 — nothing to explain when nothing was wrong. */
+  reason?: string;
+  /** Days left to appeal; 0 once the window has closed. */
+  appealDaysLeft: number;
+}
+
+export interface MyRequest {
+  /** The reservation number, e.g. "REQ-2569-00431". One per item — see above. */
+  id: string;
+  kind: RequestKind;
+  tier: Tier;
+  name: string;
+  /** Unit serial, or the room code for a booking. */
+  serial: string;
+  status: MyRequestStatus;
+  startDate: string;
+  endDate: string;
+  /** Equipment on loan: when it is due back, and how far off that is. */
+  dueAt?: string;
+  daysLeft?: number;
+  /** Online extensions already used on this request. */
+  extensionsUsed?: number;
+  inspection?: InspectionResult;
+}
+
+/**
+ * Credit lost to a damage verdict — item weight × damage weight, the same
+ * formula the credit page and the appeal flow have to agree with.
+ */
+export function creditCutOf(tier: Tier, damage: DamageLevel): number {
+  return TIER_CONFIG[tier].creditWeight * DAMAGE_LEVELS[damage].weight;
+}
+
+export const MY_REQUESTS: MyRequest[] = [
+  // Three items sent together, three numbers, three different speeds.
+  request("REQ-2569-00431", "T2", "ออสซิลโลสโคป Keysight DSOX1204G", "EE-OSC-014-01", "pending",
+    "2026-08-12", "2026-08-16"),
+  request("REQ-2569-00432", "T1", "โพรบวัดสัญญาณ 10×", "EE-PRB-002-04", "preparing",
+    "2026-08-12", "2026-08-16"),
+  request("REQ-2569-00433", "T0", "สายจัมเปอร์ชุดใหญ่", "—", "ready",
+    "2026-08-12", "2026-08-16"),
+
+  request("REQ-2569-00429", "T0", "ชุดบัดกรีควบคุมอุณหภูมิ", "ME-SOL-021-03", "ready",
+    "2026-08-11", "2026-08-18"),
+
+  booking("BKG-2569-00028", "ห้องปฏิบัติการ CAD 2", "FAC-CAD2", "ready", "2026-08-12"),
+
+  onLoan("REQ-2569-00419", "T1", "มัลติมิเตอร์ Fluke 87V", "EE-MM-001-14",
+    "2026-08-04", "2026-08-16", 4, 0),
+  onLoan("REQ-2569-00415", "T1", "บอร์ดพัฒนา FPGA DE10-Lite", "CPE-FPGA-008-02",
+    "2026-07-27", "2026-08-29", 17, 1),
+  onLoan("REQ-2569-00423", "T2", "ออสซิลโลสโคป Keysight DSOX1204G", "EE-OSC-014-03",
+    "2026-08-08", "2026-08-15", 1, 0),
+
+  request("REQ-2569-00408", "T2", "กล้องถ่ายภาพความร้อน FLIR E6", "ME-THM-002-01", "inspecting",
+    "2026-07-21", "2026-07-27"),
+
+  inspected("REQ-2569-00396", "T1", "มัลติมิเตอร์ Fluke 87V", "EE-MM-001-21",
+    "2026-07-12", "2026-07-18",
+    { damage: "B1", inspectedAt: "2026-07-19", inspectedBy: "พี่แนน ใจดี", appealDaysLeft: 4,
+      reason: "พบรอยขีดข่วนบนหน้าปัดและสายวัดหุ้มฉนวนถลอก" }),
+  inspected("REQ-2569-00393", "T2", "กล้องถ่ายภาพความร้อน FLIR E6", "ME-THM-002-02",
+    "2026-07-03", "2026-07-10",
+    { damage: "B2", inspectedAt: "2026-07-12", inspectedBy: "พี่โอ๊ต", appealDaysLeft: 1,
+      reason: "เลนส์มีฝ้าและปุ่มปรับโฟกัสฝืด ต้องส่งซ่อม" }),
+  inspected("REQ-2569-00402", "T0", "เวอร์เนียคาลิปเปอร์ดิจิทัล", "ME-CAL-045-07",
+    "2026-07-19", "2026-07-26",
+    { damage: "B0", inspectedAt: "2026-07-27", inspectedBy: "พี่แนน ใจดี", appealDaysLeft: 0 }),
+
+  request("REQ-2569-00397", "T2", "เครื่องกำเนิดสัญญาณ Rigol DG1032", "—", "rejected",
+    "2026-07-15", "2026-07-19"),
+];
+
+function request(
+  id: string,
+  tier: Tier,
+  name: string,
+  serial: string,
+  status: MyRequestStatus,
+  startDate: string,
+  endDate: string,
+): MyRequest {
+  return {
+    id,
+    kind: "equipment",
+    tier,
+    name,
+    serial,
+    status,
+    startDate,
+    endDate,
+  };
+}
+
+/** Equipment currently out — carries the due date and extension counter. */
+function onLoan(
+  id: string,
+  tier: Tier,
+  name: string,
+  serial: string,
+  startDate: string,
+  dueAt: string,
+  daysLeft: number,
+  extensionsUsed: number,
+): MyRequest {
+  return {
+    ...request(id, tier, name, serial, "inUse", startDate, dueAt),
+    dueAt,
+    daysLeft,
+    extensionsUsed,
+  };
+}
+
+/** Returned and already judged — the request the appeal flow reads. */
+function inspected(
+  id: string,
+  tier: Tier,
+  name: string,
+  serial: string,
+  startDate: string,
+  endDate: string,
+  inspection: InspectionResult,
+): MyRequest {
+  return {
+    ...request(id, tier, name, serial, "done", startDate, endDate),
+    inspection,
+  };
+}
+
+/** A room booking — same shape, its own reservation number. */
+function booking(
+  id: string,
+  name: string,
+  roomCode: string,
+  status: MyRequestStatus,
+  date: string,
+): MyRequest {
+  return {
+    id,
+    kind: "room",
+    tier: "T3",
+    name,
+    serial: roomCode,
+    status,
+    startDate: date,
+    endDate: date,
   };
 }
