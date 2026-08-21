@@ -1,11 +1,13 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Building2, CalendarCheck, SlidersHorizontal, X } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Building2, SlidersHorizontal, X } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { DataTable, type Column } from "@/components/ui/data-table";
+import { ROUTES } from "@/constants";
 import { cn } from "@/lib/utils";
 import {
   BUILDINGS,
@@ -15,7 +17,6 @@ import {
   capacityBand,
   type Room,
 } from "../mock-data";
-import { fmtDateTime } from "../format";
 import { FacetFilters, type FilterGroup } from "../facet-filters";
 import { useRooms } from "./use-rooms";
 
@@ -37,15 +38,12 @@ const PAGE_SIZE = 8;
  */
 export default function RoomListPage() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const { data: rooms = [], isLoading } = useRooms();
 
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [filtersOpen, setFiltersOpen] = useState(false);
-  // Which room the borrower picked. Local for now — this becomes a navigation
-  // to the booking flow (choose room → pick slots → confirm) once that route
-  // exists. TODO: replace with navigate(ROUTES.ROOM_BOOKING).
-  const [pickedId, setPickedId] = useState<string | null>(null);
 
   const groups = useMemo<FilterGroup[]>(() => {
     const countBy = (group: GroupKey, id: string) =>
@@ -111,7 +109,7 @@ export default function RoomListPage() {
     [groups, selected],
   );
 
-  const pickedRoom = rooms.find((r) => r.id === pickedId) ?? null;
+  const openBooking = (room: Room) => navigate(ROUTES.ROOM_BOOKING.replace(":id", room.id));
 
   function toggleFilter(key: string) {
     setSelected((prev) => {
@@ -167,24 +165,11 @@ export default function RoomListPage() {
       render: (r) => <SlotCount room={r} />,
     },
     {
-      key: "next",
-      header: t("borrower.rooms.colNext"),
-      className: "whitespace-nowrap",
-      render: (r) => (
-        <span className="font-mono text-xs text-t3">{fmtDateTime(r.nextAvailableAt)}</span>
-      ),
-    },
-    {
       key: "book",
       header: "",
       align: "right",
       render: (r) => (
-        <BookButton
-          room={r}
-          picked={r.id === pickedId}
-          size="sm"
-          onBook={() => setPickedId(r.id)}
-        />
+        <BookButton room={r} size="sm" onBook={() => openBooking(r)} />
       ),
     },
   ];
@@ -229,7 +214,6 @@ export default function RoomListPage() {
       <PageHeader
         title={t("nav.rooms")}
         subtitle={t("borrower.rooms.subtitle")}
-        actions={pickedRoom ? <PickedPill name={pickedRoom.name} /> : undefined}
       />
 
       <div className="grid items-start gap-4 lg:grid-cols-[224px_minmax(0,1fr)]">
@@ -306,12 +290,7 @@ export default function RoomListPage() {
               </div>
             ) : (
               list.map((r) => (
-                <RoomCard
-                  key={r.id}
-                  room={r}
-                  picked={r.id === pickedId}
-                  onBook={() => setPickedId(r.id)}
-                />
+                <RoomCard key={r.id} room={r} onBook={() => openBooking(r)} />
               ))
             )}
           </div>
@@ -415,23 +394,10 @@ function NoteStrip() {
   );
 }
 
-function RoomCard({
-  room,
-  picked,
-  onBook,
-}: {
-  room: Room;
-  picked: boolean;
-  onBook: () => void;
-}) {
+function RoomCard({ room, onBook }: { room: Room; onBook: () => void }) {
   const { t } = useTranslation();
   return (
-    <div
-      className={cn(
-        "rounded-lg border bg-card p-3.5 shadow-sm",
-        picked ? "border-accent ring-1 ring-accent" : "border-border",
-      )}
-    >
+    <div className="rounded-lg border border-border bg-card p-3.5 shadow-sm">
       <div className="flex items-start gap-3">
         <Thumb size={64} />
         <div className="min-w-0">
@@ -445,27 +411,22 @@ function RoomCard({
         </div>
       </div>
 
-      <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+      <div className="mt-2.5 text-xs">
         <SlotCount room={room} />
-        {room.nextAvailableAt ? (
-          <span className="font-mono text-t3">{fmtDateTime(room.nextAvailableAt)}</span>
-        ) : null}
       </div>
 
-      <BookButton room={room} picked={picked} className="mt-3 h-11 w-full" onBook={onBook} />
+      <BookButton room={room} className="mt-3 h-11 w-full" onBook={onBook} />
     </div>
   );
 }
 
 function BookButton({
   room,
-  picked,
   size,
   className,
   onBook,
 }: {
   room: Room;
-  picked: boolean;
   size?: "sm";
   className?: string;
   onBook: () => void;
@@ -479,7 +440,6 @@ function BookButton({
       variant={size === "sm" ? "outline" : "default"}
       className={className}
       disabled={full}
-      aria-pressed={picked}
       onClick={onBook}
     >
       {full ? t("borrower.rooms.full") : t("borrower.rooms.book")}
@@ -514,20 +474,6 @@ function EmptyState({ onClear }: { onClear: () => void }) {
         {t("borrower.filters.clearAll")}
       </Button>
     </div>
-  );
-}
-
-/**
- * Picked-room indicator. Inert until the booking flow exists — it only reports
- * which room the "book" buttons last selected in this page's state.
- */
-function PickedPill({ name }: { name: string }) {
-  const { t } = useTranslation();
-  return (
-    <span className="inline-flex items-center gap-2 rounded-md border border-accent-border bg-[var(--accent-soft)] px-3 py-1.5 text-[13px] font-medium text-accent">
-      <CalendarCheck size={15} strokeWidth={2} />
-      {t("borrower.rooms.picked", { name })}
-    </span>
   );
 }
 

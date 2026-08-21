@@ -15,3 +15,15 @@ export function useRooms() {
     queryFn: async (): Promise<Room[]> => ROOMS,
   });
 }
+
+/**
+ * useRoom — one room by id, for the booking page.
+ * Resolves to `null` when the id matches nothing (removed room, bad link).
+ */
+export function useRoom(id: string | undefined) {
+  return useQuery({
+    queryKey: [...queryKeys.facilities, id ?? ""],
+    queryFn: async (): Promise<Room | null> => ROOMS.find((r) => r.id === id) ?? null,
+    enabled: Boolean(id),
+  });
+}
