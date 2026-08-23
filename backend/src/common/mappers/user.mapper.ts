@@ -1,5 +1,6 @@
-import { mapUserRole, type CreditTier } from '../schemas/status.schema';
+import { mapUserRole } from '../schemas/status.schema';
 import type { UserOutput } from '../schemas/user.schema';
+import type { BorrowLimits } from '../credit/credit-tier.service';
 
 /**
  * Shape the mapper needs — declared by hand rather than imported from
@@ -18,14 +19,15 @@ export interface AccountRow {
   Faculty?: { FacultyName: string } | null;
 }
 
-/** Borrow limits resolved from CreditTier x BorrowConstraints — caller looks these up */
-export interface BorrowLimits {
-  creditTier: CreditTier;
-  /** BorrowConstraints.MaxBorrowDate */
-  maxBorrowDays: number;
-  /** BorrowConstraints.MaxExtendTime */
-  maxExtendTimes: number;
-}
+/**
+ * Borrow limits resolved from CreditTier x BorrowConstraints.
+ *
+ * Defined by CreditTierService rather than here, so `auth.me` and
+ * `admin.getUserById` cannot end up with two slightly different ideas of what
+ * a limit is. Re-exported because callers of this mapper already import from
+ * it.
+ */
+export type { BorrowLimits };
 
 export function toUserOutput(row: AccountRow, limits: BorrowLimits): UserOutput {
   return {

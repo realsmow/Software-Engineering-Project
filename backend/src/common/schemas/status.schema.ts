@@ -13,7 +13,22 @@ export type UserRole = z.infer<typeof userRole>;
  * Never let the raw RoleKey number or an unmapped RoleName leak past here.
  */
 export function mapUserRole(roleName: string): UserRole {
-  switch (roleName.toLowerCase()) {
+  const role = tryMapUserRole(roleName);
+  if (role === null) {
+    throw new Error(`Unknown RoleName "${roleName}" — add a mapping in tryMapUserRole`);
+  }
+  return role;
+}
+
+/**
+ * Same mapping, but null instead of throwing.
+ *
+ * Needed wherever RoleInfo rows are *scanned* rather than resolved — e.g.
+ * finding which RoleKey corresponds to 'staff'. A row somebody added by hand
+ * should not blow up a list query; it should just not match.
+ */
+export function tryMapUserRole(roleName: string): UserRole | null {
+  switch (roleName.trim().toLowerCase()) {
     case 'student':
     case 'borrower':
       return 'borrower';
@@ -25,7 +40,7 @@ export function mapUserRole(roleName: string): UserRole {
     case 'admin':
       return 'admin';
     default:
-      throw new Error(`Unknown RoleName "${roleName}" — add a mapping in mapUserRole`);
+      return null;
   }
 }
 

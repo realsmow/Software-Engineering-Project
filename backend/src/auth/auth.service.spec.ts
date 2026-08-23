@@ -1,5 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { PrismaService } from '../prisma.service';
+import { CreditTierService } from '../common/credit/credit-tier.service';
+import { hashPassword } from '../common/crypto/password';
 import { AuthService } from './auth.service';
 import { userOutput } from '../common/schemas/user.schema';
 
@@ -12,9 +14,14 @@ describe('AuthService', () => {
   let borrowRuleKey: number;
   let accountKey: number;
 
+  const EMAIL = 'auth.service.spec@example.com';
+  const PASSWORD = 'correct horse battery staple';
+
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [AuthService, PrismaService],
+      // CreditTierService: the credit-score-to-borrow-limit lookup moved out
+      // of AuthService so admin.getUserById can reuse it.
+      providers: [AuthService, CreditTierService, PrismaService],
     }).compile();
 
     service = module.get<AuthService>(AuthService);
@@ -51,8 +58,10 @@ describe('AuthService', () => {
 
     const account = await prisma.accountInfo.create({
       data: {
-        Email: 'auth.service.spec@example.com',
-        HashedPassword: 'not-a-real-hash',
+        Email: EMAIL,
+        // A real hash, so authenticate() below is exercising the actual
+        // verification path rather than a placeholder string.
+        HashedPassword: await hashPassword(PASSWORD),
         UserID: 'TEST0001',
         UserFName: 'Test',
         UserLName: 'User',
@@ -87,13 +96,42 @@ describe('AuthService', () => {
       studentId: 'TEST0001',
       firstName: 'Test',
       lastName: 'User',
-      email: 'auth.service.spec@example.com',
+      email: EMAIL,
       role: 'borrower', // mapRoleName('Student') -> 'borrower'
       facultyName: null,
       creditScore: 65,
       creditTier: 'D2',
       maxBorrowDays: 10,
       maxExtendTimes: 2,
+    });
+  });
+
+  describe('authenticate', () => {
+    it('accepts the KU email', async () => {
+      await expect(service.authenticate(EMAIL, PASSWORD)).resolves.toBe(accountKey);
+    });
+
+    it('accepts the user ID, which is how local staff accounts sign in', async () => {
+      await expect(service.authenticate('TEST0001', PASSWORD)).resolves.toBe(accountKey);
+    });
+
+    it('ignores email casing and surrounding whitespace', async () => {
+      await expect(service.authenticate(`  ${EMAIL.toUpperCase()} `, PASSWORD)).resolves.toBe(
+        accountKey,
+      );
+    });
+
+    it('rejects a wrong password', async () => {
+      await expect(service.authenticate(EMAIL, 'wrong')).rejects.toMatchObject({
+        message: 'INVALID_CREDENTIALS',
+        code: 'UNAUTHORIZED',
+      });
+    });
+
+    it('gives an unknown account the same error, so accounts cannot be enumerated', async () => {
+      await expect(
+        service.authenticate('nobody@example.com', PASSWORD),
+      ).rejects.toMatchObject({ message: 'INVALID_CREDENTIALS', code: 'UNAUTHORIZED' });
     });
   });
 });
