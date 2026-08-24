@@ -1,3 +1,30 @@
+-- CreateEnum
+CREATE TYPE "GroupType" AS ENUM ('Club', 'Faculty');
+
+-- CreateEnum
+CREATE TYPE "ConditionType" AS ENUM ('Normal', 'MinorDamage', 'MajorDamage', 'Broken', 'Missing');
+
+-- CreateEnum
+CREATE TYPE "ResourceStatus" AS ENUM ('InStorage', 'Lended', 'Missing');
+
+-- CreateEnum
+CREATE TYPE "ResourceType" AS ENUM ('Room', 'Item');
+
+-- CreateEnum
+CREATE TYPE "CurrentStatus" AS ENUM ('Pending', 'Prepared', 'Lended', 'Returned', 'Inspected');
+
+-- CreateEnum
+CREATE TYPE "PenaltyReason" AS ENUM ('DamagedItem', 'BrokenItem', 'LostItem', 'DidntReturn', 'ReturnLate');
+
+-- CreateEnum
+CREATE TYPE "ApproveStatus" AS ENUM ('Pending', 'Approved', 'Rejected', 'Canceled');
+
+-- CreateEnum
+CREATE TYPE "NotificationType" AS ENUM ('Anonuncement', 'Approval', 'Warning');
+
+-- CreateEnum
+CREATE TYPE "SubmissionType" AS ENUM ('BeforePicture', 'AfterPicture', 'InspectionPicture');
+
 -- CreateTable
 CREATE TABLE "AccountInfo" (
     "AccountKey" SERIAL NOT NULL,
@@ -23,27 +50,27 @@ CREATE TABLE "RoleInfo" (
 -- CreateTable
 CREATE TABLE "FacultyInfo" (
     "FacultyKey" SERIAL NOT NULL,
-    "FacultyName" TEXT NOT NULL,
-    "BranchName" TEXT,
-    "ManageGroupKey" INTEGER NOT NULL,
+    "FacultyName" TEXT,
 
     CONSTRAINT "FacultyInfo_pkey" PRIMARY KEY ("FacultyKey")
 );
 
 -- CreateTable
-CREATE TABLE "ManagementGroup" (
-    "ManageGroupKey" SERIAL NOT NULL,
-    "GroupType" INTEGER NOT NULL,
+CREATE TABLE "BranchInfo" (
+    "BranchKey" SERIAL NOT NULL,
+    "BranchName" TEXT,
+    "FacultyKey" INTEGER NOT NULL,
+    "ManageGroupKey" INTEGER NOT NULL,
 
-    CONSTRAINT "ManagementGroup_pkey" PRIMARY KEY ("ManageGroupKey")
+    CONSTRAINT "BranchInfo_pkey" PRIMARY KEY ("BranchKey")
 );
 
 -- CreateTable
-CREATE TABLE "GroupType" (
-    "GroupTypeKey" SERIAL NOT NULL,
-    "GroupTypeName" TEXT NOT NULL,
+CREATE TABLE "ManagementGroup" (
+    "ManageGroupKey" SERIAL NOT NULL,
+    "GroupType" "GroupType" NOT NULL,
 
-    CONSTRAINT "GroupType_pkey" PRIMARY KEY ("GroupTypeKey")
+    CONSTRAINT "ManagementGroup_pkey" PRIMARY KEY ("ManageGroupKey")
 );
 
 -- CreateTable
@@ -115,7 +142,8 @@ CREATE TABLE "ResourceInfo" (
     "ManagedBy" INTEGER NOT NULL,
     "BorrowRule" INTEGER NOT NULL,
     "ConditionKey" INTEGER,
-    "ResourceStatus" INTEGER NOT NULL,
+    "ResourceStatus" "ResourceStatus" NOT NULL,
+    "ResourceType" "ResourceType" NOT NULL,
     "BufferTime" INTEGER NOT NULL,
     "AllowBorrow" BOOLEAN NOT NULL DEFAULT false,
 
@@ -123,31 +151,15 @@ CREATE TABLE "ResourceInfo" (
 );
 
 -- CreateTable
-CREATE TABLE "ResourceStatus" (
-    "StatusKey" SERIAL NOT NULL,
-    "StatusName" TEXT,
-
-    CONSTRAINT "ResourceStatus_pkey" PRIMARY KEY ("StatusKey")
-);
-
--- CreateTable
 CREATE TABLE "ConditionLog" (
     "ConditionKey" SERIAL NOT NULL,
     "ResourceKey" INTEGER NOT NULL,
     "LoggedBy" INTEGER NOT NULL,
-    "Condition" INTEGER NOT NULL,
+    "Condition" "ConditionType" NOT NULL,
     "Notes" TEXT,
     "LoggedAt" TIMESTAMP(3),
 
     CONSTRAINT "ConditionLog_pkey" PRIMARY KEY ("ConditionKey")
-);
-
--- CreateTable
-CREATE TABLE "ConditionType" (
-    "ConditionTypeKey" SERIAL NOT NULL,
-    "ConditionName" TEXT,
-
-    CONSTRAINT "ConditionType_pkey" PRIMARY KEY ("ConditionTypeKey")
 );
 
 -- CreateTable
@@ -174,19 +186,11 @@ CREATE TABLE "BorrowConstraints" (
 CREATE TABLE "PenaltyRule" (
     "PenaltyRuleKey" SERIAL NOT NULL,
     "BorrowRuleKey" INTEGER NOT NULL,
-    "PenaltyTypeKey" INTEGER NOT NULL,
+    "PenaltyReason" "PenaltyReason" NOT NULL,
     "PenaltyAmount" INTEGER NOT NULL,
     "PenaltyLength" INTEGER NOT NULL,
 
     CONSTRAINT "PenaltyRule_pkey" PRIMARY KEY ("PenaltyRuleKey")
-);
-
--- CreateTable
-CREATE TABLE "PenaltyType" (
-    "PenaltyTypeKey" SERIAL NOT NULL,
-    "PenaltyType" TEXT,
-
-    CONSTRAINT "PenaltyType_pkey" PRIMARY KEY ("PenaltyTypeKey")
 );
 
 -- CreateTable
@@ -217,7 +221,7 @@ CREATE TABLE "Reservations" (
     "Reason" TEXT,
     "StartTime" TIMESTAMP(3) NOT NULL,
     "EndTime" TIMESTAMP(3) NOT NULL,
-    "ApproveStatus" INTEGER NOT NULL,
+    "ApproveStatus" "ApproveStatus" NOT NULL,
     "ApprovedBy" INTEGER,
     "ReservationExpiration" TIMESTAMP(3) NOT NULL,
     "ActionTime" TIMESTAMP(3) NOT NULL,
@@ -227,20 +231,12 @@ CREATE TABLE "Reservations" (
 );
 
 -- CreateTable
-CREATE TABLE "ApproveStatus" (
-    "ApproveStatusKey" SERIAL NOT NULL,
-    "StatusName" TEXT NOT NULL,
-
-    CONSTRAINT "ApproveStatus_pkey" PRIMARY KEY ("ApproveStatusKey")
-);
-
--- CreateTable
 CREATE TABLE "UsageLog" (
     "UsageKey" SERIAL NOT NULL,
     "ReservationKey" INTEGER,
     "AccountKey" INTEGER NOT NULL,
     "ResourceKey" INTEGER NOT NULL,
-    "CurrentStatus" INTEGER NOT NULL,
+    "CurrentStatus" "CurrentStatus" NOT NULL,
     "DueTime" TIMESTAMP(3) NOT NULL,
     "PendingExtension" INTEGER,
     "CheckoutTime" TIMESTAMP(3) NOT NULL,
@@ -259,7 +255,7 @@ CREATE TABLE "ExtensionRequest" (
     "ExtendNo" INTEGER,
     "PreviousDueTime" TIMESTAMP(3) NOT NULL,
     "RequestedDueTime" TIMESTAMP(3) NOT NULL,
-    "ApproveStatus" INTEGER NOT NULL,
+    "ApproveStatus" "ApproveStatus" NOT NULL,
     "ApprovedBy" INTEGER,
     "RequestedAt" TIMESTAMP(3) NOT NULL,
     "ResolvedAt" TIMESTAMP(3),
@@ -305,7 +301,7 @@ CREATE TABLE "AppealInfo" (
     "FiledBy" INTEGER NOT NULL,
     "ResolvedBy" INTEGER,
     "AppealReason" TEXT,
-    "ApproveStatus" INTEGER NOT NULL,
+    "ApproveStatus" "ApproveStatus" NOT NULL,
     "ActionTime" TIMESTAMP(3),
     "ResolvedAt" TIMESTAMP(3),
 
@@ -320,38 +316,22 @@ CREATE TABLE "Images" (
     "ResourceKey" INTEGER NOT NULL,
     "InspectionKey" INTEGER,
     "ImageURL" TEXT NOT NULL,
-    "SubmissionType" INTEGER NOT NULL,
+    "SubmissionType" "SubmissionType" NOT NULL,
     "ActionTime" TIMESTAMP(3),
 
     CONSTRAINT "Images_pkey" PRIMARY KEY ("ImageKey")
 );
 
 -- CreateTable
-CREATE TABLE "ImageSubmissionType" (
-    "SubmissionTypeKey" SERIAL NOT NULL,
-    "SubmissionType" TEXT NOT NULL,
-
-    CONSTRAINT "ImageSubmissionType_pkey" PRIMARY KEY ("SubmissionTypeKey")
-);
-
--- CreateTable
 CREATE TABLE "Notification" (
     "NotificationKey" SERIAL NOT NULL,
     "AccountKey" INTEGER NOT NULL,
-    "NotificationType" INTEGER NOT NULL,
+    "NotificationType" "NotificationType" NOT NULL,
     "NotificationContent" TEXT NOT NULL,
     "SentTime" TIMESTAMP(3),
     "IsRead" BOOLEAN,
 
     CONSTRAINT "Notification_pkey" PRIMARY KEY ("NotificationKey")
-);
-
--- CreateTable
-CREATE TABLE "NotificationType" (
-    "NotificationTypeKey" SERIAL NOT NULL,
-    "NotificationTypeName" TEXT NOT NULL,
-
-    CONSTRAINT "NotificationType_pkey" PRIMARY KEY ("NotificationTypeKey")
 );
 
 -- CreateTable
@@ -369,7 +349,7 @@ CREATE TABLE "RepairLog" (
 );
 
 -- CreateIndex
-CREATE UNIQUE INDEX "FacultyInfo_ManageGroupKey_key" ON "FacultyInfo"("ManageGroupKey");
+CREATE UNIQUE INDEX "BranchInfo_ManageGroupKey_key" ON "BranchInfo"("ManageGroupKey");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Authority_AccountKey_ManageGroupKey_key" ON "Authority"("AccountKey", "ManageGroupKey");
@@ -387,7 +367,7 @@ CREATE UNIQUE INDEX "RoomInfo_ResourceKey_key" ON "RoomInfo"("ResourceKey");
 CREATE UNIQUE INDEX "BorrowConstraints_BorrowRuleKey_CreditTierKey_key" ON "BorrowConstraints"("BorrowRuleKey", "CreditTierKey");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "PenaltyRule_BorrowRuleKey_PenaltyTypeKey_key" ON "PenaltyRule"("BorrowRuleKey", "PenaltyTypeKey");
+CREATE UNIQUE INDEX "PenaltyRule_BorrowRuleKey_PenaltyReason_key" ON "PenaltyRule"("BorrowRuleKey", "PenaltyReason");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Eligibility_GroupKey_ResourceKey_RoleKey_key" ON "Eligibility"("GroupKey", "ResourceKey", "RoleKey");
@@ -399,10 +379,10 @@ CREATE UNIQUE INDEX "AppealInfo_OriginalPenalty_key" ON "AppealInfo"("OriginalPe
 ALTER TABLE "AccountInfo" ADD CONSTRAINT "AccountInfo_RoleKey_fkey" FOREIGN KEY ("RoleKey") REFERENCES "RoleInfo"("RoleKey") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "FacultyInfo" ADD CONSTRAINT "FacultyInfo_ManageGroupKey_fkey" FOREIGN KEY ("ManageGroupKey") REFERENCES "ManagementGroup"("ManageGroupKey") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "BranchInfo" ADD CONSTRAINT "BranchInfo_ManageGroupKey_fkey" FOREIGN KEY ("ManageGroupKey") REFERENCES "ManagementGroup"("ManageGroupKey") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "ManagementGroup" ADD CONSTRAINT "ManagementGroup_GroupType_fkey" FOREIGN KEY ("GroupType") REFERENCES "GroupType"("GroupTypeKey") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "BranchInfo" ADD CONSTRAINT "BranchInfo_FacultyKey_fkey" FOREIGN KEY ("FacultyKey") REFERENCES "FacultyInfo"("FacultyKey") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Authority" ADD CONSTRAINT "Authority_AccountKey_fkey" FOREIGN KEY ("AccountKey") REFERENCES "AccountInfo"("AccountKey") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -435,16 +415,10 @@ ALTER TABLE "ResourceInfo" ADD CONSTRAINT "ResourceInfo_BorrowRule_fkey" FOREIGN
 ALTER TABLE "ResourceInfo" ADD CONSTRAINT "ResourceInfo_ConditionKey_fkey" FOREIGN KEY ("ConditionKey") REFERENCES "ConditionLog"("ConditionKey") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "ResourceInfo" ADD CONSTRAINT "ResourceInfo_ResourceStatus_fkey" FOREIGN KEY ("ResourceStatus") REFERENCES "ResourceStatus"("StatusKey") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
 ALTER TABLE "ConditionLog" ADD CONSTRAINT "ConditionLog_ResourceKey_fkey" FOREIGN KEY ("ResourceKey") REFERENCES "ResourceInfo"("ResourceKey") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "ConditionLog" ADD CONSTRAINT "ConditionLog_LoggedBy_fkey" FOREIGN KEY ("LoggedBy") REFERENCES "AccountInfo"("AccountKey") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "ConditionLog" ADD CONSTRAINT "ConditionLog_Condition_fkey" FOREIGN KEY ("Condition") REFERENCES "ConditionType"("ConditionTypeKey") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "BorrowConstraints" ADD CONSTRAINT "BorrowConstraints_BorrowRuleKey_fkey" FOREIGN KEY ("BorrowRuleKey") REFERENCES "BorrowRule"("BorrowRuleKey") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -454,9 +428,6 @@ ALTER TABLE "BorrowConstraints" ADD CONSTRAINT "BorrowConstraints_CreditTierKey_
 
 -- AddForeignKey
 ALTER TABLE "PenaltyRule" ADD CONSTRAINT "PenaltyRule_BorrowRuleKey_fkey" FOREIGN KEY ("BorrowRuleKey") REFERENCES "BorrowRule"("BorrowRuleKey") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "PenaltyRule" ADD CONSTRAINT "PenaltyRule_PenaltyTypeKey_fkey" FOREIGN KEY ("PenaltyTypeKey") REFERENCES "PenaltyType"("PenaltyTypeKey") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Eligibility" ADD CONSTRAINT "Eligibility_ResourceKey_fkey" FOREIGN KEY ("ResourceKey") REFERENCES "ResourceInfo"("ResourceKey") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -474,9 +445,6 @@ ALTER TABLE "Reservations" ADD CONSTRAINT "Reservations_ResourceKey_fkey" FOREIG
 ALTER TABLE "Reservations" ADD CONSTRAINT "Reservations_ReservedBy_fkey" FOREIGN KEY ("ReservedBy") REFERENCES "AccountInfo"("AccountKey") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Reservations" ADD CONSTRAINT "Reservations_ApproveStatus_fkey" FOREIGN KEY ("ApproveStatus") REFERENCES "ApproveStatus"("ApproveStatusKey") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
 ALTER TABLE "UsageLog" ADD CONSTRAINT "UsageLog_ReservationKey_fkey" FOREIGN KEY ("ReservationKey") REFERENCES "Reservations"("ReservationKey") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -484,9 +452,6 @@ ALTER TABLE "UsageLog" ADD CONSTRAINT "UsageLog_AccountKey_fkey" FOREIGN KEY ("A
 
 -- AddForeignKey
 ALTER TABLE "UsageLog" ADD CONSTRAINT "UsageLog_ResourceKey_fkey" FOREIGN KEY ("ResourceKey") REFERENCES "ResourceInfo"("ResourceKey") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "UsageLog" ADD CONSTRAINT "UsageLog_CurrentStatus_fkey" FOREIGN KEY ("CurrentStatus") REFERENCES "ResourceStatus"("StatusKey") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "UsageLog" ADD CONSTRAINT "UsageLog_PendingExtension_fkey" FOREIGN KEY ("PendingExtension") REFERENCES "ExtensionRequest"("ExtensionKey") ON DELETE SET NULL ON UPDATE CASCADE;
@@ -505,9 +470,6 @@ ALTER TABLE "ExtensionRequest" ADD CONSTRAINT "ExtensionRequest_RequestedBy_fkey
 
 -- AddForeignKey
 ALTER TABLE "ExtensionRequest" ADD CONSTRAINT "ExtensionRequest_ApprovedBy_fkey" FOREIGN KEY ("ApprovedBy") REFERENCES "AccountInfo"("AccountKey") ON DELETE SET NULL ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "ExtensionRequest" ADD CONSTRAINT "ExtensionRequest_ApproveStatus_fkey" FOREIGN KEY ("ApproveStatus") REFERENCES "ApproveStatus"("ApproveStatusKey") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Inspection" ADD CONSTRAINT "Inspection_UsageKey_fkey" FOREIGN KEY ("UsageKey") REFERENCES "UsageLog"("UsageKey") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -546,9 +508,6 @@ ALTER TABLE "AppealInfo" ADD CONSTRAINT "AppealInfo_FiledBy_fkey" FOREIGN KEY ("
 ALTER TABLE "AppealInfo" ADD CONSTRAINT "AppealInfo_ResolvedBy_fkey" FOREIGN KEY ("ResolvedBy") REFERENCES "AccountInfo"("AccountKey") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "AppealInfo" ADD CONSTRAINT "AppealInfo_ApproveStatus_fkey" FOREIGN KEY ("ApproveStatus") REFERENCES "ApproveStatus"("ApproveStatusKey") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
 ALTER TABLE "Images" ADD CONSTRAINT "Images_SubmittedBy_fkey" FOREIGN KEY ("SubmittedBy") REFERENCES "AccountInfo"("AccountKey") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -561,13 +520,7 @@ ALTER TABLE "Images" ADD CONSTRAINT "Images_ResourceKey_fkey" FOREIGN KEY ("Reso
 ALTER TABLE "Images" ADD CONSTRAINT "Images_InspectionKey_fkey" FOREIGN KEY ("InspectionKey") REFERENCES "Inspection"("InspectionKey") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Images" ADD CONSTRAINT "Images_SubmissionType_fkey" FOREIGN KEY ("SubmissionType") REFERENCES "ImageSubmissionType"("SubmissionTypeKey") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
 ALTER TABLE "Notification" ADD CONSTRAINT "Notification_AccountKey_fkey" FOREIGN KEY ("AccountKey") REFERENCES "AccountInfo"("AccountKey") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "Notification" ADD CONSTRAINT "Notification_NotificationType_fkey" FOREIGN KEY ("NotificationType") REFERENCES "NotificationType"("NotificationTypeKey") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "RepairLog" ADD CONSTRAINT "RepairLog_ReservationKey_fkey" FOREIGN KEY ("ReservationKey") REFERENCES "Reservations"("ReservationKey") ON DELETE SET NULL ON UPDATE CASCADE;

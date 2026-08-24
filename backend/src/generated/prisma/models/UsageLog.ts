@@ -31,7 +31,6 @@ export type UsageLogAvgAggregateOutputType = {
   ReservationKey: number | null
   AccountKey: number | null
   ResourceKey: number | null
-  CurrentStatus: number | null
   PendingExtension: number | null
   CheckoutCondition: number | null
   CheckInCondition: number | null
@@ -42,7 +41,6 @@ export type UsageLogSumAggregateOutputType = {
   ReservationKey: number | null
   AccountKey: number | null
   ResourceKey: number | null
-  CurrentStatus: number | null
   PendingExtension: number | null
   CheckoutCondition: number | null
   CheckInCondition: number | null
@@ -53,7 +51,7 @@ export type UsageLogMinAggregateOutputType = {
   ReservationKey: number | null
   AccountKey: number | null
   ResourceKey: number | null
-  CurrentStatus: number | null
+  CurrentStatus: $Enums.CurrentStatus | null
   DueTime: Date | null
   PendingExtension: number | null
   CheckoutTime: Date | null
@@ -67,7 +65,7 @@ export type UsageLogMaxAggregateOutputType = {
   ReservationKey: number | null
   AccountKey: number | null
   ResourceKey: number | null
-  CurrentStatus: number | null
+  CurrentStatus: $Enums.CurrentStatus | null
   DueTime: Date | null
   PendingExtension: number | null
   CheckoutTime: Date | null
@@ -97,7 +95,6 @@ export type UsageLogAvgAggregateInputType = {
   ReservationKey?: true
   AccountKey?: true
   ResourceKey?: true
-  CurrentStatus?: true
   PendingExtension?: true
   CheckoutCondition?: true
   CheckInCondition?: true
@@ -108,7 +105,6 @@ export type UsageLogSumAggregateInputType = {
   ReservationKey?: true
   AccountKey?: true
   ResourceKey?: true
-  CurrentStatus?: true
   PendingExtension?: true
   CheckoutCondition?: true
   CheckInCondition?: true
@@ -248,7 +244,7 @@ export type UsageLogGroupByOutputType = {
   ReservationKey: number | null
   AccountKey: number
   ResourceKey: number
-  CurrentStatus: number
+  CurrentStatus: $Enums.CurrentStatus
   DueTime: Date
   PendingExtension: number | null
   CheckoutTime: Date
@@ -285,7 +281,7 @@ export type UsageLogWhereInput = {
   ReservationKey?: Prisma.IntNullableFilter<"UsageLog"> | number | null
   AccountKey?: Prisma.IntFilter<"UsageLog"> | number
   ResourceKey?: Prisma.IntFilter<"UsageLog"> | number
-  CurrentStatus?: Prisma.IntFilter<"UsageLog"> | number
+  CurrentStatus?: Prisma.EnumCurrentStatusFilter<"UsageLog"> | $Enums.CurrentStatus
   DueTime?: Prisma.DateTimeFilter<"UsageLog"> | Date | string
   PendingExtension?: Prisma.IntNullableFilter<"UsageLog"> | number | null
   CheckoutTime?: Prisma.DateTimeFilter<"UsageLog"> | Date | string
@@ -295,7 +291,6 @@ export type UsageLogWhereInput = {
   Reservation?: Prisma.XOR<Prisma.ReservationsNullableScalarRelationFilter, Prisma.ReservationsWhereInput> | null
   Account?: Prisma.XOR<Prisma.AccountInfoScalarRelationFilter, Prisma.AccountInfoWhereInput>
   Resource?: Prisma.XOR<Prisma.ResourceInfoScalarRelationFilter, Prisma.ResourceInfoWhereInput>
-  Status?: Prisma.XOR<Prisma.ResourceStatusScalarRelationFilter, Prisma.ResourceStatusWhereInput>
   PendingExtensionRequest?: Prisma.XOR<Prisma.ExtensionRequestNullableScalarRelationFilter, Prisma.ExtensionRequestWhereInput> | null
   CheckoutConditionLog?: Prisma.XOR<Prisma.ConditionLogScalarRelationFilter, Prisma.ConditionLogWhereInput>
   CheckInConditionLog?: Prisma.XOR<Prisma.ConditionLogNullableScalarRelationFilter, Prisma.ConditionLogWhereInput> | null
@@ -320,7 +315,6 @@ export type UsageLogOrderByWithRelationInput = {
   Reservation?: Prisma.ReservationsOrderByWithRelationInput
   Account?: Prisma.AccountInfoOrderByWithRelationInput
   Resource?: Prisma.ResourceInfoOrderByWithRelationInput
-  Status?: Prisma.ResourceStatusOrderByWithRelationInput
   PendingExtensionRequest?: Prisma.ExtensionRequestOrderByWithRelationInput
   CheckoutConditionLog?: Prisma.ConditionLogOrderByWithRelationInput
   CheckInConditionLog?: Prisma.ConditionLogOrderByWithRelationInput
@@ -338,7 +332,7 @@ export type UsageLogWhereUniqueInput = Prisma.AtLeast<{
   ReservationKey?: Prisma.IntNullableFilter<"UsageLog"> | number | null
   AccountKey?: Prisma.IntFilter<"UsageLog"> | number
   ResourceKey?: Prisma.IntFilter<"UsageLog"> | number
-  CurrentStatus?: Prisma.IntFilter<"UsageLog"> | number
+  CurrentStatus?: Prisma.EnumCurrentStatusFilter<"UsageLog"> | $Enums.CurrentStatus
   DueTime?: Prisma.DateTimeFilter<"UsageLog"> | Date | string
   PendingExtension?: Prisma.IntNullableFilter<"UsageLog"> | number | null
   CheckoutTime?: Prisma.DateTimeFilter<"UsageLog"> | Date | string
@@ -348,7 +342,6 @@ export type UsageLogWhereUniqueInput = Prisma.AtLeast<{
   Reservation?: Prisma.XOR<Prisma.ReservationsNullableScalarRelationFilter, Prisma.ReservationsWhereInput> | null
   Account?: Prisma.XOR<Prisma.AccountInfoScalarRelationFilter, Prisma.AccountInfoWhereInput>
   Resource?: Prisma.XOR<Prisma.ResourceInfoScalarRelationFilter, Prisma.ResourceInfoWhereInput>
-  Status?: Prisma.XOR<Prisma.ResourceStatusScalarRelationFilter, Prisma.ResourceStatusWhereInput>
   PendingExtensionRequest?: Prisma.XOR<Prisma.ExtensionRequestNullableScalarRelationFilter, Prisma.ExtensionRequestWhereInput> | null
   CheckoutConditionLog?: Prisma.XOR<Prisma.ConditionLogScalarRelationFilter, Prisma.ConditionLogWhereInput>
   CheckInConditionLog?: Prisma.XOR<Prisma.ConditionLogNullableScalarRelationFilter, Prisma.ConditionLogWhereInput> | null
@@ -385,7 +378,7 @@ export type UsageLogScalarWhereWithAggregatesInput = {
   ReservationKey?: Prisma.IntNullableWithAggregatesFilter<"UsageLog"> | number | null
   AccountKey?: Prisma.IntWithAggregatesFilter<"UsageLog"> | number
   ResourceKey?: Prisma.IntWithAggregatesFilter<"UsageLog"> | number
-  CurrentStatus?: Prisma.IntWithAggregatesFilter<"UsageLog"> | number
+  CurrentStatus?: Prisma.EnumCurrentStatusWithAggregatesFilter<"UsageLog"> | $Enums.CurrentStatus
   DueTime?: Prisma.DateTimeWithAggregatesFilter<"UsageLog"> | Date | string
   PendingExtension?: Prisma.IntNullableWithAggregatesFilter<"UsageLog"> | number | null
   CheckoutTime?: Prisma.DateTimeWithAggregatesFilter<"UsageLog"> | Date | string
@@ -395,13 +388,13 @@ export type UsageLogScalarWhereWithAggregatesInput = {
 }
 
 export type UsageLogCreateInput = {
+  CurrentStatus: $Enums.CurrentStatus
   DueTime: Date | string
   CheckoutTime: Date | string
   CheckInTime?: Date | string | null
   Reservation?: Prisma.ReservationsCreateNestedOneWithoutUsageLogsInput
   Account: Prisma.AccountInfoCreateNestedOneWithoutUsageLogsInput
   Resource: Prisma.ResourceInfoCreateNestedOneWithoutUsageLogsInput
-  Status: Prisma.ResourceStatusCreateNestedOneWithoutUsageLogsInput
   PendingExtensionRequest?: Prisma.ExtensionRequestCreateNestedOneWithoutPendingOnUsageLogsInput
   CheckoutConditionLog: Prisma.ConditionLogCreateNestedOneWithoutUsageCheckoutsInput
   CheckInConditionLog?: Prisma.ConditionLogCreateNestedOneWithoutUsageCheckInsInput
@@ -416,7 +409,7 @@ export type UsageLogUncheckedCreateInput = {
   ReservationKey?: number | null
   AccountKey: number
   ResourceKey: number
-  CurrentStatus: number
+  CurrentStatus: $Enums.CurrentStatus
   DueTime: Date | string
   PendingExtension?: number | null
   CheckoutTime: Date | string
@@ -430,13 +423,13 @@ export type UsageLogUncheckedCreateInput = {
 }
 
 export type UsageLogUpdateInput = {
+  CurrentStatus?: Prisma.EnumCurrentStatusFieldUpdateOperationsInput | $Enums.CurrentStatus
   DueTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   CheckoutTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   CheckInTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   Reservation?: Prisma.ReservationsUpdateOneWithoutUsageLogsNestedInput
   Account?: Prisma.AccountInfoUpdateOneRequiredWithoutUsageLogsNestedInput
   Resource?: Prisma.ResourceInfoUpdateOneRequiredWithoutUsageLogsNestedInput
-  Status?: Prisma.ResourceStatusUpdateOneRequiredWithoutUsageLogsNestedInput
   PendingExtensionRequest?: Prisma.ExtensionRequestUpdateOneWithoutPendingOnUsageLogsNestedInput
   CheckoutConditionLog?: Prisma.ConditionLogUpdateOneRequiredWithoutUsageCheckoutsNestedInput
   CheckInConditionLog?: Prisma.ConditionLogUpdateOneWithoutUsageCheckInsNestedInput
@@ -451,7 +444,7 @@ export type UsageLogUncheckedUpdateInput = {
   ReservationKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   AccountKey?: Prisma.IntFieldUpdateOperationsInput | number
   ResourceKey?: Prisma.IntFieldUpdateOperationsInput | number
-  CurrentStatus?: Prisma.IntFieldUpdateOperationsInput | number
+  CurrentStatus?: Prisma.EnumCurrentStatusFieldUpdateOperationsInput | $Enums.CurrentStatus
   DueTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   PendingExtension?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   CheckoutTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -469,7 +462,7 @@ export type UsageLogCreateManyInput = {
   ReservationKey?: number | null
   AccountKey: number
   ResourceKey: number
-  CurrentStatus: number
+  CurrentStatus: $Enums.CurrentStatus
   DueTime: Date | string
   PendingExtension?: number | null
   CheckoutTime: Date | string
@@ -479,6 +472,7 @@ export type UsageLogCreateManyInput = {
 }
 
 export type UsageLogUpdateManyMutationInput = {
+  CurrentStatus?: Prisma.EnumCurrentStatusFieldUpdateOperationsInput | $Enums.CurrentStatus
   DueTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   CheckoutTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   CheckInTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -489,7 +483,7 @@ export type UsageLogUncheckedUpdateManyInput = {
   ReservationKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   AccountKey?: Prisma.IntFieldUpdateOperationsInput | number
   ResourceKey?: Prisma.IntFieldUpdateOperationsInput | number
-  CurrentStatus?: Prisma.IntFieldUpdateOperationsInput | number
+  CurrentStatus?: Prisma.EnumCurrentStatusFieldUpdateOperationsInput | $Enums.CurrentStatus
   DueTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   PendingExtension?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   CheckoutTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -527,7 +521,6 @@ export type UsageLogAvgOrderByAggregateInput = {
   ReservationKey?: Prisma.SortOrder
   AccountKey?: Prisma.SortOrder
   ResourceKey?: Prisma.SortOrder
-  CurrentStatus?: Prisma.SortOrder
   PendingExtension?: Prisma.SortOrder
   CheckoutCondition?: Prisma.SortOrder
   CheckInCondition?: Prisma.SortOrder
@@ -566,7 +559,6 @@ export type UsageLogSumOrderByAggregateInput = {
   ReservationKey?: Prisma.SortOrder
   AccountKey?: Prisma.SortOrder
   ResourceKey?: Prisma.SortOrder
-  CurrentStatus?: Prisma.SortOrder
   PendingExtension?: Prisma.SortOrder
   CheckoutCondition?: Prisma.SortOrder
   CheckInCondition?: Prisma.SortOrder
@@ -663,48 +655,6 @@ export type UsageLogUncheckedUpdateManyWithoutResourceNestedInput = {
   connect?: Prisma.UsageLogWhereUniqueInput | Prisma.UsageLogWhereUniqueInput[]
   update?: Prisma.UsageLogUpdateWithWhereUniqueWithoutResourceInput | Prisma.UsageLogUpdateWithWhereUniqueWithoutResourceInput[]
   updateMany?: Prisma.UsageLogUpdateManyWithWhereWithoutResourceInput | Prisma.UsageLogUpdateManyWithWhereWithoutResourceInput[]
-  deleteMany?: Prisma.UsageLogScalarWhereInput | Prisma.UsageLogScalarWhereInput[]
-}
-
-export type UsageLogCreateNestedManyWithoutStatusInput = {
-  create?: Prisma.XOR<Prisma.UsageLogCreateWithoutStatusInput, Prisma.UsageLogUncheckedCreateWithoutStatusInput> | Prisma.UsageLogCreateWithoutStatusInput[] | Prisma.UsageLogUncheckedCreateWithoutStatusInput[]
-  connectOrCreate?: Prisma.UsageLogCreateOrConnectWithoutStatusInput | Prisma.UsageLogCreateOrConnectWithoutStatusInput[]
-  createMany?: Prisma.UsageLogCreateManyStatusInputEnvelope
-  connect?: Prisma.UsageLogWhereUniqueInput | Prisma.UsageLogWhereUniqueInput[]
-}
-
-export type UsageLogUncheckedCreateNestedManyWithoutStatusInput = {
-  create?: Prisma.XOR<Prisma.UsageLogCreateWithoutStatusInput, Prisma.UsageLogUncheckedCreateWithoutStatusInput> | Prisma.UsageLogCreateWithoutStatusInput[] | Prisma.UsageLogUncheckedCreateWithoutStatusInput[]
-  connectOrCreate?: Prisma.UsageLogCreateOrConnectWithoutStatusInput | Prisma.UsageLogCreateOrConnectWithoutStatusInput[]
-  createMany?: Prisma.UsageLogCreateManyStatusInputEnvelope
-  connect?: Prisma.UsageLogWhereUniqueInput | Prisma.UsageLogWhereUniqueInput[]
-}
-
-export type UsageLogUpdateManyWithoutStatusNestedInput = {
-  create?: Prisma.XOR<Prisma.UsageLogCreateWithoutStatusInput, Prisma.UsageLogUncheckedCreateWithoutStatusInput> | Prisma.UsageLogCreateWithoutStatusInput[] | Prisma.UsageLogUncheckedCreateWithoutStatusInput[]
-  connectOrCreate?: Prisma.UsageLogCreateOrConnectWithoutStatusInput | Prisma.UsageLogCreateOrConnectWithoutStatusInput[]
-  upsert?: Prisma.UsageLogUpsertWithWhereUniqueWithoutStatusInput | Prisma.UsageLogUpsertWithWhereUniqueWithoutStatusInput[]
-  createMany?: Prisma.UsageLogCreateManyStatusInputEnvelope
-  set?: Prisma.UsageLogWhereUniqueInput | Prisma.UsageLogWhereUniqueInput[]
-  disconnect?: Prisma.UsageLogWhereUniqueInput | Prisma.UsageLogWhereUniqueInput[]
-  delete?: Prisma.UsageLogWhereUniqueInput | Prisma.UsageLogWhereUniqueInput[]
-  connect?: Prisma.UsageLogWhereUniqueInput | Prisma.UsageLogWhereUniqueInput[]
-  update?: Prisma.UsageLogUpdateWithWhereUniqueWithoutStatusInput | Prisma.UsageLogUpdateWithWhereUniqueWithoutStatusInput[]
-  updateMany?: Prisma.UsageLogUpdateManyWithWhereWithoutStatusInput | Prisma.UsageLogUpdateManyWithWhereWithoutStatusInput[]
-  deleteMany?: Prisma.UsageLogScalarWhereInput | Prisma.UsageLogScalarWhereInput[]
-}
-
-export type UsageLogUncheckedUpdateManyWithoutStatusNestedInput = {
-  create?: Prisma.XOR<Prisma.UsageLogCreateWithoutStatusInput, Prisma.UsageLogUncheckedCreateWithoutStatusInput> | Prisma.UsageLogCreateWithoutStatusInput[] | Prisma.UsageLogUncheckedCreateWithoutStatusInput[]
-  connectOrCreate?: Prisma.UsageLogCreateOrConnectWithoutStatusInput | Prisma.UsageLogCreateOrConnectWithoutStatusInput[]
-  upsert?: Prisma.UsageLogUpsertWithWhereUniqueWithoutStatusInput | Prisma.UsageLogUpsertWithWhereUniqueWithoutStatusInput[]
-  createMany?: Prisma.UsageLogCreateManyStatusInputEnvelope
-  set?: Prisma.UsageLogWhereUniqueInput | Prisma.UsageLogWhereUniqueInput[]
-  disconnect?: Prisma.UsageLogWhereUniqueInput | Prisma.UsageLogWhereUniqueInput[]
-  delete?: Prisma.UsageLogWhereUniqueInput | Prisma.UsageLogWhereUniqueInput[]
-  connect?: Prisma.UsageLogWhereUniqueInput | Prisma.UsageLogWhereUniqueInput[]
-  update?: Prisma.UsageLogUpdateWithWhereUniqueWithoutStatusInput | Prisma.UsageLogUpdateWithWhereUniqueWithoutStatusInput[]
-  updateMany?: Prisma.UsageLogUpdateManyWithWhereWithoutStatusInput | Prisma.UsageLogUpdateManyWithWhereWithoutStatusInput[]
   deleteMany?: Prisma.UsageLogScalarWhereInput | Prisma.UsageLogScalarWhereInput[]
 }
 
@@ -834,6 +784,10 @@ export type UsageLogUncheckedUpdateManyWithoutReservationNestedInput = {
   deleteMany?: Prisma.UsageLogScalarWhereInput | Prisma.UsageLogScalarWhereInput[]
 }
 
+export type EnumCurrentStatusFieldUpdateOperationsInput = {
+  set?: $Enums.CurrentStatus
+}
+
 export type UsageLogCreateNestedOneWithoutExtensionRequestsInput = {
   create?: Prisma.XOR<Prisma.UsageLogCreateWithoutExtensionRequestsInput, Prisma.UsageLogUncheckedCreateWithoutExtensionRequestsInput>
   connectOrCreate?: Prisma.UsageLogCreateOrConnectWithoutExtensionRequestsInput
@@ -935,12 +889,12 @@ export type UsageLogUpdateOneRequiredWithoutImagesNestedInput = {
 }
 
 export type UsageLogCreateWithoutAccountInput = {
+  CurrentStatus: $Enums.CurrentStatus
   DueTime: Date | string
   CheckoutTime: Date | string
   CheckInTime?: Date | string | null
   Reservation?: Prisma.ReservationsCreateNestedOneWithoutUsageLogsInput
   Resource: Prisma.ResourceInfoCreateNestedOneWithoutUsageLogsInput
-  Status: Prisma.ResourceStatusCreateNestedOneWithoutUsageLogsInput
   PendingExtensionRequest?: Prisma.ExtensionRequestCreateNestedOneWithoutPendingOnUsageLogsInput
   CheckoutConditionLog: Prisma.ConditionLogCreateNestedOneWithoutUsageCheckoutsInput
   CheckInConditionLog?: Prisma.ConditionLogCreateNestedOneWithoutUsageCheckInsInput
@@ -954,7 +908,7 @@ export type UsageLogUncheckedCreateWithoutAccountInput = {
   UsageKey?: number
   ReservationKey?: number | null
   ResourceKey: number
-  CurrentStatus: number
+  CurrentStatus: $Enums.CurrentStatus
   DueTime: Date | string
   PendingExtension?: number | null
   CheckoutTime: Date | string
@@ -1001,7 +955,7 @@ export type UsageLogScalarWhereInput = {
   ReservationKey?: Prisma.IntNullableFilter<"UsageLog"> | number | null
   AccountKey?: Prisma.IntFilter<"UsageLog"> | number
   ResourceKey?: Prisma.IntFilter<"UsageLog"> | number
-  CurrentStatus?: Prisma.IntFilter<"UsageLog"> | number
+  CurrentStatus?: Prisma.EnumCurrentStatusFilter<"UsageLog"> | $Enums.CurrentStatus
   DueTime?: Prisma.DateTimeFilter<"UsageLog"> | Date | string
   PendingExtension?: Prisma.IntNullableFilter<"UsageLog"> | number | null
   CheckoutTime?: Prisma.DateTimeFilter<"UsageLog"> | Date | string
@@ -1011,12 +965,12 @@ export type UsageLogScalarWhereInput = {
 }
 
 export type UsageLogCreateWithoutResourceInput = {
+  CurrentStatus: $Enums.CurrentStatus
   DueTime: Date | string
   CheckoutTime: Date | string
   CheckInTime?: Date | string | null
   Reservation?: Prisma.ReservationsCreateNestedOneWithoutUsageLogsInput
   Account: Prisma.AccountInfoCreateNestedOneWithoutUsageLogsInput
-  Status: Prisma.ResourceStatusCreateNestedOneWithoutUsageLogsInput
   PendingExtensionRequest?: Prisma.ExtensionRequestCreateNestedOneWithoutPendingOnUsageLogsInput
   CheckoutConditionLog: Prisma.ConditionLogCreateNestedOneWithoutUsageCheckoutsInput
   CheckInConditionLog?: Prisma.ConditionLogCreateNestedOneWithoutUsageCheckInsInput
@@ -1030,7 +984,7 @@ export type UsageLogUncheckedCreateWithoutResourceInput = {
   UsageKey?: number
   ReservationKey?: number | null
   AccountKey: number
-  CurrentStatus: number
+  CurrentStatus: $Enums.CurrentStatus
   DueTime: Date | string
   PendingExtension?: number | null
   CheckoutTime: Date | string
@@ -1069,73 +1023,14 @@ export type UsageLogUpdateManyWithWhereWithoutResourceInput = {
   data: Prisma.XOR<Prisma.UsageLogUpdateManyMutationInput, Prisma.UsageLogUncheckedUpdateManyWithoutResourceInput>
 }
 
-export type UsageLogCreateWithoutStatusInput = {
-  DueTime: Date | string
-  CheckoutTime: Date | string
-  CheckInTime?: Date | string | null
-  Reservation?: Prisma.ReservationsCreateNestedOneWithoutUsageLogsInput
-  Account: Prisma.AccountInfoCreateNestedOneWithoutUsageLogsInput
-  Resource: Prisma.ResourceInfoCreateNestedOneWithoutUsageLogsInput
-  PendingExtensionRequest?: Prisma.ExtensionRequestCreateNestedOneWithoutPendingOnUsageLogsInput
-  CheckoutConditionLog: Prisma.ConditionLogCreateNestedOneWithoutUsageCheckoutsInput
-  CheckInConditionLog?: Prisma.ConditionLogCreateNestedOneWithoutUsageCheckInsInput
-  ExtensionRequests?: Prisma.ExtensionRequestCreateNestedManyWithoutUsageInput
-  Inspections?: Prisma.InspectionCreateNestedManyWithoutUsageInput
-  Penalties?: Prisma.PenaltyInfoCreateNestedManyWithoutUsageInput
-  Images?: Prisma.ImagesCreateNestedManyWithoutUsageInput
-}
-
-export type UsageLogUncheckedCreateWithoutStatusInput = {
-  UsageKey?: number
-  ReservationKey?: number | null
-  AccountKey: number
-  ResourceKey: number
-  DueTime: Date | string
-  PendingExtension?: number | null
-  CheckoutTime: Date | string
-  CheckInTime?: Date | string | null
-  CheckoutCondition: number
-  CheckInCondition?: number | null
-  ExtensionRequests?: Prisma.ExtensionRequestUncheckedCreateNestedManyWithoutUsageInput
-  Inspections?: Prisma.InspectionUncheckedCreateNestedManyWithoutUsageInput
-  Penalties?: Prisma.PenaltyInfoUncheckedCreateNestedManyWithoutUsageInput
-  Images?: Prisma.ImagesUncheckedCreateNestedManyWithoutUsageInput
-}
-
-export type UsageLogCreateOrConnectWithoutStatusInput = {
-  where: Prisma.UsageLogWhereUniqueInput
-  create: Prisma.XOR<Prisma.UsageLogCreateWithoutStatusInput, Prisma.UsageLogUncheckedCreateWithoutStatusInput>
-}
-
-export type UsageLogCreateManyStatusInputEnvelope = {
-  data: Prisma.UsageLogCreateManyStatusInput | Prisma.UsageLogCreateManyStatusInput[]
-  skipDuplicates?: boolean
-}
-
-export type UsageLogUpsertWithWhereUniqueWithoutStatusInput = {
-  where: Prisma.UsageLogWhereUniqueInput
-  update: Prisma.XOR<Prisma.UsageLogUpdateWithoutStatusInput, Prisma.UsageLogUncheckedUpdateWithoutStatusInput>
-  create: Prisma.XOR<Prisma.UsageLogCreateWithoutStatusInput, Prisma.UsageLogUncheckedCreateWithoutStatusInput>
-}
-
-export type UsageLogUpdateWithWhereUniqueWithoutStatusInput = {
-  where: Prisma.UsageLogWhereUniqueInput
-  data: Prisma.XOR<Prisma.UsageLogUpdateWithoutStatusInput, Prisma.UsageLogUncheckedUpdateWithoutStatusInput>
-}
-
-export type UsageLogUpdateManyWithWhereWithoutStatusInput = {
-  where: Prisma.UsageLogScalarWhereInput
-  data: Prisma.XOR<Prisma.UsageLogUpdateManyMutationInput, Prisma.UsageLogUncheckedUpdateManyWithoutStatusInput>
-}
-
 export type UsageLogCreateWithoutCheckInConditionLogInput = {
+  CurrentStatus: $Enums.CurrentStatus
   DueTime: Date | string
   CheckoutTime: Date | string
   CheckInTime?: Date | string | null
   Reservation?: Prisma.ReservationsCreateNestedOneWithoutUsageLogsInput
   Account: Prisma.AccountInfoCreateNestedOneWithoutUsageLogsInput
   Resource: Prisma.ResourceInfoCreateNestedOneWithoutUsageLogsInput
-  Status: Prisma.ResourceStatusCreateNestedOneWithoutUsageLogsInput
   PendingExtensionRequest?: Prisma.ExtensionRequestCreateNestedOneWithoutPendingOnUsageLogsInput
   CheckoutConditionLog: Prisma.ConditionLogCreateNestedOneWithoutUsageCheckoutsInput
   ExtensionRequests?: Prisma.ExtensionRequestCreateNestedManyWithoutUsageInput
@@ -1149,7 +1044,7 @@ export type UsageLogUncheckedCreateWithoutCheckInConditionLogInput = {
   ReservationKey?: number | null
   AccountKey: number
   ResourceKey: number
-  CurrentStatus: number
+  CurrentStatus: $Enums.CurrentStatus
   DueTime: Date | string
   PendingExtension?: number | null
   CheckoutTime: Date | string
@@ -1172,13 +1067,13 @@ export type UsageLogCreateManyCheckInConditionLogInputEnvelope = {
 }
 
 export type UsageLogCreateWithoutCheckoutConditionLogInput = {
+  CurrentStatus: $Enums.CurrentStatus
   DueTime: Date | string
   CheckoutTime: Date | string
   CheckInTime?: Date | string | null
   Reservation?: Prisma.ReservationsCreateNestedOneWithoutUsageLogsInput
   Account: Prisma.AccountInfoCreateNestedOneWithoutUsageLogsInput
   Resource: Prisma.ResourceInfoCreateNestedOneWithoutUsageLogsInput
-  Status: Prisma.ResourceStatusCreateNestedOneWithoutUsageLogsInput
   PendingExtensionRequest?: Prisma.ExtensionRequestCreateNestedOneWithoutPendingOnUsageLogsInput
   CheckInConditionLog?: Prisma.ConditionLogCreateNestedOneWithoutUsageCheckInsInput
   ExtensionRequests?: Prisma.ExtensionRequestCreateNestedManyWithoutUsageInput
@@ -1192,7 +1087,7 @@ export type UsageLogUncheckedCreateWithoutCheckoutConditionLogInput = {
   ReservationKey?: number | null
   AccountKey: number
   ResourceKey: number
-  CurrentStatus: number
+  CurrentStatus: $Enums.CurrentStatus
   DueTime: Date | string
   PendingExtension?: number | null
   CheckoutTime: Date | string
@@ -1247,12 +1142,12 @@ export type UsageLogUpdateManyWithWhereWithoutCheckoutConditionLogInput = {
 }
 
 export type UsageLogCreateWithoutReservationInput = {
+  CurrentStatus: $Enums.CurrentStatus
   DueTime: Date | string
   CheckoutTime: Date | string
   CheckInTime?: Date | string | null
   Account: Prisma.AccountInfoCreateNestedOneWithoutUsageLogsInput
   Resource: Prisma.ResourceInfoCreateNestedOneWithoutUsageLogsInput
-  Status: Prisma.ResourceStatusCreateNestedOneWithoutUsageLogsInput
   PendingExtensionRequest?: Prisma.ExtensionRequestCreateNestedOneWithoutPendingOnUsageLogsInput
   CheckoutConditionLog: Prisma.ConditionLogCreateNestedOneWithoutUsageCheckoutsInput
   CheckInConditionLog?: Prisma.ConditionLogCreateNestedOneWithoutUsageCheckInsInput
@@ -1266,7 +1161,7 @@ export type UsageLogUncheckedCreateWithoutReservationInput = {
   UsageKey?: number
   AccountKey: number
   ResourceKey: number
-  CurrentStatus: number
+  CurrentStatus: $Enums.CurrentStatus
   DueTime: Date | string
   PendingExtension?: number | null
   CheckoutTime: Date | string
@@ -1306,13 +1201,13 @@ export type UsageLogUpdateManyWithWhereWithoutReservationInput = {
 }
 
 export type UsageLogCreateWithoutExtensionRequestsInput = {
+  CurrentStatus: $Enums.CurrentStatus
   DueTime: Date | string
   CheckoutTime: Date | string
   CheckInTime?: Date | string | null
   Reservation?: Prisma.ReservationsCreateNestedOneWithoutUsageLogsInput
   Account: Prisma.AccountInfoCreateNestedOneWithoutUsageLogsInput
   Resource: Prisma.ResourceInfoCreateNestedOneWithoutUsageLogsInput
-  Status: Prisma.ResourceStatusCreateNestedOneWithoutUsageLogsInput
   PendingExtensionRequest?: Prisma.ExtensionRequestCreateNestedOneWithoutPendingOnUsageLogsInput
   CheckoutConditionLog: Prisma.ConditionLogCreateNestedOneWithoutUsageCheckoutsInput
   CheckInConditionLog?: Prisma.ConditionLogCreateNestedOneWithoutUsageCheckInsInput
@@ -1326,7 +1221,7 @@ export type UsageLogUncheckedCreateWithoutExtensionRequestsInput = {
   ReservationKey?: number | null
   AccountKey: number
   ResourceKey: number
-  CurrentStatus: number
+  CurrentStatus: $Enums.CurrentStatus
   DueTime: Date | string
   PendingExtension?: number | null
   CheckoutTime: Date | string
@@ -1344,13 +1239,13 @@ export type UsageLogCreateOrConnectWithoutExtensionRequestsInput = {
 }
 
 export type UsageLogCreateWithoutPendingExtensionRequestInput = {
+  CurrentStatus: $Enums.CurrentStatus
   DueTime: Date | string
   CheckoutTime: Date | string
   CheckInTime?: Date | string | null
   Reservation?: Prisma.ReservationsCreateNestedOneWithoutUsageLogsInput
   Account: Prisma.AccountInfoCreateNestedOneWithoutUsageLogsInput
   Resource: Prisma.ResourceInfoCreateNestedOneWithoutUsageLogsInput
-  Status: Prisma.ResourceStatusCreateNestedOneWithoutUsageLogsInput
   CheckoutConditionLog: Prisma.ConditionLogCreateNestedOneWithoutUsageCheckoutsInput
   CheckInConditionLog?: Prisma.ConditionLogCreateNestedOneWithoutUsageCheckInsInput
   ExtensionRequests?: Prisma.ExtensionRequestCreateNestedManyWithoutUsageInput
@@ -1364,7 +1259,7 @@ export type UsageLogUncheckedCreateWithoutPendingExtensionRequestInput = {
   ReservationKey?: number | null
   AccountKey: number
   ResourceKey: number
-  CurrentStatus: number
+  CurrentStatus: $Enums.CurrentStatus
   DueTime: Date | string
   CheckoutTime: Date | string
   CheckInTime?: Date | string | null
@@ -1398,13 +1293,13 @@ export type UsageLogUpdateToOneWithWhereWithoutExtensionRequestsInput = {
 }
 
 export type UsageLogUpdateWithoutExtensionRequestsInput = {
+  CurrentStatus?: Prisma.EnumCurrentStatusFieldUpdateOperationsInput | $Enums.CurrentStatus
   DueTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   CheckoutTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   CheckInTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   Reservation?: Prisma.ReservationsUpdateOneWithoutUsageLogsNestedInput
   Account?: Prisma.AccountInfoUpdateOneRequiredWithoutUsageLogsNestedInput
   Resource?: Prisma.ResourceInfoUpdateOneRequiredWithoutUsageLogsNestedInput
-  Status?: Prisma.ResourceStatusUpdateOneRequiredWithoutUsageLogsNestedInput
   PendingExtensionRequest?: Prisma.ExtensionRequestUpdateOneWithoutPendingOnUsageLogsNestedInput
   CheckoutConditionLog?: Prisma.ConditionLogUpdateOneRequiredWithoutUsageCheckoutsNestedInput
   CheckInConditionLog?: Prisma.ConditionLogUpdateOneWithoutUsageCheckInsNestedInput
@@ -1418,7 +1313,7 @@ export type UsageLogUncheckedUpdateWithoutExtensionRequestsInput = {
   ReservationKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   AccountKey?: Prisma.IntFieldUpdateOperationsInput | number
   ResourceKey?: Prisma.IntFieldUpdateOperationsInput | number
-  CurrentStatus?: Prisma.IntFieldUpdateOperationsInput | number
+  CurrentStatus?: Prisma.EnumCurrentStatusFieldUpdateOperationsInput | $Enums.CurrentStatus
   DueTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   PendingExtension?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   CheckoutTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1447,13 +1342,13 @@ export type UsageLogUpdateManyWithWhereWithoutPendingExtensionRequestInput = {
 }
 
 export type UsageLogCreateWithoutInspectionsInput = {
+  CurrentStatus: $Enums.CurrentStatus
   DueTime: Date | string
   CheckoutTime: Date | string
   CheckInTime?: Date | string | null
   Reservation?: Prisma.ReservationsCreateNestedOneWithoutUsageLogsInput
   Account: Prisma.AccountInfoCreateNestedOneWithoutUsageLogsInput
   Resource: Prisma.ResourceInfoCreateNestedOneWithoutUsageLogsInput
-  Status: Prisma.ResourceStatusCreateNestedOneWithoutUsageLogsInput
   PendingExtensionRequest?: Prisma.ExtensionRequestCreateNestedOneWithoutPendingOnUsageLogsInput
   CheckoutConditionLog: Prisma.ConditionLogCreateNestedOneWithoutUsageCheckoutsInput
   CheckInConditionLog?: Prisma.ConditionLogCreateNestedOneWithoutUsageCheckInsInput
@@ -1467,7 +1362,7 @@ export type UsageLogUncheckedCreateWithoutInspectionsInput = {
   ReservationKey?: number | null
   AccountKey: number
   ResourceKey: number
-  CurrentStatus: number
+  CurrentStatus: $Enums.CurrentStatus
   DueTime: Date | string
   PendingExtension?: number | null
   CheckoutTime: Date | string
@@ -1496,13 +1391,13 @@ export type UsageLogUpdateToOneWithWhereWithoutInspectionsInput = {
 }
 
 export type UsageLogUpdateWithoutInspectionsInput = {
+  CurrentStatus?: Prisma.EnumCurrentStatusFieldUpdateOperationsInput | $Enums.CurrentStatus
   DueTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   CheckoutTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   CheckInTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   Reservation?: Prisma.ReservationsUpdateOneWithoutUsageLogsNestedInput
   Account?: Prisma.AccountInfoUpdateOneRequiredWithoutUsageLogsNestedInput
   Resource?: Prisma.ResourceInfoUpdateOneRequiredWithoutUsageLogsNestedInput
-  Status?: Prisma.ResourceStatusUpdateOneRequiredWithoutUsageLogsNestedInput
   PendingExtensionRequest?: Prisma.ExtensionRequestUpdateOneWithoutPendingOnUsageLogsNestedInput
   CheckoutConditionLog?: Prisma.ConditionLogUpdateOneRequiredWithoutUsageCheckoutsNestedInput
   CheckInConditionLog?: Prisma.ConditionLogUpdateOneWithoutUsageCheckInsNestedInput
@@ -1516,7 +1411,7 @@ export type UsageLogUncheckedUpdateWithoutInspectionsInput = {
   ReservationKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   AccountKey?: Prisma.IntFieldUpdateOperationsInput | number
   ResourceKey?: Prisma.IntFieldUpdateOperationsInput | number
-  CurrentStatus?: Prisma.IntFieldUpdateOperationsInput | number
+  CurrentStatus?: Prisma.EnumCurrentStatusFieldUpdateOperationsInput | $Enums.CurrentStatus
   DueTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   PendingExtension?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   CheckoutTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1529,13 +1424,13 @@ export type UsageLogUncheckedUpdateWithoutInspectionsInput = {
 }
 
 export type UsageLogCreateWithoutPenaltiesInput = {
+  CurrentStatus: $Enums.CurrentStatus
   DueTime: Date | string
   CheckoutTime: Date | string
   CheckInTime?: Date | string | null
   Reservation?: Prisma.ReservationsCreateNestedOneWithoutUsageLogsInput
   Account: Prisma.AccountInfoCreateNestedOneWithoutUsageLogsInput
   Resource: Prisma.ResourceInfoCreateNestedOneWithoutUsageLogsInput
-  Status: Prisma.ResourceStatusCreateNestedOneWithoutUsageLogsInput
   PendingExtensionRequest?: Prisma.ExtensionRequestCreateNestedOneWithoutPendingOnUsageLogsInput
   CheckoutConditionLog: Prisma.ConditionLogCreateNestedOneWithoutUsageCheckoutsInput
   CheckInConditionLog?: Prisma.ConditionLogCreateNestedOneWithoutUsageCheckInsInput
@@ -1549,7 +1444,7 @@ export type UsageLogUncheckedCreateWithoutPenaltiesInput = {
   ReservationKey?: number | null
   AccountKey: number
   ResourceKey: number
-  CurrentStatus: number
+  CurrentStatus: $Enums.CurrentStatus
   DueTime: Date | string
   PendingExtension?: number | null
   CheckoutTime: Date | string
@@ -1578,13 +1473,13 @@ export type UsageLogUpdateToOneWithWhereWithoutPenaltiesInput = {
 }
 
 export type UsageLogUpdateWithoutPenaltiesInput = {
+  CurrentStatus?: Prisma.EnumCurrentStatusFieldUpdateOperationsInput | $Enums.CurrentStatus
   DueTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   CheckoutTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   CheckInTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   Reservation?: Prisma.ReservationsUpdateOneWithoutUsageLogsNestedInput
   Account?: Prisma.AccountInfoUpdateOneRequiredWithoutUsageLogsNestedInput
   Resource?: Prisma.ResourceInfoUpdateOneRequiredWithoutUsageLogsNestedInput
-  Status?: Prisma.ResourceStatusUpdateOneRequiredWithoutUsageLogsNestedInput
   PendingExtensionRequest?: Prisma.ExtensionRequestUpdateOneWithoutPendingOnUsageLogsNestedInput
   CheckoutConditionLog?: Prisma.ConditionLogUpdateOneRequiredWithoutUsageCheckoutsNestedInput
   CheckInConditionLog?: Prisma.ConditionLogUpdateOneWithoutUsageCheckInsNestedInput
@@ -1598,7 +1493,7 @@ export type UsageLogUncheckedUpdateWithoutPenaltiesInput = {
   ReservationKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   AccountKey?: Prisma.IntFieldUpdateOperationsInput | number
   ResourceKey?: Prisma.IntFieldUpdateOperationsInput | number
-  CurrentStatus?: Prisma.IntFieldUpdateOperationsInput | number
+  CurrentStatus?: Prisma.EnumCurrentStatusFieldUpdateOperationsInput | $Enums.CurrentStatus
   DueTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   PendingExtension?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   CheckoutTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1611,13 +1506,13 @@ export type UsageLogUncheckedUpdateWithoutPenaltiesInput = {
 }
 
 export type UsageLogCreateWithoutImagesInput = {
+  CurrentStatus: $Enums.CurrentStatus
   DueTime: Date | string
   CheckoutTime: Date | string
   CheckInTime?: Date | string | null
   Reservation?: Prisma.ReservationsCreateNestedOneWithoutUsageLogsInput
   Account: Prisma.AccountInfoCreateNestedOneWithoutUsageLogsInput
   Resource: Prisma.ResourceInfoCreateNestedOneWithoutUsageLogsInput
-  Status: Prisma.ResourceStatusCreateNestedOneWithoutUsageLogsInput
   PendingExtensionRequest?: Prisma.ExtensionRequestCreateNestedOneWithoutPendingOnUsageLogsInput
   CheckoutConditionLog: Prisma.ConditionLogCreateNestedOneWithoutUsageCheckoutsInput
   CheckInConditionLog?: Prisma.ConditionLogCreateNestedOneWithoutUsageCheckInsInput
@@ -1631,7 +1526,7 @@ export type UsageLogUncheckedCreateWithoutImagesInput = {
   ReservationKey?: number | null
   AccountKey: number
   ResourceKey: number
-  CurrentStatus: number
+  CurrentStatus: $Enums.CurrentStatus
   DueTime: Date | string
   PendingExtension?: number | null
   CheckoutTime: Date | string
@@ -1660,13 +1555,13 @@ export type UsageLogUpdateToOneWithWhereWithoutImagesInput = {
 }
 
 export type UsageLogUpdateWithoutImagesInput = {
+  CurrentStatus?: Prisma.EnumCurrentStatusFieldUpdateOperationsInput | $Enums.CurrentStatus
   DueTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   CheckoutTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   CheckInTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   Reservation?: Prisma.ReservationsUpdateOneWithoutUsageLogsNestedInput
   Account?: Prisma.AccountInfoUpdateOneRequiredWithoutUsageLogsNestedInput
   Resource?: Prisma.ResourceInfoUpdateOneRequiredWithoutUsageLogsNestedInput
-  Status?: Prisma.ResourceStatusUpdateOneRequiredWithoutUsageLogsNestedInput
   PendingExtensionRequest?: Prisma.ExtensionRequestUpdateOneWithoutPendingOnUsageLogsNestedInput
   CheckoutConditionLog?: Prisma.ConditionLogUpdateOneRequiredWithoutUsageCheckoutsNestedInput
   CheckInConditionLog?: Prisma.ConditionLogUpdateOneWithoutUsageCheckInsNestedInput
@@ -1680,7 +1575,7 @@ export type UsageLogUncheckedUpdateWithoutImagesInput = {
   ReservationKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   AccountKey?: Prisma.IntFieldUpdateOperationsInput | number
   ResourceKey?: Prisma.IntFieldUpdateOperationsInput | number
-  CurrentStatus?: Prisma.IntFieldUpdateOperationsInput | number
+  CurrentStatus?: Prisma.EnumCurrentStatusFieldUpdateOperationsInput | $Enums.CurrentStatus
   DueTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   PendingExtension?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   CheckoutTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1696,7 +1591,7 @@ export type UsageLogCreateManyAccountInput = {
   UsageKey?: number
   ReservationKey?: number | null
   ResourceKey: number
-  CurrentStatus: number
+  CurrentStatus: $Enums.CurrentStatus
   DueTime: Date | string
   PendingExtension?: number | null
   CheckoutTime: Date | string
@@ -1706,12 +1601,12 @@ export type UsageLogCreateManyAccountInput = {
 }
 
 export type UsageLogUpdateWithoutAccountInput = {
+  CurrentStatus?: Prisma.EnumCurrentStatusFieldUpdateOperationsInput | $Enums.CurrentStatus
   DueTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   CheckoutTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   CheckInTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   Reservation?: Prisma.ReservationsUpdateOneWithoutUsageLogsNestedInput
   Resource?: Prisma.ResourceInfoUpdateOneRequiredWithoutUsageLogsNestedInput
-  Status?: Prisma.ResourceStatusUpdateOneRequiredWithoutUsageLogsNestedInput
   PendingExtensionRequest?: Prisma.ExtensionRequestUpdateOneWithoutPendingOnUsageLogsNestedInput
   CheckoutConditionLog?: Prisma.ConditionLogUpdateOneRequiredWithoutUsageCheckoutsNestedInput
   CheckInConditionLog?: Prisma.ConditionLogUpdateOneWithoutUsageCheckInsNestedInput
@@ -1725,7 +1620,7 @@ export type UsageLogUncheckedUpdateWithoutAccountInput = {
   UsageKey?: Prisma.IntFieldUpdateOperationsInput | number
   ReservationKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   ResourceKey?: Prisma.IntFieldUpdateOperationsInput | number
-  CurrentStatus?: Prisma.IntFieldUpdateOperationsInput | number
+  CurrentStatus?: Prisma.EnumCurrentStatusFieldUpdateOperationsInput | $Enums.CurrentStatus
   DueTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   PendingExtension?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   CheckoutTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1742,7 +1637,7 @@ export type UsageLogUncheckedUpdateManyWithoutAccountInput = {
   UsageKey?: Prisma.IntFieldUpdateOperationsInput | number
   ReservationKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   ResourceKey?: Prisma.IntFieldUpdateOperationsInput | number
-  CurrentStatus?: Prisma.IntFieldUpdateOperationsInput | number
+  CurrentStatus?: Prisma.EnumCurrentStatusFieldUpdateOperationsInput | $Enums.CurrentStatus
   DueTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   PendingExtension?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   CheckoutTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1755,7 +1650,7 @@ export type UsageLogCreateManyResourceInput = {
   UsageKey?: number
   ReservationKey?: number | null
   AccountKey: number
-  CurrentStatus: number
+  CurrentStatus: $Enums.CurrentStatus
   DueTime: Date | string
   PendingExtension?: number | null
   CheckoutTime: Date | string
@@ -1765,12 +1660,12 @@ export type UsageLogCreateManyResourceInput = {
 }
 
 export type UsageLogUpdateWithoutResourceInput = {
+  CurrentStatus?: Prisma.EnumCurrentStatusFieldUpdateOperationsInput | $Enums.CurrentStatus
   DueTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   CheckoutTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   CheckInTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   Reservation?: Prisma.ReservationsUpdateOneWithoutUsageLogsNestedInput
   Account?: Prisma.AccountInfoUpdateOneRequiredWithoutUsageLogsNestedInput
-  Status?: Prisma.ResourceStatusUpdateOneRequiredWithoutUsageLogsNestedInput
   PendingExtensionRequest?: Prisma.ExtensionRequestUpdateOneWithoutPendingOnUsageLogsNestedInput
   CheckoutConditionLog?: Prisma.ConditionLogUpdateOneRequiredWithoutUsageCheckoutsNestedInput
   CheckInConditionLog?: Prisma.ConditionLogUpdateOneWithoutUsageCheckInsNestedInput
@@ -1784,7 +1679,7 @@ export type UsageLogUncheckedUpdateWithoutResourceInput = {
   UsageKey?: Prisma.IntFieldUpdateOperationsInput | number
   ReservationKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   AccountKey?: Prisma.IntFieldUpdateOperationsInput | number
-  CurrentStatus?: Prisma.IntFieldUpdateOperationsInput | number
+  CurrentStatus?: Prisma.EnumCurrentStatusFieldUpdateOperationsInput | $Enums.CurrentStatus
   DueTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   PendingExtension?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   CheckoutTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1801,66 +1696,7 @@ export type UsageLogUncheckedUpdateManyWithoutResourceInput = {
   UsageKey?: Prisma.IntFieldUpdateOperationsInput | number
   ReservationKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   AccountKey?: Prisma.IntFieldUpdateOperationsInput | number
-  CurrentStatus?: Prisma.IntFieldUpdateOperationsInput | number
-  DueTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  PendingExtension?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  CheckoutTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  CheckInTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  CheckoutCondition?: Prisma.IntFieldUpdateOperationsInput | number
-  CheckInCondition?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-}
-
-export type UsageLogCreateManyStatusInput = {
-  UsageKey?: number
-  ReservationKey?: number | null
-  AccountKey: number
-  ResourceKey: number
-  DueTime: Date | string
-  PendingExtension?: number | null
-  CheckoutTime: Date | string
-  CheckInTime?: Date | string | null
-  CheckoutCondition: number
-  CheckInCondition?: number | null
-}
-
-export type UsageLogUpdateWithoutStatusInput = {
-  DueTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  CheckoutTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  CheckInTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  Reservation?: Prisma.ReservationsUpdateOneWithoutUsageLogsNestedInput
-  Account?: Prisma.AccountInfoUpdateOneRequiredWithoutUsageLogsNestedInput
-  Resource?: Prisma.ResourceInfoUpdateOneRequiredWithoutUsageLogsNestedInput
-  PendingExtensionRequest?: Prisma.ExtensionRequestUpdateOneWithoutPendingOnUsageLogsNestedInput
-  CheckoutConditionLog?: Prisma.ConditionLogUpdateOneRequiredWithoutUsageCheckoutsNestedInput
-  CheckInConditionLog?: Prisma.ConditionLogUpdateOneWithoutUsageCheckInsNestedInput
-  ExtensionRequests?: Prisma.ExtensionRequestUpdateManyWithoutUsageNestedInput
-  Inspections?: Prisma.InspectionUpdateManyWithoutUsageNestedInput
-  Penalties?: Prisma.PenaltyInfoUpdateManyWithoutUsageNestedInput
-  Images?: Prisma.ImagesUpdateManyWithoutUsageNestedInput
-}
-
-export type UsageLogUncheckedUpdateWithoutStatusInput = {
-  UsageKey?: Prisma.IntFieldUpdateOperationsInput | number
-  ReservationKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  AccountKey?: Prisma.IntFieldUpdateOperationsInput | number
-  ResourceKey?: Prisma.IntFieldUpdateOperationsInput | number
-  DueTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  PendingExtension?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  CheckoutTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  CheckInTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  CheckoutCondition?: Prisma.IntFieldUpdateOperationsInput | number
-  CheckInCondition?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  ExtensionRequests?: Prisma.ExtensionRequestUncheckedUpdateManyWithoutUsageNestedInput
-  Inspections?: Prisma.InspectionUncheckedUpdateManyWithoutUsageNestedInput
-  Penalties?: Prisma.PenaltyInfoUncheckedUpdateManyWithoutUsageNestedInput
-  Images?: Prisma.ImagesUncheckedUpdateManyWithoutUsageNestedInput
-}
-
-export type UsageLogUncheckedUpdateManyWithoutStatusInput = {
-  UsageKey?: Prisma.IntFieldUpdateOperationsInput | number
-  ReservationKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  AccountKey?: Prisma.IntFieldUpdateOperationsInput | number
-  ResourceKey?: Prisma.IntFieldUpdateOperationsInput | number
+  CurrentStatus?: Prisma.EnumCurrentStatusFieldUpdateOperationsInput | $Enums.CurrentStatus
   DueTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   PendingExtension?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   CheckoutTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1874,7 +1710,7 @@ export type UsageLogCreateManyCheckInConditionLogInput = {
   ReservationKey?: number | null
   AccountKey: number
   ResourceKey: number
-  CurrentStatus: number
+  CurrentStatus: $Enums.CurrentStatus
   DueTime: Date | string
   PendingExtension?: number | null
   CheckoutTime: Date | string
@@ -1887,7 +1723,7 @@ export type UsageLogCreateManyCheckoutConditionLogInput = {
   ReservationKey?: number | null
   AccountKey: number
   ResourceKey: number
-  CurrentStatus: number
+  CurrentStatus: $Enums.CurrentStatus
   DueTime: Date | string
   PendingExtension?: number | null
   CheckoutTime: Date | string
@@ -1896,13 +1732,13 @@ export type UsageLogCreateManyCheckoutConditionLogInput = {
 }
 
 export type UsageLogUpdateWithoutCheckInConditionLogInput = {
+  CurrentStatus?: Prisma.EnumCurrentStatusFieldUpdateOperationsInput | $Enums.CurrentStatus
   DueTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   CheckoutTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   CheckInTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   Reservation?: Prisma.ReservationsUpdateOneWithoutUsageLogsNestedInput
   Account?: Prisma.AccountInfoUpdateOneRequiredWithoutUsageLogsNestedInput
   Resource?: Prisma.ResourceInfoUpdateOneRequiredWithoutUsageLogsNestedInput
-  Status?: Prisma.ResourceStatusUpdateOneRequiredWithoutUsageLogsNestedInput
   PendingExtensionRequest?: Prisma.ExtensionRequestUpdateOneWithoutPendingOnUsageLogsNestedInput
   CheckoutConditionLog?: Prisma.ConditionLogUpdateOneRequiredWithoutUsageCheckoutsNestedInput
   ExtensionRequests?: Prisma.ExtensionRequestUpdateManyWithoutUsageNestedInput
@@ -1916,7 +1752,7 @@ export type UsageLogUncheckedUpdateWithoutCheckInConditionLogInput = {
   ReservationKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   AccountKey?: Prisma.IntFieldUpdateOperationsInput | number
   ResourceKey?: Prisma.IntFieldUpdateOperationsInput | number
-  CurrentStatus?: Prisma.IntFieldUpdateOperationsInput | number
+  CurrentStatus?: Prisma.EnumCurrentStatusFieldUpdateOperationsInput | $Enums.CurrentStatus
   DueTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   PendingExtension?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   CheckoutTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1933,7 +1769,7 @@ export type UsageLogUncheckedUpdateManyWithoutCheckInConditionLogInput = {
   ReservationKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   AccountKey?: Prisma.IntFieldUpdateOperationsInput | number
   ResourceKey?: Prisma.IntFieldUpdateOperationsInput | number
-  CurrentStatus?: Prisma.IntFieldUpdateOperationsInput | number
+  CurrentStatus?: Prisma.EnumCurrentStatusFieldUpdateOperationsInput | $Enums.CurrentStatus
   DueTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   PendingExtension?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   CheckoutTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1942,13 +1778,13 @@ export type UsageLogUncheckedUpdateManyWithoutCheckInConditionLogInput = {
 }
 
 export type UsageLogUpdateWithoutCheckoutConditionLogInput = {
+  CurrentStatus?: Prisma.EnumCurrentStatusFieldUpdateOperationsInput | $Enums.CurrentStatus
   DueTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   CheckoutTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   CheckInTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   Reservation?: Prisma.ReservationsUpdateOneWithoutUsageLogsNestedInput
   Account?: Prisma.AccountInfoUpdateOneRequiredWithoutUsageLogsNestedInput
   Resource?: Prisma.ResourceInfoUpdateOneRequiredWithoutUsageLogsNestedInput
-  Status?: Prisma.ResourceStatusUpdateOneRequiredWithoutUsageLogsNestedInput
   PendingExtensionRequest?: Prisma.ExtensionRequestUpdateOneWithoutPendingOnUsageLogsNestedInput
   CheckInConditionLog?: Prisma.ConditionLogUpdateOneWithoutUsageCheckInsNestedInput
   ExtensionRequests?: Prisma.ExtensionRequestUpdateManyWithoutUsageNestedInput
@@ -1962,7 +1798,7 @@ export type UsageLogUncheckedUpdateWithoutCheckoutConditionLogInput = {
   ReservationKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   AccountKey?: Prisma.IntFieldUpdateOperationsInput | number
   ResourceKey?: Prisma.IntFieldUpdateOperationsInput | number
-  CurrentStatus?: Prisma.IntFieldUpdateOperationsInput | number
+  CurrentStatus?: Prisma.EnumCurrentStatusFieldUpdateOperationsInput | $Enums.CurrentStatus
   DueTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   PendingExtension?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   CheckoutTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1979,7 +1815,7 @@ export type UsageLogUncheckedUpdateManyWithoutCheckoutConditionLogInput = {
   ReservationKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   AccountKey?: Prisma.IntFieldUpdateOperationsInput | number
   ResourceKey?: Prisma.IntFieldUpdateOperationsInput | number
-  CurrentStatus?: Prisma.IntFieldUpdateOperationsInput | number
+  CurrentStatus?: Prisma.EnumCurrentStatusFieldUpdateOperationsInput | $Enums.CurrentStatus
   DueTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   PendingExtension?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   CheckoutTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1991,7 +1827,7 @@ export type UsageLogCreateManyReservationInput = {
   UsageKey?: number
   AccountKey: number
   ResourceKey: number
-  CurrentStatus: number
+  CurrentStatus: $Enums.CurrentStatus
   DueTime: Date | string
   PendingExtension?: number | null
   CheckoutTime: Date | string
@@ -2001,12 +1837,12 @@ export type UsageLogCreateManyReservationInput = {
 }
 
 export type UsageLogUpdateWithoutReservationInput = {
+  CurrentStatus?: Prisma.EnumCurrentStatusFieldUpdateOperationsInput | $Enums.CurrentStatus
   DueTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   CheckoutTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   CheckInTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   Account?: Prisma.AccountInfoUpdateOneRequiredWithoutUsageLogsNestedInput
   Resource?: Prisma.ResourceInfoUpdateOneRequiredWithoutUsageLogsNestedInput
-  Status?: Prisma.ResourceStatusUpdateOneRequiredWithoutUsageLogsNestedInput
   PendingExtensionRequest?: Prisma.ExtensionRequestUpdateOneWithoutPendingOnUsageLogsNestedInput
   CheckoutConditionLog?: Prisma.ConditionLogUpdateOneRequiredWithoutUsageCheckoutsNestedInput
   CheckInConditionLog?: Prisma.ConditionLogUpdateOneWithoutUsageCheckInsNestedInput
@@ -2020,7 +1856,7 @@ export type UsageLogUncheckedUpdateWithoutReservationInput = {
   UsageKey?: Prisma.IntFieldUpdateOperationsInput | number
   AccountKey?: Prisma.IntFieldUpdateOperationsInput | number
   ResourceKey?: Prisma.IntFieldUpdateOperationsInput | number
-  CurrentStatus?: Prisma.IntFieldUpdateOperationsInput | number
+  CurrentStatus?: Prisma.EnumCurrentStatusFieldUpdateOperationsInput | $Enums.CurrentStatus
   DueTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   PendingExtension?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   CheckoutTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -2037,7 +1873,7 @@ export type UsageLogUncheckedUpdateManyWithoutReservationInput = {
   UsageKey?: Prisma.IntFieldUpdateOperationsInput | number
   AccountKey?: Prisma.IntFieldUpdateOperationsInput | number
   ResourceKey?: Prisma.IntFieldUpdateOperationsInput | number
-  CurrentStatus?: Prisma.IntFieldUpdateOperationsInput | number
+  CurrentStatus?: Prisma.EnumCurrentStatusFieldUpdateOperationsInput | $Enums.CurrentStatus
   DueTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   PendingExtension?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   CheckoutTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -2051,7 +1887,7 @@ export type UsageLogCreateManyPendingExtensionRequestInput = {
   ReservationKey?: number | null
   AccountKey: number
   ResourceKey: number
-  CurrentStatus: number
+  CurrentStatus: $Enums.CurrentStatus
   DueTime: Date | string
   CheckoutTime: Date | string
   CheckInTime?: Date | string | null
@@ -2060,13 +1896,13 @@ export type UsageLogCreateManyPendingExtensionRequestInput = {
 }
 
 export type UsageLogUpdateWithoutPendingExtensionRequestInput = {
+  CurrentStatus?: Prisma.EnumCurrentStatusFieldUpdateOperationsInput | $Enums.CurrentStatus
   DueTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   CheckoutTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   CheckInTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   Reservation?: Prisma.ReservationsUpdateOneWithoutUsageLogsNestedInput
   Account?: Prisma.AccountInfoUpdateOneRequiredWithoutUsageLogsNestedInput
   Resource?: Prisma.ResourceInfoUpdateOneRequiredWithoutUsageLogsNestedInput
-  Status?: Prisma.ResourceStatusUpdateOneRequiredWithoutUsageLogsNestedInput
   CheckoutConditionLog?: Prisma.ConditionLogUpdateOneRequiredWithoutUsageCheckoutsNestedInput
   CheckInConditionLog?: Prisma.ConditionLogUpdateOneWithoutUsageCheckInsNestedInput
   ExtensionRequests?: Prisma.ExtensionRequestUpdateManyWithoutUsageNestedInput
@@ -2080,7 +1916,7 @@ export type UsageLogUncheckedUpdateWithoutPendingExtensionRequestInput = {
   ReservationKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   AccountKey?: Prisma.IntFieldUpdateOperationsInput | number
   ResourceKey?: Prisma.IntFieldUpdateOperationsInput | number
-  CurrentStatus?: Prisma.IntFieldUpdateOperationsInput | number
+  CurrentStatus?: Prisma.EnumCurrentStatusFieldUpdateOperationsInput | $Enums.CurrentStatus
   DueTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   CheckoutTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   CheckInTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -2097,7 +1933,7 @@ export type UsageLogUncheckedUpdateManyWithoutPendingExtensionRequestInput = {
   ReservationKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   AccountKey?: Prisma.IntFieldUpdateOperationsInput | number
   ResourceKey?: Prisma.IntFieldUpdateOperationsInput | number
-  CurrentStatus?: Prisma.IntFieldUpdateOperationsInput | number
+  CurrentStatus?: Prisma.EnumCurrentStatusFieldUpdateOperationsInput | $Enums.CurrentStatus
   DueTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   CheckoutTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   CheckInTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -2178,7 +2014,6 @@ export type UsageLogSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs
   Reservation?: boolean | Prisma.UsageLog$ReservationArgs<ExtArgs>
   Account?: boolean | Prisma.AccountInfoDefaultArgs<ExtArgs>
   Resource?: boolean | Prisma.ResourceInfoDefaultArgs<ExtArgs>
-  Status?: boolean | Prisma.ResourceStatusDefaultArgs<ExtArgs>
   PendingExtensionRequest?: boolean | Prisma.UsageLog$PendingExtensionRequestArgs<ExtArgs>
   CheckoutConditionLog?: boolean | Prisma.ConditionLogDefaultArgs<ExtArgs>
   CheckInConditionLog?: boolean | Prisma.UsageLog$CheckInConditionLogArgs<ExtArgs>
@@ -2204,7 +2039,6 @@ export type UsageLogSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Exte
   Reservation?: boolean | Prisma.UsageLog$ReservationArgs<ExtArgs>
   Account?: boolean | Prisma.AccountInfoDefaultArgs<ExtArgs>
   Resource?: boolean | Prisma.ResourceInfoDefaultArgs<ExtArgs>
-  Status?: boolean | Prisma.ResourceStatusDefaultArgs<ExtArgs>
   PendingExtensionRequest?: boolean | Prisma.UsageLog$PendingExtensionRequestArgs<ExtArgs>
   CheckoutConditionLog?: boolean | Prisma.ConditionLogDefaultArgs<ExtArgs>
   CheckInConditionLog?: boolean | Prisma.UsageLog$CheckInConditionLogArgs<ExtArgs>
@@ -2225,7 +2059,6 @@ export type UsageLogSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Exte
   Reservation?: boolean | Prisma.UsageLog$ReservationArgs<ExtArgs>
   Account?: boolean | Prisma.AccountInfoDefaultArgs<ExtArgs>
   Resource?: boolean | Prisma.ResourceInfoDefaultArgs<ExtArgs>
-  Status?: boolean | Prisma.ResourceStatusDefaultArgs<ExtArgs>
   PendingExtensionRequest?: boolean | Prisma.UsageLog$PendingExtensionRequestArgs<ExtArgs>
   CheckoutConditionLog?: boolean | Prisma.ConditionLogDefaultArgs<ExtArgs>
   CheckInConditionLog?: boolean | Prisma.UsageLog$CheckInConditionLogArgs<ExtArgs>
@@ -2250,7 +2083,6 @@ export type UsageLogInclude<ExtArgs extends runtime.Types.Extensions.InternalArg
   Reservation?: boolean | Prisma.UsageLog$ReservationArgs<ExtArgs>
   Account?: boolean | Prisma.AccountInfoDefaultArgs<ExtArgs>
   Resource?: boolean | Prisma.ResourceInfoDefaultArgs<ExtArgs>
-  Status?: boolean | Prisma.ResourceStatusDefaultArgs<ExtArgs>
   PendingExtensionRequest?: boolean | Prisma.UsageLog$PendingExtensionRequestArgs<ExtArgs>
   CheckoutConditionLog?: boolean | Prisma.ConditionLogDefaultArgs<ExtArgs>
   CheckInConditionLog?: boolean | Prisma.UsageLog$CheckInConditionLogArgs<ExtArgs>
@@ -2264,7 +2096,6 @@ export type UsageLogIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Ext
   Reservation?: boolean | Prisma.UsageLog$ReservationArgs<ExtArgs>
   Account?: boolean | Prisma.AccountInfoDefaultArgs<ExtArgs>
   Resource?: boolean | Prisma.ResourceInfoDefaultArgs<ExtArgs>
-  Status?: boolean | Prisma.ResourceStatusDefaultArgs<ExtArgs>
   PendingExtensionRequest?: boolean | Prisma.UsageLog$PendingExtensionRequestArgs<ExtArgs>
   CheckoutConditionLog?: boolean | Prisma.ConditionLogDefaultArgs<ExtArgs>
   CheckInConditionLog?: boolean | Prisma.UsageLog$CheckInConditionLogArgs<ExtArgs>
@@ -2273,7 +2104,6 @@ export type UsageLogIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Ext
   Reservation?: boolean | Prisma.UsageLog$ReservationArgs<ExtArgs>
   Account?: boolean | Prisma.AccountInfoDefaultArgs<ExtArgs>
   Resource?: boolean | Prisma.ResourceInfoDefaultArgs<ExtArgs>
-  Status?: boolean | Prisma.ResourceStatusDefaultArgs<ExtArgs>
   PendingExtensionRequest?: boolean | Prisma.UsageLog$PendingExtensionRequestArgs<ExtArgs>
   CheckoutConditionLog?: boolean | Prisma.ConditionLogDefaultArgs<ExtArgs>
   CheckInConditionLog?: boolean | Prisma.UsageLog$CheckInConditionLogArgs<ExtArgs>
@@ -2285,7 +2115,6 @@ export type $UsageLogPayload<ExtArgs extends runtime.Types.Extensions.InternalAr
     Reservation: Prisma.$ReservationsPayload<ExtArgs> | null
     Account: Prisma.$AccountInfoPayload<ExtArgs>
     Resource: Prisma.$ResourceInfoPayload<ExtArgs>
-    Status: Prisma.$ResourceStatusPayload<ExtArgs>
     PendingExtensionRequest: Prisma.$ExtensionRequestPayload<ExtArgs> | null
     CheckoutConditionLog: Prisma.$ConditionLogPayload<ExtArgs>
     CheckInConditionLog: Prisma.$ConditionLogPayload<ExtArgs> | null
@@ -2299,7 +2128,7 @@ export type $UsageLogPayload<ExtArgs extends runtime.Types.Extensions.InternalAr
     ReservationKey: number | null
     AccountKey: number
     ResourceKey: number
-    CurrentStatus: number
+    CurrentStatus: $Enums.CurrentStatus
     DueTime: Date
     PendingExtension: number | null
     CheckoutTime: Date
@@ -2703,7 +2532,6 @@ export interface Prisma__UsageLogClient<T, Null = never, ExtArgs extends runtime
   Reservation<T extends Prisma.UsageLog$ReservationArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.UsageLog$ReservationArgs<ExtArgs>>): Prisma.Prisma__ReservationsClient<runtime.Types.Result.GetResult<Prisma.$ReservationsPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   Account<T extends Prisma.AccountInfoDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AccountInfoDefaultArgs<ExtArgs>>): Prisma.Prisma__AccountInfoClient<runtime.Types.Result.GetResult<Prisma.$AccountInfoPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   Resource<T extends Prisma.ResourceInfoDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ResourceInfoDefaultArgs<ExtArgs>>): Prisma.Prisma__ResourceInfoClient<runtime.Types.Result.GetResult<Prisma.$ResourceInfoPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
-  Status<T extends Prisma.ResourceStatusDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ResourceStatusDefaultArgs<ExtArgs>>): Prisma.Prisma__ResourceStatusClient<runtime.Types.Result.GetResult<Prisma.$ResourceStatusPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   PendingExtensionRequest<T extends Prisma.UsageLog$PendingExtensionRequestArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.UsageLog$PendingExtensionRequestArgs<ExtArgs>>): Prisma.Prisma__ExtensionRequestClient<runtime.Types.Result.GetResult<Prisma.$ExtensionRequestPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   CheckoutConditionLog<T extends Prisma.ConditionLogDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ConditionLogDefaultArgs<ExtArgs>>): Prisma.Prisma__ConditionLogClient<runtime.Types.Result.GetResult<Prisma.$ConditionLogPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   CheckInConditionLog<T extends Prisma.UsageLog$CheckInConditionLogArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.UsageLog$CheckInConditionLogArgs<ExtArgs>>): Prisma.Prisma__ConditionLogClient<runtime.Types.Result.GetResult<Prisma.$ConditionLogPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
@@ -2744,7 +2572,7 @@ export interface UsageLogFieldRefs {
   readonly ReservationKey: Prisma.FieldRef<"UsageLog", 'Int'>
   readonly AccountKey: Prisma.FieldRef<"UsageLog", 'Int'>
   readonly ResourceKey: Prisma.FieldRef<"UsageLog", 'Int'>
-  readonly CurrentStatus: Prisma.FieldRef<"UsageLog", 'Int'>
+  readonly CurrentStatus: Prisma.FieldRef<"UsageLog", 'CurrentStatus'>
   readonly DueTime: Prisma.FieldRef<"UsageLog", 'DateTime'>
   readonly PendingExtension: Prisma.FieldRef<"UsageLog", 'Int'>
   readonly CheckoutTime: Prisma.FieldRef<"UsageLog", 'DateTime'>

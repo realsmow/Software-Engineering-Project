@@ -55,15 +55,15 @@ export type RoleInfo = Prisma.RoleInfoModel
  */
 export type FacultyInfo = Prisma.FacultyInfoModel
 /**
+ * Model BranchInfo
+ * 
+ */
+export type BranchInfo = Prisma.BranchInfoModel
+/**
  * Model ManagementGroup
  * 
  */
 export type ManagementGroup = Prisma.ManagementGroupModel
-/**
- * Model GroupType
- * 
- */
-export type GroupType = Prisma.GroupTypeModel
 /**
  * Model Authority
  * 
@@ -100,20 +100,10 @@ export type RoomInfo = Prisma.RoomInfoModel
  */
 export type ResourceInfo = Prisma.ResourceInfoModel
 /**
- * Model ResourceStatus
- * 
- */
-export type ResourceStatus = Prisma.ResourceStatusModel
-/**
  * Model ConditionLog
  * 
  */
 export type ConditionLog = Prisma.ConditionLogModel
-/**
- * Model ConditionType
- * 
- */
-export type ConditionType = Prisma.ConditionTypeModel
 /**
  * Model BorrowRule
  * 
@@ -130,11 +120,6 @@ export type BorrowConstraints = Prisma.BorrowConstraintsModel
  */
 export type PenaltyRule = Prisma.PenaltyRuleModel
 /**
- * Model PenaltyType
- * 
- */
-export type PenaltyType = Prisma.PenaltyTypeModel
-/**
  * Model Eligibility
  * 
  */
@@ -149,11 +134,6 @@ export type CreditTier = Prisma.CreditTierModel
  * 
  */
 export type Reservations = Prisma.ReservationsModel
-/**
- * Model ApproveStatus
- * 
- */
-export type ApproveStatus = Prisma.ApproveStatusModel
 /**
  * Model UsageLog
  * 
@@ -185,20 +165,10 @@ export type AppealInfo = Prisma.AppealInfoModel
  */
 export type Images = Prisma.ImagesModel
 /**
- * Model ImageSubmissionType
- * 
- */
-export type ImageSubmissionType = Prisma.ImageSubmissionTypeModel
-/**
  * Model Notification
  * 
  */
 export type Notification = Prisma.NotificationModel
-/**
- * Model NotificationType
- * 
- */
-export type NotificationType = Prisma.NotificationTypeModel
 /**
  * Model RepairLog
  * 

@@ -31,7 +31,6 @@ export type ResourceInfoAvgAggregateOutputType = {
   ManagedBy: number | null
   BorrowRule: number | null
   ConditionKey: number | null
-  ResourceStatus: number | null
   BufferTime: number | null
 }
 
@@ -40,7 +39,6 @@ export type ResourceInfoSumAggregateOutputType = {
   ManagedBy: number | null
   BorrowRule: number | null
   ConditionKey: number | null
-  ResourceStatus: number | null
   BufferTime: number | null
 }
 
@@ -49,7 +47,8 @@ export type ResourceInfoMinAggregateOutputType = {
   ManagedBy: number | null
   BorrowRule: number | null
   ConditionKey: number | null
-  ResourceStatus: number | null
+  ResourceStatus: $Enums.ResourceStatus | null
+  ResourceType: $Enums.ResourceType | null
   BufferTime: number | null
   AllowBorrow: boolean | null
 }
@@ -59,7 +58,8 @@ export type ResourceInfoMaxAggregateOutputType = {
   ManagedBy: number | null
   BorrowRule: number | null
   ConditionKey: number | null
-  ResourceStatus: number | null
+  ResourceStatus: $Enums.ResourceStatus | null
+  ResourceType: $Enums.ResourceType | null
   BufferTime: number | null
   AllowBorrow: boolean | null
 }
@@ -70,6 +70,7 @@ export type ResourceInfoCountAggregateOutputType = {
   BorrowRule: number
   ConditionKey: number
   ResourceStatus: number
+  ResourceType: number
   BufferTime: number
   AllowBorrow: number
   _all: number
@@ -81,7 +82,6 @@ export type ResourceInfoAvgAggregateInputType = {
   ManagedBy?: true
   BorrowRule?: true
   ConditionKey?: true
-  ResourceStatus?: true
   BufferTime?: true
 }
 
@@ -90,7 +90,6 @@ export type ResourceInfoSumAggregateInputType = {
   ManagedBy?: true
   BorrowRule?: true
   ConditionKey?: true
-  ResourceStatus?: true
   BufferTime?: true
 }
 
@@ -100,6 +99,7 @@ export type ResourceInfoMinAggregateInputType = {
   BorrowRule?: true
   ConditionKey?: true
   ResourceStatus?: true
+  ResourceType?: true
   BufferTime?: true
   AllowBorrow?: true
 }
@@ -110,6 +110,7 @@ export type ResourceInfoMaxAggregateInputType = {
   BorrowRule?: true
   ConditionKey?: true
   ResourceStatus?: true
+  ResourceType?: true
   BufferTime?: true
   AllowBorrow?: true
 }
@@ -120,6 +121,7 @@ export type ResourceInfoCountAggregateInputType = {
   BorrowRule?: true
   ConditionKey?: true
   ResourceStatus?: true
+  ResourceType?: true
   BufferTime?: true
   AllowBorrow?: true
   _all?: true
@@ -216,7 +218,8 @@ export type ResourceInfoGroupByOutputType = {
   ManagedBy: number
   BorrowRule: number
   ConditionKey: number | null
-  ResourceStatus: number
+  ResourceStatus: $Enums.ResourceStatus
+  ResourceType: $Enums.ResourceType
   BufferTime: number
   AllowBorrow: boolean
   _count: ResourceInfoCountAggregateOutputType | null
@@ -249,13 +252,13 @@ export type ResourceInfoWhereInput = {
   ManagedBy?: Prisma.IntFilter<"ResourceInfo"> | number
   BorrowRule?: Prisma.IntFilter<"ResourceInfo"> | number
   ConditionKey?: Prisma.IntNullableFilter<"ResourceInfo"> | number | null
-  ResourceStatus?: Prisma.IntFilter<"ResourceInfo"> | number
+  ResourceStatus?: Prisma.EnumResourceStatusFilter<"ResourceInfo"> | $Enums.ResourceStatus
+  ResourceType?: Prisma.EnumResourceTypeFilter<"ResourceInfo"> | $Enums.ResourceType
   BufferTime?: Prisma.IntFilter<"ResourceInfo"> | number
   AllowBorrow?: Prisma.BoolFilter<"ResourceInfo"> | boolean
   ManagementGroup?: Prisma.XOR<Prisma.ManagementGroupScalarRelationFilter, Prisma.ManagementGroupWhereInput>
   BorrowRuleInfo?: Prisma.XOR<Prisma.BorrowRuleScalarRelationFilter, Prisma.BorrowRuleWhereInput>
   CurrentCondition?: Prisma.XOR<Prisma.ConditionLogNullableScalarRelationFilter, Prisma.ConditionLogWhereInput> | null
-  Status?: Prisma.XOR<Prisma.ResourceStatusScalarRelationFilter, Prisma.ResourceStatusWhereInput>
   Item?: Prisma.XOR<Prisma.ItemIndivNullableScalarRelationFilter, Prisma.ItemIndivWhereInput> | null
   Room?: Prisma.XOR<Prisma.RoomInfoNullableScalarRelationFilter, Prisma.RoomInfoWhereInput> | null
   ConditionLogs?: Prisma.ConditionLogListRelationFilter
@@ -273,12 +276,12 @@ export type ResourceInfoOrderByWithRelationInput = {
   BorrowRule?: Prisma.SortOrder
   ConditionKey?: Prisma.SortOrderInput | Prisma.SortOrder
   ResourceStatus?: Prisma.SortOrder
+  ResourceType?: Prisma.SortOrder
   BufferTime?: Prisma.SortOrder
   AllowBorrow?: Prisma.SortOrder
   ManagementGroup?: Prisma.ManagementGroupOrderByWithRelationInput
   BorrowRuleInfo?: Prisma.BorrowRuleOrderByWithRelationInput
   CurrentCondition?: Prisma.ConditionLogOrderByWithRelationInput
-  Status?: Prisma.ResourceStatusOrderByWithRelationInput
   Item?: Prisma.ItemIndivOrderByWithRelationInput
   Room?: Prisma.RoomInfoOrderByWithRelationInput
   ConditionLogs?: Prisma.ConditionLogOrderByRelationAggregateInput
@@ -298,13 +301,13 @@ export type ResourceInfoWhereUniqueInput = Prisma.AtLeast<{
   ManagedBy?: Prisma.IntFilter<"ResourceInfo"> | number
   BorrowRule?: Prisma.IntFilter<"ResourceInfo"> | number
   ConditionKey?: Prisma.IntNullableFilter<"ResourceInfo"> | number | null
-  ResourceStatus?: Prisma.IntFilter<"ResourceInfo"> | number
+  ResourceStatus?: Prisma.EnumResourceStatusFilter<"ResourceInfo"> | $Enums.ResourceStatus
+  ResourceType?: Prisma.EnumResourceTypeFilter<"ResourceInfo"> | $Enums.ResourceType
   BufferTime?: Prisma.IntFilter<"ResourceInfo"> | number
   AllowBorrow?: Prisma.BoolFilter<"ResourceInfo"> | boolean
   ManagementGroup?: Prisma.XOR<Prisma.ManagementGroupScalarRelationFilter, Prisma.ManagementGroupWhereInput>
   BorrowRuleInfo?: Prisma.XOR<Prisma.BorrowRuleScalarRelationFilter, Prisma.BorrowRuleWhereInput>
   CurrentCondition?: Prisma.XOR<Prisma.ConditionLogNullableScalarRelationFilter, Prisma.ConditionLogWhereInput> | null
-  Status?: Prisma.XOR<Prisma.ResourceStatusScalarRelationFilter, Prisma.ResourceStatusWhereInput>
   Item?: Prisma.XOR<Prisma.ItemIndivNullableScalarRelationFilter, Prisma.ItemIndivWhereInput> | null
   Room?: Prisma.XOR<Prisma.RoomInfoNullableScalarRelationFilter, Prisma.RoomInfoWhereInput> | null
   ConditionLogs?: Prisma.ConditionLogListRelationFilter
@@ -322,6 +325,7 @@ export type ResourceInfoOrderByWithAggregationInput = {
   BorrowRule?: Prisma.SortOrder
   ConditionKey?: Prisma.SortOrderInput | Prisma.SortOrder
   ResourceStatus?: Prisma.SortOrder
+  ResourceType?: Prisma.SortOrder
   BufferTime?: Prisma.SortOrder
   AllowBorrow?: Prisma.SortOrder
   _count?: Prisma.ResourceInfoCountOrderByAggregateInput
@@ -339,18 +343,20 @@ export type ResourceInfoScalarWhereWithAggregatesInput = {
   ManagedBy?: Prisma.IntWithAggregatesFilter<"ResourceInfo"> | number
   BorrowRule?: Prisma.IntWithAggregatesFilter<"ResourceInfo"> | number
   ConditionKey?: Prisma.IntNullableWithAggregatesFilter<"ResourceInfo"> | number | null
-  ResourceStatus?: Prisma.IntWithAggregatesFilter<"ResourceInfo"> | number
+  ResourceStatus?: Prisma.EnumResourceStatusWithAggregatesFilter<"ResourceInfo"> | $Enums.ResourceStatus
+  ResourceType?: Prisma.EnumResourceTypeWithAggregatesFilter<"ResourceInfo"> | $Enums.ResourceType
   BufferTime?: Prisma.IntWithAggregatesFilter<"ResourceInfo"> | number
   AllowBorrow?: Prisma.BoolWithAggregatesFilter<"ResourceInfo"> | boolean
 }
 
 export type ResourceInfoCreateInput = {
+  ResourceStatus: $Enums.ResourceStatus
+  ResourceType: $Enums.ResourceType
   BufferTime: number
   AllowBorrow?: boolean
   ManagementGroup: Prisma.ManagementGroupCreateNestedOneWithoutResourcesInput
   BorrowRuleInfo: Prisma.BorrowRuleCreateNestedOneWithoutResourcesInput
   CurrentCondition?: Prisma.ConditionLogCreateNestedOneWithoutResourcesCurrentlyOnInput
-  Status: Prisma.ResourceStatusCreateNestedOneWithoutResourcesInput
   Item?: Prisma.ItemIndivCreateNestedOneWithoutResourceInput
   Room?: Prisma.RoomInfoCreateNestedOneWithoutResourceInput
   ConditionLogs?: Prisma.ConditionLogCreateNestedManyWithoutResourceInput
@@ -367,7 +373,8 @@ export type ResourceInfoUncheckedCreateInput = {
   ManagedBy: number
   BorrowRule: number
   ConditionKey?: number | null
-  ResourceStatus: number
+  ResourceStatus: $Enums.ResourceStatus
+  ResourceType: $Enums.ResourceType
   BufferTime: number
   AllowBorrow?: boolean
   Item?: Prisma.ItemIndivUncheckedCreateNestedOneWithoutResourceInput
@@ -382,12 +389,13 @@ export type ResourceInfoUncheckedCreateInput = {
 }
 
 export type ResourceInfoUpdateInput = {
+  ResourceStatus?: Prisma.EnumResourceStatusFieldUpdateOperationsInput | $Enums.ResourceStatus
+  ResourceType?: Prisma.EnumResourceTypeFieldUpdateOperationsInput | $Enums.ResourceType
   BufferTime?: Prisma.IntFieldUpdateOperationsInput | number
   AllowBorrow?: Prisma.BoolFieldUpdateOperationsInput | boolean
   ManagementGroup?: Prisma.ManagementGroupUpdateOneRequiredWithoutResourcesNestedInput
   BorrowRuleInfo?: Prisma.BorrowRuleUpdateOneRequiredWithoutResourcesNestedInput
   CurrentCondition?: Prisma.ConditionLogUpdateOneWithoutResourcesCurrentlyOnNestedInput
-  Status?: Prisma.ResourceStatusUpdateOneRequiredWithoutResourcesNestedInput
   Item?: Prisma.ItemIndivUpdateOneWithoutResourceNestedInput
   Room?: Prisma.RoomInfoUpdateOneWithoutResourceNestedInput
   ConditionLogs?: Prisma.ConditionLogUpdateManyWithoutResourceNestedInput
@@ -404,7 +412,8 @@ export type ResourceInfoUncheckedUpdateInput = {
   ManagedBy?: Prisma.IntFieldUpdateOperationsInput | number
   BorrowRule?: Prisma.IntFieldUpdateOperationsInput | number
   ConditionKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  ResourceStatus?: Prisma.IntFieldUpdateOperationsInput | number
+  ResourceStatus?: Prisma.EnumResourceStatusFieldUpdateOperationsInput | $Enums.ResourceStatus
+  ResourceType?: Prisma.EnumResourceTypeFieldUpdateOperationsInput | $Enums.ResourceType
   BufferTime?: Prisma.IntFieldUpdateOperationsInput | number
   AllowBorrow?: Prisma.BoolFieldUpdateOperationsInput | boolean
   Item?: Prisma.ItemIndivUncheckedUpdateOneWithoutResourceNestedInput
@@ -423,12 +432,15 @@ export type ResourceInfoCreateManyInput = {
   ManagedBy: number
   BorrowRule: number
   ConditionKey?: number | null
-  ResourceStatus: number
+  ResourceStatus: $Enums.ResourceStatus
+  ResourceType: $Enums.ResourceType
   BufferTime: number
   AllowBorrow?: boolean
 }
 
 export type ResourceInfoUpdateManyMutationInput = {
+  ResourceStatus?: Prisma.EnumResourceStatusFieldUpdateOperationsInput | $Enums.ResourceStatus
+  ResourceType?: Prisma.EnumResourceTypeFieldUpdateOperationsInput | $Enums.ResourceType
   BufferTime?: Prisma.IntFieldUpdateOperationsInput | number
   AllowBorrow?: Prisma.BoolFieldUpdateOperationsInput | boolean
 }
@@ -438,7 +450,8 @@ export type ResourceInfoUncheckedUpdateManyInput = {
   ManagedBy?: Prisma.IntFieldUpdateOperationsInput | number
   BorrowRule?: Prisma.IntFieldUpdateOperationsInput | number
   ConditionKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  ResourceStatus?: Prisma.IntFieldUpdateOperationsInput | number
+  ResourceStatus?: Prisma.EnumResourceStatusFieldUpdateOperationsInput | $Enums.ResourceStatus
+  ResourceType?: Prisma.EnumResourceTypeFieldUpdateOperationsInput | $Enums.ResourceType
   BufferTime?: Prisma.IntFieldUpdateOperationsInput | number
   AllowBorrow?: Prisma.BoolFieldUpdateOperationsInput | boolean
 }
@@ -464,6 +477,7 @@ export type ResourceInfoCountOrderByAggregateInput = {
   BorrowRule?: Prisma.SortOrder
   ConditionKey?: Prisma.SortOrder
   ResourceStatus?: Prisma.SortOrder
+  ResourceType?: Prisma.SortOrder
   BufferTime?: Prisma.SortOrder
   AllowBorrow?: Prisma.SortOrder
 }
@@ -473,7 +487,6 @@ export type ResourceInfoAvgOrderByAggregateInput = {
   ManagedBy?: Prisma.SortOrder
   BorrowRule?: Prisma.SortOrder
   ConditionKey?: Prisma.SortOrder
-  ResourceStatus?: Prisma.SortOrder
   BufferTime?: Prisma.SortOrder
 }
 
@@ -483,6 +496,7 @@ export type ResourceInfoMaxOrderByAggregateInput = {
   BorrowRule?: Prisma.SortOrder
   ConditionKey?: Prisma.SortOrder
   ResourceStatus?: Prisma.SortOrder
+  ResourceType?: Prisma.SortOrder
   BufferTime?: Prisma.SortOrder
   AllowBorrow?: Prisma.SortOrder
 }
@@ -493,6 +507,7 @@ export type ResourceInfoMinOrderByAggregateInput = {
   BorrowRule?: Prisma.SortOrder
   ConditionKey?: Prisma.SortOrder
   ResourceStatus?: Prisma.SortOrder
+  ResourceType?: Prisma.SortOrder
   BufferTime?: Prisma.SortOrder
   AllowBorrow?: Prisma.SortOrder
 }
@@ -502,7 +517,6 @@ export type ResourceInfoSumOrderByAggregateInput = {
   ManagedBy?: Prisma.SortOrder
   BorrowRule?: Prisma.SortOrder
   ConditionKey?: Prisma.SortOrder
-  ResourceStatus?: Prisma.SortOrder
   BufferTime?: Prisma.SortOrder
 }
 
@@ -576,50 +590,16 @@ export type ResourceInfoUpdateOneRequiredWithoutRoomNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.ResourceInfoUpdateToOneWithWhereWithoutRoomInput, Prisma.ResourceInfoUpdateWithoutRoomInput>, Prisma.ResourceInfoUncheckedUpdateWithoutRoomInput>
 }
 
+export type EnumResourceStatusFieldUpdateOperationsInput = {
+  set?: $Enums.ResourceStatus
+}
+
+export type EnumResourceTypeFieldUpdateOperationsInput = {
+  set?: $Enums.ResourceType
+}
+
 export type BoolFieldUpdateOperationsInput = {
   set?: boolean
-}
-
-export type ResourceInfoCreateNestedManyWithoutStatusInput = {
-  create?: Prisma.XOR<Prisma.ResourceInfoCreateWithoutStatusInput, Prisma.ResourceInfoUncheckedCreateWithoutStatusInput> | Prisma.ResourceInfoCreateWithoutStatusInput[] | Prisma.ResourceInfoUncheckedCreateWithoutStatusInput[]
-  connectOrCreate?: Prisma.ResourceInfoCreateOrConnectWithoutStatusInput | Prisma.ResourceInfoCreateOrConnectWithoutStatusInput[]
-  createMany?: Prisma.ResourceInfoCreateManyStatusInputEnvelope
-  connect?: Prisma.ResourceInfoWhereUniqueInput | Prisma.ResourceInfoWhereUniqueInput[]
-}
-
-export type ResourceInfoUncheckedCreateNestedManyWithoutStatusInput = {
-  create?: Prisma.XOR<Prisma.ResourceInfoCreateWithoutStatusInput, Prisma.ResourceInfoUncheckedCreateWithoutStatusInput> | Prisma.ResourceInfoCreateWithoutStatusInput[] | Prisma.ResourceInfoUncheckedCreateWithoutStatusInput[]
-  connectOrCreate?: Prisma.ResourceInfoCreateOrConnectWithoutStatusInput | Prisma.ResourceInfoCreateOrConnectWithoutStatusInput[]
-  createMany?: Prisma.ResourceInfoCreateManyStatusInputEnvelope
-  connect?: Prisma.ResourceInfoWhereUniqueInput | Prisma.ResourceInfoWhereUniqueInput[]
-}
-
-export type ResourceInfoUpdateManyWithoutStatusNestedInput = {
-  create?: Prisma.XOR<Prisma.ResourceInfoCreateWithoutStatusInput, Prisma.ResourceInfoUncheckedCreateWithoutStatusInput> | Prisma.ResourceInfoCreateWithoutStatusInput[] | Prisma.ResourceInfoUncheckedCreateWithoutStatusInput[]
-  connectOrCreate?: Prisma.ResourceInfoCreateOrConnectWithoutStatusInput | Prisma.ResourceInfoCreateOrConnectWithoutStatusInput[]
-  upsert?: Prisma.ResourceInfoUpsertWithWhereUniqueWithoutStatusInput | Prisma.ResourceInfoUpsertWithWhereUniqueWithoutStatusInput[]
-  createMany?: Prisma.ResourceInfoCreateManyStatusInputEnvelope
-  set?: Prisma.ResourceInfoWhereUniqueInput | Prisma.ResourceInfoWhereUniqueInput[]
-  disconnect?: Prisma.ResourceInfoWhereUniqueInput | Prisma.ResourceInfoWhereUniqueInput[]
-  delete?: Prisma.ResourceInfoWhereUniqueInput | Prisma.ResourceInfoWhereUniqueInput[]
-  connect?: Prisma.ResourceInfoWhereUniqueInput | Prisma.ResourceInfoWhereUniqueInput[]
-  update?: Prisma.ResourceInfoUpdateWithWhereUniqueWithoutStatusInput | Prisma.ResourceInfoUpdateWithWhereUniqueWithoutStatusInput[]
-  updateMany?: Prisma.ResourceInfoUpdateManyWithWhereWithoutStatusInput | Prisma.ResourceInfoUpdateManyWithWhereWithoutStatusInput[]
-  deleteMany?: Prisma.ResourceInfoScalarWhereInput | Prisma.ResourceInfoScalarWhereInput[]
-}
-
-export type ResourceInfoUncheckedUpdateManyWithoutStatusNestedInput = {
-  create?: Prisma.XOR<Prisma.ResourceInfoCreateWithoutStatusInput, Prisma.ResourceInfoUncheckedCreateWithoutStatusInput> | Prisma.ResourceInfoCreateWithoutStatusInput[] | Prisma.ResourceInfoUncheckedCreateWithoutStatusInput[]
-  connectOrCreate?: Prisma.ResourceInfoCreateOrConnectWithoutStatusInput | Prisma.ResourceInfoCreateOrConnectWithoutStatusInput[]
-  upsert?: Prisma.ResourceInfoUpsertWithWhereUniqueWithoutStatusInput | Prisma.ResourceInfoUpsertWithWhereUniqueWithoutStatusInput[]
-  createMany?: Prisma.ResourceInfoCreateManyStatusInputEnvelope
-  set?: Prisma.ResourceInfoWhereUniqueInput | Prisma.ResourceInfoWhereUniqueInput[]
-  disconnect?: Prisma.ResourceInfoWhereUniqueInput | Prisma.ResourceInfoWhereUniqueInput[]
-  delete?: Prisma.ResourceInfoWhereUniqueInput | Prisma.ResourceInfoWhereUniqueInput[]
-  connect?: Prisma.ResourceInfoWhereUniqueInput | Prisma.ResourceInfoWhereUniqueInput[]
-  update?: Prisma.ResourceInfoUpdateWithWhereUniqueWithoutStatusInput | Prisma.ResourceInfoUpdateWithWhereUniqueWithoutStatusInput[]
-  updateMany?: Prisma.ResourceInfoUpdateManyWithWhereWithoutStatusInput | Prisma.ResourceInfoUpdateManyWithWhereWithoutStatusInput[]
-  deleteMany?: Prisma.ResourceInfoScalarWhereInput | Prisma.ResourceInfoScalarWhereInput[]
 }
 
 export type ResourceInfoCreateNestedOneWithoutConditionLogsInput = {
@@ -805,11 +785,12 @@ export type ResourceInfoUpdateOneRequiredWithoutRepairLogsNestedInput = {
 }
 
 export type ResourceInfoCreateWithoutManagementGroupInput = {
+  ResourceStatus: $Enums.ResourceStatus
+  ResourceType: $Enums.ResourceType
   BufferTime: number
   AllowBorrow?: boolean
   BorrowRuleInfo: Prisma.BorrowRuleCreateNestedOneWithoutResourcesInput
   CurrentCondition?: Prisma.ConditionLogCreateNestedOneWithoutResourcesCurrentlyOnInput
-  Status: Prisma.ResourceStatusCreateNestedOneWithoutResourcesInput
   Item?: Prisma.ItemIndivCreateNestedOneWithoutResourceInput
   Room?: Prisma.RoomInfoCreateNestedOneWithoutResourceInput
   ConditionLogs?: Prisma.ConditionLogCreateNestedManyWithoutResourceInput
@@ -825,7 +806,8 @@ export type ResourceInfoUncheckedCreateWithoutManagementGroupInput = {
   ResourceKey?: number
   BorrowRule: number
   ConditionKey?: number | null
-  ResourceStatus: number
+  ResourceStatus: $Enums.ResourceStatus
+  ResourceType: $Enums.ResourceType
   BufferTime: number
   AllowBorrow?: boolean
   Item?: Prisma.ItemIndivUncheckedCreateNestedOneWithoutResourceInput
@@ -873,18 +855,20 @@ export type ResourceInfoScalarWhereInput = {
   ManagedBy?: Prisma.IntFilter<"ResourceInfo"> | number
   BorrowRule?: Prisma.IntFilter<"ResourceInfo"> | number
   ConditionKey?: Prisma.IntNullableFilter<"ResourceInfo"> | number | null
-  ResourceStatus?: Prisma.IntFilter<"ResourceInfo"> | number
+  ResourceStatus?: Prisma.EnumResourceStatusFilter<"ResourceInfo"> | $Enums.ResourceStatus
+  ResourceType?: Prisma.EnumResourceTypeFilter<"ResourceInfo"> | $Enums.ResourceType
   BufferTime?: Prisma.IntFilter<"ResourceInfo"> | number
   AllowBorrow?: Prisma.BoolFilter<"ResourceInfo"> | boolean
 }
 
 export type ResourceInfoCreateWithoutItemInput = {
+  ResourceStatus: $Enums.ResourceStatus
+  ResourceType: $Enums.ResourceType
   BufferTime: number
   AllowBorrow?: boolean
   ManagementGroup: Prisma.ManagementGroupCreateNestedOneWithoutResourcesInput
   BorrowRuleInfo: Prisma.BorrowRuleCreateNestedOneWithoutResourcesInput
   CurrentCondition?: Prisma.ConditionLogCreateNestedOneWithoutResourcesCurrentlyOnInput
-  Status: Prisma.ResourceStatusCreateNestedOneWithoutResourcesInput
   Room?: Prisma.RoomInfoCreateNestedOneWithoutResourceInput
   ConditionLogs?: Prisma.ConditionLogCreateNestedManyWithoutResourceInput
   Eligibilities?: Prisma.EligibilityCreateNestedManyWithoutResourceInput
@@ -900,7 +884,8 @@ export type ResourceInfoUncheckedCreateWithoutItemInput = {
   ManagedBy: number
   BorrowRule: number
   ConditionKey?: number | null
-  ResourceStatus: number
+  ResourceStatus: $Enums.ResourceStatus
+  ResourceType: $Enums.ResourceType
   BufferTime: number
   AllowBorrow?: boolean
   Room?: Prisma.RoomInfoUncheckedCreateNestedOneWithoutResourceInput
@@ -930,12 +915,13 @@ export type ResourceInfoUpdateToOneWithWhereWithoutItemInput = {
 }
 
 export type ResourceInfoUpdateWithoutItemInput = {
+  ResourceStatus?: Prisma.EnumResourceStatusFieldUpdateOperationsInput | $Enums.ResourceStatus
+  ResourceType?: Prisma.EnumResourceTypeFieldUpdateOperationsInput | $Enums.ResourceType
   BufferTime?: Prisma.IntFieldUpdateOperationsInput | number
   AllowBorrow?: Prisma.BoolFieldUpdateOperationsInput | boolean
   ManagementGroup?: Prisma.ManagementGroupUpdateOneRequiredWithoutResourcesNestedInput
   BorrowRuleInfo?: Prisma.BorrowRuleUpdateOneRequiredWithoutResourcesNestedInput
   CurrentCondition?: Prisma.ConditionLogUpdateOneWithoutResourcesCurrentlyOnNestedInput
-  Status?: Prisma.ResourceStatusUpdateOneRequiredWithoutResourcesNestedInput
   Room?: Prisma.RoomInfoUpdateOneWithoutResourceNestedInput
   ConditionLogs?: Prisma.ConditionLogUpdateManyWithoutResourceNestedInput
   Eligibilities?: Prisma.EligibilityUpdateManyWithoutResourceNestedInput
@@ -951,7 +937,8 @@ export type ResourceInfoUncheckedUpdateWithoutItemInput = {
   ManagedBy?: Prisma.IntFieldUpdateOperationsInput | number
   BorrowRule?: Prisma.IntFieldUpdateOperationsInput | number
   ConditionKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  ResourceStatus?: Prisma.IntFieldUpdateOperationsInput | number
+  ResourceStatus?: Prisma.EnumResourceStatusFieldUpdateOperationsInput | $Enums.ResourceStatus
+  ResourceType?: Prisma.EnumResourceTypeFieldUpdateOperationsInput | $Enums.ResourceType
   BufferTime?: Prisma.IntFieldUpdateOperationsInput | number
   AllowBorrow?: Prisma.BoolFieldUpdateOperationsInput | boolean
   Room?: Prisma.RoomInfoUncheckedUpdateOneWithoutResourceNestedInput
@@ -965,12 +952,13 @@ export type ResourceInfoUncheckedUpdateWithoutItemInput = {
 }
 
 export type ResourceInfoCreateWithoutRoomInput = {
+  ResourceStatus: $Enums.ResourceStatus
+  ResourceType: $Enums.ResourceType
   BufferTime: number
   AllowBorrow?: boolean
   ManagementGroup: Prisma.ManagementGroupCreateNestedOneWithoutResourcesInput
   BorrowRuleInfo: Prisma.BorrowRuleCreateNestedOneWithoutResourcesInput
   CurrentCondition?: Prisma.ConditionLogCreateNestedOneWithoutResourcesCurrentlyOnInput
-  Status: Prisma.ResourceStatusCreateNestedOneWithoutResourcesInput
   Item?: Prisma.ItemIndivCreateNestedOneWithoutResourceInput
   ConditionLogs?: Prisma.ConditionLogCreateNestedManyWithoutResourceInput
   Eligibilities?: Prisma.EligibilityCreateNestedManyWithoutResourceInput
@@ -986,7 +974,8 @@ export type ResourceInfoUncheckedCreateWithoutRoomInput = {
   ManagedBy: number
   BorrowRule: number
   ConditionKey?: number | null
-  ResourceStatus: number
+  ResourceStatus: $Enums.ResourceStatus
+  ResourceType: $Enums.ResourceType
   BufferTime: number
   AllowBorrow?: boolean
   Item?: Prisma.ItemIndivUncheckedCreateNestedOneWithoutResourceInput
@@ -1016,12 +1005,13 @@ export type ResourceInfoUpdateToOneWithWhereWithoutRoomInput = {
 }
 
 export type ResourceInfoUpdateWithoutRoomInput = {
+  ResourceStatus?: Prisma.EnumResourceStatusFieldUpdateOperationsInput | $Enums.ResourceStatus
+  ResourceType?: Prisma.EnumResourceTypeFieldUpdateOperationsInput | $Enums.ResourceType
   BufferTime?: Prisma.IntFieldUpdateOperationsInput | number
   AllowBorrow?: Prisma.BoolFieldUpdateOperationsInput | boolean
   ManagementGroup?: Prisma.ManagementGroupUpdateOneRequiredWithoutResourcesNestedInput
   BorrowRuleInfo?: Prisma.BorrowRuleUpdateOneRequiredWithoutResourcesNestedInput
   CurrentCondition?: Prisma.ConditionLogUpdateOneWithoutResourcesCurrentlyOnNestedInput
-  Status?: Prisma.ResourceStatusUpdateOneRequiredWithoutResourcesNestedInput
   Item?: Prisma.ItemIndivUpdateOneWithoutResourceNestedInput
   ConditionLogs?: Prisma.ConditionLogUpdateManyWithoutResourceNestedInput
   Eligibilities?: Prisma.EligibilityUpdateManyWithoutResourceNestedInput
@@ -1037,7 +1027,8 @@ export type ResourceInfoUncheckedUpdateWithoutRoomInput = {
   ManagedBy?: Prisma.IntFieldUpdateOperationsInput | number
   BorrowRule?: Prisma.IntFieldUpdateOperationsInput | number
   ConditionKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  ResourceStatus?: Prisma.IntFieldUpdateOperationsInput | number
+  ResourceStatus?: Prisma.EnumResourceStatusFieldUpdateOperationsInput | $Enums.ResourceStatus
+  ResourceType?: Prisma.EnumResourceTypeFieldUpdateOperationsInput | $Enums.ResourceType
   BufferTime?: Prisma.IntFieldUpdateOperationsInput | number
   AllowBorrow?: Prisma.BoolFieldUpdateOperationsInput | boolean
   Item?: Prisma.ItemIndivUncheckedUpdateOneWithoutResourceNestedInput
@@ -1050,74 +1041,14 @@ export type ResourceInfoUncheckedUpdateWithoutRoomInput = {
   RepairLogs?: Prisma.RepairLogUncheckedUpdateManyWithoutResourceNestedInput
 }
 
-export type ResourceInfoCreateWithoutStatusInput = {
-  BufferTime: number
-  AllowBorrow?: boolean
-  ManagementGroup: Prisma.ManagementGroupCreateNestedOneWithoutResourcesInput
-  BorrowRuleInfo: Prisma.BorrowRuleCreateNestedOneWithoutResourcesInput
-  CurrentCondition?: Prisma.ConditionLogCreateNestedOneWithoutResourcesCurrentlyOnInput
-  Item?: Prisma.ItemIndivCreateNestedOneWithoutResourceInput
-  Room?: Prisma.RoomInfoCreateNestedOneWithoutResourceInput
-  ConditionLogs?: Prisma.ConditionLogCreateNestedManyWithoutResourceInput
-  Eligibilities?: Prisma.EligibilityCreateNestedManyWithoutResourceInput
-  Reservations?: Prisma.ReservationsCreateNestedManyWithoutResourceInput
-  UsageLogs?: Prisma.UsageLogCreateNestedManyWithoutResourceInput
-  Inspections?: Prisma.InspectionCreateNestedManyWithoutResourceInput
-  Images?: Prisma.ImagesCreateNestedManyWithoutResourceInput
-  RepairLogs?: Prisma.RepairLogCreateNestedManyWithoutResourceInput
-}
-
-export type ResourceInfoUncheckedCreateWithoutStatusInput = {
-  ResourceKey?: number
-  ManagedBy: number
-  BorrowRule: number
-  ConditionKey?: number | null
-  BufferTime: number
-  AllowBorrow?: boolean
-  Item?: Prisma.ItemIndivUncheckedCreateNestedOneWithoutResourceInput
-  Room?: Prisma.RoomInfoUncheckedCreateNestedOneWithoutResourceInput
-  ConditionLogs?: Prisma.ConditionLogUncheckedCreateNestedManyWithoutResourceInput
-  Eligibilities?: Prisma.EligibilityUncheckedCreateNestedManyWithoutResourceInput
-  Reservations?: Prisma.ReservationsUncheckedCreateNestedManyWithoutResourceInput
-  UsageLogs?: Prisma.UsageLogUncheckedCreateNestedManyWithoutResourceInput
-  Inspections?: Prisma.InspectionUncheckedCreateNestedManyWithoutResourceInput
-  Images?: Prisma.ImagesUncheckedCreateNestedManyWithoutResourceInput
-  RepairLogs?: Prisma.RepairLogUncheckedCreateNestedManyWithoutResourceInput
-}
-
-export type ResourceInfoCreateOrConnectWithoutStatusInput = {
-  where: Prisma.ResourceInfoWhereUniqueInput
-  create: Prisma.XOR<Prisma.ResourceInfoCreateWithoutStatusInput, Prisma.ResourceInfoUncheckedCreateWithoutStatusInput>
-}
-
-export type ResourceInfoCreateManyStatusInputEnvelope = {
-  data: Prisma.ResourceInfoCreateManyStatusInput | Prisma.ResourceInfoCreateManyStatusInput[]
-  skipDuplicates?: boolean
-}
-
-export type ResourceInfoUpsertWithWhereUniqueWithoutStatusInput = {
-  where: Prisma.ResourceInfoWhereUniqueInput
-  update: Prisma.XOR<Prisma.ResourceInfoUpdateWithoutStatusInput, Prisma.ResourceInfoUncheckedUpdateWithoutStatusInput>
-  create: Prisma.XOR<Prisma.ResourceInfoCreateWithoutStatusInput, Prisma.ResourceInfoUncheckedCreateWithoutStatusInput>
-}
-
-export type ResourceInfoUpdateWithWhereUniqueWithoutStatusInput = {
-  where: Prisma.ResourceInfoWhereUniqueInput
-  data: Prisma.XOR<Prisma.ResourceInfoUpdateWithoutStatusInput, Prisma.ResourceInfoUncheckedUpdateWithoutStatusInput>
-}
-
-export type ResourceInfoUpdateManyWithWhereWithoutStatusInput = {
-  where: Prisma.ResourceInfoScalarWhereInput
-  data: Prisma.XOR<Prisma.ResourceInfoUpdateManyMutationInput, Prisma.ResourceInfoUncheckedUpdateManyWithoutStatusInput>
-}
-
 export type ResourceInfoCreateWithoutConditionLogsInput = {
+  ResourceStatus: $Enums.ResourceStatus
+  ResourceType: $Enums.ResourceType
   BufferTime: number
   AllowBorrow?: boolean
   ManagementGroup: Prisma.ManagementGroupCreateNestedOneWithoutResourcesInput
   BorrowRuleInfo: Prisma.BorrowRuleCreateNestedOneWithoutResourcesInput
   CurrentCondition?: Prisma.ConditionLogCreateNestedOneWithoutResourcesCurrentlyOnInput
-  Status: Prisma.ResourceStatusCreateNestedOneWithoutResourcesInput
   Item?: Prisma.ItemIndivCreateNestedOneWithoutResourceInput
   Room?: Prisma.RoomInfoCreateNestedOneWithoutResourceInput
   Eligibilities?: Prisma.EligibilityCreateNestedManyWithoutResourceInput
@@ -1133,7 +1064,8 @@ export type ResourceInfoUncheckedCreateWithoutConditionLogsInput = {
   ManagedBy: number
   BorrowRule: number
   ConditionKey?: number | null
-  ResourceStatus: number
+  ResourceStatus: $Enums.ResourceStatus
+  ResourceType: $Enums.ResourceType
   BufferTime: number
   AllowBorrow?: boolean
   Item?: Prisma.ItemIndivUncheckedCreateNestedOneWithoutResourceInput
@@ -1152,11 +1084,12 @@ export type ResourceInfoCreateOrConnectWithoutConditionLogsInput = {
 }
 
 export type ResourceInfoCreateWithoutCurrentConditionInput = {
+  ResourceStatus: $Enums.ResourceStatus
+  ResourceType: $Enums.ResourceType
   BufferTime: number
   AllowBorrow?: boolean
   ManagementGroup: Prisma.ManagementGroupCreateNestedOneWithoutResourcesInput
   BorrowRuleInfo: Prisma.BorrowRuleCreateNestedOneWithoutResourcesInput
-  Status: Prisma.ResourceStatusCreateNestedOneWithoutResourcesInput
   Item?: Prisma.ItemIndivCreateNestedOneWithoutResourceInput
   Room?: Prisma.RoomInfoCreateNestedOneWithoutResourceInput
   ConditionLogs?: Prisma.ConditionLogCreateNestedManyWithoutResourceInput
@@ -1172,7 +1105,8 @@ export type ResourceInfoUncheckedCreateWithoutCurrentConditionInput = {
   ResourceKey?: number
   ManagedBy: number
   BorrowRule: number
-  ResourceStatus: number
+  ResourceStatus: $Enums.ResourceStatus
+  ResourceType: $Enums.ResourceType
   BufferTime: number
   AllowBorrow?: boolean
   Item?: Prisma.ItemIndivUncheckedCreateNestedOneWithoutResourceInput
@@ -1208,12 +1142,13 @@ export type ResourceInfoUpdateToOneWithWhereWithoutConditionLogsInput = {
 }
 
 export type ResourceInfoUpdateWithoutConditionLogsInput = {
+  ResourceStatus?: Prisma.EnumResourceStatusFieldUpdateOperationsInput | $Enums.ResourceStatus
+  ResourceType?: Prisma.EnumResourceTypeFieldUpdateOperationsInput | $Enums.ResourceType
   BufferTime?: Prisma.IntFieldUpdateOperationsInput | number
   AllowBorrow?: Prisma.BoolFieldUpdateOperationsInput | boolean
   ManagementGroup?: Prisma.ManagementGroupUpdateOneRequiredWithoutResourcesNestedInput
   BorrowRuleInfo?: Prisma.BorrowRuleUpdateOneRequiredWithoutResourcesNestedInput
   CurrentCondition?: Prisma.ConditionLogUpdateOneWithoutResourcesCurrentlyOnNestedInput
-  Status?: Prisma.ResourceStatusUpdateOneRequiredWithoutResourcesNestedInput
   Item?: Prisma.ItemIndivUpdateOneWithoutResourceNestedInput
   Room?: Prisma.RoomInfoUpdateOneWithoutResourceNestedInput
   Eligibilities?: Prisma.EligibilityUpdateManyWithoutResourceNestedInput
@@ -1229,7 +1164,8 @@ export type ResourceInfoUncheckedUpdateWithoutConditionLogsInput = {
   ManagedBy?: Prisma.IntFieldUpdateOperationsInput | number
   BorrowRule?: Prisma.IntFieldUpdateOperationsInput | number
   ConditionKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  ResourceStatus?: Prisma.IntFieldUpdateOperationsInput | number
+  ResourceStatus?: Prisma.EnumResourceStatusFieldUpdateOperationsInput | $Enums.ResourceStatus
+  ResourceType?: Prisma.EnumResourceTypeFieldUpdateOperationsInput | $Enums.ResourceType
   BufferTime?: Prisma.IntFieldUpdateOperationsInput | number
   AllowBorrow?: Prisma.BoolFieldUpdateOperationsInput | boolean
   Item?: Prisma.ItemIndivUncheckedUpdateOneWithoutResourceNestedInput
@@ -1259,11 +1195,12 @@ export type ResourceInfoUpdateManyWithWhereWithoutCurrentConditionInput = {
 }
 
 export type ResourceInfoCreateWithoutBorrowRuleInfoInput = {
+  ResourceStatus: $Enums.ResourceStatus
+  ResourceType: $Enums.ResourceType
   BufferTime: number
   AllowBorrow?: boolean
   ManagementGroup: Prisma.ManagementGroupCreateNestedOneWithoutResourcesInput
   CurrentCondition?: Prisma.ConditionLogCreateNestedOneWithoutResourcesCurrentlyOnInput
-  Status: Prisma.ResourceStatusCreateNestedOneWithoutResourcesInput
   Item?: Prisma.ItemIndivCreateNestedOneWithoutResourceInput
   Room?: Prisma.RoomInfoCreateNestedOneWithoutResourceInput
   ConditionLogs?: Prisma.ConditionLogCreateNestedManyWithoutResourceInput
@@ -1279,7 +1216,8 @@ export type ResourceInfoUncheckedCreateWithoutBorrowRuleInfoInput = {
   ResourceKey?: number
   ManagedBy: number
   ConditionKey?: number | null
-  ResourceStatus: number
+  ResourceStatus: $Enums.ResourceStatus
+  ResourceType: $Enums.ResourceType
   BufferTime: number
   AllowBorrow?: boolean
   Item?: Prisma.ItemIndivUncheckedCreateNestedOneWithoutResourceInput
@@ -1320,12 +1258,13 @@ export type ResourceInfoUpdateManyWithWhereWithoutBorrowRuleInfoInput = {
 }
 
 export type ResourceInfoCreateWithoutEligibilitiesInput = {
+  ResourceStatus: $Enums.ResourceStatus
+  ResourceType: $Enums.ResourceType
   BufferTime: number
   AllowBorrow?: boolean
   ManagementGroup: Prisma.ManagementGroupCreateNestedOneWithoutResourcesInput
   BorrowRuleInfo: Prisma.BorrowRuleCreateNestedOneWithoutResourcesInput
   CurrentCondition?: Prisma.ConditionLogCreateNestedOneWithoutResourcesCurrentlyOnInput
-  Status: Prisma.ResourceStatusCreateNestedOneWithoutResourcesInput
   Item?: Prisma.ItemIndivCreateNestedOneWithoutResourceInput
   Room?: Prisma.RoomInfoCreateNestedOneWithoutResourceInput
   ConditionLogs?: Prisma.ConditionLogCreateNestedManyWithoutResourceInput
@@ -1341,7 +1280,8 @@ export type ResourceInfoUncheckedCreateWithoutEligibilitiesInput = {
   ManagedBy: number
   BorrowRule: number
   ConditionKey?: number | null
-  ResourceStatus: number
+  ResourceStatus: $Enums.ResourceStatus
+  ResourceType: $Enums.ResourceType
   BufferTime: number
   AllowBorrow?: boolean
   Item?: Prisma.ItemIndivUncheckedCreateNestedOneWithoutResourceInput
@@ -1371,12 +1311,13 @@ export type ResourceInfoUpdateToOneWithWhereWithoutEligibilitiesInput = {
 }
 
 export type ResourceInfoUpdateWithoutEligibilitiesInput = {
+  ResourceStatus?: Prisma.EnumResourceStatusFieldUpdateOperationsInput | $Enums.ResourceStatus
+  ResourceType?: Prisma.EnumResourceTypeFieldUpdateOperationsInput | $Enums.ResourceType
   BufferTime?: Prisma.IntFieldUpdateOperationsInput | number
   AllowBorrow?: Prisma.BoolFieldUpdateOperationsInput | boolean
   ManagementGroup?: Prisma.ManagementGroupUpdateOneRequiredWithoutResourcesNestedInput
   BorrowRuleInfo?: Prisma.BorrowRuleUpdateOneRequiredWithoutResourcesNestedInput
   CurrentCondition?: Prisma.ConditionLogUpdateOneWithoutResourcesCurrentlyOnNestedInput
-  Status?: Prisma.ResourceStatusUpdateOneRequiredWithoutResourcesNestedInput
   Item?: Prisma.ItemIndivUpdateOneWithoutResourceNestedInput
   Room?: Prisma.RoomInfoUpdateOneWithoutResourceNestedInput
   ConditionLogs?: Prisma.ConditionLogUpdateManyWithoutResourceNestedInput
@@ -1392,7 +1333,8 @@ export type ResourceInfoUncheckedUpdateWithoutEligibilitiesInput = {
   ManagedBy?: Prisma.IntFieldUpdateOperationsInput | number
   BorrowRule?: Prisma.IntFieldUpdateOperationsInput | number
   ConditionKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  ResourceStatus?: Prisma.IntFieldUpdateOperationsInput | number
+  ResourceStatus?: Prisma.EnumResourceStatusFieldUpdateOperationsInput | $Enums.ResourceStatus
+  ResourceType?: Prisma.EnumResourceTypeFieldUpdateOperationsInput | $Enums.ResourceType
   BufferTime?: Prisma.IntFieldUpdateOperationsInput | number
   AllowBorrow?: Prisma.BoolFieldUpdateOperationsInput | boolean
   Item?: Prisma.ItemIndivUncheckedUpdateOneWithoutResourceNestedInput
@@ -1406,12 +1348,13 @@ export type ResourceInfoUncheckedUpdateWithoutEligibilitiesInput = {
 }
 
 export type ResourceInfoCreateWithoutReservationsInput = {
+  ResourceStatus: $Enums.ResourceStatus
+  ResourceType: $Enums.ResourceType
   BufferTime: number
   AllowBorrow?: boolean
   ManagementGroup: Prisma.ManagementGroupCreateNestedOneWithoutResourcesInput
   BorrowRuleInfo: Prisma.BorrowRuleCreateNestedOneWithoutResourcesInput
   CurrentCondition?: Prisma.ConditionLogCreateNestedOneWithoutResourcesCurrentlyOnInput
-  Status: Prisma.ResourceStatusCreateNestedOneWithoutResourcesInput
   Item?: Prisma.ItemIndivCreateNestedOneWithoutResourceInput
   Room?: Prisma.RoomInfoCreateNestedOneWithoutResourceInput
   ConditionLogs?: Prisma.ConditionLogCreateNestedManyWithoutResourceInput
@@ -1427,7 +1370,8 @@ export type ResourceInfoUncheckedCreateWithoutReservationsInput = {
   ManagedBy: number
   BorrowRule: number
   ConditionKey?: number | null
-  ResourceStatus: number
+  ResourceStatus: $Enums.ResourceStatus
+  ResourceType: $Enums.ResourceType
   BufferTime: number
   AllowBorrow?: boolean
   Item?: Prisma.ItemIndivUncheckedCreateNestedOneWithoutResourceInput
@@ -1457,12 +1401,13 @@ export type ResourceInfoUpdateToOneWithWhereWithoutReservationsInput = {
 }
 
 export type ResourceInfoUpdateWithoutReservationsInput = {
+  ResourceStatus?: Prisma.EnumResourceStatusFieldUpdateOperationsInput | $Enums.ResourceStatus
+  ResourceType?: Prisma.EnumResourceTypeFieldUpdateOperationsInput | $Enums.ResourceType
   BufferTime?: Prisma.IntFieldUpdateOperationsInput | number
   AllowBorrow?: Prisma.BoolFieldUpdateOperationsInput | boolean
   ManagementGroup?: Prisma.ManagementGroupUpdateOneRequiredWithoutResourcesNestedInput
   BorrowRuleInfo?: Prisma.BorrowRuleUpdateOneRequiredWithoutResourcesNestedInput
   CurrentCondition?: Prisma.ConditionLogUpdateOneWithoutResourcesCurrentlyOnNestedInput
-  Status?: Prisma.ResourceStatusUpdateOneRequiredWithoutResourcesNestedInput
   Item?: Prisma.ItemIndivUpdateOneWithoutResourceNestedInput
   Room?: Prisma.RoomInfoUpdateOneWithoutResourceNestedInput
   ConditionLogs?: Prisma.ConditionLogUpdateManyWithoutResourceNestedInput
@@ -1478,7 +1423,8 @@ export type ResourceInfoUncheckedUpdateWithoutReservationsInput = {
   ManagedBy?: Prisma.IntFieldUpdateOperationsInput | number
   BorrowRule?: Prisma.IntFieldUpdateOperationsInput | number
   ConditionKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  ResourceStatus?: Prisma.IntFieldUpdateOperationsInput | number
+  ResourceStatus?: Prisma.EnumResourceStatusFieldUpdateOperationsInput | $Enums.ResourceStatus
+  ResourceType?: Prisma.EnumResourceTypeFieldUpdateOperationsInput | $Enums.ResourceType
   BufferTime?: Prisma.IntFieldUpdateOperationsInput | number
   AllowBorrow?: Prisma.BoolFieldUpdateOperationsInput | boolean
   Item?: Prisma.ItemIndivUncheckedUpdateOneWithoutResourceNestedInput
@@ -1492,12 +1438,13 @@ export type ResourceInfoUncheckedUpdateWithoutReservationsInput = {
 }
 
 export type ResourceInfoCreateWithoutUsageLogsInput = {
+  ResourceStatus: $Enums.ResourceStatus
+  ResourceType: $Enums.ResourceType
   BufferTime: number
   AllowBorrow?: boolean
   ManagementGroup: Prisma.ManagementGroupCreateNestedOneWithoutResourcesInput
   BorrowRuleInfo: Prisma.BorrowRuleCreateNestedOneWithoutResourcesInput
   CurrentCondition?: Prisma.ConditionLogCreateNestedOneWithoutResourcesCurrentlyOnInput
-  Status: Prisma.ResourceStatusCreateNestedOneWithoutResourcesInput
   Item?: Prisma.ItemIndivCreateNestedOneWithoutResourceInput
   Room?: Prisma.RoomInfoCreateNestedOneWithoutResourceInput
   ConditionLogs?: Prisma.ConditionLogCreateNestedManyWithoutResourceInput
@@ -1513,7 +1460,8 @@ export type ResourceInfoUncheckedCreateWithoutUsageLogsInput = {
   ManagedBy: number
   BorrowRule: number
   ConditionKey?: number | null
-  ResourceStatus: number
+  ResourceStatus: $Enums.ResourceStatus
+  ResourceType: $Enums.ResourceType
   BufferTime: number
   AllowBorrow?: boolean
   Item?: Prisma.ItemIndivUncheckedCreateNestedOneWithoutResourceInput
@@ -1543,12 +1491,13 @@ export type ResourceInfoUpdateToOneWithWhereWithoutUsageLogsInput = {
 }
 
 export type ResourceInfoUpdateWithoutUsageLogsInput = {
+  ResourceStatus?: Prisma.EnumResourceStatusFieldUpdateOperationsInput | $Enums.ResourceStatus
+  ResourceType?: Prisma.EnumResourceTypeFieldUpdateOperationsInput | $Enums.ResourceType
   BufferTime?: Prisma.IntFieldUpdateOperationsInput | number
   AllowBorrow?: Prisma.BoolFieldUpdateOperationsInput | boolean
   ManagementGroup?: Prisma.ManagementGroupUpdateOneRequiredWithoutResourcesNestedInput
   BorrowRuleInfo?: Prisma.BorrowRuleUpdateOneRequiredWithoutResourcesNestedInput
   CurrentCondition?: Prisma.ConditionLogUpdateOneWithoutResourcesCurrentlyOnNestedInput
-  Status?: Prisma.ResourceStatusUpdateOneRequiredWithoutResourcesNestedInput
   Item?: Prisma.ItemIndivUpdateOneWithoutResourceNestedInput
   Room?: Prisma.RoomInfoUpdateOneWithoutResourceNestedInput
   ConditionLogs?: Prisma.ConditionLogUpdateManyWithoutResourceNestedInput
@@ -1564,7 +1513,8 @@ export type ResourceInfoUncheckedUpdateWithoutUsageLogsInput = {
   ManagedBy?: Prisma.IntFieldUpdateOperationsInput | number
   BorrowRule?: Prisma.IntFieldUpdateOperationsInput | number
   ConditionKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  ResourceStatus?: Prisma.IntFieldUpdateOperationsInput | number
+  ResourceStatus?: Prisma.EnumResourceStatusFieldUpdateOperationsInput | $Enums.ResourceStatus
+  ResourceType?: Prisma.EnumResourceTypeFieldUpdateOperationsInput | $Enums.ResourceType
   BufferTime?: Prisma.IntFieldUpdateOperationsInput | number
   AllowBorrow?: Prisma.BoolFieldUpdateOperationsInput | boolean
   Item?: Prisma.ItemIndivUncheckedUpdateOneWithoutResourceNestedInput
@@ -1578,12 +1528,13 @@ export type ResourceInfoUncheckedUpdateWithoutUsageLogsInput = {
 }
 
 export type ResourceInfoCreateWithoutInspectionsInput = {
+  ResourceStatus: $Enums.ResourceStatus
+  ResourceType: $Enums.ResourceType
   BufferTime: number
   AllowBorrow?: boolean
   ManagementGroup: Prisma.ManagementGroupCreateNestedOneWithoutResourcesInput
   BorrowRuleInfo: Prisma.BorrowRuleCreateNestedOneWithoutResourcesInput
   CurrentCondition?: Prisma.ConditionLogCreateNestedOneWithoutResourcesCurrentlyOnInput
-  Status: Prisma.ResourceStatusCreateNestedOneWithoutResourcesInput
   Item?: Prisma.ItemIndivCreateNestedOneWithoutResourceInput
   Room?: Prisma.RoomInfoCreateNestedOneWithoutResourceInput
   ConditionLogs?: Prisma.ConditionLogCreateNestedManyWithoutResourceInput
@@ -1599,7 +1550,8 @@ export type ResourceInfoUncheckedCreateWithoutInspectionsInput = {
   ManagedBy: number
   BorrowRule: number
   ConditionKey?: number | null
-  ResourceStatus: number
+  ResourceStatus: $Enums.ResourceStatus
+  ResourceType: $Enums.ResourceType
   BufferTime: number
   AllowBorrow?: boolean
   Item?: Prisma.ItemIndivUncheckedCreateNestedOneWithoutResourceInput
@@ -1629,12 +1581,13 @@ export type ResourceInfoUpdateToOneWithWhereWithoutInspectionsInput = {
 }
 
 export type ResourceInfoUpdateWithoutInspectionsInput = {
+  ResourceStatus?: Prisma.EnumResourceStatusFieldUpdateOperationsInput | $Enums.ResourceStatus
+  ResourceType?: Prisma.EnumResourceTypeFieldUpdateOperationsInput | $Enums.ResourceType
   BufferTime?: Prisma.IntFieldUpdateOperationsInput | number
   AllowBorrow?: Prisma.BoolFieldUpdateOperationsInput | boolean
   ManagementGroup?: Prisma.ManagementGroupUpdateOneRequiredWithoutResourcesNestedInput
   BorrowRuleInfo?: Prisma.BorrowRuleUpdateOneRequiredWithoutResourcesNestedInput
   CurrentCondition?: Prisma.ConditionLogUpdateOneWithoutResourcesCurrentlyOnNestedInput
-  Status?: Prisma.ResourceStatusUpdateOneRequiredWithoutResourcesNestedInput
   Item?: Prisma.ItemIndivUpdateOneWithoutResourceNestedInput
   Room?: Prisma.RoomInfoUpdateOneWithoutResourceNestedInput
   ConditionLogs?: Prisma.ConditionLogUpdateManyWithoutResourceNestedInput
@@ -1650,7 +1603,8 @@ export type ResourceInfoUncheckedUpdateWithoutInspectionsInput = {
   ManagedBy?: Prisma.IntFieldUpdateOperationsInput | number
   BorrowRule?: Prisma.IntFieldUpdateOperationsInput | number
   ConditionKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  ResourceStatus?: Prisma.IntFieldUpdateOperationsInput | number
+  ResourceStatus?: Prisma.EnumResourceStatusFieldUpdateOperationsInput | $Enums.ResourceStatus
+  ResourceType?: Prisma.EnumResourceTypeFieldUpdateOperationsInput | $Enums.ResourceType
   BufferTime?: Prisma.IntFieldUpdateOperationsInput | number
   AllowBorrow?: Prisma.BoolFieldUpdateOperationsInput | boolean
   Item?: Prisma.ItemIndivUncheckedUpdateOneWithoutResourceNestedInput
@@ -1664,12 +1618,13 @@ export type ResourceInfoUncheckedUpdateWithoutInspectionsInput = {
 }
 
 export type ResourceInfoCreateWithoutImagesInput = {
+  ResourceStatus: $Enums.ResourceStatus
+  ResourceType: $Enums.ResourceType
   BufferTime: number
   AllowBorrow?: boolean
   ManagementGroup: Prisma.ManagementGroupCreateNestedOneWithoutResourcesInput
   BorrowRuleInfo: Prisma.BorrowRuleCreateNestedOneWithoutResourcesInput
   CurrentCondition?: Prisma.ConditionLogCreateNestedOneWithoutResourcesCurrentlyOnInput
-  Status: Prisma.ResourceStatusCreateNestedOneWithoutResourcesInput
   Item?: Prisma.ItemIndivCreateNestedOneWithoutResourceInput
   Room?: Prisma.RoomInfoCreateNestedOneWithoutResourceInput
   ConditionLogs?: Prisma.ConditionLogCreateNestedManyWithoutResourceInput
@@ -1685,7 +1640,8 @@ export type ResourceInfoUncheckedCreateWithoutImagesInput = {
   ManagedBy: number
   BorrowRule: number
   ConditionKey?: number | null
-  ResourceStatus: number
+  ResourceStatus: $Enums.ResourceStatus
+  ResourceType: $Enums.ResourceType
   BufferTime: number
   AllowBorrow?: boolean
   Item?: Prisma.ItemIndivUncheckedCreateNestedOneWithoutResourceInput
@@ -1715,12 +1671,13 @@ export type ResourceInfoUpdateToOneWithWhereWithoutImagesInput = {
 }
 
 export type ResourceInfoUpdateWithoutImagesInput = {
+  ResourceStatus?: Prisma.EnumResourceStatusFieldUpdateOperationsInput | $Enums.ResourceStatus
+  ResourceType?: Prisma.EnumResourceTypeFieldUpdateOperationsInput | $Enums.ResourceType
   BufferTime?: Prisma.IntFieldUpdateOperationsInput | number
   AllowBorrow?: Prisma.BoolFieldUpdateOperationsInput | boolean
   ManagementGroup?: Prisma.ManagementGroupUpdateOneRequiredWithoutResourcesNestedInput
   BorrowRuleInfo?: Prisma.BorrowRuleUpdateOneRequiredWithoutResourcesNestedInput
   CurrentCondition?: Prisma.ConditionLogUpdateOneWithoutResourcesCurrentlyOnNestedInput
-  Status?: Prisma.ResourceStatusUpdateOneRequiredWithoutResourcesNestedInput
   Item?: Prisma.ItemIndivUpdateOneWithoutResourceNestedInput
   Room?: Prisma.RoomInfoUpdateOneWithoutResourceNestedInput
   ConditionLogs?: Prisma.ConditionLogUpdateManyWithoutResourceNestedInput
@@ -1736,7 +1693,8 @@ export type ResourceInfoUncheckedUpdateWithoutImagesInput = {
   ManagedBy?: Prisma.IntFieldUpdateOperationsInput | number
   BorrowRule?: Prisma.IntFieldUpdateOperationsInput | number
   ConditionKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  ResourceStatus?: Prisma.IntFieldUpdateOperationsInput | number
+  ResourceStatus?: Prisma.EnumResourceStatusFieldUpdateOperationsInput | $Enums.ResourceStatus
+  ResourceType?: Prisma.EnumResourceTypeFieldUpdateOperationsInput | $Enums.ResourceType
   BufferTime?: Prisma.IntFieldUpdateOperationsInput | number
   AllowBorrow?: Prisma.BoolFieldUpdateOperationsInput | boolean
   Item?: Prisma.ItemIndivUncheckedUpdateOneWithoutResourceNestedInput
@@ -1750,12 +1708,13 @@ export type ResourceInfoUncheckedUpdateWithoutImagesInput = {
 }
 
 export type ResourceInfoCreateWithoutRepairLogsInput = {
+  ResourceStatus: $Enums.ResourceStatus
+  ResourceType: $Enums.ResourceType
   BufferTime: number
   AllowBorrow?: boolean
   ManagementGroup: Prisma.ManagementGroupCreateNestedOneWithoutResourcesInput
   BorrowRuleInfo: Prisma.BorrowRuleCreateNestedOneWithoutResourcesInput
   CurrentCondition?: Prisma.ConditionLogCreateNestedOneWithoutResourcesCurrentlyOnInput
-  Status: Prisma.ResourceStatusCreateNestedOneWithoutResourcesInput
   Item?: Prisma.ItemIndivCreateNestedOneWithoutResourceInput
   Room?: Prisma.RoomInfoCreateNestedOneWithoutResourceInput
   ConditionLogs?: Prisma.ConditionLogCreateNestedManyWithoutResourceInput
@@ -1771,7 +1730,8 @@ export type ResourceInfoUncheckedCreateWithoutRepairLogsInput = {
   ManagedBy: number
   BorrowRule: number
   ConditionKey?: number | null
-  ResourceStatus: number
+  ResourceStatus: $Enums.ResourceStatus
+  ResourceType: $Enums.ResourceType
   BufferTime: number
   AllowBorrow?: boolean
   Item?: Prisma.ItemIndivUncheckedCreateNestedOneWithoutResourceInput
@@ -1801,12 +1761,13 @@ export type ResourceInfoUpdateToOneWithWhereWithoutRepairLogsInput = {
 }
 
 export type ResourceInfoUpdateWithoutRepairLogsInput = {
+  ResourceStatus?: Prisma.EnumResourceStatusFieldUpdateOperationsInput | $Enums.ResourceStatus
+  ResourceType?: Prisma.EnumResourceTypeFieldUpdateOperationsInput | $Enums.ResourceType
   BufferTime?: Prisma.IntFieldUpdateOperationsInput | number
   AllowBorrow?: Prisma.BoolFieldUpdateOperationsInput | boolean
   ManagementGroup?: Prisma.ManagementGroupUpdateOneRequiredWithoutResourcesNestedInput
   BorrowRuleInfo?: Prisma.BorrowRuleUpdateOneRequiredWithoutResourcesNestedInput
   CurrentCondition?: Prisma.ConditionLogUpdateOneWithoutResourcesCurrentlyOnNestedInput
-  Status?: Prisma.ResourceStatusUpdateOneRequiredWithoutResourcesNestedInput
   Item?: Prisma.ItemIndivUpdateOneWithoutResourceNestedInput
   Room?: Prisma.RoomInfoUpdateOneWithoutResourceNestedInput
   ConditionLogs?: Prisma.ConditionLogUpdateManyWithoutResourceNestedInput
@@ -1822,7 +1783,8 @@ export type ResourceInfoUncheckedUpdateWithoutRepairLogsInput = {
   ManagedBy?: Prisma.IntFieldUpdateOperationsInput | number
   BorrowRule?: Prisma.IntFieldUpdateOperationsInput | number
   ConditionKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  ResourceStatus?: Prisma.IntFieldUpdateOperationsInput | number
+  ResourceStatus?: Prisma.EnumResourceStatusFieldUpdateOperationsInput | $Enums.ResourceStatus
+  ResourceType?: Prisma.EnumResourceTypeFieldUpdateOperationsInput | $Enums.ResourceType
   BufferTime?: Prisma.IntFieldUpdateOperationsInput | number
   AllowBorrow?: Prisma.BoolFieldUpdateOperationsInput | boolean
   Item?: Prisma.ItemIndivUncheckedUpdateOneWithoutResourceNestedInput
@@ -1839,17 +1801,19 @@ export type ResourceInfoCreateManyManagementGroupInput = {
   ResourceKey?: number
   BorrowRule: number
   ConditionKey?: number | null
-  ResourceStatus: number
+  ResourceStatus: $Enums.ResourceStatus
+  ResourceType: $Enums.ResourceType
   BufferTime: number
   AllowBorrow?: boolean
 }
 
 export type ResourceInfoUpdateWithoutManagementGroupInput = {
+  ResourceStatus?: Prisma.EnumResourceStatusFieldUpdateOperationsInput | $Enums.ResourceStatus
+  ResourceType?: Prisma.EnumResourceTypeFieldUpdateOperationsInput | $Enums.ResourceType
   BufferTime?: Prisma.IntFieldUpdateOperationsInput | number
   AllowBorrow?: Prisma.BoolFieldUpdateOperationsInput | boolean
   BorrowRuleInfo?: Prisma.BorrowRuleUpdateOneRequiredWithoutResourcesNestedInput
   CurrentCondition?: Prisma.ConditionLogUpdateOneWithoutResourcesCurrentlyOnNestedInput
-  Status?: Prisma.ResourceStatusUpdateOneRequiredWithoutResourcesNestedInput
   Item?: Prisma.ItemIndivUpdateOneWithoutResourceNestedInput
   Room?: Prisma.RoomInfoUpdateOneWithoutResourceNestedInput
   ConditionLogs?: Prisma.ConditionLogUpdateManyWithoutResourceNestedInput
@@ -1865,7 +1829,8 @@ export type ResourceInfoUncheckedUpdateWithoutManagementGroupInput = {
   ResourceKey?: Prisma.IntFieldUpdateOperationsInput | number
   BorrowRule?: Prisma.IntFieldUpdateOperationsInput | number
   ConditionKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  ResourceStatus?: Prisma.IntFieldUpdateOperationsInput | number
+  ResourceStatus?: Prisma.EnumResourceStatusFieldUpdateOperationsInput | $Enums.ResourceStatus
+  ResourceType?: Prisma.EnumResourceTypeFieldUpdateOperationsInput | $Enums.ResourceType
   BufferTime?: Prisma.IntFieldUpdateOperationsInput | number
   AllowBorrow?: Prisma.BoolFieldUpdateOperationsInput | boolean
   Item?: Prisma.ItemIndivUncheckedUpdateOneWithoutResourceNestedInput
@@ -1883,60 +1848,8 @@ export type ResourceInfoUncheckedUpdateManyWithoutManagementGroupInput = {
   ResourceKey?: Prisma.IntFieldUpdateOperationsInput | number
   BorrowRule?: Prisma.IntFieldUpdateOperationsInput | number
   ConditionKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  ResourceStatus?: Prisma.IntFieldUpdateOperationsInput | number
-  BufferTime?: Prisma.IntFieldUpdateOperationsInput | number
-  AllowBorrow?: Prisma.BoolFieldUpdateOperationsInput | boolean
-}
-
-export type ResourceInfoCreateManyStatusInput = {
-  ResourceKey?: number
-  ManagedBy: number
-  BorrowRule: number
-  ConditionKey?: number | null
-  BufferTime: number
-  AllowBorrow?: boolean
-}
-
-export type ResourceInfoUpdateWithoutStatusInput = {
-  BufferTime?: Prisma.IntFieldUpdateOperationsInput | number
-  AllowBorrow?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  ManagementGroup?: Prisma.ManagementGroupUpdateOneRequiredWithoutResourcesNestedInput
-  BorrowRuleInfo?: Prisma.BorrowRuleUpdateOneRequiredWithoutResourcesNestedInput
-  CurrentCondition?: Prisma.ConditionLogUpdateOneWithoutResourcesCurrentlyOnNestedInput
-  Item?: Prisma.ItemIndivUpdateOneWithoutResourceNestedInput
-  Room?: Prisma.RoomInfoUpdateOneWithoutResourceNestedInput
-  ConditionLogs?: Prisma.ConditionLogUpdateManyWithoutResourceNestedInput
-  Eligibilities?: Prisma.EligibilityUpdateManyWithoutResourceNestedInput
-  Reservations?: Prisma.ReservationsUpdateManyWithoutResourceNestedInput
-  UsageLogs?: Prisma.UsageLogUpdateManyWithoutResourceNestedInput
-  Inspections?: Prisma.InspectionUpdateManyWithoutResourceNestedInput
-  Images?: Prisma.ImagesUpdateManyWithoutResourceNestedInput
-  RepairLogs?: Prisma.RepairLogUpdateManyWithoutResourceNestedInput
-}
-
-export type ResourceInfoUncheckedUpdateWithoutStatusInput = {
-  ResourceKey?: Prisma.IntFieldUpdateOperationsInput | number
-  ManagedBy?: Prisma.IntFieldUpdateOperationsInput | number
-  BorrowRule?: Prisma.IntFieldUpdateOperationsInput | number
-  ConditionKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  BufferTime?: Prisma.IntFieldUpdateOperationsInput | number
-  AllowBorrow?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  Item?: Prisma.ItemIndivUncheckedUpdateOneWithoutResourceNestedInput
-  Room?: Prisma.RoomInfoUncheckedUpdateOneWithoutResourceNestedInput
-  ConditionLogs?: Prisma.ConditionLogUncheckedUpdateManyWithoutResourceNestedInput
-  Eligibilities?: Prisma.EligibilityUncheckedUpdateManyWithoutResourceNestedInput
-  Reservations?: Prisma.ReservationsUncheckedUpdateManyWithoutResourceNestedInput
-  UsageLogs?: Prisma.UsageLogUncheckedUpdateManyWithoutResourceNestedInput
-  Inspections?: Prisma.InspectionUncheckedUpdateManyWithoutResourceNestedInput
-  Images?: Prisma.ImagesUncheckedUpdateManyWithoutResourceNestedInput
-  RepairLogs?: Prisma.RepairLogUncheckedUpdateManyWithoutResourceNestedInput
-}
-
-export type ResourceInfoUncheckedUpdateManyWithoutStatusInput = {
-  ResourceKey?: Prisma.IntFieldUpdateOperationsInput | number
-  ManagedBy?: Prisma.IntFieldUpdateOperationsInput | number
-  BorrowRule?: Prisma.IntFieldUpdateOperationsInput | number
-  ConditionKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  ResourceStatus?: Prisma.EnumResourceStatusFieldUpdateOperationsInput | $Enums.ResourceStatus
+  ResourceType?: Prisma.EnumResourceTypeFieldUpdateOperationsInput | $Enums.ResourceType
   BufferTime?: Prisma.IntFieldUpdateOperationsInput | number
   AllowBorrow?: Prisma.BoolFieldUpdateOperationsInput | boolean
 }
@@ -1945,17 +1858,19 @@ export type ResourceInfoCreateManyCurrentConditionInput = {
   ResourceKey?: number
   ManagedBy: number
   BorrowRule: number
-  ResourceStatus: number
+  ResourceStatus: $Enums.ResourceStatus
+  ResourceType: $Enums.ResourceType
   BufferTime: number
   AllowBorrow?: boolean
 }
 
 export type ResourceInfoUpdateWithoutCurrentConditionInput = {
+  ResourceStatus?: Prisma.EnumResourceStatusFieldUpdateOperationsInput | $Enums.ResourceStatus
+  ResourceType?: Prisma.EnumResourceTypeFieldUpdateOperationsInput | $Enums.ResourceType
   BufferTime?: Prisma.IntFieldUpdateOperationsInput | number
   AllowBorrow?: Prisma.BoolFieldUpdateOperationsInput | boolean
   ManagementGroup?: Prisma.ManagementGroupUpdateOneRequiredWithoutResourcesNestedInput
   BorrowRuleInfo?: Prisma.BorrowRuleUpdateOneRequiredWithoutResourcesNestedInput
-  Status?: Prisma.ResourceStatusUpdateOneRequiredWithoutResourcesNestedInput
   Item?: Prisma.ItemIndivUpdateOneWithoutResourceNestedInput
   Room?: Prisma.RoomInfoUpdateOneWithoutResourceNestedInput
   ConditionLogs?: Prisma.ConditionLogUpdateManyWithoutResourceNestedInput
@@ -1971,7 +1886,8 @@ export type ResourceInfoUncheckedUpdateWithoutCurrentConditionInput = {
   ResourceKey?: Prisma.IntFieldUpdateOperationsInput | number
   ManagedBy?: Prisma.IntFieldUpdateOperationsInput | number
   BorrowRule?: Prisma.IntFieldUpdateOperationsInput | number
-  ResourceStatus?: Prisma.IntFieldUpdateOperationsInput | number
+  ResourceStatus?: Prisma.EnumResourceStatusFieldUpdateOperationsInput | $Enums.ResourceStatus
+  ResourceType?: Prisma.EnumResourceTypeFieldUpdateOperationsInput | $Enums.ResourceType
   BufferTime?: Prisma.IntFieldUpdateOperationsInput | number
   AllowBorrow?: Prisma.BoolFieldUpdateOperationsInput | boolean
   Item?: Prisma.ItemIndivUncheckedUpdateOneWithoutResourceNestedInput
@@ -1989,7 +1905,8 @@ export type ResourceInfoUncheckedUpdateManyWithoutCurrentConditionInput = {
   ResourceKey?: Prisma.IntFieldUpdateOperationsInput | number
   ManagedBy?: Prisma.IntFieldUpdateOperationsInput | number
   BorrowRule?: Prisma.IntFieldUpdateOperationsInput | number
-  ResourceStatus?: Prisma.IntFieldUpdateOperationsInput | number
+  ResourceStatus?: Prisma.EnumResourceStatusFieldUpdateOperationsInput | $Enums.ResourceStatus
+  ResourceType?: Prisma.EnumResourceTypeFieldUpdateOperationsInput | $Enums.ResourceType
   BufferTime?: Prisma.IntFieldUpdateOperationsInput | number
   AllowBorrow?: Prisma.BoolFieldUpdateOperationsInput | boolean
 }
@@ -1998,17 +1915,19 @@ export type ResourceInfoCreateManyBorrowRuleInfoInput = {
   ResourceKey?: number
   ManagedBy: number
   ConditionKey?: number | null
-  ResourceStatus: number
+  ResourceStatus: $Enums.ResourceStatus
+  ResourceType: $Enums.ResourceType
   BufferTime: number
   AllowBorrow?: boolean
 }
 
 export type ResourceInfoUpdateWithoutBorrowRuleInfoInput = {
+  ResourceStatus?: Prisma.EnumResourceStatusFieldUpdateOperationsInput | $Enums.ResourceStatus
+  ResourceType?: Prisma.EnumResourceTypeFieldUpdateOperationsInput | $Enums.ResourceType
   BufferTime?: Prisma.IntFieldUpdateOperationsInput | number
   AllowBorrow?: Prisma.BoolFieldUpdateOperationsInput | boolean
   ManagementGroup?: Prisma.ManagementGroupUpdateOneRequiredWithoutResourcesNestedInput
   CurrentCondition?: Prisma.ConditionLogUpdateOneWithoutResourcesCurrentlyOnNestedInput
-  Status?: Prisma.ResourceStatusUpdateOneRequiredWithoutResourcesNestedInput
   Item?: Prisma.ItemIndivUpdateOneWithoutResourceNestedInput
   Room?: Prisma.RoomInfoUpdateOneWithoutResourceNestedInput
   ConditionLogs?: Prisma.ConditionLogUpdateManyWithoutResourceNestedInput
@@ -2024,7 +1943,8 @@ export type ResourceInfoUncheckedUpdateWithoutBorrowRuleInfoInput = {
   ResourceKey?: Prisma.IntFieldUpdateOperationsInput | number
   ManagedBy?: Prisma.IntFieldUpdateOperationsInput | number
   ConditionKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  ResourceStatus?: Prisma.IntFieldUpdateOperationsInput | number
+  ResourceStatus?: Prisma.EnumResourceStatusFieldUpdateOperationsInput | $Enums.ResourceStatus
+  ResourceType?: Prisma.EnumResourceTypeFieldUpdateOperationsInput | $Enums.ResourceType
   BufferTime?: Prisma.IntFieldUpdateOperationsInput | number
   AllowBorrow?: Prisma.BoolFieldUpdateOperationsInput | boolean
   Item?: Prisma.ItemIndivUncheckedUpdateOneWithoutResourceNestedInput
@@ -2042,7 +1962,8 @@ export type ResourceInfoUncheckedUpdateManyWithoutBorrowRuleInfoInput = {
   ResourceKey?: Prisma.IntFieldUpdateOperationsInput | number
   ManagedBy?: Prisma.IntFieldUpdateOperationsInput | number
   ConditionKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  ResourceStatus?: Prisma.IntFieldUpdateOperationsInput | number
+  ResourceStatus?: Prisma.EnumResourceStatusFieldUpdateOperationsInput | $Enums.ResourceStatus
+  ResourceType?: Prisma.EnumResourceTypeFieldUpdateOperationsInput | $Enums.ResourceType
   BufferTime?: Prisma.IntFieldUpdateOperationsInput | number
   AllowBorrow?: Prisma.BoolFieldUpdateOperationsInput | boolean
 }
@@ -2138,12 +2059,12 @@ export type ResourceInfoSelect<ExtArgs extends runtime.Types.Extensions.Internal
   BorrowRule?: boolean
   ConditionKey?: boolean
   ResourceStatus?: boolean
+  ResourceType?: boolean
   BufferTime?: boolean
   AllowBorrow?: boolean
   ManagementGroup?: boolean | Prisma.ManagementGroupDefaultArgs<ExtArgs>
   BorrowRuleInfo?: boolean | Prisma.BorrowRuleDefaultArgs<ExtArgs>
   CurrentCondition?: boolean | Prisma.ResourceInfo$CurrentConditionArgs<ExtArgs>
-  Status?: boolean | Prisma.ResourceStatusDefaultArgs<ExtArgs>
   Item?: boolean | Prisma.ResourceInfo$ItemArgs<ExtArgs>
   Room?: boolean | Prisma.ResourceInfo$RoomArgs<ExtArgs>
   ConditionLogs?: boolean | Prisma.ResourceInfo$ConditionLogsArgs<ExtArgs>
@@ -2162,12 +2083,12 @@ export type ResourceInfoSelectCreateManyAndReturn<ExtArgs extends runtime.Types.
   BorrowRule?: boolean
   ConditionKey?: boolean
   ResourceStatus?: boolean
+  ResourceType?: boolean
   BufferTime?: boolean
   AllowBorrow?: boolean
   ManagementGroup?: boolean | Prisma.ManagementGroupDefaultArgs<ExtArgs>
   BorrowRuleInfo?: boolean | Prisma.BorrowRuleDefaultArgs<ExtArgs>
   CurrentCondition?: boolean | Prisma.ResourceInfo$CurrentConditionArgs<ExtArgs>
-  Status?: boolean | Prisma.ResourceStatusDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["resourceInfo"]>
 
 export type ResourceInfoSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -2176,12 +2097,12 @@ export type ResourceInfoSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.
   BorrowRule?: boolean
   ConditionKey?: boolean
   ResourceStatus?: boolean
+  ResourceType?: boolean
   BufferTime?: boolean
   AllowBorrow?: boolean
   ManagementGroup?: boolean | Prisma.ManagementGroupDefaultArgs<ExtArgs>
   BorrowRuleInfo?: boolean | Prisma.BorrowRuleDefaultArgs<ExtArgs>
   CurrentCondition?: boolean | Prisma.ResourceInfo$CurrentConditionArgs<ExtArgs>
-  Status?: boolean | Prisma.ResourceStatusDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["resourceInfo"]>
 
 export type ResourceInfoSelectScalar = {
@@ -2190,16 +2111,16 @@ export type ResourceInfoSelectScalar = {
   BorrowRule?: boolean
   ConditionKey?: boolean
   ResourceStatus?: boolean
+  ResourceType?: boolean
   BufferTime?: boolean
   AllowBorrow?: boolean
 }
 
-export type ResourceInfoOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"ResourceKey" | "ManagedBy" | "BorrowRule" | "ConditionKey" | "ResourceStatus" | "BufferTime" | "AllowBorrow", ExtArgs["result"]["resourceInfo"]>
+export type ResourceInfoOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"ResourceKey" | "ManagedBy" | "BorrowRule" | "ConditionKey" | "ResourceStatus" | "ResourceType" | "BufferTime" | "AllowBorrow", ExtArgs["result"]["resourceInfo"]>
 export type ResourceInfoInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   ManagementGroup?: boolean | Prisma.ManagementGroupDefaultArgs<ExtArgs>
   BorrowRuleInfo?: boolean | Prisma.BorrowRuleDefaultArgs<ExtArgs>
   CurrentCondition?: boolean | Prisma.ResourceInfo$CurrentConditionArgs<ExtArgs>
-  Status?: boolean | Prisma.ResourceStatusDefaultArgs<ExtArgs>
   Item?: boolean | Prisma.ResourceInfo$ItemArgs<ExtArgs>
   Room?: boolean | Prisma.ResourceInfo$RoomArgs<ExtArgs>
   ConditionLogs?: boolean | Prisma.ResourceInfo$ConditionLogsArgs<ExtArgs>
@@ -2215,13 +2136,11 @@ export type ResourceInfoIncludeCreateManyAndReturn<ExtArgs extends runtime.Types
   ManagementGroup?: boolean | Prisma.ManagementGroupDefaultArgs<ExtArgs>
   BorrowRuleInfo?: boolean | Prisma.BorrowRuleDefaultArgs<ExtArgs>
   CurrentCondition?: boolean | Prisma.ResourceInfo$CurrentConditionArgs<ExtArgs>
-  Status?: boolean | Prisma.ResourceStatusDefaultArgs<ExtArgs>
 }
 export type ResourceInfoIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   ManagementGroup?: boolean | Prisma.ManagementGroupDefaultArgs<ExtArgs>
   BorrowRuleInfo?: boolean | Prisma.BorrowRuleDefaultArgs<ExtArgs>
   CurrentCondition?: boolean | Prisma.ResourceInfo$CurrentConditionArgs<ExtArgs>
-  Status?: boolean | Prisma.ResourceStatusDefaultArgs<ExtArgs>
 }
 
 export type $ResourceInfoPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -2230,7 +2149,6 @@ export type $ResourceInfoPayload<ExtArgs extends runtime.Types.Extensions.Intern
     ManagementGroup: Prisma.$ManagementGroupPayload<ExtArgs>
     BorrowRuleInfo: Prisma.$BorrowRulePayload<ExtArgs>
     CurrentCondition: Prisma.$ConditionLogPayload<ExtArgs> | null
-    Status: Prisma.$ResourceStatusPayload<ExtArgs>
     Item: Prisma.$ItemIndivPayload<ExtArgs> | null
     Room: Prisma.$RoomInfoPayload<ExtArgs> | null
     ConditionLogs: Prisma.$ConditionLogPayload<ExtArgs>[]
@@ -2246,7 +2164,8 @@ export type $ResourceInfoPayload<ExtArgs extends runtime.Types.Extensions.Intern
     ManagedBy: number
     BorrowRule: number
     ConditionKey: number | null
-    ResourceStatus: number
+    ResourceStatus: $Enums.ResourceStatus
+    ResourceType: $Enums.ResourceType
     BufferTime: number
     AllowBorrow: boolean
   }, ExtArgs["result"]["resourceInfo"]>
@@ -2646,7 +2565,6 @@ export interface Prisma__ResourceInfoClient<T, Null = never, ExtArgs extends run
   ManagementGroup<T extends Prisma.ManagementGroupDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ManagementGroupDefaultArgs<ExtArgs>>): Prisma.Prisma__ManagementGroupClient<runtime.Types.Result.GetResult<Prisma.$ManagementGroupPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   BorrowRuleInfo<T extends Prisma.BorrowRuleDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.BorrowRuleDefaultArgs<ExtArgs>>): Prisma.Prisma__BorrowRuleClient<runtime.Types.Result.GetResult<Prisma.$BorrowRulePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   CurrentCondition<T extends Prisma.ResourceInfo$CurrentConditionArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ResourceInfo$CurrentConditionArgs<ExtArgs>>): Prisma.Prisma__ConditionLogClient<runtime.Types.Result.GetResult<Prisma.$ConditionLogPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
-  Status<T extends Prisma.ResourceStatusDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ResourceStatusDefaultArgs<ExtArgs>>): Prisma.Prisma__ResourceStatusClient<runtime.Types.Result.GetResult<Prisma.$ResourceStatusPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   Item<T extends Prisma.ResourceInfo$ItemArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ResourceInfo$ItemArgs<ExtArgs>>): Prisma.Prisma__ItemIndivClient<runtime.Types.Result.GetResult<Prisma.$ItemIndivPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   Room<T extends Prisma.ResourceInfo$RoomArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ResourceInfo$RoomArgs<ExtArgs>>): Prisma.Prisma__RoomInfoClient<runtime.Types.Result.GetResult<Prisma.$RoomInfoPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   ConditionLogs<T extends Prisma.ResourceInfo$ConditionLogsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ResourceInfo$ConditionLogsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ConditionLogPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
@@ -2689,7 +2607,8 @@ export interface ResourceInfoFieldRefs {
   readonly ManagedBy: Prisma.FieldRef<"ResourceInfo", 'Int'>
   readonly BorrowRule: Prisma.FieldRef<"ResourceInfo", 'Int'>
   readonly ConditionKey: Prisma.FieldRef<"ResourceInfo", 'Int'>
-  readonly ResourceStatus: Prisma.FieldRef<"ResourceInfo", 'Int'>
+  readonly ResourceStatus: Prisma.FieldRef<"ResourceInfo", 'ResourceStatus'>
+  readonly ResourceType: Prisma.FieldRef<"ResourceInfo", 'ResourceType'>
   readonly BufferTime: Prisma.FieldRef<"ResourceInfo", 'Int'>
   readonly AllowBorrow: Prisma.FieldRef<"ResourceInfo", 'Boolean'>
 }

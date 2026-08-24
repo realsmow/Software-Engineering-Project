@@ -13,6 +13,68 @@ datasource db {
   provider = "postgresql"
 }
 
+// =========================================================
+// Enums
+// =========================================================
+
+enum GroupType {
+  Club
+  Faculty
+}
+
+enum ConditionType {
+  Normal
+  MinorDamage
+  MajorDamage
+  Broken
+  Missing
+}
+
+enum ResourceStatus {
+  InStorage
+  Lended
+  Missing
+}
+
+enum ResourceType {
+  Room
+  Item
+}
+
+enum CurrentStatus {
+  Pending
+  Prepared
+  Lended
+  Returned
+  Inspected
+}
+
+enum PenaltyReason {
+  DamagedItem
+  BrokenItem
+  LostItem
+  DidntReturn
+  ReturnLate
+}
+
+enum ApproveStatus {
+  Pending
+  Approved
+  Rejected
+  Canceled
+}
+
+enum NotificationType {
+  Anonuncement
+  Approval
+  Warning
+}
+
+enum SubmissionType {
+  BeforePicture
+  AfterPicture
+  InspectionPicture
+}
 // ----------------------------------------------------------------------
 // Accounts + Authority
 // ----------------------------------------------------------------------
@@ -53,32 +115,31 @@ model RoleInfo {
 }
 
 model FacultyInfo {
-  FacultyKey     Int     @id @default(autoincrement())
-  FacultyName    String
+  FacultyKey    Int     @id @default(autoincrement())
+  FacultyName   String?
+
+  Branches BranchInfo[]
+}
+
+model BranchInfo {
+  BranchKey      Int     @id @default(autoincrement())
   BranchName     String?
+  FacultyKey     Int
   ManageGroupKey Int     @unique
 
   ManageGroup ManagementGroup @relation(fields: [ManageGroupKey], references: [ManageGroupKey])
+  FacultyInfo FacultyInfo     @relation(fields: [FacultyKey]    , references: [FacultyKey])
 }
 
 model ManagementGroup {
   ManageGroupKey Int @id @default(autoincrement())
-  GroupType      Int
+  GroupType      GroupType
 
-  GroupTypeInfo GroupType @relation(fields: [GroupType], references: [GroupTypeKey])
-
-  Faculty       FacultyInfo?
+  Branch        BranchInfo?
   Club          ClubInfo?
   Authorities   Authority[]
   Eligibilities Eligibility[]
   Resources     ResourceInfo[]
-}
-
-model GroupType {
-  GroupTypeKey  Int    @id @default(autoincrement())
-  GroupTypeName String
-
-  ManagementGroups ManagementGroup[]
 }
 
 model Authority {
@@ -153,7 +214,8 @@ model ResourceInfo {
   ManagedBy      Int
   BorrowRule     Int
   ConditionKey   Int?
-  ResourceStatus Int
+  ResourceStatus ResourceStatus
+  ResourceType   ResourceType
 
   BufferTime  Int
   AllowBorrow Boolean @default(false)
@@ -161,7 +223,6 @@ model ResourceInfo {
   ManagementGroup  ManagementGroup @relation(fields: [ManagedBy], references: [ManageGroupKey])
   BorrowRuleInfo   BorrowRule      @relation(fields: [BorrowRule], references: [BorrowRuleKey])
   CurrentCondition ConditionLog?   @relation("ResourceCurrentCondition", fields: [ConditionKey], references: [ConditionKey])
-  Status           ResourceStatus  @relation(fields: [ResourceStatus], references: [StatusKey])
 
   Item          ItemIndiv?
   Room          RoomInfo?
@@ -174,25 +235,16 @@ model ResourceInfo {
   RepairLogs    RepairLog[]
 }
 
-model ResourceStatus {
-  StatusKey  Int     @id @default(autoincrement())
-  StatusName String?
-
-  Resources ResourceInfo[]
-  UsageLogs UsageLog[]
-}
-
 model ConditionLog {
   ConditionKey Int       @id @default(autoincrement())
   ResourceKey  Int
   LoggedBy     Int
-  Condition    Int
+  Condition    ConditionType
   Notes        String?
   LoggedAt     DateTime?
 
   Resource      ResourceInfo  @relation("ConditionLogResource", fields: [ResourceKey], references: [ResourceKey])
   LoggedByUser  AccountInfo   @relation("ConditionLogLoggedBy", fields: [LoggedBy], references: [AccountKey])
-  ConditionType ConditionType @relation(fields: [Condition], references: [ConditionTypeKey])
 
   ResourcesCurrentlyOn ResourceInfo[] @relation("ResourceCurrentCondition")
   UsageCheckIns        UsageLog[]     @relation("UsageCheckInCondition")
@@ -200,13 +252,6 @@ model ConditionLog {
   Inspections          Inspection[]   @relation("InspectionCondition")
   RepairsBefore        RepairLog[]    @relation("RepairConditionBefore")
   RepairsAfter         RepairLog[]    @relation("RepairConditionAfter")
-}
-
-model ConditionType {
-  ConditionTypeKey Int     @id @default(autoincrement())
-  ConditionName    String?
-
-  ConditionLogs ConditionLog[]
 }
 
 model BorrowRule {
@@ -235,21 +280,13 @@ model BorrowConstraints {
 model PenaltyRule {
   PenaltyRuleKey Int @id @default(autoincrement())
   BorrowRuleKey  Int
-  PenaltyTypeKey Int
+  PenaltyReason  PenaltyReason
   PenaltyAmount  Int
   PenaltyLength  Int
 
   BorrowRule  BorrowRule  @relation(fields: [BorrowRuleKey], references: [BorrowRuleKey])
-  PenaltyType PenaltyType @relation(fields: [PenaltyTypeKey], references: [PenaltyTypeKey])
 
-  @@unique([BorrowRuleKey, PenaltyTypeKey])
-}
-
-model PenaltyType {
-  PenaltyTypeKey Int     @id @default(autoincrement())
-  PenaltyType    String?
-
-  PenaltyRules PenaltyRule[]
+  @@unique([BorrowRuleKey, PenaltyReason])
 }
 
 model Eligibility {
@@ -285,7 +322,7 @@ model Reservations {
   Reason                String?
   StartTime             DateTime
   EndTime               DateTime
-  ApproveStatus         Int
+  ApproveStatus         ApproveStatus
   ApprovedBy            Int? // No relation defined for this field in source DBML
   ReservationExpiration DateTime
   ActionTime            DateTime
@@ -293,19 +330,9 @@ model Reservations {
 
   Resource       ResourceInfo  @relation(fields: [ResourceKey], references: [ResourceKey])
   ReservedByUser AccountInfo   @relation("ReservationsReservedBy", fields: [ReservedBy], references: [AccountKey])
-  Status         ApproveStatus @relation(fields: [ApproveStatus], references: [ApproveStatusKey])
 
   UsageLogs  UsageLog[]
   RepairLogs RepairLog[]
-}
-
-model ApproveStatus {
-  ApproveStatusKey Int    @id @default(autoincrement())
-  StatusName       String
-
-  Reservations      Reservations[]
-  ExtensionRequests ExtensionRequest[]
-  Appeals           AppealInfo[]
 }
 
 // ----------------------------------------------------------------------
@@ -317,7 +344,7 @@ model UsageLog {
   ReservationKey    Int?
   AccountKey        Int
   ResourceKey       Int
-  CurrentStatus     Int
+  CurrentStatus     CurrentStatus
   DueTime           DateTime
   PendingExtension  Int?
   CheckoutTime      DateTime
@@ -328,7 +355,6 @@ model UsageLog {
   Reservation             Reservations?     @relation(fields: [ReservationKey], references: [ReservationKey])
   Account                 AccountInfo       @relation("UsageLogAccount", fields: [AccountKey], references: [AccountKey])
   Resource                ResourceInfo      @relation(fields: [ResourceKey], references: [ResourceKey])
-  Status                  ResourceStatus    @relation(fields: [CurrentStatus], references: [StatusKey])
   PendingExtensionRequest ExtensionRequest? @relation("UsagePendingExtension", fields: [PendingExtension], references: [ExtensionKey])
   CheckoutConditionLog    ConditionLog      @relation("UsageCheckoutCondition", fields: [CheckoutCondition], references: [ConditionKey])
   CheckInConditionLog     ConditionLog?     @relation("UsageCheckInCondition", fields: [CheckInCondition], references: [ConditionKey])
@@ -346,7 +372,7 @@ model ExtensionRequest {
   ExtendNo         Int? // Count of which extension request number this is
   PreviousDueTime  DateTime
   RequestedDueTime DateTime
-  ApproveStatus    Int
+  ApproveStatus    ApproveStatus
   ApprovedBy       Int?
   RequestedAt      DateTime
   ResolvedAt       DateTime?
@@ -354,7 +380,6 @@ model ExtensionRequest {
   Usage           UsageLog      @relation("ExtensionRequestUsage", fields: [UsageKey], references: [UsageKey])
   RequestedByUser AccountInfo   @relation("ExtensionRequestedBy", fields: [RequestedBy], references: [AccountKey])
   ApprovedByUser  AccountInfo?  @relation("ExtensionApprovedBy", fields: [ApprovedBy], references: [AccountKey])
-  Status          ApproveStatus @relation(fields: [ApproveStatus], references: [ApproveStatusKey])
 
   PendingOnUsageLogs UsageLog[] @relation("UsagePendingExtension")
 }
@@ -418,7 +443,7 @@ model AppealInfo {
   FiledBy         Int
   ResolvedBy      Int?
   AppealReason    String?
-  ApproveStatus   Int
+  ApproveStatus   ApproveStatus
   ActionTime      DateTime?
   ResolvedAt      DateTime?
 
@@ -426,7 +451,6 @@ model AppealInfo {
   NewPenaltyInfo      PenaltyInfo?  @relation("AppealNewPenalty", fields: [NewPenalty], references: [PenaltyKey])
   FiledByUser         AccountInfo   @relation("AppealFiledBy", fields: [FiledBy], references: [AccountKey])
   ResolvedByUser      AccountInfo?  @relation("AppealResolvedBy", fields: [ResolvedBy], references: [AccountKey])
-  Status              ApproveStatus @relation(fields: [ApproveStatus], references: [ApproveStatusKey])
 
   Inspections Inspection[]
 }
@@ -442,21 +466,13 @@ model Images {
   ResourceKey    Int
   InspectionKey  Int?
   ImageURL       String
-  SubmissionType Int
+  SubmissionType SubmissionType
   ActionTime     DateTime?
 
   SubmittedByUser    AccountInfo         @relation("ImagesSubmittedBy", fields: [SubmittedBy], references: [AccountKey])
   Usage              UsageLog            @relation(fields: [UsageKey], references: [UsageKey])
   Resource           ResourceInfo        @relation(fields: [ResourceKey], references: [ResourceKey])
   Inspection         Inspection?         @relation(fields: [InspectionKey], references: [InspectionKey])
-  SubmissionTypeInfo ImageSubmissionType @relation(fields: [SubmissionType], references: [SubmissionTypeKey])
-}
-
-model ImageSubmissionType {
-  SubmissionTypeKey Int    @id @default(autoincrement())
-  SubmissionType    String
-
-  Images Images[]
 }
 
 // ----------------------------------------------------------------------
@@ -466,20 +482,12 @@ model ImageSubmissionType {
 model Notification {
   NotificationKey     Int       @id @default(autoincrement())
   AccountKey          Int
-  NotificationType    Int
+  NotificationType    NotificationType
   NotificationContent String
   SentTime            DateTime?
   IsRead              Boolean?
 
   Account              AccountInfo      @relation(fields: [AccountKey], references: [AccountKey])
-  NotificationTypeInfo NotificationType @relation(fields: [NotificationType], references: [NotificationTypeKey])
-}
-
-model NotificationType {
-  NotificationTypeKey  Int    @id @default(autoincrement())
-  NotificationTypeName String
-
-  Notifications Notification[]
 }
 
 // ----------------------------------------------------------------------

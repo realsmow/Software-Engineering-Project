@@ -1,0 +1,150 @@
+# ============================================================================
+#  ULMs CI - stage 1
+#
+#  The path and the folder name are not a convention, they are a requirement.
+#  GitHub only looks in `.github/workflows/` at the ROOT of the repository.
+#  Anywhere else and nothing happens, with no error to tell you why.
+#
+#  STAGE 1 ON PURPOSE. This only checks what is true today: both sides install,
+#  type-check and build. It was verified to pass against the current main
+#  before being written, so the very first run should be green.
+#
+#  A CI that is red on day one gets ignored by day three. Everything that
+#  depends on a decision the team has not made yet (the shared zod version, the
+#  contract file) is deliberately left out and added later. See
+#  spike-option-b/ci.yml for what stage 2 and 3 look like.
+# ============================================================================
+name: CI
+
+# WHEN this runs.
+#
+# `pull_request` is the one that matters. For a pull request GitHub builds the
+# merge commit (your branch merged into the target) and uses the workflow file
+# found THERE - so a workflow added inside a PR does run in that same PR. That
+# is how you test a workflow without putting it on main first.
+#
+# `push` to main covers the case where something is merged without a PR.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# Cancel an older run when a new commit is pushed to the same branch.
+# Without this, pushing three times queues three full runs and the first two
+# are wasted minutes on a result nobody will read.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ==========================================================================
+  #  Agenda 02 guard - the two sides must resolve the SAME zod.
+  #
+  #  IMPORTANT: this job and the frontend's zod 3 -> 4 bump have to ship in the
+  #  SAME pull request. Add the guard first and CI is red until the bump lands;
+  #  do the bump first and there is a window where it can silently regress.
+  #  One PR, both changes, and the first run is green.
+  #
+  #  It is the cheapest job here (no install, a few hundred milliseconds of
+  #  reading JSON), so it runs on its own and fails fast.
+  # ==========================================================================
+  versions:
+    name: shared dependency versions
+    runs-on: ubuntu-latest
+    continue-on-error: true
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # No `npm ci` here. Steps 1 and 2 of the script only read package.json,
+      # and step 3 (npm ls) skips itself when node_modules is absent. Installing
+      # both sides again just to re-run npm ls would roughly double the whole
+      # workflow's runtime to prove something the two jobs below already prove
+      # by compiling.
+      #
+      # No `continue-on-error` either: this job is expected to be green from
+      # the moment it is merged, because the PR that adds it also does the
+      # zod bump. If it ever turns red afterwards, that is real drift and
+      # blocking is the point.
+      - name: check shared versions
+        run: node scripts/check-versions.mjs
+
+  backend:
+    name: backend
+    runs-on: ubuntu-latest
+
+    steps:
+      # Downloads the repository onto the runner. Every workflow needs it -
+      # the runner starts completely empty.
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          # Matches the version the team runs locally (22.x).
+          node-version: '22'
+          # Caches ~/.npm between runs, keyed by the lockfile. Saves roughly a
+          # minute per run once warm.
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      # npm ci, never npm install.
+      #   - installs exactly what package-lock.json says, so CI and laptops
+      #     agree
+      #   - fails loudly if package.json and the lockfile have drifted apart,
+      #     which is a bug worth catching on its own
+      #   - never rewrites the lockfile
+      - name: install
+        run: npm ci
+        working-directory: backend
+
+      # NOTE: no `prisma generate` step is needed right now, because the
+      # generated client is committed to the repository (41 files under
+      # backend/src/generated/prisma). That is accidental - backend/.gitignore
+      # tries to exclude it with "/generated/prisma", which is anchored at the
+      # backend root and therefore never matches src/generated/prisma.
+      #
+      # If the team ever fixes that .gitignore, this step becomes required:
+      #     - run: npx prisma generate
+      #       working-directory: backend
+      - name: typecheck
+        run: npx tsc --noEmit
+        working-directory: backend
+
+      - name: build
+        run: npm run build
+        working-directory: backend
+
+  frontend:
+    name: frontend
+    runs-on: ubuntu-latest
+
+    # No `needs:` here, so the two jobs run in parallel. They share nothing
+    # today. Once the contract lands, frontend will need to wait for the
+    # backend to generate it, and a `needs: backend` will appear.
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: install
+        run: npm ci
+        working-directory: frontend
+
+      - name: typecheck
+        run: npm run typecheck
+        working-directory: frontend
+
+      # Keep this even though typecheck already ran. `vite build` catches
+      # things tsc cannot see - module-format problems, missing assets, broken
+      # dynamic imports. It is the only step that produces what users get.
+      - name: build
+        run: npm run build
+        working-directory: frontend

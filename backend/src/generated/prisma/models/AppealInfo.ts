@@ -32,7 +32,6 @@ export type AppealInfoAvgAggregateOutputType = {
   NewPenalty: number | null
   FiledBy: number | null
   ResolvedBy: number | null
-  ApproveStatus: number | null
 }
 
 export type AppealInfoSumAggregateOutputType = {
@@ -41,7 +40,6 @@ export type AppealInfoSumAggregateOutputType = {
   NewPenalty: number | null
   FiledBy: number | null
   ResolvedBy: number | null
-  ApproveStatus: number | null
 }
 
 export type AppealInfoMinAggregateOutputType = {
@@ -51,7 +49,7 @@ export type AppealInfoMinAggregateOutputType = {
   FiledBy: number | null
   ResolvedBy: number | null
   AppealReason: string | null
-  ApproveStatus: number | null
+  ApproveStatus: $Enums.ApproveStatus | null
   ActionTime: Date | null
   ResolvedAt: Date | null
 }
@@ -63,7 +61,7 @@ export type AppealInfoMaxAggregateOutputType = {
   FiledBy: number | null
   ResolvedBy: number | null
   AppealReason: string | null
-  ApproveStatus: number | null
+  ApproveStatus: $Enums.ApproveStatus | null
   ActionTime: Date | null
   ResolvedAt: Date | null
 }
@@ -88,7 +86,6 @@ export type AppealInfoAvgAggregateInputType = {
   NewPenalty?: true
   FiledBy?: true
   ResolvedBy?: true
-  ApproveStatus?: true
 }
 
 export type AppealInfoSumAggregateInputType = {
@@ -97,7 +94,6 @@ export type AppealInfoSumAggregateInputType = {
   NewPenalty?: true
   FiledBy?: true
   ResolvedBy?: true
-  ApproveStatus?: true
 }
 
 export type AppealInfoMinAggregateInputType = {
@@ -230,7 +226,7 @@ export type AppealInfoGroupByOutputType = {
   FiledBy: number
   ResolvedBy: number | null
   AppealReason: string | null
-  ApproveStatus: number
+  ApproveStatus: $Enums.ApproveStatus
   ActionTime: Date | null
   ResolvedAt: Date | null
   _count: AppealInfoCountAggregateOutputType | null
@@ -265,14 +261,13 @@ export type AppealInfoWhereInput = {
   FiledBy?: Prisma.IntFilter<"AppealInfo"> | number
   ResolvedBy?: Prisma.IntNullableFilter<"AppealInfo"> | number | null
   AppealReason?: Prisma.StringNullableFilter<"AppealInfo"> | string | null
-  ApproveStatus?: Prisma.IntFilter<"AppealInfo"> | number
+  ApproveStatus?: Prisma.EnumApproveStatusFilter<"AppealInfo"> | $Enums.ApproveStatus
   ActionTime?: Prisma.DateTimeNullableFilter<"AppealInfo"> | Date | string | null
   ResolvedAt?: Prisma.DateTimeNullableFilter<"AppealInfo"> | Date | string | null
   OriginalPenaltyInfo?: Prisma.XOR<Prisma.PenaltyInfoScalarRelationFilter, Prisma.PenaltyInfoWhereInput>
   NewPenaltyInfo?: Prisma.XOR<Prisma.PenaltyInfoNullableScalarRelationFilter, Prisma.PenaltyInfoWhereInput> | null
   FiledByUser?: Prisma.XOR<Prisma.AccountInfoScalarRelationFilter, Prisma.AccountInfoWhereInput>
   ResolvedByUser?: Prisma.XOR<Prisma.AccountInfoNullableScalarRelationFilter, Prisma.AccountInfoWhereInput> | null
-  Status?: Prisma.XOR<Prisma.ApproveStatusScalarRelationFilter, Prisma.ApproveStatusWhereInput>
   Inspections?: Prisma.InspectionListRelationFilter
 }
 
@@ -290,7 +285,6 @@ export type AppealInfoOrderByWithRelationInput = {
   NewPenaltyInfo?: Prisma.PenaltyInfoOrderByWithRelationInput
   FiledByUser?: Prisma.AccountInfoOrderByWithRelationInput
   ResolvedByUser?: Prisma.AccountInfoOrderByWithRelationInput
-  Status?: Prisma.ApproveStatusOrderByWithRelationInput
   Inspections?: Prisma.InspectionOrderByRelationAggregateInput
 }
 
@@ -304,14 +298,13 @@ export type AppealInfoWhereUniqueInput = Prisma.AtLeast<{
   FiledBy?: Prisma.IntFilter<"AppealInfo"> | number
   ResolvedBy?: Prisma.IntNullableFilter<"AppealInfo"> | number | null
   AppealReason?: Prisma.StringNullableFilter<"AppealInfo"> | string | null
-  ApproveStatus?: Prisma.IntFilter<"AppealInfo"> | number
+  ApproveStatus?: Prisma.EnumApproveStatusFilter<"AppealInfo"> | $Enums.ApproveStatus
   ActionTime?: Prisma.DateTimeNullableFilter<"AppealInfo"> | Date | string | null
   ResolvedAt?: Prisma.DateTimeNullableFilter<"AppealInfo"> | Date | string | null
   OriginalPenaltyInfo?: Prisma.XOR<Prisma.PenaltyInfoScalarRelationFilter, Prisma.PenaltyInfoWhereInput>
   NewPenaltyInfo?: Prisma.XOR<Prisma.PenaltyInfoNullableScalarRelationFilter, Prisma.PenaltyInfoWhereInput> | null
   FiledByUser?: Prisma.XOR<Prisma.AccountInfoScalarRelationFilter, Prisma.AccountInfoWhereInput>
   ResolvedByUser?: Prisma.XOR<Prisma.AccountInfoNullableScalarRelationFilter, Prisma.AccountInfoWhereInput> | null
-  Status?: Prisma.XOR<Prisma.ApproveStatusScalarRelationFilter, Prisma.ApproveStatusWhereInput>
   Inspections?: Prisma.InspectionListRelationFilter
 }, "AppealKey" | "OriginalPenalty">
 
@@ -342,20 +335,20 @@ export type AppealInfoScalarWhereWithAggregatesInput = {
   FiledBy?: Prisma.IntWithAggregatesFilter<"AppealInfo"> | number
   ResolvedBy?: Prisma.IntNullableWithAggregatesFilter<"AppealInfo"> | number | null
   AppealReason?: Prisma.StringNullableWithAggregatesFilter<"AppealInfo"> | string | null
-  ApproveStatus?: Prisma.IntWithAggregatesFilter<"AppealInfo"> | number
+  ApproveStatus?: Prisma.EnumApproveStatusWithAggregatesFilter<"AppealInfo"> | $Enums.ApproveStatus
   ActionTime?: Prisma.DateTimeNullableWithAggregatesFilter<"AppealInfo"> | Date | string | null
   ResolvedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"AppealInfo"> | Date | string | null
 }
 
 export type AppealInfoCreateInput = {
   AppealReason?: string | null
+  ApproveStatus: $Enums.ApproveStatus
   ActionTime?: Date | string | null
   ResolvedAt?: Date | string | null
   OriginalPenaltyInfo: Prisma.PenaltyInfoCreateNestedOneWithoutOriginalAppealInput
   NewPenaltyInfo?: Prisma.PenaltyInfoCreateNestedOneWithoutReplacedByAppealsInput
   FiledByUser: Prisma.AccountInfoCreateNestedOneWithoutAppealsFiledInput
   ResolvedByUser?: Prisma.AccountInfoCreateNestedOneWithoutAppealsResolvedInput
-  Status: Prisma.ApproveStatusCreateNestedOneWithoutAppealsInput
   Inspections?: Prisma.InspectionCreateNestedManyWithoutAppealInput
 }
 
@@ -366,7 +359,7 @@ export type AppealInfoUncheckedCreateInput = {
   FiledBy: number
   ResolvedBy?: number | null
   AppealReason?: string | null
-  ApproveStatus: number
+  ApproveStatus: $Enums.ApproveStatus
   ActionTime?: Date | string | null
   ResolvedAt?: Date | string | null
   Inspections?: Prisma.InspectionUncheckedCreateNestedManyWithoutAppealInput
@@ -374,13 +367,13 @@ export type AppealInfoUncheckedCreateInput = {
 
 export type AppealInfoUpdateInput = {
   AppealReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  ApproveStatus?: Prisma.EnumApproveStatusFieldUpdateOperationsInput | $Enums.ApproveStatus
   ActionTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   ResolvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   OriginalPenaltyInfo?: Prisma.PenaltyInfoUpdateOneRequiredWithoutOriginalAppealNestedInput
   NewPenaltyInfo?: Prisma.PenaltyInfoUpdateOneWithoutReplacedByAppealsNestedInput
   FiledByUser?: Prisma.AccountInfoUpdateOneRequiredWithoutAppealsFiledNestedInput
   ResolvedByUser?: Prisma.AccountInfoUpdateOneWithoutAppealsResolvedNestedInput
-  Status?: Prisma.ApproveStatusUpdateOneRequiredWithoutAppealsNestedInput
   Inspections?: Prisma.InspectionUpdateManyWithoutAppealNestedInput
 }
 
@@ -391,7 +384,7 @@ export type AppealInfoUncheckedUpdateInput = {
   FiledBy?: Prisma.IntFieldUpdateOperationsInput | number
   ResolvedBy?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   AppealReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  ApproveStatus?: Prisma.IntFieldUpdateOperationsInput | number
+  ApproveStatus?: Prisma.EnumApproveStatusFieldUpdateOperationsInput | $Enums.ApproveStatus
   ActionTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   ResolvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   Inspections?: Prisma.InspectionUncheckedUpdateManyWithoutAppealNestedInput
@@ -404,13 +397,14 @@ export type AppealInfoCreateManyInput = {
   FiledBy: number
   ResolvedBy?: number | null
   AppealReason?: string | null
-  ApproveStatus: number
+  ApproveStatus: $Enums.ApproveStatus
   ActionTime?: Date | string | null
   ResolvedAt?: Date | string | null
 }
 
 export type AppealInfoUpdateManyMutationInput = {
   AppealReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  ApproveStatus?: Prisma.EnumApproveStatusFieldUpdateOperationsInput | $Enums.ApproveStatus
   ActionTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   ResolvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
@@ -422,7 +416,7 @@ export type AppealInfoUncheckedUpdateManyInput = {
   FiledBy?: Prisma.IntFieldUpdateOperationsInput | number
   ResolvedBy?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   AppealReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  ApproveStatus?: Prisma.IntFieldUpdateOperationsInput | number
+  ApproveStatus?: Prisma.EnumApproveStatusFieldUpdateOperationsInput | $Enums.ApproveStatus
   ActionTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   ResolvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
@@ -460,7 +454,6 @@ export type AppealInfoAvgOrderByAggregateInput = {
   NewPenalty?: Prisma.SortOrder
   FiledBy?: Prisma.SortOrder
   ResolvedBy?: Prisma.SortOrder
-  ApproveStatus?: Prisma.SortOrder
 }
 
 export type AppealInfoMaxOrderByAggregateInput = {
@@ -493,7 +486,6 @@ export type AppealInfoSumOrderByAggregateInput = {
   NewPenalty?: Prisma.SortOrder
   FiledBy?: Prisma.SortOrder
   ResolvedBy?: Prisma.SortOrder
-  ApproveStatus?: Prisma.SortOrder
 }
 
 export type AppealInfoCreateNestedManyWithoutFiledByUserInput = {
@@ -577,48 +569,6 @@ export type AppealInfoUncheckedUpdateManyWithoutResolvedByUserNestedInput = {
   connect?: Prisma.AppealInfoWhereUniqueInput | Prisma.AppealInfoWhereUniqueInput[]
   update?: Prisma.AppealInfoUpdateWithWhereUniqueWithoutResolvedByUserInput | Prisma.AppealInfoUpdateWithWhereUniqueWithoutResolvedByUserInput[]
   updateMany?: Prisma.AppealInfoUpdateManyWithWhereWithoutResolvedByUserInput | Prisma.AppealInfoUpdateManyWithWhereWithoutResolvedByUserInput[]
-  deleteMany?: Prisma.AppealInfoScalarWhereInput | Prisma.AppealInfoScalarWhereInput[]
-}
-
-export type AppealInfoCreateNestedManyWithoutStatusInput = {
-  create?: Prisma.XOR<Prisma.AppealInfoCreateWithoutStatusInput, Prisma.AppealInfoUncheckedCreateWithoutStatusInput> | Prisma.AppealInfoCreateWithoutStatusInput[] | Prisma.AppealInfoUncheckedCreateWithoutStatusInput[]
-  connectOrCreate?: Prisma.AppealInfoCreateOrConnectWithoutStatusInput | Prisma.AppealInfoCreateOrConnectWithoutStatusInput[]
-  createMany?: Prisma.AppealInfoCreateManyStatusInputEnvelope
-  connect?: Prisma.AppealInfoWhereUniqueInput | Prisma.AppealInfoWhereUniqueInput[]
-}
-
-export type AppealInfoUncheckedCreateNestedManyWithoutStatusInput = {
-  create?: Prisma.XOR<Prisma.AppealInfoCreateWithoutStatusInput, Prisma.AppealInfoUncheckedCreateWithoutStatusInput> | Prisma.AppealInfoCreateWithoutStatusInput[] | Prisma.AppealInfoUncheckedCreateWithoutStatusInput[]
-  connectOrCreate?: Prisma.AppealInfoCreateOrConnectWithoutStatusInput | Prisma.AppealInfoCreateOrConnectWithoutStatusInput[]
-  createMany?: Prisma.AppealInfoCreateManyStatusInputEnvelope
-  connect?: Prisma.AppealInfoWhereUniqueInput | Prisma.AppealInfoWhereUniqueInput[]
-}
-
-export type AppealInfoUpdateManyWithoutStatusNestedInput = {
-  create?: Prisma.XOR<Prisma.AppealInfoCreateWithoutStatusInput, Prisma.AppealInfoUncheckedCreateWithoutStatusInput> | Prisma.AppealInfoCreateWithoutStatusInput[] | Prisma.AppealInfoUncheckedCreateWithoutStatusInput[]
-  connectOrCreate?: Prisma.AppealInfoCreateOrConnectWithoutStatusInput | Prisma.AppealInfoCreateOrConnectWithoutStatusInput[]
-  upsert?: Prisma.AppealInfoUpsertWithWhereUniqueWithoutStatusInput | Prisma.AppealInfoUpsertWithWhereUniqueWithoutStatusInput[]
-  createMany?: Prisma.AppealInfoCreateManyStatusInputEnvelope
-  set?: Prisma.AppealInfoWhereUniqueInput | Prisma.AppealInfoWhereUniqueInput[]
-  disconnect?: Prisma.AppealInfoWhereUniqueInput | Prisma.AppealInfoWhereUniqueInput[]
-  delete?: Prisma.AppealInfoWhereUniqueInput | Prisma.AppealInfoWhereUniqueInput[]
-  connect?: Prisma.AppealInfoWhereUniqueInput | Prisma.AppealInfoWhereUniqueInput[]
-  update?: Prisma.AppealInfoUpdateWithWhereUniqueWithoutStatusInput | Prisma.AppealInfoUpdateWithWhereUniqueWithoutStatusInput[]
-  updateMany?: Prisma.AppealInfoUpdateManyWithWhereWithoutStatusInput | Prisma.AppealInfoUpdateManyWithWhereWithoutStatusInput[]
-  deleteMany?: Prisma.AppealInfoScalarWhereInput | Prisma.AppealInfoScalarWhereInput[]
-}
-
-export type AppealInfoUncheckedUpdateManyWithoutStatusNestedInput = {
-  create?: Prisma.XOR<Prisma.AppealInfoCreateWithoutStatusInput, Prisma.AppealInfoUncheckedCreateWithoutStatusInput> | Prisma.AppealInfoCreateWithoutStatusInput[] | Prisma.AppealInfoUncheckedCreateWithoutStatusInput[]
-  connectOrCreate?: Prisma.AppealInfoCreateOrConnectWithoutStatusInput | Prisma.AppealInfoCreateOrConnectWithoutStatusInput[]
-  upsert?: Prisma.AppealInfoUpsertWithWhereUniqueWithoutStatusInput | Prisma.AppealInfoUpsertWithWhereUniqueWithoutStatusInput[]
-  createMany?: Prisma.AppealInfoCreateManyStatusInputEnvelope
-  set?: Prisma.AppealInfoWhereUniqueInput | Prisma.AppealInfoWhereUniqueInput[]
-  disconnect?: Prisma.AppealInfoWhereUniqueInput | Prisma.AppealInfoWhereUniqueInput[]
-  delete?: Prisma.AppealInfoWhereUniqueInput | Prisma.AppealInfoWhereUniqueInput[]
-  connect?: Prisma.AppealInfoWhereUniqueInput | Prisma.AppealInfoWhereUniqueInput[]
-  update?: Prisma.AppealInfoUpdateWithWhereUniqueWithoutStatusInput | Prisma.AppealInfoUpdateWithWhereUniqueWithoutStatusInput[]
-  updateMany?: Prisma.AppealInfoUpdateManyWithWhereWithoutStatusInput | Prisma.AppealInfoUpdateManyWithWhereWithoutStatusInput[]
   deleteMany?: Prisma.AppealInfoScalarWhereInput | Prisma.AppealInfoScalarWhereInput[]
 }
 
@@ -714,12 +664,12 @@ export type AppealInfoUncheckedUpdateManyWithoutNewPenaltyInfoNestedInput = {
 
 export type AppealInfoCreateWithoutFiledByUserInput = {
   AppealReason?: string | null
+  ApproveStatus: $Enums.ApproveStatus
   ActionTime?: Date | string | null
   ResolvedAt?: Date | string | null
   OriginalPenaltyInfo: Prisma.PenaltyInfoCreateNestedOneWithoutOriginalAppealInput
   NewPenaltyInfo?: Prisma.PenaltyInfoCreateNestedOneWithoutReplacedByAppealsInput
   ResolvedByUser?: Prisma.AccountInfoCreateNestedOneWithoutAppealsResolvedInput
-  Status: Prisma.ApproveStatusCreateNestedOneWithoutAppealsInput
   Inspections?: Prisma.InspectionCreateNestedManyWithoutAppealInput
 }
 
@@ -729,7 +679,7 @@ export type AppealInfoUncheckedCreateWithoutFiledByUserInput = {
   NewPenalty?: number | null
   ResolvedBy?: number | null
   AppealReason?: string | null
-  ApproveStatus: number
+  ApproveStatus: $Enums.ApproveStatus
   ActionTime?: Date | string | null
   ResolvedAt?: Date | string | null
   Inspections?: Prisma.InspectionUncheckedCreateNestedManyWithoutAppealInput
@@ -747,12 +697,12 @@ export type AppealInfoCreateManyFiledByUserInputEnvelope = {
 
 export type AppealInfoCreateWithoutResolvedByUserInput = {
   AppealReason?: string | null
+  ApproveStatus: $Enums.ApproveStatus
   ActionTime?: Date | string | null
   ResolvedAt?: Date | string | null
   OriginalPenaltyInfo: Prisma.PenaltyInfoCreateNestedOneWithoutOriginalAppealInput
   NewPenaltyInfo?: Prisma.PenaltyInfoCreateNestedOneWithoutReplacedByAppealsInput
   FiledByUser: Prisma.AccountInfoCreateNestedOneWithoutAppealsFiledInput
-  Status: Prisma.ApproveStatusCreateNestedOneWithoutAppealsInput
   Inspections?: Prisma.InspectionCreateNestedManyWithoutAppealInput
 }
 
@@ -762,7 +712,7 @@ export type AppealInfoUncheckedCreateWithoutResolvedByUserInput = {
   NewPenalty?: number | null
   FiledBy: number
   AppealReason?: string | null
-  ApproveStatus: number
+  ApproveStatus: $Enums.ApproveStatus
   ActionTime?: Date | string | null
   ResolvedAt?: Date | string | null
   Inspections?: Prisma.InspectionUncheckedCreateNestedManyWithoutAppealInput
@@ -804,7 +754,7 @@ export type AppealInfoScalarWhereInput = {
   FiledBy?: Prisma.IntFilter<"AppealInfo"> | number
   ResolvedBy?: Prisma.IntNullableFilter<"AppealInfo"> | number | null
   AppealReason?: Prisma.StringNullableFilter<"AppealInfo"> | string | null
-  ApproveStatus?: Prisma.IntFilter<"AppealInfo"> | number
+  ApproveStatus?: Prisma.EnumApproveStatusFilter<"AppealInfo"> | $Enums.ApproveStatus
   ActionTime?: Prisma.DateTimeNullableFilter<"AppealInfo"> | Date | string | null
   ResolvedAt?: Prisma.DateTimeNullableFilter<"AppealInfo"> | Date | string | null
 }
@@ -825,64 +775,15 @@ export type AppealInfoUpdateManyWithWhereWithoutResolvedByUserInput = {
   data: Prisma.XOR<Prisma.AppealInfoUpdateManyMutationInput, Prisma.AppealInfoUncheckedUpdateManyWithoutResolvedByUserInput>
 }
 
-export type AppealInfoCreateWithoutStatusInput = {
-  AppealReason?: string | null
-  ActionTime?: Date | string | null
-  ResolvedAt?: Date | string | null
-  OriginalPenaltyInfo: Prisma.PenaltyInfoCreateNestedOneWithoutOriginalAppealInput
-  NewPenaltyInfo?: Prisma.PenaltyInfoCreateNestedOneWithoutReplacedByAppealsInput
-  FiledByUser: Prisma.AccountInfoCreateNestedOneWithoutAppealsFiledInput
-  ResolvedByUser?: Prisma.AccountInfoCreateNestedOneWithoutAppealsResolvedInput
-  Inspections?: Prisma.InspectionCreateNestedManyWithoutAppealInput
-}
-
-export type AppealInfoUncheckedCreateWithoutStatusInput = {
-  AppealKey?: number
-  OriginalPenalty: number
-  NewPenalty?: number | null
-  FiledBy: number
-  ResolvedBy?: number | null
-  AppealReason?: string | null
-  ActionTime?: Date | string | null
-  ResolvedAt?: Date | string | null
-  Inspections?: Prisma.InspectionUncheckedCreateNestedManyWithoutAppealInput
-}
-
-export type AppealInfoCreateOrConnectWithoutStatusInput = {
-  where: Prisma.AppealInfoWhereUniqueInput
-  create: Prisma.XOR<Prisma.AppealInfoCreateWithoutStatusInput, Prisma.AppealInfoUncheckedCreateWithoutStatusInput>
-}
-
-export type AppealInfoCreateManyStatusInputEnvelope = {
-  data: Prisma.AppealInfoCreateManyStatusInput | Prisma.AppealInfoCreateManyStatusInput[]
-  skipDuplicates?: boolean
-}
-
-export type AppealInfoUpsertWithWhereUniqueWithoutStatusInput = {
-  where: Prisma.AppealInfoWhereUniqueInput
-  update: Prisma.XOR<Prisma.AppealInfoUpdateWithoutStatusInput, Prisma.AppealInfoUncheckedUpdateWithoutStatusInput>
-  create: Prisma.XOR<Prisma.AppealInfoCreateWithoutStatusInput, Prisma.AppealInfoUncheckedCreateWithoutStatusInput>
-}
-
-export type AppealInfoUpdateWithWhereUniqueWithoutStatusInput = {
-  where: Prisma.AppealInfoWhereUniqueInput
-  data: Prisma.XOR<Prisma.AppealInfoUpdateWithoutStatusInput, Prisma.AppealInfoUncheckedUpdateWithoutStatusInput>
-}
-
-export type AppealInfoUpdateManyWithWhereWithoutStatusInput = {
-  where: Prisma.AppealInfoScalarWhereInput
-  data: Prisma.XOR<Prisma.AppealInfoUpdateManyMutationInput, Prisma.AppealInfoUncheckedUpdateManyWithoutStatusInput>
-}
-
 export type AppealInfoCreateWithoutInspectionsInput = {
   AppealReason?: string | null
+  ApproveStatus: $Enums.ApproveStatus
   ActionTime?: Date | string | null
   ResolvedAt?: Date | string | null
   OriginalPenaltyInfo: Prisma.PenaltyInfoCreateNestedOneWithoutOriginalAppealInput
   NewPenaltyInfo?: Prisma.PenaltyInfoCreateNestedOneWithoutReplacedByAppealsInput
   FiledByUser: Prisma.AccountInfoCreateNestedOneWithoutAppealsFiledInput
   ResolvedByUser?: Prisma.AccountInfoCreateNestedOneWithoutAppealsResolvedInput
-  Status: Prisma.ApproveStatusCreateNestedOneWithoutAppealsInput
 }
 
 export type AppealInfoUncheckedCreateWithoutInspectionsInput = {
@@ -892,7 +793,7 @@ export type AppealInfoUncheckedCreateWithoutInspectionsInput = {
   FiledBy: number
   ResolvedBy?: number | null
   AppealReason?: string | null
-  ApproveStatus: number
+  ApproveStatus: $Enums.ApproveStatus
   ActionTime?: Date | string | null
   ResolvedAt?: Date | string | null
 }
@@ -915,13 +816,13 @@ export type AppealInfoUpdateToOneWithWhereWithoutInspectionsInput = {
 
 export type AppealInfoUpdateWithoutInspectionsInput = {
   AppealReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  ApproveStatus?: Prisma.EnumApproveStatusFieldUpdateOperationsInput | $Enums.ApproveStatus
   ActionTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   ResolvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   OriginalPenaltyInfo?: Prisma.PenaltyInfoUpdateOneRequiredWithoutOriginalAppealNestedInput
   NewPenaltyInfo?: Prisma.PenaltyInfoUpdateOneWithoutReplacedByAppealsNestedInput
   FiledByUser?: Prisma.AccountInfoUpdateOneRequiredWithoutAppealsFiledNestedInput
   ResolvedByUser?: Prisma.AccountInfoUpdateOneWithoutAppealsResolvedNestedInput
-  Status?: Prisma.ApproveStatusUpdateOneRequiredWithoutAppealsNestedInput
 }
 
 export type AppealInfoUncheckedUpdateWithoutInspectionsInput = {
@@ -931,19 +832,19 @@ export type AppealInfoUncheckedUpdateWithoutInspectionsInput = {
   FiledBy?: Prisma.IntFieldUpdateOperationsInput | number
   ResolvedBy?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   AppealReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  ApproveStatus?: Prisma.IntFieldUpdateOperationsInput | number
+  ApproveStatus?: Prisma.EnumApproveStatusFieldUpdateOperationsInput | $Enums.ApproveStatus
   ActionTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   ResolvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
 export type AppealInfoCreateWithoutOriginalPenaltyInfoInput = {
   AppealReason?: string | null
+  ApproveStatus: $Enums.ApproveStatus
   ActionTime?: Date | string | null
   ResolvedAt?: Date | string | null
   NewPenaltyInfo?: Prisma.PenaltyInfoCreateNestedOneWithoutReplacedByAppealsInput
   FiledByUser: Prisma.AccountInfoCreateNestedOneWithoutAppealsFiledInput
   ResolvedByUser?: Prisma.AccountInfoCreateNestedOneWithoutAppealsResolvedInput
-  Status: Prisma.ApproveStatusCreateNestedOneWithoutAppealsInput
   Inspections?: Prisma.InspectionCreateNestedManyWithoutAppealInput
 }
 
@@ -953,7 +854,7 @@ export type AppealInfoUncheckedCreateWithoutOriginalPenaltyInfoInput = {
   FiledBy: number
   ResolvedBy?: number | null
   AppealReason?: string | null
-  ApproveStatus: number
+  ApproveStatus: $Enums.ApproveStatus
   ActionTime?: Date | string | null
   ResolvedAt?: Date | string | null
   Inspections?: Prisma.InspectionUncheckedCreateNestedManyWithoutAppealInput
@@ -966,12 +867,12 @@ export type AppealInfoCreateOrConnectWithoutOriginalPenaltyInfoInput = {
 
 export type AppealInfoCreateWithoutNewPenaltyInfoInput = {
   AppealReason?: string | null
+  ApproveStatus: $Enums.ApproveStatus
   ActionTime?: Date | string | null
   ResolvedAt?: Date | string | null
   OriginalPenaltyInfo: Prisma.PenaltyInfoCreateNestedOneWithoutOriginalAppealInput
   FiledByUser: Prisma.AccountInfoCreateNestedOneWithoutAppealsFiledInput
   ResolvedByUser?: Prisma.AccountInfoCreateNestedOneWithoutAppealsResolvedInput
-  Status: Prisma.ApproveStatusCreateNestedOneWithoutAppealsInput
   Inspections?: Prisma.InspectionCreateNestedManyWithoutAppealInput
 }
 
@@ -981,7 +882,7 @@ export type AppealInfoUncheckedCreateWithoutNewPenaltyInfoInput = {
   FiledBy: number
   ResolvedBy?: number | null
   AppealReason?: string | null
-  ApproveStatus: number
+  ApproveStatus: $Enums.ApproveStatus
   ActionTime?: Date | string | null
   ResolvedAt?: Date | string | null
   Inspections?: Prisma.InspectionUncheckedCreateNestedManyWithoutAppealInput
@@ -1010,12 +911,12 @@ export type AppealInfoUpdateToOneWithWhereWithoutOriginalPenaltyInfoInput = {
 
 export type AppealInfoUpdateWithoutOriginalPenaltyInfoInput = {
   AppealReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  ApproveStatus?: Prisma.EnumApproveStatusFieldUpdateOperationsInput | $Enums.ApproveStatus
   ActionTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   ResolvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   NewPenaltyInfo?: Prisma.PenaltyInfoUpdateOneWithoutReplacedByAppealsNestedInput
   FiledByUser?: Prisma.AccountInfoUpdateOneRequiredWithoutAppealsFiledNestedInput
   ResolvedByUser?: Prisma.AccountInfoUpdateOneWithoutAppealsResolvedNestedInput
-  Status?: Prisma.ApproveStatusUpdateOneRequiredWithoutAppealsNestedInput
   Inspections?: Prisma.InspectionUpdateManyWithoutAppealNestedInput
 }
 
@@ -1025,7 +926,7 @@ export type AppealInfoUncheckedUpdateWithoutOriginalPenaltyInfoInput = {
   FiledBy?: Prisma.IntFieldUpdateOperationsInput | number
   ResolvedBy?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   AppealReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  ApproveStatus?: Prisma.IntFieldUpdateOperationsInput | number
+  ApproveStatus?: Prisma.EnumApproveStatusFieldUpdateOperationsInput | $Enums.ApproveStatus
   ActionTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   ResolvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   Inspections?: Prisma.InspectionUncheckedUpdateManyWithoutAppealNestedInput
@@ -1053,7 +954,7 @@ export type AppealInfoCreateManyFiledByUserInput = {
   NewPenalty?: number | null
   ResolvedBy?: number | null
   AppealReason?: string | null
-  ApproveStatus: number
+  ApproveStatus: $Enums.ApproveStatus
   ActionTime?: Date | string | null
   ResolvedAt?: Date | string | null
 }
@@ -1064,19 +965,19 @@ export type AppealInfoCreateManyResolvedByUserInput = {
   NewPenalty?: number | null
   FiledBy: number
   AppealReason?: string | null
-  ApproveStatus: number
+  ApproveStatus: $Enums.ApproveStatus
   ActionTime?: Date | string | null
   ResolvedAt?: Date | string | null
 }
 
 export type AppealInfoUpdateWithoutFiledByUserInput = {
   AppealReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  ApproveStatus?: Prisma.EnumApproveStatusFieldUpdateOperationsInput | $Enums.ApproveStatus
   ActionTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   ResolvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   OriginalPenaltyInfo?: Prisma.PenaltyInfoUpdateOneRequiredWithoutOriginalAppealNestedInput
   NewPenaltyInfo?: Prisma.PenaltyInfoUpdateOneWithoutReplacedByAppealsNestedInput
   ResolvedByUser?: Prisma.AccountInfoUpdateOneWithoutAppealsResolvedNestedInput
-  Status?: Prisma.ApproveStatusUpdateOneRequiredWithoutAppealsNestedInput
   Inspections?: Prisma.InspectionUpdateManyWithoutAppealNestedInput
 }
 
@@ -1086,7 +987,7 @@ export type AppealInfoUncheckedUpdateWithoutFiledByUserInput = {
   NewPenalty?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   ResolvedBy?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   AppealReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  ApproveStatus?: Prisma.IntFieldUpdateOperationsInput | number
+  ApproveStatus?: Prisma.EnumApproveStatusFieldUpdateOperationsInput | $Enums.ApproveStatus
   ActionTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   ResolvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   Inspections?: Prisma.InspectionUncheckedUpdateManyWithoutAppealNestedInput
@@ -1098,19 +999,19 @@ export type AppealInfoUncheckedUpdateManyWithoutFiledByUserInput = {
   NewPenalty?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   ResolvedBy?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   AppealReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  ApproveStatus?: Prisma.IntFieldUpdateOperationsInput | number
+  ApproveStatus?: Prisma.EnumApproveStatusFieldUpdateOperationsInput | $Enums.ApproveStatus
   ActionTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   ResolvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
 export type AppealInfoUpdateWithoutResolvedByUserInput = {
   AppealReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  ApproveStatus?: Prisma.EnumApproveStatusFieldUpdateOperationsInput | $Enums.ApproveStatus
   ActionTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   ResolvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   OriginalPenaltyInfo?: Prisma.PenaltyInfoUpdateOneRequiredWithoutOriginalAppealNestedInput
   NewPenaltyInfo?: Prisma.PenaltyInfoUpdateOneWithoutReplacedByAppealsNestedInput
   FiledByUser?: Prisma.AccountInfoUpdateOneRequiredWithoutAppealsFiledNestedInput
-  Status?: Prisma.ApproveStatusUpdateOneRequiredWithoutAppealsNestedInput
   Inspections?: Prisma.InspectionUpdateManyWithoutAppealNestedInput
 }
 
@@ -1120,7 +1021,7 @@ export type AppealInfoUncheckedUpdateWithoutResolvedByUserInput = {
   NewPenalty?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   FiledBy?: Prisma.IntFieldUpdateOperationsInput | number
   AppealReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  ApproveStatus?: Prisma.IntFieldUpdateOperationsInput | number
+  ApproveStatus?: Prisma.EnumApproveStatusFieldUpdateOperationsInput | $Enums.ApproveStatus
   ActionTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   ResolvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   Inspections?: Prisma.InspectionUncheckedUpdateManyWithoutAppealNestedInput
@@ -1132,52 +1033,7 @@ export type AppealInfoUncheckedUpdateManyWithoutResolvedByUserInput = {
   NewPenalty?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   FiledBy?: Prisma.IntFieldUpdateOperationsInput | number
   AppealReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  ApproveStatus?: Prisma.IntFieldUpdateOperationsInput | number
-  ActionTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  ResolvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-}
-
-export type AppealInfoCreateManyStatusInput = {
-  AppealKey?: number
-  OriginalPenalty: number
-  NewPenalty?: number | null
-  FiledBy: number
-  ResolvedBy?: number | null
-  AppealReason?: string | null
-  ActionTime?: Date | string | null
-  ResolvedAt?: Date | string | null
-}
-
-export type AppealInfoUpdateWithoutStatusInput = {
-  AppealReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  ActionTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  ResolvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  OriginalPenaltyInfo?: Prisma.PenaltyInfoUpdateOneRequiredWithoutOriginalAppealNestedInput
-  NewPenaltyInfo?: Prisma.PenaltyInfoUpdateOneWithoutReplacedByAppealsNestedInput
-  FiledByUser?: Prisma.AccountInfoUpdateOneRequiredWithoutAppealsFiledNestedInput
-  ResolvedByUser?: Prisma.AccountInfoUpdateOneWithoutAppealsResolvedNestedInput
-  Inspections?: Prisma.InspectionUpdateManyWithoutAppealNestedInput
-}
-
-export type AppealInfoUncheckedUpdateWithoutStatusInput = {
-  AppealKey?: Prisma.IntFieldUpdateOperationsInput | number
-  OriginalPenalty?: Prisma.IntFieldUpdateOperationsInput | number
-  NewPenalty?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  FiledBy?: Prisma.IntFieldUpdateOperationsInput | number
-  ResolvedBy?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  AppealReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  ActionTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  ResolvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  Inspections?: Prisma.InspectionUncheckedUpdateManyWithoutAppealNestedInput
-}
-
-export type AppealInfoUncheckedUpdateManyWithoutStatusInput = {
-  AppealKey?: Prisma.IntFieldUpdateOperationsInput | number
-  OriginalPenalty?: Prisma.IntFieldUpdateOperationsInput | number
-  NewPenalty?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  FiledBy?: Prisma.IntFieldUpdateOperationsInput | number
-  ResolvedBy?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  AppealReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  ApproveStatus?: Prisma.EnumApproveStatusFieldUpdateOperationsInput | $Enums.ApproveStatus
   ActionTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   ResolvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
@@ -1188,19 +1044,19 @@ export type AppealInfoCreateManyNewPenaltyInfoInput = {
   FiledBy: number
   ResolvedBy?: number | null
   AppealReason?: string | null
-  ApproveStatus: number
+  ApproveStatus: $Enums.ApproveStatus
   ActionTime?: Date | string | null
   ResolvedAt?: Date | string | null
 }
 
 export type AppealInfoUpdateWithoutNewPenaltyInfoInput = {
   AppealReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  ApproveStatus?: Prisma.EnumApproveStatusFieldUpdateOperationsInput | $Enums.ApproveStatus
   ActionTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   ResolvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   OriginalPenaltyInfo?: Prisma.PenaltyInfoUpdateOneRequiredWithoutOriginalAppealNestedInput
   FiledByUser?: Prisma.AccountInfoUpdateOneRequiredWithoutAppealsFiledNestedInput
   ResolvedByUser?: Prisma.AccountInfoUpdateOneWithoutAppealsResolvedNestedInput
-  Status?: Prisma.ApproveStatusUpdateOneRequiredWithoutAppealsNestedInput
   Inspections?: Prisma.InspectionUpdateManyWithoutAppealNestedInput
 }
 
@@ -1210,7 +1066,7 @@ export type AppealInfoUncheckedUpdateWithoutNewPenaltyInfoInput = {
   FiledBy?: Prisma.IntFieldUpdateOperationsInput | number
   ResolvedBy?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   AppealReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  ApproveStatus?: Prisma.IntFieldUpdateOperationsInput | number
+  ApproveStatus?: Prisma.EnumApproveStatusFieldUpdateOperationsInput | $Enums.ApproveStatus
   ActionTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   ResolvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   Inspections?: Prisma.InspectionUncheckedUpdateManyWithoutAppealNestedInput
@@ -1222,7 +1078,7 @@ export type AppealInfoUncheckedUpdateManyWithoutNewPenaltyInfoInput = {
   FiledBy?: Prisma.IntFieldUpdateOperationsInput | number
   ResolvedBy?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   AppealReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  ApproveStatus?: Prisma.IntFieldUpdateOperationsInput | number
+  ApproveStatus?: Prisma.EnumApproveStatusFieldUpdateOperationsInput | $Enums.ApproveStatus
   ActionTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   ResolvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
@@ -1272,7 +1128,6 @@ export type AppealInfoSelect<ExtArgs extends runtime.Types.Extensions.InternalAr
   NewPenaltyInfo?: boolean | Prisma.AppealInfo$NewPenaltyInfoArgs<ExtArgs>
   FiledByUser?: boolean | Prisma.AccountInfoDefaultArgs<ExtArgs>
   ResolvedByUser?: boolean | Prisma.AppealInfo$ResolvedByUserArgs<ExtArgs>
-  Status?: boolean | Prisma.ApproveStatusDefaultArgs<ExtArgs>
   Inspections?: boolean | Prisma.AppealInfo$InspectionsArgs<ExtArgs>
   _count?: boolean | Prisma.AppealInfoCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["appealInfo"]>
@@ -1291,7 +1146,6 @@ export type AppealInfoSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Ex
   NewPenaltyInfo?: boolean | Prisma.AppealInfo$NewPenaltyInfoArgs<ExtArgs>
   FiledByUser?: boolean | Prisma.AccountInfoDefaultArgs<ExtArgs>
   ResolvedByUser?: boolean | Prisma.AppealInfo$ResolvedByUserArgs<ExtArgs>
-  Status?: boolean | Prisma.ApproveStatusDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["appealInfo"]>
 
 export type AppealInfoSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -1308,7 +1162,6 @@ export type AppealInfoSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Ex
   NewPenaltyInfo?: boolean | Prisma.AppealInfo$NewPenaltyInfoArgs<ExtArgs>
   FiledByUser?: boolean | Prisma.AccountInfoDefaultArgs<ExtArgs>
   ResolvedByUser?: boolean | Prisma.AppealInfo$ResolvedByUserArgs<ExtArgs>
-  Status?: boolean | Prisma.ApproveStatusDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["appealInfo"]>
 
 export type AppealInfoSelectScalar = {
@@ -1329,7 +1182,6 @@ export type AppealInfoInclude<ExtArgs extends runtime.Types.Extensions.InternalA
   NewPenaltyInfo?: boolean | Prisma.AppealInfo$NewPenaltyInfoArgs<ExtArgs>
   FiledByUser?: boolean | Prisma.AccountInfoDefaultArgs<ExtArgs>
   ResolvedByUser?: boolean | Prisma.AppealInfo$ResolvedByUserArgs<ExtArgs>
-  Status?: boolean | Prisma.ApproveStatusDefaultArgs<ExtArgs>
   Inspections?: boolean | Prisma.AppealInfo$InspectionsArgs<ExtArgs>
   _count?: boolean | Prisma.AppealInfoCountOutputTypeDefaultArgs<ExtArgs>
 }
@@ -1338,14 +1190,12 @@ export type AppealInfoIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.E
   NewPenaltyInfo?: boolean | Prisma.AppealInfo$NewPenaltyInfoArgs<ExtArgs>
   FiledByUser?: boolean | Prisma.AccountInfoDefaultArgs<ExtArgs>
   ResolvedByUser?: boolean | Prisma.AppealInfo$ResolvedByUserArgs<ExtArgs>
-  Status?: boolean | Prisma.ApproveStatusDefaultArgs<ExtArgs>
 }
 export type AppealInfoIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   OriginalPenaltyInfo?: boolean | Prisma.PenaltyInfoDefaultArgs<ExtArgs>
   NewPenaltyInfo?: boolean | Prisma.AppealInfo$NewPenaltyInfoArgs<ExtArgs>
   FiledByUser?: boolean | Prisma.AccountInfoDefaultArgs<ExtArgs>
   ResolvedByUser?: boolean | Prisma.AppealInfo$ResolvedByUserArgs<ExtArgs>
-  Status?: boolean | Prisma.ApproveStatusDefaultArgs<ExtArgs>
 }
 
 export type $AppealInfoPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1355,7 +1205,6 @@ export type $AppealInfoPayload<ExtArgs extends runtime.Types.Extensions.Internal
     NewPenaltyInfo: Prisma.$PenaltyInfoPayload<ExtArgs> | null
     FiledByUser: Prisma.$AccountInfoPayload<ExtArgs>
     ResolvedByUser: Prisma.$AccountInfoPayload<ExtArgs> | null
-    Status: Prisma.$ApproveStatusPayload<ExtArgs>
     Inspections: Prisma.$InspectionPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
@@ -1365,7 +1214,7 @@ export type $AppealInfoPayload<ExtArgs extends runtime.Types.Extensions.Internal
     FiledBy: number
     ResolvedBy: number | null
     AppealReason: string | null
-    ApproveStatus: number
+    ApproveStatus: $Enums.ApproveStatus
     ActionTime: Date | null
     ResolvedAt: Date | null
   }, ExtArgs["result"]["appealInfo"]>
@@ -1766,7 +1615,6 @@ export interface Prisma__AppealInfoClient<T, Null = never, ExtArgs extends runti
   NewPenaltyInfo<T extends Prisma.AppealInfo$NewPenaltyInfoArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AppealInfo$NewPenaltyInfoArgs<ExtArgs>>): Prisma.Prisma__PenaltyInfoClient<runtime.Types.Result.GetResult<Prisma.$PenaltyInfoPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   FiledByUser<T extends Prisma.AccountInfoDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AccountInfoDefaultArgs<ExtArgs>>): Prisma.Prisma__AccountInfoClient<runtime.Types.Result.GetResult<Prisma.$AccountInfoPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   ResolvedByUser<T extends Prisma.AppealInfo$ResolvedByUserArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AppealInfo$ResolvedByUserArgs<ExtArgs>>): Prisma.Prisma__AccountInfoClient<runtime.Types.Result.GetResult<Prisma.$AccountInfoPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
-  Status<T extends Prisma.ApproveStatusDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ApproveStatusDefaultArgs<ExtArgs>>): Prisma.Prisma__ApproveStatusClient<runtime.Types.Result.GetResult<Prisma.$ApproveStatusPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   Inspections<T extends Prisma.AppealInfo$InspectionsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AppealInfo$InspectionsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$InspectionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
@@ -1803,7 +1651,7 @@ export interface AppealInfoFieldRefs {
   readonly FiledBy: Prisma.FieldRef<"AppealInfo", 'Int'>
   readonly ResolvedBy: Prisma.FieldRef<"AppealInfo", 'Int'>
   readonly AppealReason: Prisma.FieldRef<"AppealInfo", 'String'>
-  readonly ApproveStatus: Prisma.FieldRef<"AppealInfo", 'Int'>
+  readonly ApproveStatus: Prisma.FieldRef<"AppealInfo", 'ApproveStatus'>
   readonly ActionTime: Prisma.FieldRef<"AppealInfo", 'DateTime'>
   readonly ResolvedAt: Prisma.FieldRef<"AppealInfo", 'DateTime'>
 }

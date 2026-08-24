@@ -30,21 +30,19 @@ export type ConditionLogAvgAggregateOutputType = {
   ConditionKey: number | null
   ResourceKey: number | null
   LoggedBy: number | null
-  Condition: number | null
 }
 
 export type ConditionLogSumAggregateOutputType = {
   ConditionKey: number | null
   ResourceKey: number | null
   LoggedBy: number | null
-  Condition: number | null
 }
 
 export type ConditionLogMinAggregateOutputType = {
   ConditionKey: number | null
   ResourceKey: number | null
   LoggedBy: number | null
-  Condition: number | null
+  Condition: $Enums.ConditionType | null
   Notes: string | null
   LoggedAt: Date | null
 }
@@ -53,7 +51,7 @@ export type ConditionLogMaxAggregateOutputType = {
   ConditionKey: number | null
   ResourceKey: number | null
   LoggedBy: number | null
-  Condition: number | null
+  Condition: $Enums.ConditionType | null
   Notes: string | null
   LoggedAt: Date | null
 }
@@ -73,14 +71,12 @@ export type ConditionLogAvgAggregateInputType = {
   ConditionKey?: true
   ResourceKey?: true
   LoggedBy?: true
-  Condition?: true
 }
 
 export type ConditionLogSumAggregateInputType = {
   ConditionKey?: true
   ResourceKey?: true
   LoggedBy?: true
-  Condition?: true
 }
 
 export type ConditionLogMinAggregateInputType = {
@@ -201,7 +197,7 @@ export type ConditionLogGroupByOutputType = {
   ConditionKey: number
   ResourceKey: number
   LoggedBy: number
-  Condition: number
+  Condition: $Enums.ConditionType
   Notes: string | null
   LoggedAt: Date | null
   _count: ConditionLogCountAggregateOutputType | null
@@ -233,12 +229,11 @@ export type ConditionLogWhereInput = {
   ConditionKey?: Prisma.IntFilter<"ConditionLog"> | number
   ResourceKey?: Prisma.IntFilter<"ConditionLog"> | number
   LoggedBy?: Prisma.IntFilter<"ConditionLog"> | number
-  Condition?: Prisma.IntFilter<"ConditionLog"> | number
+  Condition?: Prisma.EnumConditionTypeFilter<"ConditionLog"> | $Enums.ConditionType
   Notes?: Prisma.StringNullableFilter<"ConditionLog"> | string | null
   LoggedAt?: Prisma.DateTimeNullableFilter<"ConditionLog"> | Date | string | null
   Resource?: Prisma.XOR<Prisma.ResourceInfoScalarRelationFilter, Prisma.ResourceInfoWhereInput>
   LoggedByUser?: Prisma.XOR<Prisma.AccountInfoScalarRelationFilter, Prisma.AccountInfoWhereInput>
-  ConditionType?: Prisma.XOR<Prisma.ConditionTypeScalarRelationFilter, Prisma.ConditionTypeWhereInput>
   ResourcesCurrentlyOn?: Prisma.ResourceInfoListRelationFilter
   UsageCheckIns?: Prisma.UsageLogListRelationFilter
   UsageCheckouts?: Prisma.UsageLogListRelationFilter
@@ -256,7 +251,6 @@ export type ConditionLogOrderByWithRelationInput = {
   LoggedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   Resource?: Prisma.ResourceInfoOrderByWithRelationInput
   LoggedByUser?: Prisma.AccountInfoOrderByWithRelationInput
-  ConditionType?: Prisma.ConditionTypeOrderByWithRelationInput
   ResourcesCurrentlyOn?: Prisma.ResourceInfoOrderByRelationAggregateInput
   UsageCheckIns?: Prisma.UsageLogOrderByRelationAggregateInput
   UsageCheckouts?: Prisma.UsageLogOrderByRelationAggregateInput
@@ -272,12 +266,11 @@ export type ConditionLogWhereUniqueInput = Prisma.AtLeast<{
   NOT?: Prisma.ConditionLogWhereInput | Prisma.ConditionLogWhereInput[]
   ResourceKey?: Prisma.IntFilter<"ConditionLog"> | number
   LoggedBy?: Prisma.IntFilter<"ConditionLog"> | number
-  Condition?: Prisma.IntFilter<"ConditionLog"> | number
+  Condition?: Prisma.EnumConditionTypeFilter<"ConditionLog"> | $Enums.ConditionType
   Notes?: Prisma.StringNullableFilter<"ConditionLog"> | string | null
   LoggedAt?: Prisma.DateTimeNullableFilter<"ConditionLog"> | Date | string | null
   Resource?: Prisma.XOR<Prisma.ResourceInfoScalarRelationFilter, Prisma.ResourceInfoWhereInput>
   LoggedByUser?: Prisma.XOR<Prisma.AccountInfoScalarRelationFilter, Prisma.AccountInfoWhereInput>
-  ConditionType?: Prisma.XOR<Prisma.ConditionTypeScalarRelationFilter, Prisma.ConditionTypeWhereInput>
   ResourcesCurrentlyOn?: Prisma.ResourceInfoListRelationFilter
   UsageCheckIns?: Prisma.UsageLogListRelationFilter
   UsageCheckouts?: Prisma.UsageLogListRelationFilter
@@ -307,17 +300,17 @@ export type ConditionLogScalarWhereWithAggregatesInput = {
   ConditionKey?: Prisma.IntWithAggregatesFilter<"ConditionLog"> | number
   ResourceKey?: Prisma.IntWithAggregatesFilter<"ConditionLog"> | number
   LoggedBy?: Prisma.IntWithAggregatesFilter<"ConditionLog"> | number
-  Condition?: Prisma.IntWithAggregatesFilter<"ConditionLog"> | number
+  Condition?: Prisma.EnumConditionTypeWithAggregatesFilter<"ConditionLog"> | $Enums.ConditionType
   Notes?: Prisma.StringNullableWithAggregatesFilter<"ConditionLog"> | string | null
   LoggedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"ConditionLog"> | Date | string | null
 }
 
 export type ConditionLogCreateInput = {
+  Condition: $Enums.ConditionType
   Notes?: string | null
   LoggedAt?: Date | string | null
   Resource: Prisma.ResourceInfoCreateNestedOneWithoutConditionLogsInput
   LoggedByUser: Prisma.AccountInfoCreateNestedOneWithoutConditionLogsLoggedInput
-  ConditionType: Prisma.ConditionTypeCreateNestedOneWithoutConditionLogsInput
   ResourcesCurrentlyOn?: Prisma.ResourceInfoCreateNestedManyWithoutCurrentConditionInput
   UsageCheckIns?: Prisma.UsageLogCreateNestedManyWithoutCheckInConditionLogInput
   UsageCheckouts?: Prisma.UsageLogCreateNestedManyWithoutCheckoutConditionLogInput
@@ -330,7 +323,7 @@ export type ConditionLogUncheckedCreateInput = {
   ConditionKey?: number
   ResourceKey: number
   LoggedBy: number
-  Condition: number
+  Condition: $Enums.ConditionType
   Notes?: string | null
   LoggedAt?: Date | string | null
   ResourcesCurrentlyOn?: Prisma.ResourceInfoUncheckedCreateNestedManyWithoutCurrentConditionInput
@@ -342,11 +335,11 @@ export type ConditionLogUncheckedCreateInput = {
 }
 
 export type ConditionLogUpdateInput = {
+  Condition?: Prisma.EnumConditionTypeFieldUpdateOperationsInput | $Enums.ConditionType
   Notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   LoggedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   Resource?: Prisma.ResourceInfoUpdateOneRequiredWithoutConditionLogsNestedInput
   LoggedByUser?: Prisma.AccountInfoUpdateOneRequiredWithoutConditionLogsLoggedNestedInput
-  ConditionType?: Prisma.ConditionTypeUpdateOneRequiredWithoutConditionLogsNestedInput
   ResourcesCurrentlyOn?: Prisma.ResourceInfoUpdateManyWithoutCurrentConditionNestedInput
   UsageCheckIns?: Prisma.UsageLogUpdateManyWithoutCheckInConditionLogNestedInput
   UsageCheckouts?: Prisma.UsageLogUpdateManyWithoutCheckoutConditionLogNestedInput
@@ -359,7 +352,7 @@ export type ConditionLogUncheckedUpdateInput = {
   ConditionKey?: Prisma.IntFieldUpdateOperationsInput | number
   ResourceKey?: Prisma.IntFieldUpdateOperationsInput | number
   LoggedBy?: Prisma.IntFieldUpdateOperationsInput | number
-  Condition?: Prisma.IntFieldUpdateOperationsInput | number
+  Condition?: Prisma.EnumConditionTypeFieldUpdateOperationsInput | $Enums.ConditionType
   Notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   LoggedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   ResourcesCurrentlyOn?: Prisma.ResourceInfoUncheckedUpdateManyWithoutCurrentConditionNestedInput
@@ -374,12 +367,13 @@ export type ConditionLogCreateManyInput = {
   ConditionKey?: number
   ResourceKey: number
   LoggedBy: number
-  Condition: number
+  Condition: $Enums.ConditionType
   Notes?: string | null
   LoggedAt?: Date | string | null
 }
 
 export type ConditionLogUpdateManyMutationInput = {
+  Condition?: Prisma.EnumConditionTypeFieldUpdateOperationsInput | $Enums.ConditionType
   Notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   LoggedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
@@ -388,7 +382,7 @@ export type ConditionLogUncheckedUpdateManyInput = {
   ConditionKey?: Prisma.IntFieldUpdateOperationsInput | number
   ResourceKey?: Prisma.IntFieldUpdateOperationsInput | number
   LoggedBy?: Prisma.IntFieldUpdateOperationsInput | number
-  Condition?: Prisma.IntFieldUpdateOperationsInput | number
+  Condition?: Prisma.EnumConditionTypeFieldUpdateOperationsInput | $Enums.ConditionType
   Notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   LoggedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
@@ -421,7 +415,6 @@ export type ConditionLogAvgOrderByAggregateInput = {
   ConditionKey?: Prisma.SortOrder
   ResourceKey?: Prisma.SortOrder
   LoggedBy?: Prisma.SortOrder
-  Condition?: Prisma.SortOrder
 }
 
 export type ConditionLogMaxOrderByAggregateInput = {
@@ -446,7 +439,6 @@ export type ConditionLogSumOrderByAggregateInput = {
   ConditionKey?: Prisma.SortOrder
   ResourceKey?: Prisma.SortOrder
   LoggedBy?: Prisma.SortOrder
-  Condition?: Prisma.SortOrder
 }
 
 export type ConditionLogScalarRelationFilter = {
@@ -554,50 +546,12 @@ export type ConditionLogUncheckedUpdateManyWithoutResourceNestedInput = {
   deleteMany?: Prisma.ConditionLogScalarWhereInput | Prisma.ConditionLogScalarWhereInput[]
 }
 
+export type EnumConditionTypeFieldUpdateOperationsInput = {
+  set?: $Enums.ConditionType
+}
+
 export type NullableDateTimeFieldUpdateOperationsInput = {
   set?: Date | string | null
-}
-
-export type ConditionLogCreateNestedManyWithoutConditionTypeInput = {
-  create?: Prisma.XOR<Prisma.ConditionLogCreateWithoutConditionTypeInput, Prisma.ConditionLogUncheckedCreateWithoutConditionTypeInput> | Prisma.ConditionLogCreateWithoutConditionTypeInput[] | Prisma.ConditionLogUncheckedCreateWithoutConditionTypeInput[]
-  connectOrCreate?: Prisma.ConditionLogCreateOrConnectWithoutConditionTypeInput | Prisma.ConditionLogCreateOrConnectWithoutConditionTypeInput[]
-  createMany?: Prisma.ConditionLogCreateManyConditionTypeInputEnvelope
-  connect?: Prisma.ConditionLogWhereUniqueInput | Prisma.ConditionLogWhereUniqueInput[]
-}
-
-export type ConditionLogUncheckedCreateNestedManyWithoutConditionTypeInput = {
-  create?: Prisma.XOR<Prisma.ConditionLogCreateWithoutConditionTypeInput, Prisma.ConditionLogUncheckedCreateWithoutConditionTypeInput> | Prisma.ConditionLogCreateWithoutConditionTypeInput[] | Prisma.ConditionLogUncheckedCreateWithoutConditionTypeInput[]
-  connectOrCreate?: Prisma.ConditionLogCreateOrConnectWithoutConditionTypeInput | Prisma.ConditionLogCreateOrConnectWithoutConditionTypeInput[]
-  createMany?: Prisma.ConditionLogCreateManyConditionTypeInputEnvelope
-  connect?: Prisma.ConditionLogWhereUniqueInput | Prisma.ConditionLogWhereUniqueInput[]
-}
-
-export type ConditionLogUpdateManyWithoutConditionTypeNestedInput = {
-  create?: Prisma.XOR<Prisma.ConditionLogCreateWithoutConditionTypeInput, Prisma.ConditionLogUncheckedCreateWithoutConditionTypeInput> | Prisma.ConditionLogCreateWithoutConditionTypeInput[] | Prisma.ConditionLogUncheckedCreateWithoutConditionTypeInput[]
-  connectOrCreate?: Prisma.ConditionLogCreateOrConnectWithoutConditionTypeInput | Prisma.ConditionLogCreateOrConnectWithoutConditionTypeInput[]
-  upsert?: Prisma.ConditionLogUpsertWithWhereUniqueWithoutConditionTypeInput | Prisma.ConditionLogUpsertWithWhereUniqueWithoutConditionTypeInput[]
-  createMany?: Prisma.ConditionLogCreateManyConditionTypeInputEnvelope
-  set?: Prisma.ConditionLogWhereUniqueInput | Prisma.ConditionLogWhereUniqueInput[]
-  disconnect?: Prisma.ConditionLogWhereUniqueInput | Prisma.ConditionLogWhereUniqueInput[]
-  delete?: Prisma.ConditionLogWhereUniqueInput | Prisma.ConditionLogWhereUniqueInput[]
-  connect?: Prisma.ConditionLogWhereUniqueInput | Prisma.ConditionLogWhereUniqueInput[]
-  update?: Prisma.ConditionLogUpdateWithWhereUniqueWithoutConditionTypeInput | Prisma.ConditionLogUpdateWithWhereUniqueWithoutConditionTypeInput[]
-  updateMany?: Prisma.ConditionLogUpdateManyWithWhereWithoutConditionTypeInput | Prisma.ConditionLogUpdateManyWithWhereWithoutConditionTypeInput[]
-  deleteMany?: Prisma.ConditionLogScalarWhereInput | Prisma.ConditionLogScalarWhereInput[]
-}
-
-export type ConditionLogUncheckedUpdateManyWithoutConditionTypeNestedInput = {
-  create?: Prisma.XOR<Prisma.ConditionLogCreateWithoutConditionTypeInput, Prisma.ConditionLogUncheckedCreateWithoutConditionTypeInput> | Prisma.ConditionLogCreateWithoutConditionTypeInput[] | Prisma.ConditionLogUncheckedCreateWithoutConditionTypeInput[]
-  connectOrCreate?: Prisma.ConditionLogCreateOrConnectWithoutConditionTypeInput | Prisma.ConditionLogCreateOrConnectWithoutConditionTypeInput[]
-  upsert?: Prisma.ConditionLogUpsertWithWhereUniqueWithoutConditionTypeInput | Prisma.ConditionLogUpsertWithWhereUniqueWithoutConditionTypeInput[]
-  createMany?: Prisma.ConditionLogCreateManyConditionTypeInputEnvelope
-  set?: Prisma.ConditionLogWhereUniqueInput | Prisma.ConditionLogWhereUniqueInput[]
-  disconnect?: Prisma.ConditionLogWhereUniqueInput | Prisma.ConditionLogWhereUniqueInput[]
-  delete?: Prisma.ConditionLogWhereUniqueInput | Prisma.ConditionLogWhereUniqueInput[]
-  connect?: Prisma.ConditionLogWhereUniqueInput | Prisma.ConditionLogWhereUniqueInput[]
-  update?: Prisma.ConditionLogUpdateWithWhereUniqueWithoutConditionTypeInput | Prisma.ConditionLogUpdateWithWhereUniqueWithoutConditionTypeInput[]
-  updateMany?: Prisma.ConditionLogUpdateManyWithWhereWithoutConditionTypeInput | Prisma.ConditionLogUpdateManyWithWhereWithoutConditionTypeInput[]
-  deleteMany?: Prisma.ConditionLogScalarWhereInput | Prisma.ConditionLogScalarWhereInput[]
 }
 
 export type ConditionLogCreateNestedOneWithoutUsageCheckoutsInput = {
@@ -675,10 +629,10 @@ export type ConditionLogUpdateOneWithoutRepairsAfterNestedInput = {
 }
 
 export type ConditionLogCreateWithoutLoggedByUserInput = {
+  Condition: $Enums.ConditionType
   Notes?: string | null
   LoggedAt?: Date | string | null
   Resource: Prisma.ResourceInfoCreateNestedOneWithoutConditionLogsInput
-  ConditionType: Prisma.ConditionTypeCreateNestedOneWithoutConditionLogsInput
   ResourcesCurrentlyOn?: Prisma.ResourceInfoCreateNestedManyWithoutCurrentConditionInput
   UsageCheckIns?: Prisma.UsageLogCreateNestedManyWithoutCheckInConditionLogInput
   UsageCheckouts?: Prisma.UsageLogCreateNestedManyWithoutCheckoutConditionLogInput
@@ -690,7 +644,7 @@ export type ConditionLogCreateWithoutLoggedByUserInput = {
 export type ConditionLogUncheckedCreateWithoutLoggedByUserInput = {
   ConditionKey?: number
   ResourceKey: number
-  Condition: number
+  Condition: $Enums.ConditionType
   Notes?: string | null
   LoggedAt?: Date | string | null
   ResourcesCurrentlyOn?: Prisma.ResourceInfoUncheckedCreateNestedManyWithoutCurrentConditionInput
@@ -734,17 +688,17 @@ export type ConditionLogScalarWhereInput = {
   ConditionKey?: Prisma.IntFilter<"ConditionLog"> | number
   ResourceKey?: Prisma.IntFilter<"ConditionLog"> | number
   LoggedBy?: Prisma.IntFilter<"ConditionLog"> | number
-  Condition?: Prisma.IntFilter<"ConditionLog"> | number
+  Condition?: Prisma.EnumConditionTypeFilter<"ConditionLog"> | $Enums.ConditionType
   Notes?: Prisma.StringNullableFilter<"ConditionLog"> | string | null
   LoggedAt?: Prisma.DateTimeNullableFilter<"ConditionLog"> | Date | string | null
 }
 
 export type ConditionLogCreateWithoutResourcesCurrentlyOnInput = {
+  Condition: $Enums.ConditionType
   Notes?: string | null
   LoggedAt?: Date | string | null
   Resource: Prisma.ResourceInfoCreateNestedOneWithoutConditionLogsInput
   LoggedByUser: Prisma.AccountInfoCreateNestedOneWithoutConditionLogsLoggedInput
-  ConditionType: Prisma.ConditionTypeCreateNestedOneWithoutConditionLogsInput
   UsageCheckIns?: Prisma.UsageLogCreateNestedManyWithoutCheckInConditionLogInput
   UsageCheckouts?: Prisma.UsageLogCreateNestedManyWithoutCheckoutConditionLogInput
   Inspections?: Prisma.InspectionCreateNestedManyWithoutConditionInput
@@ -756,7 +710,7 @@ export type ConditionLogUncheckedCreateWithoutResourcesCurrentlyOnInput = {
   ConditionKey?: number
   ResourceKey: number
   LoggedBy: number
-  Condition: number
+  Condition: $Enums.ConditionType
   Notes?: string | null
   LoggedAt?: Date | string | null
   UsageCheckIns?: Prisma.UsageLogUncheckedCreateNestedManyWithoutCheckInConditionLogInput
@@ -772,10 +726,10 @@ export type ConditionLogCreateOrConnectWithoutResourcesCurrentlyOnInput = {
 }
 
 export type ConditionLogCreateWithoutResourceInput = {
+  Condition: $Enums.ConditionType
   Notes?: string | null
   LoggedAt?: Date | string | null
   LoggedByUser: Prisma.AccountInfoCreateNestedOneWithoutConditionLogsLoggedInput
-  ConditionType: Prisma.ConditionTypeCreateNestedOneWithoutConditionLogsInput
   ResourcesCurrentlyOn?: Prisma.ResourceInfoCreateNestedManyWithoutCurrentConditionInput
   UsageCheckIns?: Prisma.UsageLogCreateNestedManyWithoutCheckInConditionLogInput
   UsageCheckouts?: Prisma.UsageLogCreateNestedManyWithoutCheckoutConditionLogInput
@@ -787,7 +741,7 @@ export type ConditionLogCreateWithoutResourceInput = {
 export type ConditionLogUncheckedCreateWithoutResourceInput = {
   ConditionKey?: number
   LoggedBy: number
-  Condition: number
+  Condition: $Enums.ConditionType
   Notes?: string | null
   LoggedAt?: Date | string | null
   ResourcesCurrentlyOn?: Prisma.ResourceInfoUncheckedCreateNestedManyWithoutCurrentConditionInput
@@ -820,11 +774,11 @@ export type ConditionLogUpdateToOneWithWhereWithoutResourcesCurrentlyOnInput = {
 }
 
 export type ConditionLogUpdateWithoutResourcesCurrentlyOnInput = {
+  Condition?: Prisma.EnumConditionTypeFieldUpdateOperationsInput | $Enums.ConditionType
   Notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   LoggedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   Resource?: Prisma.ResourceInfoUpdateOneRequiredWithoutConditionLogsNestedInput
   LoggedByUser?: Prisma.AccountInfoUpdateOneRequiredWithoutConditionLogsLoggedNestedInput
-  ConditionType?: Prisma.ConditionTypeUpdateOneRequiredWithoutConditionLogsNestedInput
   UsageCheckIns?: Prisma.UsageLogUpdateManyWithoutCheckInConditionLogNestedInput
   UsageCheckouts?: Prisma.UsageLogUpdateManyWithoutCheckoutConditionLogNestedInput
   Inspections?: Prisma.InspectionUpdateManyWithoutConditionNestedInput
@@ -836,7 +790,7 @@ export type ConditionLogUncheckedUpdateWithoutResourcesCurrentlyOnInput = {
   ConditionKey?: Prisma.IntFieldUpdateOperationsInput | number
   ResourceKey?: Prisma.IntFieldUpdateOperationsInput | number
   LoggedBy?: Prisma.IntFieldUpdateOperationsInput | number
-  Condition?: Prisma.IntFieldUpdateOperationsInput | number
+  Condition?: Prisma.EnumConditionTypeFieldUpdateOperationsInput | $Enums.ConditionType
   Notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   LoggedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   UsageCheckIns?: Prisma.UsageLogUncheckedUpdateManyWithoutCheckInConditionLogNestedInput
@@ -862,65 +816,12 @@ export type ConditionLogUpdateManyWithWhereWithoutResourceInput = {
   data: Prisma.XOR<Prisma.ConditionLogUpdateManyMutationInput, Prisma.ConditionLogUncheckedUpdateManyWithoutResourceInput>
 }
 
-export type ConditionLogCreateWithoutConditionTypeInput = {
-  Notes?: string | null
-  LoggedAt?: Date | string | null
-  Resource: Prisma.ResourceInfoCreateNestedOneWithoutConditionLogsInput
-  LoggedByUser: Prisma.AccountInfoCreateNestedOneWithoutConditionLogsLoggedInput
-  ResourcesCurrentlyOn?: Prisma.ResourceInfoCreateNestedManyWithoutCurrentConditionInput
-  UsageCheckIns?: Prisma.UsageLogCreateNestedManyWithoutCheckInConditionLogInput
-  UsageCheckouts?: Prisma.UsageLogCreateNestedManyWithoutCheckoutConditionLogInput
-  Inspections?: Prisma.InspectionCreateNestedManyWithoutConditionInput
-  RepairsBefore?: Prisma.RepairLogCreateNestedManyWithoutConditionBeforeInput
-  RepairsAfter?: Prisma.RepairLogCreateNestedManyWithoutConditionAfterInput
-}
-
-export type ConditionLogUncheckedCreateWithoutConditionTypeInput = {
-  ConditionKey?: number
-  ResourceKey: number
-  LoggedBy: number
-  Notes?: string | null
-  LoggedAt?: Date | string | null
-  ResourcesCurrentlyOn?: Prisma.ResourceInfoUncheckedCreateNestedManyWithoutCurrentConditionInput
-  UsageCheckIns?: Prisma.UsageLogUncheckedCreateNestedManyWithoutCheckInConditionLogInput
-  UsageCheckouts?: Prisma.UsageLogUncheckedCreateNestedManyWithoutCheckoutConditionLogInput
-  Inspections?: Prisma.InspectionUncheckedCreateNestedManyWithoutConditionInput
-  RepairsBefore?: Prisma.RepairLogUncheckedCreateNestedManyWithoutConditionBeforeInput
-  RepairsAfter?: Prisma.RepairLogUncheckedCreateNestedManyWithoutConditionAfterInput
-}
-
-export type ConditionLogCreateOrConnectWithoutConditionTypeInput = {
-  where: Prisma.ConditionLogWhereUniqueInput
-  create: Prisma.XOR<Prisma.ConditionLogCreateWithoutConditionTypeInput, Prisma.ConditionLogUncheckedCreateWithoutConditionTypeInput>
-}
-
-export type ConditionLogCreateManyConditionTypeInputEnvelope = {
-  data: Prisma.ConditionLogCreateManyConditionTypeInput | Prisma.ConditionLogCreateManyConditionTypeInput[]
-  skipDuplicates?: boolean
-}
-
-export type ConditionLogUpsertWithWhereUniqueWithoutConditionTypeInput = {
-  where: Prisma.ConditionLogWhereUniqueInput
-  update: Prisma.XOR<Prisma.ConditionLogUpdateWithoutConditionTypeInput, Prisma.ConditionLogUncheckedUpdateWithoutConditionTypeInput>
-  create: Prisma.XOR<Prisma.ConditionLogCreateWithoutConditionTypeInput, Prisma.ConditionLogUncheckedCreateWithoutConditionTypeInput>
-}
-
-export type ConditionLogUpdateWithWhereUniqueWithoutConditionTypeInput = {
-  where: Prisma.ConditionLogWhereUniqueInput
-  data: Prisma.XOR<Prisma.ConditionLogUpdateWithoutConditionTypeInput, Prisma.ConditionLogUncheckedUpdateWithoutConditionTypeInput>
-}
-
-export type ConditionLogUpdateManyWithWhereWithoutConditionTypeInput = {
-  where: Prisma.ConditionLogScalarWhereInput
-  data: Prisma.XOR<Prisma.ConditionLogUpdateManyMutationInput, Prisma.ConditionLogUncheckedUpdateManyWithoutConditionTypeInput>
-}
-
 export type ConditionLogCreateWithoutUsageCheckoutsInput = {
+  Condition: $Enums.ConditionType
   Notes?: string | null
   LoggedAt?: Date | string | null
   Resource: Prisma.ResourceInfoCreateNestedOneWithoutConditionLogsInput
   LoggedByUser: Prisma.AccountInfoCreateNestedOneWithoutConditionLogsLoggedInput
-  ConditionType: Prisma.ConditionTypeCreateNestedOneWithoutConditionLogsInput
   ResourcesCurrentlyOn?: Prisma.ResourceInfoCreateNestedManyWithoutCurrentConditionInput
   UsageCheckIns?: Prisma.UsageLogCreateNestedManyWithoutCheckInConditionLogInput
   Inspections?: Prisma.InspectionCreateNestedManyWithoutConditionInput
@@ -932,7 +833,7 @@ export type ConditionLogUncheckedCreateWithoutUsageCheckoutsInput = {
   ConditionKey?: number
   ResourceKey: number
   LoggedBy: number
-  Condition: number
+  Condition: $Enums.ConditionType
   Notes?: string | null
   LoggedAt?: Date | string | null
   ResourcesCurrentlyOn?: Prisma.ResourceInfoUncheckedCreateNestedManyWithoutCurrentConditionInput
@@ -948,11 +849,11 @@ export type ConditionLogCreateOrConnectWithoutUsageCheckoutsInput = {
 }
 
 export type ConditionLogCreateWithoutUsageCheckInsInput = {
+  Condition: $Enums.ConditionType
   Notes?: string | null
   LoggedAt?: Date | string | null
   Resource: Prisma.ResourceInfoCreateNestedOneWithoutConditionLogsInput
   LoggedByUser: Prisma.AccountInfoCreateNestedOneWithoutConditionLogsLoggedInput
-  ConditionType: Prisma.ConditionTypeCreateNestedOneWithoutConditionLogsInput
   ResourcesCurrentlyOn?: Prisma.ResourceInfoCreateNestedManyWithoutCurrentConditionInput
   UsageCheckouts?: Prisma.UsageLogCreateNestedManyWithoutCheckoutConditionLogInput
   Inspections?: Prisma.InspectionCreateNestedManyWithoutConditionInput
@@ -964,7 +865,7 @@ export type ConditionLogUncheckedCreateWithoutUsageCheckInsInput = {
   ConditionKey?: number
   ResourceKey: number
   LoggedBy: number
-  Condition: number
+  Condition: $Enums.ConditionType
   Notes?: string | null
   LoggedAt?: Date | string | null
   ResourcesCurrentlyOn?: Prisma.ResourceInfoUncheckedCreateNestedManyWithoutCurrentConditionInput
@@ -991,11 +892,11 @@ export type ConditionLogUpdateToOneWithWhereWithoutUsageCheckoutsInput = {
 }
 
 export type ConditionLogUpdateWithoutUsageCheckoutsInput = {
+  Condition?: Prisma.EnumConditionTypeFieldUpdateOperationsInput | $Enums.ConditionType
   Notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   LoggedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   Resource?: Prisma.ResourceInfoUpdateOneRequiredWithoutConditionLogsNestedInput
   LoggedByUser?: Prisma.AccountInfoUpdateOneRequiredWithoutConditionLogsLoggedNestedInput
-  ConditionType?: Prisma.ConditionTypeUpdateOneRequiredWithoutConditionLogsNestedInput
   ResourcesCurrentlyOn?: Prisma.ResourceInfoUpdateManyWithoutCurrentConditionNestedInput
   UsageCheckIns?: Prisma.UsageLogUpdateManyWithoutCheckInConditionLogNestedInput
   Inspections?: Prisma.InspectionUpdateManyWithoutConditionNestedInput
@@ -1007,7 +908,7 @@ export type ConditionLogUncheckedUpdateWithoutUsageCheckoutsInput = {
   ConditionKey?: Prisma.IntFieldUpdateOperationsInput | number
   ResourceKey?: Prisma.IntFieldUpdateOperationsInput | number
   LoggedBy?: Prisma.IntFieldUpdateOperationsInput | number
-  Condition?: Prisma.IntFieldUpdateOperationsInput | number
+  Condition?: Prisma.EnumConditionTypeFieldUpdateOperationsInput | $Enums.ConditionType
   Notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   LoggedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   ResourcesCurrentlyOn?: Prisma.ResourceInfoUncheckedUpdateManyWithoutCurrentConditionNestedInput
@@ -1029,11 +930,11 @@ export type ConditionLogUpdateToOneWithWhereWithoutUsageCheckInsInput = {
 }
 
 export type ConditionLogUpdateWithoutUsageCheckInsInput = {
+  Condition?: Prisma.EnumConditionTypeFieldUpdateOperationsInput | $Enums.ConditionType
   Notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   LoggedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   Resource?: Prisma.ResourceInfoUpdateOneRequiredWithoutConditionLogsNestedInput
   LoggedByUser?: Prisma.AccountInfoUpdateOneRequiredWithoutConditionLogsLoggedNestedInput
-  ConditionType?: Prisma.ConditionTypeUpdateOneRequiredWithoutConditionLogsNestedInput
   ResourcesCurrentlyOn?: Prisma.ResourceInfoUpdateManyWithoutCurrentConditionNestedInput
   UsageCheckouts?: Prisma.UsageLogUpdateManyWithoutCheckoutConditionLogNestedInput
   Inspections?: Prisma.InspectionUpdateManyWithoutConditionNestedInput
@@ -1045,7 +946,7 @@ export type ConditionLogUncheckedUpdateWithoutUsageCheckInsInput = {
   ConditionKey?: Prisma.IntFieldUpdateOperationsInput | number
   ResourceKey?: Prisma.IntFieldUpdateOperationsInput | number
   LoggedBy?: Prisma.IntFieldUpdateOperationsInput | number
-  Condition?: Prisma.IntFieldUpdateOperationsInput | number
+  Condition?: Prisma.EnumConditionTypeFieldUpdateOperationsInput | $Enums.ConditionType
   Notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   LoggedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   ResourcesCurrentlyOn?: Prisma.ResourceInfoUncheckedUpdateManyWithoutCurrentConditionNestedInput
@@ -1056,11 +957,11 @@ export type ConditionLogUncheckedUpdateWithoutUsageCheckInsInput = {
 }
 
 export type ConditionLogCreateWithoutInspectionsInput = {
+  Condition: $Enums.ConditionType
   Notes?: string | null
   LoggedAt?: Date | string | null
   Resource: Prisma.ResourceInfoCreateNestedOneWithoutConditionLogsInput
   LoggedByUser: Prisma.AccountInfoCreateNestedOneWithoutConditionLogsLoggedInput
-  ConditionType: Prisma.ConditionTypeCreateNestedOneWithoutConditionLogsInput
   ResourcesCurrentlyOn?: Prisma.ResourceInfoCreateNestedManyWithoutCurrentConditionInput
   UsageCheckIns?: Prisma.UsageLogCreateNestedManyWithoutCheckInConditionLogInput
   UsageCheckouts?: Prisma.UsageLogCreateNestedManyWithoutCheckoutConditionLogInput
@@ -1072,7 +973,7 @@ export type ConditionLogUncheckedCreateWithoutInspectionsInput = {
   ConditionKey?: number
   ResourceKey: number
   LoggedBy: number
-  Condition: number
+  Condition: $Enums.ConditionType
   Notes?: string | null
   LoggedAt?: Date | string | null
   ResourcesCurrentlyOn?: Prisma.ResourceInfoUncheckedCreateNestedManyWithoutCurrentConditionInput
@@ -1099,11 +1000,11 @@ export type ConditionLogUpdateToOneWithWhereWithoutInspectionsInput = {
 }
 
 export type ConditionLogUpdateWithoutInspectionsInput = {
+  Condition?: Prisma.EnumConditionTypeFieldUpdateOperationsInput | $Enums.ConditionType
   Notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   LoggedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   Resource?: Prisma.ResourceInfoUpdateOneRequiredWithoutConditionLogsNestedInput
   LoggedByUser?: Prisma.AccountInfoUpdateOneRequiredWithoutConditionLogsLoggedNestedInput
-  ConditionType?: Prisma.ConditionTypeUpdateOneRequiredWithoutConditionLogsNestedInput
   ResourcesCurrentlyOn?: Prisma.ResourceInfoUpdateManyWithoutCurrentConditionNestedInput
   UsageCheckIns?: Prisma.UsageLogUpdateManyWithoutCheckInConditionLogNestedInput
   UsageCheckouts?: Prisma.UsageLogUpdateManyWithoutCheckoutConditionLogNestedInput
@@ -1115,7 +1016,7 @@ export type ConditionLogUncheckedUpdateWithoutInspectionsInput = {
   ConditionKey?: Prisma.IntFieldUpdateOperationsInput | number
   ResourceKey?: Prisma.IntFieldUpdateOperationsInput | number
   LoggedBy?: Prisma.IntFieldUpdateOperationsInput | number
-  Condition?: Prisma.IntFieldUpdateOperationsInput | number
+  Condition?: Prisma.EnumConditionTypeFieldUpdateOperationsInput | $Enums.ConditionType
   Notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   LoggedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   ResourcesCurrentlyOn?: Prisma.ResourceInfoUncheckedUpdateManyWithoutCurrentConditionNestedInput
@@ -1126,11 +1027,11 @@ export type ConditionLogUncheckedUpdateWithoutInspectionsInput = {
 }
 
 export type ConditionLogCreateWithoutRepairsBeforeInput = {
+  Condition: $Enums.ConditionType
   Notes?: string | null
   LoggedAt?: Date | string | null
   Resource: Prisma.ResourceInfoCreateNestedOneWithoutConditionLogsInput
   LoggedByUser: Prisma.AccountInfoCreateNestedOneWithoutConditionLogsLoggedInput
-  ConditionType: Prisma.ConditionTypeCreateNestedOneWithoutConditionLogsInput
   ResourcesCurrentlyOn?: Prisma.ResourceInfoCreateNestedManyWithoutCurrentConditionInput
   UsageCheckIns?: Prisma.UsageLogCreateNestedManyWithoutCheckInConditionLogInput
   UsageCheckouts?: Prisma.UsageLogCreateNestedManyWithoutCheckoutConditionLogInput
@@ -1142,7 +1043,7 @@ export type ConditionLogUncheckedCreateWithoutRepairsBeforeInput = {
   ConditionKey?: number
   ResourceKey: number
   LoggedBy: number
-  Condition: number
+  Condition: $Enums.ConditionType
   Notes?: string | null
   LoggedAt?: Date | string | null
   ResourcesCurrentlyOn?: Prisma.ResourceInfoUncheckedCreateNestedManyWithoutCurrentConditionInput
@@ -1158,11 +1059,11 @@ export type ConditionLogCreateOrConnectWithoutRepairsBeforeInput = {
 }
 
 export type ConditionLogCreateWithoutRepairsAfterInput = {
+  Condition: $Enums.ConditionType
   Notes?: string | null
   LoggedAt?: Date | string | null
   Resource: Prisma.ResourceInfoCreateNestedOneWithoutConditionLogsInput
   LoggedByUser: Prisma.AccountInfoCreateNestedOneWithoutConditionLogsLoggedInput
-  ConditionType: Prisma.ConditionTypeCreateNestedOneWithoutConditionLogsInput
   ResourcesCurrentlyOn?: Prisma.ResourceInfoCreateNestedManyWithoutCurrentConditionInput
   UsageCheckIns?: Prisma.UsageLogCreateNestedManyWithoutCheckInConditionLogInput
   UsageCheckouts?: Prisma.UsageLogCreateNestedManyWithoutCheckoutConditionLogInput
@@ -1174,7 +1075,7 @@ export type ConditionLogUncheckedCreateWithoutRepairsAfterInput = {
   ConditionKey?: number
   ResourceKey: number
   LoggedBy: number
-  Condition: number
+  Condition: $Enums.ConditionType
   Notes?: string | null
   LoggedAt?: Date | string | null
   ResourcesCurrentlyOn?: Prisma.ResourceInfoUncheckedCreateNestedManyWithoutCurrentConditionInput
@@ -1201,11 +1102,11 @@ export type ConditionLogUpdateToOneWithWhereWithoutRepairsBeforeInput = {
 }
 
 export type ConditionLogUpdateWithoutRepairsBeforeInput = {
+  Condition?: Prisma.EnumConditionTypeFieldUpdateOperationsInput | $Enums.ConditionType
   Notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   LoggedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   Resource?: Prisma.ResourceInfoUpdateOneRequiredWithoutConditionLogsNestedInput
   LoggedByUser?: Prisma.AccountInfoUpdateOneRequiredWithoutConditionLogsLoggedNestedInput
-  ConditionType?: Prisma.ConditionTypeUpdateOneRequiredWithoutConditionLogsNestedInput
   ResourcesCurrentlyOn?: Prisma.ResourceInfoUpdateManyWithoutCurrentConditionNestedInput
   UsageCheckIns?: Prisma.UsageLogUpdateManyWithoutCheckInConditionLogNestedInput
   UsageCheckouts?: Prisma.UsageLogUpdateManyWithoutCheckoutConditionLogNestedInput
@@ -1217,7 +1118,7 @@ export type ConditionLogUncheckedUpdateWithoutRepairsBeforeInput = {
   ConditionKey?: Prisma.IntFieldUpdateOperationsInput | number
   ResourceKey?: Prisma.IntFieldUpdateOperationsInput | number
   LoggedBy?: Prisma.IntFieldUpdateOperationsInput | number
-  Condition?: Prisma.IntFieldUpdateOperationsInput | number
+  Condition?: Prisma.EnumConditionTypeFieldUpdateOperationsInput | $Enums.ConditionType
   Notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   LoggedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   ResourcesCurrentlyOn?: Prisma.ResourceInfoUncheckedUpdateManyWithoutCurrentConditionNestedInput
@@ -1239,11 +1140,11 @@ export type ConditionLogUpdateToOneWithWhereWithoutRepairsAfterInput = {
 }
 
 export type ConditionLogUpdateWithoutRepairsAfterInput = {
+  Condition?: Prisma.EnumConditionTypeFieldUpdateOperationsInput | $Enums.ConditionType
   Notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   LoggedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   Resource?: Prisma.ResourceInfoUpdateOneRequiredWithoutConditionLogsNestedInput
   LoggedByUser?: Prisma.AccountInfoUpdateOneRequiredWithoutConditionLogsLoggedNestedInput
-  ConditionType?: Prisma.ConditionTypeUpdateOneRequiredWithoutConditionLogsNestedInput
   ResourcesCurrentlyOn?: Prisma.ResourceInfoUpdateManyWithoutCurrentConditionNestedInput
   UsageCheckIns?: Prisma.UsageLogUpdateManyWithoutCheckInConditionLogNestedInput
   UsageCheckouts?: Prisma.UsageLogUpdateManyWithoutCheckoutConditionLogNestedInput
@@ -1255,7 +1156,7 @@ export type ConditionLogUncheckedUpdateWithoutRepairsAfterInput = {
   ConditionKey?: Prisma.IntFieldUpdateOperationsInput | number
   ResourceKey?: Prisma.IntFieldUpdateOperationsInput | number
   LoggedBy?: Prisma.IntFieldUpdateOperationsInput | number
-  Condition?: Prisma.IntFieldUpdateOperationsInput | number
+  Condition?: Prisma.EnumConditionTypeFieldUpdateOperationsInput | $Enums.ConditionType
   Notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   LoggedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   ResourcesCurrentlyOn?: Prisma.ResourceInfoUncheckedUpdateManyWithoutCurrentConditionNestedInput
@@ -1268,16 +1169,16 @@ export type ConditionLogUncheckedUpdateWithoutRepairsAfterInput = {
 export type ConditionLogCreateManyLoggedByUserInput = {
   ConditionKey?: number
   ResourceKey: number
-  Condition: number
+  Condition: $Enums.ConditionType
   Notes?: string | null
   LoggedAt?: Date | string | null
 }
 
 export type ConditionLogUpdateWithoutLoggedByUserInput = {
+  Condition?: Prisma.EnumConditionTypeFieldUpdateOperationsInput | $Enums.ConditionType
   Notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   LoggedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   Resource?: Prisma.ResourceInfoUpdateOneRequiredWithoutConditionLogsNestedInput
-  ConditionType?: Prisma.ConditionTypeUpdateOneRequiredWithoutConditionLogsNestedInput
   ResourcesCurrentlyOn?: Prisma.ResourceInfoUpdateManyWithoutCurrentConditionNestedInput
   UsageCheckIns?: Prisma.UsageLogUpdateManyWithoutCheckInConditionLogNestedInput
   UsageCheckouts?: Prisma.UsageLogUpdateManyWithoutCheckoutConditionLogNestedInput
@@ -1289,7 +1190,7 @@ export type ConditionLogUpdateWithoutLoggedByUserInput = {
 export type ConditionLogUncheckedUpdateWithoutLoggedByUserInput = {
   ConditionKey?: Prisma.IntFieldUpdateOperationsInput | number
   ResourceKey?: Prisma.IntFieldUpdateOperationsInput | number
-  Condition?: Prisma.IntFieldUpdateOperationsInput | number
+  Condition?: Prisma.EnumConditionTypeFieldUpdateOperationsInput | $Enums.ConditionType
   Notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   LoggedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   ResourcesCurrentlyOn?: Prisma.ResourceInfoUncheckedUpdateManyWithoutCurrentConditionNestedInput
@@ -1303,7 +1204,7 @@ export type ConditionLogUncheckedUpdateWithoutLoggedByUserInput = {
 export type ConditionLogUncheckedUpdateManyWithoutLoggedByUserInput = {
   ConditionKey?: Prisma.IntFieldUpdateOperationsInput | number
   ResourceKey?: Prisma.IntFieldUpdateOperationsInput | number
-  Condition?: Prisma.IntFieldUpdateOperationsInput | number
+  Condition?: Prisma.EnumConditionTypeFieldUpdateOperationsInput | $Enums.ConditionType
   Notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   LoggedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
@@ -1311,16 +1212,16 @@ export type ConditionLogUncheckedUpdateManyWithoutLoggedByUserInput = {
 export type ConditionLogCreateManyResourceInput = {
   ConditionKey?: number
   LoggedBy: number
-  Condition: number
+  Condition: $Enums.ConditionType
   Notes?: string | null
   LoggedAt?: Date | string | null
 }
 
 export type ConditionLogUpdateWithoutResourceInput = {
+  Condition?: Prisma.EnumConditionTypeFieldUpdateOperationsInput | $Enums.ConditionType
   Notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   LoggedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   LoggedByUser?: Prisma.AccountInfoUpdateOneRequiredWithoutConditionLogsLoggedNestedInput
-  ConditionType?: Prisma.ConditionTypeUpdateOneRequiredWithoutConditionLogsNestedInput
   ResourcesCurrentlyOn?: Prisma.ResourceInfoUpdateManyWithoutCurrentConditionNestedInput
   UsageCheckIns?: Prisma.UsageLogUpdateManyWithoutCheckInConditionLogNestedInput
   UsageCheckouts?: Prisma.UsageLogUpdateManyWithoutCheckoutConditionLogNestedInput
@@ -1332,7 +1233,7 @@ export type ConditionLogUpdateWithoutResourceInput = {
 export type ConditionLogUncheckedUpdateWithoutResourceInput = {
   ConditionKey?: Prisma.IntFieldUpdateOperationsInput | number
   LoggedBy?: Prisma.IntFieldUpdateOperationsInput | number
-  Condition?: Prisma.IntFieldUpdateOperationsInput | number
+  Condition?: Prisma.EnumConditionTypeFieldUpdateOperationsInput | $Enums.ConditionType
   Notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   LoggedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   ResourcesCurrentlyOn?: Prisma.ResourceInfoUncheckedUpdateManyWithoutCurrentConditionNestedInput
@@ -1346,50 +1247,7 @@ export type ConditionLogUncheckedUpdateWithoutResourceInput = {
 export type ConditionLogUncheckedUpdateManyWithoutResourceInput = {
   ConditionKey?: Prisma.IntFieldUpdateOperationsInput | number
   LoggedBy?: Prisma.IntFieldUpdateOperationsInput | number
-  Condition?: Prisma.IntFieldUpdateOperationsInput | number
-  Notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  LoggedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-}
-
-export type ConditionLogCreateManyConditionTypeInput = {
-  ConditionKey?: number
-  ResourceKey: number
-  LoggedBy: number
-  Notes?: string | null
-  LoggedAt?: Date | string | null
-}
-
-export type ConditionLogUpdateWithoutConditionTypeInput = {
-  Notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  LoggedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  Resource?: Prisma.ResourceInfoUpdateOneRequiredWithoutConditionLogsNestedInput
-  LoggedByUser?: Prisma.AccountInfoUpdateOneRequiredWithoutConditionLogsLoggedNestedInput
-  ResourcesCurrentlyOn?: Prisma.ResourceInfoUpdateManyWithoutCurrentConditionNestedInput
-  UsageCheckIns?: Prisma.UsageLogUpdateManyWithoutCheckInConditionLogNestedInput
-  UsageCheckouts?: Prisma.UsageLogUpdateManyWithoutCheckoutConditionLogNestedInput
-  Inspections?: Prisma.InspectionUpdateManyWithoutConditionNestedInput
-  RepairsBefore?: Prisma.RepairLogUpdateManyWithoutConditionBeforeNestedInput
-  RepairsAfter?: Prisma.RepairLogUpdateManyWithoutConditionAfterNestedInput
-}
-
-export type ConditionLogUncheckedUpdateWithoutConditionTypeInput = {
-  ConditionKey?: Prisma.IntFieldUpdateOperationsInput | number
-  ResourceKey?: Prisma.IntFieldUpdateOperationsInput | number
-  LoggedBy?: Prisma.IntFieldUpdateOperationsInput | number
-  Notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  LoggedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  ResourcesCurrentlyOn?: Prisma.ResourceInfoUncheckedUpdateManyWithoutCurrentConditionNestedInput
-  UsageCheckIns?: Prisma.UsageLogUncheckedUpdateManyWithoutCheckInConditionLogNestedInput
-  UsageCheckouts?: Prisma.UsageLogUncheckedUpdateManyWithoutCheckoutConditionLogNestedInput
-  Inspections?: Prisma.InspectionUncheckedUpdateManyWithoutConditionNestedInput
-  RepairsBefore?: Prisma.RepairLogUncheckedUpdateManyWithoutConditionBeforeNestedInput
-  RepairsAfter?: Prisma.RepairLogUncheckedUpdateManyWithoutConditionAfterNestedInput
-}
-
-export type ConditionLogUncheckedUpdateManyWithoutConditionTypeInput = {
-  ConditionKey?: Prisma.IntFieldUpdateOperationsInput | number
-  ResourceKey?: Prisma.IntFieldUpdateOperationsInput | number
-  LoggedBy?: Prisma.IntFieldUpdateOperationsInput | number
+  Condition?: Prisma.EnumConditionTypeFieldUpdateOperationsInput | $Enums.ConditionType
   Notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   LoggedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
@@ -1479,7 +1337,6 @@ export type ConditionLogSelect<ExtArgs extends runtime.Types.Extensions.Internal
   LoggedAt?: boolean
   Resource?: boolean | Prisma.ResourceInfoDefaultArgs<ExtArgs>
   LoggedByUser?: boolean | Prisma.AccountInfoDefaultArgs<ExtArgs>
-  ConditionType?: boolean | Prisma.ConditionTypeDefaultArgs<ExtArgs>
   ResourcesCurrentlyOn?: boolean | Prisma.ConditionLog$ResourcesCurrentlyOnArgs<ExtArgs>
   UsageCheckIns?: boolean | Prisma.ConditionLog$UsageCheckInsArgs<ExtArgs>
   UsageCheckouts?: boolean | Prisma.ConditionLog$UsageCheckoutsArgs<ExtArgs>
@@ -1498,7 +1355,6 @@ export type ConditionLogSelectCreateManyAndReturn<ExtArgs extends runtime.Types.
   LoggedAt?: boolean
   Resource?: boolean | Prisma.ResourceInfoDefaultArgs<ExtArgs>
   LoggedByUser?: boolean | Prisma.AccountInfoDefaultArgs<ExtArgs>
-  ConditionType?: boolean | Prisma.ConditionTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["conditionLog"]>
 
 export type ConditionLogSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -1510,7 +1366,6 @@ export type ConditionLogSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.
   LoggedAt?: boolean
   Resource?: boolean | Prisma.ResourceInfoDefaultArgs<ExtArgs>
   LoggedByUser?: boolean | Prisma.AccountInfoDefaultArgs<ExtArgs>
-  ConditionType?: boolean | Prisma.ConditionTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["conditionLog"]>
 
 export type ConditionLogSelectScalar = {
@@ -1526,7 +1381,6 @@ export type ConditionLogOmit<ExtArgs extends runtime.Types.Extensions.InternalAr
 export type ConditionLogInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   Resource?: boolean | Prisma.ResourceInfoDefaultArgs<ExtArgs>
   LoggedByUser?: boolean | Prisma.AccountInfoDefaultArgs<ExtArgs>
-  ConditionType?: boolean | Prisma.ConditionTypeDefaultArgs<ExtArgs>
   ResourcesCurrentlyOn?: boolean | Prisma.ConditionLog$ResourcesCurrentlyOnArgs<ExtArgs>
   UsageCheckIns?: boolean | Prisma.ConditionLog$UsageCheckInsArgs<ExtArgs>
   UsageCheckouts?: boolean | Prisma.ConditionLog$UsageCheckoutsArgs<ExtArgs>
@@ -1538,12 +1392,10 @@ export type ConditionLogInclude<ExtArgs extends runtime.Types.Extensions.Interna
 export type ConditionLogIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   Resource?: boolean | Prisma.ResourceInfoDefaultArgs<ExtArgs>
   LoggedByUser?: boolean | Prisma.AccountInfoDefaultArgs<ExtArgs>
-  ConditionType?: boolean | Prisma.ConditionTypeDefaultArgs<ExtArgs>
 }
 export type ConditionLogIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   Resource?: boolean | Prisma.ResourceInfoDefaultArgs<ExtArgs>
   LoggedByUser?: boolean | Prisma.AccountInfoDefaultArgs<ExtArgs>
-  ConditionType?: boolean | Prisma.ConditionTypeDefaultArgs<ExtArgs>
 }
 
 export type $ConditionLogPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1551,7 +1403,6 @@ export type $ConditionLogPayload<ExtArgs extends runtime.Types.Extensions.Intern
   objects: {
     Resource: Prisma.$ResourceInfoPayload<ExtArgs>
     LoggedByUser: Prisma.$AccountInfoPayload<ExtArgs>
-    ConditionType: Prisma.$ConditionTypePayload<ExtArgs>
     ResourcesCurrentlyOn: Prisma.$ResourceInfoPayload<ExtArgs>[]
     UsageCheckIns: Prisma.$UsageLogPayload<ExtArgs>[]
     UsageCheckouts: Prisma.$UsageLogPayload<ExtArgs>[]
@@ -1563,7 +1414,7 @@ export type $ConditionLogPayload<ExtArgs extends runtime.Types.Extensions.Intern
     ConditionKey: number
     ResourceKey: number
     LoggedBy: number
-    Condition: number
+    Condition: $Enums.ConditionType
     Notes: string | null
     LoggedAt: Date | null
   }, ExtArgs["result"]["conditionLog"]>
@@ -1962,7 +1813,6 @@ export interface Prisma__ConditionLogClient<T, Null = never, ExtArgs extends run
   readonly [Symbol.toStringTag]: "PrismaPromise"
   Resource<T extends Prisma.ResourceInfoDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ResourceInfoDefaultArgs<ExtArgs>>): Prisma.Prisma__ResourceInfoClient<runtime.Types.Result.GetResult<Prisma.$ResourceInfoPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   LoggedByUser<T extends Prisma.AccountInfoDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AccountInfoDefaultArgs<ExtArgs>>): Prisma.Prisma__AccountInfoClient<runtime.Types.Result.GetResult<Prisma.$AccountInfoPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
-  ConditionType<T extends Prisma.ConditionTypeDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ConditionTypeDefaultArgs<ExtArgs>>): Prisma.Prisma__ConditionTypeClient<runtime.Types.Result.GetResult<Prisma.$ConditionTypePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   ResourcesCurrentlyOn<T extends Prisma.ConditionLog$ResourcesCurrentlyOnArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ConditionLog$ResourcesCurrentlyOnArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ResourceInfoPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   UsageCheckIns<T extends Prisma.ConditionLog$UsageCheckInsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ConditionLog$UsageCheckInsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$UsageLogPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   UsageCheckouts<T extends Prisma.ConditionLog$UsageCheckoutsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ConditionLog$UsageCheckoutsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$UsageLogPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
@@ -2001,7 +1851,7 @@ export interface ConditionLogFieldRefs {
   readonly ConditionKey: Prisma.FieldRef<"ConditionLog", 'Int'>
   readonly ResourceKey: Prisma.FieldRef<"ConditionLog", 'Int'>
   readonly LoggedBy: Prisma.FieldRef<"ConditionLog", 'Int'>
-  readonly Condition: Prisma.FieldRef<"ConditionLog", 'Int'>
+  readonly Condition: Prisma.FieldRef<"ConditionLog", 'ConditionType'>
   readonly Notes: Prisma.FieldRef<"ConditionLog", 'String'>
   readonly LoggedAt: Prisma.FieldRef<"ConditionLog", 'DateTime'>
 }
