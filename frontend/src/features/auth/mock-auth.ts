@@ -56,15 +56,21 @@ export const MOCK_USER_STORAGE_KEY = "ulms-mock-user";
  * team can reach staff / supervisor / admin views during development.
  * Borrower is reached via the KU email method instead.
  *
- * ⚠️ REMOVE THIS once the real /auth backend lands — the server must be the
- * source of truth for credentials and roles. See README "Test credentials".
+ * TODO(auth-integration): DELETE this file entirely once real auth lands.
+ * Do NOT seed these usernames into any database — they are publicly known.
+ *
+ * `import.meta.env.DEV` is replaced by a literal at build time, so the
+ * production bundle keeps only the empty array — the passwords are never
+ * emitted. Verified with `grep -r staff1234 dist/`.
  */
 export const MOCK_LOCAL_CREDENTIALS: {
   username: string;
   password: string;
   role: Exclude<Role, "borrower">;
-}[] = [
-  { username: "test_staff", password: "staff1234", role: "staff" },
-  { username: "test_supervisor", password: "supervisor1234", role: "supervisor" },
-  { username: "test_admin", password: "admin1234", role: "admin" },
-];
+}[] = import.meta.env.DEV
+  ? [
+      { username: "test_staff", password: "staff1234", role: "staff" },
+      { username: "test_supervisor", password: "supervisor1234", role: "supervisor" },
+      { username: "test_admin", password: "admin1234", role: "admin" },
+    ]
+  : [];

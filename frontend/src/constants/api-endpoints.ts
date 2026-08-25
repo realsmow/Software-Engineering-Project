@@ -242,7 +242,7 @@ export const POLLED_ENDPOINTS = {
 } as const;
 
 /**
- * Backend-only daily/​hourly cron jobs (ว, group 3). NOT called by the frontend
+ * Backend-only daily/hourly cron jobs (ว, group 3). NOT called by the frontend
  * except `admin.runCronJob` (manual "run now"). Listed for contract completeness:
  *   markOverdue · markLost · expireDemerits · dueSoonReminder ·
  *   computeAvailability · openT3InspectionRounds · rollupDailyStats ·
