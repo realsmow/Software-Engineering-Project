@@ -64,3 +64,9 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 # Vendored agent working files
 .agents/
 .claude/
+
+# บันทึกสรุปงานส่วนตัว ไม่ต้อง push ขึ้น GitHub
+/work-summary-*.txt
+
+# Uploaded images (local storage driver — see src/image/image.service.ts)
+/media
