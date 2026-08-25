@@ -41,6 +41,44 @@ npm test -- penalty.service.spec staff-scope.service.spec status.schema.spec \
 `PUBLIC_API_URL` — ตัวหลังต้องเป็น URL ที่**เบราว์เซอร์**เข้าถึงได้ เพราะถูกฝัง
 ลงใน upload URL ที่ส่งกลับไปให้ client
 
+### ทดลองรันเองว่าทำงานจริง
+
+หลังตั้งฐานข้อมูลเสร็จ:
+
+```bash
+npm run db:seed        # ใส่ข้อมูลตั้งต้นที่โค้ดขาดไม่ได้
+npm run smoke:staff    # เดินครบ flow แล้วพิมพ์ผลทีละขั้น
+```
+
+`smoke:staff` เดิน 9 ขั้น: ตรวจ tier → อัปโหลดรูปจริงผ่าน `PUT /uploads/:token`
+→ ยิงสคริปต์ปลอมเป็น PNG เพื่อดูว่าถูกปฏิเสธ → `createType` → `createUnit` 3 ชิ้น
+→ ลอง T2 ไม่ใส่ serial ให้โดนปฏิเสธ → `createRoom` → อ่านกลับจาก DB → เปิดรูปที่
+`/media/...` → ทดสอบว่าคนนอกภาควิชาถูกปฏิเสธ · **ขั้นไหนล้ม สคริปต์ exit 1**
+
+`seed.ts` ใส่เฉพาะแถวอ้างอิงที่ขาดแล้วพัง ไม่ใช่ข้อมูลตัวอย่าง:
+`BorrowRule` T0–T3 (ขาด → `TIER_NOT_CONFIGURED`), `ManagementGroup` + `Authority`
+ของบัญชี staff (ขาด → `NO_MANAGEMENT_SCOPE`), `CreditTier` D0–D3 รันซ้ำได้ไม่พัง
+
+> **`smoke:staff` ยิงเข้า service layer ตรง ๆ ไม่ผ่าน HTTP/login** เพราะ base นี้คือ
+> `main` ซึ่ง `trpc/context.ts` ยัง stub `verifySessionToken()` ให้คืน `null`
+> ทุก request จึงเป็น 401 ก่อนถึง procedure · จะทดสอบผ่าน tRPC จริงได้เมื่องาน
+> session ของสาขา `feat/trpc-auth-admin` เข้า `main` แล้ว
+>
+> อีกเรื่อง: `tsx` แปลง decorator metadata ไม่ได้ อะไรที่บูท Nest จึงต้องคอมไพล์ด้วย
+> `tsc` ก่อน — `smoke:staff` ทำให้แล้ว แต่ถ้าเขียนสคริปต์ใหม่เองอย่าเรียก
+> `npx tsx` ตรง ๆ ไม่งั้นจะเจอ `Cannot read properties of undefined (reading 'get')`
+
+> **หลัง seed แล้ว `auth.service.spec.ts` จะล้ม 1 เคส** — ไม่ใช่ผลจากงาน staff
+> เทสต์นั้นสร้าง `CreditTier` ชื่อ "D2" ช่วง 50–79 ของตัวเอง แล้วสมมติว่าเป็นแถวเดียว
+> ในตาราง พอ seed ใส่แถวตาม §5.7 ลงไป (50–79 = **D1** ไม่ใช่ D2) เครดิต 65 จึงตกลง
+> คนละ tier · สามอย่างที่ควรบอกเจ้าของโดเมน auth:
+> 1. เทสต์ผูกกับสมมติฐานว่าตารางว่าง — รันบน DB ที่มีข้อมูลแล้วจะล้ม
+> 2. ป้าย tier ในเทสต์ขัดกับข้อเสนอ (§5.7 ว่า 79–50 = D1, 49–30 = D2)
+> 3. `resolveBorrowLimits` ใช้ `findFirstOrThrow` โดยไม่มี `orderBy` ถ้ามีแถวช่วง
+>    ทับกัน ผลลัพธ์จะไม่แน่นอน — ควรมี unique constraint หรือ orderBy
+>
+> ถ้าจะรัน `npm test` ให้เขียวทั้งหมด ใช้ฐานข้อมูลที่ยังไม่ได้ seed
+
 **หมายเหตุเรื่องพอร์ต:** ถ้ามี Postgres ของเครื่องตัวเองครองพอร์ต 5432 อยู่แล้ว
 ให้ map คอนเทนเนอร์ไป 5433 แล้วแก้ `DATABASE_URL` ตาม ไม่งั้นจะต่อไปโดน
 ฐานข้อมูลผิดตัวโดยไม่มี error
@@ -300,13 +338,15 @@ src/
 │   ├── schemas/image.schema.ts             ★ กัน javascript:/data: ใน ImageURL (+ spec)
 │   ├── schemas/status.schema.ts            + tier, damage level, lifecycle enum (+ spec)
 │   └── errors/business-error.ts            + 26 รหัสใหม่
+├── bootstrap.ts                            ★ cookie + CORS + mount /media ใช้ร่วมกับ smoke test
 ├── app.module.spec.ts                      ★ เช็ค DI ทั้งโมดูลโดยไม่ต้องมี DB
 ├── app.module.ts                           + provider ใหม่ · raw body middleware ของ route อัปโหลด
 └── main.ts                                 + เสิร์ฟ /media, CORS อนุญาต PUT
 ```
 
-นอกโฟลเดอร์ `src/`: `.env.example` (`MEDIA_ROOT`, `PUBLIC_API_URL`),
-`.gitignore` (`/media`), `package.json` (ประกาศ `express` เป็น dependency ตรง —
-`main.ts`/`app.module.ts` import มันเองแล้ว ไม่ควรพึ่ง transitive dep)
+นอกโฟลเดอร์ `src/`: `prisma/seed.ts` (ข้อมูลตั้งต้น), `scripts/smoke-staff.ts`
+(ทดสอบ 9 ขั้น), `package.json` (+`db:seed`, `smoke:staff`, devDep `tsx`), `.env.example` (`MEDIA_ROOT`, `PUBLIC_API_URL`),
+`.gitignore` (`/media`, `/dist-tools`), และประกาศ `express` เป็น dependency ตรง
+(`app.module.ts` import มันเองแล้ว ไม่ควรพึ่ง transitive dep)
 
 ไม่แตะ: `admin/`, `auth/`, `trpc/`, `prisma/schema.prisma`
