@@ -22,6 +22,12 @@ import { SessionService } from './auth/session.service';
 import { AdminRouter } from './admin/admin.router';
 import { AdminService } from './admin/admin.service';
 
+import { ItemRouter } from './item/item.router';
+import { ItemService } from './item/item.service';
+
+import { CreditRouter } from './credit/credit.router';
+import { CreditService } from './credit/credit.service';
+
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -59,6 +65,12 @@ import { AdminService } from './admin/admin.service';
 
     AdminRouter,
     AdminService,
+
+    ItemRouter,
+    ItemService,
+
+    CreditRouter,
+    CreditService,
   ],
 })
 export class AppModule {}

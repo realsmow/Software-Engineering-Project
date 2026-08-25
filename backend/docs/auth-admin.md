@@ -1,4 +1,4 @@
-# โดเมน `auth` + `admin` — สิ่งที่ทำเสร็จ และสิ่งที่ schema ยังไม่รองรับ
+# โดเมน `auth` · `admin` · `item` · `credit` — สิ่งที่ทำเสร็จ และสิ่งที่ schema ยังไม่รองรับ
 
 > ขอบเขต: **backend เท่านั้น** · ไม่มีการแก้ `prisma/schema.prisma` แม้แต่บรรทัดเดียว
 >
@@ -157,3 +157,88 @@ src/
 │   └── auth.middleware.ts              ใช้ BusinessError แทน TRPCError ดิบ
 └── app.module.ts                       ลงทะเบียน provider ใหม่
 ```
+
+---
+
+## 7 · โดเมน `item` (ค้นหาอุปกรณ์/ห้อง) + `credit`
+
+> เพิ่มรอบที่สอง ตาม requirement "User สามารถดูข้อมูลตัวเองได้ / สามารถ search หาอุปกรณ์–ห้องได้"
+
+### `credit`
+
+| procedure | ชนิด | input | output | role | สถานะ |
+|---|---|---|---|---|---|
+| `credit.me` | query | — | `creditOutput` | ล็อกอิน | ✅ คะแนน + ระดับ + วันยืมสูงสุด + **รายการหักที่ยัง active** |
+| `credit.getById` | query | `{ id }` | `creditOutput` | staff | ✅ |
+
+`auth.me` มีคะแนนกับระดับเครดิตอยู่แล้ว (ทุกหน้าใช้) ส่วน `credit.me` เพิ่มสิ่งที่หน้า
+"เครดิตของฉัน" ต้องใช้จริง คือ **รายการโทษที่ยังมีผล** เพื่อให้คำถาม "ทำไมยืมได้แค่ 5 วัน"
+มีคำตอบอยู่บนหน้าจอ ไม่ต้องเดินไปถามเจ้าหน้าที่
+
+`credit.me` อ่าน accountKey จาก `ctx.user` ไม่ใช่จาก input — ผู้ยืมจะเปลี่ยน id เพื่อดูเครดิต
+คนอื่นไม่ได้ ถ้าจะดูของคนอื่นต้องใช้ `credit.getById` ซึ่งเป็นคนละสิทธิ์
+
+### `item`
+
+| procedure | ชนิด | input | output | role | สถานะ |
+|---|---|---|---|---|---|
+| `item.list` | query | `paginationInput + { tier?, ownerGroupKey?, availableOnly }` | `paginated(itemSummary)` | ล็อกอิน | ✅ `q` ค้นจากชื่อ / คำอธิบาย / **asset tag ของชิ้นย่อย** |
+| `item.getById` | query | `{ id }` | `itemDetail` | ล็อกอิน | ✅ พร้อมชิ้นย่อยทุกชิ้น + สภาพ + กำหนดคืน |
+| `item.getAvailability` | query | `{ id }` | `{ availableUnits, totalUnits, nextAvailableAt }` | ล็อกอิน | ✅ **poll 10–15 วิ** output เล็กที่สุดเท่าที่ทำได้ |
+| `item.listUnits` | query | `{ id }` | `itemUnit[]` | ล็อกอิน | ✅ |
+| `item.listRooms` | query | `paginationInput + { ownerGroupKey?, bookableOnly }` | `paginated(roomSummary)` | ล็อกอิน | ✅ `q` ค้นจากชื่อ / คำอธิบาย / สถานที่ |
+| `item.getRoomById` | query | `{ id }` | `roomSummary` | ล็อกอิน | ✅ |
+| `item.listCategories` | query | — | — | ล็อกอิน | ❌ `NOT_IMPLEMENTED` ไม่มีตารางหมวดหมู่ |
+
+**ทุกตัวต้องล็อกอิน** — catalogue ไม่ใช่ข้อมูลสาธารณะ ว่าคณะมีอุปกรณ์อะไรและหายไปกี่ชิ้น
+ไม่ควรแจกให้คนที่ไม่ได้ล็อกอิน
+
+### สิ่งที่แก้ได้โดยไม่ต้องขอคอลัมน์ใหม่ — Tier
+
+frontend ต้องการ `tier` (T0–T3) ซึ่ง schema ไม่มีคอลัมน์ **แต่ไม่ต้องเพิ่ม** เพราะ
+`TIER_CONFIG` ที่ทีมเขียนไว้เองใน `frontend/src/constants/index.ts` นิยาม tier ด้วย
+credit weight อยู่แล้ว (T0=0, T1=5, T2=10, T3=ห้อง) และ `CreditWeight` เป็นคอลัมน์จริงทั้งใน
+`ItemInfo` และ `RoomInfo`
+
+`tierFromCreditWeight()` ใน `common/schemas/status.schema.ts` จึงคำนวณจากคอลัมน์ที่มีอยู่
+ดีกว่าเพิ่มคอลัมน์ใหม่ที่ขัดกับ weight ได้ในภายหลัง — มีเทสต์คุมว่า
+`creditWeightRangeForTier()` (ใช้ตอนกรอง) กับ `tierFromCreditWeight()` (ใช้ตอนแสดงผล)
+ต้องตรงกันเสมอ ไม่งั้นกรอง tier แล้วของตัวเองจะหาย
+
+### สิ่งที่ schema ยังไม่รองรับ — เพิ่มจากส่วนที่ 3
+
+| # | ต้องเพิ่ม | ปลดล็อกอะไร | ตอนนี้เป็นยังไง |
+|---|---|---|---|
+| 10 | ตาราง `Category` + `ItemInfo.CategoryKey` | `item.listCategories` · ตัวกรองหมวดหมู่ในหน้า catalogue | ❌ ไม่มีอะไรจัดกลุ่มอุปกรณ์เลย (frontend mock มี instrument / tool / board) |
+| 11 | `RoomInfo.Capacity` (จำนวนที่นั่ง) | คอลัมน์ความจุ + ตัวกรอง S/M/L ในหน้าห้อง | ❌ ไม่มี |
+| 12 | `RoomInfo.RoomType` (lab / meet / lect / shop) | ตัวกรองประเภทห้อง | ❌ ไม่มี |
+| 13 | `RoomInfo.BuildingKey` หรือตาราง `Building` | ตัวกรองอาคาร | ⚠️ มีแต่ `RoomLocation` ที่เป็น free text — ค้นด้วย `q` ได้ แต่กรองเป็นกลุ่มไม่ได้ |
+| 14 | ระบบสล็อตเวลาของห้อง | `freeSlots` / `totalSlots` ที่หน้า room list แสดง · `reservation.getSlots` | ❌ ต้องออกแบบร่วมกับโดเมน `reservation` ทั้งก้อน ไม่ใช่แค่คอลัมน์ |
+| 15 | `ItemInfo.AvailableUnits` (คอลัมน์คำนวณไว้ล่วงหน้า) | เรียงตาม "ของว่าง" ในระดับ SQL | ⚠️ ดูหัวข้อถัดไป — งาน cron `computeAvailability` ที่วางแผนไว้แล้วคือคำตอบพอดี |
+
+### เรื่องที่ต้องรู้: `item.list` ไม่ได้แบ่งหน้าใน SQL
+
+sort ปริยายของหน้า catalogue คือ "ของว่างมากสุดก่อน" และ "ของว่าง" คือ **จำนวนชิ้นที่ตรงเงื่อนไข**
+(อยู่ในคลัง และเปิดให้ยืม) ซึ่ง Prisma เรียงลำดับด้วย relation count **ที่มีเงื่อนไข** ไม่ได้
+(เรียงด้วย count ที่ไม่มีเงื่อนไขได้ แต่นั่นคือคนละตัวเลข)
+
+ถ้าเรียงเฉพาะหน้าที่ดึงมา ผลจะผิดแบบเงียบ ๆ — หน้า 2 จะไม่ต่อจากหน้า 1
+
+ตอนนี้จึง **กรองใน SQL** (ซึ่งเป็นตัวที่ตัดข้อมูลออกจริง ๆ) แล้ว **เรียงกับตัดหน้าใน service**
+แถวที่ดึงคือ *ประเภท* อุปกรณ์ ไม่ใช่ชิ้นย่อยและไม่ใช่ประวัติการยืม — คณะหนึ่งมีหลักร้อย ไม่ใช่หลักล้าน
+
+**ต้องกลับมาแก้เมื่อ**: `ItemInfo` โตเกินหลักพันแถว **หรือ** งาน cron `computeAvailability`
+(ข้อ 5 ในกลุ่มที่ 3 ของ *รายการเรียกใช้งานจาก Backend*) ทำเสร็จแล้วเก็บจำนวนของว่างเป็นคอลัมน์
+— ตอนนั้นมันจะกลายเป็น `ORDER BY` ธรรมดาที่มี index
+
+ส่วน `item.listRooms` **แบ่งหน้าใน SQL ปกติ** เพราะทุกคอลัมน์ที่ใช้เรียง (ชื่อ สถานที่ credit weight)
+อยู่บน `RoomInfo` ตรง ๆ และห้องหนึ่งมี resource เดียว ไม่มีอะไรต้องนับ
+
+### จุดที่สัญญาต่างจาก placeholder ของ frontend — เพิ่มจากส่วนที่ 4
+
+| เรื่อง | placeholder | ของจริง | ทำไม |
+|---|---|---|---|
+| ค้นหาห้อง | **ไม่มี** | `item.listRooms` · `item.getRoomById` | สัญญาไม่ได้ระบุว่าค้นหาห้องอยู่โดเมนไหน — `reservation.*` เป็นเรื่อง *จอง* ไม่ใช่ *ค้นหา* · การค้นห้องกับค้นมัลติมิเตอร์คือการกระทำเดียวกันบนตารางเดียวกัน (`ResourceInfo`) เลยอยู่ใน `item` · **ถ้าทีมอยากให้ย้ายไป `reservation.listRooms` แก้ที่เดียวคือ alias ของ router** |
+| `item.list` input | `{ page, pageSize, sort, q }` | ตัดฟิลด์ `order` ออก + เพิ่ม `tier`, `ownerGroupKey`, `availableOnly` | หน้า catalogue มี dropdown เรียงลำดับแต่ไม่มีปุ่มสลับทิศทาง การรับ `order` เท่ากับบอกว่ามีปุ่มที่ไม่มีจริง · sort แต่ละแบบมีทิศทางที่มีความหมายอยู่ทางเดียว |
+| `credit.me` | `{ score, band, demerits }` | `{ accountId, score, tier, maxBorrowDays, maxExtendTimes, activePenalties, totalDeducted }` | ใช้ชื่อ `tier` ให้ตรงกับ `userOutput.creditTier` ที่ตกลงกันไปแล้ว แทนที่จะมีสองชื่อสำหรับของเดียวกัน |
+| ชนิดของ id | `z.string()` | `z.number().int()` | เหมือนเดิม — PK เป็น `Int` |

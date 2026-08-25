@@ -32,6 +32,10 @@ export const BUSINESS_ERROR_CODES = {
   // --- lending settings ---
   BORROW_RULE_NOT_FOUND: 'NOT_FOUND',
 
+  // --- catalogue ---
+  ITEM_NOT_FOUND: 'NOT_FOUND',
+  ROOM_NOT_FOUND: 'NOT_FOUND',
+
   // --- borrowing (declared here so other domains reuse the same table) ---
   NOT_ELIGIBLE: 'FORBIDDEN',
   ITEM_UNAVAILABLE: 'CONFLICT',

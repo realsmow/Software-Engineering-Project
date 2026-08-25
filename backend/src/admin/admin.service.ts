@@ -9,6 +9,7 @@ import {
   toAdminUserSummary,
   type AdminAccountRow,
 } from '../common/mappers/admin-user.mapper';
+import { activePenaltyWhere } from '../common/schemas/penalty.schema';
 import { toOrderBy, toPage, toSkipTake } from '../common/schemas/pagination.schema';
 import { tryMapUserRole, type UserRole } from '../common/schemas/status.schema';
 import { OK } from '../common/schemas/ok.schema';
@@ -84,7 +85,7 @@ export class AdminService {
     }
 
     if (input.status) {
-      const active = this.activePenaltyWhere();
+      const active = activePenaltyWhere();
       where.Penalties = input.status === 'suspended' ? { some: active } : { none: active };
     }
 
@@ -128,7 +129,7 @@ export class AdminService {
           },
           Penalties: {
             // Existence is all the summary needs — one row answers "suspended?".
-            where: this.activePenaltyWhere(),
+            where: activePenaltyWhere(),
             take: 1,
             select: {
               PenaltyKey: true,
@@ -247,7 +248,7 @@ export class AdminService {
     if (!input.banned) {
       // Lift, don't delete: the row is the record that the ban happened.
       await this.prisma.penaltyInfo.updateMany({
-        where: { AccountKey: input.id, ...this.activePenaltyWhere() },
+        where: { AccountKey: input.id, ...activePenaltyWhere() },
         data: { InEffect: false },
       });
       return OK;
@@ -504,11 +505,6 @@ export class AdminService {
   // Internals
   // =========================================================================
 
-  /** A penalty counts only while it is in force AND has not run out. */
-  private activePenaltyWhere() {
-    return { InEffect: true, ExpirationTime: { gt: new Date() } };
-  }
-
   private async countEntities() {
     const [accounts, resources, activeLoans, pendingReservations] =
       await this.prisma.$transaction([
@@ -584,7 +580,7 @@ export class AdminService {
           },
         },
         Penalties: {
-          where: this.activePenaltyWhere(),
+          where: activePenaltyWhere(),
           orderBy: { ExpirationTime: 'desc' },
           select: {
             PenaltyKey: true,

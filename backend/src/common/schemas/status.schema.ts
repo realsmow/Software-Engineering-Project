@@ -44,6 +44,54 @@ export function tryMapUserRole(roleName: string): UserRole | null {
   }
 }
 
+/**
+ * Equipment tier — T0 cheap/easy, T2 high-value, T3 a room or fixed facility.
+ *
+ * The schema has no tier column, but it does not need one: the team's own
+ * TIER_CONFIG (frontend/src/constants/index.ts) defines each tier by its
+ * credit weight (T0=0, T1=5, T2=10, T3=rooms), and CreditWeight is a real
+ * column on both ItemInfo and RoomInfo. Deriving it here keeps one source of
+ * truth instead of a second column that can disagree with the weight.
+ */
+export const equipmentTier = z.enum(['T0', 'T1', 'T2', 'T3']);
+export type EquipmentTier = z.infer<typeof equipmentTier>;
+
+/**
+ * Credit weight -> tier.
+ *
+ * Ranges rather than exact equality, so a weight nobody anticipated (7, 12)
+ * still lands somewhere sensible instead of throwing on a catalogue page.
+ * Rooms skip the weight entirely — a facility is T3 because of what it is,
+ * not what it costs.
+ */
+export function tierFromCreditWeight(
+  creditWeight: number,
+  resourceType: 'Item' | 'Room',
+): EquipmentTier {
+  if (resourceType === 'Room') return 'T3';
+  if (creditWeight <= 0) return 'T0';
+  if (creditWeight <= 5) return 'T1';
+  return 'T2';
+}
+
+/** The CreditWeight range each tier covers, for turning a tier filter into a query. */
+export function creditWeightRangeForTier(
+  tier: EquipmentTier,
+): { gte?: number; lte?: number } | null {
+  switch (tier) {
+    case 'T0':
+      return { lte: 0 };
+    case 'T1':
+      return { gte: 0.0001, lte: 5 };
+    case 'T2':
+      return { gte: 5.0001 };
+    // T3 is not a weight range — it is "this row is a room", which the caller
+    // expresses by querying RoomInfo instead of ItemInfo.
+    case 'T3':
+      return null;
+  }
+}
+
 /** Credit tier — sourced from the CreditTier table (CreditMin/CreditMax) */
 export const creditTier = z.enum(['D0', 'D1', 'D2', 'D3']);
 export type CreditTier = z.infer<typeof creditTier>;

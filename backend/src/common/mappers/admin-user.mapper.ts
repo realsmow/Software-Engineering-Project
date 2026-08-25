@@ -1,4 +1,5 @@
 import { mapUserRole } from '../schemas/status.schema';
+import { toActivePenalty, type PenaltyRow } from '../schemas/penalty.schema';
 import type { BorrowLimits } from '../credit/credit-tier.service';
 import type { AdminUserDetail, AdminUserSummary } from '../../admin/admin.schema';
 
@@ -20,15 +21,6 @@ export interface AuthorityRow {
   ManageGroupKey: number;
   ManageGroup: ManagementGroupRow;
   AuthorityRole: { AuthorityName: string; AuthorityLevel: number | null };
-}
-
-export interface PenaltyRow {
-  PenaltyKey: number;
-  Reason: string | null;
-  CreditDeducted: number | null;
-  ActionTime: Date | null;
-  ExpirationTime: Date;
-  Appealed: boolean | null;
 }
 
 export interface AdminAccountRow {
@@ -99,15 +91,6 @@ export function toAdminUserDetail(
       authorityLevel: authority.AuthorityRole.AuthorityLevel,
     })),
 
-    activePenalties: row.Penalties.map((penalty) => ({
-      id: penalty.PenaltyKey,
-      reason: penalty.Reason,
-      creditDeducted: penalty.CreditDeducted,
-      issuedAt: penalty.ActionTime?.toISOString() ?? null,
-      expiresAt: penalty.ExpirationTime.toISOString(),
-      // Appealed is nullable in the schema; "never appealed" and "explicitly
-      // false" mean the same thing to a client, so both become false.
-      appealed: penalty.Appealed ?? false,
-    })),
+    activePenalties: row.Penalties.map(toActivePenalty),
   };
 }

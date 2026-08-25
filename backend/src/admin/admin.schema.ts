@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { paginated, paginationInput } from '../common/schemas/pagination.schema';
+import { activePenalty } from '../common/schemas/penalty.schema';
 import { creditTier, userRole } from '../common/schemas/status.schema';
 
 /** Every admin procedure that addresses one account takes this. */
@@ -56,14 +57,8 @@ export const adminUserSummary = z.object({
   managementGroup: managementGroupRef.nullable(),
 });
 
-export const activePenalty = z.object({
-  id: z.number().int(),
-  reason: z.string().nullable(),
-  creditDeducted: z.number().int().nullable(),
-  issuedAt: z.iso.datetime().nullable(),
-  expiresAt: z.iso.datetime(),
-  appealed: z.boolean(),
-});
+/** Re-exported: `credit.me` returns the same rows, so the shape lives in common. */
+export { activePenalty };
 
 export const authorityGrant = z.object({
   manageGroupKey: z.number().int(),
