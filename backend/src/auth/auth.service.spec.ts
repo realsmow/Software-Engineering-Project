@@ -61,16 +61,35 @@ describe('AuthService', () => {
       },
     });
     accountKey = account.AccountKey;
-  });
+    // A cold Prisma engine plus these five writes overruns jest's 5s default.
+  }, 30_000);
 
+  // Every delete is guarded because a failed beforeAll leaves the keys
+  // undefined, and `where: { AccountKey: undefined }` throws a Prisma
+  // validation error that buries the real failure. $disconnect must still run
+  // or the jest worker never exits.
   afterAll(async () => {
-    await prisma.accountInfo.delete({ where: { AccountKey: accountKey } });
-    await prisma.borrowConstraints.deleteMany({ where: { BorrowRuleKey: borrowRuleKey } });
-    await prisma.borrowRule.delete({ where: { BorrowRuleKey: borrowRuleKey } });
-    await prisma.creditTier.delete({ where: { CreditTierKey: creditTierKey } });
-    await prisma.roleInfo.delete({ where: { RoleKey: roleKey } });
-    await prisma.$disconnect();
-  });
+    try {
+      if (accountKey)
+        await prisma.accountInfo.delete({ where: { AccountKey: accountKey } });
+      if (borrowRuleKey) {
+        await prisma.borrowConstraints.deleteMany({
+          where: { BorrowRuleKey: borrowRuleKey },
+        });
+        await prisma.borrowRule.delete({
+          where: { BorrowRuleKey: borrowRuleKey },
+        });
+      }
+      if (creditTierKey)
+        await prisma.creditTier.delete({
+          where: { CreditTierKey: creditTierKey },
+        });
+      if (roleKey)
+        await prisma.roleInfo.delete({ where: { RoleKey: roleKey } });
+    } finally {
+      await prisma?.$disconnect();
+    }
+  }, 30_000);
 
   it('is defined', () => {
     expect(service).toBeDefined();

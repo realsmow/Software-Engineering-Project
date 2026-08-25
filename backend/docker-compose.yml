@@ -1,3 +1,7 @@
+# LOCAL DEVELOPMENT ONLY.
+# Default passwords below are safe for laptop use only.
+# Deploy environments MUST set POSTGRES_PASSWORD and
+# MONGO_INITDB_ROOT_PASSWORD via environment.
 version: "3.9"
 
 services:
@@ -7,7 +11,7 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       POSTGRES_DB: app
     ports:
       - "5432:5432"
@@ -25,7 +29,7 @@ services:
     restart: unless-stopped
     environment:
       MONGO_INITDB_ROOT_USERNAME: mongo
-      MONGO_INITDB_ROOT_PASSWORD: mongo
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD:-mongo}
       MONGO_INITDB_DATABASE: app
     ports:
       - "27017:27017"
