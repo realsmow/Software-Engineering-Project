@@ -24,7 +24,7 @@ export class AuthService {
         Email: true,
         UserCredit: true,
         Role: { select: { RoleName: true } },
-        // HashedPassword intentionally not selected — cannot leak by accident
+        // HashedPassword intentionally not selected - cannot leak by accident
       },
     });
 
@@ -53,7 +53,7 @@ export class AuthService {
 
     const account = await this.prisma.accountInfo.findFirst({
       // Email has no unique constraint in the schema, so this is findFirst,
-      // not findUnique. Two accounts sharing an email is a data problem —
+      // not findUnique. Two accounts sharing an email is a data problem -
       // see docs/auth-admin.md.
       where: {
         OR: [

@@ -17,7 +17,7 @@ import { AppRouter } from "./router";
  * - DevTools (dev เท่านั้น)
  *
  * Session bootstrap: on mount we ask the server who we are via `auth.me`.
- * The session is an httpOnly cookie, so this is the only way to find out —
+ * The session is an httpOnly cookie, so this is the only way to find out -
  * the client cannot read it. A 401 is the normal "not signed in" answer, not
  * an error, so it resolves to `null` rather than surfacing.
  */

@@ -6,7 +6,7 @@
 
 /* ============================================================
    ULMs Design Tokens (Light + Dark)
-   Ported verbatim from ULMs-login-and-shell-v3.html — these token
+   Ported verbatim from ULMs-login-and-shell-v3.html - these token
    names/values are the contract between design and code.
    ============================================================ */
 @layer base {
@@ -128,7 +128,7 @@
     --s-alert-b: #5c2828;
   }
 
-  /* Legacy shadcn dark tokens (class strategy — body.dark also matches
+  /* Legacy shadcn dark tokens (class strategy - body.dark also matches
      the `.dark` selector, so existing components adapt too). */
   .dark {
     --background: 148 21% 8%;
@@ -168,7 +168,7 @@
     -webkit-font-smoothing: antialiased;
   }
 
-  /* Synchronized dark-mode transition — every surface animates its
+  /* Synchronized dark-mode transition - every surface animates its
      background/border/color together so nothing "lags behind". */
   body,
   body *,

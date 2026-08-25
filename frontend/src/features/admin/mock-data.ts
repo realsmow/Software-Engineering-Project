@@ -235,7 +235,7 @@ export const TOP_EQUIPMENT: TopEquipment[] = [
 // endpoints are expected to return them so the charts can be re-pointed at the
 // real API with minimal changes.
 
-/** Audit events bucketed by hour of day (0–23) — reveals peak-activity windows. */
+/** Audit events bucketed by hour of day (0–23) - reveals peak-activity windows. */
 export interface HourBucket {
   hour: number;
   events: number;

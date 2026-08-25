@@ -2,7 +2,7 @@ import { useTranslation } from "react-i18next";
 import { SUPPORTED_LOCALES, type Locale } from "./index";
 
 /**
- * useLocale — read the current locale and switch it.
+ * useLocale - read the current locale and switch it.
  * `changeLanguage` also persists to localStorage via the language detector.
  */
 export function useLocale() {

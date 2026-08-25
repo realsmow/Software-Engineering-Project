@@ -3,7 +3,7 @@ import type { MiddlewareOptions, TRPCMiddleware } from 'nestjs-trpc';
 import { BusinessError } from '../common/errors/business-error';
 import type { TrpcContext, TrpcUser } from './context';
 
-/** Must be logged in — used on almost every procedure */
+/** Must be logged in - used on almost every procedure */
 @Injectable()
 export class AuthMiddleware implements TRPCMiddleware {
   async use(opts: MiddlewareOptions<TrpcContext>) {
@@ -17,7 +17,7 @@ export class AuthMiddleware implements TRPCMiddleware {
   }
 }
 
-/** Role-gated middleware factory — write once, reuse per role */
+/** Role-gated middleware factory - write once, reuse per role */
 function requireRole(...allowed: TrpcUser['role'][]) {
   @Injectable()
   class RoleMiddleware implements TRPCMiddleware {

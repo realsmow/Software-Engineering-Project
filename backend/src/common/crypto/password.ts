@@ -4,7 +4,7 @@ import { randomBytes, randomInt, scrypt, timingSafeEqual } from 'node:crypto';
  * Password hashing for AccountInfo.HashedPassword.
  *
  * Uses scrypt from node:crypto rather than bcrypt/argon2 so the project gains
- * no native dependency — a real consideration for a team where everyone has to
+ * no native dependency - a real consideration for a team where everyone has to
  * get `npm ci` working on a different OS. scrypt is a memory-hard KDF and is
  * an appropriate choice here; the cost parameters below are the ones the Node
  * documentation recommends as a baseline.
@@ -57,7 +57,7 @@ export async function hashPassword(plain: string): Promise<string> {
 }
 
 /**
- * Never throws — an unparseable or legacy value in HashedPassword is simply a
+ * Never throws - an unparseable or legacy value in HashedPassword is simply a
  * password that cannot match. Throwing here would turn "this row predates the
  * hashing code" into a 500 on the login endpoint.
  */
@@ -92,7 +92,7 @@ export async function verifyPassword(
     return false;
   }
 
-  // Compare in constant time. Lengths must match first — timingSafeEqual
+  // Compare in constant time. Lengths must match first - timingSafeEqual
   // throws on a length mismatch instead of returning false.
   if (actual.length !== expected.length) return false;
   return timingSafeEqual(actual, expected);

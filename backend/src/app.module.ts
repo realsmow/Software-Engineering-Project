@@ -19,6 +19,9 @@ import { AuthRouter } from './auth/auth.router';
 import { AuthService } from './auth/auth.service';
 import { SessionService } from './auth/session.service';
 
+import { AdminRouter } from './admin/admin.router';
+import { AdminService } from './admin/admin.service';
+
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -26,7 +29,7 @@ import { SessionService } from './auth/session.service';
     }),
     PrismaModule,
     TRPCModule.forRoot({
-      // Builds ctx.user per request — see trpc/context.ts
+      // Builds ctx.user per request - see trpc/context.ts
       context: AppContext,
 
       // Must match VITE_API_URL + '/trpc' on the frontend once it's wired up
@@ -47,12 +50,15 @@ import { SessionService } from './auth/session.service';
     // shared business rules, used by more than one domain
     CreditTierService,
 
-    // session — issued by auth, read by AppContext on every request
+    // session - issued by auth, read by AppContext on every request
     SessionService,
 
     // router + service, one pair per domain
     AuthRouter,
     AuthService,
+
+    AdminRouter,
+    AdminService,
   ],
 })
 export class AppModule {}

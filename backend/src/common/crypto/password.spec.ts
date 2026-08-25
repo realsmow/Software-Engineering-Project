@@ -78,7 +78,7 @@ describe('password hashing', () => {
     const first = await dummyPasswordHash();
     const second = await dummyPasswordHash();
 
-    // Same object both times — the point is to spend the cost, not to
+    // Same object both times - the point is to spend the cost, not to
     // re-derive it on every failed login.
     expect(first).toBe(second);
     await expect(verifyPassword('', first)).resolves.toBe(false);

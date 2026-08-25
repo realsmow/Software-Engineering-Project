@@ -5,7 +5,7 @@ import { SESSION_COOKIE, SessionService } from './session.service';
 
 const SECRET = 'a-test-secret-that-is-at-least-32-characters-long';
 
-/** Minimal stand-in — ConfigService is only ever read through get(). */
+/** Minimal stand-in - ConfigService is only ever read through get(). */
 function configWith(values: Record<string, string>): ConfigService {
   return { get: (key: string) => values[key] } as unknown as ConfigService;
 }
@@ -64,7 +64,7 @@ describe('SessionService', () => {
     const [name, clearOptions] = clearCookie.mock.calls[0];
 
     expect(name).toBe(SESSION_COOKIE);
-    // A mismatch here is the classic "logout does nothing" bug — the browser
+    // A mismatch here is the classic "logout does nothing" bug - the browser
     // treats a differently-scoped cookie as a different cookie.
     expect(clearOptions).toMatchObject({
       path: setOptions.path,
@@ -153,7 +153,7 @@ describe('SessionService', () => {
       const first = new SessionService(configWith({}));
       const second = new SessionService(configWith({}));
 
-      // Each instance invents its own secret, so tokens do not carry across —
+      // Each instance invents its own secret, so tokens do not carry across -
       // which is exactly why a restart logs everyone out.
       expect(second.parse(first.issue(res, 42))).toBeNull();
       expect(first.parse(first.issue(res, 42))).toBe(42);

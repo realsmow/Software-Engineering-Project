@@ -15,7 +15,7 @@ import { userOutput } from '../common/schemas/user.schema';
  */
 export const loginInput = z.object({
   username: z.string().trim().min(1).max(254),
-  // Not `.min(8)` — that is a rule for *choosing* a password. Applying it at
+  // Not `.min(8)` - that is a rule for *choosing* a password. Applying it at
   // login would reject an existing short password with a validation error
   // instead of a clean INVALID_CREDENTIALS, and would leak the rule's history.
   password: z.string().min(1).max(200),

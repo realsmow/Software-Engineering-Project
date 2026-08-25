@@ -17,7 +17,7 @@ import {
 } from '@ulms/contract';
 
 /**
- * รูปร่างที่ mapper ต้องการ — ประกาศเองแทนที่จะ import type จาก Prisma
+ * รูปร่างที่ mapper ต้องการ - ประกาศเองแทนที่จะ import type จาก Prisma
  *
  * ทำแบบนี้เพราะอยากให้ service เป็นคนเลือก select ให้พอดี ไม่ใช่ดึงทั้งแถวมา
  * (AccountInfo มี HashedPassword อยู่ในตารางเดียวกัน) และเพราะอยากให้เห็นชัด
@@ -34,7 +34,7 @@ export interface AccountRow {
   Faculty?: { FacultyName: string } | null;
 }
 
-/** กฎการยืมที่ได้จาก CreditTier x BorrowRule — service เป็นคนไปหามาให้ */
+/** กฎการยืมที่ได้จาก CreditTier x BorrowRule - service เป็นคนไปหามาให้ */
 export interface BorrowLimits {
   creditTier: CreditTier;
   /** BorrowConstraints.MaxBorrowDate */

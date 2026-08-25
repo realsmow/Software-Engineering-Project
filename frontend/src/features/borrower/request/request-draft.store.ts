@@ -9,7 +9,7 @@ import { CATALOG_ITEMS } from "../mock-data";
  * page edits quantities, serials, and dates. Zustand rather than context so
  * adding a line from a table row doesn't re-render the whole catalog.
  *
- * NOTE: memory only — a refresh clears the draft. Persisting is the backend's
+ * NOTE: memory only - a refresh clears the draft. Persisting is the backend's
  * job (POST /loan-requests as status "draft"); revisit when that lands.
  */
 export interface DraftLine {
@@ -40,7 +40,7 @@ interface RequestDraftState {
 /**
  * One entry per physical unit. The draft groups by equipment type so the cart
  * stays editable, but on submission each unit becomes its own request with its
- * own number, approved and handed over and returned on its own — which is also
+ * own number, approved and handed over and returned on its own - which is also
  * why T2 units carry their own serial.
  */
 export interface RequestUnit {
@@ -130,7 +130,7 @@ export const useRequestDraft = create<RequestDraftState>((set) => ({
         if (l.serials.includes(serial)) {
           return { ...l, serials: l.serials.filter((sn) => sn !== serial) };
         }
-        // One serial per unit requested — ignore the click once the line is full.
+        // One serial per unit requested - ignore the click once the line is full.
         if (l.serials.length >= l.qty) return l;
         return { ...l, serials: [...l.serials, serial] };
       }),

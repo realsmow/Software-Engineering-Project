@@ -14,11 +14,11 @@ import { LoginMethodKu } from "./login-method-ku";
 import { LoginMethodLocal } from "./login-method-local";
 
 /**
- * Login page — reference: ULMs-login-and-shell-v3.html (VIEW 1).
+ * Login page - reference: ULMs-login-and-shell-v3.html (VIEW 1).
  * Left: green KU brand panel. Right: card with a mutually-exclusive accordion
  * of two login methods (KU email, local account) built on RHF + Zod.
  *
- * Both methods call the same `auth.login` mutation — the only difference is
+ * Both methods call the same `auth.login` mutation - the only difference is
  * which identifier is sent. The server matches it against either Email or
  * UserID and decides the role from the account row, so the client no longer
  * picks a role. On success the session arrives as an httpOnly cookie and the

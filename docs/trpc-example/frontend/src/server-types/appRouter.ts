@@ -118,7 +118,7 @@ export type AppRouter = typeof appRouter;
  * รหัสข้อผิดพลาดทางธุรกิจ (ว-06)
  *
  * ในของจริง รายการนี้ควรถูก generate ออกมาด้วย หรือไม่ก็ย้ายไปอยู่ใน
- * packages/contract/ ที่สองฝั่ง import ร่วมกัน — ตกลงใน ว-01 ว่าจะใช้วิธีไหน
+ * packages/contract/ ที่สองฝั่ง import ร่วมกัน - ตกลงใน ว-01 ว่าจะใช้วิธีไหน
  */
 export type BusinessErrorCode =
   | 'NOT_AUTHENTICATED'
