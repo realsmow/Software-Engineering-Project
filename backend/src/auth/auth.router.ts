@@ -29,7 +29,7 @@ export class AuthRouter {
   }
 
   /**
-   * Sign in. No middleware — this is the one procedure that must work while
+   * Sign in. No middleware - this is the one procedure that must work while
    * ctx.user is null.
    */
   @Mutation({ input: loginInput, output: loginOutput })

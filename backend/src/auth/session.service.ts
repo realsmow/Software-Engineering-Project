@@ -4,7 +4,7 @@ import { randomBytes } from 'node:crypto';
 import type { CookieOptions, Request, Response } from 'express';
 import { signToken, verifyToken } from '../common/crypto/token';
 
-/** Cookie name agreed in ว-03 — the frontend sends it via `credentials: 'include'`. */
+/** Cookie name agreed in ว-03 - the frontend sends it via `credentials: 'include'`. */
 export const SESSION_COOKIE = 'ulms_session';
 
 const DEFAULT_TTL_HOURS = 12;
@@ -39,7 +39,7 @@ export class SessionService {
 
     const isProduction = this.config.get('NODE_ENV') === 'production';
     this.cookieOptions = {
-      // No JavaScript access — an XSS bug then cannot read the session out of
+      // No JavaScript access - an XSS bug then cannot read the session out of
       // document.cookie and post it elsewhere.
       httpOnly: true,
       // 'lax' is enough while frontend and backend share a site (any port on
@@ -100,7 +100,7 @@ export class SessionService {
    * A missing secret is fatal in production and merely annoying in
    * development, so it is treated that way: crash on deploy, warn on a laptop.
    * The generated fallback is per-process, so every restart logs everyone out
-   * — that is the intended nudge to put SESSION_SECRET in .env.
+   * - that is the intended nudge to put SESSION_SECRET in .env.
    */
   private resolveSecret(): string {
     const configured = this.config.get<string>('SESSION_SECRET');
@@ -115,8 +115,8 @@ export class SessionService {
 
     this.logger.warn(
       configured
-        ? 'SESSION_SECRET is shorter than 32 characters — ignoring it and using a random per-process secret. Sessions will not survive a restart.'
-        : 'SESSION_SECRET is not set — using a random per-process secret. Sessions will not survive a restart. See backend/.env.example.',
+        ? 'SESSION_SECRET is shorter than 32 characters - ignoring it and using a random per-process secret. Sessions will not survive a restart.'
+        : 'SESSION_SECRET is not set - using a random per-process secret. Sessions will not survive a restart. See backend/.env.example.',
     );
     return randomBytes(48).toString('base64url');
   }

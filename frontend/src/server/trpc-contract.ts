@@ -1,5 +1,5 @@
 /**
- * ULMs tRPC contract — TEMPORARY frontend-side type source.
+ * ULMs tRPC contract - TEMPORARY frontend-side type source.
  * ============================================================
  *
  * This file exists so the frontend tRPC client is fully typed TODAY, before the
@@ -13,7 +13,7 @@
  *     export type { AppRouter } from "<path-or-package-to-backend-approuter>";
  *
  * Only the `AppRouter` *type* is consumed on the frontend (via `import type`),
- * so this router value is erased at build time — @trpc/server never ships in the
+ * so this router value is erased at build time - @trpc/server never ships in the
  * client bundle.
  */
 import { initTRPC } from "@trpc/server";
@@ -56,7 +56,7 @@ export const appRouter = t.router({
     // sends database-shaped fields (numeric id, firstName/lastName,
     // facultyName, creditTier); features/auth/user.adapter.ts converts.
     // The other domains below still describe `User` because they are still
-    // mock-only — fix each one as its router lands.
+    // mock-only - fix each one as its router lands.
     me: proc.query(() => as<ServerUser>()),
     login: proc
       .input(z.object({ username: z.string(), password: z.string() }))

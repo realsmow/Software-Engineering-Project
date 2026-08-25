@@ -24,13 +24,13 @@ SoftwareEn/                        document-branch
 ```
 
 ปัญหา: `package.json` สามไฟล์ที่ไม่รู้จักกัน มี `node_modules` คนละกอง
-`import type` ข้ามไม่ได้ — และ **merge สาขาไม่ได้แก้เรื่องนี้** (ดู ว-01)
+`import type` ข้ามไม่ได้ - และ **merge สาขาไม่ได้แก้เรื่องนี้** (ดู ว-01)
 
 ### เป้าหมาย
 
 ```
 SoftwareEn/                        main (merge ทั้งสองสาขาแล้ว)
-├── package.json                   ★ workspace root — workspaces: [frontend, backend, packages/*]
+├── package.json                   ★ workspace root - workspaces: [frontend, backend, packages/*]
 ├── package-lock.json              ★ ไฟล์เดียวของทั้งรีโป
 ├── node_modules/                  ★ กองเดียว ← นี่คือเหตุผลทั้งหมดของทางเลือกนี้
 │
@@ -38,7 +38,7 @@ SoftwareEn/                        main (merge ทั้งสองสาขา
 │   └── contract/                  ★ สัญญาเป็น workspace ของตัวเอง
 │       ├── package.json           ชื่อ @ulms/contract
 │       └── src/
-│           ├── index.ts           หน้าตาสาธารณะ — ทุกคน import จากที่นี่
+│           ├── index.ts           หน้าตาสาธารณะ - ทุกคน import จากที่นี่
 │           ├── generated/         ★ nestjs-trpc เขียนลงตรงนี้ (ห้ามแก้มือ)
 │           ├── schemas/           zod schema ที่สองฝั่งใช้ร่วมกัน
 │           └── errors/            รหัส error ทางธุรกิจ
@@ -65,7 +65,7 @@ SoftwareEn/                        main (merge ทั้งสองสาขา
     └── pull_request_template.md   ★ ใหม่
 ```
 
-**สังเกตว่าไม่มี `scripts/sync-contract.sh`** — ทางเลือก ก. ไม่ต้องคัดลอกอะไร
+**สังเกตว่าไม่มี `scripts/sync-contract.sh`** - ทางเลือก ก. ไม่ต้องคัดลอกอะไร
 เพราะ backend เขียนไฟล์สัญญาลง `packages/contract/src/generated/` โดยตรง
 แล้ว frontend เห็นทันทีผ่านชื่อแพ็กเกจ
 
@@ -77,12 +77,12 @@ SoftwareEn/                        main (merge ทั้งสองสาขา
 |---|---|
 | `import ... from '../../backend/src/@generated/appRouter'` | `import type { AppRouter } from '@ulms/contract'` |
 | `import { userOutput } from '../common/schemas/user.schema'` | `import { userOutput } from '@ulms/contract'` |
-| frontend เขียน zod schema ของฟอร์มเอง | `import { createLoanInput } from '@ulms/contract'` — ใช้ตัวเดียวกับที่ backend validate |
+| frontend เขียน zod schema ของฟอร์มเอง | `import { createLoanInput } from '@ulms/contract'` - ใช้ตัวเดียวกับที่ backend validate |
 
 **ไม่มีพาธสัมพัทธ์ข้ามโฟลเดอร์อีกต่อไป** ถ้าเห็น `../../` ที่ออกนอก workspace
 ตัวเอง แปลว่ามีคนทำผิดกฎ
 
-แถวสุดท้ายคือประโยชน์ที่ทางเลือก ข. ให้ไม่ได้ — ที่นั่น frontend ต้องเขียน
+แถวสุดท้ายคือประโยชน์ที่ทางเลือก ข. ให้ไม่ได้ - ที่นั่น frontend ต้องเขียน
 schema ของฟอร์มซ้ำเอง ซึ่งก็คือเปิดช่องให้ความจริงสองชุดเลื่อนออกจากกันอีกรอบ
 
 ---
@@ -104,8 +104,8 @@ schema ของฟอร์มซ้ำเอง ซึ่งก็คือเ
 | `backend/src/main.ts` | `backend/src/main.ts` | ว-03 | | |
 | `backend/src/trpc/context.ts` | `backend/src/trpc/context.ts` | ว-03 | | |
 | `backend/src/trpc/auth.middleware.ts` | `backend/src/trpc/auth.middleware.ts` | ว-03 ว-05 | | |
-| `backend/src/common/errors/business-error.ts` | เหมือนกัน — อยู่ฝั่ง server เพราะ frontend ไม่เคยโยน error | ว-06 | | |
-| `backend/src/common/mappers/user.mapper.ts` | เหมือนกัน — เรื่องภายในของ backend ไม่เข้าสัญญา | ว-09 | | |
+| `backend/src/common/errors/business-error.ts` | เหมือนกัน - อยู่ฝั่ง server เพราะ frontend ไม่เคยโยน error | ว-06 | | |
+| `backend/src/common/mappers/user.mapper.ts` | เหมือนกัน - เรื่องภายในของ backend ไม่เข้าสัญญา | ว-09 | | |
 | `backend/src/auth/*.ts` | `backend/src/auth/` | slice แรก | | |
 | `backend/src/loan/*.ts` | `backend/src/loan/` | ว-05 | | |
 | `frontend/src/lib/trpc.ts` | `frontend/src/lib/trpc.ts` | ว-01 ว-13 | | |
@@ -114,7 +114,7 @@ schema ของฟอร์มซ้ำเอง ซึ่งก็คือเ
 | `process/CONTRACT-OWNERS.md` | `CONTRACT-OWNERS.md` (ราก) | ว-04 | | |
 | `process/pull_request_template.md` | `.github/pull_request_template.md` | ว-04 | | |
 | `CONTRACT.md` | `CONTRACT.md` (ราก) | ว-05…ว-10 | | |
-| `STRUCTURE.md` | `STRUCTURE.md` (ราก) | — | | |
+| `STRUCTURE.md` | `STRUCTURE.md` (ราก) | - | | |
 
 ### เส้นแบ่งว่าอะไรเข้า `packages/contract/` ได้
 
@@ -132,7 +132,7 @@ schema ของฟอร์มซ้ำเอง ซึ่งก็คือเ
 
 ## 4 · ใครรับผิดชอบอะไร แบ่งตามชั้น
 
-ตารางนี้ต่างจาก `CONTRACT-OWNERS.md` — อันนั้นว่าด้วย **ใครอนุมัติการเปลี่ยนสัญญา**
+ตารางนี้ต่างจาก `CONTRACT-OWNERS.md` - อันนั้นว่าด้วย **ใครอนุมัติการเปลี่ยนสัญญา**
 ส่วนอันนี้ว่าด้วย **ใครเขียนและดูแลไฟล์**
 
 | ชั้น | โฟลเดอร์ | ฝั่งที่ดูแล | ผู้รับผิดชอบ | หมายเหตุ |
@@ -166,7 +166,7 @@ schema ของฟอร์มซ้ำเอง ซึ่งก็คือเ
 
 ## 6 · เพิ่ม procedure ใหม่หนึ่งตัว ต้องแตะไฟล์ไหนบ้าง
 
-ใช้เป็นแบบฝึกหัดตรวจว่าเข้าใจโครงตรงกันหรือยัง — สมมติเพิ่ม `loan.extend`
+ใช้เป็นแบบฝึกหัดตรวจว่าเข้าใจโครงตรงกันหรือยัง - สมมติเพิ่ม `loan.extend`
 (ขอต่ออายุการยืม)
 
 | # | ไฟล์ | ทำอะไร | ฝั่ง |
@@ -180,7 +180,7 @@ schema ของฟอร์มซ้ำเอง ซึ่งก็คือเ
 | 7 | `frontend/src/features/borrower/loans/` | เรียกใช้ + `invalidate` query ที่เกี่ยวข้อง | frontend |
 | 8 | `npm run typecheck` ที่ราก | ตรวจทั้งสาม workspace ในคำสั่งเดียว | ทั้งคู่ |
 
-**ไม่มีขั้น "รันสคริปต์คัดลอกสัญญา"** — นั่นคือความแตกต่างที่รู้สึกได้ทุกวัน
+**ไม่มีขั้น "รันสคริปต์คัดลอกสัญญา"** - นั่นคือความแตกต่างที่รู้สึกได้ทุกวัน
 ระหว่างสองทางเลือก
 
 > ถ้า `loan.extend` ต้องใช้ schema ที่ frontend ก็ต้องใช้ด้วย (เช่นฟอร์มเลือกวัน)
@@ -205,7 +205,7 @@ schema ของฟอร์มซ้ำเอง ซึ่งก็คือเ
 | 7 | ตั้ง CI (`typecheck` ที่ราก) | PR ทดสอบถูก block จริงเมื่อ type ไม่ตรง | |
 | 8 | แตกงานขนาน backend/frontend ทีละโดเมน | ตาม Definition of Done ใน `trpc-guide.pdf` ภาค 5 | |
 
-**ขั้น 6 คือขั้นที่พิสูจน์ว่าสัญญาทำงานจริง** ไม่ใช่แค่ข้อมูลวิ่งถึง —
+**ขั้น 6 คือขั้นที่พิสูจน์ว่าสัญญาทำงานจริง** ไม่ใช่แค่ข้อมูลวิ่งถึง -
 อย่าข้ามไปขั้น 8 ก่อนที่ขั้น 6 จะผ่านเกณฑ์นั้น
 
 ### แผนถอย
@@ -221,7 +221,7 @@ schema ของฟอร์มซ้ำเอง ซึ่งก็คือเ
 
 | จุด | ทางเลือก ก. (เอกสารนี้) | ทางเลือก ข. |
 |---|---|---|
-| `packages/contract/` | มี | **ไม่มี** — schema กลับไปอยู่ที่ `backend/src/common/schemas/` และ `errors/` |
+| `packages/contract/` | มี | **ไม่มี** - schema กลับไปอยู่ที่ `backend/src/common/schemas/` และ `errors/` |
 | ปลายทางของ generated | `packages/contract/src/generated/` | `backend/src/@generated/` แล้วคัดลอกไป `frontend/src/server-types/` |
 | สคริปต์คัดลอก | ไม่ต้องมี | **ต้องมี** `scripts/sync-contract.sh` + โหมด `--check` ใน CI |
 | ของที่ frontend ต้องลง | `@trpc/client`, `@trpc/tanstack-react-query`, `@ulms/contract` | เพิ่ม **`zod@4` และ `@trpc/server` (dev)** ด้วย เพราะไฟล์สัญญาที่คัดลอกมา import สองตัวนั้นเอง |

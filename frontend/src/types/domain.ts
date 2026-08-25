@@ -1,6 +1,6 @@
 /**
  * Core domain types for ULMs
- * ตรงกับ schema ฝั่ง backend (Prisma) — sync กันเป็นระยะ
+ * ตรงกับ schema ฝั่ง backend (Prisma) - sync กันเป็นระยะ
  */
 
 // ==================== User & Role ====================
@@ -50,7 +50,7 @@ export interface EquipmentType {
   availableUnits: number;
   nextAvailableAt?: string; // ISO datetime
   /**
-   * ResourceInfo.AllowBorrow — whether this item is open for borrowing at all
+   * ResourceInfo.AllowBorrow - whether this item is open for borrowing at all
    * (distinct from ResourceStatus). Defaults to false backend-side; catalog
    * filters out `false`. Optional here until the backend supplies it.
    */

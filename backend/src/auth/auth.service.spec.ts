@@ -30,7 +30,7 @@ describe('AuthService', () => {
     // Seed the minimum graph getProfile() needs: a role, a credit tier with
     // a borrow constraint, and an account that references both.
     // "Student" (not "Borrower") is what schema.prisma's own comment on
-    // AccountInfo says real RoleInfo rows use — exercises the alias
+    // AccountInfo says real RoleInfo rows use - exercises the alias
     // mapping in mapUserRole(), not just the literal enum values.
     const role = await prisma.roleInfo.create({
       data: { RoleName: 'Student' },

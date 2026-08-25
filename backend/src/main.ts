@@ -5,7 +5,7 @@ import { AppModule } from './app.module';
 /**
  * Allowed origins for CORS.
  *
- * Never pair '*' with credentials:true — browsers refuse to send cookies to
+ * Never pair '*' with credentials:true - browsers refuse to send cookies to
  * a wildcard origin anyway, and this app uses a cookie as its auth token,
  * so a wide-open origin would let any site fire requests as a logged-in
  * user (CSRF).

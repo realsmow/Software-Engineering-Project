@@ -15,7 +15,7 @@ export interface BorrowLimits {
 /**
  * Turns a raw credit score into a borrow limit.
  *
- * Lives on its own because two domains need the same answer — `auth.me` shows
+ * Lives on its own because two domains need the same answer - `auth.me` shows
  * a borrower their own limit, and `admin.getUserById` shows a staff member
  * someone else's. Duplicating the lookup is how the two drift apart.
  *
@@ -39,7 +39,7 @@ export class CreditTierService {
         CreditTierName: true,
         BorrowConstraints: {
           // Borrow rules differ per item type, so this is a general value for
-          // profile/admin display only — the actual borrow flow must look up
+          // profile/admin display only - the actual borrow flow must look up
           // BorrowConstraints by the item's own BorrowRuleKey.
           take: 1,
           select: { MaxBorrowDate: true, MaxExtendTime: true },
@@ -49,7 +49,7 @@ export class CreditTierService {
 
     if (!tier) {
       // A score with no tier is a seeding gap (CreditMin/CreditMax leave a
-      // hole), not a user mistake — say so instead of guessing a default.
+      // hole), not a user mistake - say so instead of guessing a default.
       throw new BusinessError('CREDIT_TIER_NOT_CONFIGURED', { creditScore });
     }
 

@@ -22,13 +22,13 @@ export interface CatalogItem extends EquipmentType {
   stockStatus: StockStatus;
   /**
    * Free-text blurb shown on the detail page: what it is, key specs, and any
-   * handling note. Thai-only like `name` — this is DB content, not UI copy.
+   * handling note. Thai-only like `name` - this is DB content, not UI copy.
    * Optional so an item added without one simply hides the section.
    */
   description?: string;
 }
 
-/** Stock state shown in the filter rail — availability is a separate number. */
+/** Stock state shown in the filter rail - availability is a separate number. */
 export type StockStatus = "ok" | "queue" | "maintenance";
 
 export const STOCK_STATUSES: StockStatus[] = ["ok", "queue", "maintenance"];
@@ -51,7 +51,7 @@ export interface CatalogDepartment {
 }
 
 /**
- * Departments that own catalog items. Short names on purpose — this renders in
+ * Departments that own catalog items. Short names on purpose - this renders in
  * a narrow table column.
  *
  * TODO: `features/admin/mock-data.ts` keeps its own (longer) department list.
@@ -210,7 +210,7 @@ export const CATALOG_ITEMS: CatalogItem[] = [
 ];
 
 /**
- * Row builder — keeps the table above readable and derives everything that is
+ * Row builder - keeps the table above readable and derives everything that is
  * a function of the tier (credit weight, prep days) instead of repeating it.
  */
 function item(
@@ -256,7 +256,7 @@ export interface UnitRow {
 const MAX_UNIT_ROWS = 6;
 
 /**
- * Sample serials whose states add up to the item's real stock split — a 4/4
+ * Sample serials whose states add up to the item's real stock split - a 4/4
  * item must not list rows marked "on loan".
  *
  * Shared so the detail page's units table and the request page's T2 serial
@@ -282,15 +282,15 @@ export function unitsOf(item: CatalogItem): UnitRow[] {
    is being built, and a `const` is not hoisted the way the function is. */
 
 export interface TimeSlot {
-  /** "09:00" — start of the hour, and the chip label. */
+  /** "09:00" - start of the hour, and the chip label. */
   start: string;
-  /** "10:00" — end of the hour. Stored so adjacency is a clock comparison. */
+  /** "10:00" - end of the hour. Stored so adjacency is a clock comparison. */
   end: string;
 }
 
 /**
  * One-hour slots, 09:00–18:00. 12:00–13:00 is the lunch break and simply is
- * not on the list — which is why adjacency compares `end` to `start` rather
+ * not on the list - which is why adjacency compares `end` to `start` rather
  * than array positions: 11:00 and 13:00 sit next to each other in this array
  * but are an hour apart on the clock, so a booking must not span them.
  */
@@ -372,7 +372,7 @@ export function buildingName(id: string): string {
   return BUILDINGS.find((b) => b.id === id)?.name ?? id;
 }
 
-/** Capacity buckets for the filter rail — derived from `capacity`, not stored. */
+/** Capacity buckets for the filter rail - derived from `capacity`, not stored. */
 export type CapacityBand = "s" | "m" | "l";
 
 export const CAPACITY_BANDS: CapacityBand[] = ["s", "m", "l"];
@@ -432,7 +432,7 @@ function room(
 
 /**
  * Requests are atomic: one physical item is one request, with its own number
- * and its own approval — matching `Reservations` in the backend schema, where
+ * and its own approval - matching `Reservations` in the backend schema, where
  * every row carries a `ReservationKey` and an `ApproveStatus` of its own and
  * nothing groups them into a parent document.
  *
@@ -462,7 +462,7 @@ export type MyRequestStatus =
  * Returning and inspecting are one step, not two: the borrower hands the item
  * back at the counter and staff photograph it and check its condition right
  * there, in the same visit. Splitting them would imply the borrower has a
- * second thing to do after returning, which they do not — so the `returned`
+ * second thing to do after returning, which they do not - so the `returned`
  * and `inspecting` statuses both sit on that final step.
  */
 export const EQUIPMENT_STEPS = [
@@ -487,7 +487,7 @@ export function stepsOf(kind: RequestKind): readonly string[] {
 }
 
 /**
- * How far along the track each status sits — the index of the step currently
+ * How far along the track each status sits - the index of the step currently
  * in play. Terminal failures stay where they stopped rather than pretending to
  * have advanced.
  *
@@ -550,14 +550,14 @@ export interface InspectionResult {
   damage: DamageLevel;
   inspectedAt: string;
   inspectedBy: string;
-  /** Empty for B0 — nothing to explain when nothing was wrong. */
+  /** Empty for B0 - nothing to explain when nothing was wrong. */
   reason?: string;
   /** Days left to appeal; 0 once the window has closed. */
   appealDaysLeft: number;
 }
 
 export interface MyRequest {
-  /** The reservation number, e.g. "REQ-2569-00431". One per item — see above. */
+  /** The reservation number, e.g. "REQ-2569-00431". One per item - see above. */
   id: string;
   kind: RequestKind;
   tier: Tier;
@@ -576,7 +576,7 @@ export interface MyRequest {
 }
 
 /**
- * Credit lost to a damage verdict — item weight × damage weight, the same
+ * Credit lost to a damage verdict - item weight × damage weight, the same
  * formula the credit page and the appeal flow have to agree with.
  */
 export function creditCutOf(tier: Tier, damage: DamageLevel): number {
@@ -589,7 +589,7 @@ export const MY_REQUESTS: MyRequest[] = [
     "2026-08-12", "2026-08-16"),
   request("REQ-2569-00432", "T1", "โพรบวัดสัญญาณ 10×", "EE-PRB-002-04", "preparing",
     "2026-08-12", "2026-08-16"),
-  request("REQ-2569-00433", "T0", "สายจัมเปอร์ชุดใหญ่", "—", "ready",
+  request("REQ-2569-00433", "T0", "สายจัมเปอร์ชุดใหญ่", "-", "ready",
     "2026-08-12", "2026-08-16"),
 
   request("REQ-2569-00429", "T0", "ชุดบัดกรีควบคุมอุณหภูมิ", "ME-SOL-021-03", "ready",
@@ -619,7 +619,7 @@ export const MY_REQUESTS: MyRequest[] = [
     "2026-07-19", "2026-07-26",
     { damage: "B0", inspectedAt: "2026-07-27", inspectedBy: "พี่แนน ใจดี", appealDaysLeft: 0 }),
 
-  request("REQ-2569-00397", "T2", "เครื่องกำเนิดสัญญาณ Rigol DG1032", "—", "rejected",
+  request("REQ-2569-00397", "T2", "เครื่องกำเนิดสัญญาณ Rigol DG1032", "-", "rejected",
     "2026-07-15", "2026-07-19"),
 ];
 
@@ -644,7 +644,7 @@ function request(
   };
 }
 
-/** Equipment currently out — carries the due date and extension counter. */
+/** Equipment currently out - carries the due date and extension counter. */
 function onLoan(
   id: string,
   tier: Tier,
@@ -663,7 +663,7 @@ function onLoan(
   };
 }
 
-/** Returned and already judged — the request the appeal flow reads. */
+/** Returned and already judged - the request the appeal flow reads. */
 function inspected(
   id: string,
   tier: Tier,
@@ -679,7 +679,7 @@ function inspected(
   };
 }
 
-/** A room booking — same shape, its own reservation number. */
+/** A room booking - same shape, its own reservation number. */
 function booking(
   id: string,
   name: string,

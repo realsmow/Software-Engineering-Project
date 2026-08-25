@@ -4,10 +4,10 @@ import type { User } from "@/types/domain";
  * The user shape the backend actually sends (`userOutput` in
  * backend/src/common/schemas/user.schema.ts).
  *
- * It does not match the frontend's `User`, and deliberately so — the server
+ * It does not match the frontend's `User`, and deliberately so - the server
  * speaks in database terms (AccountKey, UserFName, CreditTier) while the UI
  * speaks in display terms (a single name, a credit band). Rather than change
- * `User` — `departmentId` alone has ~59 call sites — the difference is
+ * `User` - `departmentId` alone has ~59 call sites - the difference is
  * absorbed here, in one function, at the one place the boundary is crossed.
  */
 export interface ServerUser {

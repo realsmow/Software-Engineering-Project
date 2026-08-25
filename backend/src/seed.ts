@@ -4,7 +4,7 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import { hashPassword } from './common/crypto/password';
 
 /**
- * Development seed — the minimum graph login needs.
+ * Development seed - the minimum graph login needs.
  *
  * Idempotent: every write is keyed on something stable and re-running only
  * updates. That matters because this runs against a database a teammate may

@@ -3,7 +3,7 @@ import type { UserOutput } from '../schemas/user.schema';
 import type { BorrowLimits } from '../credit/credit-tier.service';
 
 /**
- * Shape the mapper needs — declared by hand rather than imported from
+ * Shape the mapper needs - declared by hand rather than imported from
  * Prisma's generated types, so the caller decides exactly which columns to
  * select (AccountInfo.HashedPassword lives in the same row and must never
  * be fetched just because a type wanted it).

@@ -8,7 +8,7 @@ import { kuLoginSchema, type KuLoginValues } from "./login.schema";
 
 /**
  * KU email login method (accordion panel). Google-styled submit button.
- * On valid submit, delegates to `onSubmit` — the page maps this to a mock
+ * On valid submit, delegates to `onSubmit` - the page maps this to a mock
  * login (no API yet, brief note #5).
  */
 export function LoginMethodKu({

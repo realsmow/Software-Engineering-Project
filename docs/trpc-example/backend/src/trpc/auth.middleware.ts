@@ -7,7 +7,7 @@
  *   ไม่ใช่แยก router ตามบทบาท (staff.approveLoan / supervisor.approveLoan)
  *
  * ทำไมสำคัญ: "ใครเรียก procedure นี้ได้บ้าง" ต้องตอบได้จากบรรทัดเดียวเหนือเมท็อด
- * ไม่ใช่ต้องอ่าน service ทั้งไฟล์ — สิทธิ์คือส่วนหนึ่งของสัญญา
+ * ไม่ใช่ต้องอ่าน service ทั้งไฟล์ - สิทธิ์คือส่วนหนึ่งของสัญญา
  */
 
 import { Injectable } from '@nestjs/common';
@@ -15,7 +15,7 @@ import { TRPCError } from '@trpc/server';
 import type { MiddlewareOptions, TRPCMiddleware } from 'nestjs-trpc';
 import type { TrpcContext, TrpcUser } from './context';
 
-/** ต้องล็อกอิน — ใช้กับเกือบทุก procedure ในระบบ */
+/** ต้องล็อกอิน - ใช้กับเกือบทุก procedure ในระบบ */
 @Injectable()
 export class AuthMiddleware implements TRPCMiddleware {
   async use(opts: MiddlewareOptions<TrpcContext>) {
@@ -32,7 +32,7 @@ export class AuthMiddleware implements TRPCMiddleware {
 }
 
 /**
- * ตัวสร้าง middleware ตามบทบาท — เขียนครั้งเดียว ใช้ได้ทุกบทบาท
+ * ตัวสร้าง middleware ตามบทบาท - เขียนครั้งเดียว ใช้ได้ทุกบทบาท
  * ใช้คู่กับ AuthMiddleware เสมอ: @UseMiddlewares(AuthMiddleware, StaffMiddleware)
  */
 function requireRole(...allowed: TrpcUser['role'][]) {

@@ -8,7 +8,7 @@ import { localLoginSchema, type LocalLoginValues } from "./login.schema";
 
 /**
  * Local account login method (accordion panel) for department staff without a
- * KU email. On valid submit, delegates to `onSubmit` (mock login — no API yet).
+ * KU email. On valid submit, delegates to `onSubmit` (mock login - no API yet).
  */
 export function LoginMethodLocal({
   open,

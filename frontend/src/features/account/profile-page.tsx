@@ -17,14 +17,14 @@ const ROLE_TONE: Record<Role, "info" | "ok" | "warn" | "neutral"> = {
   admin: "neutral",
 };
 
-/** Friendly department labels (mock — backend will provide the real name). */
+/** Friendly department labels (mock - backend will provide the real name). */
 const DEPT_LABEL: Record<string, string> = {
   cpe: "วิศวกรรมคอมพิวเตอร์ (CPE)",
   it: "IT Services",
 };
 
 /**
- * Account profile — reached from the sidebar's lower-left user button.
+ * Account profile - reached from the sidebar's lower-left user button.
  *
  * Reads the current user from the auth store (mock until the backend lands).
  * Editing is intentionally disabled; the tRPC `auth.me` / profile procedures
@@ -125,7 +125,7 @@ export default function ProfilePage() {
 /**
  * Avatar with a photo-upload control. Validates size/type client-side via
  * {@link validateUploadFile} and shows a local preview. Persisting the image
- * needs the backend profile procedures (see chat note) — for now this is a
+ * needs the backend profile procedures (see chat note) - for now this is a
  * preview-only affordance so the flow is testable end-to-end on the client.
  */
 function AvatarUpload({ initials }: { initials: string }) {
