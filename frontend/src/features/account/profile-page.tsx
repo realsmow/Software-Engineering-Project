@@ -118,7 +118,6 @@ export default function ProfilePage() {
         )}
       </div>
 
-      <p className="mt-4 text-xs text-muted-foreground">{t("profile.mockNotice")}</p>
     </div>
   );
 }

@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import type { ContextOptions, TRPCContext } from 'nestjs-trpc';
 import type { Request, Response } from 'express';
 import { mapUserRole, type UserRole } from '../common/schemas/status.schema';
+import { SessionService } from '../auth/session.service';
 import { PrismaService } from '../prisma.service';
 
 /** Logged-in user — the shape every procedure relies on */
@@ -32,7 +33,10 @@ export interface TrpcContext {
 
 @Injectable()
 export class AppContext implements TRPCContext {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly session: SessionService,
+  ) {}
 
   async create(opts: ContextOptions): Promise<TrpcContext> {
     const req = opts.req as Request;
@@ -47,14 +51,15 @@ export class AppContext implements TRPCContext {
 
   /**
    * Turns "whatever came in over HTTP" into "whatever business logic can
-   * use". This is the only place that knows about cookies — everywhere
-   * else in the app only ever sees ctx.user.
+   * use". SessionService is the only class that knows a cookie is involved;
+   * everything downstream of here only ever sees ctx.user.
+   *
+   * Every failure returns null rather than throwing. An unreadable session is
+   * not an error, it is an anonymous request — the middleware on each
+   * procedure decides whether that is allowed.
    */
   private async resolveUser(req: Request): Promise<TrpcUser | null> {
-    const token = req.cookies?.['ulms_session'];
-    if (!token) return null;
-
-    const accountKey = await this.verifySessionToken(token);
+    const accountKey = this.session.read(req);
     if (accountKey === null) return null;
 
     const account = await this.prisma.accountInfo.findUnique({
@@ -67,18 +72,15 @@ export class AppContext implements TRPCContext {
         Role: { select: { RoleName: true } },
       },
     });
+    // The token was valid but the account is gone (deleted between requests).
     if (!account) return null;
 
     return {
       accountKey: account.AccountKey,
       role: mapUserRole(account.Role.RoleName),
+      // AccountInfo has no faculty relation — see docs/auth-admin.md.
       facultyKey: null,
       creditScore: account.UserCredit,
     };
-  }
-
-  /** TODO: replace with real session/JWT verification */
-  private async verifySessionToken(_token: string): Promise<number | null> {
-    return null;
   }
 }

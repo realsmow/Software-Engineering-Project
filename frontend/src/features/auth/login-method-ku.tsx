@@ -18,18 +18,29 @@ export function LoginMethodKu({
 }: {
   open: boolean;
   onToggle: () => void;
-  onSubmit: (values: KuLoginValues) => void;
+  /** Returns a Thai error message to display, or null/undefined on success. */
+  onSubmit: (values: KuLoginValues) => Promise<string | null | void> | string | null | void;
 }) {
   const { t } = useTranslation();
   const [showPass, setShowPass] = useState(false);
   const {
     register,
     handleSubmit,
+    setError,
+    clearErrors,
     formState: { errors },
   } = useForm<KuLoginValues>({
     resolver: zodResolver(kuLoginSchema),
     defaultValues: { email: "", password: "", remember: true },
   });
+
+  // Server rejections (bad credentials) arrive after the schema already
+  // passed, so they surface as a root error rather than a field error.
+  const handleValid = async (values: KuLoginValues) => {
+    clearErrors("root");
+    const error = await onSubmit(values);
+    if (error) setError("root", { type: "manual", message: error });
+  };
 
   return (
     <div className={cn("login-method", open && "open")} id="m-ku">
@@ -48,7 +59,7 @@ export function LoginMethodKu({
       </button>
 
       {open && (
-        <form className="login-method-body" onSubmit={handleSubmit(onSubmit)} noValidate>
+        <form className="login-method-body" onSubmit={handleSubmit(handleValid)} noValidate>
           <div className="field-group">
             <label className="field-label" htmlFor="ku-email">
               {t("auth.email")}
@@ -99,6 +110,12 @@ export function LoginMethodKu({
               {t("auth.forgotPassword")}
             </a>
           </div>
+
+          {errors.root && (
+            <div className="field-error" role="alert">
+              {errors.root.message}
+            </div>
+          )}
 
           <button type="submit" className="submit-btn google">
             <span className="google-icon" aria-hidden="true">

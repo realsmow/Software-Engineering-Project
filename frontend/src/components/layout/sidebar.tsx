@@ -5,6 +5,7 @@ import { KULogo } from "./ku-logo";
 import { NavIcon } from "./nav-icon";
 import { getNavForRole } from "@/constants/navigation";
 import { ROUTES } from "@/constants";
+import { useTRPCClient } from "@/lib/trpc";
 import { useAuthStore } from "@/features/auth/auth.store";
 import { cn } from "@/lib/utils";
 
@@ -19,11 +20,20 @@ export function Sidebar() {
   const location = useLocation();
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
+  const trpcClient = useTRPCClient();
 
   const role = user?.role ?? "borrower";
   const { persona, sections } = getNavForRole(role);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    // Drop the httpOnly cookie server-side first; clearing only the local
+    // store would leave a still-valid session on the next page load.
+    // A failed call must not strand the user on a page they meant to leave.
+    try {
+      await trpcClient.auth.logout.mutate();
+    } catch {
+      /* sign out locally regardless */
+    }
     logout();
     navigate(ROUTES.LOGIN, { replace: true });
   };
