@@ -27,8 +27,10 @@
 
 export const API = {
   // ── auth ──────────────────────────────────────────────────────────────
-  // Session & identity. Google OAuth (@ku.ac.th, @ku.th) + local-account
-  // fallback for staff without a KU email.
+  // Session & identity. Both sign-in methods are the same password check
+  // against AccountInfo — a @ku.th address is an identifier, not a Google
+  // account, so no OAuth is involved. The only difference is which column
+  // the identifier matches: Email for the KU tab, UserID for local accounts.
   auth: {
     /** Current user: profile + role + faculty + creditScore (ctx.user). Called once on shell load. */
     me: "auth.me",

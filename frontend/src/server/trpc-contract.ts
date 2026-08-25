@@ -18,6 +18,7 @@
  */
 import { initTRPC } from "@trpc/server";
 import { z } from "zod";
+import type { ServerUser } from "@/features/auth/user.adapter";
 import type {
   User,
   EquipmentType,
@@ -51,10 +52,15 @@ const as = <T>() => ({}) as T;
 export const appRouter = t.router({
   // ── auth ──────────────────────────────────────────────
   auth: t.router({
-    me: proc.query(() => as<User>()),
+    // NOTE: auth returns ServerUser, not the frontend's `User`. The backend
+    // sends database-shaped fields (numeric id, firstName/lastName,
+    // facultyName, creditTier); features/auth/user.adapter.ts converts.
+    // The other domains below still describe `User` because they are still
+    // mock-only — fix each one as its router lands.
+    me: proc.query(() => as<ServerUser>()),
     login: proc
       .input(z.object({ username: z.string(), password: z.string() }))
-      .mutation(() => as<{ user: User }>()),
+      .mutation(() => as<{ user: ServerUser }>()),
     logout: proc.mutation(() => as<{ ok: true }>()),
   }),
 

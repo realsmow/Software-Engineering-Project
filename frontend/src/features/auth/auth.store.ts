@@ -1,25 +1,23 @@
 import { create } from "zustand";
 import type { User, Role } from "@/types/domain";
-import { MOCK_USERS, MOCK_USER_STORAGE_KEY } from "./mock-auth";
 
 /**
  * Global auth state
  * ใช้ Zustand เพราะ context re-render ทุก child เมื่อ user เปลี่ยน
  *
- * NOTE: No API is wired yet (brief note #5). Auth is mocked: `loginAs`
- * sets a mock user and persists the chosen role to localStorage, and
- * `hydrate` restores it on app start. When the real backend lands, the
- * httpOnly-cookie + `/auth/me` flow replaces the mock bits below.
+ * The session itself lives in an httpOnly `ulms_session` cookie that this code
+ * can neither read nor write — that is the point of httpOnly. So this store
+ * holds only a *copy* of who the server said we are, populated by `auth.login`
+ * or by the `auth.me` bootstrap in app.tsx. Clearing it does not end the
+ * session; only the `auth.logout` mutation does.
  */
 interface AuthState {
   user: User | null;
+  /** True until the initial auth.me bootstrap resolves — guards route redirects. */
   isLoading: boolean;
   setUser: (user: User | null) => void;
   setLoading: (loading: boolean) => void;
-  /** Dev/mock login — sets a mock user for the given role and persists it. */
-  loginAs: (role: Role) => void;
-  /** Restore persisted mock user on app start; clears the loading flag. */
-  hydrate: () => void;
+  /** Clears the local copy. Call the auth.logout mutation first to drop the cookie. */
   logout: () => void;
   hasRole: (role: Role | Role[]) => boolean;
 }
@@ -30,36 +28,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   setUser: (user) => set({ user, isLoading: false }),
   setLoading: (isLoading) => set({ isLoading }),
 
-  loginAs: (role) => {
-    const user = MOCK_USERS[role];
-    try {
-      window.localStorage.setItem(MOCK_USER_STORAGE_KEY, role);
-    } catch {
-      /* ignore storage errors */
-    }
-    set({ user, isLoading: false });
-  },
-
-  hydrate: () => {
-    let role: string | null = null;
-    try {
-      role = window.localStorage.getItem(MOCK_USER_STORAGE_KEY);
-    } catch {
-      /* ignore storage errors */
-    }
-    const isRole = (r: string | null): r is Role =>
-      r === "borrower" || r === "staff" || r === "supervisor" || r === "admin";
-    set({ user: isRole(role) ? MOCK_USERS[role] : null, isLoading: false });
-  },
-
-  logout: () => {
-    try {
-      window.localStorage.removeItem(MOCK_USER_STORAGE_KEY);
-    } catch {
-      /* ignore storage errors */
-    }
-    set({ user: null });
-  },
+  logout: () => set({ user: null }),
 
   hasRole: (role) => {
     const user = get().user;
