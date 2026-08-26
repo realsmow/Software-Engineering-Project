@@ -136,12 +136,25 @@ function RequestCard({ row, onCancel }: { row: MyRequest; onCancel: () => void }
   const { t } = useTranslation();
   const steps = stepsOf(row.kind);
   const at = stepAt(row.status, row.kind);
-  const noteKey = row.status === "pending" && row.tier === "T2"
-    ? "borrower.myRequests.noteWaitSup"
-    : STATUS_NOTE[row.status];
+  // Who is being waited on differs by kind: a room waits on the counter staff,
+  // a T2 item on a supervisor. Saying "อาจารย์" over a room booking would send
+  // the borrower chasing the wrong person.
+  const noteKey =
+    row.status !== "pending"
+      ? STATUS_NOTE[row.status]
+      : row.kind === "room"
+        ? "borrower.roomUse.waitStaff"
+        : row.tier === "T2"
+          ? "borrower.myRequests.noteWaitSup"
+          : STATUS_NOTE[row.status];
 
-  // Only the borrower's own in-flight work can still be pulled back.
-  const canCancel = row.status === "pending" || row.status === "approved";
+  // Only the borrower's own in-flight work can still be pulled back. A room
+  // stays cancellable after approval too, right up until check-in: dropping it
+  // hands the hours back to whoever wants them next, which is the whole point.
+  const canCancel =
+    row.status === "pending" ||
+    row.status === "approved" ||
+    (row.kind === "room" && row.status === "ready");
 
   return (
     <article className="rounded-md border border-border p-3.5 sm:px-4">
@@ -161,7 +174,9 @@ function RequestCard({ row, onCancel }: { row: MyRequest; onCancel: () => void }
         {row.serial} · {fmtRange(row.startDate, row.endDate)}
       </div>
 
-      {row.status === "inUse" ? <LoanInfo row={row} /> : null}
+      {/* Due dates are counted in days, which a room booked by the hour has
+          none of — it would read "0 days left" on every booking. */}
+      {row.status === "inUse" && row.kind === "equipment" ? <LoanInfo row={row} /> : null}
       {row.inspection ? <InspectionLine row={row} /> : null}
 
       <ProgressTrack steps={steps} at={at} stalled={isStalled(row.status)} />
@@ -293,32 +308,27 @@ function Actions({
   onCancel: () => void;
 }) {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const insp = row.inspection;
   const canAppeal = insp && insp.damage !== "B0" && insp.appealDaysLeft > 0;
   const canExtend = row.status === "inUse" && extensionsLeft(row) > 0;
+  const onUseRoom = () => navigate(ROUTES.ROOM_USE);
 
   const buttons: ReactNode[] = [];
 
-  if (canCancel) {
-    buttons.push(
-      <Button
-        key="cancel"
-        type="button"
-        variant="outline"
-        size="sm"
-        className="border-[var(--s-alert-b)] text-[var(--s-alert-t)] hover:bg-[var(--s-alert-bg)]"
-        onClick={onCancel}
-      >
-        {t("borrower.myRequests.cancel")}
-      </Button>,
-    );
-  }
   if (row.status === "ready") {
     buttons.push(
-      // TODO: point at the pickup screen once that page exists.
-      <Button key="pickup" type="button" size="sm" disabled>
-        {t("borrower.myRequests.goPickup")}
-      </Button>,
+      row.kind === "room" ? (
+        // A confirmed room is used, not collected — send them to check in.
+        <Button key="use-room" type="button" size="sm" onClick={onUseRoom}>
+          {t("borrower.myRequests.goUseRoom")}
+        </Button>
+      ) : (
+        // TODO: point at the pickup screen once that page exists.
+        <Button key="pickup" type="button" size="sm" disabled>
+          {t("borrower.myRequests.goPickup")}
+        </Button>
+      ),
     );
   }
   if (canExtend) {
@@ -334,6 +344,22 @@ function Actions({
       // TODO: link to the appeals page once it takes a target request.
       <Button key="appeal" type="button" size="sm" disabled>
         {t("borrower.myRequests.appeal")}
+      </Button>,
+    );
+  }
+  // Last, so the action the borrower came for leads and the destructive one
+  // sits beside it rather than in front of it.
+  if (canCancel) {
+    buttons.push(
+      <Button
+        key="cancel"
+        type="button"
+        variant="outline"
+        size="sm"
+        className="border-[var(--s-alert-b)] text-[var(--s-alert-t)] hover:bg-[var(--s-alert-bg)]"
+        onClick={onCancel}
+      >
+        {t(row.kind === "room" ? "borrower.roomUse.cancel" : "borrower.myRequests.cancel")}
       </Button>,
     );
   }
@@ -417,11 +443,16 @@ function isStalled(status: MyRequestStatus): boolean {
 
 /**
  * Online extensions allowed per tier, per the lending rules: T0 unlimited,
- * T1 once (then the item must be inspected), T2 needs a supervisor, T3 online.
+ * T1 once (then the item must be inspected), T2 needs a supervisor.
+ *
+ * T3 gets none: a fixed facility is held for the hours booked and nothing
+ * more — when the slot ends the room goes back on the board for whoever wants
+ * it next, so extending would mean quietly taking someone else's hour.
  */
 function extensionsLeft(row: MyRequest): number {
   const used = row.extensionsUsed ?? 0;
-  if (row.tier === "T0" || row.tier === "T3") return Infinity;
+  if (row.tier === "T3") return 0;
+  if (row.tier === "T0") return Infinity;
   if (row.tier === "T1") return Math.max(0, 1 - used);
   return 0;
 }

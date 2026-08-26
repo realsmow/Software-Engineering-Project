@@ -12,12 +12,14 @@ import { cn } from "@/lib/utils";
 import {
   ROOM_TYPES,
   TIME_SLOTS,
-  bookedSlotsOf,
+  activeRoomBookings,
   buildingName,
   slotsAdjacent,
+  takenSlotsOf,
   type Room,
 } from "../mock-data";
 import { useSubmittedRequests } from "../loans/submitted-requests.store";
+import { useMyRequests } from "../loans/use-my-requests";
 import { useRoom } from "./use-rooms";
 
 /**
@@ -37,10 +39,20 @@ export default function RoomBookingPage() {
   const { id } = useParams<{ id: string }>();
   const { data: room, isLoading } = useRoom(id);
   const addRoomBooking = useSubmittedRequests((s) => s.addRoomBooking);
+  const { requests } = useMyRequests();
 
   const [picked, setPicked] = useState<Set<number>>(new Set());
 
-  const booked = useMemo(() => (room ? bookedSlotsOf(room) : new Set<number>()), [room]);
+  // Hours already spoken for, live bookings included — sending a request holds
+  // the room straight away, so a slot someone took is gone before approval.
+  const booked = useMemo(
+    () => (room ? takenSlotsOf(room, requests) : new Set<number>()),
+    [room, requests],
+  );
+
+  // One room at a time: a booking already in flight closes this form.
+  const held = activeRoomBookings(requests);
+  const heldBooking = held.length >= BUSINESS.MAX_T3_ACTIVE_BOOKINGS ? held[0] : null;
 
   const backToList = () => navigate(ROUTES.ROOMS);
 
@@ -90,7 +102,7 @@ export default function RoomBookingPage() {
     });
   }
 
-  const canSubmit = picked.size > 0 && !roomFull;
+  const canSubmit = picked.size > 0 && !roomFull && heldBooking === null;
 
   const timeLabel =
     pickedIdx.length === 0
@@ -101,7 +113,7 @@ export default function RoomBookingPage() {
     if (!canSubmit || !room) return;
     // TODO: POST /facilities/:id/bookings with { date, slots }. Until then the
     // booking is pushed to the session store so it shows up under "my requests".
-    addRoomBooking({ room, date: todayIso() });
+    addRoomBooking({ room, date: todayIso(), slots: pickedIdx });
     navigate(ROUTES.MY_LOANS);
   }
 
@@ -201,7 +213,11 @@ export default function RoomBookingPage() {
                 />
               </div>
 
-              {roomFull ? (
+              {heldBooking ? (
+                <Notice tone="alert">
+                  {t("borrower.booking.heldWarn", { name: heldBooking.name })}
+                </Notice>
+              ) : roomFull ? (
                 <Notice tone="alert">{t("borrower.booking.roomFullWarn")}</Notice>
               ) : picked.size === 0 ? (
                 <Notice tone="warn">{t("borrower.booking.pickSlotWarn")}</Notice>

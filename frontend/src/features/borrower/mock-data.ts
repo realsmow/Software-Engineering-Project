@@ -398,7 +398,9 @@ export interface Room {
 }
 
 export const ROOMS: Room[] = [
-  room("FAC-CAD2", "ห้องปฏิบัติการ CAD 2", "b9", "lab", 40, 3),
+  // 5 open to other people; the seeded booking holds 2 of those, so the list
+  // still reads "3 / 8 free" — and cancelling it really gives 2 back.
+  room("FAC-CAD2", "ห้องปฏิบัติการ CAD 2", "b9", "lab", 40, 5),
   room("FAC-COM1", "ห้องปฏิบัติการคอมพิวเตอร์ 1", "b9", "lab", 50, 5),
   room("FAC-MTG-EE", "ห้องประชุมภาควิชาไฟฟ้า", "b4", "meet", 12, 6),
   room("FAC-MTG-L3", "ห้องประชุมใหญ่ ชั้น 3", "b9", "meet", 30, 2),
@@ -573,6 +575,14 @@ export interface MyRequest {
   /** Online extensions already used on this request. */
   extensionsUsed?: number;
   inspection?: InspectionResult;
+  /**
+   * Room bookings only: the hours reserved, as indices into `TIME_SLOTS`.
+   * Equipment is borrowed by the day and has no slots, hence optional.
+   *
+   * The set is fixed at booking time — a room is held for the hours picked and
+   * nothing more, so there is no extension to widen it later.
+   */
+  slots?: number[];
 }
 
 /**
@@ -581,6 +591,37 @@ export interface MyRequest {
  */
 export function creditCutOf(tier: Tier, damage: DamageLevel): number {
   return TIER_CONFIG[tier].creditWeight * DAMAGE_LEVELS[damage].weight;
+}
+
+/**
+ * Booking statuses that still hold the room.
+ *
+ * Sending the request is what reserves it — approval only decides whether the
+ * hold turns into a visit. So a booking still awaiting staff counts exactly as
+ * much as one already in use, and the hours are released only when it is
+ * cancelled, rejected, or finished.
+ */
+export const ACTIVE_ROOM_STATUSES: readonly MyRequestStatus[] = ["pending", "ready", "inUse"];
+
+export function activeRoomBookings(requests: readonly MyRequest[]): MyRequest[] {
+  return requests.filter((r) => r.kind === "room" && ACTIVE_ROOM_STATUSES.includes(r.status));
+}
+
+/**
+ * Hours of `room` nobody else can take: the ones the mock says are spoken for,
+ * plus those held by a live booking.
+ *
+ * The two overlap by design — a seeded booking is one of the reasons its room
+ * reads as busy — so this unions rather than adds, and a booking made in this
+ * session narrows the room's free hours the moment it is sent.
+ */
+export function takenSlotsOf(room: Room, bookings: readonly MyRequest[]): Set<number> {
+  const taken = bookedSlotsOf(room);
+  for (const booking of activeRoomBookings(bookings)) {
+    if (booking.serial !== room.code) continue;
+    for (const slot of booking.slots ?? []) taken.add(slot);
+  }
+  return taken;
 }
 
 export const MY_REQUESTS: MyRequest[] = [
@@ -696,5 +737,25 @@ function booking(
     status,
     startDate: date,
     endDate: date,
+    slots: seededSlots(roomCode),
   };
+}
+
+/**
+ * Hours held by a seeded booking, derived rather than typed out.
+ *
+ * Picked from the hours `bookedSlotsOf` leaves open, never from the ones it
+ * already counts as taken. `Room.freeSlots` stands for what *other people*
+ * have booked; this booking is held on top of that, which is what lets
+ * `takenSlotsOf` hand the hours back when it is cancelled. Reusing a slot the
+ * room already called taken would make the release invisible.
+ */
+function seededSlots(roomCode: string): number[] {
+  const room = ROOMS.find((r) => r.code === roomCode);
+  if (!room) return [];
+  const taken = bookedSlotsOf(room);
+  const open = TIME_SLOTS.map((_, i) => i).filter((i) => !taken.has(i));
+  const second = open.findIndex((s, i) => i > 0 && slotsAdjacent(open[i - 1], s));
+  // No adjacent pair left: one hour is still a valid booking.
+  return second > 0 ? [open[second - 1], open[second]] : open.slice(0, 1);
 }
