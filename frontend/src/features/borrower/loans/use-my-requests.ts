@@ -33,7 +33,7 @@ export interface DraftSummary {
  */
 export function useMyRequests() {
   const submitted = useSubmittedRequests((s) => s.requests);
-  const statusOverrides = useSubmittedRequests((s) => s.statusOverrides);
+  const overrides = useSubmittedRequests((s) => s.overrides);
   const draftLines = useRequestDraft((s) => s.lines);
   const startDate = useRequestDraft((s) => s.startDate);
   const endDate = useRequestDraft((s) => s.endDate);
@@ -44,10 +44,10 @@ export function useMyRequests() {
       [...submitted, ...MY_REQUESTS].map((r) => {
         // Applied here rather than in the store so seeded rows move too: they
         // come from a module constant that cannot be rewritten in place.
-        const status = statusOverrides[r.id];
-        return status ? { ...r, status } : r;
+        const changes = overrides[r.id];
+        return changes ? { ...r, ...changes } : r;
       }),
-    [submitted, statusOverrides],
+    [submitted, overrides],
   );
 
   const draft = useMemo<DraftSummary | null>(

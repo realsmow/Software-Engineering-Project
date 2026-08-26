@@ -1,5 +1,6 @@
 import { create } from "zustand";
-import { format } from "date-fns";
+import { addDays, differenceInCalendarDays, format, parseISO } from "date-fns";
+import { BUSINESS } from "@/constants";
 import {
   CATALOG_ITEMS,
   type MyRequest,
@@ -30,14 +31,18 @@ export interface RoomUseShots {
 interface SubmittedRequestsState {
   requests: MyRequest[];
   /**
-   * Status changes applied on top of whatever `useMyRequests` merged.
+   * Field changes applied on top of whatever `useMyRequests` merged.
    *
    * They live apart from `requests` because half the list comes from
    * `MY_REQUESTS`, a module constant nothing can rewrite. Without this layer
    * only requests submitted in this same session could ever move — which is
    * why "cancel" used to do nothing on a seeded row.
+   *
+   * A whole `Partial<MyRequest>` rather than just a status: collecting an item
+   * sets its status and its due date in the same breath, and one map that
+   * carries both beats three maps that have to be kept in step.
    */
-  statusOverrides: Record<string, MyRequestStatus>;
+  overrides: Record<string, Partial<MyRequest>>;
   /** Room bookings only, keyed by reservation number. */
   roomUse: Record<string, RoomUseShots>;
 
@@ -50,8 +55,12 @@ interface SubmittedRequestsState {
     needsSupervisor: boolean;
   }) => void;
   addRoomBooking: (input: { room: Room; date: string; slots: number[] }) => void;
+  /** Rewrites fields of one request, whichever source it came from. */
+  patch: (requestId: string, changes: Partial<MyRequest>) => void;
   /** Moves a request — check-in and check-out on the room-use page. */
   setStatus: (requestId: string, status: MyRequestStatus) => void;
+  /** Collects items at the counter: the loan starts, so the clock starts too. */
+  pickUp: (rows: readonly MyRequest[]) => void;
   /** Stores (or clears, with `undefined`) one of the two room photos. */
   setRoomPhoto: (requestId: string, which: keyof RoomUseShots, url?: string) => void;
   cancel: (requestId: string) => void;
@@ -71,7 +80,7 @@ function refOf(prefix: string, seq: number): string {
 
 export const useSubmittedRequests = create<SubmittedRequestsState>((set, get) => ({
   requests: [],
-  statusOverrides: {},
+  overrides: {},
   roomUse: {},
 
   addEquipmentRequest: ({ units, startDate, endDate, needsSupervisor }) => {
@@ -125,8 +134,30 @@ export const useSubmittedRequests = create<SubmittedRequestsState>((set, get) =>
     }));
   },
 
-  setStatus: (requestId, status) =>
-    set((s) => ({ statusOverrides: { ...s.statusOverrides, [requestId]: status } })),
+  patch: (requestId, changes) =>
+    set((s) => ({
+      overrides: { ...s.overrides, [requestId]: { ...s.overrides[requestId], ...changes } },
+    })),
+
+  setStatus: (requestId, status) => get().patch(requestId, { status }),
+
+  pickUp: (rows) => {
+    for (const row of rows) {
+      // The clock starts at the counter, not on the date originally asked for.
+      // What the borrower reserved is a *length* of loan; collecting a day late
+      // should not eat a day of it, and collecting after the requested window
+      // has passed should not hand over something already overdue.
+      //
+      // Stored rather than derived at render: the seeded rows carry due dates
+      // written by hand, and deriving would silently overdue all of them.
+      const days = requestedDays(row);
+      get().patch(row.id, {
+        status: "inUse",
+        dueAt: format(addDays(new Date(), days), "yyyy-MM-dd"),
+        daysLeft: days,
+      });
+    }
+  },
 
   setRoomPhoto: (requestId, which, url) =>
     set((s) => ({
@@ -138,11 +169,17 @@ export const useSubmittedRequests = create<SubmittedRequestsState>((set, get) =>
 
   cancel: (requestId) => get().setStatus(requestId, "cancelled"),
 
-  clear: () => set({ requests: [], statusOverrides: {}, roomUse: {} }),
+  clear: () => set({ requests: [], overrides: {}, roomUse: {} }),
 }));
 
 export function todayIso(): string {
   return format(new Date(), "yyyy-MM-dd");
+}
+
+/** How long the borrower asked to keep it, clamped to the lending rules. */
+function requestedDays(row: MyRequest): number {
+  const asked = differenceInCalendarDays(parseISO(row.endDate), parseISO(row.startDate));
+  return Math.min(Math.max(asked, BUSINESS.MIN_LOAN_DAYS), BUSINESS.MAX_LOAN_DAYS);
 }
 
 /** How many numbers have already been issued under a prefix this session. */

@@ -633,7 +633,9 @@ export const MY_REQUESTS: MyRequest[] = [
   request("REQ-2569-00433", "T0", "สายจัมเปอร์ชุดใหญ่", "—", "ready",
     "2026-08-12", "2026-08-16"),
 
-  request("REQ-2569-00429", "T0", "ชุดบัดกรีควบคุมอุณหภูมิ", "ME-SOL-021-03", "ready",
+  // T1 on purpose: the pickup page only offers "ask for a different unit" at
+  // this tier, and with every ready row at T0 that rule would never be visible.
+  request("REQ-2569-00429", "T1", "ชุดบัดกรีควบคุมอุณหภูมิ", "ME-SOL-021-03", "ready",
     "2026-08-11", "2026-08-18"),
 
   booking("BKG-2569-00028", "ห้องปฏิบัติการ CAD 2", "FAC-CAD2", "ready", "2026-08-12"),

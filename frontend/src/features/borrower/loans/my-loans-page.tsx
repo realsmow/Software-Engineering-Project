@@ -324,8 +324,7 @@ function Actions({
           {t("borrower.myRequests.goUseRoom")}
         </Button>
       ) : (
-        // TODO: point at the pickup screen once that page exists.
-        <Button key="pickup" type="button" size="sm" disabled>
+        <Button key="pickup" type="button" size="sm" onClick={() => navigate(ROUTES.PICKUP)}>
           {t("borrower.myRequests.goPickup")}
         </Button>
       ),

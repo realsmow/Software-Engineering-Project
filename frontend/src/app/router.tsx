@@ -30,6 +30,7 @@ const RoomBookingPage = lazy(
 );
 const RoomUsePage = lazy(() => import("@/features/borrower/rooms/room-use-page"));
 const RequestPage = lazy(() => import("@/features/borrower/request/request-page"));
+const PickupPage = lazy(() => import("@/features/borrower/pickup/pickup-page"));
 const MyLoansPage = lazy(() => import("@/features/borrower/loans/my-loans-page"));
 const MyHistoryPage = lazy(() => import("@/features/borrower/loans/my-history-page"));
 const MyCreditPage = lazy(() => import("@/features/borrower/credit/my-credit-page"));
@@ -115,6 +116,7 @@ export function AppRouter() {
           <Route path={ROUTES.ROOM_BOOKING} element={<RoomBookingPage />} />
           <Route path={ROUTES.ROOM_USE} element={<RoomUsePage />} />
           <Route path={ROUTES.REQUEST} element={<RequestPage />} />
+          <Route path={ROUTES.PICKUP} element={<PickupPage />} />
           <Route path={ROUTES.MY_LOANS} element={<MyLoansPage />} />
           <Route path={ROUTES.MY_HISTORY} element={<MyHistoryPage />} />
           <Route path={ROUTES.MY_CREDIT} element={<MyCreditPage />} />
