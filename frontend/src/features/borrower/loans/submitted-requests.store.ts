@@ -16,10 +16,10 @@ import type { RequestUnit } from "../request/request-draft.store";
  * borrower sends from the request or booking pages lands here and is merged on
  * top, so pressing "ส่งคำขอ" visibly produces rows instead of vanishing.
  *
- * One item is one request, matching `Reservations` in the backend schema — a
+ * One item is one request, matching `Reservations` in the backend schema - a
  * basket of five produces five numbered requests, not one with five lines.
  *
- * NOTE: memory only — a refresh drops these, same as the draft store. The
+ * NOTE: memory only - a refresh drops these, same as the draft store. The
  * backend owns them for real (POST /loan-requests → GET /loan-requests?me=1).
  */
 /** Room condition photos taken by the borrower, as object URLs. */
@@ -85,7 +85,7 @@ export const useSubmittedRequests = create<SubmittedRequestsState>((set, get) =>
 
   addEquipmentRequest: ({ units, startDate, endDate, needsSupervisor }) => {
     if (units.length === 0) return;
-    // Each unit gets the next number in sequence — nothing ties them together.
+    // Each unit gets the next number in sequence - nothing ties them together.
     let seq = EQUIPMENT_SEQ_START + countRequests(get().requests, "REQ");
 
     const created = units.flatMap<MyRequest>((unit) => {
@@ -100,7 +100,7 @@ export const useSubmittedRequests = create<SubmittedRequestsState>((set, get) =>
           kind: "equipment",
           tier: item.tier,
           name: item.name,
-          serial: unit.serial ?? "—",
+          serial: unit.serial ?? "-",
           status,
           startDate,
           endDate,

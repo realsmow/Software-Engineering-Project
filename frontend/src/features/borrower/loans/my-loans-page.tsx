@@ -51,7 +51,7 @@ const TAB_LABEL: Record<RequestTab, string> = {
 };
 
 /**
- * My requests — where every borrow and booking lands after it is sent.
+ * My requests - where every borrow and booking lands after it is sent.
  *
  * Requests are atomic: one item is one request with its own number, so a T2
  * item can sit waiting for a supervisor while the T0 item sent alongside it is
@@ -192,7 +192,7 @@ function RequestCard({ row, onCancel }: { row: MyRequest; onCancel: () => void }
   );
 }
 
-/** Days left, extensions used, and what quota remains — the mockup's ext line. */
+/** Days left, extensions used, and what quota remains - the mockup's ext line. */
 function LoanInfo({ row }: { row: MyRequest }) {
   const { t } = useTranslation();
   const left = row.daysLeft ?? 0;
@@ -246,7 +246,7 @@ function InspectionLine({ row }: { row: MyRequest }) {
       </p>
       {insp.reason ? (
         <p className="mt-1.5 text-xs leading-relaxed text-t3">
-          {t("borrower.myRequests.inspBy", { name: insp.inspectedBy })} — {insp.reason}
+          {t("borrower.myRequests.inspBy", { name: insp.inspectedBy })} - {insp.reason}
         </p>
       ) : null}
     </>
@@ -265,7 +265,7 @@ function ProgressTrack({
 }) {
   const { t } = useTranslation();
   // Each label owns an equal-width column, so step i's centre sits at
-  // (i + 0.5) / steps.length. The bar stops on that centre — it should read as
+  // (i + 0.5) / steps.length. The bar stops on that centre - it should read as
   // "we are at this step", not "past it". A finished request fills the track.
   const finished = at >= steps.length;
   const pct = finished ? 100 : ((at + 0.5) / steps.length) * 100;
@@ -435,7 +435,7 @@ function statusKey(status: MyRequestStatus): string {
   return `borrower.myRequests.st${status.charAt(0).toUpperCase()}${status.slice(1)}`;
 }
 
-/** Rejected and cancelled requests stopped moving — the bar should say so. */
+/** Rejected and cancelled requests stopped moving - the bar should say so. */
 function isStalled(status: MyRequestStatus): boolean {
   return status === "rejected" || status === "cancelled";
 }
@@ -467,7 +467,7 @@ function extensionQuota(row: MyRequest): { key: string; count: number | string }
   };
 }
 
-/** "12–16 ส.ค." — collapses to one date when start and end match. */
+/** "12–16 ส.ค." - collapses to one date when start and end match. */
 function fmtRange(start: string, end: string): string {
   if (start === end) return fmtDay(start);
   return `${format(parseISO(start), "d", { locale: th })}–${fmtDay(end)}`;

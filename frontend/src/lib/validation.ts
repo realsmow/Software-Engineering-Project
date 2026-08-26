@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 /**
- * Shared date/datetime validation — convention ว-08.
+ * Shared date/datetime validation - convention ว-08.
  *
  * Every date field crossing the tRPC boundary (`startDate`, `endDate`,
  * `nextAvailableAt`, slot times, `decidedAt`, ...) must be a string in one of

@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { PrismaModule } from './prisma.module'
+import { PrismaModule } from './prisma.module';
 import { ConfigModule } from '@nestjs/config';
 import { TRPCModule } from 'nestjs-trpc';
 
@@ -13,8 +13,14 @@ import {
   AdminMiddleware,
 } from './trpc/auth.middleware';
 
+import { CreditTierService } from './common/credit/credit-tier.service';
+
 import { AuthRouter } from './auth/auth.router';
 import { AuthService } from './auth/auth.service';
+import { SessionService } from './auth/session.service';
+
+import { AdminRouter } from './admin/admin.router';
+import { AdminService } from './admin/admin.service';
 
 @Module({
   imports: [
@@ -23,7 +29,7 @@ import { AuthService } from './auth/auth.service';
     }),
     PrismaModule,
     TRPCModule.forRoot({
-      // Builds ctx.user per request — see trpc/context.ts
+      // Builds ctx.user per request - see trpc/context.ts
       context: AppContext,
 
       // Must match VITE_API_URL + '/trpc' on the frontend once it's wired up
@@ -41,9 +47,18 @@ import { AuthService } from './auth/auth.service';
     SupervisorMiddleware,
     AdminMiddleware,
 
+    // shared business rules, used by more than one domain
+    CreditTierService,
+
+    // session - issued by auth, read by AppContext on every request
+    SessionService,
+
     // router + service, one pair per domain
     AuthRouter,
     AuthService,
+
+    AdminRouter,
+    AdminService,
   ],
 })
 export class AppModule {}

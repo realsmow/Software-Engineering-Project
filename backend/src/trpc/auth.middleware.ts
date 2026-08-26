@@ -1,18 +1,15 @@
 import { Injectable } from '@nestjs/common';
-import { TRPCError } from '@trpc/server';
 import type { MiddlewareOptions, TRPCMiddleware } from 'nestjs-trpc';
+import { BusinessError } from '../common/errors/business-error';
 import type { TrpcContext, TrpcUser } from './context';
 
-/** Must be logged in — used on almost every procedure */
+/** Must be logged in - used on almost every procedure */
 @Injectable()
 export class AuthMiddleware implements TRPCMiddleware {
   async use(opts: MiddlewareOptions<TrpcContext>) {
     const { ctx, next } = opts;
     if (!ctx.user) {
-      throw new TRPCError({
-        code: 'UNAUTHORIZED',
-        message: 'NOT_AUTHENTICATED',
-      });
+      throw new BusinessError('NOT_AUTHENTICATED');
     }
     // Pass ctx along with user narrowed to non-null, so downstream
     // procedures don't have to re-check.
@@ -20,16 +17,21 @@ export class AuthMiddleware implements TRPCMiddleware {
   }
 }
 
-/** Role-gated middleware factory — write once, reuse per role */
+/** Role-gated middleware factory - write once, reuse per role */
 function requireRole(...allowed: TrpcUser['role'][]) {
   @Injectable()
   class RoleMiddleware implements TRPCMiddleware {
     async use(opts: MiddlewareOptions<TrpcContext>) {
       const { ctx, next } = opts;
-      if (!ctx.user || !allowed.includes(ctx.user.role)) {
-        throw new TRPCError({
-          code: 'FORBIDDEN',
-          message: 'ROLE_NOT_ALLOWED',
+      if (!ctx.user) {
+        // Distinguish the two: an anonymous caller should be sent to the login
+        // page, a logged-in caller with the wrong role should not.
+        throw new BusinessError('NOT_AUTHENTICATED');
+      }
+      if (!allowed.includes(ctx.user.role)) {
+        throw new BusinessError('ROLE_NOT_ALLOWED', {
+          allowed,
+          actual: ctx.user.role,
         });
       }
       return next({ ctx });

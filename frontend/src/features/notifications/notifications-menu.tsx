@@ -15,7 +15,7 @@ function toneStyle(tone: BadgeTone): React.CSSProperties {
   return { background: `var(--s-${tone}-bg)`, color: `var(--s-${tone}-t)` };
 }
 
-/** Relative time ("5 นาที", "2 ชม.", "3 วัน") — uses Intl.RelativeTimeFormat. */
+/** Relative time ("5 นาที", "2 ชม.", "3 วัน") - uses Intl.RelativeTimeFormat. */
 function useRelativeTime() {
   const { i18n } = useTranslation();
   return useMemo(() => {

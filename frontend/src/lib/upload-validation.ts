@@ -1,12 +1,12 @@
 import { UPLOAD } from "@/constants";
 
 /**
- * Client-side file-upload guard (tester AC §4 — File Upload & API Security).
+ * Client-side file-upload guard (tester AC §4 - File Upload & API Security).
  *
  * The borrower/staff photo flows upload via a pre-signed PUT (`api-client.
  * uploadFile`), which does no validation of its own. This runs *before* that
  * PUT to reject oversized or wrong-type files early and surface the right
- * business error code. It is defense-in-depth only — the backend remains the
+ * business error code. It is defense-in-depth only - the backend remains the
  * authoritative validator and must re-check type/size on receipt.
  */
 
@@ -35,7 +35,7 @@ function hasAllowedExtension(name: string, allowedExt: readonly string[]): boole
 /**
  * Validate a file against size + type rules. Type is checked by BOTH MIME and
  * extension so a renamed executable (e.g. `virus.exe` relabeled `image/png`, or
- * `virus.png` carrying a non-image MIME) is rejected — the two must agree.
+ * `virus.png` carrying a non-image MIME) is rejected - the two must agree.
  */
 export function validateUploadFile(
   file: UploadCandidate,

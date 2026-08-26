@@ -27,7 +27,7 @@ import {
  * ขอยืมของ
  *
  * รับ "วันล้วน" ไม่ใช่เวลาเต็ม เพราะผู้ใช้เลือกจากปฏิทิน ส่วนเวลาครบกำหนดจริง
- * backend เป็นคนกำหนดด้วย DUE_TIME_OF_DAY_UTC — ห้ามให้ frontend ตัดสินใจ
+ * backend เป็นคนกำหนดด้วย DUE_TIME_OF_DAY_UTC - ห้ามให้ frontend ตัดสินใจ
  */
 export const createLoanInput = z.object({
   itemId: z.number().int().positive(),
@@ -37,7 +37,7 @@ export const createLoanInput = z.object({
 });
 export type CreateLoanInput = z.infer<typeof createLoanInput>;
 
-/** รายการการยืมของตัวเอง — ต่อยอดจากรูปแบบแบ่งหน้ากลาง */
+/** รายการการยืมของตัวเอง - ต่อยอดจากรูปแบบแบ่งหน้ากลาง */
 export const listLoansInput = paginationInput.extend({
   status: approveStatus.optional(),
   sort: z.enum(['dueAt', 'createdAt']).default('dueAt'),
@@ -70,7 +70,7 @@ export const listLoansOutput = paginated(loanSummaryOutput);
  * สองฝั่งจะคำนวณได้คนละคำตอบ แล้วผู้ใช้จะคืนของสาย
  *
  * grantedDays / requestedDays มีไว้รองรับกรณีที่ที่ประชุมเลือกทางเลือก ข. ของ ว-06
- * (ตัดวันยืมให้อัตโนมัติแทนที่จะปฏิเสธ) — ถ้าเลือกทางเลือก ก. สองฟิลด์นี้จะเท่ากันเสมอ
+ * (ตัดวันยืมให้อัตโนมัติแทนที่จะปฏิเสธ) - ถ้าเลือกทางเลือก ก. สองฟิลด์นี้จะเท่ากันเสมอ
  * แต่คงไว้เพื่อให้ frontend แสดงผลได้เหมือนกันทั้งสองกรณี
  */
 export const loanOutput = loanSummaryOutput.extend({

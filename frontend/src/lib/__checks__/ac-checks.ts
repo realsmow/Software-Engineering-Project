@@ -1,6 +1,6 @@
 /**
  * Standalone assertions for the tester's frontend-facing AC (§2.4–2.7 + ว-06/08).
- * Not part of the app bundle — run via esbuild+node to verify the helper logic.
+ * Not part of the app bundle - run via esbuild+node to verify the helper logic.
  */
 import {
   validateLoanPeriod,

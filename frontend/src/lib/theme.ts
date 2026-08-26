@@ -14,7 +14,7 @@ export function getInitialTheme(): Theme {
   const stored = window.localStorage.getItem(STORAGE_KEY);
   if (stored === "light" || stored === "dark") return stored;
 
-  // First visit — respect system preference.
+  // First visit - respect system preference.
   const prefersDark =
     typeof window.matchMedia === "function" &&
     window.matchMedia("(prefers-color-scheme: dark)").matches;

@@ -45,7 +45,7 @@ const pagerBtn =
   "inline-flex h-8 min-w-8 items-center justify-center rounded-md border border-border bg-card px-2 text-sm text-foreground transition-colors hover:bg-muted disabled:pointer-events-none disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
 /**
- * Generic paginated table. Pagination is internal (client-side) — swap for
+ * Generic paginated table. Pagination is internal (client-side) - swap for
  * cursor-based server pagination when the API lands. Renders an empty state
  * when `rows` is empty and hides the footer when everything fits on one page.
  */

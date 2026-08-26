@@ -8,7 +8,7 @@
  *   - creditScore ใน ctx ใช้ "แสดงผล" เท่านั้น procedure ที่คำนวณวันยืมจริงต้องอ่านสดจาก DB
  *
  * ถ้าที่ประชุมตัดสินต่างจากนี้ ให้แก้ TrpcUser ที่นี่ที่เดียว แล้วทั้งระบบจะ compile ฟ้อง
- * ทุกจุดที่ต้องตามแก้ — นั่นคือประโยชน์ของการมีสัญญา
+ * ทุกจุดที่ต้องตามแก้ - นั่นคือประโยชน์ของการมีสัญญา
  */
 
 import { Injectable } from '@nestjs/common';
@@ -17,20 +17,20 @@ import type { Request, Response } from 'express';
 import type { UserRole } from '@ulms/contract';
 import { PrismaService } from '../prisma.service';
 
-/** ผู้ใช้ที่ล็อกอินแล้ว — รูปร่างนี้คือสิ่งที่ทุก procedure พึ่งพา */
+/** ผู้ใช้ที่ล็อกอินแล้ว - รูปร่างนี้คือสิ่งที่ทุก procedure พึ่งพา */
 export interface TrpcUser {
   /** AccountInfo.AccountKey */
   accountKey: number;
   /**
    * RoleInfo.RoleName แปลงเป็นสตริงคงที่แล้ว
-   * ชนิดมาจาก @ulms/contract ไม่ประกาศซ้ำที่นี่ — ถ้าเพิ่มบทบาทใหม่ในสัญญา
+   * ชนิดมาจาก @ulms/contract ไม่ประกาศซ้ำที่นี่ - ถ้าเพิ่มบทบาทใหม่ในสัญญา
    * ไฟล์นี้กับ middleware จะ compile ฟ้องให้เองว่ายังจัดการไม่ครบ
    */
   role: UserRole;
-  /** FacultyInfo.FacultyKey — ใช้กับกฎการยืมที่ผูกกับสังกัด */
+  /** FacultyInfo.FacultyKey - ใช้กับกฎการยืมที่ผูกกับสังกัด */
   facultyKey: number | null;
   /**
-   * AccountInfo.UserCredit — ใช้แสดงผลเท่านั้น
+   * AccountInfo.UserCredit - ใช้แสดงผลเท่านั้น
    *
    * เครดิตไม่ได้กำหนดว่า "ยืมได้หรือไม่" แต่กำหนดว่า "ยืมได้กี่วัน" ผ่าน
    * CreditTier -> BorrowConstraints.MaxBorrowDate  ดังนั้น procedure ที่คำนวณ
@@ -43,7 +43,7 @@ export interface TrpcUser {
 export interface TrpcContext {
   req: Request;
   res: Response;
-  /** null = ยังไม่ล็อกอิน — middleware เป็นคนตัดสินว่า procedure ไหนยอมให้ null ได้ */
+  /** null = ยังไม่ล็อกอิน - middleware เป็นคนตัดสินว่า procedure ไหนยอมให้ null ได้ */
   user: TrpcUser | null;
 }
 
@@ -64,7 +64,7 @@ export class AppContext implements TRPCContext {
 
   /**
    * แปลง "สิ่งที่มากับ HTTP" เป็น "สิ่งที่ตรรกะธุรกิจใช้ได้"
-   * นี่คือด่านเดียวที่รู้จัก cookie — ที่อื่นในระบบเห็นแค่ ctx.user
+   * นี่คือด่านเดียวที่รู้จัก cookie - ที่อื่นในระบบเห็นแค่ ctx.user
    */
   private async resolveUser(req: Request): Promise<TrpcUser | null> {
     const token = req.cookies?.['ulms_session'];
@@ -75,7 +75,7 @@ export class AppContext implements TRPCContext {
 
     const account = await this.prisma.accountInfo.findUnique({
       where: { AccountKey: accountKey },
-      // เลือกเฉพาะฟิลด์ที่ ctx ต้องใช้ — ห้ามดึงทั้งแถว เพราะ AccountInfo
+      // เลือกเฉพาะฟิลด์ที่ ctx ต้องใช้ - ห้ามดึงทั้งแถว เพราะ AccountInfo
       // มี HashedPassword อยู่ในตารางเดียวกัน
       select: {
         AccountKey: true,
@@ -101,7 +101,7 @@ export class AppContext implements TRPCContext {
 
 /**
  * RoleInfo เป็น "ตาราง" ไม่ใช่ enum (schema.prisma ไม่มี enum เลยสักตัว)
- * จึงต้องแปลงเป็นสตริงคงที่ตรงนี้ ห้ามปล่อยเลข RoleKey ออกไปนอกชั้นนี้ — ดู ว-10
+ * จึงต้องแปลงเป็นสตริงคงที่ตรงนี้ ห้ามปล่อยเลข RoleKey ออกไปนอกชั้นนี้ - ดู ว-10
  */
 function mapRoleName(roleName: string): UserRole {
   switch (roleName.toLowerCase()) {
@@ -116,6 +116,6 @@ function mapRoleName(roleName: string): UserRole {
     case 'admin':
       return 'admin';
     default:
-      throw new Error(`ไม่รู้จัก RoleName "${roleName}" — เพิ่มการแปลงใน mapRoleName`);
+      throw new Error(`ไม่รู้จัก RoleName "${roleName}" - เพิ่มการแปลงใน mapRoleName`);
   }
 }

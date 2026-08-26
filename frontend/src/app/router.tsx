@@ -18,7 +18,7 @@ import type { Role } from "@/types/domain";
  *   a placeholder (the *-page modules under features/); real content lands later.
  */
 
-// Borrower (auth-only base — shared by every role)
+// Borrower (auth-only base - shared by every role)
 const HomePage = lazy(() => import("@/features/borrower/home/home-page"));
 const CatalogPage = lazy(() => import("@/features/borrower/catalog/catalog-page"));
 const EquipmentDetailPage = lazy(
@@ -108,7 +108,7 @@ export function AppRouter() {
 
         {/* Authenticated app shell */}
         <Route element={<ProtectedShell />}>
-          {/* Borrower base — any authenticated role */}
+          {/* Borrower base - any authenticated role */}
           <Route path={ROUTES.HOME} element={<HomePage />} />
           <Route path={ROUTES.CATALOG} element={<CatalogPage />} />
           <Route path={ROUTES.EQUIPMENT_DETAIL} element={<EquipmentDetailPage />} />
@@ -123,7 +123,7 @@ export function AppRouter() {
           <Route path={ROUTES.APPEALS} element={<AppealsPage />} />
           <Route path={ROUTES.PROFILE} element={<ProfilePage />} />
 
-          {/* Staff operations — staff + admin */}
+          {/* Staff operations - staff + admin */}
           <Route element={<RoleGuard allowedRoles={["staff", "admin"]} />}>
             <Route path={ROUTES.STAFF_DASHBOARD} element={<StaffDashboardPage />} />
             <Route path={ROUTES.STAFF_HANDOVER} element={<StaffHandoverPage />} />
@@ -131,7 +131,7 @@ export function AppRouter() {
             <Route path={ROUTES.STAFF_INVENTORY} element={<StaffInventoryPage />} />
           </Route>
 
-          {/* Department management + reports — staff + supervisor + admin */}
+          {/* Department management + reports - staff + supervisor + admin */}
           <Route element={<RoleGuard allowedRoles={["staff", "supervisor", "admin"]} />}>
             <Route path={ROUTES.STAFF_USERS} element={<StaffUsersPage />} />
             <Route path={ROUTES.STAFF_PERMISSIONS} element={<StaffPermissionsPage />} />
@@ -140,13 +140,13 @@ export function AppRouter() {
             <Route path={ROUTES.REPORT_EXPORT} element={<ReportExportPage />} />
           </Route>
 
-          {/* Supervisor — supervisor + admin */}
+          {/* Supervisor - supervisor + admin */}
           <Route element={<RoleGuard allowedRoles={["supervisor", "admin"]} />}>
             <Route path={ROUTES.SUPERVISOR_APPROVALS} element={<SupervisorApprovalsPage />} />
             <Route path={ROUTES.SUPERVISOR_APPEALS} element={<SupervisorAppealsPage />} />
           </Route>
 
-          {/* Admin — admin only */}
+          {/* Admin - admin only */}
           <Route element={<RoleGuard allowedRoles={["admin"]} />}>
             <Route path={ROUTES.ADMIN_DASHBOARD} element={<AdminDashboardPage />} />
             <Route path={ROUTES.ADMIN_USERS} element={<AdminUsersPage />} />

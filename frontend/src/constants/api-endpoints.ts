@@ -1,12 +1,12 @@
 /**
- * ULMs — tRPC API endpoint catalogue (frontend → backend contract)
+ * ULMs - tRPC API endpoint catalogue (frontend → backend contract)
  * ===================================================================
  *
  * Every tRPC procedure the ULMs frontend needs to call, as agreed in the
  * tRPC contract meeting (trpc-meeting.pdf).
  *
  *  - Grouping is by DOMAIN, not by role (ว-05). Auth/jurisdiction is enforced
- *    by backend middleware — the same `loan.list` serves a borrower (their own
+ *    by backend middleware - the same `loan.list` serves a borrower (their own
  *    loans) and a staff member (their department queue), scoped by ctx.user.
  *  - Standard verbs (ว-05): list · getById · create · update · cancel · decide
  *    · confirm. Feature-specific verbs are added only where a standard verb does
@@ -18,7 +18,7 @@
  *    and return `{ items, total, page, pageSize }` (ว-07; pageSize default 20,
  *    max 100).
  *  - ctx.user carries `{ accountKey, role, facultyKey, creditScore }` (ว-03).
- *  - Business errors map to tRPC codes (ว-06) — noted per procedure below.
+ *  - Business errors map to tRPC codes (ว-06) - noted per procedure below.
  *
  * Usage:
  *   trpc[splitDomain(API.loan.create)] ...  // with a real client,
@@ -27,8 +27,10 @@
 
 export const API = {
   // ── auth ──────────────────────────────────────────────────────────────
-  // Session & identity. Google OAuth (@ku.ac.th, @ku.th) + local-account
-  // fallback for staff without a KU email.
+  // Session & identity. Both sign-in methods are the same password check
+  // against AccountInfo - a @ku.th address is an identifier, not a Google
+  // account, so no OAuth is involved. The only difference is which column
+  // the identifier matches: Email for the KU tab, UserID for local accounts.
   auth: {
     /** Current user: profile + role + faculty + creditScore (ctx.user). Called once on shell load. */
     me: "auth.me",
@@ -45,11 +47,11 @@ export const API = {
     list: "item.list",
     /** One equipment type with tier, units, prep days, next-available. Page: Equipment detail. */
     getById: "item.getById",
-    /** Live remaining count + next-available for a type. POLLED — POLLING.AVAILABILITY (15s). */
+    /** Live remaining count + next-available for a type. POLLED - POLLING.AVAILABILITY (15s). */
     getAvailability: "item.getAvailability",
     /** Long-cached master data: categories + tiers (staleTime 1h). */
     listCategories: "item.listCategories",
-    /** Units of a type (serials, status) — staff prepare / inventory. */
+    /** Units of a type (serials, status) - staff prepare / inventory. */
     listUnits: "item.listUnits",
     /** Create a new equipment type. Staff inventory. */
     create: "item.create",
@@ -97,7 +99,7 @@ export const API = {
   reservation: {
     /** My reservations. Page: My requests. */
     list: "reservation.list",
-    /** Free/taken time slots for a room. POLLED — POLLING.FACILITY_SLOTS (15s). */
+    /** Free/taken time slots for a room. POLLED - POLLING.FACILITY_SLOTS (15s). */
     getSlots: "reservation.getSlots",
     /** Book a slot. Error: SLOT_TAKEN→CONFLICT. */
     create: "reservation.create",
@@ -108,7 +110,7 @@ export const API = {
   // ── approval ──────────────────────────────────────────────────────────
   // Supervisor approvals (T2 items, low-credit borrowers, extensions).
   approval: {
-    /** Approval queue. POLLED — POLLING.SUPERVISOR_QUEUE (60s). Page: Approvals. */
+    /** Approval queue. POLLED - POLLING.SUPERVISOR_QUEUE (60s). Page: Approvals. */
     list: "approval.list",
     /** One request pending approval, with borrower context. */
     getById: "approval.getById",
@@ -119,7 +121,7 @@ export const API = {
   // ── appeal ────────────────────────────────────────────────────────────
   // Damage-report appeals.
   appeal: {
-    /** Appeals list — borrower's own + supervisor review queue. Pages: Appeals, Appeals review. */
+    /** Appeals list - borrower's own + supervisor review queue. Pages: Appeals, Appeals review. */
     list: "appeal.list",
     /** One appeal: reason, damage report, status, decision. */
     getById: "appeal.getById",
@@ -154,7 +156,7 @@ export const API = {
   // ── notification ──────────────────────────────────────────────────────
   // In-app notifications (topbar bell).
   notification: {
-    /** Notifications for the bell dropdown. POLLED — POLLING.NOTIFICATIONS (60s). */
+    /** Notifications for the bell dropdown. POLLED - POLLING.NOTIFICATIONS (60s). */
     list: "notification.list",
     /** Mark a single notification read. */
     markRead: "notification.markRead",
@@ -200,7 +202,7 @@ export const API = {
     /** Apply or lift a borrowing ban. Page: Permissions / ban. */
     setUserBan: "admin.setUserBan",
 
-    // Lending rules (department staff — business config, not technical)
+    // Lending rules (department staff - business config, not technical)
     /** Read department lending settings (periods, quotas, tiers). Page: Lending settings. */
     getLendingSettings: "admin.getLendingSettings",
     /** Update department lending settings. Page: Lending settings. */

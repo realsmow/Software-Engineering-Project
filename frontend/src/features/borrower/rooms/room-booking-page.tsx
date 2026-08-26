@@ -23,14 +23,14 @@ import { useMyRequests } from "../loans/use-my-requests";
 import { useRoom } from "./use-rooms";
 
 /**
- * Room booking request — reached from a room-list row. The room comes from the
+ * Room booking request - reached from a room-list row. The room comes from the
  * URL, so the page is refreshable and shareable; the date and the chosen slots
  * are form state that lives here.
  *
  * Layout follows the reference mockup: a content column (steps → chosen room →
  * date & slots) beside a sticky summary rail.
  *
- * T3 facilities are entitlement-checked and confirmed automatically — no
+ * T3 facilities are entitlement-checked and confirmed automatically - no
  * supervisor step, which is why the rail has no approval gate.
  */
 export default function RoomBookingPage() {
@@ -281,7 +281,7 @@ export default function RoomBookingPage() {
 }
 
 /**
- * 1-2-3 progress strip. Step 2 is always current — this page *is* step 2.
+ * 1-2-3 progress strip. Step 2 is always current - this page *is* step 2.
  *
  * No draft id here: the reference mockup printed a fixed one, which made
  * every draft look identical. Show it once the server assigns a real id.
@@ -393,7 +393,7 @@ function SumRow({
   children,
 }: {
   label: string;
-  /** Room names are prose, not figures — skip the mono treatment. */
+  /** Room names are prose, not figures - skip the mono treatment. */
   plain?: boolean;
   children: ReactNode;
 }) {
@@ -411,7 +411,7 @@ function todayIso(): string {
   return format(new Date(), "yyyy-MM-dd");
 }
 
-/** "12 ส.ค. 2569" — the booking date, spelled out for the summary. */
+/** "12 ส.ค. 2569" - the booking date, spelled out for the summary. */
 function fmtToday(): string {
   const now = new Date();
   return `${format(now, "d MMM", { locale: th })} ${now.getFullYear() + 543}`;

@@ -6,7 +6,7 @@ export type NotificationKind = "request" | "due" | "approval" | "system" | "retu
 export interface AppNotification {
   id: string;
   kind: NotificationKind;
-  /** Message text — Thai, like other mock/DB content. */
+  /** Message text - Thai, like other mock/DB content. */
   title: string;
   detail: string;
   /** ISO timestamp. */

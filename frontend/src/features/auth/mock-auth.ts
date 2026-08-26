@@ -1,7 +1,7 @@
 import type { Role, User } from "@/types/domain";
 
 /**
- * Mock users for dev — no API is wired yet (see brief note #5).
+ * Mock users for dev - no API is wired yet (see brief note #5).
  * One representative user per role, aligned with the personas in
  * constants/navigation.ts. Swap for real `/auth/me` data later.
  */
@@ -57,10 +57,10 @@ export const MOCK_USER_STORAGE_KEY = "ulms-mock-user";
  * Borrower is reached via the KU email method instead.
  *
  * TODO(auth-integration): DELETE this file entirely once real auth lands.
- * Do NOT seed these usernames into any database — they are publicly known.
+ * Do NOT seed these usernames into any database - they are publicly known.
  *
  * `import.meta.env.DEV` is replaced by a literal at build time, so the
- * production bundle keeps only the empty array — the passwords are never
+ * production bundle keeps only the empty array - the passwords are never
  * emitted. Verified with `grep -r staff1234 dist/`.
  */
 export const MOCK_LOCAL_CREDENTIALS: {

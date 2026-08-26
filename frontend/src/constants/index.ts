@@ -36,7 +36,7 @@ export const BUSINESS = {
 } as const;
 
 // ==================== File Upload (client-side guard) ====================
-// First line of defense before the pre-signed PUT — the backend re-validates.
+// First line of defense before the pre-signed PUT - the backend re-validates.
 // Matches the FILE_TOO_LARGE / INVALID_FILE_TYPE copy in error-messages.ts.
 export const UPLOAD = {
   MAX_MB: 5,
