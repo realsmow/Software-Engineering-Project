@@ -5,7 +5,7 @@ import { z } from 'zod';
  *
  * Page numbers, not cursors: the frontend's tables show "หน้า 3 จาก 12" and let
  * the user jump around, which a cursor cannot express. The cost is that a row
- * inserted while the user pages can shift results — acceptable for admin
+ * inserted while the user pages can shift results - acceptable for admin
  * tables, and the reason the borrower-facing realtime lists poll instead.
  */
 export const paginationInput = z.object({
@@ -13,7 +13,7 @@ export const paginationInput = z.object({
   pageSize: z.number().int().min(1).max(100).default(20),
   /** Free-text search. What it searches is per-procedure and documented there. */
   q: z.string().trim().min(1).optional(),
-  /** Sort field name from the procedure's own whitelist — never a raw column. */
+  /** Sort field name from the procedure's own whitelist - never a raw column. */
   sort: z.string().optional(),
   order: z.enum(['asc', 'desc']).default('asc'),
 });

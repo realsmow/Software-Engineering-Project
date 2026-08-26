@@ -5,7 +5,7 @@
 > tRPC ไม่แถมหน้าเอกสาร API มาให้เหมือน OpenAPI สิ่งที่ทดแทนได้คือไฟล์นี้
 > ซึ่งไม่ใช่งานเสียเปล่า เพราะใช้เป็นภาคผนวกของรายงานส่งอาจารย์ได้ด้วย
 >
-> **สถานะ: ร่าง** — เนื้อหาข้างล่างครอบคลุมเฉพาะ vertical slice ตัวอย่าง
+> **สถานะ: ร่าง** - เนื้อหาข้างล่างครอบคลุมเฉพาะ vertical slice ตัวอย่าง
 > ต้องเติมให้ครบทั้ง 18 รายการจาก *รายการเรียกใช้งานจาก Backend.pdf*
 > หลังที่ประชุมยืนยันข้อตกลงแล้ว
 
@@ -17,7 +17,7 @@
 
 | เรื่อง | ข้อตกลง | วาระ |
 |---|---|---|
-| การขนส่งสัญญา | **npm workspaces** — `autoSchemaFile` เขียนลง `packages/contract/src/generated/` ทั้งสองฝั่ง `import` จาก `@ulms/contract` ไม่มีขั้นตอนคัดลอก | ว-01 |
+| การขนส่งสัญญา | **npm workspaces** - `autoSchemaFile` เขียนลง `packages/contract/src/generated/` ทั้งสองฝั่ง `import` จาก `@ulms/contract` ไม่มีขั้นตอนคัดลอก | ว-01 |
 | เวอร์ชัน zod | 4.x ทั้งสองฝั่ง | ว-02 |
 | การยืนยันตัวตน | httpOnly cookie ชื่อ `ulms_session` + `credentials: 'include'` | ว-03 |
 | การจัดกลุ่ม | ตามโดเมน ไม่ใช่ตามบทบาท คุมสิทธิ์ด้วย middleware | ว-05 |
@@ -35,8 +35,8 @@
 
 | รหัส | รหัส tRPC | ข้อมูลประกอบ |
 |---|---|---|
-| `NOT_AUTHENTICATED` | `UNAUTHORIZED` | — |
-| `ROLE_NOT_ALLOWED` | `FORBIDDEN` | — |
+| `NOT_AUTHENTICATED` | `UNAUTHORIZED` | - |
+| `ROLE_NOT_ALLOWED` | `FORBIDDEN` | - |
 | `NOT_ELIGIBLE` | `FORBIDDEN` | `{ itemId }` |
 | `ITEM_UNAVAILABLE` | `CONFLICT` | `{ itemId, nextAvailableAt }` |
 | `SLOT_TAKEN` | `CONFLICT` | `{ roomId, startTime }` |
@@ -62,7 +62,7 @@
 
 | procedure | ชนิด | input | output | role | หมายเหตุ |
 |---|---|---|---|---|---|
-| `auth.me` | query | — | `userOutput` | ล็อกอินแล้ว | ทุกหน้าใช้ · คืน `maxBorrowDays` มาให้แล้ว frontend ไม่ต้องคำนวณเอง |
+| `auth.me` | query | - | `userOutput` | ล็อกอินแล้ว | ทุกหน้าใช้ · คืน `maxBorrowDays` มาให้แล้ว frontend ไม่ต้องคำนวณเอง |
 
 ### `item`
 
@@ -88,7 +88,7 @@
 | `approval.queue` | query | `paginationInput` | `paginated(approvalItemOutput)` | อาจารย์ | **poll 30–60 วิ** · แบ่งหน้าเสมอ |
 | `approval.decide` | mutation | `{ id, decision, reason? }` | `{ ok: true }` | อาจารย์ | `ALREADY_DECIDED` |
 
-### ยังไม่ได้ทำ — ต้องเติมให้ครบ
+### ยังไม่ได้ทำ - ต้องเติมให้ครบ
 
 `reservation.*` (จองห้อง T3) · `appeal.*` · `credit.*` · `inspection.*` ·
 `notification.*` · `report.*` · `admin.*`

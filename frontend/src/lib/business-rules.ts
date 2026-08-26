@@ -6,7 +6,7 @@ import type { CreditBand } from "@/types/domain";
  *
  * These mirror the backend's authoritative checks so the UI can warn the user
  * *before* they submit (rather than only reacting to a tRPC error afterward).
- * The backend remains the source of truth — these never mutate anything and
+ * The backend remains the source of truth - these never mutate anything and
  * exist purely to give immediate, correct feedback in forms.
  *
  * Covers tester AC §2.4 (G2 loan-period ceiling), §2.5 (17:00 return cutoff),
@@ -57,7 +57,7 @@ export interface LoanPeriodResult {
   requestedDays: number;
   /** Effective maximum loan length allowed (credit- and reservation-bounded). */
   maxDays: number;
-  /** Latest allowed return date as YYYY-MM-DD — show this in the form warning. */
+  /** Latest allowed return date as YYYY-MM-DD - show this in the form warning. */
   maxReturnDate: string;
   creditTier: CreditBand;
   /** Why it failed, if it did. */
@@ -68,7 +68,7 @@ export interface LoanPeriodResult {
  * Validate a requested loan window against the borrower's credit ceiling and
  * (optionally) an upcoming reservation (G2). The UI should call this on every
  * date change and surface `maxReturnDate` so the user sees the real limit
- * before confirming — matching AC §2.4.
+ * before confirming - matching AC §2.4.
  */
 export function validateLoanPeriod(input: LoanPeriodInput): LoanPeriodResult {
   const { startDate, endDate, creditBand, nextReservationStart, bufferDays } = input;
@@ -111,7 +111,7 @@ export function validateLoanPeriod(input: LoanPeriodInput): LoanPeriodResult {
  * Return-cutoff penalty (AC §2.5). The due day's deadline is `cutoffHour`:00
  * (17:00 by default). A check-in at exactly 17:00 is on time (0 days); 17:00:01
  * or later counts as 1 late day, and each further calendar day adds one more.
- * Both instants are compared in UTC — callers pass UTC times per ว-08.
+ * Both instants are compared in UTC - callers pass UTC times per ว-08.
  */
 export function returnLatePenaltyDays(
   dueDate: string, // YYYY-MM-DD

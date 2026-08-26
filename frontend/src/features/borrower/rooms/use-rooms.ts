@@ -3,7 +3,7 @@ import { queryKeys } from "@/lib/query-client";
 import { ROOMS, type Room } from "../mock-data";
 
 /**
- * useRooms — bookable rooms and spaces for the borrower's room list.
+ * useRooms - bookable rooms and spaces for the borrower's room list.
  *
  * No API is wired yet: the queryFn returns typed mock data so the page can
  * render. When the backend lands, swap it for an apiClient call to
@@ -17,7 +17,7 @@ export function useRooms() {
 }
 
 /**
- * useRoom — one room by id, for the booking page.
+ * useRoom - one room by id, for the booking page.
  * Resolves to `null` when the id matches nothing (removed room, bad link).
  */
 export function useRoom(id: string | undefined) {

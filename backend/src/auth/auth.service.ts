@@ -1,12 +1,17 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
-import { toUserOutput, type BorrowLimits } from '../common/mappers/user.mapper';
-import type { CreditTier } from '../common/schemas/status.schema';
+import { CreditTierService } from '../common/credit/credit-tier.service';
+import { BusinessError } from '../common/errors/business-error';
+import { dummyPasswordHash, verifyPassword } from '../common/crypto/password';
+import { toUserOutput } from '../common/mappers/user.mapper';
 import type { UserOutput } from '../common/schemas/user.schema';
 
 @Injectable()
 export class AuthService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly creditTiers: CreditTierService,
+  ) {}
 
   async getProfile(accountKey: number): Promise<UserOutput> {
     const row = await this.prisma.accountInfo.findUniqueOrThrow({
@@ -19,45 +24,53 @@ export class AuthService {
         Email: true,
         UserCredit: true,
         Role: { select: { RoleName: true } },
-        // HashedPassword intentionally not selected — cannot leak by accident
+        // HashedPassword intentionally not selected - cannot leak by accident
       },
     });
 
-    return toUserOutput(row, await this.resolveBorrowLimits(row.UserCredit));
+    return toUserOutput(
+      row,
+      await this.creditTiers.resolveBorrowLimits(row.UserCredit),
+    );
   }
 
   /**
-   * Converts a raw credit score into a borrow limit.
+   * Checks credentials and returns the AccountKey to open a session for.
    *
-   * Low credit doesn't mean "cannot borrow", it means "shorter borrow
-   * window" — CreditTier (CreditMin/CreditMax) buckets the score into a
-   * tier, and BorrowConstraints maps that tier to MaxBorrowDate /
-   * MaxExtendTime. Eligibility to borrow at all is a separate mechanism
-   * (Eligibility + MinimumAuthorityLevel).
+   * Two things this deliberately does NOT do:
+   *
+   *  - it never says whether the account exists. Both "no such user" and
+   *    "wrong password" produce the same INVALID_CREDENTIALS, and when the
+   *    account is missing it still spends the cost of one hash against a dummy
+   *    value, so the two cases take the same time. Skipping that turns the
+   *    login endpoint into a way to enumerate which KU emails are registered.
+   *
+   *  - it does not touch the session. Issuing the cookie is the router's job,
+   *    which keeps this method testable without an HTTP response object.
    */
-  private async resolveBorrowLimits(creditScore: number): Promise<BorrowLimits> {
-    const tier = await this.prisma.creditTier.findFirstOrThrow({
+  async authenticate(username: string, password: string): Promise<number> {
+    const identifier = username.trim();
+
+    const account = await this.prisma.accountInfo.findFirst({
+      // Email has no unique constraint in the schema, so this is findFirst,
+      // not findUnique. Two accounts sharing an email is a data problem -
+      // see docs/auth-admin.md.
       where: {
-        CreditMin: { lte: creditScore },
-        CreditMax: { gte: creditScore },
+        OR: [
+          { Email: { equals: identifier, mode: 'insensitive' } },
+          { UserID: identifier },
+        ],
       },
-      select: {
-        CreditTierName: true,
-        BorrowConstraints: {
-          // Borrow rules differ per item type, so this is a general value
-          // for the profile page only — the actual borrow flow must look
-          // up BorrowConstraints by the item's own BorrowRuleKey.
-          take: 1,
-          select: { MaxBorrowDate: true, MaxExtendTime: true },
-        },
-      },
+      select: { AccountKey: true, HashedPassword: true },
     });
 
-    const constraint = tier.BorrowConstraints[0];
-    return {
-      creditTier: (tier.CreditTierName ?? 'D0') as CreditTier,
-      maxBorrowDays: constraint?.MaxBorrowDate ?? 7,
-      maxExtendTimes: constraint?.MaxExtendTime ?? 0,
-    };
+    const stored = account?.HashedPassword ?? (await dummyPasswordHash());
+    const matches = await verifyPassword(password, stored);
+
+    if (!account || !matches) {
+      throw new BusinessError('INVALID_CREDENTIALS');
+    }
+
+    return account.AccountKey;
   }
 }

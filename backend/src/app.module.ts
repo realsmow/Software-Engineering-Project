@@ -21,7 +21,12 @@ import {
 
 import { AuthRouter } from './auth/auth.router';
 import { AuthService } from './auth/auth.service';
+import { SessionService } from './auth/session.service';
 
+import { AdminRouter } from './admin/admin.router';
+import { AdminService } from './admin/admin.service';
+
+import { CreditTierService } from './common/credit/credit-tier.service';
 import { StaffScopeService } from './common/authority/staff-scope.service';
 import { PenaltyService } from './common/penalty/penalty.service';
 
@@ -49,7 +54,7 @@ import {
     }),
     PrismaModule,
     TRPCModule.forRoot({
-      // Builds ctx.user per request — see trpc/context.ts
+      // Builds ctx.user per request - see trpc/context.ts
       context: AppContext,
 
       // Must match VITE_API_URL + '/trpc' on the frontend once it's wired up
@@ -68,7 +73,11 @@ import {
     SupervisorMiddleware,
     AdminMiddleware,
 
+    // session - issued by auth, read by AppContext on every request
+    SessionService,
+
     // shared business rules, used by more than one domain
+    CreditTierService,
     StaffScopeService,
     PenaltyService,
     ImageService,
@@ -76,6 +85,9 @@ import {
     // router + service, one pair per domain
     AuthRouter,
     AuthService,
+
+    AdminRouter,
+    AdminService,
 
     ItemRouter,
     ItemService,
@@ -94,7 +106,7 @@ export class AppModule implements NestModule {
    * Raw body for the upload route, and nowhere else (CONTRACT.md §3).
    *
    * It lives here rather than in `main.ts` so it travels with the controller it
-   * exists for — a body parser configured in bootstrap is invisible to every
+   * exists for - a body parser configured in bootstrap is invisible to every
    * test, which is exactly how an upload route ends up passing its unit tests
    * and receiving `{}` in production.
    *

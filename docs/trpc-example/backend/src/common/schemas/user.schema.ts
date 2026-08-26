@@ -3,7 +3,7 @@
  * ปลายทางจริง: backend-preview/backend/src/common/schemas/user.schema.ts
  *
  * เขียน schema กลางของแต่ละ entity ไว้ที่เดียว แล้ว procedure อื่น ๆ เอาไป
- * .pick() / .omit() / .extend() ต่อ — ไม่ต้องเขียนซ้ำทุก procedure
+ * .pick() / .omit() / .extend() ต่อ - ไม่ต้องเขียนซ้ำทุก procedure
  */
 
 import { z } from 'zod';

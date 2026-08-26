@@ -36,7 +36,7 @@ const UNIT_CONDITION_KEY: Record<UnitState, string> = {
 };
 
 /**
- * Create borrow request — step 2 of the borrow flow. The catalog fills the
+ * Create borrow request - step 2 of the borrow flow. The catalog fills the
  * draft (see request-draft.store); this page edits quantities and serials,
  * sets the period, and runs the pre-submit checks before letting it go.
  *
@@ -44,7 +44,7 @@ const UNIT_CONDITION_KEY: Record<UnitState, string> = {
  * items → period → T2 serials) beside a sticky rail carrying the summary,
  * the checks, and the submit buttons.
  *
- * Rooms and T3 slot booking are deliberately out of scope here — that flow
+ * Rooms and T3 slot booking are deliberately out of scope here - that flow
  * lands with the room booking pages.
  */
 export default function RequestPage() {
@@ -78,7 +78,7 @@ export default function RequestPage() {
   );
 
   const t2Rows = rows.filter((r) => r.item.tier === "T2");
-  // The cart groups by type, but the request that goes out is per unit — each
+  // The cart groups by type, but the request that goes out is per unit - each
   // one is approved, handed over, and returned on its own.
   const units = useMemo(() => expandToUnits(lines), [lines]);
   const totalUnits = units.length;
@@ -94,7 +94,7 @@ export default function RequestPage() {
       : "borrower.request.apvT2";
 
   // The picker is capped at the credit band's allowance, but a typed-in date
-  // can still land outside it — hence the duplicate check below.
+  // can still land outside it - hence the duplicate check below.
   const days = endDate ? differenceInCalendarDays(parseISO(endDate), parseISO(startDate)) + 1 : 0;
   const overDays = days > maxDays;
   const endMax = isoOffset(
@@ -164,7 +164,7 @@ export default function RequestPage() {
   }
 
   function saveDraft() {
-    // Nothing to persist yet — the draft already lives in the store, so this
+    // Nothing to persist yet - the draft already lives in the store, so this
     // just steps out of the flow. TODO: POST /loan-requests as status "draft".
     navigate(ROUTES.MY_LOANS);
   }
@@ -340,7 +340,7 @@ export default function RequestPage() {
 }
 
 /**
- * 1-2-3 progress strip. Step 2 is always current — this page *is* step 2.
+ * 1-2-3 progress strip. Step 2 is always current - this page *is* step 2.
  *
  * No draft id here: the reference mockup printed a fixed one, which made
  * every draft look identical. Show it once the server assigns a real id.
@@ -375,7 +375,7 @@ function StepsBar() {
 }
 
 /**
- * Selected lines. A table on wide screens, stacked cards on phones — the
+ * Selected lines. A table on wide screens, stacked cards on phones - the
  * quantity stepper needs more room than a 4-column table gives it.
  */
 function LineTable({
@@ -643,7 +643,7 @@ function Th({ children, className }: { children?: ReactNode; className?: string 
   );
 }
 
-/** Photo placeholder — equipment images land with the upload feature. */
+/** Photo placeholder - equipment images land with the upload feature. */
 function Thumb() {
   return (
     <div
@@ -655,7 +655,7 @@ function Thumb() {
   );
 }
 
-/** "12 ส.ค." — compact date for the summary rail. */
+/** "12 ส.ค." - compact date for the summary rail. */
 function fmtShort(iso: string): string {
   return format(parseISO(iso), "d MMM", { locale: th });
 }

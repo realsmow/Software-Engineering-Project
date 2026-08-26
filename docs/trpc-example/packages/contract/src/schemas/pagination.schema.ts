@@ -1,7 +1,7 @@
 /**
  * วาระ ว-07 · รูปแบบการแบ่งหน้าและการกรอง
  * ปลายทางจริง: packages/contract/src/schemas/pagination.schema.ts
- * (ทางเลือก ก. — schema ที่สองฝั่งใช้ร่วมกันอยู่ในแพ็กเกจกลาง ไม่ใช่ใน backend)
+ * (ทางเลือก ก. - schema ที่สองฝั่งใช้ร่วมกันอยู่ในแพ็กเกจกลาง ไม่ใช่ใน backend)
  *
  * สมมติว่าที่ประชุมเลือกตามข้อเสนอ: แบ่งหน้าตาม "เลขหน้า" ทั้งระบบ
  *   เหตุผล: หน้าจอส่วนใหญ่เป็นตารางงานของเจ้าหน้าที่ (คิวจัดเตรียม คิวรออนุมัติ
@@ -14,7 +14,7 @@
 
 import { z } from 'zod';
 
-/** ค่าปริยายและเพดาน — เพดานกันคนยิงขอทีเดียวหมื่นแถว */
+/** ค่าปริยายและเพดาน - เพดานกันคนยิงขอทีเดียวหมื่นแถว */
 export const DEFAULT_PAGE_SIZE = 20;
 export const MAX_PAGE_SIZE = 100;
 
@@ -24,7 +24,7 @@ export const paginationInput = z.object({
   pageSize: z.number().int().min(1).max(MAX_PAGE_SIZE).default(DEFAULT_PAGE_SIZE),
   /** คำค้น ปล่อยว่างได้ */
   q: z.string().trim().max(200).optional(),
-  /** ชื่อฟิลด์ที่เรียง — แต่ละ procedure จำกัดค่าที่ยอมรับเองด้วย .extend() */
+  /** ชื่อฟิลด์ที่เรียง - แต่ละ procedure จำกัดค่าที่ยอมรับเองด้วย .extend() */
   sort: z.string().max(50).optional(),
   order: z.enum(['asc', 'desc']).default('desc'),
 });

@@ -3,12 +3,12 @@ import { queryKeys } from "@/lib/query-client";
 import { CATALOG_ITEMS, type CatalogItem } from "../mock-data";
 
 /**
- * useEquipmentTypes — equipment catalog list for the borrower view.
+ * useEquipmentTypes - equipment catalog list for the borrower view.
  *
  * No API is wired yet (brief note #5): the queryFn returns typed mock data from
  * `features/borrower/mock-data.ts` so the catalog page can render. When the
  * backend lands, swap the queryFn for an apiClient call to GET /equipment-types
- * (keys already live in query-client) — filtering/sorting stays client-side
+ * (keys already live in query-client) - filtering/sorting stays client-side
  * until the endpoint supports query params.
  */
 export function useEquipmentTypes(filters?: Record<string, unknown>) {
@@ -19,7 +19,7 @@ export function useEquipmentTypes(filters?: Record<string, unknown>) {
 }
 
 /**
- * useEquipmentType — one catalog item by id, for the detail page.
+ * useEquipmentType - one catalog item by id, for the detail page.
  * Resolves to `null` when the id matches nothing (deleted item, bad link).
  * Swap the queryFn for GET /equipment-types/:id when the backend lands.
  */

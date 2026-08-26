@@ -28,13 +28,13 @@ type GroupKey = (typeof GROUP_KEYS)[number];
 const PAGE_SIZE = 8;
 
 /**
- * Room list — the borrower's entry point for booking labs, meeting rooms, and
+ * Room list - the borrower's entry point for booking labs, meeting rooms, and
  * shared spaces. Layout mirrors the equipment catalog (filter rail beside one
  * card that stacks toolbar → chips → note → table) because the mockup treats
  * them as the same kind of browse screen; only the columns and facets differ.
  *
  * Rooms are booked by time slot rather than allocated as units, so there is no
- * sort control here — free-today rooms always float to the top.
+ * sort control here - free-today rooms always float to the top.
  */
 export default function RoomListPage() {
   const { t } = useTranslation();
@@ -237,7 +237,7 @@ export default function RoomListPage() {
             ) : (
               <DataTable
                 // Remount on any change to the result set so pagination starts
-                // over — DataTable owns its page state and has no reset prop.
+                // over - DataTable owns its page state and has no reset prop.
                 key={`${query}|${[...selected].sort().join(",")}`}
                 columns={columns}
                 rows={list}
@@ -477,7 +477,7 @@ function EmptyState({ onClear }: { onClear: () => void }) {
   );
 }
 
-/** Photo placeholder — room images land with the upload feature. */
+/** Photo placeholder - room images land with the upload feature. */
 function Thumb({ size = 44 }: { size?: number }) {
   return (
     <div

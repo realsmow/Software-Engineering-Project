@@ -16,7 +16,7 @@ import type { AppRouter } from "@/server/trpc-contract";
  * sends the auth httpOnly cookie on every request (ว-03).
  *
  * The backend has no procedures yet, so calls will fail at runtime until it
- * lands — the wiring and types are ready for that moment.
+ * lands - the wiring and types are ready for that moment.
  */
 const TRPC_URL = import.meta.env.VITE_TRPC_URL || "/trpc";
 

@@ -6,7 +6,7 @@ import { TRPCError } from '@trpc/server';
  * Two layers on purpose:
  *   - the tRPC code is what HTTP/tooling understands (401, 403, 409 …)
  *   - the business code is what the frontend switches on to pick a Thai
- *     message. It rides in `message`, never as Thai text — backend does not
+ *     message. It rides in `message`, never as Thai text - backend does not
  *     own user-facing wording.
  *
  * Extra context goes in `cause` so the frontend can fill in the blanks
@@ -22,11 +22,11 @@ export const BUSINESS_ERROR_CODES = {
   USER_NOT_FOUND: 'NOT_FOUND',
   EMAIL_ALREADY_IN_USE: 'CONFLICT',
   USER_ID_ALREADY_IN_USE: 'CONFLICT',
-  /** RoleInfo has no row for the requested role — seed data problem, not user error */
+  /** RoleInfo has no row for the requested role - seed data problem, not user error */
   ROLE_NOT_CONFIGURED: 'PRECONDITION_FAILED',
   /** An admin may not strip their own admin role or ban themselves */
   CANNOT_MODIFY_SELF: 'FORBIDDEN',
-  /** No CreditTier row covers this score — CreditMin/CreditMax leave a gap */
+  /** No CreditTier row covers this score - CreditMin/CreditMax leave a gap */
   CREDIT_TIER_NOT_CONFIGURED: 'PRECONDITION_FAILED',
 
   // --- lending settings ---
@@ -37,7 +37,7 @@ export const BUSINESS_ERROR_CODES = {
   ROOM_NOT_FOUND: 'NOT_FOUND',
 
   // --- departmental authority (staff domain) ---
-  /** Staff role granted but the account holds no Authority row — nothing to manage */
+  /** Staff role granted but the account holds no Authority row - nothing to manage */
   NO_MANAGEMENT_SCOPE: 'PRECONDITION_FAILED',
   /** The resource belongs to a department the caller has no authority in (§5.1) */
   OUT_OF_MANAGEMENT_SCOPE: 'FORBIDDEN',
@@ -49,7 +49,7 @@ export const BUSINESS_ERROR_CODES = {
   SERIAL_ALREADY_IN_USE: 'CONFLICT',
   /** T1/T2 units must carry a serial; T0 must not pretend to have one */
   SERIAL_REQUIRED_FOR_TIER: 'BAD_REQUEST',
-  /** BorrowRule has no row named T0..T3 — seed data problem, not user error */
+  /** BorrowRule has no row named T0..T3 - seed data problem, not user error */
   TIER_NOT_CONFIGURED: 'PRECONDITION_FAILED',
   /** Cannot take a unit out of the pool while somebody is holding it */
   RESOURCE_IN_USE: 'CONFLICT',
@@ -59,7 +59,7 @@ export const BUSINESS_ERROR_CODES = {
   LOAN_NOT_FOUND: 'NOT_FOUND',
   /** The request has not been approved (by the system or a supervisor) yet */
   NOT_APPROVED_YET: 'CONFLICT',
-  /** The loan is not at the step this action expects — `cause` names both */
+  /** The loan is not at the step this action expects - `cause` names both */
   WRONG_LOAN_STATE: 'CONFLICT',
   /** The chosen unit is a different type, or a different department, than the request */
   UNIT_DOES_NOT_MATCH_REQUEST: 'BAD_REQUEST',
@@ -79,11 +79,11 @@ export const BUSINESS_ERROR_CODES = {
   /** Larger than the size the ticket was issued for, or than the global cap */
   UPLOAD_TOO_LARGE: 'PAYLOAD_TOO_LARGE',
   UPLOAD_EMPTY: 'BAD_REQUEST',
-  /** The ticket was already used — a replay, not a retry. The file stays as it was. */
+  /** The ticket was already used - a replay, not a retry. The file stays as it was. */
   UPLOAD_ALREADY_STORED: 'CONFLICT',
   /** Declared an image type but the bytes do not begin like one */
   UPLOAD_NOT_AN_IMAGE: 'BAD_REQUEST',
-  /** Catch-all for a write refused before it happened — see cause */
+  /** Catch-all for a write refused before it happened - see cause */
   UPLOAD_REJECTED: 'BAD_REQUEST',
 
   // --- inspection (staff domain) ---
@@ -102,7 +102,7 @@ export const BUSINESS_ERROR_CODES = {
 
   /**
    * The procedure exists in the contract but the database cannot back it yet.
-   * `cause.missing` names the columns/tables required — see
+   * `cause.missing` names the columns/tables required - see
    * docs/auth-admin.md. Never use this for "not written yet"; only for
    * "cannot be written until the schema grows".
    */
@@ -115,7 +115,7 @@ export type BusinessErrorCode = keyof typeof BUSINESS_ERROR_CODES;
  * The only error type a service should throw.
  *
  * Anything else that escapes becomes INTERNAL_SERVER_ERROR with its message
- * stripped by tRPC in production — which is the correct outcome for a genuine
+ * stripped by tRPC in production - which is the correct outcome for a genuine
  * bug, and the wrong outcome for an expected business rule. Hence: expected
  * rules get a code here, bugs stay uncaught.
  */

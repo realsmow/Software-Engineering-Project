@@ -41,7 +41,7 @@ const UNIT_TONE: Record<UnitState, BadgeTone> = { free: "ok", fix: "warn", out: 
 const AVAIL_DAYS = 14;
 
 /**
- * Equipment detail — reached from a catalog row. Layout follows the reference
+ * Equipment detail - reached from a catalog row. Layout follows the reference
  * mockup: a content column (hero → specs → availability → units) beside a
  * sticky summary rail that carries the "add to request" action.
  *
@@ -137,7 +137,7 @@ export default function EquipmentDetailPage() {
           </div>
         </section>
 
-        {/* Compact summary + CTA — the sticky rail's job on wide screens. */}
+        {/* Compact summary + CTA - the sticky rail's job on wide screens. */}
         <Panel className="lg:hidden">
           <div className="divide-y divide-border px-3.5 py-1">
             <SpecRow label={t("borrower.catalog.colAvail")} mono>
@@ -162,7 +162,7 @@ export default function EquipmentDetailPage() {
           </div>
         </Panel>
 
-        {/* Description — hidden when the item has no blurb yet. */}
+        {/* Description - hidden when the item has no blurb yet. */}
         {item.description ? (
           <Panel title={t("borrower.detail.desc")}>
             <p className="px-3.5 py-3 text-[13px] leading-relaxed text-t2">{item.description}</p>

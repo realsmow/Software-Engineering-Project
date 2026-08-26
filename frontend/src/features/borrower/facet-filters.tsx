@@ -2,7 +2,7 @@ import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 
 export interface FilterOption {
-  /** Namespaced key, e.g. "dept:ee" — unique across every group. */
+  /** Namespaced key, e.g. "dept:ee" - unique across every group. */
   key: string;
   label: string;
   /** Label for the active-filter chip when the rail label needs disambiguating ("Tier: T2"). */
@@ -19,7 +19,7 @@ export interface FilterGroup {
 
 /**
  * Faceted filter list shared by the borrower's browse pages (equipment
- * catalog, room list). Chrome-free on purpose — the desktop rail wraps it in a
+ * catalog, room list). Chrome-free on purpose - the desktop rail wraps it in a
  * card and the mobile Sheet renders it as the drawer body, so both share one
  * implementation.
  *

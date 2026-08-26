@@ -11,7 +11,7 @@ import { useSubmittedRequests } from "./submitted-requests.store";
 
 /**
  * The saved draft, shown alongside real requests so an unfinished basket is
- * not invisible. It is not a request yet — hence its own shape rather than a
+ * not invisible. It is not a request yet - hence its own shape rather than a
  * MyRequest with a fake status.
  */
 export interface DraftSummary {
@@ -24,7 +24,7 @@ export interface DraftSummary {
 }
 
 /**
- * useMyRequests — everything the "คำขอของฉัน" page lists, in one place:
+ * useMyRequests - everything the "คำขอของฉัน" page lists, in one place:
  * seeded history, requests submitted this session, and the open draft.
  *
  * Not a TanStack query: two of the three sources are client stores, so there
@@ -38,7 +38,7 @@ export function useMyRequests() {
   const endDate = useRequestDraft((s) => s.endDate);
 
   const requests = useMemo<MyRequest[]>(
-    // Session submissions first — they are the most recent thing that happened.
+    // Session submissions first - they are the most recent thing that happened.
     () => [...submitted, ...MY_REQUESTS],
     [submitted],
   );
