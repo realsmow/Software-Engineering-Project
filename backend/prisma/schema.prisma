@@ -18,17 +18,24 @@ datasource db {
 // ----------------------------------------------------------------------
 
 model AccountInfo {
-  AccountKey     Int    @id @default(autoincrement())
-  Email          String
+  AccountKey     Int     @id @default(autoincrement())
+  Email          String  @unique
   HashedPassword String
+  // Local-account login (department staff without a KU email). Nullable
+  // because KU-email accounts sign in by Email and never get one.
+  Username       String? @unique
   UserID         String
   UserFName      String
   UserLName      String
   UserCredit     Int
   RoleKey        Int
   // Student / Professor / Staff / Supervisor / Admin
+  // Nullable for now: existing rows predate this column and no faculty has
+  // been assigned yet. Maps to User.departmentId on the frontend.
+  FacultyKey     Int?
 
-  Role RoleInfo @relation(fields: [RoleKey], references: [RoleKey])
+  Role    RoleInfo     @relation(fields: [RoleKey], references: [RoleKey])
+  Faculty FacultyInfo? @relation(fields: [FacultyKey], references: [FacultyKey])
 
   Authorities           Authority[]
   ConditionLogsLogged   ConditionLog[]     @relation("ConditionLogLoggedBy")
@@ -59,6 +66,8 @@ model FacultyInfo {
   ManageGroupKey Int     @unique
 
   ManageGroup ManagementGroup @relation(fields: [ManageGroupKey], references: [ManageGroupKey])
+
+  Accounts AccountInfo[]
 }
 
 model ManagementGroup {

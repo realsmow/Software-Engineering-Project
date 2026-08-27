@@ -4,8 +4,8 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { KULogo } from "./ku-logo";
 import { NavIcon } from "./nav-icon";
 import { getNavForRole } from "@/constants/navigation";
-import { ROUTES } from "@/constants";
 import { useAuthStore } from "@/features/auth/auth.store";
+import { useLogout } from "@/features/auth/use-auth-actions";
 import { cn } from "@/lib/utils";
 
 /**
@@ -18,15 +18,14 @@ export function Sidebar() {
   const navigate = useNavigate();
   const location = useLocation();
   const user = useAuthStore((s) => s.user);
-  const logout = useAuthStore((s) => s.logout);
+  const logout = useLogout();
 
   const role = user?.role ?? "borrower";
   const { persona, sections } = getNavForRole(role);
 
-  const handleLogout = () => {
-    logout();
-    navigate(ROUTES.LOGIN, { replace: true });
-  };
+  // Clears the server-side cookie, then the local state — the redirect to
+  // /login happens in the hook once both are done.
+  const handleLogout = () => logout.mutate();
 
   return (
     <aside className="side">

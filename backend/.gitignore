@@ -56,4 +56,8 @@ pids
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
 /generated/prisma
-/src/generated/trpc
+
+# NOTE: src/generated/trpc is deliberately NOT ignored. The frontend imports
+# its AppRouter type to get end-to-end type safety, so a fresh clone must have
+# it without running the backend's codegen first. Regenerate with
+# `npm run trpc:generate` whenever a router changes.

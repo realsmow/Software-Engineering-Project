@@ -71,7 +71,9 @@
     "termsOfUse": "Terms of use",
     "privacyPolicy": "Privacy policy",
     "contactSupport": "Contact support",
-    "invalidCredentials": "Incorrect username or password"
+    "invalidCredentials": "Incorrect username or password",
+    "emailAlreadyRegistered": "This email is already registered",
+    "signingIn": "Signing in…"
   },
   "nav": {
     "borrower": "Borrower",

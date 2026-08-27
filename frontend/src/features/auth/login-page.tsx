@@ -1,58 +1,43 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useNavigate } from "react-router-dom";
 import { Moon, Sun } from "lucide-react";
 import { KULogo } from "@/components/layout/ku-logo";
 import { LanguageToggle } from "@/components/shared/language-toggle";
 import { useTheme } from "@/hooks/use-theme";
-import { HOME_ROUTE_BY_ROLE } from "@/constants";
-import { useAuthStore } from "./auth.store";
-import { MOCK_LOCAL_CREDENTIALS } from "./mock-auth";
-import type { LocalLoginValues } from "./login.schema";
 import { LoginMethodKu } from "./login-method-ku";
 import { LoginMethodLocal } from "./login-method-local";
+import {
+  loginErrorKey,
+  useLoginWithKuEmail,
+  useLoginWithLocalAccount,
+} from "./use-auth-actions";
 
 /**
  * Login page — reference: ULMs-login-and-shell-v3.html (VIEW 1).
  * Left: green KU brand panel. Right: card with a mutually-exclusive accordion
  * of two login methods (KU email, local account) built on RHF + Zod.
  *
- * No API is wired yet (brief note #5): a successful submit mock-logs-in via the
- * auth store. The KU email method is students/faculty only → always `borrower`.
- * Staff/supervisor/admin sign in through the local-account method, which is
- * validated against MOCK_LOCAL_CREDENTIALS (temporary — see mock-auth.ts).
- * Real /auth flow replaces the mock handlers later.
+ * Both methods post to the backend (auth.loginWithKuEmail /
+ * auth.loginWithLocalAccount). The server decides the role and sets an
+ * httpOnly session cookie; this page only redirects to that role's home.
  */
 type Method = "ku" | "local";
 
 export function LoginPage() {
   const { t } = useTranslation();
-  const navigate = useNavigate();
-  const loginAs = useAuthStore((s) => s.loginAs);
   const { isDark, toggleTheme } = useTheme();
   // `null` = both panels collapsed. Clicking an open header closes it.
   const [openMethod, setOpenMethod] = useState<Method | null>("ku");
 
+  const kuLogin = useLoginWithKuEmail();
+  const localLogin = useLoginWithLocalAccount();
+
   const toggleMethod = (method: Method) =>
     setOpenMethod((current) => (current === method ? null : method));
 
-  // KU email → borrower only (students & faculty).
-  const handleKuLogin = () => {
-    loginAs("borrower");
-    navigate(HOME_ROUTE_BY_ROLE.borrower, { replace: true });
-  };
-
-  // Local account → staff/supervisor/admin, gated by the mock credential table.
-  // Returns a Thai error message on mismatch, or null on success (then routes).
-  const handleLocalLogin = (values: LocalLoginValues): string | null => {
-    const match = MOCK_LOCAL_CREDENTIALS.find(
-      (c) => c.username === values.username.trim() && c.password === values.password,
-    );
-    if (!match) return t("auth.invalidCredentials");
-    loginAs(match.role);
-    navigate(HOME_ROUTE_BY_ROLE[match.role], { replace: true });
-    return null;
-  };
+  // Redirect on success is handled centrally in use-auth-actions.ts, since
+  // the target route depends on the role the *server* returns.
+  const errorFor = (error: unknown) => (error ? t(loginErrorKey(error)) : null);
 
   return (
     <div className="login">
@@ -102,12 +87,16 @@ export function LoginPage() {
               <LoginMethodKu
                 open={openMethod === "ku"}
                 onToggle={() => toggleMethod("ku")}
-                onSubmit={handleKuLogin}
+                onSubmit={(values) => kuLogin.mutate(values)}
+                isPending={kuLogin.isPending}
+                errorMessage={errorFor(kuLogin.error)}
               />
               <LoginMethodLocal
                 open={openMethod === "local"}
                 onToggle={() => toggleMethod("local")}
-                onSubmit={handleLocalLogin}
+                onSubmit={(values) => localLogin.mutate(values)}
+                isPending={localLogin.isPending}
+                errorMessage={errorFor(localLogin.error)}
               />
             </div>
           </div>

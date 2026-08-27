@@ -3,13 +3,14 @@ import type { ContextOptions, TRPCContext } from 'nestjs-trpc';
 import type { Request, Response } from 'express';
 import { mapUserRole, type UserRole } from '../common/schemas/status.schema';
 import { PrismaService } from '../prisma.service';
+import { SESSION_COOKIE, SessionService } from '../auth/session.service';
 
 /** Logged-in user — the shape every procedure relies on */
 export interface TrpcUser {
   /** AccountInfo.AccountKey */
   accountKey: number;
   role: UserRole;
-  /** FacultyInfo.FacultyKey — no relation on AccountInfo yet, always null for now */
+  /** AccountInfo.FacultyKey — null until a faculty is assigned to the account */
   facultyKey: number | null;
   /**
    * AccountInfo.UserCredit — display only.
@@ -32,7 +33,10 @@ export interface TrpcContext {
 
 @Injectable()
 export class AppContext implements TRPCContext {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly session: SessionService,
+  ) {}
 
   async create(opts: ContextOptions): Promise<TrpcContext> {
     const req = opts.req as Request;
@@ -51,10 +55,10 @@ export class AppContext implements TRPCContext {
    * else in the app only ever sees ctx.user.
    */
   private async resolveUser(req: Request): Promise<TrpcUser | null> {
-    const token = req.cookies?.['ulms_session'];
+    const token = req.cookies?.[SESSION_COOKIE] as string | undefined;
     if (!token) return null;
 
-    const accountKey = await this.verifySessionToken(token);
+    const accountKey = await this.session.verify(token);
     if (accountKey === null) return null;
 
     const account = await this.prisma.accountInfo.findUnique({
@@ -64,6 +68,7 @@ export class AppContext implements TRPCContext {
       select: {
         AccountKey: true,
         UserCredit: true,
+        FacultyKey: true,
         Role: { select: { RoleName: true } },
       },
     });
@@ -72,13 +77,8 @@ export class AppContext implements TRPCContext {
     return {
       accountKey: account.AccountKey,
       role: mapUserRole(account.Role.RoleName),
-      facultyKey: null,
+      facultyKey: account.FacultyKey,
       creditScore: account.UserCredit,
     };
-  }
-
-  /** TODO: replace with real session/JWT verification */
-  private async verifySessionToken(_token: string): Promise<number | null> {
-    return null;
   }
 }

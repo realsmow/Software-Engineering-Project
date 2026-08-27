@@ -213,6 +213,7 @@ export type FacultyInfoWhereInput = {
   BranchName?: Prisma.StringNullableFilter<"FacultyInfo"> | string | null
   ManageGroupKey?: Prisma.IntFilter<"FacultyInfo"> | number
   ManageGroup?: Prisma.XOR<Prisma.ManagementGroupScalarRelationFilter, Prisma.ManagementGroupWhereInput>
+  Accounts?: Prisma.AccountInfoListRelationFilter
 }
 
 export type FacultyInfoOrderByWithRelationInput = {
@@ -221,6 +222,7 @@ export type FacultyInfoOrderByWithRelationInput = {
   BranchName?: Prisma.SortOrderInput | Prisma.SortOrder
   ManageGroupKey?: Prisma.SortOrder
   ManageGroup?: Prisma.ManagementGroupOrderByWithRelationInput
+  Accounts?: Prisma.AccountInfoOrderByRelationAggregateInput
 }
 
 export type FacultyInfoWhereUniqueInput = Prisma.AtLeast<{
@@ -232,6 +234,7 @@ export type FacultyInfoWhereUniqueInput = Prisma.AtLeast<{
   FacultyName?: Prisma.StringFilter<"FacultyInfo"> | string
   BranchName?: Prisma.StringNullableFilter<"FacultyInfo"> | string | null
   ManageGroup?: Prisma.XOR<Prisma.ManagementGroupScalarRelationFilter, Prisma.ManagementGroupWhereInput>
+  Accounts?: Prisma.AccountInfoListRelationFilter
 }, "FacultyKey" | "ManageGroupKey">
 
 export type FacultyInfoOrderByWithAggregationInput = {
@@ -260,6 +263,7 @@ export type FacultyInfoCreateInput = {
   FacultyName: string
   BranchName?: string | null
   ManageGroup: Prisma.ManagementGroupCreateNestedOneWithoutFacultyInput
+  Accounts?: Prisma.AccountInfoCreateNestedManyWithoutFacultyInput
 }
 
 export type FacultyInfoUncheckedCreateInput = {
@@ -267,12 +271,14 @@ export type FacultyInfoUncheckedCreateInput = {
   FacultyName: string
   BranchName?: string | null
   ManageGroupKey: number
+  Accounts?: Prisma.AccountInfoUncheckedCreateNestedManyWithoutFacultyInput
 }
 
 export type FacultyInfoUpdateInput = {
   FacultyName?: Prisma.StringFieldUpdateOperationsInput | string
   BranchName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   ManageGroup?: Prisma.ManagementGroupUpdateOneRequiredWithoutFacultyNestedInput
+  Accounts?: Prisma.AccountInfoUpdateManyWithoutFacultyNestedInput
 }
 
 export type FacultyInfoUncheckedUpdateInput = {
@@ -280,6 +286,7 @@ export type FacultyInfoUncheckedUpdateInput = {
   FacultyName?: Prisma.StringFieldUpdateOperationsInput | string
   BranchName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   ManageGroupKey?: Prisma.IntFieldUpdateOperationsInput | number
+  Accounts?: Prisma.AccountInfoUncheckedUpdateManyWithoutFacultyNestedInput
 }
 
 export type FacultyInfoCreateManyInput = {
@@ -299,6 +306,11 @@ export type FacultyInfoUncheckedUpdateManyInput = {
   FacultyName?: Prisma.StringFieldUpdateOperationsInput | string
   BranchName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   ManageGroupKey?: Prisma.IntFieldUpdateOperationsInput | number
+}
+
+export type FacultyInfoNullableScalarRelationFilter = {
+  is?: Prisma.FacultyInfoWhereInput | null
+  isNot?: Prisma.FacultyInfoWhereInput | null
 }
 
 export type FacultyInfoCountOrderByAggregateInput = {
@@ -332,13 +344,20 @@ export type FacultyInfoSumOrderByAggregateInput = {
   ManageGroupKey?: Prisma.SortOrder
 }
 
-export type FacultyInfoNullableScalarRelationFilter = {
-  is?: Prisma.FacultyInfoWhereInput | null
-  isNot?: Prisma.FacultyInfoWhereInput | null
+export type FacultyInfoCreateNestedOneWithoutAccountsInput = {
+  create?: Prisma.XOR<Prisma.FacultyInfoCreateWithoutAccountsInput, Prisma.FacultyInfoUncheckedCreateWithoutAccountsInput>
+  connectOrCreate?: Prisma.FacultyInfoCreateOrConnectWithoutAccountsInput
+  connect?: Prisma.FacultyInfoWhereUniqueInput
 }
 
-export type NullableStringFieldUpdateOperationsInput = {
-  set?: string | null
+export type FacultyInfoUpdateOneWithoutAccountsNestedInput = {
+  create?: Prisma.XOR<Prisma.FacultyInfoCreateWithoutAccountsInput, Prisma.FacultyInfoUncheckedCreateWithoutAccountsInput>
+  connectOrCreate?: Prisma.FacultyInfoCreateOrConnectWithoutAccountsInput
+  upsert?: Prisma.FacultyInfoUpsertWithoutAccountsInput
+  disconnect?: Prisma.FacultyInfoWhereInput | boolean
+  delete?: Prisma.FacultyInfoWhereInput | boolean
+  connect?: Prisma.FacultyInfoWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.FacultyInfoUpdateToOneWithWhereWithoutAccountsInput, Prisma.FacultyInfoUpdateWithoutAccountsInput>, Prisma.FacultyInfoUncheckedUpdateWithoutAccountsInput>
 }
 
 export type FacultyInfoCreateNestedOneWithoutManageGroupInput = {
@@ -373,15 +392,59 @@ export type FacultyInfoUncheckedUpdateOneWithoutManageGroupNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.FacultyInfoUpdateToOneWithWhereWithoutManageGroupInput, Prisma.FacultyInfoUpdateWithoutManageGroupInput>, Prisma.FacultyInfoUncheckedUpdateWithoutManageGroupInput>
 }
 
+export type FacultyInfoCreateWithoutAccountsInput = {
+  FacultyName: string
+  BranchName?: string | null
+  ManageGroup: Prisma.ManagementGroupCreateNestedOneWithoutFacultyInput
+}
+
+export type FacultyInfoUncheckedCreateWithoutAccountsInput = {
+  FacultyKey?: number
+  FacultyName: string
+  BranchName?: string | null
+  ManageGroupKey: number
+}
+
+export type FacultyInfoCreateOrConnectWithoutAccountsInput = {
+  where: Prisma.FacultyInfoWhereUniqueInput
+  create: Prisma.XOR<Prisma.FacultyInfoCreateWithoutAccountsInput, Prisma.FacultyInfoUncheckedCreateWithoutAccountsInput>
+}
+
+export type FacultyInfoUpsertWithoutAccountsInput = {
+  update: Prisma.XOR<Prisma.FacultyInfoUpdateWithoutAccountsInput, Prisma.FacultyInfoUncheckedUpdateWithoutAccountsInput>
+  create: Prisma.XOR<Prisma.FacultyInfoCreateWithoutAccountsInput, Prisma.FacultyInfoUncheckedCreateWithoutAccountsInput>
+  where?: Prisma.FacultyInfoWhereInput
+}
+
+export type FacultyInfoUpdateToOneWithWhereWithoutAccountsInput = {
+  where?: Prisma.FacultyInfoWhereInput
+  data: Prisma.XOR<Prisma.FacultyInfoUpdateWithoutAccountsInput, Prisma.FacultyInfoUncheckedUpdateWithoutAccountsInput>
+}
+
+export type FacultyInfoUpdateWithoutAccountsInput = {
+  FacultyName?: Prisma.StringFieldUpdateOperationsInput | string
+  BranchName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  ManageGroup?: Prisma.ManagementGroupUpdateOneRequiredWithoutFacultyNestedInput
+}
+
+export type FacultyInfoUncheckedUpdateWithoutAccountsInput = {
+  FacultyKey?: Prisma.IntFieldUpdateOperationsInput | number
+  FacultyName?: Prisma.StringFieldUpdateOperationsInput | string
+  BranchName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  ManageGroupKey?: Prisma.IntFieldUpdateOperationsInput | number
+}
+
 export type FacultyInfoCreateWithoutManageGroupInput = {
   FacultyName: string
   BranchName?: string | null
+  Accounts?: Prisma.AccountInfoCreateNestedManyWithoutFacultyInput
 }
 
 export type FacultyInfoUncheckedCreateWithoutManageGroupInput = {
   FacultyKey?: number
   FacultyName: string
   BranchName?: string | null
+  Accounts?: Prisma.AccountInfoUncheckedCreateNestedManyWithoutFacultyInput
 }
 
 export type FacultyInfoCreateOrConnectWithoutManageGroupInput = {
@@ -403,14 +466,45 @@ export type FacultyInfoUpdateToOneWithWhereWithoutManageGroupInput = {
 export type FacultyInfoUpdateWithoutManageGroupInput = {
   FacultyName?: Prisma.StringFieldUpdateOperationsInput | string
   BranchName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  Accounts?: Prisma.AccountInfoUpdateManyWithoutFacultyNestedInput
 }
 
 export type FacultyInfoUncheckedUpdateWithoutManageGroupInput = {
   FacultyKey?: Prisma.IntFieldUpdateOperationsInput | number
   FacultyName?: Prisma.StringFieldUpdateOperationsInput | string
   BranchName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  Accounts?: Prisma.AccountInfoUncheckedUpdateManyWithoutFacultyNestedInput
 }
 
+
+/**
+ * Count Type FacultyInfoCountOutputType
+ */
+
+export type FacultyInfoCountOutputType = {
+  Accounts: number
+}
+
+export type FacultyInfoCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  Accounts?: boolean | FacultyInfoCountOutputTypeCountAccountsArgs
+}
+
+/**
+ * FacultyInfoCountOutputType without action
+ */
+export type FacultyInfoCountOutputTypeDefaultArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the FacultyInfoCountOutputType
+   */
+  select?: Prisma.FacultyInfoCountOutputTypeSelect<ExtArgs> | null
+}
+
+/**
+ * FacultyInfoCountOutputType without action
+ */
+export type FacultyInfoCountOutputTypeCountAccountsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.AccountInfoWhereInput
+}
 
 
 export type FacultyInfoSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -419,6 +513,8 @@ export type FacultyInfoSelect<ExtArgs extends runtime.Types.Extensions.InternalA
   BranchName?: boolean
   ManageGroupKey?: boolean
   ManageGroup?: boolean | Prisma.ManagementGroupDefaultArgs<ExtArgs>
+  Accounts?: boolean | Prisma.FacultyInfo$AccountsArgs<ExtArgs>
+  _count?: boolean | Prisma.FacultyInfoCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["facultyInfo"]>
 
 export type FacultyInfoSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -447,6 +543,8 @@ export type FacultyInfoSelectScalar = {
 export type FacultyInfoOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"FacultyKey" | "FacultyName" | "BranchName" | "ManageGroupKey", ExtArgs["result"]["facultyInfo"]>
 export type FacultyInfoInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   ManageGroup?: boolean | Prisma.ManagementGroupDefaultArgs<ExtArgs>
+  Accounts?: boolean | Prisma.FacultyInfo$AccountsArgs<ExtArgs>
+  _count?: boolean | Prisma.FacultyInfoCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type FacultyInfoIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   ManageGroup?: boolean | Prisma.ManagementGroupDefaultArgs<ExtArgs>
@@ -459,6 +557,7 @@ export type $FacultyInfoPayload<ExtArgs extends runtime.Types.Extensions.Interna
   name: "FacultyInfo"
   objects: {
     ManageGroup: Prisma.$ManagementGroupPayload<ExtArgs>
+    Accounts: Prisma.$AccountInfoPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     FacultyKey: number
@@ -860,6 +959,7 @@ readonly fields: FacultyInfoFieldRefs;
 export interface Prisma__FacultyInfoClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
   ManageGroup<T extends Prisma.ManagementGroupDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ManagementGroupDefaultArgs<ExtArgs>>): Prisma.Prisma__ManagementGroupClient<runtime.Types.Result.GetResult<Prisma.$ManagementGroupPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+  Accounts<T extends Prisma.FacultyInfo$AccountsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.FacultyInfo$AccountsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AccountInfoPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1291,6 +1391,30 @@ export type FacultyInfoDeleteManyArgs<ExtArgs extends runtime.Types.Extensions.I
    * Limit how many FacultyInfos to delete.
    */
   limit?: number
+}
+
+/**
+ * FacultyInfo.Accounts
+ */
+export type FacultyInfo$AccountsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the AccountInfo
+   */
+  select?: Prisma.AccountInfoSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the AccountInfo
+   */
+  omit?: Prisma.AccountInfoOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.AccountInfoInclude<ExtArgs> | null
+  where?: Prisma.AccountInfoWhereInput
+  orderBy?: Prisma.AccountInfoOrderByWithRelationInput | Prisma.AccountInfoOrderByWithRelationInput[]
+  cursor?: Prisma.AccountInfoWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.AccountInfoScalarFieldEnum | Prisma.AccountInfoScalarFieldEnum[]
 }
 
 /**

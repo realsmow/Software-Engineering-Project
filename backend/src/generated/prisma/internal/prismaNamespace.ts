@@ -2934,11 +2934,13 @@ export const AccountInfoScalarFieldEnum = {
   AccountKey: 'AccountKey',
   Email: 'Email',
   HashedPassword: 'HashedPassword',
+  Username: 'Username',
   UserID: 'UserID',
   UserFName: 'UserFName',
   UserLName: 'UserLName',
   UserCredit: 'UserCredit',
-  RoleKey: 'RoleKey'
+  RoleKey: 'RoleKey',
+  FacultyKey: 'FacultyKey'
 } as const
 
 export type AccountInfoScalarFieldEnum = (typeof AccountInfoScalarFieldEnum)[keyof typeof AccountInfoScalarFieldEnum]

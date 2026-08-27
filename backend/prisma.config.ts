@@ -7,6 +7,9 @@ export default defineConfig({
   schema: "prisma/schema.prisma",
   migrations: {
     path: "prisma/migrations",
+    // tsx runs the TypeScript seed directly, without needing the module/ESM
+    // overrides that ts-node would require under the root nodenext config.
+    seed: 'tsx prisma/seed.ts',
   },
   datasource: {
     url: process.env["DATABASE_URL"],

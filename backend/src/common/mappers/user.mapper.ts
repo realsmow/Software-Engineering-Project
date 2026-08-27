@@ -1,4 +1,4 @@
-import { mapUserRole, type CreditTier } from '../schemas/status.schema';
+import { mapUserRole, type CreditBand } from '../schemas/status.schema';
 import type { UserOutput } from '../schemas/user.schema';
 
 /**
@@ -14,32 +14,28 @@ export interface AccountRow {
   UserLName: string;
   Email: string;
   UserCredit: number;
+  FacultyKey: number | null;
   Role: { RoleName: string };
-  Faculty?: { FacultyName: string } | null;
 }
 
-/** Borrow limits resolved from CreditTier x BorrowConstraints — caller looks these up */
-export interface BorrowLimits {
-  creditTier: CreditTier;
-  /** BorrowConstraints.MaxBorrowDate */
-  maxBorrowDays: number;
-  /** BorrowConstraints.MaxExtendTime */
-  maxExtendTimes: number;
-}
-
-export function toUserOutput(row: AccountRow, limits: BorrowLimits): UserOutput {
+export function toUserOutput(row: AccountRow, band: CreditBand): UserOutput {
   return {
-    id: row.AccountKey,
+    // The frontend's User.id is a string; AccountKey is the DB's int PK.
+    id: String(row.AccountKey),
     studentId: row.UserID,
-    firstName: row.UserFName,
-    lastName: row.UserLName,
+    // The frontend shows a single `name`, so the split columns join here.
+    name: `${row.UserFName} ${row.UserLName}`,
     email: row.Email,
     role: mapUserRole(row.Role.RoleName),
-    facultyName: row.Faculty?.FacultyName ?? null,
-
+    /**
+     * User.departmentId is a non-nullable string on the frontend, but
+     * AccountInfo.FacultyKey is still nullable — no faculty has been
+     * assigned to existing rows yet. Empty string keeps the contract
+     * satisfied; once every account has a faculty, make the column
+     * required and drop the fallback.
+     */
+    departmentId: row.FacultyKey === null ? '' : String(row.FacultyKey),
     creditScore: row.UserCredit,
-    creditTier: limits.creditTier,
-    maxBorrowDays: limits.maxBorrowDays,
-    maxExtendTimes: limits.maxExtendTimes,
+    creditBand: band,
   };
 }

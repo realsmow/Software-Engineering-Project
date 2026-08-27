@@ -8,17 +8,22 @@ import { kuLoginSchema, type KuLoginValues } from "./login.schema";
 
 /**
  * KU email login method (accordion panel). Google-styled submit button.
- * On valid submit, delegates to `onSubmit` — the page maps this to a mock
- * login (no API yet, brief note #5).
+ * On valid submit, delegates to `onSubmit`, which posts to the backend.
  */
 export function LoginMethodKu({
   open,
   onToggle,
   onSubmit,
+  isPending = false,
+  errorMessage = null,
 }: {
   open: boolean;
   onToggle: () => void;
   onSubmit: (values: KuLoginValues) => void;
+  /** Disables the submit button while the request is in flight. */
+  isPending?: boolean;
+  /** Server-side failure, already translated by the page. */
+  errorMessage?: string | null;
 }) {
   const { t } = useTranslation();
   const [showPass, setShowPass] = useState(false);
@@ -100,11 +105,17 @@ export function LoginMethodKu({
             </a>
           </div>
 
-          <button type="submit" className="submit-btn google">
+          {errorMessage && (
+            <div className="field-error" role="alert">
+              {errorMessage}
+            </div>
+          )}
+
+          <button type="submit" className="submit-btn google" disabled={isPending}>
             <span className="google-icon" aria-hidden="true">
               <GoogleLogo />
             </span>
-            {t("auth.signInWithKuMail")}
+            {isPending ? t("auth.signingIn") : t("auth.signInWithKuMail")}
           </button>
         </form>
       )}

@@ -1,3 +1,4 @@
+import { TRPCClientError } from "@trpc/client";
 import { ApiClientError } from "./api-client";
 
 /**
@@ -9,6 +10,10 @@ const ERROR_MESSAGES: Record<string, string> = {
   UNAUTHORIZED: "กรุณาเข้าสู่ระบบใหม่",
   FORBIDDEN: "คุณไม่มีสิทธิ์เข้าถึงส่วนนี้",
   INVALID_DOMAIN: "รองรับเฉพาะอีเมล @ku.th เท่านั้น",
+  INVALID_CREDENTIALS: "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง",
+  EMAIL_ALREADY_REGISTERED: "อีเมลนี้ถูกใช้ลงทะเบียนแล้ว",
+  NOT_AUTHENTICATED: "กรุณาเข้าสู่ระบบใหม่",
+  ROLE_NOT_ALLOWED: "คุณไม่มีสิทธิ์เข้าถึงส่วนนี้",
 
   // Loan request
   CONFLICT_UNIT_TAKEN: "อุปกรณ์ชิ้นนี้ถูกยืมไปแล้ว กรุณาเลือกใหม่",
@@ -44,6 +49,18 @@ const ERROR_MESSAGES: Record<string, string> = {
 export function getErrorMessage(error: unknown): string {
   if (error instanceof ApiClientError) {
     return ERROR_MESSAGES[error.code] || error.message || ERROR_MESSAGES.UNKNOWN_ERROR;
+  }
+  /**
+   * tRPC puts the backend's machine code in `message` (the routers throw
+   * TRPCError with codes like INVALID_CREDENTIALS) and the HTTP-ish code in
+   * `data.code`. Prefer the specific one, then fall back to the generic.
+   */
+  if (error instanceof TRPCClientError) {
+    return (
+      ERROR_MESSAGES[error.message] ||
+      ERROR_MESSAGES[error.data?.code as string] ||
+      ERROR_MESSAGES.UNKNOWN_ERROR
+    );
   }
   if (error instanceof Error) {
     return error.message;

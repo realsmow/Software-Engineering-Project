@@ -1,6 +1,8 @@
+import { Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
+import { requestLogger } from './common/request-logger';
 
 /**
  * Allowed origins for CORS.
@@ -19,6 +21,9 @@ const ALLOWED_ORIGINS = [
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  // First, so it times the whole request including everything below.
+  app.use(requestLogger);
+
   // Required, otherwise req.cookies is undefined and context can't find a session
   app.use(cookieParser());
 
@@ -28,6 +33,10 @@ async function bootstrap() {
     methods: ['GET', 'POST', 'OPTIONS'],
   });
 
-  await app.listen(process.env.PORT ?? 3000);
+  const port = process.env.PORT ?? 3000;
+  await app.listen(port);
+
+  // Nest's own startup line doesn't say where it's listening — this does.
+  Logger.log(`Listening on http://localhost:${port} (tRPC at /trpc)`, 'Bootstrap');
 }
 bootstrap();

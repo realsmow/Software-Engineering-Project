@@ -71,7 +71,9 @@
     "termsOfUse": "เงื่อนไขการใช้งาน",
     "privacyPolicy": "นโยบายความเป็นส่วนตัว",
     "contactSupport": "ติดต่อผู้ดูแล",
-    "invalidCredentials": "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง"
+    "invalidCredentials": "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง",
+    "emailAlreadyRegistered": "อีเมลนี้ถูกใช้ลงทะเบียนแล้ว",
+    "signingIn": "กำลังเข้าสู่ระบบ…"
   },
   "nav": {
     "borrower": "ผู้ยืม",

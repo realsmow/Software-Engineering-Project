@@ -8,37 +8,34 @@ import { localLoginSchema, type LocalLoginValues } from "./login.schema";
 
 /**
  * Local account login method (accordion panel) for department staff without a
- * KU email. On valid submit, delegates to `onSubmit` (mock login — no API yet).
+ * KU email. On valid submit, delegates to `onSubmit`, which posts to the
+ * backend.
  */
 export function LoginMethodLocal({
   open,
   onToggle,
   onSubmit,
+  isPending = false,
+  errorMessage = null,
 }: {
   open: boolean;
   onToggle: () => void;
-  /** Returns a Thai error message to display, or null/undefined on success. */
-  onSubmit: (values: LocalLoginValues) => string | null | void;
+  onSubmit: (values: LocalLoginValues) => void;
+  /** Disables the submit button while the request is in flight. */
+  isPending?: boolean;
+  /** Server-side failure, already translated by the page. */
+  errorMessage?: string | null;
 }) {
   const { t } = useTranslation();
   const [showPass, setShowPass] = useState(false);
   const {
     register,
     handleSubmit,
-    setError,
-    clearErrors,
     formState: { errors },
   } = useForm<LocalLoginValues>({
     resolver: zodResolver(localLoginSchema),
     defaultValues: { username: "", password: "", remember: true },
   });
-
-  // Run field validation first, then the credential check from the parent.
-  const handleValid = (values: LocalLoginValues) => {
-    clearErrors("root");
-    const error = onSubmit(values);
-    if (error) setError("root", { type: "manual", message: error });
-  };
 
   return (
     <div className={cn("login-method", open && "open")} id="m-local">
@@ -59,7 +56,7 @@ export function LoginMethodLocal({
       </button>
 
       {open && (
-        <form className="login-method-body" onSubmit={handleSubmit(handleValid)} noValidate>
+        <form className="login-method-body" onSubmit={handleSubmit(onSubmit)} noValidate>
           <div className="field-group">
             <label className="field-label" htmlFor="loc-user">
               {t("auth.username")}
@@ -113,14 +110,14 @@ export function LoginMethodLocal({
             </a>
           </div>
 
-          {errors.root && (
+          {errorMessage && (
             <div className="field-error" role="alert">
-              {errors.root.message}
+              {errorMessage}
             </div>
           )}
 
-          <button type="submit" className="submit-btn">
-            {t("auth.signInWithLocal")}
+          <button type="submit" className="submit-btn" disabled={isPending}>
+            {isPending ? t("auth.signingIn") : t("auth.signInWithLocal")}
           </button>
         </form>
       )}

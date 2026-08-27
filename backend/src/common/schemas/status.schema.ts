@@ -29,9 +29,15 @@ export function mapUserRole(roleName: string): UserRole {
   }
 }
 
-/** Credit tier — sourced from the CreditTier table (CreditMin/CreditMax) */
-export const creditTier = z.enum(['D0', 'D1', 'D2', 'D3']);
-export type CreditTier = z.infer<typeof creditTier>;
+/**
+ * Credit band — sourced from the CreditTier table (CreditMin/CreditMax).
+ *
+ * The DB calls this a "tier", the frontend calls it a "band"
+ * (User.creditBand in frontend/src/types/domain.ts). The frontend name wins
+ * at the API boundary, so the DB term stops here.
+ */
+export const creditBand = z.enum(['D0', 'D1', 'D2', 'D3']);
+export type CreditBand = z.infer<typeof creditBand>;
 
 /**
  * Converts a raw DB string column into one of our fixed status strings.
