@@ -31,7 +31,7 @@ const ROLES = ['Student', 'Staff', 'Supervisor', 'Admin'];
 const USERS = [
   {
     userId: 'test_borrower',
-    email: 'natthawut.s@ku.th',
+    email: 'borrower@ku.th',
     pass: 'borrower1234',
     role: 'Student',
     first: 'Natthawut',
@@ -40,7 +40,7 @@ const USERS = [
   },
   {
     userId: 'test_staff',
-    email: 'somchai.p@ku.th',
+    email: 'staff@ku.th',
     pass: 'staff1234',
     role: 'Staff',
     first: 'Somchai',
@@ -49,7 +49,7 @@ const USERS = [
   },
   {
     userId: 'test_supervisor',
-    email: 'orawan.p@ku.th',
+    email: 'supervisor@ku.th',
     pass: 'supervisor1234',
     role: 'Supervisor',
     first: 'Orawan',
@@ -58,7 +58,7 @@ const USERS = [
   },
   {
     userId: 'test_admin',
-    email: 'thanapon.it@ku.th',
+    email: 'admin@ku.th',
     pass: 'admin1234',
     role: 'Admin',
     first: 'Thanapon',
@@ -122,7 +122,12 @@ async function main() {
       await prisma.accountInfo.update({
         where: { AccountKey: existing.AccountKey },
         data: {
+          // Email and names are refreshed too, otherwise editing this file
+          // silently does nothing to a database that was already seeded.
+          Email: u.email,
           HashedPassword: hashed,
+          UserFName: u.first,
+          UserLName: u.last,
           RoleKey: roleKeys.get(u.role)!,
           UserCredit: u.credit,
         },
