@@ -1,21 +1,31 @@
 # ULMs Frontend
 
-ระบบบริหารจัดการการยืม–คืนอุปกรณ์มหาวิทยาลัย (University Lending Management System) — ฝั่ง Frontend
+ระบบบริหารจัดการการยืม–คืนอุปกรณ์มหาวิทยาลัย (University Lending Management System) - ฝั่ง Frontend
 
-## Test credentials (ชั่วคราว — ลบออกหลังมี backend)
+## Test credentials (dev only)
 
-> ⚠️ **TEMPORARY / DEV ONLY.** ยังไม่มี backend (`/auth`) จริง จึง mock การเข้าสู่ระบบไว้ก่อน
-> เมื่อ backend พร้อมแล้ว **ต้องลบ** ข้อมูลนี้และตาราง `MOCK_LOCAL_CREDENTIALS`
-> ใน `src/features/auth/mock-auth.ts` ออก แล้วให้ server เป็นผู้ตรวจสอบบัญชี/สิทธิ์แทน
+> ⚠️ **DEV ONLY.** บัญชีเหล่านี้ถูก seed ลงฐานข้อมูลจริงโดย `backend/src/seed.ts`
+> รหัสผ่านเป็นที่รู้กันทั่วทีม **ห้าม** seed บัญชีชุดนี้ลงฐานข้อมูลที่ใช้งานจริง
 
-- **ผู้ยืม (borrower)** — เข้าผ่าน **อีเมล KU**: กรอกอีเมล `@ku.ac.th` หรือ `@ku.th` ใด ๆ + รหัสผ่านอะไรก็ได้
-- **บทบาทอื่น** — เข้าผ่าน **บัญชีภายในระบบ (local login)** ด้วยบัญชีทดสอบด้านล่าง:
+ต้องรัน Postgres และ backend ก่อน ไม่อย่างนั้นจะเข้าสู่ระบบไม่ได้เลย
+(ดู [backend/README.md](../backend/README.md))
 
-| บทบาท | ชื่อผู้ใช้ (username) | รหัสผ่าน (password) |
-|---|---|---|
-| เจ้าหน้าที่ (staff) | `test_staff` | `staff1234` |
-| หัวหน้า (supervisor) | `test_supervisor` | `supervisor1234` |
-| แอดมิน (admin) | `test_admin` | `admin1234` |
+เข้าสู่ระบบได้ 2 ทาง ใช้บัญชีเดียวกันทั้งคู่ server จะจับคู่สิ่งที่กรอกกับ
+`AccountInfo.Email` หรือ `AccountInfo.UserID` ให้เอง และเป็นผู้ตัดสินบทบาท (role)
+
+| บทบาท | แท็บ "อีเมล KU" | แท็บ "บัญชีภายในระบบ" | รหัสผ่าน |
+|---|---|---|---|
+| ผู้ยืม (borrower) | `borrower@ku.th` | `test_borrower` | `borrower1234` |
+| เจ้าหน้าที่ (staff) | `staff@ku.th` | `test_staff` | `staff1234` |
+| หัวหน้า (supervisor) | `supervisor@ku.th` | `test_supervisor` | `supervisor1234` |
+| แอดมิน (admin) | `admin@ku.th` | `test_admin` | `admin1234` |
+
+แท็บ "อีเมล KU" ตรวจรูปแบบอีเมลฝั่ง client และรับเฉพาะ `@ku.th` / `@ku.ac.th`
+ถ้ากรอกชื่อผู้ใช้ (เช่น `test_borrower`) ลงไปจะขึ้น "รูปแบบอีเมลไม่ถูกต้อง"
+ตั้งแต่ยังไม่ได้ยิง request ให้ใช้แท็บ "บัญชีภายในระบบ" สำหรับชื่อผู้ใช้แทน
+
+หมายเหตุ: อีเมล `@ku.th` ที่นี่เป็นเพียง identifier ของบัญชีในระบบ
+ไม่ได้เชื่อมกับ Google Workspace และไม่มี OAuth เกี่ยวข้อง
 
 ## Tech Stack
 
@@ -164,7 +174,8 @@ import { useMe } from "@/features/auth/use-me";
 ## Backend API Contract
 
 Backend API base path: `/api`
-Auth: httpOnly cookie (session-based) + Google OAuth (@ku.th only)
+Auth: httpOnly cookie (`ulms_session`, session-based). ไม่มี OAuth
+เข้าสู่ระบบผ่าน `auth.login` โดยตรวจรหัสผ่านกับ `AccountInfo.HashedPassword` (scrypt)
 
 Endpoints use tRPC look `lib/api-client.ts` and `types/domain.ts`
 

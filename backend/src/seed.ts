@@ -31,7 +31,7 @@ const ROLES = ['Student', 'Staff', 'Supervisor', 'Admin'];
 const USERS = [
   {
     userId: 'test_borrower',
-    email: 'natthawut.s@ku.th',
+    email: 'borrower@ku.th',
     pass: 'borrower1234',
     role: 'Student',
     first: 'Natthawut',
@@ -40,7 +40,7 @@ const USERS = [
   },
   {
     userId: 'test_staff',
-    email: 'somchai.p@ku.th',
+    email: 'staff@ku.th',
     pass: 'staff1234',
     role: 'Staff',
     first: 'Somchai',
@@ -49,7 +49,7 @@ const USERS = [
   },
   {
     userId: 'test_supervisor',
-    email: 'orawan.p@ku.th',
+    email: 'supervisor@ku.th',
     pass: 'supervisor1234',
     role: 'Supervisor',
     first: 'Orawan',
@@ -58,7 +58,7 @@ const USERS = [
   },
   {
     userId: 'test_admin',
-    email: 'thanapon.it@ku.th',
+    email: 'admin@ku.th',
     pass: 'admin1234',
     role: 'Admin',
     first: 'Thanapon',
@@ -112,6 +112,8 @@ async function main() {
     });
   }
 
+  await seedCatalogue(rule.BorrowRuleKey);
+
   for (const u of USERS) {
     const hashed = await hashPassword(u.pass);
     const existing = await prisma.accountInfo.findFirst({
@@ -122,7 +124,12 @@ async function main() {
       await prisma.accountInfo.update({
         where: { AccountKey: existing.AccountKey },
         data: {
+          // Email and names are refreshed too, otherwise editing this file
+          // silently does nothing to a database that was already seeded.
+          Email: u.email,
           HashedPassword: hashed,
+          UserFName: u.first,
+          UserLName: u.last,
           RoleKey: roleKeys.get(u.role)!,
           UserCredit: u.credit,
         },
@@ -141,6 +148,91 @@ async function main() {
       });
     }
     console.log(`  seeded ${u.userId} (${u.role})`);
+  }
+}
+
+/**
+ * Catalogue fixtures.
+ *
+ * An item the borrower can see needs three rows, not one: ItemInfo is the
+ * *type* ("Digital vernier caliper"), ItemIndiv is a physical unit with an
+ * asset tag, and ResourceInfo carries the lending state that both the item and
+ * room flows share. Seeding only ItemInfo produces a catalogue entry with zero
+ * units, which lists as permanently unavailable.
+ */
+const CATALOG = [
+  {
+    name: 'เวอร์เนียคาลิปเปอร์ดิจิทัล',
+    desc: 'ความละเอียด 0.01 มม. พร้อมกล่องเก็บ',
+    weight: 1,
+    units: 4,
+    prefix: 'ME-CAL',
+  },
+  {
+    name: 'สายจัมเปอร์ชุดใหญ่',
+    desc: 'สายจัมเปอร์ผู้-เมีย 120 เส้น',
+    weight: 1,
+    units: 6,
+    prefix: 'EE-JMP',
+  },
+  {
+    name: 'ออสซิลโลสโคป 100MHz',
+    desc: 'สองช่องสัญญาณ พร้อมโพรบ',
+    weight: 3,
+    units: 2,
+    prefix: 'EE-OSC',
+  },
+  {
+    name: 'กล้องถ่ายภาพ DSLR',
+    desc: 'ตัวกล้องพร้อมเลนส์คิท และแบตสำรอง',
+    weight: 3,
+    units: 3,
+    prefix: 'MM-CAM',
+  },
+];
+
+async function seedCatalogue(borrowRuleKey: number) {
+  const group =
+    (await prisma.managementGroup.findFirst({
+      where: { GroupType: 'Faculty' },
+    })) ??
+    (await prisma.managementGroup.create({ data: { GroupType: 'Faculty' } }));
+
+  for (const c of CATALOG) {
+    const existing = await prisma.itemInfo.findFirst({
+      where: { ItemName: c.name },
+    });
+    const type =
+      existing ??
+      (await prisma.itemInfo.create({
+        data: { ItemName: c.name, ItemDesc: c.desc, CreditWeight: c.weight },
+      }));
+
+    // Top the type up to its unit count rather than recreating, so re-running
+    // the seed does not multiply the inventory.
+    const have = await prisma.itemIndiv.count({
+      where: { ItemKey: type.ItemKey },
+    });
+    for (let i = have; i < c.units; i++) {
+      const resource = await prisma.resourceInfo.create({
+        data: {
+          ManagedBy: group.ManageGroupKey,
+          BorrowRule: borrowRuleKey,
+          ResourceStatus: 'InStorage',
+          ResourceType: 'Item',
+          BufferTime: 0,
+          AllowBorrow: true,
+        },
+      });
+      await prisma.itemIndiv.create({
+        data: {
+          ResourceKey: resource.ResourceKey,
+          ItemKey: type.ItemKey,
+          ItemID: `${c.prefix}-${String(i + 1).padStart(3, '0')}`,
+        },
+      });
+    }
+    console.log(`  catalogue ${c.name} (${c.units} units)`);
   }
 }
 

@@ -574,6 +574,13 @@ export interface MyRequest {
   daysLeft?: number;
   /** Online extensions already used on this request. */
   extensionsUsed?: number;
+  /**
+   * An extension the borrower has asked for but cannot grant themselves, and
+   * who has to decide it. Absent when nothing is outstanding.
+   */
+  extensionPending?: "staff" | "supervisor";
+  /** True once an appeal against `inspection` has gone to a supervisor. */
+  appealSent?: boolean;
   inspection?: InspectionResult;
   /**
    * Room bookings only: the hours reserved, as indices into `TIME_SLOTS`.
@@ -661,6 +668,12 @@ export const MY_REQUESTS: MyRequest[] = [
   inspected("REQ-2569-00402", "T0", "เวอร์เนียคาลิปเปอร์ดิจิทัล", "ME-CAL-045-07",
     "2026-07-19", "2026-07-26",
     { damage: "B0", inspectedAt: "2026-07-27", inspectedBy: "พี่แนน ใจดี", appealDaysLeft: 0 }),
+  // A verdict too old to contest. Without it the appeal page could only ever
+  // show open windows, and the "หมดสิทธิ์อุทธรณ์" state would be unreachable.
+  inspected("REQ-2569-00388", "T1", "โพรบวัดสัญญาณ 10×", "EE-PRB-002-09",
+    "2026-06-20", "2026-06-27",
+    { damage: "B1", inspectedAt: "2026-06-28", inspectedBy: "พี่โอ๊ต", appealDaysLeft: 0,
+      reason: "สายโพรบมีรอยฉีกที่ปลอกหุ้มใกล้หัวจับ" }),
 
   request("REQ-2569-00397", "T2", "เครื่องกำเนิดสัญญาณ Rigol DG1032", "-", "rejected",
     "2026-07-15", "2026-07-19"),

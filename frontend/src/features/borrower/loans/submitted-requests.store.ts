@@ -61,6 +61,14 @@ interface SubmittedRequestsState {
   setStatus: (requestId: string, status: MyRequestStatus) => void;
   /** Collects items at the counter: the loan starts, so the clock starts too. */
   pickUp: (rows: readonly MyRequest[]) => void;
+  /** Pushes the due date out by one online extension. Callers gate on `extensionState`. */
+  extendLoan: (row: MyRequest) => void;
+  /** Asks staff or a supervisor for more time, when the borrower cannot grant it. */
+  requestExtension: (row: MyRequest, decidedBy: "staff" | "supervisor") => void;
+  /** Withdraws that request; the loan goes back to whatever it was before. */
+  cancelExtensionRequest: (requestId: string) => void;
+  /** Sends an appeal against an inspection verdict to a supervisor. */
+  sendAppeal: (requestId: string) => void;
   /** Stores (or clears, with `undefined`) one of the two room photos. */
   setRoomPhoto: (requestId: string, which: keyof RoomUseShots, url?: string) => void;
   cancel: (requestId: string) => void;
@@ -158,6 +166,29 @@ export const useSubmittedRequests = create<SubmittedRequestsState>((set, get) =>
       });
     }
   },
+
+  extendLoan: (row) => {
+    const days = BUSINESS.EXTENSION_DAYS;
+    // Measured from the current due date, not from today: extending early
+    // should add time rather than quietly reset the loan to a shorter window.
+    const due = row.dueAt ?? row.endDate;
+    get().patch(row.id, {
+      dueAt: format(addDays(parseISO(due), days), "yyyy-MM-dd"),
+      daysLeft: (row.daysLeft ?? 0) + days,
+      extensionsUsed: (row.extensionsUsed ?? 0) + 1,
+    });
+  },
+
+  // TODO: POST /loans/:id/extension-requests. Nothing here can approve it —
+  // staff and supervisor screens are another dev's, so it simply waits.
+  requestExtension: (row, decidedBy) => get().patch(row.id, { extensionPending: decidedBy }),
+
+  cancelExtensionRequest: (requestId) => get().patch(requestId, { extensionPending: undefined }),
+
+  // TODO: POST /appeals with { requestId, reason, photo }. Only the fact that
+  // it was sent is kept here; the supervisor's verdict is theirs to record, and
+  // there is no withdrawing an appeal once a supervisor is looking at it.
+  sendAppeal: (requestId) => get().patch(requestId, { appealSent: true }),
 
   setRoomPhoto: (requestId, which, url) =>
     set((s) => ({

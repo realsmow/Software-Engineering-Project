@@ -19,6 +19,7 @@
 import { initTRPC } from "@trpc/server";
 import { z } from "zod";
 import type { ServerUser } from "@/features/auth/user.adapter";
+import type { ServerItem } from "@/features/borrower/catalog/item.adapter";
 import type {
   User,
   EquipmentType,
@@ -45,6 +46,8 @@ const pageInput = z.object({
 /** ว-07 shared list output. */
 type Paginated<T> = { items: T[]; total: number; page: number; pageSize: number };
 const idInput = z.object({ id: z.string() });
+/** Domains already on the real backend key by int, not string. */
+const numericIdInput = z.object({ id: z.number() });
 
 /** Cast helper for placeholder resolvers (types only; never runs in the client). */
 const as = <T>() => ({}) as T;
@@ -66,13 +69,25 @@ export const appRouter = t.router({
 
   // ── item ──────────────────────────────────────────────
   item: t.router({
-    list: proc.input(pageInput).query(() => as<Paginated<EquipmentType>>()),
-    getById: proc.input(idInput).query(() => as<EquipmentType>()),
+    // NOTE: item returns ServerItem, not the frontend's EquipmentType, and its
+    // ids are numbers. features/borrower/catalog/item.adapter.ts converts.
+    // listCategories exists in the contract but the server answers
+    // NOT_IMPLEMENTED: the schema has no category table.
+    list: proc
+      .input(
+        pageInput.extend({
+          tier: z.string().optional(),
+          ownerGroupKey: z.number().optional(),
+          availableOnly: z.boolean().optional(),
+        }),
+      )
+      .query(() => as<Paginated<ServerItem>>()),
+    getById: proc.input(numericIdInput).query(() => as<ServerItem>()),
     getAvailability: proc
-      .input(idInput)
+      .input(numericIdInput)
       .query(() => as<{ availableUnits: number; nextAvailableAt?: string }>()),
     listCategories: proc.query(() => as<{ id: string; name: string }[]>()),
-    listUnits: proc.input(idInput).query(() => as<EquipmentUnit[]>()),
+    listUnits: proc.input(numericIdInput).query(() => as<EquipmentUnit[]>()),
     create: proc.input(z.object({}).passthrough()).mutation(() => as<EquipmentType>()),
     update: proc
       .input(z.object({ id: z.string() }).passthrough())

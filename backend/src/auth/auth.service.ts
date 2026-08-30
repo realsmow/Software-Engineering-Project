@@ -52,9 +52,9 @@ export class AuthService {
     const identifier = username.trim();
 
     const account = await this.prisma.accountInfo.findFirst({
-      // Email has no unique constraint in the schema, so this is findFirst,
-      // not findUnique. Two accounts sharing an email is a data problem -
-      // see docs/auth-admin.md.
+      // findFirst rather than findUnique because the OR spans two columns;
+      // findUnique takes a single unique field. Both Email and UserID now
+      // carry a unique constraint, so at most one row can match either arm.
       where: {
         OR: [
           { Email: { equals: identifier, mode: 'insensitive' } },

@@ -6,6 +6,7 @@ import { ConfigModule } from '@nestjs/config';
 import { TRPCModule } from 'nestjs-trpc';
 
 import { AppContext } from './trpc/context';
+import { formatTrpcError } from './trpc/error-formatter';
 import {
   AuthMiddleware,
   StaffMiddleware,
@@ -18,9 +19,16 @@ import { CreditTierService } from './common/credit/credit-tier.service';
 import { AuthRouter } from './auth/auth.router';
 import { AuthService } from './auth/auth.service';
 import { SessionService } from './auth/session.service';
+import { LoginThrottleService } from './auth/login-throttle.service';
 
 import { AdminRouter } from './admin/admin.router';
 import { AdminService } from './admin/admin.service';
+
+import { ItemRouter } from './item/item.router';
+import { ItemService } from './item/item.service';
+
+import { CreditRouter } from './credit/credit.router';
+import { CreditService } from './credit/credit.service';
 
 @Module({
   imports: [
@@ -34,6 +42,10 @@ import { AdminService } from './admin/admin.service';
 
       // Must match VITE_API_URL + '/trpc' on the frontend once it's wired up
       basePath: '/trpc',
+
+      // Without this, BusinessError's `cause` never reaches the client and
+      // stack traces ship to production. See trpc/error-formatter.ts.
+      errorFormatter: formatTrpcError,
     }),
   ],
   controllers: [AppController],
@@ -52,6 +64,7 @@ import { AdminService } from './admin/admin.service';
 
     // session - issued by auth, read by AppContext on every request
     SessionService,
+    LoginThrottleService,
 
     // router + service, one pair per domain
     AuthRouter,
@@ -59,6 +72,12 @@ import { AdminService } from './admin/admin.service';
 
     AdminRouter,
     AdminService,
+
+    ItemRouter,
+    ItemService,
+
+    CreditRouter,
+    CreditService,
   ],
 })
 export class AppModule {}

@@ -81,9 +81,12 @@ enum SubmissionType {
 
 model AccountInfo {
   AccountKey     Int    @id @default(autoincrement())
-  Email          String
+  // Unique because login matches on either of these. Without the constraint
+  // two rows can share an address and which one authenticates depends on
+  // insertion order, which is not something auth should ever depend on.
+  Email          String @unique
   HashedPassword String
-  UserID         String
+  UserID         String @unique
   UserFName      String
   UserLName      String
   UserCredit     Int

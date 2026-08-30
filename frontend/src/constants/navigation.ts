@@ -60,8 +60,6 @@ export const NAV_CONFIG: Record<Role, RoleNav> = {
           { key: "new-request", labelKey: "nav.newRequest", icon: "file-plus", route: ROUTES.REQUEST },
           { key: "requests", labelKey: "nav.myRequests", icon: "file", route: ROUTES.MY_LOANS },
           { key: "pickup", labelKey: "nav.pickup", icon: "package", route: ROUTES.PICKUP },
-          { key: "history", labelKey: "nav.loanHistory", icon: "clock", route: ROUTES.MY_HISTORY },
-          { key: "credit", labelKey: "nav.creditScore", icon: "award", route: ROUTES.MY_CREDIT },
           { key: "appeals", labelKey: "nav.appeals", icon: "shield", route: ROUTES.APPEALS },
         ],
       },
