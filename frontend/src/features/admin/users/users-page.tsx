@@ -34,16 +34,33 @@ import { fmtDate, fmtDateTime } from "../format";
 
 const ACTIVITY_ROLE_ORDER: Role[] = ["borrower", "staff", "supervisor", "admin"];
 
+/**
+ * Role is deliberately colourless.
+ *
+ * Role and status sit in the same table row, and they used to draw from the
+ * same tone palette: `admin` was green and so was `active`, `supervisor` was
+ * amber and so was `invited`. One colour then meant two unrelated things in a
+ * single row, which is exactly the case where colour stops being a signal.
+ *
+ * Status is the column an operator scans for problems, so it keeps the colour.
+ * Role is a category, not a severity, and the label already names it.
+ */
 const ROLE_TONE: Record<Role, BadgeTone> = {
   borrower: "neutral",
-  staff: "info",
-  supervisor: "warn",
-  admin: "ok",
+  staff: "neutral",
+  supervisor: "neutral",
+  admin: "neutral",
 };
+
+/**
+ * `invited` is blue, not amber. Amber reads as "needs attention", but an
+ * invited account is simply waiting on the person, not on staff. Reserving
+ * warm colours for states that need action keeps the amber and red meaningful.
+ */
 const STATUS_TONE: Record<AccountStatus, BadgeTone> = {
   active: "ok",
   suspended: "alert",
-  invited: "warn",
+  invited: "info",
 };
 const ROLES: Role[] = ["borrower", "staff", "supervisor", "admin"];
 const STATUSES: AccountStatus[] = ["active", "suspended", "invited"];
@@ -79,13 +96,16 @@ function StatChip({
 }: {
   label: string;
   value: number;
-  tone?: "ok" | "alert" | "warn";
+  tone?: "ok" | "alert" | "info";
   active: boolean;
   onClick: () => void;
 }) {
   const dotColor = tone
-    ? { ok: "var(--s-ok-t)", alert: "var(--s-alert-t)", warn: "var(--s-warn-t)" }[tone]
-    : "var(--muted-foreground)";
+    ? { ok: "var(--s-ok-t)", alert: "var(--s-alert-t)", info: "var(--s-info-t)" }[tone]
+    // --muted-foreground holds raw HSL components ("148 8% 45%") for Tailwind,
+    // so using it bare here produced invalid CSS and an invisible dot. The
+    // --s-* tokens are complete colours, which is what a raw background needs.
+    : "var(--s-t3)";
   return (
     <button
       type="button"
@@ -282,7 +302,7 @@ export default function AdminUsersPage() {
         <StatChip
           label={t("admin.users.statInvited")}
           value={counts.invited}
-          tone="warn"
+          tone="info"
           active={statusFilter === "invited"}
           onClick={() => setStatusFilter((s) => (s === "invited" ? "all" : "invited"))}
         />

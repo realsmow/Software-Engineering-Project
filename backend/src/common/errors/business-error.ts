@@ -17,6 +17,8 @@ export const BUSINESS_ERROR_CODES = {
   NOT_AUTHENTICATED: 'UNAUTHORIZED',
   ROLE_NOT_ALLOWED: 'FORBIDDEN',
   INVALID_CREDENTIALS: 'UNAUTHORIZED',
+  /** Too many failed logins. `cause.retryAfterSeconds` says how long to wait. */
+  TOO_MANY_ATTEMPTS: 'TOO_MANY_REQUESTS',
 
   // --- accounts (admin domain) ---
   USER_NOT_FOUND: 'NOT_FOUND',
