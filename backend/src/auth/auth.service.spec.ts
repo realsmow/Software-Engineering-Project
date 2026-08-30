@@ -155,6 +155,49 @@ describe('AuthService', () => {
       });
     });
 
+    it('refuses a disabled account even with the right password', async () => {
+      await prisma.accountInfo.update({
+        where: { AccountKey: accountKey },
+        data: { IsActive: false },
+      });
+
+      try {
+        await expect(
+          service.authenticate(EMAIL, PASSWORD),
+        ).rejects.toMatchObject({
+          message: 'ACCOUNT_DISABLED',
+          code: 'FORBIDDEN',
+        });
+      } finally {
+        await prisma.accountInfo.update({
+          where: { AccountKey: accountKey },
+          data: { IsActive: true },
+        });
+      }
+    });
+
+    it('still says INVALID_CREDENTIALS when a disabled account gets the password wrong', async () => {
+      // The disabled state must not leak to someone who cannot prove they own
+      // the account, so the wrong-password answer stays identical.
+      await prisma.accountInfo.update({
+        where: { AccountKey: accountKey },
+        data: { IsActive: false },
+      });
+
+      try {
+        await expect(
+          service.authenticate(EMAIL, 'wrong'),
+        ).rejects.toMatchObject({
+          message: 'INVALID_CREDENTIALS',
+        });
+      } finally {
+        await prisma.accountInfo.update({
+          where: { AccountKey: accountKey },
+          data: { IsActive: true },
+        });
+      }
+    });
+
     it('gives an unknown account the same error, so accounts cannot be enumerated', async () => {
       await expect(
         service.authenticate('nobody@example.com', PASSWORD),

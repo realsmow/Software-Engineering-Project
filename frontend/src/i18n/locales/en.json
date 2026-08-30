@@ -188,7 +188,6 @@
       "authLocal": "Local account",
       "statusActive": "Active",
       "statusSuspended": "Suspended",
-      "statusInvited": "Invited",
       "filterRole": "Role",
       "filterStatus": "Status",
       "deactivate": "Deactivate",
@@ -200,7 +199,6 @@
       "statTotal": "All users",
       "statActive": "Active",
       "statSuspended": "Suspended",
-      "statInvited": "Invited",
       "resendInvite": "Resend invite",
       "inviteSent": "Invitation sent",
       "resetSent": "Reset link sent",
@@ -214,7 +212,12 @@
       "faculty": "Faculty",
       "chooseDept": "Choose a department",
       "authMethod": "Sign-in method",
-      "createSubmit": "Create account"
+      "createSubmit": "Create account",
+      "statusDisabled": "Disabled",
+      "statDisabled": "Disabled",
+      "suspend": "Suspend",
+      "liftSuspension": "Lift suspension",
+      "tempPassword": "Temporary password"
     },
     "status": {
       "title": "System status",

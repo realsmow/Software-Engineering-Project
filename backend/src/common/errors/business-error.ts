@@ -17,11 +17,14 @@ export const BUSINESS_ERROR_CODES = {
   NOT_AUTHENTICATED: 'UNAUTHORIZED',
   ROLE_NOT_ALLOWED: 'FORBIDDEN',
   INVALID_CREDENTIALS: 'UNAUTHORIZED',
+  /** Correct password, but the account may not sign in. Distinct from a borrowing ban. */
+  ACCOUNT_DISABLED: 'FORBIDDEN',
   /** Too many failed logins. `cause.retryAfterSeconds` says how long to wait. */
   TOO_MANY_ATTEMPTS: 'TOO_MANY_REQUESTS',
 
   // --- accounts (admin domain) ---
   USER_NOT_FOUND: 'NOT_FOUND',
+  AUDIT_EVENT_NOT_FOUND: 'NOT_FOUND',
   EMAIL_ALREADY_IN_USE: 'CONFLICT',
   USER_ID_ALREADY_IN_USE: 'CONFLICT',
   /** RoleInfo has no row for the requested role - seed data problem, not user error */

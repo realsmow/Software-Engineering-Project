@@ -320,10 +320,6 @@ export type FacultyInfoUpdateOneWithoutAccountsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.FacultyInfoUpdateToOneWithWhereWithoutAccountsInput, Prisma.FacultyInfoUpdateWithoutAccountsInput>, Prisma.FacultyInfoUncheckedUpdateWithoutAccountsInput>
 }
 
-export type NullableStringFieldUpdateOperationsInput = {
-  set?: string | null
-}
-
 export type FacultyInfoCreateNestedOneWithoutBranchesInput = {
   create?: Prisma.XOR<Prisma.FacultyInfoCreateWithoutBranchesInput, Prisma.FacultyInfoUncheckedCreateWithoutBranchesInput>
   connectOrCreate?: Prisma.FacultyInfoCreateOrConnectWithoutBranchesInput

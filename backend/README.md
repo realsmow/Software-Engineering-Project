@@ -75,6 +75,11 @@ Listens on `http://localhost:3000`, tRPC mounted at `/trpc`.
 npm run start
 ```
 
+## Design decisions
+
+- [ADR-001 - Local password authentication, with OIDC as the target](docs/adr-001-authentication.md)
+- [Domain notes: auth, admin, item, credit](docs/auth-admin.md)
+
 ## Test accounts (dev only)
 
 > **DEV ONLY.** These passwords are known to the whole team. Never seed these

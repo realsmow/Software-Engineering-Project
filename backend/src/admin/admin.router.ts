@@ -9,6 +9,7 @@ import {
 } from 'nestjs-trpc';
 import { AdminMiddleware, StaffMiddleware } from '../trpc/auth.middleware';
 import type { TrpcContext } from '../trpc/context';
+import type { AuditActor } from '../common/audit/audit.service';
 import { okOutput } from '../common/schemas/ok.schema';
 import {
   accountIdInput,
@@ -63,6 +64,21 @@ import { AdminService } from './admin.service';
 export class AdminRouter {
   constructor(private readonly adminService: AdminService) {}
 
+  /**
+   * Who is doing this, and from where.
+   *
+   * IP and user agent come along so the audit row can answer "was that really
+   * them". req.ip is only meaningful once Express is told which proxies to
+   * trust; behind an untrusted proxy every row records the proxy's address.
+   */
+  private static actorFrom(ctx: TrpcContext): AuditActor {
+    return {
+      accountKey: ctx.user!.accountKey,
+      ip: ctx.req.ip ?? null,
+      userAgent: ctx.req.headers['user-agent'] ?? null,
+    };
+  }
+
   // ── Accounts ────────────────────────────────────────────────────────────
   // Admin-only for now. The contract intends staff to see their own
   // department's users too, but without scoping that would mean every staff
@@ -84,14 +100,14 @@ export class AdminRouter {
   /** Returns the generated password once, when the caller did not supply one. */
   @UseMiddlewares(AdminMiddleware)
   @Mutation({ input: createUserInput, output: createUserOutput })
-  createUser(@Input() input: CreateUserInput) {
-    return this.adminService.createUser(input);
+  createUser(@Input() input: CreateUserInput, @Ctx() ctx: TrpcContext) {
+    return this.adminService.createUser(input, AdminRouter.actorFrom(ctx));
   }
 
   @UseMiddlewares(AdminMiddleware)
   @Mutation({ input: updateUserInput, output: adminUserDetail })
-  updateUser(@Input() input: UpdateUserInput) {
-    return this.adminService.updateUser(input);
+  updateUser(@Input() input: UpdateUserInput, @Ctx() ctx: TrpcContext) {
+    return this.adminService.updateUser(input, AdminRouter.actorFrom(ctx));
   }
 
   @UseMiddlewares(AdminMiddleware)
@@ -99,20 +115,20 @@ export class AdminRouter {
   changeRole(@Input() input: ChangeRoleInput, @Ctx() ctx: TrpcContext) {
     // The actor is needed to refuse self-demotion, which is why this one
     // takes ctx rather than just the input.
-    return this.adminService.changeRole(input, ctx.user!.accountKey);
+    return this.adminService.changeRole(input, AdminRouter.actorFrom(ctx));
   }
 
   @UseMiddlewares(AdminMiddleware)
   @Mutation({ input: resetPasswordInput, output: resetPasswordOutput })
-  resetPassword(@Input() input: ResetPasswordInput) {
-    return this.adminService.resetPassword(input);
+  resetPassword(@Input() input: ResetPasswordInput, @Ctx() ctx: TrpcContext) {
+    return this.adminService.resetPassword(input, AdminRouter.actorFrom(ctx));
   }
 
   /** Not implemented - AccountInfo has no enabled/disabled column. */
   @UseMiddlewares(AdminMiddleware)
   @Mutation({ input: setUserActiveInput, output: okOutput })
-  setUserActive(@Input() input: SetUserActiveInput) {
-    return this.adminService.setUserActive(input);
+  setUserActive(@Input() input: SetUserActiveInput, @Ctx() ctx: TrpcContext) {
+    return this.adminService.setUserActive(input, AdminRouter.actorFrom(ctx));
   }
 
   // ── Borrowing ban (department staff) ────────────────────────────────────
@@ -121,7 +137,7 @@ export class AdminRouter {
   @UseMiddlewares(StaffMiddleware)
   @Mutation({ input: setUserBanInput, output: okOutput })
   setUserBan(@Input() input: SetUserBanInput, @Ctx() ctx: TrpcContext) {
-    return this.adminService.setUserBan(input, ctx.user!.accountKey);
+    return this.adminService.setUserBan(input, AdminRouter.actorFrom(ctx));
   }
 
   // ── Lending rules (department staff) ────────────────────────────────────
@@ -138,8 +154,14 @@ export class AdminRouter {
     input: updateLendingSettingsInput,
     output: lendingSettingsOutput,
   })
-  updateLendingSettings(@Input() input: UpdateLendingSettingsInput) {
-    return this.adminService.updateLendingSettings(input);
+  updateLendingSettings(
+    @Input() input: UpdateLendingSettingsInput,
+    @Ctx() ctx: TrpcContext,
+  ) {
+    return this.adminService.updateLendingSettings(
+      input,
+      AdminRouter.actorFrom(ctx),
+    );
   }
 
   // ── Technical config (IT admin) ─────────────────────────────────────────
@@ -190,10 +212,9 @@ export class AdminRouter {
     return this.adminService.listAudit(input);
   }
 
-  /** Not implemented - see listAudit. */
   @UseMiddlewares(AdminMiddleware)
   @Query({ input: auditEventIdInput, output: auditEventOutput })
-  getAuditById() {
-    return this.adminService.getAuditById();
+  getAuditById(@Input() input: { id: number }) {
+    return this.adminService.getAuditById(input);
   }
 }

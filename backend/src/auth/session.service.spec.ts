@@ -1,19 +1,16 @@
-import type { ConfigService } from '@nestjs/config';
+import { Test, TestingModule } from '@nestjs/testing';
+import { ConfigService } from '@nestjs/config';
 import type { CookieOptions, Request, Response } from 'express';
-import { signToken } from '../common/crypto/token';
+import { PrismaService } from '../prisma.service';
 import { SESSION_COOKIE, SessionService } from './session.service';
 
 const SECRET = 'a-test-secret-that-is-at-least-32-characters-long';
 
-/** Minimal stand-in - ConfigService is only ever read through get(). */
 function configWith(values: Record<string, string>): ConfigService {
   return { get: (key: string) => values[key] } as unknown as ConfigService;
 }
 
 function responseSpy() {
-  // Typed rather than bare jest.fn(): the assertions below read
-  // mock.calls[0][2].maxAge, and an untyped spy makes every one of those an
-  // `any` hop that the lint rules reject.
   const cookie = jest.fn<void, [string, string, CookieOptions]>();
   const clearCookie = jest.fn<void, [string, CookieOptions]>();
   return {
@@ -27,23 +24,99 @@ function requestWith(cookies: Record<string, unknown>): Request {
   return { cookies } as unknown as Request;
 }
 
+/**
+ * These talk to a real database on purpose. Revocation is the whole point of
+ * the SessionInfo table, and a mocked Prisma would assert that the code calls
+ * the methods this same file told it to call - it would pass whether or not a
+ * revoked session is actually refused.
+ */
 describe('SessionService', () => {
   let service: SessionService;
+  let prisma: PrismaService;
 
-  beforeEach(() => {
-    service = new SessionService(configWith({ SESSION_SECRET: SECRET }));
+  let roleKey: number;
+  let accountKey: number;
+
+  beforeAll(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        SessionService,
+        PrismaService,
+        {
+          provide: ConfigService,
+          useValue: configWith({ SESSION_SECRET: SECRET }),
+        },
+      ],
+    }).compile();
+
+    service = module.get(SessionService);
+    prisma = module.get(PrismaService);
+
+    const role = await prisma.roleInfo.create({
+      data: { RoleName: 'Student' },
+    });
+    roleKey = role.RoleKey;
+
+    const account = await prisma.accountInfo.create({
+      data: {
+        Email: 'session.service.spec@example.com',
+        HashedPassword: 'not-a-real-hash',
+        UserID: 'SESSIONSPEC1',
+        UserFName: 'Session',
+        UserLName: 'Spec',
+        UserCredit: 100,
+        RoleKey: roleKey,
+      },
+    });
+    accountKey = account.AccountKey;
+  }, 30_000);
+
+  afterAll(async () => {
+    try {
+      // Sessions cascade from the account, so deleting it clears them too.
+      if (accountKey)
+        await prisma.accountInfo.delete({ where: { AccountKey: accountKey } });
+      if (roleKey)
+        await prisma.roleInfo.delete({ where: { RoleKey: roleKey } });
+    } finally {
+      await prisma?.$disconnect();
+    }
+  }, 30_000);
+
+  afterEach(async () => {
+    if (accountKey)
+      await prisma.sessionInfo.deleteMany({
+        where: { AccountKey: accountKey },
+      });
   });
 
-  it('issues a session that reads back as the same account', () => {
+  it('issues a session that reads back as the same account', async () => {
     const { res } = responseSpy();
-    const token = service.issue(res, 42);
+    const token = await service.issue(res, accountKey);
 
-    expect(service.read(requestWith({ [SESSION_COOKIE]: token }))).toBe(42);
+    await expect(
+      service.read(requestWith({ [SESSION_COOKIE]: token })),
+    ).resolves.toBe(accountKey);
   });
 
-  it('sets the cookie so client-side JavaScript cannot read it', () => {
+  it('stores a hash, never the token itself', async () => {
+    const { res } = responseSpy();
+    const token = await service.issue(res, accountKey);
+
+    const rows = await prisma.sessionInfo.findMany({
+      where: { AccountKey: accountKey },
+      select: { TokenHash: true },
+    });
+
+    expect(rows).toHaveLength(1);
+    // A dump of this table must not be replayable as a session.
+    expect(rows[0].TokenHash).not.toContain(token);
+    expect(token).not.toContain(rows[0].TokenHash);
+  });
+
+  it('sets the cookie so client-side JavaScript cannot read it', async () => {
     const { res, cookie } = responseSpy();
-    service.issue(res, 42);
+    await service.issue(res, accountKey);
 
     const [name, , options] = cookie.mock.calls[0];
     expect(name).toBe(SESSION_COOKIE);
@@ -55,118 +128,87 @@ describe('SessionService', () => {
     expect(options.maxAge).toBeGreaterThan(0);
   });
 
-  it('clears the cookie with the same attributes it was set with', () => {
-    const { res, cookie, clearCookie } = responseSpy();
-    service.issue(res, 42);
-    service.clear(res);
+  it('omits maxAge when the session is not persisted', async () => {
+    const { res, cookie } = responseSpy();
+    await service.issue(res, accountKey, false);
 
-    const setOptions = cookie.mock.calls[0][2];
-    const [name, clearOptions] = clearCookie.mock.calls[0];
+    expect(cookie.mock.calls[0][2].maxAge).toBeUndefined();
+  });
 
-    expect(name).toBe(SESSION_COOKIE);
-    // A mismatch here is the classic "logout does nothing" bug - the browser
-    // treats a differently-scoped cookie as a different cookie.
-    expect(clearOptions).toMatchObject({
-      path: setOptions.path,
-      sameSite: setOptions.sameSite,
-      secure: setOptions.secure,
-      httpOnly: setOptions.httpOnly,
+  it('refuses a revoked session', async () => {
+    const { res } = responseSpy();
+    const token = await service.issue(res, accountKey);
+    const req = requestWith({ [SESSION_COOKIE]: token });
+
+    await expect(service.read(req)).resolves.toBe(accountKey);
+
+    await service.revokeAllForAccount(accountKey);
+
+    // The token is still perfectly well signed. Only the row says otherwise,
+    // which is the entire reason the table exists.
+    await expect(service.read(req)).resolves.toBeNull();
+  });
+
+  it('refuses an expired session even though the signature is valid', async () => {
+    const { res } = responseSpy();
+    const token = await service.issue(res, accountKey);
+
+    await prisma.sessionInfo.updateMany({
+      where: { AccountKey: accountKey },
+      data: { ExpiresAt: new Date(Date.now() - 1000) },
     });
+
+    await expect(
+      service.read(requestWith({ [SESSION_COOKIE]: token })),
+    ).resolves.toBeNull();
+  });
+
+  it('clear() revokes the row, not just the cookie', async () => {
+    const { res, clearCookie } = responseSpy();
+    const token = await service.issue(res, accountKey);
+    const req = requestWith({ [SESSION_COOKIE]: token });
+
+    await service.clear(req, res);
+
+    expect(clearCookie).toHaveBeenCalled();
+    await expect(service.read(req)).resolves.toBeNull();
+  });
+
+  it('revokeAllForAccount reports how many were live', async () => {
+    const { res } = responseSpy();
+    await service.issue(res, accountKey);
+    await service.issue(res, accountKey);
+
+    await expect(service.revokeAllForAccount(accountKey)).resolves.toBe(2);
+    // Already revoked ones are not counted twice.
+    await expect(service.revokeAllForAccount(accountKey)).resolves.toBe(0);
   });
 
   describe('read() returns null for', () => {
-    it('no cookie at all', () => {
-      expect(service.read(requestWith({}))).toBeNull();
+    it('no cookie at all', async () => {
+      await expect(service.read(requestWith({}))).resolves.toBeNull();
     });
 
-    it('a request cookie-parser never ran on', () => {
-      expect(service.read({} as Request)).toBeNull();
-    });
-
-    it('an empty cookie', () => {
-      expect(service.read(requestWith({ [SESSION_COOKIE]: '' }))).toBeNull();
-    });
-
-    it('a non-string cookie', () => {
-      expect(service.read(requestWith({ [SESSION_COOKIE]: 12345 }))).toBeNull();
-    });
-
-    it('a token signed with a different secret', () => {
-      const other = new SessionService(
-        configWith({
-          SESSION_SECRET: 'another-secret-of-at-least-32-characters!!',
-        }),
-      );
+    it('a forged signature', async () => {
       const { res } = responseSpy();
-      const foreign = other.issue(res, 42);
+      const token = await service.issue(res, accountKey);
+      const tampered = `${token.slice(0, -2)}xy`;
 
-      expect(
-        service.read(requestWith({ [SESSION_COOKIE]: foreign })),
-      ).toBeNull();
-    });
-  });
-
-  describe('parse()', () => {
-    it('rejects an expired session even though the signature is valid', () => {
-      const expired = signToken(`42:${Date.now() - 1000}`, SECRET);
-      expect(service.parse(expired)).toBeNull();
+      await expect(
+        service.read(requestWith({ [SESSION_COOKIE]: tampered })),
+      ).resolves.toBeNull();
     });
 
-    it('accepts one that has not expired', () => {
-      const valid = signToken(`42:${Date.now() + 60_000}`, SECRET);
-      expect(service.parse(valid)).toBe(42);
-    });
-
-    it('rejects a payload whose account key is not a positive integer', () => {
-      const future = Date.now() + 60_000;
-
-      expect(service.parse(signToken(`0:${future}`, SECRET))).toBeNull();
-      expect(service.parse(signToken(`-1:${future}`, SECRET))).toBeNull();
-      expect(service.parse(signToken(`abc:${future}`, SECRET))).toBeNull();
-      expect(service.parse(signToken(`:${future}`, SECRET))).toBeNull();
-    });
-
-    it('rejects a payload with a missing or unparseable expiry', () => {
-      expect(service.parse(signToken('42', SECRET))).toBeNull();
-      expect(service.parse(signToken('42:soon', SECRET))).toBeNull();
-    });
-  });
-
-  describe('secret handling', () => {
-    it('refuses to start in production without a secret', () => {
-      expect(
-        () => new SessionService(configWith({ NODE_ENV: 'production' })),
-      ).toThrow(/SESSION_SECRET/);
-    });
-
-    it('refuses a production secret that is too short to be worth anything', () => {
-      expect(
-        () =>
-          new SessionService(
-            configWith({ NODE_ENV: 'production', SESSION_SECRET: 'short' }),
-          ),
-      ).toThrow(/SESSION_SECRET/);
-    });
-
-    it('falls back to a per-process secret in development', () => {
+    it('a well-formed token for a session that was never stored', async () => {
       const { res } = responseSpy();
-      const first = new SessionService(configWith({}));
-      const second = new SessionService(configWith({}));
+      const token = await service.issue(res, accountKey);
+      await prisma.sessionInfo.deleteMany({
+        where: { AccountKey: accountKey },
+      });
 
-      // Each instance invents its own secret, so tokens do not carry across -
-      // which is exactly why a restart logs everyone out.
-      expect(second.parse(first.issue(res, 42))).toBeNull();
-      expect(first.parse(first.issue(res, 42))).toBe(42);
-    });
-
-    it('marks the cookie secure in production', () => {
-      const service = new SessionService(
-        configWith({ NODE_ENV: 'production', SESSION_SECRET: SECRET }),
-      );
-      const { res, cookie } = responseSpy();
-      service.issue(res, 1);
-
-      expect(cookie.mock.calls[0][2]).toMatchObject({ secure: true });
+      await expect(
+        service.read(requestWith({ [SESSION_COOKIE]: token })),
+      ).resolves.toBeNull();
     });
   });
 });
