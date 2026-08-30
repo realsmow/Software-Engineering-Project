@@ -7,6 +7,7 @@ import { TRPCModule } from 'nestjs-trpc';
 
 import { AppContext } from './trpc/context';
 import { formatTrpcError } from './trpc/error-formatter';
+import { TrpcErrorLogger } from './trpc/error-handler';
 import {
   AuthMiddleware,
   StaffMiddleware,
@@ -46,6 +47,11 @@ import { CreditService } from './credit/credit.service';
       // Without this, BusinessError's `cause` never reaches the client and
       // stack traces ship to production. See trpc/error-formatter.ts.
       errorFormatter: formatTrpcError,
+
+      // errorFormatter shapes what the client receives; this logs the same
+      // error server-side. Without it a crash inside a procedure never
+      // reaches the console. Adapted from feat/trpc-auth-connect.
+      onError: TrpcErrorLogger,
     }),
   ],
   controllers: [AppController],
@@ -65,6 +71,7 @@ import { CreditService } from './credit/credit.service';
     // session - issued by auth, read by AppContext on every request
     SessionService,
     LoginThrottleService,
+    TrpcErrorLogger,
 
     // router + service, one pair per domain
     AuthRouter,

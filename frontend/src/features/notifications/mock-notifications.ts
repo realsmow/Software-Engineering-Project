@@ -64,7 +64,7 @@ export const MOCK_NOTIFICATIONS: AppNotification[] = [
     detail: "Soldering Station Hakko FX-888D · สภาพปกติ",
     at: "2026-08-06T11:05:00+07:00",
     read: true,
-    // The history page is gone — "my requests" carries a history tab instead.
+    // The history page is gone - "my requests" carries a history tab instead.
     route: ROUTES.MY_LOANS,
   },
   {

@@ -100,7 +100,7 @@ describe('toItemSummary', () => {
     });
 
     it('is maintenance when nothing is borrowable at all', () => {
-      // Switched off, and lost — neither is coming back into circulation.
+      // Switched off, and lost - neither is coming back into circulation.
       const summary = toItemSummary(
         itemRow([unit({ allowBorrow: false }), unit({ status: 'Missing' })]),
       );
@@ -109,7 +109,7 @@ describe('toItemSummary', () => {
   });
 
   describe('nextAvailableAt', () => {
-    it('is null while a unit is free — a date there would read as unavailable', () => {
+    it('is null while a unit is free - a date there would read as unavailable', () => {
       const summary = toItemSummary(
         itemRow([
           unit({ status: 'InStorage' }),

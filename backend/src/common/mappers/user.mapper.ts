@@ -16,7 +16,10 @@ export interface AccountRow {
   Email: string;
   UserCredit: number;
   Role: { RoleName: string };
-  Faculty?: { FacultyName: string } | null;
+  // FacultyName is nullable in the schema, and the account's own FacultyKey is
+  // optional, so this is null at two levels: no faculty, or a faculty with no
+  // name recorded. Both collapse to facultyName: null downstream.
+  Faculty?: { FacultyName: string | null } | null;
 }
 
 /**

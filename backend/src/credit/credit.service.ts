@@ -51,8 +51,8 @@ export class CreditService {
       maxBorrowDays: limits.maxBorrowDays,
       maxExtendTimes: limits.maxExtendTimes,
       activePenalties,
-      // CreditDeducted is nullable — an admin-issued borrowing ban deducts
-      // nothing — so a null contributes zero rather than breaking the sum.
+      // CreditDeducted is nullable - an admin-issued borrowing ban deducts
+      // nothing - so a null contributes zero rather than breaking the sum.
       totalDeducted: activePenalties.reduce(
         (sum, penalty) => sum + (penalty.creditDeducted ?? 0),
         0,

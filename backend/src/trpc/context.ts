@@ -69,6 +69,7 @@ export class AppContext implements TRPCContext {
       select: {
         AccountKey: true,
         UserCredit: true,
+        FacultyKey: true,
         Role: { select: { RoleName: true } },
       },
     });
@@ -78,8 +79,9 @@ export class AppContext implements TRPCContext {
     return {
       accountKey: account.AccountKey,
       role: mapUserRole(account.Role.RoleName),
-      // AccountInfo has no faculty relation - see docs/auth-admin.md.
-      facultyKey: null,
+      // Null until a faculty is assigned to the account. Procedures that scope
+      // by department must treat null as "not scoped" rather than "no access".
+      facultyKey: account.FacultyKey,
       creditScore: account.UserCredit,
     };
   }

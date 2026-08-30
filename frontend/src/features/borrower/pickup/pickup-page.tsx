@@ -15,7 +15,7 @@ import { useMyRequests } from "../loans/use-my-requests";
 import { useSubmittedRequests } from "../loans/submitted-requests.store";
 
 /**
- * Pick up equipment — the counter step between "staff have it ready" and
+ * Pick up equipment - the counter step between "staff have it ready" and
  * "the loan has started".
  *
  * One request is one unit, so this page has no quantity stepper: collecting
@@ -24,7 +24,7 @@ import { useSubmittedRequests } from "../loans/submitted-requests.store";
  * the same outcome the old per-line "collected 2 of 3" counter produced with
  * far more state to get wrong.
  *
- * Fixed facilities (T3) are never collected — they are used in place — so only
+ * Fixed facilities (T3) are never collected - they are used in place - so only
  * equipment appears here.
  */
 export default function PickupPage() {
@@ -35,7 +35,7 @@ export default function PickupPage() {
 
   const rows = requests.filter((r) => r.kind === "equipment" && r.status === "ready");
 
-  /** Rows the borrower has un-ticked. Absent means selected — everything waiting is taken by default. */
+  /** Rows the borrower has un-ticked. Absent means selected - everything waiting is taken by default. */
   const [dropped, setDropped] = useState<Set<string>>(new Set());
   /** Condition photo per request id, as an object URL. */
   const [shots, setShots] = useState<Record<string, string>>({});
@@ -177,7 +177,7 @@ export default function PickupPage() {
  * One row waiting at the counter: tick to take it, or ask for a different unit.
  *
  * Swapping is a T1 affair. T0 items are interchangeable stock with nothing to
- * choose between, and a T2 unit was approved by a supervisor as *that* unit —
+ * choose between, and a T2 unit was approved by a supervisor as *that* unit -
  * picking a different one afterwards would step around the approval.
  */
 function PickRow({
@@ -257,7 +257,7 @@ function PickRow({
               type="button"
               onClick={() => {
                 setAsking(false);
-                // Back to the staff bench — they have another unit to find.
+                // Back to the staff bench - they have another unit to find.
                 patch(row.id, { status: "preparing" });
               }}
             >
@@ -435,7 +435,7 @@ function EmptyState({ onGo }: { onGo: () => void }) {
   );
 }
 
-/** "11–18 ส.ค." — collapses to one date when start and end match. */
+/** "11–18 ส.ค." - collapses to one date when start and end match. */
 function fmtRange(start: string, end: string): string {
   if (start === end) return fmtDay(end);
   return `${format(parseISO(start), "d", { locale: th })}–${fmtDay(end)}`;

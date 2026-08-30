@@ -18,7 +18,7 @@ export class CreditRouter {
   }
 
   /**
-   * Someone else's credit — staff and supervisors reviewing a borrower.
+   * Someone else's credit - staff and supervisors reviewing a borrower.
    *
    * Separate procedure rather than an optional id on `me`, so the permission
    * difference is visible in the route instead of hidden in a branch.

@@ -43,7 +43,7 @@ export default function RoomBookingPage() {
 
   const [picked, setPicked] = useState<Set<number>>(new Set());
 
-  // Hours already spoken for, live bookings included — sending a request holds
+  // Hours already spoken for, live bookings included - sending a request holds
   // the room straight away, so a slot someone took is gone before approval.
   const booked = useMemo(
     () => (room ? takenSlotsOf(room, requests) : new Set<number>()),

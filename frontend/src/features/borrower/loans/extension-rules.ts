@@ -11,7 +11,7 @@ import type { MyRequest } from "../mock-data";
 export type ExtensionMode =
   /** The borrower extends it here and now. */
   | "online"
-  /** Online quota spent — staff inspect the item before granting more time. */
+  /** Online quota spent - staff inspect the item before granting more time. */
   | "staff"
   /** A supervisor decides. */
   | "supervisor"
@@ -19,7 +19,7 @@ export type ExtensionMode =
   | "pending"
   /** Credit too low to extend at all; a fresh request is the only route. */
   | "blocked"
-  /** Nothing to extend — rooms are held by the hour, not by the day. */
+  /** Nothing to extend - rooms are held by the hour, not by the day. */
   | "none";
 
 /**
@@ -42,7 +42,7 @@ export interface ExtensionState {
   canExtend: boolean;
   /** The borrower can ask someone else to grant it. */
   canRequest: boolean;
-  /** True while a request is outstanding — it can be withdrawn, not repeated. */
+  /** True while a request is outstanding - it can be withdrawn, not repeated. */
   isPending: boolean;
   /** i18n key for the button label. */
   labelKey: string;
@@ -54,7 +54,7 @@ export interface ExtensionState {
    * to carry the item in, so it should not happen on one stray click.
    */
   askNoteKey: string;
-  /** i18n key for the confirm button — it names the commitment, not "OK". */
+  /** i18n key for the confirm button - it names the commitment, not "OK". */
   confirmLabelKey: string;
   /** Interpolated into `reasonKey`; "∞" when the tier has no cap. */
   count: number | string;

@@ -20,7 +20,7 @@ import { ItemService } from './item.service';
 
 /**
  * The catalogue: everything a borrower can search and read before deciding
- * what to request. Read-only — nothing here reserves, holds, or books.
+ * what to request. Read-only - nothing here reserves, holds, or books.
  *
  * Every procedure requires a session. The catalogue is not public: which
  * equipment a faculty owns, and how much of it is missing, is not something to
@@ -29,7 +29,7 @@ import { ItemService } from './item.service';
  * Rooms live here rather than under `reservation` because searching a room and
  * searching a multimeter are the same act against the same table
  * (ResourceInfo); `reservation` is for booking one once it has been found.
- * Flagged for the team in docs/auth-admin.md — the contract did not name a
+ * Flagged for the team in docs/auth-admin.md - the contract did not name a
  * home for room search.
  */
 @Router({ alias: 'item' })
@@ -63,14 +63,14 @@ export class ItemRouter {
     return this.itemService.getAvailability(input.id);
   }
 
-  /** Units of one type — serial numbers, condition, and what is due back when. */
+  /** Units of one type - serial numbers, condition, and what is due back when. */
   @UseMiddlewares(AuthMiddleware)
   @Query({ input: itemIdInput, output: z.array(itemUnit) })
   listUnits(@Input() input: { id: number }) {
     return this.itemService.listUnits(input.id);
   }
 
-  /** Not implemented — equipment has no category column or table. */
+  /** Not implemented - equipment has no category column or table. */
   @UseMiddlewares(AuthMiddleware)
   @Query({ output: z.array(itemCategory) })
   listCategories() {

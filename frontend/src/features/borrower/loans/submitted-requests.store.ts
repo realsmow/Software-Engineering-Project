@@ -35,7 +35,7 @@ interface SubmittedRequestsState {
    *
    * They live apart from `requests` because half the list comes from
    * `MY_REQUESTS`, a module constant nothing can rewrite. Without this layer
-   * only requests submitted in this same session could ever move — which is
+   * only requests submitted in this same session could ever move - which is
    * why "cancel" used to do nothing on a seeded row.
    *
    * A whole `Partial<MyRequest>` rather than just a status: collecting an item
@@ -57,7 +57,7 @@ interface SubmittedRequestsState {
   addRoomBooking: (input: { room: Room; date: string; slots: number[] }) => void;
   /** Rewrites fields of one request, whichever source it came from. */
   patch: (requestId: string, changes: Partial<MyRequest>) => void;
-  /** Moves a request — check-in and check-out on the room-use page. */
+  /** Moves a request - check-in and check-out on the room-use page. */
   setStatus: (requestId: string, status: MyRequestStatus) => void;
   /** Collects items at the counter: the loan starts, so the clock starts too. */
   pickUp: (rows: readonly MyRequest[]) => void;
@@ -130,7 +130,7 @@ export const useSubmittedRequests = create<SubmittedRequestsState>((set, get) =>
           name: room.name,
           serial: room.code,
           // Sending the request holds the room, but staff still decide whether
-          // the hold becomes a visit — so it starts waiting, not confirmed.
+          // the hold becomes a visit - so it starts waiting, not confirmed.
           status: "pending",
           startDate: date,
           endDate: date,
@@ -179,7 +179,7 @@ export const useSubmittedRequests = create<SubmittedRequestsState>((set, get) =>
     });
   },
 
-  // TODO: POST /loans/:id/extension-requests. Nothing here can approve it —
+  // TODO: POST /loans/:id/extension-requests. Nothing here can approve it -
   // staff and supervisor screens are another dev's, so it simply waits.
   requestExtension: (row, decidedBy) => get().patch(row.id, { extensionPending: decidedBy }),
 

@@ -49,7 +49,7 @@ export default function RoomListPage() {
   /**
    * Hours left today, counted against live bookings rather than read off the
    * seeded `freeSlots`. Sending a request holds the room immediately, so the
-   * count has to drop the moment a booking is made — otherwise the list keeps
+   * count has to drop the moment a booking is made - otherwise the list keeps
    * advertising hours the booking page will refuse.
    */
   const freeOf = useMemo(() => {
@@ -61,7 +61,7 @@ export default function RoomListPage() {
 
   /**
    * The booking already holding a room, once the borrower is at their limit.
-   * While it stands every "book this room" button is closed — a held room is
+   * While it stands every "book this room" button is closed - a held room is
    * one nobody else can take, so sitting on several is not on offer.
    */
   const held = activeRoomBookings(requests);
