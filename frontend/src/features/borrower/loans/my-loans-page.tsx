@@ -316,8 +316,14 @@ function Actions({
   const canAppeal = insp && insp.damage !== "B0" && insp.appealDaysLeft > 0;
   const band = useAuthStore((s) => s.user?.creditBand) ?? "D0";
   const extendLoan = useSubmittedRequests((s) => s.extendLoan);
-  const canExtend = row.status === "inUse" && extensionState(row, band).canExtend;
+  const requestExtension = useSubmittedRequests((s) => s.requestExtension);
+  const cancelExtensionRequest = useSubmittedRequests((s) => s.cancelExtensionRequest);
+  const ext = extensionState(row, band);
+  const onLoan = row.status === "inUse";
   const onUseRoom = () => navigate(ROUTES.ROOM_USE);
+  // Between pressing "extend" and the request going out: the borrower is
+  // committing to carry the item in, so they get to read that and back out.
+  const [asking, setAsking] = useState(false);
 
   const buttons: ReactNode[] = [];
 
@@ -335,7 +341,30 @@ function Actions({
       ),
     );
   }
-  if (canExtend) {
+  if (onLoan && asking && ext.canRequest) {
+    buttons.push(
+      <Button
+        key="extend-yes"
+        type="button"
+        size="sm"
+        onClick={() => {
+          setAsking(false);
+          requestExtension(row, ext.mode === "supervisor" ? "supervisor" : "staff");
+        }}
+      >
+        {t(ext.confirmLabelKey)}
+      </Button>,
+      <Button
+        key="extend-no"
+        type="button"
+        variant="ghost"
+        size="sm"
+        onClick={() => setAsking(false)}
+      >
+        {t("borrower.myRequests.extAskNo")}
+      </Button>,
+    );
+  } else if (onLoan && (ext.canExtend || ext.canRequest)) {
     buttons.push(
       // TODO: POST /loans/:id/extend once the endpoint exists; the store keeps
       // the new due date in the meantime.
@@ -344,9 +373,23 @@ function Actions({
         type="button"
         variant="outline"
         size="sm"
-        onClick={() => extendLoan(row)}
+        title={t(ext.reasonKey, { count: ext.count })}
+        onClick={() => (ext.canExtend ? extendLoan(row) : setAsking(true))}
       >
-        {t("borrower.myRequests.extend")}
+        {t(ext.labelKey)}
+      </Button>,
+    );
+  }
+  if (onLoan && ext.isPending) {
+    buttons.push(
+      <Button
+        key="cancel-ext"
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={() => cancelExtensionRequest(row.id)}
+      >
+        {t("borrower.myRequests.cancelExt")}
       </Button>,
     );
   }
@@ -376,7 +419,16 @@ function Actions({
   }
 
   if (buttons.length === 0) return null;
-  return <div className="mt-3 flex flex-wrap gap-2">{buttons}</div>;
+  return (
+    <>
+      {asking && ext.canRequest ? (
+        <p className="mt-3 rounded border border-l-[3px] border-border border-l-accent-orange bg-[var(--s-hot-bg)] px-3 py-2 text-xs leading-relaxed text-[var(--s-hot-t)]">
+          {t(ext.askNoteKey)}
+        </p>
+      ) : null}
+      <div className="mt-3 flex flex-wrap gap-2">{buttons}</div>
+    </>
+  );
 }
 
 function DraftCard({

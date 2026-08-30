@@ -7,6 +7,7 @@ import { Bell, ChevronDown, ChevronRight } from "lucide-react";
 import { NavIcon } from "@/components/layout/nav-icon";
 import { Badge, type BadgeTone } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Modal } from "@/components/ui/modal";
 import { BUSINESS, ROUTES } from "@/constants";
 import { useAuthStore } from "@/features/auth/auth.store";
 import { MOCK_NOTIFICATIONS, NOTIFICATION_META } from "@/features/notifications/mock-notifications";
@@ -231,7 +232,10 @@ function LoanRow({ row }: { row: MyRequest }) {
   const { t } = useTranslation();
   const band = useAuthStore((s) => s.user?.creditBand) ?? "D0";
   const extendLoan = useSubmittedRequests((s) => s.extendLoan);
+  const requestExtension = useSubmittedRequests((s) => s.requestExtension);
+  const cancelExtensionRequest = useSubmittedRequests((s) => s.cancelExtensionRequest);
   const ext = extensionState(row, band);
+  const [asking, setAsking] = useState(false);
 
   const left = row.daysLeft ?? 0;
 
@@ -248,19 +252,62 @@ function LoanRow({ row }: { row: MyRequest }) {
         <Badge tone={daysTone(left)}>{daysLabel(t, left)}</Badge>
       </td>
       <td className="whitespace-nowrap px-3.5 py-2 text-right">
-        {/* Disabled rather than hidden: the borrower should learn that an
-            extension exists and who has to grant it, not wonder where it went. */}
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          className="h-7 text-xs"
-          disabled={!ext.canExtend}
-          title={t(ext.reasonKey, { count: ext.count })}
-          onClick={() => extendLoan(row)}
+        <span className="inline-flex justify-end gap-1.5">
+          {/* Shown even when someone else has to grant it: pressing sends the
+              request. Only a credit block leaves nothing to press, and then the
+              tooltip says why. */}
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-7 text-xs"
+            disabled={!ext.canExtend && !ext.canRequest}
+            title={t(ext.reasonKey, { count: ext.count })}
+            onClick={() => (ext.canExtend ? extendLoan(row) : setAsking(true))}
+          >
+            {t(ext.labelKey)}
+          </Button>
+          {ext.isPending ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-7 text-xs"
+              onClick={() => cancelExtensionRequest(row.id)}
+            >
+              {t("borrower.myRequests.cancelExt")}
+            </Button>
+          ) : null}
+        </span>
+
+        {/* Same decision as the card on "my requests", in a dialog: a table
+            cell has no room for the note explaining what is being agreed to. */}
+        <Modal
+          open={asking}
+          onClose={() => setAsking(false)}
+          title={t("borrower.myRequests.extAskTitle")}
+          subtitle={`${row.name} · ${row.serial}`}
+          footer={
+            <>
+              <Button type="button" variant="ghost" onClick={() => setAsking(false)}>
+                {t("borrower.myRequests.extAskNo")}
+              </Button>
+              <Button
+                type="button"
+                onClick={() => {
+                  setAsking(false);
+                  requestExtension(row, ext.mode === "supervisor" ? "supervisor" : "staff");
+                }}
+              >
+                {t(ext.confirmLabelKey)}
+              </Button>
+            </>
+          }
         >
-          {t("borrower.myRequests.extend")}
-        </Button>
+          <p className="text-[13px] leading-relaxed text-t2">
+            {ext.askNoteKey ? t(ext.askNoteKey) : null}
+          </p>
+        </Modal>
       </td>
     </tr>
   );

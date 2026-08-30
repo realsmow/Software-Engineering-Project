@@ -63,6 +63,10 @@ interface SubmittedRequestsState {
   pickUp: (rows: readonly MyRequest[]) => void;
   /** Pushes the due date out by one online extension. Callers gate on `extensionState`. */
   extendLoan: (row: MyRequest) => void;
+  /** Asks staff or a supervisor for more time, when the borrower cannot grant it. */
+  requestExtension: (row: MyRequest, decidedBy: "staff" | "supervisor") => void;
+  /** Withdraws that request; the loan goes back to whatever it was before. */
+  cancelExtensionRequest: (requestId: string) => void;
   /** Stores (or clears, with `undefined`) one of the two room photos. */
   setRoomPhoto: (requestId: string, which: keyof RoomUseShots, url?: string) => void;
   cancel: (requestId: string) => void;
@@ -172,6 +176,12 @@ export const useSubmittedRequests = create<SubmittedRequestsState>((set, get) =>
       extensionsUsed: (row.extensionsUsed ?? 0) + 1,
     });
   },
+
+  // TODO: POST /loans/:id/extension-requests. Nothing here can approve it —
+  // staff and supervisor screens are another dev's, so it simply waits.
+  requestExtension: (row, decidedBy) => get().patch(row.id, { extensionPending: decidedBy }),
+
+  cancelExtensionRequest: (requestId) => get().patch(requestId, { extensionPending: undefined }),
 
   setRoomPhoto: (requestId, which, url) =>
     set((s) => ({

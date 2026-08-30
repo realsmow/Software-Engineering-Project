@@ -574,6 +574,11 @@ export interface MyRequest {
   daysLeft?: number;
   /** Online extensions already used on this request. */
   extensionsUsed?: number;
+  /**
+   * An extension the borrower has asked for but cannot grant themselves, and
+   * who has to decide it. Absent when nothing is outstanding.
+   */
+  extensionPending?: "staff" | "supervisor";
   inspection?: InspectionResult;
   /**
    * Room bookings only: the hours reserved, as indices into `TIME_SLOTS`.
