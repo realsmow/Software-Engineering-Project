@@ -15,7 +15,7 @@ import { useMyRequests } from "../loans/use-my-requests";
 import { useSubmittedRequests, type RoomUseShots } from "../loans/submitted-requests.store";
 
 /**
- * Use a room — where a confirmed T3 booking is checked in and handed back.
+ * Use a room - where a confirmed T3 booking is checked in and handed back.
  *
  * One page for every booking rather than one page per room: the borrower comes
  * here to answer "what do I have today", not to look a room up, so the room
@@ -23,7 +23,7 @@ import { useSubmittedRequests, type RoomUseShots } from "../loans/submitted-requ
  *
  * The lifecycle ends here. Fixed facilities run
  *   submit → staff approval → photo before → in use → photo after
- * and that is the whole of it — nothing goes to a counter afterwards, so
+ * and that is the whole of it - nothing goes to a counter afterwards, so
  * checking out completes the request rather than queueing an inspection.
  *
  * A booking still awaiting staff is listed too, greyed. It already holds the
@@ -105,7 +105,7 @@ function BookingCard({ row }: { row: MyRequest }) {
   const last = slots.length > 0 ? Math.max(...slots) : null;
   const timeLabel =
     first === null || last === null
-      ? "—"
+      ? "-"
       : `${TIME_SLOTS[first].start}–${TIME_SLOTS[last].end}`;
 
   return (
@@ -222,7 +222,7 @@ function BookingCard({ row }: { row: MyRequest }) {
 /**
  * One condition photo. A real file picker rather than the mockup's click-to-
  * toggle placeholder, so the size and type rules that the backend enforces are
- * felt here too — a 12 MB burst from a phone camera should fail at the point
+ * felt here too - a 12 MB burst from a phone camera should fail at the point
  * the borrower can still retake it.
  */
 function PhotoBox({

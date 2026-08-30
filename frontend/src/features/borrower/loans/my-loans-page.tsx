@@ -177,7 +177,7 @@ function RequestCard({ row, onCancel }: { row: MyRequest; onCancel: () => void }
       </div>
 
       {/* Due dates are counted in days, which a room booked by the hour has
-          none of — it would read "0 days left" on every booking. */}
+          none of - it would read "0 days left" on every booking. */}
       {row.status === "inUse" && row.kind === "equipment" ? <LoanInfo row={row} /> : null}
       {row.inspection ? <InspectionLine row={row} /> : null}
 
@@ -330,7 +330,7 @@ function Actions({
   if (row.status === "ready") {
     buttons.push(
       row.kind === "room" ? (
-        // A confirmed room is used, not collected — send them to check in.
+        // A confirmed room is used, not collected - send them to check in.
         <Button key="use-room" type="button" size="sm" onClick={onUseRoom}>
           {t("borrower.myRequests.goUseRoom")}
         </Button>

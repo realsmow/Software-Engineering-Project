@@ -1,5 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import cookieParser from 'cookie-parser';
+import { requestLogger } from './common/request-logger';
 import { AppModule } from './app.module';
 
 /**
@@ -21,6 +22,12 @@ async function bootstrap() {
 
   // Required, otherwise req.cookies is undefined and context can't find a session
   app.use(cookieParser());
+
+  // One line per request. Registered with app.use rather than Nest's
+  // MiddlewareConsumer because nestjs-trpc mounts /trpc straight onto Express,
+  // so route-scoped Nest middleware would miss exactly the traffic worth
+  // seeing. Adapted from feat/trpc-auth-connect.
+  app.use(requestLogger);
 
   app.enableCors({
     origin: ALLOWED_ORIGINS,

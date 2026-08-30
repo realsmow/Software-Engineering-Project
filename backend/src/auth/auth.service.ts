@@ -24,6 +24,7 @@ export class AuthService {
         Email: true,
         UserCredit: true,
         Role: { select: { RoleName: true } },
+        Faculty: { select: { FacultyName: true } },
         // HashedPassword intentionally not selected - cannot leak by accident
       },
     });

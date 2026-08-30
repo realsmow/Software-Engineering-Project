@@ -18,14 +18,14 @@ import { useMyRequests } from "../loans/use-my-requests";
 import { useSubmittedRequests } from "../loans/submitted-requests.store";
 
 /**
- * Borrower home — what needs attention today, and the two doors out of it.
+ * Borrower home - what needs attention today, and the two doors out of it.
  *
  * Everything here is a view over `useMyRequests()`, never its own copy of the
  * data: the greeting, the chips, both tables and the due-date colours all read
  * the same list "my requests" reads, so nothing can drift between the two.
  *
  * There is no "return item" action. Returning happens at the counter, where
- * staff photograph and inspect the item in the same visit — the borrower has
+ * staff photograph and inspect the item in the same visit - the borrower has
  * nothing to press here. Extending, on the other hand, is theirs to do.
  */
 export default function HomePage() {
@@ -38,7 +38,7 @@ export default function HomePage() {
     () =>
       requests
         .filter((r) => r.kind === "equipment" && r.status === "inUse")
-        // Soonest deadline first — that is the one the greeting talks about.
+        // Soonest deadline first - that is the one the greeting talks about.
         .sort((a, b) => (a.daysLeft ?? 0) - (b.daysLeft ?? 0)),
     [requests],
   );
@@ -353,7 +353,7 @@ function RequestsTable({ rows }: { rows: MyRequest[] }) {
 }
 
 /**
- * The same notifications the topbar bell holds, opened out on arrival — the
+ * The same notifications the topbar bell holds, opened out on arrival - the
  * bell is easy to miss, and this is the screen where noticing matters.
  */
 function NoticesPanel() {
@@ -511,7 +511,7 @@ function daysLabel(t: (key: string, opts?: Record<string, unknown>) => string, l
   return t("borrower.myRequests.extDaysLeft", { count: left });
 }
 
-/** "12–16 ส.ค." — collapses to one date when start and end match. */
+/** "12–16 ส.ค." - collapses to one date when start and end match. */
 function fmtRange(start: string, end: string): string {
   if (start === end) return fmtDay(end);
   return `${format(parseISO(start), "d", { locale: th })}–${fmtDay(end)}`;

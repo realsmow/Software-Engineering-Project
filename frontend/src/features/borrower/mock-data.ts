@@ -399,7 +399,7 @@ export interface Room {
 
 export const ROOMS: Room[] = [
   // 5 open to other people; the seeded booking holds 2 of those, so the list
-  // still reads "3 / 8 free" — and cancelling it really gives 2 back.
+  // still reads "3 / 8 free" - and cancelling it really gives 2 back.
   room("FAC-CAD2", "ห้องปฏิบัติการ CAD 2", "b9", "lab", 40, 5),
   room("FAC-COM1", "ห้องปฏิบัติการคอมพิวเตอร์ 1", "b9", "lab", 50, 5),
   room("FAC-MTG-EE", "ห้องประชุมภาควิชาไฟฟ้า", "b4", "meet", 12, 6),
@@ -586,7 +586,7 @@ export interface MyRequest {
    * Room bookings only: the hours reserved, as indices into `TIME_SLOTS`.
    * Equipment is borrowed by the day and has no slots, hence optional.
    *
-   * The set is fixed at booking time — a room is held for the hours picked and
+   * The set is fixed at booking time - a room is held for the hours picked and
    * nothing more, so there is no extension to widen it later.
    */
   slots?: number[];
@@ -603,7 +603,7 @@ export function creditCutOf(tier: Tier, damage: DamageLevel): number {
 /**
  * Booking statuses that still hold the room.
  *
- * Sending the request is what reserves it — approval only decides whether the
+ * Sending the request is what reserves it - approval only decides whether the
  * hold turns into a visit. So a booking still awaiting staff counts exactly as
  * much as one already in use, and the hours are released only when it is
  * cancelled, rejected, or finished.
@@ -618,8 +618,8 @@ export function activeRoomBookings(requests: readonly MyRequest[]): MyRequest[] 
  * Hours of `room` nobody else can take: the ones the mock says are spoken for,
  * plus those held by a live booking.
  *
- * The two overlap by design — a seeded booking is one of the reasons its room
- * reads as busy — so this unions rather than adds, and a booking made in this
+ * The two overlap by design - a seeded booking is one of the reasons its room
+ * reads as busy - so this unions rather than adds, and a booking made in this
  * session narrows the room's free hours the moment it is sent.
  */
 export function takenSlotsOf(room: Room, bookings: readonly MyRequest[]): Set<number> {

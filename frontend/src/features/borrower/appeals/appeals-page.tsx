@@ -19,7 +19,7 @@ import { useSubmittedRequests } from "../loans/submitted-requests.store";
  *
  * The whole page exists because the inspector and the decider must be
  * different people: staff assign the damage level, a supervisor rules on the
- * challenge. Nothing here decides anything — it collects the borrower's side
+ * challenge. Nothing here decides anything - it collects the borrower's side
  * of it and sends it on.
  *
  * B0 verdicts never appear: nothing was deducted, so there is nothing to claim
@@ -139,17 +139,17 @@ export default function AppealsPage() {
                 <div>
                   <div className="text-t3">{t("borrower.appeals.sumItem")}</div>
                   <div className="mt-1 font-medium leading-snug text-foreground">
-                    {picked?.name ?? "—"}
+                    {picked?.name ?? "-"}
                   </div>
                   {picked ? (
                     <div className="mt-0.5 font-mono text-[11.5px] text-t4">{picked.serial}</div>
                   ) : null}
                 </div>
                 <SumRow label={t("borrower.appeals.sumDmg")}>
-                  {picked?.inspection?.damage ?? "—"}
+                  {picked?.inspection?.damage ?? "-"}
                 </SumRow>
                 <SumRow label={t("borrower.appeals.sumCut")}>
-                  {picked ? cutOf(picked) : "—"}
+                  {picked ? cutOf(picked) : "-"}
                 </SumRow>
               </div>
 
@@ -230,7 +230,7 @@ function VerdictCard({
 
       {insp.reason ? (
         <p className="mt-2 text-xs leading-relaxed text-t3">
-          {t("borrower.appeals.inspectedBy", { name: insp.inspectedBy })} — {insp.reason}
+          {t("borrower.appeals.inspectedBy", { name: insp.inspectedBy })} - {insp.reason}
         </p>
       ) : null}
 

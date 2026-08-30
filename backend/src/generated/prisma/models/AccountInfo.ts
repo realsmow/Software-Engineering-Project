@@ -30,12 +30,14 @@ export type AccountInfoAvgAggregateOutputType = {
   AccountKey: number | null
   UserCredit: number | null
   RoleKey: number | null
+  FacultyKey: number | null
 }
 
 export type AccountInfoSumAggregateOutputType = {
   AccountKey: number | null
   UserCredit: number | null
   RoleKey: number | null
+  FacultyKey: number | null
 }
 
 export type AccountInfoMinAggregateOutputType = {
@@ -47,6 +49,7 @@ export type AccountInfoMinAggregateOutputType = {
   UserLName: string | null
   UserCredit: number | null
   RoleKey: number | null
+  FacultyKey: number | null
 }
 
 export type AccountInfoMaxAggregateOutputType = {
@@ -58,6 +61,7 @@ export type AccountInfoMaxAggregateOutputType = {
   UserLName: string | null
   UserCredit: number | null
   RoleKey: number | null
+  FacultyKey: number | null
 }
 
 export type AccountInfoCountAggregateOutputType = {
@@ -69,6 +73,7 @@ export type AccountInfoCountAggregateOutputType = {
   UserLName: number
   UserCredit: number
   RoleKey: number
+  FacultyKey: number
   _all: number
 }
 
@@ -77,12 +82,14 @@ export type AccountInfoAvgAggregateInputType = {
   AccountKey?: true
   UserCredit?: true
   RoleKey?: true
+  FacultyKey?: true
 }
 
 export type AccountInfoSumAggregateInputType = {
   AccountKey?: true
   UserCredit?: true
   RoleKey?: true
+  FacultyKey?: true
 }
 
 export type AccountInfoMinAggregateInputType = {
@@ -94,6 +101,7 @@ export type AccountInfoMinAggregateInputType = {
   UserLName?: true
   UserCredit?: true
   RoleKey?: true
+  FacultyKey?: true
 }
 
 export type AccountInfoMaxAggregateInputType = {
@@ -105,6 +113,7 @@ export type AccountInfoMaxAggregateInputType = {
   UserLName?: true
   UserCredit?: true
   RoleKey?: true
+  FacultyKey?: true
 }
 
 export type AccountInfoCountAggregateInputType = {
@@ -116,6 +125,7 @@ export type AccountInfoCountAggregateInputType = {
   UserLName?: true
   UserCredit?: true
   RoleKey?: true
+  FacultyKey?: true
   _all?: true
 }
 
@@ -214,6 +224,7 @@ export type AccountInfoGroupByOutputType = {
   UserLName: string
   UserCredit: number
   RoleKey: number
+  FacultyKey: number | null
   _count: AccountInfoCountAggregateOutputType | null
   _avg: AccountInfoAvgAggregateOutputType | null
   _sum: AccountInfoSumAggregateOutputType | null
@@ -248,7 +259,9 @@ export type AccountInfoWhereInput = {
   UserLName?: Prisma.StringFilter<"AccountInfo"> | string
   UserCredit?: Prisma.IntFilter<"AccountInfo"> | number
   RoleKey?: Prisma.IntFilter<"AccountInfo"> | number
+  FacultyKey?: Prisma.IntNullableFilter<"AccountInfo"> | number | null
   Role?: Prisma.XOR<Prisma.RoleInfoScalarRelationFilter, Prisma.RoleInfoWhereInput>
+  Faculty?: Prisma.XOR<Prisma.FacultyInfoNullableScalarRelationFilter, Prisma.FacultyInfoWhereInput> | null
   Authorities?: Prisma.AuthorityListRelationFilter
   ConditionLogsLogged?: Prisma.ConditionLogListRelationFilter
   ExtensionsRequested?: Prisma.ExtensionRequestListRelationFilter
@@ -273,7 +286,9 @@ export type AccountInfoOrderByWithRelationInput = {
   UserLName?: Prisma.SortOrder
   UserCredit?: Prisma.SortOrder
   RoleKey?: Prisma.SortOrder
+  FacultyKey?: Prisma.SortOrderInput | Prisma.SortOrder
   Role?: Prisma.RoleInfoOrderByWithRelationInput
+  Faculty?: Prisma.FacultyInfoOrderByWithRelationInput
   Authorities?: Prisma.AuthorityOrderByRelationAggregateInput
   ConditionLogsLogged?: Prisma.ConditionLogOrderByRelationAggregateInput
   ExtensionsRequested?: Prisma.ExtensionRequestOrderByRelationAggregateInput
@@ -301,7 +316,9 @@ export type AccountInfoWhereUniqueInput = Prisma.AtLeast<{
   UserLName?: Prisma.StringFilter<"AccountInfo"> | string
   UserCredit?: Prisma.IntFilter<"AccountInfo"> | number
   RoleKey?: Prisma.IntFilter<"AccountInfo"> | number
+  FacultyKey?: Prisma.IntNullableFilter<"AccountInfo"> | number | null
   Role?: Prisma.XOR<Prisma.RoleInfoScalarRelationFilter, Prisma.RoleInfoWhereInput>
+  Faculty?: Prisma.XOR<Prisma.FacultyInfoNullableScalarRelationFilter, Prisma.FacultyInfoWhereInput> | null
   Authorities?: Prisma.AuthorityListRelationFilter
   ConditionLogsLogged?: Prisma.ConditionLogListRelationFilter
   ExtensionsRequested?: Prisma.ExtensionRequestListRelationFilter
@@ -326,6 +343,7 @@ export type AccountInfoOrderByWithAggregationInput = {
   UserLName?: Prisma.SortOrder
   UserCredit?: Prisma.SortOrder
   RoleKey?: Prisma.SortOrder
+  FacultyKey?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.AccountInfoCountOrderByAggregateInput
   _avg?: Prisma.AccountInfoAvgOrderByAggregateInput
   _max?: Prisma.AccountInfoMaxOrderByAggregateInput
@@ -345,6 +363,7 @@ export type AccountInfoScalarWhereWithAggregatesInput = {
   UserLName?: Prisma.StringWithAggregatesFilter<"AccountInfo"> | string
   UserCredit?: Prisma.IntWithAggregatesFilter<"AccountInfo"> | number
   RoleKey?: Prisma.IntWithAggregatesFilter<"AccountInfo"> | number
+  FacultyKey?: Prisma.IntNullableWithAggregatesFilter<"AccountInfo"> | number | null
 }
 
 export type AccountInfoCreateInput = {
@@ -355,6 +374,7 @@ export type AccountInfoCreateInput = {
   UserLName: string
   UserCredit: number
   Role: Prisma.RoleInfoCreateNestedOneWithoutAccountsInput
+  Faculty?: Prisma.FacultyInfoCreateNestedOneWithoutAccountsInput
   Authorities?: Prisma.AuthorityCreateNestedManyWithoutAccountInput
   ConditionLogsLogged?: Prisma.ConditionLogCreateNestedManyWithoutLoggedByUserInput
   ExtensionsRequested?: Prisma.ExtensionRequestCreateNestedManyWithoutRequestedByUserInput
@@ -379,6 +399,7 @@ export type AccountInfoUncheckedCreateInput = {
   UserLName: string
   UserCredit: number
   RoleKey: number
+  FacultyKey?: number | null
   Authorities?: Prisma.AuthorityUncheckedCreateNestedManyWithoutAccountInput
   ConditionLogsLogged?: Prisma.ConditionLogUncheckedCreateNestedManyWithoutLoggedByUserInput
   ExtensionsRequested?: Prisma.ExtensionRequestUncheckedCreateNestedManyWithoutRequestedByUserInput
@@ -402,6 +423,7 @@ export type AccountInfoUpdateInput = {
   UserLName?: Prisma.StringFieldUpdateOperationsInput | string
   UserCredit?: Prisma.IntFieldUpdateOperationsInput | number
   Role?: Prisma.RoleInfoUpdateOneRequiredWithoutAccountsNestedInput
+  Faculty?: Prisma.FacultyInfoUpdateOneWithoutAccountsNestedInput
   Authorities?: Prisma.AuthorityUpdateManyWithoutAccountNestedInput
   ConditionLogsLogged?: Prisma.ConditionLogUpdateManyWithoutLoggedByUserNestedInput
   ExtensionsRequested?: Prisma.ExtensionRequestUpdateManyWithoutRequestedByUserNestedInput
@@ -426,6 +448,7 @@ export type AccountInfoUncheckedUpdateInput = {
   UserLName?: Prisma.StringFieldUpdateOperationsInput | string
   UserCredit?: Prisma.IntFieldUpdateOperationsInput | number
   RoleKey?: Prisma.IntFieldUpdateOperationsInput | number
+  FacultyKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   Authorities?: Prisma.AuthorityUncheckedUpdateManyWithoutAccountNestedInput
   ConditionLogsLogged?: Prisma.ConditionLogUncheckedUpdateManyWithoutLoggedByUserNestedInput
   ExtensionsRequested?: Prisma.ExtensionRequestUncheckedUpdateManyWithoutRequestedByUserNestedInput
@@ -450,6 +473,7 @@ export type AccountInfoCreateManyInput = {
   UserLName: string
   UserCredit: number
   RoleKey: number
+  FacultyKey?: number | null
 }
 
 export type AccountInfoUpdateManyMutationInput = {
@@ -470,6 +494,7 @@ export type AccountInfoUncheckedUpdateManyInput = {
   UserLName?: Prisma.StringFieldUpdateOperationsInput | string
   UserCredit?: Prisma.IntFieldUpdateOperationsInput | number
   RoleKey?: Prisma.IntFieldUpdateOperationsInput | number
+  FacultyKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
 }
 
 export type AccountInfoCountOrderByAggregateInput = {
@@ -481,12 +506,14 @@ export type AccountInfoCountOrderByAggregateInput = {
   UserLName?: Prisma.SortOrder
   UserCredit?: Prisma.SortOrder
   RoleKey?: Prisma.SortOrder
+  FacultyKey?: Prisma.SortOrder
 }
 
 export type AccountInfoAvgOrderByAggregateInput = {
   AccountKey?: Prisma.SortOrder
   UserCredit?: Prisma.SortOrder
   RoleKey?: Prisma.SortOrder
+  FacultyKey?: Prisma.SortOrder
 }
 
 export type AccountInfoMaxOrderByAggregateInput = {
@@ -498,6 +525,7 @@ export type AccountInfoMaxOrderByAggregateInput = {
   UserLName?: Prisma.SortOrder
   UserCredit?: Prisma.SortOrder
   RoleKey?: Prisma.SortOrder
+  FacultyKey?: Prisma.SortOrder
 }
 
 export type AccountInfoMinOrderByAggregateInput = {
@@ -509,12 +537,14 @@ export type AccountInfoMinOrderByAggregateInput = {
   UserLName?: Prisma.SortOrder
   UserCredit?: Prisma.SortOrder
   RoleKey?: Prisma.SortOrder
+  FacultyKey?: Prisma.SortOrder
 }
 
 export type AccountInfoSumOrderByAggregateInput = {
   AccountKey?: Prisma.SortOrder
   UserCredit?: Prisma.SortOrder
   RoleKey?: Prisma.SortOrder
+  FacultyKey?: Prisma.SortOrder
 }
 
 export type AccountInfoListRelationFilter = {
@@ -543,6 +573,14 @@ export type StringFieldUpdateOperationsInput = {
 
 export type IntFieldUpdateOperationsInput = {
   set?: number
+  increment?: number
+  decrement?: number
+  multiply?: number
+  divide?: number
+}
+
+export type NullableIntFieldUpdateOperationsInput = {
+  set?: number | null
   increment?: number
   decrement?: number
   multiply?: number
@@ -588,6 +626,48 @@ export type AccountInfoUncheckedUpdateManyWithoutRoleNestedInput = {
   connect?: Prisma.AccountInfoWhereUniqueInput | Prisma.AccountInfoWhereUniqueInput[]
   update?: Prisma.AccountInfoUpdateWithWhereUniqueWithoutRoleInput | Prisma.AccountInfoUpdateWithWhereUniqueWithoutRoleInput[]
   updateMany?: Prisma.AccountInfoUpdateManyWithWhereWithoutRoleInput | Prisma.AccountInfoUpdateManyWithWhereWithoutRoleInput[]
+  deleteMany?: Prisma.AccountInfoScalarWhereInput | Prisma.AccountInfoScalarWhereInput[]
+}
+
+export type AccountInfoCreateNestedManyWithoutFacultyInput = {
+  create?: Prisma.XOR<Prisma.AccountInfoCreateWithoutFacultyInput, Prisma.AccountInfoUncheckedCreateWithoutFacultyInput> | Prisma.AccountInfoCreateWithoutFacultyInput[] | Prisma.AccountInfoUncheckedCreateWithoutFacultyInput[]
+  connectOrCreate?: Prisma.AccountInfoCreateOrConnectWithoutFacultyInput | Prisma.AccountInfoCreateOrConnectWithoutFacultyInput[]
+  createMany?: Prisma.AccountInfoCreateManyFacultyInputEnvelope
+  connect?: Prisma.AccountInfoWhereUniqueInput | Prisma.AccountInfoWhereUniqueInput[]
+}
+
+export type AccountInfoUncheckedCreateNestedManyWithoutFacultyInput = {
+  create?: Prisma.XOR<Prisma.AccountInfoCreateWithoutFacultyInput, Prisma.AccountInfoUncheckedCreateWithoutFacultyInput> | Prisma.AccountInfoCreateWithoutFacultyInput[] | Prisma.AccountInfoUncheckedCreateWithoutFacultyInput[]
+  connectOrCreate?: Prisma.AccountInfoCreateOrConnectWithoutFacultyInput | Prisma.AccountInfoCreateOrConnectWithoutFacultyInput[]
+  createMany?: Prisma.AccountInfoCreateManyFacultyInputEnvelope
+  connect?: Prisma.AccountInfoWhereUniqueInput | Prisma.AccountInfoWhereUniqueInput[]
+}
+
+export type AccountInfoUpdateManyWithoutFacultyNestedInput = {
+  create?: Prisma.XOR<Prisma.AccountInfoCreateWithoutFacultyInput, Prisma.AccountInfoUncheckedCreateWithoutFacultyInput> | Prisma.AccountInfoCreateWithoutFacultyInput[] | Prisma.AccountInfoUncheckedCreateWithoutFacultyInput[]
+  connectOrCreate?: Prisma.AccountInfoCreateOrConnectWithoutFacultyInput | Prisma.AccountInfoCreateOrConnectWithoutFacultyInput[]
+  upsert?: Prisma.AccountInfoUpsertWithWhereUniqueWithoutFacultyInput | Prisma.AccountInfoUpsertWithWhereUniqueWithoutFacultyInput[]
+  createMany?: Prisma.AccountInfoCreateManyFacultyInputEnvelope
+  set?: Prisma.AccountInfoWhereUniqueInput | Prisma.AccountInfoWhereUniqueInput[]
+  disconnect?: Prisma.AccountInfoWhereUniqueInput | Prisma.AccountInfoWhereUniqueInput[]
+  delete?: Prisma.AccountInfoWhereUniqueInput | Prisma.AccountInfoWhereUniqueInput[]
+  connect?: Prisma.AccountInfoWhereUniqueInput | Prisma.AccountInfoWhereUniqueInput[]
+  update?: Prisma.AccountInfoUpdateWithWhereUniqueWithoutFacultyInput | Prisma.AccountInfoUpdateWithWhereUniqueWithoutFacultyInput[]
+  updateMany?: Prisma.AccountInfoUpdateManyWithWhereWithoutFacultyInput | Prisma.AccountInfoUpdateManyWithWhereWithoutFacultyInput[]
+  deleteMany?: Prisma.AccountInfoScalarWhereInput | Prisma.AccountInfoScalarWhereInput[]
+}
+
+export type AccountInfoUncheckedUpdateManyWithoutFacultyNestedInput = {
+  create?: Prisma.XOR<Prisma.AccountInfoCreateWithoutFacultyInput, Prisma.AccountInfoUncheckedCreateWithoutFacultyInput> | Prisma.AccountInfoCreateWithoutFacultyInput[] | Prisma.AccountInfoUncheckedCreateWithoutFacultyInput[]
+  connectOrCreate?: Prisma.AccountInfoCreateOrConnectWithoutFacultyInput | Prisma.AccountInfoCreateOrConnectWithoutFacultyInput[]
+  upsert?: Prisma.AccountInfoUpsertWithWhereUniqueWithoutFacultyInput | Prisma.AccountInfoUpsertWithWhereUniqueWithoutFacultyInput[]
+  createMany?: Prisma.AccountInfoCreateManyFacultyInputEnvelope
+  set?: Prisma.AccountInfoWhereUniqueInput | Prisma.AccountInfoWhereUniqueInput[]
+  disconnect?: Prisma.AccountInfoWhereUniqueInput | Prisma.AccountInfoWhereUniqueInput[]
+  delete?: Prisma.AccountInfoWhereUniqueInput | Prisma.AccountInfoWhereUniqueInput[]
+  connect?: Prisma.AccountInfoWhereUniqueInput | Prisma.AccountInfoWhereUniqueInput[]
+  update?: Prisma.AccountInfoUpdateWithWhereUniqueWithoutFacultyInput | Prisma.AccountInfoUpdateWithWhereUniqueWithoutFacultyInput[]
+  updateMany?: Prisma.AccountInfoUpdateManyWithWhereWithoutFacultyInput | Prisma.AccountInfoUpdateManyWithWhereWithoutFacultyInput[]
   deleteMany?: Prisma.AccountInfoScalarWhereInput | Prisma.AccountInfoScalarWhereInput[]
 }
 
@@ -784,6 +864,7 @@ export type AccountInfoCreateWithoutRoleInput = {
   UserFName: string
   UserLName: string
   UserCredit: number
+  Faculty?: Prisma.FacultyInfoCreateNestedOneWithoutAccountsInput
   Authorities?: Prisma.AuthorityCreateNestedManyWithoutAccountInput
   ConditionLogsLogged?: Prisma.ConditionLogCreateNestedManyWithoutLoggedByUserInput
   ExtensionsRequested?: Prisma.ExtensionRequestCreateNestedManyWithoutRequestedByUserInput
@@ -807,6 +888,7 @@ export type AccountInfoUncheckedCreateWithoutRoleInput = {
   UserFName: string
   UserLName: string
   UserCredit: number
+  FacultyKey?: number | null
   Authorities?: Prisma.AuthorityUncheckedCreateNestedManyWithoutAccountInput
   ConditionLogsLogged?: Prisma.ConditionLogUncheckedCreateNestedManyWithoutLoggedByUserInput
   ExtensionsRequested?: Prisma.ExtensionRequestUncheckedCreateNestedManyWithoutRequestedByUserInput
@@ -860,6 +942,80 @@ export type AccountInfoScalarWhereInput = {
   UserLName?: Prisma.StringFilter<"AccountInfo"> | string
   UserCredit?: Prisma.IntFilter<"AccountInfo"> | number
   RoleKey?: Prisma.IntFilter<"AccountInfo"> | number
+  FacultyKey?: Prisma.IntNullableFilter<"AccountInfo"> | number | null
+}
+
+export type AccountInfoCreateWithoutFacultyInput = {
+  Email: string
+  HashedPassword: string
+  UserID: string
+  UserFName: string
+  UserLName: string
+  UserCredit: number
+  Role: Prisma.RoleInfoCreateNestedOneWithoutAccountsInput
+  Authorities?: Prisma.AuthorityCreateNestedManyWithoutAccountInput
+  ConditionLogsLogged?: Prisma.ConditionLogCreateNestedManyWithoutLoggedByUserInput
+  ExtensionsRequested?: Prisma.ExtensionRequestCreateNestedManyWithoutRequestedByUserInput
+  ExtensionsApproved?: Prisma.ExtensionRequestCreateNestedManyWithoutApprovedByUserInput
+  ReservationsMade?: Prisma.ReservationsCreateNestedManyWithoutReservedByUserInput
+  UsageLogs?: Prisma.UsageLogCreateNestedManyWithoutAccountInput
+  InspectionsPerformed?: Prisma.InspectionCreateNestedManyWithoutInspectorInput
+  Penalties?: Prisma.PenaltyInfoCreateNestedManyWithoutAccountInput
+  AppealsFiled?: Prisma.AppealInfoCreateNestedManyWithoutFiledByUserInput
+  AppealsResolved?: Prisma.AppealInfoCreateNestedManyWithoutResolvedByUserInput
+  ImagesSubmitted?: Prisma.ImagesCreateNestedManyWithoutSubmittedByUserInput
+  Notifications?: Prisma.NotificationCreateNestedManyWithoutAccountInput
+  RepairsPerformed?: Prisma.RepairLogCreateNestedManyWithoutRepairedByUserInput
+}
+
+export type AccountInfoUncheckedCreateWithoutFacultyInput = {
+  AccountKey?: number
+  Email: string
+  HashedPassword: string
+  UserID: string
+  UserFName: string
+  UserLName: string
+  UserCredit: number
+  RoleKey: number
+  Authorities?: Prisma.AuthorityUncheckedCreateNestedManyWithoutAccountInput
+  ConditionLogsLogged?: Prisma.ConditionLogUncheckedCreateNestedManyWithoutLoggedByUserInput
+  ExtensionsRequested?: Prisma.ExtensionRequestUncheckedCreateNestedManyWithoutRequestedByUserInput
+  ExtensionsApproved?: Prisma.ExtensionRequestUncheckedCreateNestedManyWithoutApprovedByUserInput
+  ReservationsMade?: Prisma.ReservationsUncheckedCreateNestedManyWithoutReservedByUserInput
+  UsageLogs?: Prisma.UsageLogUncheckedCreateNestedManyWithoutAccountInput
+  InspectionsPerformed?: Prisma.InspectionUncheckedCreateNestedManyWithoutInspectorInput
+  Penalties?: Prisma.PenaltyInfoUncheckedCreateNestedManyWithoutAccountInput
+  AppealsFiled?: Prisma.AppealInfoUncheckedCreateNestedManyWithoutFiledByUserInput
+  AppealsResolved?: Prisma.AppealInfoUncheckedCreateNestedManyWithoutResolvedByUserInput
+  ImagesSubmitted?: Prisma.ImagesUncheckedCreateNestedManyWithoutSubmittedByUserInput
+  Notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutAccountInput
+  RepairsPerformed?: Prisma.RepairLogUncheckedCreateNestedManyWithoutRepairedByUserInput
+}
+
+export type AccountInfoCreateOrConnectWithoutFacultyInput = {
+  where: Prisma.AccountInfoWhereUniqueInput
+  create: Prisma.XOR<Prisma.AccountInfoCreateWithoutFacultyInput, Prisma.AccountInfoUncheckedCreateWithoutFacultyInput>
+}
+
+export type AccountInfoCreateManyFacultyInputEnvelope = {
+  data: Prisma.AccountInfoCreateManyFacultyInput | Prisma.AccountInfoCreateManyFacultyInput[]
+  skipDuplicates?: boolean
+}
+
+export type AccountInfoUpsertWithWhereUniqueWithoutFacultyInput = {
+  where: Prisma.AccountInfoWhereUniqueInput
+  update: Prisma.XOR<Prisma.AccountInfoUpdateWithoutFacultyInput, Prisma.AccountInfoUncheckedUpdateWithoutFacultyInput>
+  create: Prisma.XOR<Prisma.AccountInfoCreateWithoutFacultyInput, Prisma.AccountInfoUncheckedCreateWithoutFacultyInput>
+}
+
+export type AccountInfoUpdateWithWhereUniqueWithoutFacultyInput = {
+  where: Prisma.AccountInfoWhereUniqueInput
+  data: Prisma.XOR<Prisma.AccountInfoUpdateWithoutFacultyInput, Prisma.AccountInfoUncheckedUpdateWithoutFacultyInput>
+}
+
+export type AccountInfoUpdateManyWithWhereWithoutFacultyInput = {
+  where: Prisma.AccountInfoScalarWhereInput
+  data: Prisma.XOR<Prisma.AccountInfoUpdateManyMutationInput, Prisma.AccountInfoUncheckedUpdateManyWithoutFacultyInput>
 }
 
 export type AccountInfoCreateWithoutAuthoritiesInput = {
@@ -870,6 +1026,7 @@ export type AccountInfoCreateWithoutAuthoritiesInput = {
   UserLName: string
   UserCredit: number
   Role: Prisma.RoleInfoCreateNestedOneWithoutAccountsInput
+  Faculty?: Prisma.FacultyInfoCreateNestedOneWithoutAccountsInput
   ConditionLogsLogged?: Prisma.ConditionLogCreateNestedManyWithoutLoggedByUserInput
   ExtensionsRequested?: Prisma.ExtensionRequestCreateNestedManyWithoutRequestedByUserInput
   ExtensionsApproved?: Prisma.ExtensionRequestCreateNestedManyWithoutApprovedByUserInput
@@ -893,6 +1050,7 @@ export type AccountInfoUncheckedCreateWithoutAuthoritiesInput = {
   UserLName: string
   UserCredit: number
   RoleKey: number
+  FacultyKey?: number | null
   ConditionLogsLogged?: Prisma.ConditionLogUncheckedCreateNestedManyWithoutLoggedByUserInput
   ExtensionsRequested?: Prisma.ExtensionRequestUncheckedCreateNestedManyWithoutRequestedByUserInput
   ExtensionsApproved?: Prisma.ExtensionRequestUncheckedCreateNestedManyWithoutApprovedByUserInput
@@ -931,6 +1089,7 @@ export type AccountInfoUpdateWithoutAuthoritiesInput = {
   UserLName?: Prisma.StringFieldUpdateOperationsInput | string
   UserCredit?: Prisma.IntFieldUpdateOperationsInput | number
   Role?: Prisma.RoleInfoUpdateOneRequiredWithoutAccountsNestedInput
+  Faculty?: Prisma.FacultyInfoUpdateOneWithoutAccountsNestedInput
   ConditionLogsLogged?: Prisma.ConditionLogUpdateManyWithoutLoggedByUserNestedInput
   ExtensionsRequested?: Prisma.ExtensionRequestUpdateManyWithoutRequestedByUserNestedInput
   ExtensionsApproved?: Prisma.ExtensionRequestUpdateManyWithoutApprovedByUserNestedInput
@@ -954,6 +1113,7 @@ export type AccountInfoUncheckedUpdateWithoutAuthoritiesInput = {
   UserLName?: Prisma.StringFieldUpdateOperationsInput | string
   UserCredit?: Prisma.IntFieldUpdateOperationsInput | number
   RoleKey?: Prisma.IntFieldUpdateOperationsInput | number
+  FacultyKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   ConditionLogsLogged?: Prisma.ConditionLogUncheckedUpdateManyWithoutLoggedByUserNestedInput
   ExtensionsRequested?: Prisma.ExtensionRequestUncheckedUpdateManyWithoutRequestedByUserNestedInput
   ExtensionsApproved?: Prisma.ExtensionRequestUncheckedUpdateManyWithoutApprovedByUserNestedInput
@@ -976,6 +1136,7 @@ export type AccountInfoCreateWithoutConditionLogsLoggedInput = {
   UserLName: string
   UserCredit: number
   Role: Prisma.RoleInfoCreateNestedOneWithoutAccountsInput
+  Faculty?: Prisma.FacultyInfoCreateNestedOneWithoutAccountsInput
   Authorities?: Prisma.AuthorityCreateNestedManyWithoutAccountInput
   ExtensionsRequested?: Prisma.ExtensionRequestCreateNestedManyWithoutRequestedByUserInput
   ExtensionsApproved?: Prisma.ExtensionRequestCreateNestedManyWithoutApprovedByUserInput
@@ -999,6 +1160,7 @@ export type AccountInfoUncheckedCreateWithoutConditionLogsLoggedInput = {
   UserLName: string
   UserCredit: number
   RoleKey: number
+  FacultyKey?: number | null
   Authorities?: Prisma.AuthorityUncheckedCreateNestedManyWithoutAccountInput
   ExtensionsRequested?: Prisma.ExtensionRequestUncheckedCreateNestedManyWithoutRequestedByUserInput
   ExtensionsApproved?: Prisma.ExtensionRequestUncheckedCreateNestedManyWithoutApprovedByUserInput
@@ -1037,6 +1199,7 @@ export type AccountInfoUpdateWithoutConditionLogsLoggedInput = {
   UserLName?: Prisma.StringFieldUpdateOperationsInput | string
   UserCredit?: Prisma.IntFieldUpdateOperationsInput | number
   Role?: Prisma.RoleInfoUpdateOneRequiredWithoutAccountsNestedInput
+  Faculty?: Prisma.FacultyInfoUpdateOneWithoutAccountsNestedInput
   Authorities?: Prisma.AuthorityUpdateManyWithoutAccountNestedInput
   ExtensionsRequested?: Prisma.ExtensionRequestUpdateManyWithoutRequestedByUserNestedInput
   ExtensionsApproved?: Prisma.ExtensionRequestUpdateManyWithoutApprovedByUserNestedInput
@@ -1060,6 +1223,7 @@ export type AccountInfoUncheckedUpdateWithoutConditionLogsLoggedInput = {
   UserLName?: Prisma.StringFieldUpdateOperationsInput | string
   UserCredit?: Prisma.IntFieldUpdateOperationsInput | number
   RoleKey?: Prisma.IntFieldUpdateOperationsInput | number
+  FacultyKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   Authorities?: Prisma.AuthorityUncheckedUpdateManyWithoutAccountNestedInput
   ExtensionsRequested?: Prisma.ExtensionRequestUncheckedUpdateManyWithoutRequestedByUserNestedInput
   ExtensionsApproved?: Prisma.ExtensionRequestUncheckedUpdateManyWithoutApprovedByUserNestedInput
@@ -1082,6 +1246,7 @@ export type AccountInfoCreateWithoutReservationsMadeInput = {
   UserLName: string
   UserCredit: number
   Role: Prisma.RoleInfoCreateNestedOneWithoutAccountsInput
+  Faculty?: Prisma.FacultyInfoCreateNestedOneWithoutAccountsInput
   Authorities?: Prisma.AuthorityCreateNestedManyWithoutAccountInput
   ConditionLogsLogged?: Prisma.ConditionLogCreateNestedManyWithoutLoggedByUserInput
   ExtensionsRequested?: Prisma.ExtensionRequestCreateNestedManyWithoutRequestedByUserInput
@@ -1105,6 +1270,7 @@ export type AccountInfoUncheckedCreateWithoutReservationsMadeInput = {
   UserLName: string
   UserCredit: number
   RoleKey: number
+  FacultyKey?: number | null
   Authorities?: Prisma.AuthorityUncheckedCreateNestedManyWithoutAccountInput
   ConditionLogsLogged?: Prisma.ConditionLogUncheckedCreateNestedManyWithoutLoggedByUserInput
   ExtensionsRequested?: Prisma.ExtensionRequestUncheckedCreateNestedManyWithoutRequestedByUserInput
@@ -1143,6 +1309,7 @@ export type AccountInfoUpdateWithoutReservationsMadeInput = {
   UserLName?: Prisma.StringFieldUpdateOperationsInput | string
   UserCredit?: Prisma.IntFieldUpdateOperationsInput | number
   Role?: Prisma.RoleInfoUpdateOneRequiredWithoutAccountsNestedInput
+  Faculty?: Prisma.FacultyInfoUpdateOneWithoutAccountsNestedInput
   Authorities?: Prisma.AuthorityUpdateManyWithoutAccountNestedInput
   ConditionLogsLogged?: Prisma.ConditionLogUpdateManyWithoutLoggedByUserNestedInput
   ExtensionsRequested?: Prisma.ExtensionRequestUpdateManyWithoutRequestedByUserNestedInput
@@ -1166,6 +1333,7 @@ export type AccountInfoUncheckedUpdateWithoutReservationsMadeInput = {
   UserLName?: Prisma.StringFieldUpdateOperationsInput | string
   UserCredit?: Prisma.IntFieldUpdateOperationsInput | number
   RoleKey?: Prisma.IntFieldUpdateOperationsInput | number
+  FacultyKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   Authorities?: Prisma.AuthorityUncheckedUpdateManyWithoutAccountNestedInput
   ConditionLogsLogged?: Prisma.ConditionLogUncheckedUpdateManyWithoutLoggedByUserNestedInput
   ExtensionsRequested?: Prisma.ExtensionRequestUncheckedUpdateManyWithoutRequestedByUserNestedInput
@@ -1188,6 +1356,7 @@ export type AccountInfoCreateWithoutUsageLogsInput = {
   UserLName: string
   UserCredit: number
   Role: Prisma.RoleInfoCreateNestedOneWithoutAccountsInput
+  Faculty?: Prisma.FacultyInfoCreateNestedOneWithoutAccountsInput
   Authorities?: Prisma.AuthorityCreateNestedManyWithoutAccountInput
   ConditionLogsLogged?: Prisma.ConditionLogCreateNestedManyWithoutLoggedByUserInput
   ExtensionsRequested?: Prisma.ExtensionRequestCreateNestedManyWithoutRequestedByUserInput
@@ -1211,6 +1380,7 @@ export type AccountInfoUncheckedCreateWithoutUsageLogsInput = {
   UserLName: string
   UserCredit: number
   RoleKey: number
+  FacultyKey?: number | null
   Authorities?: Prisma.AuthorityUncheckedCreateNestedManyWithoutAccountInput
   ConditionLogsLogged?: Prisma.ConditionLogUncheckedCreateNestedManyWithoutLoggedByUserInput
   ExtensionsRequested?: Prisma.ExtensionRequestUncheckedCreateNestedManyWithoutRequestedByUserInput
@@ -1249,6 +1419,7 @@ export type AccountInfoUpdateWithoutUsageLogsInput = {
   UserLName?: Prisma.StringFieldUpdateOperationsInput | string
   UserCredit?: Prisma.IntFieldUpdateOperationsInput | number
   Role?: Prisma.RoleInfoUpdateOneRequiredWithoutAccountsNestedInput
+  Faculty?: Prisma.FacultyInfoUpdateOneWithoutAccountsNestedInput
   Authorities?: Prisma.AuthorityUpdateManyWithoutAccountNestedInput
   ConditionLogsLogged?: Prisma.ConditionLogUpdateManyWithoutLoggedByUserNestedInput
   ExtensionsRequested?: Prisma.ExtensionRequestUpdateManyWithoutRequestedByUserNestedInput
@@ -1272,6 +1443,7 @@ export type AccountInfoUncheckedUpdateWithoutUsageLogsInput = {
   UserLName?: Prisma.StringFieldUpdateOperationsInput | string
   UserCredit?: Prisma.IntFieldUpdateOperationsInput | number
   RoleKey?: Prisma.IntFieldUpdateOperationsInput | number
+  FacultyKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   Authorities?: Prisma.AuthorityUncheckedUpdateManyWithoutAccountNestedInput
   ConditionLogsLogged?: Prisma.ConditionLogUncheckedUpdateManyWithoutLoggedByUserNestedInput
   ExtensionsRequested?: Prisma.ExtensionRequestUncheckedUpdateManyWithoutRequestedByUserNestedInput
@@ -1294,6 +1466,7 @@ export type AccountInfoCreateWithoutExtensionsRequestedInput = {
   UserLName: string
   UserCredit: number
   Role: Prisma.RoleInfoCreateNestedOneWithoutAccountsInput
+  Faculty?: Prisma.FacultyInfoCreateNestedOneWithoutAccountsInput
   Authorities?: Prisma.AuthorityCreateNestedManyWithoutAccountInput
   ConditionLogsLogged?: Prisma.ConditionLogCreateNestedManyWithoutLoggedByUserInput
   ExtensionsApproved?: Prisma.ExtensionRequestCreateNestedManyWithoutApprovedByUserInput
@@ -1317,6 +1490,7 @@ export type AccountInfoUncheckedCreateWithoutExtensionsRequestedInput = {
   UserLName: string
   UserCredit: number
   RoleKey: number
+  FacultyKey?: number | null
   Authorities?: Prisma.AuthorityUncheckedCreateNestedManyWithoutAccountInput
   ConditionLogsLogged?: Prisma.ConditionLogUncheckedCreateNestedManyWithoutLoggedByUserInput
   ExtensionsApproved?: Prisma.ExtensionRequestUncheckedCreateNestedManyWithoutApprovedByUserInput
@@ -1344,6 +1518,7 @@ export type AccountInfoCreateWithoutExtensionsApprovedInput = {
   UserLName: string
   UserCredit: number
   Role: Prisma.RoleInfoCreateNestedOneWithoutAccountsInput
+  Faculty?: Prisma.FacultyInfoCreateNestedOneWithoutAccountsInput
   Authorities?: Prisma.AuthorityCreateNestedManyWithoutAccountInput
   ConditionLogsLogged?: Prisma.ConditionLogCreateNestedManyWithoutLoggedByUserInput
   ExtensionsRequested?: Prisma.ExtensionRequestCreateNestedManyWithoutRequestedByUserInput
@@ -1367,6 +1542,7 @@ export type AccountInfoUncheckedCreateWithoutExtensionsApprovedInput = {
   UserLName: string
   UserCredit: number
   RoleKey: number
+  FacultyKey?: number | null
   Authorities?: Prisma.AuthorityUncheckedCreateNestedManyWithoutAccountInput
   ConditionLogsLogged?: Prisma.ConditionLogUncheckedCreateNestedManyWithoutLoggedByUserInput
   ExtensionsRequested?: Prisma.ExtensionRequestUncheckedCreateNestedManyWithoutRequestedByUserInput
@@ -1405,6 +1581,7 @@ export type AccountInfoUpdateWithoutExtensionsRequestedInput = {
   UserLName?: Prisma.StringFieldUpdateOperationsInput | string
   UserCredit?: Prisma.IntFieldUpdateOperationsInput | number
   Role?: Prisma.RoleInfoUpdateOneRequiredWithoutAccountsNestedInput
+  Faculty?: Prisma.FacultyInfoUpdateOneWithoutAccountsNestedInput
   Authorities?: Prisma.AuthorityUpdateManyWithoutAccountNestedInput
   ConditionLogsLogged?: Prisma.ConditionLogUpdateManyWithoutLoggedByUserNestedInput
   ExtensionsApproved?: Prisma.ExtensionRequestUpdateManyWithoutApprovedByUserNestedInput
@@ -1428,6 +1605,7 @@ export type AccountInfoUncheckedUpdateWithoutExtensionsRequestedInput = {
   UserLName?: Prisma.StringFieldUpdateOperationsInput | string
   UserCredit?: Prisma.IntFieldUpdateOperationsInput | number
   RoleKey?: Prisma.IntFieldUpdateOperationsInput | number
+  FacultyKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   Authorities?: Prisma.AuthorityUncheckedUpdateManyWithoutAccountNestedInput
   ConditionLogsLogged?: Prisma.ConditionLogUncheckedUpdateManyWithoutLoggedByUserNestedInput
   ExtensionsApproved?: Prisma.ExtensionRequestUncheckedUpdateManyWithoutApprovedByUserNestedInput
@@ -1461,6 +1639,7 @@ export type AccountInfoUpdateWithoutExtensionsApprovedInput = {
   UserLName?: Prisma.StringFieldUpdateOperationsInput | string
   UserCredit?: Prisma.IntFieldUpdateOperationsInput | number
   Role?: Prisma.RoleInfoUpdateOneRequiredWithoutAccountsNestedInput
+  Faculty?: Prisma.FacultyInfoUpdateOneWithoutAccountsNestedInput
   Authorities?: Prisma.AuthorityUpdateManyWithoutAccountNestedInput
   ConditionLogsLogged?: Prisma.ConditionLogUpdateManyWithoutLoggedByUserNestedInput
   ExtensionsRequested?: Prisma.ExtensionRequestUpdateManyWithoutRequestedByUserNestedInput
@@ -1484,6 +1663,7 @@ export type AccountInfoUncheckedUpdateWithoutExtensionsApprovedInput = {
   UserLName?: Prisma.StringFieldUpdateOperationsInput | string
   UserCredit?: Prisma.IntFieldUpdateOperationsInput | number
   RoleKey?: Prisma.IntFieldUpdateOperationsInput | number
+  FacultyKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   Authorities?: Prisma.AuthorityUncheckedUpdateManyWithoutAccountNestedInput
   ConditionLogsLogged?: Prisma.ConditionLogUncheckedUpdateManyWithoutLoggedByUserNestedInput
   ExtensionsRequested?: Prisma.ExtensionRequestUncheckedUpdateManyWithoutRequestedByUserNestedInput
@@ -1506,6 +1686,7 @@ export type AccountInfoCreateWithoutInspectionsPerformedInput = {
   UserLName: string
   UserCredit: number
   Role: Prisma.RoleInfoCreateNestedOneWithoutAccountsInput
+  Faculty?: Prisma.FacultyInfoCreateNestedOneWithoutAccountsInput
   Authorities?: Prisma.AuthorityCreateNestedManyWithoutAccountInput
   ConditionLogsLogged?: Prisma.ConditionLogCreateNestedManyWithoutLoggedByUserInput
   ExtensionsRequested?: Prisma.ExtensionRequestCreateNestedManyWithoutRequestedByUserInput
@@ -1529,6 +1710,7 @@ export type AccountInfoUncheckedCreateWithoutInspectionsPerformedInput = {
   UserLName: string
   UserCredit: number
   RoleKey: number
+  FacultyKey?: number | null
   Authorities?: Prisma.AuthorityUncheckedCreateNestedManyWithoutAccountInput
   ConditionLogsLogged?: Prisma.ConditionLogUncheckedCreateNestedManyWithoutLoggedByUserInput
   ExtensionsRequested?: Prisma.ExtensionRequestUncheckedCreateNestedManyWithoutRequestedByUserInput
@@ -1567,6 +1749,7 @@ export type AccountInfoUpdateWithoutInspectionsPerformedInput = {
   UserLName?: Prisma.StringFieldUpdateOperationsInput | string
   UserCredit?: Prisma.IntFieldUpdateOperationsInput | number
   Role?: Prisma.RoleInfoUpdateOneRequiredWithoutAccountsNestedInput
+  Faculty?: Prisma.FacultyInfoUpdateOneWithoutAccountsNestedInput
   Authorities?: Prisma.AuthorityUpdateManyWithoutAccountNestedInput
   ConditionLogsLogged?: Prisma.ConditionLogUpdateManyWithoutLoggedByUserNestedInput
   ExtensionsRequested?: Prisma.ExtensionRequestUpdateManyWithoutRequestedByUserNestedInput
@@ -1590,6 +1773,7 @@ export type AccountInfoUncheckedUpdateWithoutInspectionsPerformedInput = {
   UserLName?: Prisma.StringFieldUpdateOperationsInput | string
   UserCredit?: Prisma.IntFieldUpdateOperationsInput | number
   RoleKey?: Prisma.IntFieldUpdateOperationsInput | number
+  FacultyKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   Authorities?: Prisma.AuthorityUncheckedUpdateManyWithoutAccountNestedInput
   ConditionLogsLogged?: Prisma.ConditionLogUncheckedUpdateManyWithoutLoggedByUserNestedInput
   ExtensionsRequested?: Prisma.ExtensionRequestUncheckedUpdateManyWithoutRequestedByUserNestedInput
@@ -1612,6 +1796,7 @@ export type AccountInfoCreateWithoutPenaltiesInput = {
   UserLName: string
   UserCredit: number
   Role: Prisma.RoleInfoCreateNestedOneWithoutAccountsInput
+  Faculty?: Prisma.FacultyInfoCreateNestedOneWithoutAccountsInput
   Authorities?: Prisma.AuthorityCreateNestedManyWithoutAccountInput
   ConditionLogsLogged?: Prisma.ConditionLogCreateNestedManyWithoutLoggedByUserInput
   ExtensionsRequested?: Prisma.ExtensionRequestCreateNestedManyWithoutRequestedByUserInput
@@ -1635,6 +1820,7 @@ export type AccountInfoUncheckedCreateWithoutPenaltiesInput = {
   UserLName: string
   UserCredit: number
   RoleKey: number
+  FacultyKey?: number | null
   Authorities?: Prisma.AuthorityUncheckedCreateNestedManyWithoutAccountInput
   ConditionLogsLogged?: Prisma.ConditionLogUncheckedCreateNestedManyWithoutLoggedByUserInput
   ExtensionsRequested?: Prisma.ExtensionRequestUncheckedCreateNestedManyWithoutRequestedByUserInput
@@ -1673,6 +1859,7 @@ export type AccountInfoUpdateWithoutPenaltiesInput = {
   UserLName?: Prisma.StringFieldUpdateOperationsInput | string
   UserCredit?: Prisma.IntFieldUpdateOperationsInput | number
   Role?: Prisma.RoleInfoUpdateOneRequiredWithoutAccountsNestedInput
+  Faculty?: Prisma.FacultyInfoUpdateOneWithoutAccountsNestedInput
   Authorities?: Prisma.AuthorityUpdateManyWithoutAccountNestedInput
   ConditionLogsLogged?: Prisma.ConditionLogUpdateManyWithoutLoggedByUserNestedInput
   ExtensionsRequested?: Prisma.ExtensionRequestUpdateManyWithoutRequestedByUserNestedInput
@@ -1696,6 +1883,7 @@ export type AccountInfoUncheckedUpdateWithoutPenaltiesInput = {
   UserLName?: Prisma.StringFieldUpdateOperationsInput | string
   UserCredit?: Prisma.IntFieldUpdateOperationsInput | number
   RoleKey?: Prisma.IntFieldUpdateOperationsInput | number
+  FacultyKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   Authorities?: Prisma.AuthorityUncheckedUpdateManyWithoutAccountNestedInput
   ConditionLogsLogged?: Prisma.ConditionLogUncheckedUpdateManyWithoutLoggedByUserNestedInput
   ExtensionsRequested?: Prisma.ExtensionRequestUncheckedUpdateManyWithoutRequestedByUserNestedInput
@@ -1718,6 +1906,7 @@ export type AccountInfoCreateWithoutAppealsFiledInput = {
   UserLName: string
   UserCredit: number
   Role: Prisma.RoleInfoCreateNestedOneWithoutAccountsInput
+  Faculty?: Prisma.FacultyInfoCreateNestedOneWithoutAccountsInput
   Authorities?: Prisma.AuthorityCreateNestedManyWithoutAccountInput
   ConditionLogsLogged?: Prisma.ConditionLogCreateNestedManyWithoutLoggedByUserInput
   ExtensionsRequested?: Prisma.ExtensionRequestCreateNestedManyWithoutRequestedByUserInput
@@ -1741,6 +1930,7 @@ export type AccountInfoUncheckedCreateWithoutAppealsFiledInput = {
   UserLName: string
   UserCredit: number
   RoleKey: number
+  FacultyKey?: number | null
   Authorities?: Prisma.AuthorityUncheckedCreateNestedManyWithoutAccountInput
   ConditionLogsLogged?: Prisma.ConditionLogUncheckedCreateNestedManyWithoutLoggedByUserInput
   ExtensionsRequested?: Prisma.ExtensionRequestUncheckedCreateNestedManyWithoutRequestedByUserInput
@@ -1768,6 +1958,7 @@ export type AccountInfoCreateWithoutAppealsResolvedInput = {
   UserLName: string
   UserCredit: number
   Role: Prisma.RoleInfoCreateNestedOneWithoutAccountsInput
+  Faculty?: Prisma.FacultyInfoCreateNestedOneWithoutAccountsInput
   Authorities?: Prisma.AuthorityCreateNestedManyWithoutAccountInput
   ConditionLogsLogged?: Prisma.ConditionLogCreateNestedManyWithoutLoggedByUserInput
   ExtensionsRequested?: Prisma.ExtensionRequestCreateNestedManyWithoutRequestedByUserInput
@@ -1791,6 +1982,7 @@ export type AccountInfoUncheckedCreateWithoutAppealsResolvedInput = {
   UserLName: string
   UserCredit: number
   RoleKey: number
+  FacultyKey?: number | null
   Authorities?: Prisma.AuthorityUncheckedCreateNestedManyWithoutAccountInput
   ConditionLogsLogged?: Prisma.ConditionLogUncheckedCreateNestedManyWithoutLoggedByUserInput
   ExtensionsRequested?: Prisma.ExtensionRequestUncheckedCreateNestedManyWithoutRequestedByUserInput
@@ -1829,6 +2021,7 @@ export type AccountInfoUpdateWithoutAppealsFiledInput = {
   UserLName?: Prisma.StringFieldUpdateOperationsInput | string
   UserCredit?: Prisma.IntFieldUpdateOperationsInput | number
   Role?: Prisma.RoleInfoUpdateOneRequiredWithoutAccountsNestedInput
+  Faculty?: Prisma.FacultyInfoUpdateOneWithoutAccountsNestedInput
   Authorities?: Prisma.AuthorityUpdateManyWithoutAccountNestedInput
   ConditionLogsLogged?: Prisma.ConditionLogUpdateManyWithoutLoggedByUserNestedInput
   ExtensionsRequested?: Prisma.ExtensionRequestUpdateManyWithoutRequestedByUserNestedInput
@@ -1852,6 +2045,7 @@ export type AccountInfoUncheckedUpdateWithoutAppealsFiledInput = {
   UserLName?: Prisma.StringFieldUpdateOperationsInput | string
   UserCredit?: Prisma.IntFieldUpdateOperationsInput | number
   RoleKey?: Prisma.IntFieldUpdateOperationsInput | number
+  FacultyKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   Authorities?: Prisma.AuthorityUncheckedUpdateManyWithoutAccountNestedInput
   ConditionLogsLogged?: Prisma.ConditionLogUncheckedUpdateManyWithoutLoggedByUserNestedInput
   ExtensionsRequested?: Prisma.ExtensionRequestUncheckedUpdateManyWithoutRequestedByUserNestedInput
@@ -1885,6 +2079,7 @@ export type AccountInfoUpdateWithoutAppealsResolvedInput = {
   UserLName?: Prisma.StringFieldUpdateOperationsInput | string
   UserCredit?: Prisma.IntFieldUpdateOperationsInput | number
   Role?: Prisma.RoleInfoUpdateOneRequiredWithoutAccountsNestedInput
+  Faculty?: Prisma.FacultyInfoUpdateOneWithoutAccountsNestedInput
   Authorities?: Prisma.AuthorityUpdateManyWithoutAccountNestedInput
   ConditionLogsLogged?: Prisma.ConditionLogUpdateManyWithoutLoggedByUserNestedInput
   ExtensionsRequested?: Prisma.ExtensionRequestUpdateManyWithoutRequestedByUserNestedInput
@@ -1908,6 +2103,7 @@ export type AccountInfoUncheckedUpdateWithoutAppealsResolvedInput = {
   UserLName?: Prisma.StringFieldUpdateOperationsInput | string
   UserCredit?: Prisma.IntFieldUpdateOperationsInput | number
   RoleKey?: Prisma.IntFieldUpdateOperationsInput | number
+  FacultyKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   Authorities?: Prisma.AuthorityUncheckedUpdateManyWithoutAccountNestedInput
   ConditionLogsLogged?: Prisma.ConditionLogUncheckedUpdateManyWithoutLoggedByUserNestedInput
   ExtensionsRequested?: Prisma.ExtensionRequestUncheckedUpdateManyWithoutRequestedByUserNestedInput
@@ -1930,6 +2126,7 @@ export type AccountInfoCreateWithoutImagesSubmittedInput = {
   UserLName: string
   UserCredit: number
   Role: Prisma.RoleInfoCreateNestedOneWithoutAccountsInput
+  Faculty?: Prisma.FacultyInfoCreateNestedOneWithoutAccountsInput
   Authorities?: Prisma.AuthorityCreateNestedManyWithoutAccountInput
   ConditionLogsLogged?: Prisma.ConditionLogCreateNestedManyWithoutLoggedByUserInput
   ExtensionsRequested?: Prisma.ExtensionRequestCreateNestedManyWithoutRequestedByUserInput
@@ -1953,6 +2150,7 @@ export type AccountInfoUncheckedCreateWithoutImagesSubmittedInput = {
   UserLName: string
   UserCredit: number
   RoleKey: number
+  FacultyKey?: number | null
   Authorities?: Prisma.AuthorityUncheckedCreateNestedManyWithoutAccountInput
   ConditionLogsLogged?: Prisma.ConditionLogUncheckedCreateNestedManyWithoutLoggedByUserInput
   ExtensionsRequested?: Prisma.ExtensionRequestUncheckedCreateNestedManyWithoutRequestedByUserInput
@@ -1991,6 +2189,7 @@ export type AccountInfoUpdateWithoutImagesSubmittedInput = {
   UserLName?: Prisma.StringFieldUpdateOperationsInput | string
   UserCredit?: Prisma.IntFieldUpdateOperationsInput | number
   Role?: Prisma.RoleInfoUpdateOneRequiredWithoutAccountsNestedInput
+  Faculty?: Prisma.FacultyInfoUpdateOneWithoutAccountsNestedInput
   Authorities?: Prisma.AuthorityUpdateManyWithoutAccountNestedInput
   ConditionLogsLogged?: Prisma.ConditionLogUpdateManyWithoutLoggedByUserNestedInput
   ExtensionsRequested?: Prisma.ExtensionRequestUpdateManyWithoutRequestedByUserNestedInput
@@ -2014,6 +2213,7 @@ export type AccountInfoUncheckedUpdateWithoutImagesSubmittedInput = {
   UserLName?: Prisma.StringFieldUpdateOperationsInput | string
   UserCredit?: Prisma.IntFieldUpdateOperationsInput | number
   RoleKey?: Prisma.IntFieldUpdateOperationsInput | number
+  FacultyKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   Authorities?: Prisma.AuthorityUncheckedUpdateManyWithoutAccountNestedInput
   ConditionLogsLogged?: Prisma.ConditionLogUncheckedUpdateManyWithoutLoggedByUserNestedInput
   ExtensionsRequested?: Prisma.ExtensionRequestUncheckedUpdateManyWithoutRequestedByUserNestedInput
@@ -2036,6 +2236,7 @@ export type AccountInfoCreateWithoutNotificationsInput = {
   UserLName: string
   UserCredit: number
   Role: Prisma.RoleInfoCreateNestedOneWithoutAccountsInput
+  Faculty?: Prisma.FacultyInfoCreateNestedOneWithoutAccountsInput
   Authorities?: Prisma.AuthorityCreateNestedManyWithoutAccountInput
   ConditionLogsLogged?: Prisma.ConditionLogCreateNestedManyWithoutLoggedByUserInput
   ExtensionsRequested?: Prisma.ExtensionRequestCreateNestedManyWithoutRequestedByUserInput
@@ -2059,6 +2260,7 @@ export type AccountInfoUncheckedCreateWithoutNotificationsInput = {
   UserLName: string
   UserCredit: number
   RoleKey: number
+  FacultyKey?: number | null
   Authorities?: Prisma.AuthorityUncheckedCreateNestedManyWithoutAccountInput
   ConditionLogsLogged?: Prisma.ConditionLogUncheckedCreateNestedManyWithoutLoggedByUserInput
   ExtensionsRequested?: Prisma.ExtensionRequestUncheckedCreateNestedManyWithoutRequestedByUserInput
@@ -2097,6 +2299,7 @@ export type AccountInfoUpdateWithoutNotificationsInput = {
   UserLName?: Prisma.StringFieldUpdateOperationsInput | string
   UserCredit?: Prisma.IntFieldUpdateOperationsInput | number
   Role?: Prisma.RoleInfoUpdateOneRequiredWithoutAccountsNestedInput
+  Faculty?: Prisma.FacultyInfoUpdateOneWithoutAccountsNestedInput
   Authorities?: Prisma.AuthorityUpdateManyWithoutAccountNestedInput
   ConditionLogsLogged?: Prisma.ConditionLogUpdateManyWithoutLoggedByUserNestedInput
   ExtensionsRequested?: Prisma.ExtensionRequestUpdateManyWithoutRequestedByUserNestedInput
@@ -2120,6 +2323,7 @@ export type AccountInfoUncheckedUpdateWithoutNotificationsInput = {
   UserLName?: Prisma.StringFieldUpdateOperationsInput | string
   UserCredit?: Prisma.IntFieldUpdateOperationsInput | number
   RoleKey?: Prisma.IntFieldUpdateOperationsInput | number
+  FacultyKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   Authorities?: Prisma.AuthorityUncheckedUpdateManyWithoutAccountNestedInput
   ConditionLogsLogged?: Prisma.ConditionLogUncheckedUpdateManyWithoutLoggedByUserNestedInput
   ExtensionsRequested?: Prisma.ExtensionRequestUncheckedUpdateManyWithoutRequestedByUserNestedInput
@@ -2142,6 +2346,7 @@ export type AccountInfoCreateWithoutRepairsPerformedInput = {
   UserLName: string
   UserCredit: number
   Role: Prisma.RoleInfoCreateNestedOneWithoutAccountsInput
+  Faculty?: Prisma.FacultyInfoCreateNestedOneWithoutAccountsInput
   Authorities?: Prisma.AuthorityCreateNestedManyWithoutAccountInput
   ConditionLogsLogged?: Prisma.ConditionLogCreateNestedManyWithoutLoggedByUserInput
   ExtensionsRequested?: Prisma.ExtensionRequestCreateNestedManyWithoutRequestedByUserInput
@@ -2165,6 +2370,7 @@ export type AccountInfoUncheckedCreateWithoutRepairsPerformedInput = {
   UserLName: string
   UserCredit: number
   RoleKey: number
+  FacultyKey?: number | null
   Authorities?: Prisma.AuthorityUncheckedCreateNestedManyWithoutAccountInput
   ConditionLogsLogged?: Prisma.ConditionLogUncheckedCreateNestedManyWithoutLoggedByUserInput
   ExtensionsRequested?: Prisma.ExtensionRequestUncheckedCreateNestedManyWithoutRequestedByUserInput
@@ -2203,6 +2409,7 @@ export type AccountInfoUpdateWithoutRepairsPerformedInput = {
   UserLName?: Prisma.StringFieldUpdateOperationsInput | string
   UserCredit?: Prisma.IntFieldUpdateOperationsInput | number
   Role?: Prisma.RoleInfoUpdateOneRequiredWithoutAccountsNestedInput
+  Faculty?: Prisma.FacultyInfoUpdateOneWithoutAccountsNestedInput
   Authorities?: Prisma.AuthorityUpdateManyWithoutAccountNestedInput
   ConditionLogsLogged?: Prisma.ConditionLogUpdateManyWithoutLoggedByUserNestedInput
   ExtensionsRequested?: Prisma.ExtensionRequestUpdateManyWithoutRequestedByUserNestedInput
@@ -2226,6 +2433,7 @@ export type AccountInfoUncheckedUpdateWithoutRepairsPerformedInput = {
   UserLName?: Prisma.StringFieldUpdateOperationsInput | string
   UserCredit?: Prisma.IntFieldUpdateOperationsInput | number
   RoleKey?: Prisma.IntFieldUpdateOperationsInput | number
+  FacultyKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   Authorities?: Prisma.AuthorityUncheckedUpdateManyWithoutAccountNestedInput
   ConditionLogsLogged?: Prisma.ConditionLogUncheckedUpdateManyWithoutLoggedByUserNestedInput
   ExtensionsRequested?: Prisma.ExtensionRequestUncheckedUpdateManyWithoutRequestedByUserNestedInput
@@ -2248,6 +2456,7 @@ export type AccountInfoCreateManyRoleInput = {
   UserFName: string
   UserLName: string
   UserCredit: number
+  FacultyKey?: number | null
 }
 
 export type AccountInfoUpdateWithoutRoleInput = {
@@ -2257,6 +2466,7 @@ export type AccountInfoUpdateWithoutRoleInput = {
   UserFName?: Prisma.StringFieldUpdateOperationsInput | string
   UserLName?: Prisma.StringFieldUpdateOperationsInput | string
   UserCredit?: Prisma.IntFieldUpdateOperationsInput | number
+  Faculty?: Prisma.FacultyInfoUpdateOneWithoutAccountsNestedInput
   Authorities?: Prisma.AuthorityUpdateManyWithoutAccountNestedInput
   ConditionLogsLogged?: Prisma.ConditionLogUpdateManyWithoutLoggedByUserNestedInput
   ExtensionsRequested?: Prisma.ExtensionRequestUpdateManyWithoutRequestedByUserNestedInput
@@ -2280,6 +2490,7 @@ export type AccountInfoUncheckedUpdateWithoutRoleInput = {
   UserFName?: Prisma.StringFieldUpdateOperationsInput | string
   UserLName?: Prisma.StringFieldUpdateOperationsInput | string
   UserCredit?: Prisma.IntFieldUpdateOperationsInput | number
+  FacultyKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   Authorities?: Prisma.AuthorityUncheckedUpdateManyWithoutAccountNestedInput
   ConditionLogsLogged?: Prisma.ConditionLogUncheckedUpdateManyWithoutLoggedByUserNestedInput
   ExtensionsRequested?: Prisma.ExtensionRequestUncheckedUpdateManyWithoutRequestedByUserNestedInput
@@ -2303,6 +2514,76 @@ export type AccountInfoUncheckedUpdateManyWithoutRoleInput = {
   UserFName?: Prisma.StringFieldUpdateOperationsInput | string
   UserLName?: Prisma.StringFieldUpdateOperationsInput | string
   UserCredit?: Prisma.IntFieldUpdateOperationsInput | number
+  FacultyKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+}
+
+export type AccountInfoCreateManyFacultyInput = {
+  AccountKey?: number
+  Email: string
+  HashedPassword: string
+  UserID: string
+  UserFName: string
+  UserLName: string
+  UserCredit: number
+  RoleKey: number
+}
+
+export type AccountInfoUpdateWithoutFacultyInput = {
+  Email?: Prisma.StringFieldUpdateOperationsInput | string
+  HashedPassword?: Prisma.StringFieldUpdateOperationsInput | string
+  UserID?: Prisma.StringFieldUpdateOperationsInput | string
+  UserFName?: Prisma.StringFieldUpdateOperationsInput | string
+  UserLName?: Prisma.StringFieldUpdateOperationsInput | string
+  UserCredit?: Prisma.IntFieldUpdateOperationsInput | number
+  Role?: Prisma.RoleInfoUpdateOneRequiredWithoutAccountsNestedInput
+  Authorities?: Prisma.AuthorityUpdateManyWithoutAccountNestedInput
+  ConditionLogsLogged?: Prisma.ConditionLogUpdateManyWithoutLoggedByUserNestedInput
+  ExtensionsRequested?: Prisma.ExtensionRequestUpdateManyWithoutRequestedByUserNestedInput
+  ExtensionsApproved?: Prisma.ExtensionRequestUpdateManyWithoutApprovedByUserNestedInput
+  ReservationsMade?: Prisma.ReservationsUpdateManyWithoutReservedByUserNestedInput
+  UsageLogs?: Prisma.UsageLogUpdateManyWithoutAccountNestedInput
+  InspectionsPerformed?: Prisma.InspectionUpdateManyWithoutInspectorNestedInput
+  Penalties?: Prisma.PenaltyInfoUpdateManyWithoutAccountNestedInput
+  AppealsFiled?: Prisma.AppealInfoUpdateManyWithoutFiledByUserNestedInput
+  AppealsResolved?: Prisma.AppealInfoUpdateManyWithoutResolvedByUserNestedInput
+  ImagesSubmitted?: Prisma.ImagesUpdateManyWithoutSubmittedByUserNestedInput
+  Notifications?: Prisma.NotificationUpdateManyWithoutAccountNestedInput
+  RepairsPerformed?: Prisma.RepairLogUpdateManyWithoutRepairedByUserNestedInput
+}
+
+export type AccountInfoUncheckedUpdateWithoutFacultyInput = {
+  AccountKey?: Prisma.IntFieldUpdateOperationsInput | number
+  Email?: Prisma.StringFieldUpdateOperationsInput | string
+  HashedPassword?: Prisma.StringFieldUpdateOperationsInput | string
+  UserID?: Prisma.StringFieldUpdateOperationsInput | string
+  UserFName?: Prisma.StringFieldUpdateOperationsInput | string
+  UserLName?: Prisma.StringFieldUpdateOperationsInput | string
+  UserCredit?: Prisma.IntFieldUpdateOperationsInput | number
+  RoleKey?: Prisma.IntFieldUpdateOperationsInput | number
+  Authorities?: Prisma.AuthorityUncheckedUpdateManyWithoutAccountNestedInput
+  ConditionLogsLogged?: Prisma.ConditionLogUncheckedUpdateManyWithoutLoggedByUserNestedInput
+  ExtensionsRequested?: Prisma.ExtensionRequestUncheckedUpdateManyWithoutRequestedByUserNestedInput
+  ExtensionsApproved?: Prisma.ExtensionRequestUncheckedUpdateManyWithoutApprovedByUserNestedInput
+  ReservationsMade?: Prisma.ReservationsUncheckedUpdateManyWithoutReservedByUserNestedInput
+  UsageLogs?: Prisma.UsageLogUncheckedUpdateManyWithoutAccountNestedInput
+  InspectionsPerformed?: Prisma.InspectionUncheckedUpdateManyWithoutInspectorNestedInput
+  Penalties?: Prisma.PenaltyInfoUncheckedUpdateManyWithoutAccountNestedInput
+  AppealsFiled?: Prisma.AppealInfoUncheckedUpdateManyWithoutFiledByUserNestedInput
+  AppealsResolved?: Prisma.AppealInfoUncheckedUpdateManyWithoutResolvedByUserNestedInput
+  ImagesSubmitted?: Prisma.ImagesUncheckedUpdateManyWithoutSubmittedByUserNestedInput
+  Notifications?: Prisma.NotificationUncheckedUpdateManyWithoutAccountNestedInput
+  RepairsPerformed?: Prisma.RepairLogUncheckedUpdateManyWithoutRepairedByUserNestedInput
+}
+
+export type AccountInfoUncheckedUpdateManyWithoutFacultyInput = {
+  AccountKey?: Prisma.IntFieldUpdateOperationsInput | number
+  Email?: Prisma.StringFieldUpdateOperationsInput | string
+  HashedPassword?: Prisma.StringFieldUpdateOperationsInput | string
+  UserID?: Prisma.StringFieldUpdateOperationsInput | string
+  UserFName?: Prisma.StringFieldUpdateOperationsInput | string
+  UserLName?: Prisma.StringFieldUpdateOperationsInput | string
+  UserCredit?: Prisma.IntFieldUpdateOperationsInput | number
+  RoleKey?: Prisma.IntFieldUpdateOperationsInput | number
 }
 
 
@@ -2453,7 +2734,9 @@ export type AccountInfoSelect<ExtArgs extends runtime.Types.Extensions.InternalA
   UserLName?: boolean
   UserCredit?: boolean
   RoleKey?: boolean
+  FacultyKey?: boolean
   Role?: boolean | Prisma.RoleInfoDefaultArgs<ExtArgs>
+  Faculty?: boolean | Prisma.AccountInfo$FacultyArgs<ExtArgs>
   Authorities?: boolean | Prisma.AccountInfo$AuthoritiesArgs<ExtArgs>
   ConditionLogsLogged?: boolean | Prisma.AccountInfo$ConditionLogsLoggedArgs<ExtArgs>
   ExtensionsRequested?: boolean | Prisma.AccountInfo$ExtensionsRequestedArgs<ExtArgs>
@@ -2479,7 +2762,9 @@ export type AccountInfoSelectCreateManyAndReturn<ExtArgs extends runtime.Types.E
   UserLName?: boolean
   UserCredit?: boolean
   RoleKey?: boolean
+  FacultyKey?: boolean
   Role?: boolean | Prisma.RoleInfoDefaultArgs<ExtArgs>
+  Faculty?: boolean | Prisma.AccountInfo$FacultyArgs<ExtArgs>
 }, ExtArgs["result"]["accountInfo"]>
 
 export type AccountInfoSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -2491,7 +2776,9 @@ export type AccountInfoSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.E
   UserLName?: boolean
   UserCredit?: boolean
   RoleKey?: boolean
+  FacultyKey?: boolean
   Role?: boolean | Prisma.RoleInfoDefaultArgs<ExtArgs>
+  Faculty?: boolean | Prisma.AccountInfo$FacultyArgs<ExtArgs>
 }, ExtArgs["result"]["accountInfo"]>
 
 export type AccountInfoSelectScalar = {
@@ -2503,11 +2790,13 @@ export type AccountInfoSelectScalar = {
   UserLName?: boolean
   UserCredit?: boolean
   RoleKey?: boolean
+  FacultyKey?: boolean
 }
 
-export type AccountInfoOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"AccountKey" | "Email" | "HashedPassword" | "UserID" | "UserFName" | "UserLName" | "UserCredit" | "RoleKey", ExtArgs["result"]["accountInfo"]>
+export type AccountInfoOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"AccountKey" | "Email" | "HashedPassword" | "UserID" | "UserFName" | "UserLName" | "UserCredit" | "RoleKey" | "FacultyKey", ExtArgs["result"]["accountInfo"]>
 export type AccountInfoInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   Role?: boolean | Prisma.RoleInfoDefaultArgs<ExtArgs>
+  Faculty?: boolean | Prisma.AccountInfo$FacultyArgs<ExtArgs>
   Authorities?: boolean | Prisma.AccountInfo$AuthoritiesArgs<ExtArgs>
   ConditionLogsLogged?: boolean | Prisma.AccountInfo$ConditionLogsLoggedArgs<ExtArgs>
   ExtensionsRequested?: boolean | Prisma.AccountInfo$ExtensionsRequestedArgs<ExtArgs>
@@ -2525,15 +2814,18 @@ export type AccountInfoInclude<ExtArgs extends runtime.Types.Extensions.Internal
 }
 export type AccountInfoIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   Role?: boolean | Prisma.RoleInfoDefaultArgs<ExtArgs>
+  Faculty?: boolean | Prisma.AccountInfo$FacultyArgs<ExtArgs>
 }
 export type AccountInfoIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   Role?: boolean | Prisma.RoleInfoDefaultArgs<ExtArgs>
+  Faculty?: boolean | Prisma.AccountInfo$FacultyArgs<ExtArgs>
 }
 
 export type $AccountInfoPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "AccountInfo"
   objects: {
     Role: Prisma.$RoleInfoPayload<ExtArgs>
+    Faculty: Prisma.$FacultyInfoPayload<ExtArgs> | null
     Authorities: Prisma.$AuthorityPayload<ExtArgs>[]
     ConditionLogsLogged: Prisma.$ConditionLogPayload<ExtArgs>[]
     ExtensionsRequested: Prisma.$ExtensionRequestPayload<ExtArgs>[]
@@ -2557,6 +2849,7 @@ export type $AccountInfoPayload<ExtArgs extends runtime.Types.Extensions.Interna
     UserLName: string
     UserCredit: number
     RoleKey: number
+    FacultyKey: number | null
   }, ExtArgs["result"]["accountInfo"]>
   composites: {}
 }
@@ -2952,6 +3245,7 @@ readonly fields: AccountInfoFieldRefs;
 export interface Prisma__AccountInfoClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
   Role<T extends Prisma.RoleInfoDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.RoleInfoDefaultArgs<ExtArgs>>): Prisma.Prisma__RoleInfoClient<runtime.Types.Result.GetResult<Prisma.$RoleInfoPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+  Faculty<T extends Prisma.AccountInfo$FacultyArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AccountInfo$FacultyArgs<ExtArgs>>): Prisma.Prisma__FacultyInfoClient<runtime.Types.Result.GetResult<Prisma.$FacultyInfoPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   Authorities<T extends Prisma.AccountInfo$AuthoritiesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AccountInfo$AuthoritiesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AuthorityPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   ConditionLogsLogged<T extends Prisma.AccountInfo$ConditionLogsLoggedArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AccountInfo$ConditionLogsLoggedArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ConditionLogPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   ExtensionsRequested<T extends Prisma.AccountInfo$ExtensionsRequestedArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AccountInfo$ExtensionsRequestedArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ExtensionRequestPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
@@ -3002,6 +3296,7 @@ export interface AccountInfoFieldRefs {
   readonly UserLName: Prisma.FieldRef<"AccountInfo", 'String'>
   readonly UserCredit: Prisma.FieldRef<"AccountInfo", 'Int'>
   readonly RoleKey: Prisma.FieldRef<"AccountInfo", 'Int'>
+  readonly FacultyKey: Prisma.FieldRef<"AccountInfo", 'Int'>
 }
     
 
@@ -3400,6 +3695,25 @@ export type AccountInfoDeleteManyArgs<ExtArgs extends runtime.Types.Extensions.I
    * Limit how many AccountInfos to delete.
    */
   limit?: number
+}
+
+/**
+ * AccountInfo.Faculty
+ */
+export type AccountInfo$FacultyArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the FacultyInfo
+   */
+  select?: Prisma.FacultyInfoSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the FacultyInfo
+   */
+  omit?: Prisma.FacultyInfoOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.FacultyInfoInclude<ExtArgs> | null
+  where?: Prisma.FacultyInfoWhereInput
 }
 
 /**

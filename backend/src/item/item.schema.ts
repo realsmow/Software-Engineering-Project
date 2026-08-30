@@ -6,7 +6,7 @@ import {
 import { equipmentTier } from '../common/schemas/status.schema';
 
 /**
- * Catalogue schemas — what a borrower sees when searching for something to
+ * Catalogue schemas - what a borrower sees when searching for something to
  * borrow. Read-only; nothing here books or reserves anything.
  */
 
@@ -25,9 +25,9 @@ export const ownerGroup = z.object({
 
 /**
  * Stock state for the filter rail. Derived, not stored:
- *   ok          — at least one unit free to borrow right now
- *   queue       — units exist and are borrowable, but all are out
- *   maintenance — nothing borrowable: every unit is missing, or AllowBorrow
+ *   ok          - at least one unit free to borrow right now
+ *   queue       - units exist and are borrowable, but all are out
+ *   maintenance - nothing borrowable: every unit is missing, or AllowBorrow
  *                 is off across the board
  */
 export const stockStatus = z.enum(['ok', 'queue', 'maintenance']);
@@ -51,7 +51,7 @@ export const itemSummary = z.object({
    */
   nextAvailableAt: z.iso.datetime().nullable(),
 
-  /** ResourceInfo.BufferTime — days needed to prepare the item before pickup. */
+  /** ResourceInfo.BufferTime - days needed to prepare the item before pickup. */
   prepDays: z.number().int().min(0),
   /** False when no unit is open for borrowing (ResourceInfo.AllowBorrow). */
   allowBorrow: z.boolean(),
@@ -61,7 +61,7 @@ export const itemSummary = z.object({
 
 export const itemUnit = z.object({
   id: z.number().int(),
-  /** ItemIndiv.ItemID — the asset tag printed on the unit */
+  /** ItemIndiv.ItemID - the asset tag printed on the unit */
   assetTag: z.string(),
   imageUrl: z.string().nullable(),
   status: z.enum(['InStorage', 'Lended', 'Missing']),
@@ -82,13 +82,13 @@ export const itemDetail = itemSummary.extend({
  * Sort keys the catalogue offers, matching the frontend's own control
  * (catalog-page.tsx: avail | name | popular).
  *
- *   available   — most free units first. NOT sortable in SQL (Prisma cannot
+ *   available   - most free units first. NOT sortable in SQL (Prisma cannot
  *                 order by a *filtered* relation count), so the service pays
  *                 for it differently; see item.service.ts.
- *   name        — Thai alphabetical
- *   popular     — most units held, as a stand-in for demand until loan
+ *   name        - Thai alphabetical
+ *   popular     - most units held, as a stand-in for demand until loan
  *                 history is available to count
- *   creditWeight— cheapest first
+ *   creditWeight- cheapest first
  */
 export const itemSortKey = z.enum([
   'available',
@@ -110,7 +110,7 @@ export const listItemsInput = paginationInput
     /** Matches item name, description, and the asset tag of any of its units. */
     sort: itemSortKey.default('available'),
     tier: equipmentTier.optional(),
-    /** ManagementGroup.ManageGroupKey — the owning department or club */
+    /** ManagementGroup.ManageGroupKey - the owning department or club */
     ownerGroupKey: z.number().int().positive().optional(),
     /** Hide anything with no unit free right now. */
     availableOnly: z.boolean().default(false),
@@ -125,7 +125,7 @@ export const paginatedItems = paginated(itemSummary);
 /**
  * A bookable room or space.
  *
- * Thinner than the frontend's mock Room on purpose — `type` (lab/meet/lect/
+ * Thinner than the frontend's mock Room on purpose - `type` (lab/meet/lect/
  * shop), `capacity`, `buildingId` and the free-slot counts have no columns in
  * RoomInfo. `location` is the free-text RoomLocation, which is the closest
  * thing the schema has to a building. See docs/auth-admin.md.
@@ -163,7 +163,7 @@ export const listRoomsInput = paginationInput
 export const paginatedRooms = paginated(roomSummary);
 
 // ---------------------------------------------------------------------------
-// Availability — the one procedure the catalogue polls (10-15s)
+// Availability - the one procedure the catalogue polls (10-15s)
 // ---------------------------------------------------------------------------
 
 /**

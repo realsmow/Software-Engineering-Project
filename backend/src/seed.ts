@@ -67,7 +67,18 @@ const USERS = [
   },
 ];
 
+const FACULTY_NAME = 'คณะวิศวกรรมศาสตร์';
+
 async function main() {
+  // One faculty, assigned to every seeded account. Without it FacultyKey stays
+  // null and the profile's department field reads empty, which looks like a
+  // bug rather than "nobody has been assigned yet".
+  const faculty =
+    (await prisma.facultyInfo.findFirst({
+      where: { FacultyName: FACULTY_NAME },
+    })) ??
+    (await prisma.facultyInfo.create({ data: { FacultyName: FACULTY_NAME } }));
+
   const roleKeys = new Map<string, number>();
   for (const name of ROLES) {
     const existing = await prisma.roleInfo.findFirst({
@@ -132,6 +143,7 @@ async function main() {
           UserLName: u.last,
           RoleKey: roleKeys.get(u.role)!,
           UserCredit: u.credit,
+          FacultyKey: faculty.FacultyKey,
         },
       });
     } else {
@@ -144,6 +156,7 @@ async function main() {
           UserLName: u.last,
           UserCredit: u.credit,
           RoleKey: roleKeys.get(u.role)!,
+          FacultyKey: faculty.FacultyKey,
         },
       });
     }

@@ -93,7 +93,13 @@ model AccountInfo {
   RoleKey        Int
   // Student / Professor / Staff / Supervisor / Admin
 
-  Role RoleInfo @relation(fields: [RoleKey], references: [RoleKey])
+  // Nullable because existing rows predate the column and no faculty has been
+  // assigned yet. This is what department scoping needs: until it is populated
+  // ctx.user.facultyKey stays null and staff-level procedures are faculty-wide.
+  FacultyKey     Int?
+
+  Role    RoleInfo     @relation(fields: [RoleKey], references: [RoleKey])
+  Faculty FacultyInfo? @relation(fields: [FacultyKey], references: [FacultyKey])
 
   Authorities           Authority[]
   ConditionLogsLogged   ConditionLog[]     @relation("ConditionLogLoggedBy")
@@ -122,6 +128,7 @@ model FacultyInfo {
   FacultyName   String?
 
   Branches BranchInfo[]
+  Accounts AccountInfo[]
 }
 
 model BranchInfo {

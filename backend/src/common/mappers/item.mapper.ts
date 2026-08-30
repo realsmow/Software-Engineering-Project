@@ -76,7 +76,7 @@ function isAvailable(unit: ItemUnitRow): boolean {
   );
 }
 
-/** Could be borrowed eventually — excludes units that are lost or switched off. */
+/** Could be borrowed eventually - excludes units that are lost or switched off. */
 function isBorrowable(unit: ItemUnitRow): boolean {
   return (
     unit.Resource.ResourceStatus !== 'Missing' && unit.Resource.AllowBorrow
@@ -158,7 +158,7 @@ export function toRoomSummary(row: RoomRow): RoomSummary {
     location: row.RoomLocation,
     imageUrl: row.ImageURL,
 
-    // A room is T3 regardless of its credit weight — see tierFromCreditWeight.
+    // A room is T3 regardless of its credit weight - see tierFromCreditWeight.
     tier: tierFromCreditWeight(row.CreditWeight, 'Room'),
     creditWeight: row.CreditWeight,
 

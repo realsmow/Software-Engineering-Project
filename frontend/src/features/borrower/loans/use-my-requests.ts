@@ -40,7 +40,7 @@ export function useMyRequests() {
 
   const requests = useMemo<MyRequest[]>(
     () =>
-      // Session submissions first — they are the most recent thing that happened.
+      // Session submissions first - they are the most recent thing that happened.
       [...submitted, ...MY_REQUESTS].map((r) => {
         // Applied here rather than in the store so seeded rows move too: they
         // come from a module constant that cannot be rewritten in place.
