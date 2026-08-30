@@ -19,7 +19,9 @@ import {
   type MyRequestStatus,
   type RequestTab,
 } from "../mock-data";
+import { useAuthStore } from "@/features/auth/auth.store";
 import { useRequestDraft } from "../request/request-draft.store";
+import { extensionState } from "./extension-rules";
 import { useMyRequests, requestsInTab, type DraftSummary } from "./use-my-requests";
 import { useSubmittedRequests } from "./submitted-requests.store";
 
@@ -171,7 +173,7 @@ function RequestCard({ row, onCancel }: { row: MyRequest; onCancel: () => void }
 
       <h3 className="mt-2 text-[15px] font-semibold leading-snug text-foreground">{row.name}</h3>
       <div className="mt-1 font-mono text-xs text-t3">
-        {row.serial} · {fmtRange(row.startDate, row.endDate)}
+        {row.serial} · {fmtRange(row.startDate, dueDateOf(row))}
       </div>
 
       {/* Due dates are counted in days, which a room booked by the hour has
@@ -195,16 +197,17 @@ function RequestCard({ row, onCancel }: { row: MyRequest; onCancel: () => void }
 /** Days left, extensions used, and what quota remains - the mockup's ext line. */
 function LoanInfo({ row }: { row: MyRequest }) {
   const { t } = useTranslation();
+  const band = useAuthStore((s) => s.user?.creditBand) ?? "D0";
   const left = row.daysLeft ?? 0;
   const used = row.extensionsUsed ?? 0;
-  const quota = extensionQuota(row);
+  const quota = extensionState(row, band);
 
   const parts = [
     left < 0
       ? t("borrower.myRequests.extOverdue", { count: Math.abs(left) })
       : t("borrower.myRequests.extDaysLeft", { count: left }),
     used > 0 ? t("borrower.myRequests.extUsed", { count: used }) : null,
-    t(quota.key, { count: quota.count }),
+    t(quota.reasonKey, { count: quota.count }),
   ].filter(Boolean);
 
   return (
@@ -311,7 +314,9 @@ function Actions({
   const navigate = useNavigate();
   const insp = row.inspection;
   const canAppeal = insp && insp.damage !== "B0" && insp.appealDaysLeft > 0;
-  const canExtend = row.status === "inUse" && extensionsLeft(row) > 0;
+  const band = useAuthStore((s) => s.user?.creditBand) ?? "D0";
+  const extendLoan = useSubmittedRequests((s) => s.extendLoan);
+  const canExtend = row.status === "inUse" && extensionState(row, band).canExtend;
   const onUseRoom = () => navigate(ROUTES.ROOM_USE);
 
   const buttons: ReactNode[] = [];
@@ -332,8 +337,15 @@ function Actions({
   }
   if (canExtend) {
     buttons.push(
-      // TODO: wire to POST /loans/:id/extend when the extension flow lands.
-      <Button key="extend" type="button" variant="outline" size="sm" disabled>
+      // TODO: POST /loans/:id/extend once the endpoint exists; the store keeps
+      // the new due date in the meantime.
+      <Button
+        key="extend"
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={() => extendLoan(row)}
+      >
         {t("borrower.myRequests.extend")}
       </Button>,
     );
@@ -441,30 +453,15 @@ function isStalled(status: MyRequestStatus): boolean {
 }
 
 /**
- * Online extensions allowed per tier, per the lending rules: T0 unlimited,
- * T1 once (then the item must be inspected), T2 needs a supervisor.
+ * When the item is actually due back.
  *
- * T3 gets none: a fixed facility is held for the hours booked and nothing
- * more — when the slot ends the room goes back on the board for whoever wants
- * it next, so extending would mean quietly taking someone else's hour.
+ * `endDate` is what the borrower *asked* for and never moves; `dueAt` is what
+ * the loan is really running to, and it is set at the counter and pushed out
+ * by every extension. Printing `endDate` on a live loan shows a date that
+ * silently stops matching the "N days left" line right beside it.
  */
-function extensionsLeft(row: MyRequest): number {
-  const used = row.extensionsUsed ?? 0;
-  if (row.tier === "T3") return 0;
-  if (row.tier === "T0") return Infinity;
-  if (row.tier === "T1") return Math.max(0, 1 - used);
-  return 0;
-}
-
-/** i18n key + count for the remaining-extensions phrase. */
-function extensionQuota(row: MyRequest): { key: string; count: number | string } {
-  if (row.tier === "T2") return { key: "borrower.myRequests.extQuotaSup", count: 0 };
-  const left = extensionsLeft(row);
-  if (left === 0) return { key: "borrower.myRequests.extQuotaNone", count: 0 };
-  return {
-    key: "borrower.myRequests.extQuota",
-    count: left === Infinity ? "∞" : left,
-  };
+function dueDateOf(row: MyRequest): string {
+  return row.dueAt ?? row.endDate;
 }
 
 /** "12–16 ส.ค." - collapses to one date when start and end match. */
@@ -480,7 +477,7 @@ function fmtDay(iso: string): string {
 function exportCsv(requests: MyRequest[]): void {
   const header = ["requestId", "kind", "tier", "name", "serial", "status", "start", "end"];
   const rows = requests.map((r) =>
-    [r.id, r.kind, r.tier, r.name, r.serial, r.status, r.startDate, r.endDate]
+    [r.id, r.kind, r.tier, r.name, r.serial, r.status, r.startDate, dueDateOf(r)]
       .map((v) => `"${String(v).replace(/"/g, '""')}"`)
       .join(","),
   );

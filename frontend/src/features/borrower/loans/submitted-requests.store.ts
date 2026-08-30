@@ -61,6 +61,8 @@ interface SubmittedRequestsState {
   setStatus: (requestId: string, status: MyRequestStatus) => void;
   /** Collects items at the counter: the loan starts, so the clock starts too. */
   pickUp: (rows: readonly MyRequest[]) => void;
+  /** Pushes the due date out by one online extension. Callers gate on `extensionState`. */
+  extendLoan: (row: MyRequest) => void;
   /** Stores (or clears, with `undefined`) one of the two room photos. */
   setRoomPhoto: (requestId: string, which: keyof RoomUseShots, url?: string) => void;
   cancel: (requestId: string) => void;
@@ -157,6 +159,18 @@ export const useSubmittedRequests = create<SubmittedRequestsState>((set, get) =>
         daysLeft: days,
       });
     }
+  },
+
+  extendLoan: (row) => {
+    const days = BUSINESS.EXTENSION_DAYS;
+    // Measured from the current due date, not from today: extending early
+    // should add time rather than quietly reset the loan to a shorter window.
+    const due = row.dueAt ?? row.endDate;
+    get().patch(row.id, {
+      dueAt: format(addDays(parseISO(due), days), "yyyy-MM-dd"),
+      daysLeft: (row.daysLeft ?? 0) + days,
+      extensionsUsed: (row.extensionsUsed ?? 0) + 1,
+    });
   },
 
   setRoomPhoto: (requestId, which, url) =>

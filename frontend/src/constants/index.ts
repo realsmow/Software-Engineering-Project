@@ -26,6 +26,7 @@ export const BUSINESS = {
   MAX_LOAN_DAYS: 14,
   MIN_LOAN_DAYS: 1,
   PICKUP_DEADLINE_DAYS: 1,
+  EXTENSION_DAYS: 14, // ต่อเวลาผ่านระบบได้ครั้งละกี่วัน
   LOST_THRESHOLD_DAYS: 14, // เกินกำหนดกี่วันถือว่าหาย
   MAX_T3_CONCURRENT_SLOTS: 2, // จองสล็อต T3 พร้อมกันได้สูงสุด
   // ผู้ยืมมีห้องที่ยังไม่เสร็จได้ทีละใบเดียว — ส่งคำขอแล้วห้องนั้นถูกกันไว้ให้ทันที
