@@ -69,7 +69,46 @@ const USERS = [
 
 const FACULTY_NAME = 'คณะวิศวกรรมศาสตร์';
 
+/**
+ * Refuse to run anywhere that is not obviously a development database.
+ *
+ * This script creates accounts whose passwords are published in two READMEs.
+ * Running it against production would hand anyone who has read the repo a
+ * working admin login, so the check is deliberately paranoid: production is
+ * refused outright, and a non-local database host is refused unless someone
+ * sets ALLOW_REMOTE_SEED and therefore cannot claim it was an accident.
+ */
+function assertSafeToSeed(): void {
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error(
+      'Refusing to seed: NODE_ENV=production. These accounts have publicly known passwords.',
+    );
+  }
+
+  const url = process.env.DATABASE_URL ?? '';
+  let host = '';
+  try {
+    host = new URL(url).hostname;
+  } catch {
+    throw new Error(
+      'Refusing to seed: DATABASE_URL is missing or unparseable.',
+    );
+  }
+
+  const isLocal = ['localhost', '127.0.0.1', '::1', 'postgres', 'db'].includes(
+    host,
+  );
+  if (!isLocal && process.env.ALLOW_REMOTE_SEED !== 'true') {
+    throw new Error(
+      `Refusing to seed: database host "${host}" is not local. ` +
+        'Set ALLOW_REMOTE_SEED=true only if you are certain this is a throwaway database.',
+    );
+  }
+}
+
 async function main() {
+  assertSafeToSeed();
+
   // One faculty, assigned to every seeded account. Without it FacultyKey stays
   // null and the profile's department field reads empty, which looks like a
   // bug rather than "nobody has been assigned yet".
@@ -123,7 +162,8 @@ async function main() {
     });
   }
 
-  await seedCatalogue(rule.BorrowRuleKey);
+  const units = await seedUnits(faculty.FacultyKey);
+  await seedCatalogue(rule.BorrowRuleKey, units);
 
   for (const u of USERS) {
     const hashed = await hashPassword(u.pass);
@@ -173,6 +213,14 @@ async function main() {
  * room flows share. Seeding only ItemInfo produces a catalogue entry with zero
  * units, which lists as permanently unavailable.
  */
+/** The two lending units the MVP demos borrowing across. */
+const UNITS = [
+  { code: 'cpe', name: 'ภาควิชาวิศวกรรมคอมพิวเตอร์' },
+  { code: 'ee', name: 'ภาควิชาวิศวกรรมไฟฟ้า' },
+] as const;
+
+type UnitCode = (typeof UNITS)[number]['code'];
+
 const CATALOG = [
   {
     name: 'เวอร์เนียคาลิปเปอร์ดิจิทัล',
@@ -180,6 +228,7 @@ const CATALOG = [
     weight: 1,
     units: 4,
     prefix: 'ME-CAL',
+    unit: 'cpe' as UnitCode,
   },
   {
     name: 'สายจัมเปอร์ชุดใหญ่',
@@ -187,6 +236,7 @@ const CATALOG = [
     weight: 1,
     units: 6,
     prefix: 'EE-JMP',
+    unit: 'ee' as UnitCode,
   },
   {
     name: 'ออสซิลโลสโคป 100MHz',
@@ -194,6 +244,7 @@ const CATALOG = [
     weight: 3,
     units: 2,
     prefix: 'EE-OSC',
+    unit: 'ee' as UnitCode,
   },
   {
     name: 'กล้องถ่ายภาพ DSLR',
@@ -201,16 +252,55 @@ const CATALOG = [
     weight: 3,
     units: 3,
     prefix: 'MM-CAM',
+    unit: 'cpe' as UnitCode,
   },
 ];
 
-async function seedCatalogue(borrowRuleKey: number) {
-  const group =
-    (await prisma.managementGroup.findFirst({
-      where: { GroupType: 'Faculty' },
-    })) ??
-    (await prisma.managementGroup.create({ data: { GroupType: 'Faculty' } }));
+/**
+ * Creates the two lending units and returns their ManagementGroup keys.
+ *
+ * A unit is a ManagementGroup plus the BranchInfo that names it. Seeding only
+ * the group leaves every item owned by an unnamed "Faculty", which is why the
+ * catalogue used to report owner.name as null - and why cross-department
+ * borrowing could not be demonstrated.
+ */
+async function seedUnits(
+  facultyKey: number,
+): Promise<Record<UnitCode, number>> {
+  const keys = {} as Record<UnitCode, number>;
 
+  for (const unit of UNITS) {
+    const existing = await prisma.branchInfo.findFirst({
+      where: { BranchName: unit.name },
+      select: { ManageGroupKey: true },
+    });
+
+    if (existing) {
+      keys[unit.code] = existing.ManageGroupKey;
+      continue;
+    }
+
+    const group = await prisma.managementGroup.create({
+      data: { GroupType: 'Faculty' },
+    });
+    await prisma.branchInfo.create({
+      data: {
+        BranchName: unit.name,
+        FacultyKey: facultyKey,
+        ManageGroupKey: group.ManageGroupKey,
+      },
+    });
+    keys[unit.code] = group.ManageGroupKey;
+    console.log(`  unit ${unit.name}`);
+  }
+
+  return keys;
+}
+
+async function seedCatalogue(
+  borrowRuleKey: number,
+  units: Record<UnitCode, number>,
+) {
   for (const c of CATALOG) {
     const existing = await prisma.itemInfo.findFirst({
       where: { ItemName: c.name },
@@ -229,7 +319,7 @@ async function seedCatalogue(borrowRuleKey: number) {
     for (let i = have; i < c.units; i++) {
       const resource = await prisma.resourceInfo.create({
         data: {
-          ManagedBy: group.ManageGroupKey,
+          ManagedBy: units[c.unit],
           BorrowRule: borrowRuleKey,
           ResourceStatus: 'InStorage',
           ResourceType: 'Item',
@@ -245,7 +335,7 @@ async function seedCatalogue(borrowRuleKey: number) {
         },
       });
     }
-    console.log(`  catalogue ${c.name} (${c.units} units)`);
+    console.log(`  catalogue ${c.name} (${c.units} units, ${c.unit})`);
   }
 }
 

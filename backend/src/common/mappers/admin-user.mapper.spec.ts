@@ -20,6 +20,7 @@ function accountRow(overrides: Partial<AdminAccountRow> = {}): AdminAccountRow {
     UserLName: 'ศรีสุวรรณ',
     Email: 'natthawut.s@ku.th',
     UserCredit: 65,
+    IsActive: true,
     Role: { RoleName: 'Student' },
     Authorities: [],
     Penalties: [],

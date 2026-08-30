@@ -16,6 +16,7 @@ import {
 } from './trpc/auth.middleware';
 
 import { CreditTierService } from './common/credit/credit-tier.service';
+import { AuditService } from './common/audit/audit.service';
 
 import { AuthRouter } from './auth/auth.router';
 import { AuthService } from './auth/auth.service';
@@ -67,6 +68,7 @@ import { CreditService } from './credit/credit.service';
 
     // shared business rules, used by more than one domain
     CreditTierService,
+    AuditService,
 
     // session - issued by auth, read by AppContext on every request
     SessionService,

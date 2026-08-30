@@ -59,7 +59,7 @@ export class AppContext implements TRPCContext {
    * procedure decides whether that is allowed.
    */
   private async resolveUser(req: Request): Promise<TrpcUser | null> {
-    const accountKey = this.session.read(req);
+    const accountKey = await this.session.read(req);
     if (accountKey === null) return null;
 
     const account = await this.prisma.accountInfo.findUnique({
@@ -70,11 +70,15 @@ export class AppContext implements TRPCContext {
         AccountKey: true,
         UserCredit: true,
         FacultyKey: true,
+        IsActive: true,
         Role: { select: { RoleName: true } },
       },
     });
     // The token was valid but the account is gone (deleted between requests).
     if (!account) return null;
+    // Deactivated mid-session. Sessions are revoked when an admin disables an
+    // account, so this is a backstop for a row edited directly in the database.
+    if (!account.IsActive) return null;
 
     return {
       accountKey: account.AccountKey,

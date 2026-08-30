@@ -188,7 +188,6 @@
       "authLocal": "บัญชีภายใน",
       "statusActive": "ใช้งาน",
       "statusSuspended": "ระงับ",
-      "statusInvited": "รอเปิดใช้",
       "filterRole": "บทบาท",
       "filterStatus": "สถานะ",
       "deactivate": "ปิดใช้งาน",
@@ -200,7 +199,6 @@
       "statTotal": "ผู้ใช้ทั้งหมด",
       "statActive": "ใช้งาน",
       "statSuspended": "ระงับ",
-      "statInvited": "รอเปิดใช้",
       "resendInvite": "ส่งคำเชิญอีกครั้ง",
       "inviteSent": "ส่งคำเชิญแล้ว",
       "resetSent": "ส่งลิงก์รีเซ็ตแล้ว",
@@ -214,7 +212,12 @@
       "faculty": "คณะ",
       "chooseDept": "เลือกภาควิชา",
       "authMethod": "วิธีเข้าสู่ระบบ",
-      "createSubmit": "สร้างบัญชี"
+      "createSubmit": "สร้างบัญชี",
+      "statusDisabled": "ปิดใช้งาน",
+      "statDisabled": "ปิดใช้งาน",
+      "suspend": "ระงับการยืม",
+      "liftSuspension": "ยกเลิกการระงับ",
+      "tempPassword": "รหัสผ่านชั่วคราว"
     },
     "status": {
       "title": "สถานะระบบ",

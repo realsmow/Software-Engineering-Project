@@ -12,15 +12,20 @@ export const accountIdInput = z.object({ id: z.number().int().positive() });
 /**
  * Account status.
  *
- * Only two values, because only two are provable from the database. An account
- * counts as `suspended` while it holds a PenaltyInfo row that is still
- * InEffect and not yet past ExpirationTime; otherwise it is `active`.
+ * Three values, all provable from the database:
+ *   disabled  - AccountInfo.IsActive is false. Cannot sign in at all.
+ *   suspended - holds a PenaltyInfo row still InEffect and not yet expired.
+ *               Can sign in, cannot borrow.
+ *   active    - neither of the above.
+ *
+ * Checked in that order, because a disabled account that also has a penalty
+ * is disabled first and foremost.
  *
  * The frontend's mock data also has `invited` (account created, password never
  * set). Nothing in AccountInfo records that, so it is not offered here rather
  * than being faked - see docs/auth-admin.md.
  */
-export const accountStatus = z.enum(['active', 'suspended']);
+export const accountStatus = z.enum(['active', 'suspended', 'disabled']);
 export type AccountStatus = z.infer<typeof accountStatus>;
 
 /** Mirrors the PenaltyReason enum in schema.prisma (ว-10: fixed strings, never keys). */
@@ -358,5 +363,7 @@ export type UpdateLendingSettingsInput = z.infer<
   typeof updateLendingSettingsInput
 >;
 export type ListAuditInput = z.infer<typeof listAuditInput>;
+export type AuditAction = z.infer<typeof auditAction>;
+export type AuditEvent = z.infer<typeof auditEventOutput>;
 export type AdminUserSummary = z.infer<typeof adminUserSummary>;
 export type AdminUserDetail = z.infer<typeof adminUserDetail>;

@@ -20,8 +20,8 @@ import { initTRPC } from "@trpc/server";
 import { z } from "zod";
 import type { ServerUser } from "@/features/auth/user.adapter";
 import type { ServerItem } from "@/features/borrower/catalog/item.adapter";
+import type { ServerAdminUser } from "@/features/admin/users/admin-user.adapter";
 import type {
-  User,
   EquipmentType,
   EquipmentUnit,
   LoanRequest,
@@ -181,27 +181,46 @@ export const appRouter = t.router({
 
   // ── admin ─────────────────────────────────────────────
   admin: t.router({
-    listUsers: proc.input(pageInput).query(() => as<Paginated<User>>()),
-    getUserById: proc.input(idInput).query(() => as<User>()),
-    createUser: proc.input(z.object({}).passthrough()).mutation(() => as<User>()),
-    updateUser: proc.input(z.object({ id: z.string() }).passthrough()).mutation(() => as<User>()),
+    // NOTE: admin returns ServerAdminUser, not the frontend's User, and keys
+    // accounts by int. features/admin/users/admin-user.adapter.ts converts.
+    // Only the procedures the UI actually calls are typed here; the rest are
+    // live on the server (30 procedures total) and can be added as they are
+    // wired up.
+    listUsers: proc
+      .input(pageInput.extend({ role: z.string().optional(), status: z.string().optional() }))
+      .query(() => as<Paginated<ServerAdminUser>>()),
+    getUserById: proc.input(numericIdInput).query(() => as<ServerAdminUser>()),
+    createUser: proc
+      .input(
+        z.object({
+          email: z.string(),
+          studentId: z.string(),
+          firstName: z.string(),
+          lastName: z.string(),
+          role: z.string(),
+          initialCredit: z.number().optional(),
+        }),
+      )
+      .mutation(() => as<{ id: number; temporaryPassword: string | null }>()),
+    changeRole: proc
+      .input(z.object({ id: z.number(), role: z.string() }))
+      .mutation(() => as<ServerAdminUser>()),
     setUserActive: proc
-      .input(z.object({ id: z.string(), active: z.boolean() }))
+      .input(z.object({ id: z.number(), active: z.boolean() }))
       .mutation(() => as<{ ok: true }>()),
-    resetPassword: proc.input(idInput).mutation(() => as<{ ok: true }>()),
-    changeRole: proc.input(z.object({ id: z.string(), role: z.string() })).mutation(() => as<User>()),
     setUserBan: proc
-      .input(z.object({ id: z.string(), banned: z.boolean(), reason: z.string().optional() }))
+      .input(
+        z.object({
+          id: z.number(),
+          banned: z.boolean(),
+          reason: z.string().optional(),
+          days: z.number().optional(),
+        }),
+      )
       .mutation(() => as<{ ok: true }>()),
-    getLendingSettings: proc.query(() => as<Record<string, unknown>>()),
-    updateLendingSettings: proc.input(z.object({}).passthrough()).mutation(() => as<{ ok: true }>()),
-    getConfig: proc.query(() => as<Record<string, unknown>>()),
-    updateConfig: proc.input(z.object({}).passthrough()).mutation(() => as<{ ok: true }>()),
-    getSystemStatus: proc.query(() => as<Record<string, unknown>>()),
-    listCronJobs: proc.query(() => as<unknown[]>()),
-    runCronJob: proc.input(z.object({ job: z.string() })).mutation(() => as<{ ok: true }>()),
-    listAudit: proc.input(pageInput.extend({ action: z.string().optional() })).query(() => as<Paginated<unknown>>()),
-    getAuditById: proc.input(idInput).query(() => as<unknown>()),
+    resetPassword: proc
+      .input(z.object({ id: z.number(), newPassword: z.string().optional() }))
+      .mutation(() => as<{ ok: true; temporaryPassword: string | null }>()),
   }),
 });
 

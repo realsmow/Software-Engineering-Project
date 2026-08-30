@@ -598,10 +598,6 @@ export type EnumResourceTypeFieldUpdateOperationsInput = {
   set?: $Enums.ResourceType
 }
 
-export type BoolFieldUpdateOperationsInput = {
-  set?: boolean
-}
-
 export type ResourceInfoCreateNestedOneWithoutConditionLogsInput = {
   create?: Prisma.XOR<Prisma.ResourceInfoCreateWithoutConditionLogsInput, Prisma.ResourceInfoUncheckedCreateWithoutConditionLogsInput>
   connectOrCreate?: Prisma.ResourceInfoCreateOrConnectWithoutConditionLogsInput
