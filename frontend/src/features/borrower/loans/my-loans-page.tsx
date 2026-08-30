@@ -395,10 +395,22 @@ function Actions({
   }
   if (canAppeal) {
     buttons.push(
-      // TODO: link to the appeals page once it takes a target request.
-      <Button key="appeal" type="button" size="sm" disabled>
-        {t("borrower.myRequests.appeal")}
-      </Button>,
+      row.appealSent ? (
+        <Button key="appeal" type="button" size="sm" disabled>
+          {t("borrower.appeals.sentTag")}
+        </Button>
+      ) : (
+        // The appeal page opens on this row rather than making the borrower
+        // find it again in a list of verdicts.
+        <Button
+          key="appeal"
+          type="button"
+          size="sm"
+          onClick={() => navigate(`${ROUTES.APPEALS}?request=${encodeURIComponent(row.id)}`)}
+        >
+          {t("borrower.myRequests.appeal")}
+        </Button>
+      ),
     );
   }
   // Last, so the action the borrower came for leads and the destructive one

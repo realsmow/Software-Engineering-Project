@@ -103,8 +103,6 @@ export const ROUTES = {
   REQUEST: "/request",
   PICKUP: "/pickup",
   MY_LOANS: "/my/loans",
-  MY_HISTORY: "/my/history",
-  MY_CREDIT: "/my/credit",
   APPEALS: "/my/appeals",
   // Staff
   STAFF_DASHBOARD: "/staff",
@@ -147,8 +145,6 @@ export const ROLE_ROUTES = {
     ROUTES.REQUEST,
     ROUTES.PICKUP,
     ROUTES.MY_LOANS,
-    ROUTES.MY_HISTORY,
-    ROUTES.MY_CREDIT,
     ROUTES.APPEALS,
   ],
   staff: [

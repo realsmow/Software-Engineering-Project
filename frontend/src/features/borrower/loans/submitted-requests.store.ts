@@ -67,6 +67,8 @@ interface SubmittedRequestsState {
   requestExtension: (row: MyRequest, decidedBy: "staff" | "supervisor") => void;
   /** Withdraws that request; the loan goes back to whatever it was before. */
   cancelExtensionRequest: (requestId: string) => void;
+  /** Sends an appeal against an inspection verdict to a supervisor. */
+  sendAppeal: (requestId: string) => void;
   /** Stores (or clears, with `undefined`) one of the two room photos. */
   setRoomPhoto: (requestId: string, which: keyof RoomUseShots, url?: string) => void;
   cancel: (requestId: string) => void;
@@ -182,6 +184,11 @@ export const useSubmittedRequests = create<SubmittedRequestsState>((set, get) =>
   requestExtension: (row, decidedBy) => get().patch(row.id, { extensionPending: decidedBy }),
 
   cancelExtensionRequest: (requestId) => get().patch(requestId, { extensionPending: undefined }),
+
+  // TODO: POST /appeals with { requestId, reason, photo }. Only the fact that
+  // it was sent is kept here; the supervisor's verdict is theirs to record, and
+  // there is no withdrawing an appeal once a supervisor is looking at it.
+  sendAppeal: (requestId) => get().patch(requestId, { appealSent: true }),
 
   setRoomPhoto: (requestId, which, url) =>
     set((s) => ({
