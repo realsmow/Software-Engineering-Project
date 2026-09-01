@@ -41,7 +41,8 @@ export function verifyToken(token: string, secret: string): string | null {
   // case; the guard is for a truncated/padded forgery, which timingSafeEqual
   // would throw on rather than reject.
   if (provided.length !== expected.length) return null;
-  if (!timingSafeEqual(Buffer.from(provided), Buffer.from(expected))) return null;
+  if (!timingSafeEqual(Buffer.from(provided), Buffer.from(expected)))
+    return null;
 
   return Buffer.from(encoded, 'base64url').toString('utf8');
 }

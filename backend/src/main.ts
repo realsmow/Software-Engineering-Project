@@ -1,33 +1,15 @@
 import { NestFactory } from '@nestjs/core';
-import cookieParser from 'cookie-parser';
+import type { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module';
-
-/**
- * Allowed origins for CORS.
- *
- * Never pair '*' with credentials:true — browsers refuse to send cookies to
- * a wildcard origin anyway, and this app uses a cookie as its auth token,
- * so a wide-open origin would let any site fire requests as a logged-in
- * user (CSRF).
- */
-const ALLOWED_ORIGINS = [
-  'http://localhost:5173', // Vite dev server
-  'http://localhost:4173', // vite preview
-  // TODO: add the production frontend origin once it's known
-];
+import { configureApp } from './bootstrap';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
-  // Required, otherwise req.cookies is undefined and context can't find a session
-  app.use(cookieParser());
-
-  app.enableCors({
-    origin: ALLOWED_ORIGINS,
-    credentials: true,
-    methods: ['GET', 'POST', 'OPTIONS'],
-  });
+  // Cookies, CORS and the /media mount — shared with the smoke test so both
+  // exercise the same server. See bootstrap.ts.
+  configureApp(app);
 
   await app.listen(process.env.PORT ?? 3000);
 }
-bootstrap();
+void bootstrap();

@@ -193,17 +193,41 @@ src/
 **ทุกตัวต้องล็อกอิน** — catalogue ไม่ใช่ข้อมูลสาธารณะ ว่าคณะมีอุปกรณ์อะไรและหายไปกี่ชิ้น
 ไม่ควรแจกให้คนที่ไม่ได้ล็อกอิน
 
-### สิ่งที่แก้ได้โดยไม่ต้องขอคอลัมน์ใหม่ — Tier
+### Tier — เปลี่ยนที่มาแล้วตอนรวมสาขา (`feat/trpc-backend`)
 
-frontend ต้องการ `tier` (T0–T3) ซึ่ง schema ไม่มีคอลัมน์ **แต่ไม่ต้องเพิ่ม** เพราะ
-`TIER_CONFIG` ที่ทีมเขียนไว้เองใน `frontend/src/constants/index.ts` นิยาม tier ด้วย
-credit weight อยู่แล้ว (T0=0, T1=5, T2=10, T3=ห้อง) และ `CreditWeight` เป็นคอลัมน์จริงทั้งใน
-`ItemInfo` และ `RoomInfo`
+> **ของเดิมในสาขานี้คำนวณ tier จาก `CreditWeight` — ตอนนี้ไม่ใช่แล้ว**
+> สาขา `feat/trpc-staff-staff` อ่าน tier จาก `BorrowRule.RuleName` ตอนรวมสองสาขา
+> จึงต้องเลือกอันเดียว และตัดสินจากเอกสาร ผลคือ **`BorrowRule.RuleName` ชนะ**
 
-`tierFromCreditWeight()` ใน `common/schemas/status.schema.ts` จึงคำนวณจากคอลัมน์ที่มีอยู่
-ดีกว่าเพิ่มคอลัมน์ใหม่ที่ขัดกับ weight ได้ในภายหลัง — มีเทสต์คุมว่า
-`creditWeightRangeForTier()` (ใช้ตอนกรอง) กับ `tierFromCreditWeight()` (ใช้ตอนแสดงผล)
-ต้องตรงกันเสมอ ไม่งั้นกรอง tier แล้วของตัวเองจะหาย
+เหตุผลสามข้อ เรียงตามน้ำหนัก:
+
+1. `BorrowConstraints` ถูก unique ด้วย `(BorrowRuleKey, CreditTierKey)` และเก็บ
+   `MaxBorrowDate` / `MaxExtendTime` / `MinimumAuthorityLevel` — ก็คือตาราง
+   T-tier × D-tier ที่ `CONTRACT.md` อธิบายไว้ตรง ๆ ("เครดิตกำหนดแค่จำนวนวันยืม
+   สูงสุด ผ่าน `CreditTier` → `BorrowConstraints.MaxBorrowDate`) ถ้า tier ไม่ใช่แถว
+   `BorrowRule` ก็ไม่มีอะไรเป็นคีย์ของตารางนั้นได้
+2. `admin.getLendingSettings` / `updateLendingSettings` ในสาขานี้เองแก้กฎการยืม
+   **รายแถว `BorrowRule`** อยู่แล้ว ถ้า catalogue ไปเดา tier จากที่อื่น หน้า admin
+   กับหน้า catalogue จะบอก tier ของของชิ้นเดียวกันไม่ตรงกัน
+3. `TIER_CONFIG` ให้ T0 กับ T3 มี `creditWeight` เท่ากันคือ 0 — credit weight
+   จึงแยกสอง tier นี้ออกจากกันไม่ได้ด้วยตัวเอง มันคือ *ราคาเครดิต* ของของ
+   ไม่ใช่ tier ของของ
+
+ผลที่ตามมาในโค้ด:
+
+| เดิม | ตอนนี้ |
+|---|---|
+| `equipmentTier` · `tierFromCreditWeight()` · `creditWeightRangeForTier()` | ลบทิ้ง แทนด้วย `resourceTier` · `tryMapTier()` |
+| `itemSummary.tier` / `roomSummary.tier` เป็น enum เสมอ | **nullable** |
+| กรอง `tier` ด้วยช่วง `CreditWeight` | กรองด้วย `Items.some.Resource.BorrowRuleInfo.RuleName` |
+
+`tier` เป็น nullable เพราะ `BorrowRule` ผูกกับ `ResourceInfo` คือผูกกับ *ชิ้น*
+ไม่ใช่ *ประเภท* — `ItemInfo` ที่เพิ่งสร้างด้วย `item.createType` ยังไม่มีชิ้น จึงยังไม่มี
+tier (ดู `docs/staff.md` ส่วนที่ 2) และแถว `BorrowRule` ที่ภาควิชาตั้งเองนอกเหนือ
+T0–T3 จะ map เป็น `null` แทนที่จะพังทั้งหน้า
+
+**ต้อง seed `BorrowRule` T0–T3 ก่อนใช้งาน** (`npm run seed`) ไม่งั้นของทุกชิ้นจะไม่มี
+tier และ `item.createUnit` จะโยน `TIER_NOT_CONFIGURED`
 
 ### สิ่งที่ schema ยังไม่รองรับ — เพิ่มจากส่วนที่ 3
 

@@ -9,8 +9,11 @@ import {
   type ItemTypeRow,
 } from '../common/mappers/item.mapper';
 import { toPage, toSkipTake } from '../common/schemas/pagination.schema';
-import { creditWeightRangeForTier } from '../common/schemas/status.schema';
-import type { ItemSummary, ListItemsInput, ListRoomsInput } from './item.schema';
+import type {
+  ItemSummary,
+  ListItemsInput,
+  ListRoomsInput,
+} from './item.schema';
 
 /**
  * Selects the loan currently holding a unit, and nothing else.
@@ -51,11 +54,6 @@ export class ItemService {
    * stored column, at which point this is an ordinary indexed ORDER BY.
    */
   async list(input: ListItemsInput) {
-    // T3 means "this is a room", which is a different table entirely. An empty
-    // page is the honest answer, not an error — the filter is valid, it just
-    // cannot match an item.
-    if (input.tier === 'T3') return toPage<ItemSummary>([], 0, input);
-
     const rows = await this.prisma.itemInfo.findMany({
       where: this.itemWhere(input),
       select: {
@@ -74,6 +72,7 @@ export class ItemService {
                 ResourceStatus: true,
                 AllowBorrow: true,
                 BufferTime: true,
+                BorrowRuleInfo: { select: { RuleName: true } },
                 ManagementGroup: {
                   select: {
                     ManageGroupKey: true,
@@ -118,6 +117,7 @@ export class ItemService {
                 ResourceStatus: true,
                 AllowBorrow: true,
                 BufferTime: true,
+                BorrowRuleInfo: { select: { RuleName: true } },
                 ManagementGroup: {
                   select: {
                     ManageGroupKey: true,
@@ -197,7 +197,7 @@ export class ItemService {
   listCategories(): never {
     return notImplemented(
       ['Category table (name), plus ItemInfo.CategoryKey'],
-      "The frontend groups the catalogue into instrument / tool / board, but ItemInfo has no category column. Tier is unaffected — it is derived from CreditWeight.",
+      "The frontend groups the catalogue into instrument / tool / board, but ItemInfo has no category column. Tier is unaffected — it comes from the unit's BorrowRule.",
     );
   }
 
@@ -229,6 +229,7 @@ export class ItemService {
               ResourceStatus: true,
               AllowBorrow: true,
               BufferTime: true,
+              BorrowRuleInfo: { select: { RuleName: true } },
               ManagementGroup: {
                 select: {
                   ManageGroupKey: true,
@@ -264,6 +265,7 @@ export class ItemService {
             ResourceStatus: true,
             AllowBorrow: true,
             BufferTime: true,
+            BorrowRuleInfo: { select: { RuleName: true } },
             ManagementGroup: {
               select: {
                 ManageGroupKey: true,
@@ -307,8 +309,19 @@ export class ItemService {
     }
 
     if (input.tier) {
-      const range = creditWeightRangeForTier(input.tier);
-      if (range) and.push({ CreditWeight: range });
+      // A tier is a BorrowRule row (status.schema.ts), and BorrowRule hangs off
+      // each unit — so a type matches the filter when any of its units does.
+      and.push({
+        Items: {
+          some: {
+            Resource: {
+              BorrowRuleInfo: {
+                RuleName: { equals: input.tier, mode: 'insensitive' },
+              },
+            },
+          },
+        },
+      });
     }
 
     if (input.ownerGroupKey) {

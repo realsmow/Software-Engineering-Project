@@ -1,54 +1,26 @@
 import {
-  creditWeightRangeForTier,
+  DAMAGE_CONDITION,
+  DAMAGE_CREDIT_WEIGHT,
   mapUserRole,
-  tierFromCreditWeight,
+  tryMapDamageLevel,
+  tryMapTier,
   tryMapUserRole,
 } from './status.schema';
+import {
+  addDays,
+  daysBetween,
+  toDueDate,
+  toIsoNullable,
+} from './datetime.schema';
 
-describe('tierFromCreditWeight', () => {
-  it('matches the weights the team already agreed on in TIER_CONFIG', () => {
-    // frontend/src/constants/index.ts — T0:0, T1:5, T2:10
-    expect(tierFromCreditWeight(0, 'Item')).toBe('T0');
-    expect(tierFromCreditWeight(5, 'Item')).toBe('T1');
-    expect(tierFromCreditWeight(10, 'Item')).toBe('T2');
-  });
-
-  it('is a room before it is a weight', () => {
-    // A room is T3 because of what it is, whatever its credit weight says.
-    expect(tierFromCreditWeight(0, 'Room')).toBe('T3');
-    expect(tierFromCreditWeight(10, 'Room')).toBe('T3');
-  });
-
-  it('places weights nobody anticipated instead of throwing', () => {
-    expect(tierFromCreditWeight(2.5, 'Item')).toBe('T1');
-    expect(tierFromCreditWeight(7, 'Item')).toBe('T2');
-    expect(tierFromCreditWeight(999, 'Item')).toBe('T2');
-    // Negative is nonsense data, but a catalogue page must still render.
-    expect(tierFromCreditWeight(-1, 'Item')).toBe('T0');
-  });
-});
-
-describe('creditWeightRangeForTier', () => {
-  /** The range and the classifier must agree, or a tier filter hides its own rows. */
-  const weights = [0, 0.5, 1, 2.5, 5, 5.5, 7, 10, 42];
-
-  it.each(['T0', 'T1', 'T2'] as const)('round-trips every sample weight for %s', (tier) => {
-    const range = creditWeightRangeForTier(tier);
-    expect(range).not.toBeNull();
-
-    for (const weight of weights) {
-      const inRange =
-        (range!.gte === undefined || weight >= range!.gte) &&
-        (range!.lte === undefined || weight <= range!.lte);
-
-      expect(inRange).toBe(tierFromCreditWeight(weight, 'Item') === tier);
-    }
-  });
-
-  it('has no range for T3, because rooms are a different table', () => {
-    expect(creditWeightRangeForTier('T3')).toBeNull();
-  });
-});
+/**
+ * The vocabularies both halves of the backend share — roles, tiers and damage
+ * grades — plus the date helpers every staff output goes through.
+ *
+ * Worth testing because these are conversions at the schema boundary: get one
+ * wrong and the wrong penalty is charged, or the wrong tier's approval rules
+ * are applied, with nothing in the type system to notice.
+ */
 
 describe('mapUserRole', () => {
   it('maps the names the seed data actually uses', () => {
@@ -69,5 +41,75 @@ describe('mapUserRole', () => {
   it('has a non-throwing twin for scanning rows', () => {
     expect(tryMapUserRole('Librarian')).toBeNull();
     expect(tryMapUserRole('Staff')).toBe('staff');
+  });
+});
+
+describe('tryMapTier', () => {
+  it.each(['T0', 'T1', 'T2', 'T3'])('recognises %s', (name) => {
+    expect(tryMapTier(name)).toBe(name);
+  });
+
+  it('accepts the lowercase a seed script might write', () => {
+    expect(tryMapTier('t2')).toBe('T2');
+  });
+
+  it('returns null for a BorrowRule that is not one of the four tiers', () => {
+    // Departments may add their own rules; those are simply not tier options,
+    // and a list query must not blow up on one.
+    expect(tryMapTier('Special lab rule')).toBeNull();
+  });
+
+  it('returns null rather than throwing on an unnamed rule', () => {
+    expect(tryMapTier(null)).toBeNull();
+  });
+});
+
+describe('damage grades', () => {
+  it('maps each grade to the ConditionType stored in ConditionLog', () => {
+    expect(DAMAGE_CONDITION).toEqual({
+      B0: 'Normal',
+      B1: 'MinorDamage',
+      B2: 'MajorDamage',
+      B3: 'Broken',
+    });
+  });
+
+  it('keeps the proposal multipliers 0 / 1 / 3 / 5', () => {
+    expect(DAMAGE_CREDIT_WEIGHT).toEqual({ B0: 0, B1: 1, B2: 3, B3: 5 });
+  });
+
+  it('reads a stored condition back as its grade', () => {
+    expect(tryMapDamageLevel('MajorDamage')).toBe('B2');
+  });
+
+  it('has no grade for Missing — that is a state, not something staff award', () => {
+    expect(tryMapDamageLevel('Missing')).toBeNull();
+  });
+});
+
+describe('date helpers', () => {
+  it('turns a calendar day into the agreed due instant', () => {
+    // 10:00 UTC is 17:00 in Thailand, the counter's closing time.
+    expect(toDueDate('2026-08-20')).toEqual(new Date('2026-08-20T10:00:00Z'));
+  });
+
+  it('adds whole days without moving the time of day', () => {
+    expect(addDays(new Date('2026-08-20T10:00:00Z'), 24)).toEqual(
+      new Date('2026-09-13T10:00:00Z'),
+    );
+  });
+
+  it('reports no elapsed days when the second moment is earlier', () => {
+    expect(
+      daysBetween(
+        new Date('2026-08-20T10:00:00Z'),
+        new Date('2026-08-01T00:00:00Z'),
+      ),
+    ).toBe(0);
+  });
+
+  it('passes null through instead of inventing a timestamp', () => {
+    expect(toIsoNullable(null)).toBeNull();
+    expect(toIsoNullable(undefined)).toBeNull();
   });
 });

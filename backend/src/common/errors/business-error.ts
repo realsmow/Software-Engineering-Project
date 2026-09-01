@@ -36,6 +36,61 @@ export const BUSINESS_ERROR_CODES = {
   ITEM_NOT_FOUND: 'NOT_FOUND',
   ROOM_NOT_FOUND: 'NOT_FOUND',
 
+  // --- departmental authority (staff domain) ---
+  /** Staff role granted but the account holds no Authority row — nothing to manage */
+  NO_MANAGEMENT_SCOPE: 'PRECONDITION_FAILED',
+  /** The resource belongs to a department the caller has no authority in (§5.1) */
+  OUT_OF_MANAGEMENT_SCOPE: 'FORBIDDEN',
+
+  // --- catalogue (staff domain) ---
+  RESOURCE_NOT_FOUND: 'NOT_FOUND',
+  ITEM_TYPE_NOT_FOUND: 'NOT_FOUND',
+  /** Two units of the same type cannot carry the same ItemID (serial) */
+  SERIAL_ALREADY_IN_USE: 'CONFLICT',
+  /** T1/T2 units must carry a serial; T0 must not pretend to have one */
+  SERIAL_REQUIRED_FOR_TIER: 'BAD_REQUEST',
+  /** BorrowRule has no row named T0..T3 — seed data problem, not user error */
+  TIER_NOT_CONFIGURED: 'PRECONDITION_FAILED',
+  /** Cannot take a unit out of the pool while somebody is holding it */
+  RESOURCE_IN_USE: 'CONFLICT',
+
+  // --- handover desk (staff domain) ---
+  RESERVATION_NOT_FOUND: 'NOT_FOUND',
+  LOAN_NOT_FOUND: 'NOT_FOUND',
+  /** The request has not been approved (by the system or a supervisor) yet */
+  NOT_APPROVED_YET: 'CONFLICT',
+  /** The loan is not at the step this action expects — `cause` names both */
+  WRONG_LOAN_STATE: 'CONFLICT',
+  /** The chosen unit is a different type, or a different department, than the request */
+  UNIT_DOES_NOT_MATCH_REQUEST: 'BAD_REQUEST',
+  EXTENSION_NOT_FOUND: 'NOT_FOUND',
+  /** T2 extensions are the supervisor's call, not the counter's (§5.4) */
+  EXTENSION_NEEDS_SUPERVISOR: 'FORBIDDEN',
+  /** Only T1 units may be swapped at pickup (§5.4) */
+  UNIT_SWAP_NOT_ALLOWED: 'FORBIDDEN',
+  /** Not yet two weeks overdue, so it is still late rather than lost (§5.7) */
+  NOT_YET_LOST: 'CONFLICT',
+
+  // --- file upload (CONTRACT.md §3) ---
+  /** The upload URL is forged, malformed, or past its ten minutes */
+  UPLOAD_TICKET_INVALID: 'FORBIDDEN',
+  /** Bytes arrived with a different Content-Type than the ticket was issued for */
+  UPLOAD_TYPE_MISMATCH: 'BAD_REQUEST',
+  /** Larger than the size the ticket was issued for, or than the global cap */
+  UPLOAD_TOO_LARGE: 'PAYLOAD_TOO_LARGE',
+  UPLOAD_EMPTY: 'BAD_REQUEST',
+  /** The ticket was already used — a replay, not a retry. The file stays as it was. */
+  UPLOAD_ALREADY_STORED: 'CONFLICT',
+  /** Declared an image type but the bytes do not begin like one */
+  UPLOAD_NOT_AN_IMAGE: 'BAD_REQUEST',
+  /** Catch-all for a write refused before it happened — see cause */
+  UPLOAD_REJECTED: 'BAD_REQUEST',
+
+  // --- inspection (staff domain) ---
+  INSPECTION_NOT_FOUND: 'NOT_FOUND',
+  /** This return has already been graded; corrections go through an appeal */
+  ALREADY_INSPECTED: 'CONFLICT',
+
   // --- borrowing (declared here so other domains reuse the same table) ---
   NOT_ELIGIBLE: 'FORBIDDEN',
   ITEM_UNAVAILABLE: 'CONFLICT',
