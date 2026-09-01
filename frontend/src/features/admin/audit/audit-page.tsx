@@ -31,10 +31,10 @@ import {
   ACTIVITY_BY_ROLE,
   AUDIT_BY_ACTION,
   AUDIT_BY_HOUR,
-  AUDIT_EVENTS,
   type AuditAction,
   type AuditEvent,
 } from "../mock-data";
+import { useAuditEvents } from "./use-audit-events";
 import { fmtDateTime, fmtDayShort, fmtHour } from "../format";
 import type { Role } from "@/types/domain";
 
@@ -74,12 +74,14 @@ export default function AdminAuditPage() {
   // Bumped by the Refresh button; also the reference "now" for relative ranges.
   const [refreshedAt, setRefreshedAt] = useState(() => Date.now());
 
+  const { data: events = [], refetch } = useAuditEvents();
+
   const peakEvents = useMemo(() => Math.max(...AUDIT_BY_HOUR.map((h) => h.events)), []);
 
   const rows = useMemo(() => {
     const q = query.trim().toLowerCase();
     const cutoff = range === "all" ? 0 : refreshedAt - RANGE_MS[range];
-    return AUDIT_EVENTS.filter((e) => {
+    return events.filter((e) => {
       if (action !== "all" && e.action !== action) return false;
       if (cutoff && new Date(e.at).getTime() < cutoff) return false;
       if (!q) return true;
@@ -90,7 +92,7 @@ export default function AdminAuditPage() {
         e.ip.includes(q)
       );
     });
-  }, [query, action, range, refreshedAt]);
+  }, [events, query, action, range, refreshedAt]);
 
   const lastUpdated = useMemo(
     () => new Date(refreshedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
@@ -150,7 +152,10 @@ export default function AdminAuditPage() {
               <Download size={15} strokeWidth={2} />
               {t("common.export")}
             </Button>
-            <Button type="button" variant="outline" onClick={() => setRefreshedAt(Date.now())}>
+            <Button type="button" variant="outline" onClick={() => {
+              setRefreshedAt(Date.now());
+              void refetch();
+            }}>
               <RefreshCw size={15} strokeWidth={2} />
               {t("common.refresh")}
             </Button>

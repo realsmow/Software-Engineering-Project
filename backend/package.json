@@ -21,7 +21,8 @@
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "trpc:generate": "nestjs-trpc generate -o ./src/generated/trpc",
     "trpc:watch": "nestjs-trpc watch -o ./src/generated/trpc",
-    "seed": "nest build && node dist/src/seed.js"
+    "seed": "nest build && node dist/src/seed.js",
+    "docs:api": "node scripts/gen-api-docs.mjs"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
