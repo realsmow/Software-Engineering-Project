@@ -186,7 +186,7 @@ export default function AdminAuditPage() {
               />
               <Bar dataKey="events" name={t("admin.charts.events")} radius={[3, 3, 0, 0]} maxBarSize={22}>
                 {AUDIT_BY_HOUR.map((h) => (
-                  <Cell key={h.hour} fill={h.events === peakEvents ? CHART_COLOR.hot : CHART_COLOR.accent} />
+                  <Cell key={h.hour} fill={h.events === peakEvents ? CHART_COLOR.highlight : CHART_COLOR.accent} />
                 ))}
               </Bar>
             </BarChart>

@@ -115,12 +115,13 @@ export default function AdminDashboardPage() {
                 name={t(`nav.${r}`)}
                 stroke={CHART_SERIES[i % CHART_SERIES.length]}
                 strokeWidth={1.5}
-                // Flat tint, no gradient. A vertical fade on stacked bands
-                // makes each band brightest where it meets the one above, so
-                // the boundaries glow and the stack reads as lit from within.
-                // A single low-opacity tint just groups the area under its line.
+                // Flat tint, no gradient. A vertical fade on stacked bands makes
+                // each band brightest where it meets the one above, so the
+                // boundaries glow. A flat tint just groups the area under its
+                // line. 0.1 was too faint to tell bands apart once the series
+                // became four distinct hues rather than shades of one.
                 fill={CHART_SERIES[i % CHART_SERIES.length]}
-                fillOpacity={0.1}
+                fillOpacity={0.28}
               />
             ))}
           </AreaChart>
