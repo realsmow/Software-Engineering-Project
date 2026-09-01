@@ -21,6 +21,7 @@ import { z } from "zod";
 import type { ServerUser } from "@/features/auth/user.adapter";
 import type { ServerItem } from "@/features/borrower/catalog/item.adapter";
 import type { ServerAdminUser } from "@/features/admin/users/admin-user.adapter";
+import type { ServerAuditEvent } from "@/features/admin/audit/audit-event.adapter";
 import type {
   EquipmentType,
   EquipmentUnit,
@@ -221,6 +222,10 @@ export const appRouter = t.router({
     resetPassword: proc
       .input(z.object({ id: z.number(), newPassword: z.string().optional() }))
       .mutation(() => as<{ ok: true; temporaryPassword: string | null }>()),
+    listAudit: proc
+      .input(pageInput.extend({ action: z.string().optional() }))
+      .query(() => as<Paginated<ServerAuditEvent>>()),
+    getAuditById: proc.input(numericIdInput).query(() => as<ServerAuditEvent>()),
   }),
 });
 

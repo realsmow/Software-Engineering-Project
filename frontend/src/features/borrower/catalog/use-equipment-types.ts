@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/query-client";
 import { useTRPCClient } from "@/lib/trpc";
+import { fetchAllPages } from "@/lib/paging";
 import { toCatalogItem } from "./item.adapter";
 import type { CatalogItem } from "../mock-data";
 
@@ -16,9 +17,6 @@ import type { CatalogItem } from "../mock-data";
  * server-side filtering, since the facet counts in the rail are the only
  * reason the whole set is needed.
  */
-const MAX_PAGE_SIZE = 100;
-/** Guard against an unbounded loop if a server bug ever reports a wrong total. */
-const MAX_PAGES = 20;
 
 export function useEquipmentTypes(filters?: Record<string, unknown>) {
   const trpc = useTRPCClient();
@@ -26,15 +24,9 @@ export function useEquipmentTypes(filters?: Record<string, unknown>) {
   return useQuery({
     queryKey: queryKeys.equipmentTypes(filters),
     queryFn: async (): Promise<CatalogItem[]> => {
-      const first = await trpc.item.list.query({ page: 1, pageSize: MAX_PAGE_SIZE });
-      const rows = [...first.items];
-
-      const pages = Math.min(Math.ceil(first.total / MAX_PAGE_SIZE), MAX_PAGES);
-      for (let page = 2; page <= pages; page++) {
-        const next = await trpc.item.list.query({ page, pageSize: MAX_PAGE_SIZE });
-        rows.push(...next.items);
-      }
-
+      const rows = await fetchAllPages((page, pageSize) =>
+        trpc.item.list.query({ page, pageSize }),
+      );
       return rows.map(toCatalogItem);
     },
   });

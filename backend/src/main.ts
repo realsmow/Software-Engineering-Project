@@ -3,19 +3,43 @@ import cookieParser from 'cookie-parser';
 import { requestLogger } from './common/request-logger';
 import { AppModule } from './app.module';
 
+/** Local dev servers, always allowed. */
+const DEV_ORIGINS = [
+  'http://localhost:5173', // Vite dev server
+  'http://localhost:4173', // vite preview
+];
+
 /**
  * Allowed origins for CORS.
  *
- * Never pair '*' with credentials:true - browsers refuse to send cookies to
- * a wildcard origin anyway, and this app uses a cookie as its auth token,
- * so a wide-open origin would let any site fire requests as a logged-in
- * user (CSRF).
+ * Never pair '*' with credentials:true - browsers refuse to send cookies to a
+ * wildcard origin anyway, and this app uses a cookie as its auth token, so a
+ * wide-open origin would let any site fire requests as a logged-in user (CSRF).
+ *
+ * The production origin comes from CORS_ORIGINS (comma-separated) rather than
+ * being hardcoded. Deployed without it, the real frontend is blocked by CORS on
+ * every request - which looks like the backend being down rather than a config
+ * gap, so production refuses to boot instead of failing that way at runtime.
  */
-const ALLOWED_ORIGINS = [
-  'http://localhost:5173', // Vite dev server
-  'http://localhost:4173', // vite preview
-  // TODO: add the production frontend origin once it's known
-];
+function resolveAllowedOrigins(): string[] {
+  const configured = (process.env.CORS_ORIGINS ?? '')
+    .split(',')
+    .map((o) => o.trim())
+    .filter(Boolean);
+
+  if (process.env.NODE_ENV === 'production') {
+    if (configured.length === 0) {
+      throw new Error(
+        'CORS_ORIGINS must list the production frontend origin(s) when NODE_ENV=production, ' +
+          'e.g. CORS_ORIGINS=https://ulms.example.ac.th',
+      );
+    }
+    // Localhost is not an allowed origin for a deployed server.
+    return configured;
+  }
+
+  return [...DEV_ORIGINS, ...configured];
+}
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -30,7 +54,7 @@ async function bootstrap() {
   app.use(requestLogger);
 
   app.enableCors({
-    origin: ALLOWED_ORIGINS,
+    origin: resolveAllowedOrigins(),
     credentials: true,
     methods: ['GET', 'POST', 'OPTIONS'],
   });

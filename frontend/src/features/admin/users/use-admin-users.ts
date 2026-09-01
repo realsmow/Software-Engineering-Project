@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTRPCClient } from "@/lib/trpc";
+import { fetchAllPages } from "@/lib/paging";
 import type { Role } from "@/types/domain";
 import { toAdminUser } from "./admin-user.adapter";
 import type { AdminUser } from "../mock-data";
@@ -16,8 +17,6 @@ import type { AdminUser } from "../mock-data";
  * so guessing the new value in the client is how the two drift apart.
  */
 const ADMIN_USERS_KEY = ["admin", "users"] as const;
-const MAX_PAGE_SIZE = 100;
-const MAX_PAGES = 50;
 
 export function useAdminUsers() {
   const trpc = useTRPCClient();
@@ -25,15 +24,9 @@ export function useAdminUsers() {
   return useQuery({
     queryKey: ADMIN_USERS_KEY,
     queryFn: async (): Promise<AdminUser[]> => {
-      const first = await trpc.admin.listUsers.query({ page: 1, pageSize: MAX_PAGE_SIZE });
-      const rows = [...first.items];
-
-      const pages = Math.min(Math.ceil(first.total / MAX_PAGE_SIZE), MAX_PAGES);
-      for (let page = 2; page <= pages; page++) {
-        const next = await trpc.admin.listUsers.query({ page, pageSize: MAX_PAGE_SIZE });
-        rows.push(...next.items);
-      }
-
+      const rows = await fetchAllPages((page, pageSize) =>
+        trpc.admin.listUsers.query({ page, pageSize }),
+      );
       return rows.map(toAdminUser);
     },
   });

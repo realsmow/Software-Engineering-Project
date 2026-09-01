@@ -41,6 +41,51 @@ import type {
  * string, and Prisma's orderBy takes column names, so forwarding it unchecked
  * turns a UI control into a way to probe the schema.
  */
+/**
+ * The account shape both admin reads return.
+ *
+ * listUsers and getUserById selected nearly the same 35 lines, differing only
+ * in whether authorities and penalties are capped at one row. Keeping two
+ * copies meant every new column had to be added twice - which is how IsActive
+ * briefly went in three times, once with a duplicate key. Composed here so a
+ * field is declared once.
+ */
+const ACCOUNT_SCALARS = {
+  AccountKey: true,
+  UserID: true,
+  UserFName: true,
+  UserLName: true,
+  Email: true,
+  UserCredit: true,
+  IsActive: true,
+  Role: { select: { RoleName: true } },
+} satisfies Prisma.AccountInfoSelect;
+
+/** Which management group an account holds authority in, and at what level. */
+const AUTHORITY_SELECT = {
+  ManageGroupKey: true,
+  ManageGroup: {
+    select: {
+      GroupType: true,
+      Branch: { select: { BranchName: true } },
+      Club: { select: { ClubName: true } },
+    },
+  },
+  AuthorityRole: {
+    select: { AuthorityName: true, AuthorityLevel: true },
+  },
+} satisfies Prisma.AuthoritySelect;
+
+/** Penalty fields the admin mappers read. */
+const PENALTY_SELECT = {
+  PenaltyKey: true,
+  Reason: true,
+  CreditDeducted: true,
+  ActionTime: true,
+  ExpirationTime: true,
+  Appealed: true,
+} satisfies Prisma.PenaltyInfoSelect;
+
 const USER_SORT_COLUMNS = {
   id: 'AccountKey',
   studentId: 'UserID',
@@ -130,42 +175,13 @@ export class AdminService {
         orderBy: toOrderBy(input, USER_SORT_COLUMNS, 'AccountKey'),
         ...toSkipTake(input),
         select: {
-          AccountKey: true,
-          UserID: true,
-          UserFName: true,
-          UserLName: true,
-          Email: true,
-          UserCredit: true,
-          IsActive: true,
-          Role: { select: { RoleName: true } },
-          Authorities: {
-            take: 1,
-            select: {
-              ManageGroupKey: true,
-              ManageGroup: {
-                select: {
-                  GroupType: true,
-                  Branch: { select: { BranchName: true } },
-                  Club: { select: { ClubName: true } },
-                },
-              },
-              AuthorityRole: {
-                select: { AuthorityName: true, AuthorityLevel: true },
-              },
-            },
-          },
+          ...ACCOUNT_SCALARS,
+          Authorities: { take: 1, select: AUTHORITY_SELECT },
           Penalties: {
             // Existence is all the summary needs - one row answers "suspended?".
             where: activePenaltyWhere(),
             take: 1,
-            select: {
-              PenaltyKey: true,
-              Reason: true,
-              CreditDeducted: true,
-              ActionTime: true,
-              ExpirationTime: true,
-              Appealed: true,
-            },
+            select: PENALTY_SELECT,
           },
         },
       }),
@@ -697,40 +713,13 @@ export class AdminService {
     const row = await this.prisma.accountInfo.findUnique({
       where: { AccountKey: accountKey },
       select: {
-        AccountKey: true,
-        UserID: true,
-        UserFName: true,
-        UserLName: true,
-        Email: true,
-        UserCredit: true,
-        IsActive: true,
-        Role: { select: { RoleName: true } },
-        Authorities: {
-          select: {
-            ManageGroupKey: true,
-            ManageGroup: {
-              select: {
-                GroupType: true,
-                Branch: { select: { BranchName: true } },
-                Club: { select: { ClubName: true } },
-              },
-            },
-            AuthorityRole: {
-              select: { AuthorityName: true, AuthorityLevel: true },
-            },
-          },
-        },
+        ...ACCOUNT_SCALARS,
+        // Detail shows every authority and every live penalty, not just one.
+        Authorities: { select: AUTHORITY_SELECT },
         Penalties: {
           where: activePenaltyWhere(),
           orderBy: { ExpirationTime: 'desc' },
-          select: {
-            PenaltyKey: true,
-            Reason: true,
-            CreditDeducted: true,
-            ActionTime: true,
-            ExpirationTime: true,
-            Appealed: true,
-          },
+          select: PENALTY_SELECT,
         },
       },
     });
