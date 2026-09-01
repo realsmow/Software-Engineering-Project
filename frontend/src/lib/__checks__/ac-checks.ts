@@ -13,6 +13,7 @@ import {
 import { isIsoDate, isIsoDateTime } from "@/lib/validation";
 import { getErrorMessage, extractErrorCode, getErrorPayload } from "@/lib/error-messages";
 import { validateUploadFile } from "@/lib/upload-validation";
+import { fetchAllPages } from "@/lib/paging";
 
 let passed = 0;
 const failures: string[] = [];
@@ -107,6 +108,62 @@ eq(
   "INVALID_FILE_TYPE",
 );
 eq("4 empty file rejected", validateUploadFile({ ...okImg, size: 0 }).ok, false);
+
+// ── fetchAllPages ───────────────────────────────────────────────────────────
+// Pagination that silently drops the last page is invisible in the UI: the
+// list just looks shorter. These pin the boundaries.
+
+/** Fake server holding `total` rows, recording which pages were asked for. */
+function pager(total: number) {
+  const seen: number[] = [];
+  const fetchPage = (page: number, pageSize: number) => {
+    seen.push(page);
+    const start = (page - 1) * pageSize;
+    return Promise.resolve({
+      items: Array.from({ length: Math.max(0, Math.min(pageSize, total - start)) }, (_, i) => start + i),
+      total,
+    });
+  };
+  return { fetchPage, seen };
+}
+
+const pagingChecks: Array<[string, () => Promise<boolean>]> = [
+  ["paging: exact multiple of pageSize keeps every row", async () => {
+    const p = pager(200);
+    const rows = await fetchAllPages(p.fetchPage, { pageSize: 100 });
+    return rows.length === 200 && rows[199] === 199;
+  }],
+  ["paging: partial last page keeps every row", async () => {
+    const p = pager(250);
+    const rows = await fetchAllPages(p.fetchPage, { pageSize: 100 });
+    return rows.length === 250 && rows[249] === 249;
+  }],
+  ["paging: single short page makes exactly one request", async () => {
+    const p = pager(7);
+    const rows = await fetchAllPages(p.fetchPage, { pageSize: 100 });
+    return rows.length === 7 && p.seen.length === 1;
+  }],
+  ["paging: empty result makes exactly one request", async () => {
+    const p = pager(0);
+    const rows = await fetchAllPages(p.fetchPage, { pageSize: 100 });
+    return rows.length === 0 && p.seen.length === 1;
+  }],
+  ["paging: maxItems caps rows and pages fetched", async () => {
+    const p = pager(10_000);
+    const rows = await fetchAllPages(p.fetchPage, { pageSize: 100, maxItems: 500 });
+    return rows.length === 500 && p.seen.length === 5;
+  }],
+  ["paging: pages after the first are requested together", async () => {
+    const p = pager(500);
+    await fetchAllPages(p.fetchPage, { pageSize: 100 });
+    // Page 1 resolves before the rest are issued; 2-5 go out as one batch.
+    return p.seen[0] === 1 && p.seen.slice(1).sort().join(",") === "2,3,4,5";
+  }],
+];
+
+for (const [name, run] of pagingChecks) {
+  eq(name, await run(), true);
+}
 
 // ── Report ──────────────────────────────────────────────────────────────────
 if (failures.length) {

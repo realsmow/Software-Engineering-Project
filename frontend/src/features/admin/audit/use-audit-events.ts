@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useTRPCClient } from "@/lib/trpc";
+import { fetchAllPages } from "@/lib/paging";
 import { toAuditEvent } from "./audit-event.adapter";
 import type { AuditEvent } from "../mock-data";
 
@@ -15,7 +16,7 @@ import type { AuditEvent } from "../mock-data";
  * supports it, `listAudit` takes an `action` filter, and the page would need
  * to stop filtering locally.
  */
-const PAGE_SIZE = 100;
+/** An audit log grows without bound, so the window is capped rather than paged. */
 const MAX_EVENTS = 500;
 
 export function useAuditEvents() {
@@ -24,16 +25,10 @@ export function useAuditEvents() {
   return useQuery({
     queryKey: ["admin", "audit"],
     queryFn: async (): Promise<AuditEvent[]> => {
-      const rows = [];
-      const pages = MAX_EVENTS / PAGE_SIZE;
-
-      for (let page = 1; page <= pages; page++) {
-        const result = await trpc.admin.listAudit.query({ page, pageSize: PAGE_SIZE });
-        rows.push(...result.items);
-        // Stop as soon as the log runs out rather than requesting empty pages.
-        if (rows.length >= result.total) break;
-      }
-
+      const rows = await fetchAllPages(
+        (page, pageSize) => trpc.admin.listAudit.query({ page, pageSize }),
+        { maxItems: MAX_EVENTS },
+      );
       return rows.map(toAuditEvent);
     },
   });
