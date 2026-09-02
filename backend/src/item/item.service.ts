@@ -9,7 +9,6 @@ import {
   type ItemTypeRow,
 } from '../common/mappers/item.mapper';
 import { toPage, toSkipTake } from '../common/schemas/pagination.schema';
-import { creditWeightRangeForTier } from '../common/schemas/status.schema';
 import type {
   ItemSummary,
   ListItemsInput,
@@ -19,7 +18,7 @@ import type {
 /**
  * Selects the loan currently holding a unit, and nothing else.
  *
- * `take: 1` with the status filter is load-bearing - the mapper reads the due
+ * `take: 1` with the status filter is load-bearing — the mapper reads the due
  * date from the first row, so widening this select silently starts reporting
  * due dates from loans that closed months ago.
  */
@@ -43,11 +42,11 @@ export class ItemService {
    * units matching a condition (in storage AND open for borrowing). Prisma can
    * order by an *unfiltered* relation count but not a filtered one, so there is
    * no `orderBy` that expresses it. Sorting the current page only would be
-   * quietly wrong - page 2 would not continue page 1.
+   * quietly wrong — page 2 would not continue page 1.
    *
    * So the filtering happens in SQL (which is what actually narrows the set),
    * and the ordering and slicing happen here. The rows are equipment *types*,
-   * not units and not loans - a faculty has hundreds, not millions - and each
+   * not units and not loans — a faculty has hundreds, not millions — and each
    * carries only its units' status flags.
    *
    * Revisit when either becomes true: ItemInfo grows past a few thousand rows,
@@ -55,11 +54,6 @@ export class ItemService {
    * stored column, at which point this is an ordinary indexed ORDER BY.
    */
   async list(input: ListItemsInput) {
-    // T3 means "this is a room", which is a different table entirely. An empty
-    // page is the honest answer, not an error - the filter is valid, it just
-    // cannot match an item.
-    if (input.tier === 'T3') return toPage<ItemSummary>([], 0, input);
-
     const rows = await this.prisma.itemInfo.findMany({
       where: this.itemWhere(input),
       select: {
@@ -78,6 +72,7 @@ export class ItemService {
                 ResourceStatus: true,
                 AllowBorrow: true,
                 BufferTime: true,
+                BorrowRuleInfo: { select: { RuleName: true } },
                 ManagementGroup: {
                   select: {
                     ManageGroupKey: true,
@@ -122,6 +117,7 @@ export class ItemService {
                 ResourceStatus: true,
                 AllowBorrow: true,
                 BufferTime: true,
+                BorrowRuleInfo: { select: { RuleName: true } },
                 ManagementGroup: {
                   select: {
                     ManageGroupKey: true,
@@ -145,7 +141,7 @@ export class ItemService {
 
   /**
    * The polled endpoint (10-15s per open item page). Selects the three status
-   * flags the count needs and nothing else - no names, no images, no group.
+   * flags the count needs and nothing else — no names, no images, no group.
    */
   async getAvailability(itemKey: number) {
     const row = await this.prisma.itemInfo.findUnique({
@@ -189,13 +185,13 @@ export class ItemService {
     };
   }
 
-  /** The units of one type - the same list `getById` returns, without the type. */
+  /** The units of one type — the same list `getById` returns, without the type. */
   async listUnits(itemKey: number) {
     return (await this.getById(itemKey)).units;
   }
 
   /**
-   * Not implemented - nothing in the schema groups equipment into categories.
+   * Not implemented — nothing in the schema groups equipment into categories.
    *
    * Kept as a declared procedure rather than left out, so the catalogue's
    * category filter has a contract to be written against the day the table
@@ -204,7 +200,7 @@ export class ItemService {
   listCategories(): never {
     return notImplemented(
       ['Category table (name), plus ItemInfo.CategoryKey'],
-      'The frontend groups the catalogue into instrument / tool / board, but ItemInfo has no category column. Tier is unaffected - it is derived from CreditWeight.',
+      "The frontend groups the catalogue into instrument / tool / board, but ItemInfo has no category column. Tier is unaffected — it comes from the unit's BorrowRule.",
     );
   }
 
@@ -236,6 +232,7 @@ export class ItemService {
               ResourceStatus: true,
               AllowBorrow: true,
               BufferTime: true,
+              BorrowRuleInfo: { select: { RuleName: true } },
               ManagementGroup: {
                 select: {
                   ManageGroupKey: true,
@@ -275,6 +272,7 @@ export class ItemService {
             ResourceStatus: true,
             AllowBorrow: true,
             BufferTime: true,
+            BorrowRuleInfo: { select: { RuleName: true } },
             ManagementGroup: {
               select: {
                 ManageGroupKey: true,
@@ -322,8 +320,19 @@ export class ItemService {
     }
 
     if (input.tier) {
-      const range = creditWeightRangeForTier(input.tier);
-      if (range) and.push({ CreditWeight: range });
+      // A tier is a BorrowRule row (status.schema.ts), and BorrowRule hangs off
+      // each unit — so a type matches the filter when any of its units does.
+      and.push({
+        Items: {
+          some: {
+            Resource: {
+              BorrowRuleInfo: {
+                RuleName: { equals: input.tier, mode: 'insensitive' },
+              },
+            },
+          },
+        },
+      });
     }
 
     if (input.ownerGroupKey) {
@@ -397,7 +406,7 @@ function byName(a: ItemSummary, b: ItemSummary): number {
  * Sorts the catalogue in place.
  *
  * A free function rather than a method so it can be tested without a database
- * - this is where the default catalogue ordering is decided, and it is the
+ * — this is where the default catalogue ordering is decided, and it is the
  * kind of comparator that is easy to get subtly wrong.
  *
  * Every key falls back to name, so equal rows come out in a stable, meaningful
@@ -410,7 +419,7 @@ export function sortItems(
   switch (sort) {
     case 'available':
       // Anything in stock outranks everything out of stock, then by depth of
-      // stock - one unit free beats ten due back tomorrow.
+      // stock — one unit free beats ten due back tomorrow.
       items.sort(
         (a, b) =>
           Number(b.availableUnits > 0) - Number(a.availableUnits > 0) ||
