@@ -1,5 +1,5 @@
 /**
- * KULogo — reusable Kasetsart University wordmark.
+ * KULogo - reusable Kasetsart University wordmark.
  * Ported verbatim from the reference HTML SVG (viewBox 100×130).
  * Kept as inline SVG (never rasterized) so it scales crisply.
  *

@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from "react";
+import { useMemo, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
 import { addDays } from "date-fns";
@@ -20,10 +20,13 @@ import { cn } from "@/lib/utils";
 import {
   EQUIPMENT_CATEGORIES,
   catalogDeptName,
+  unitsOf,
   type CatalogItem,
   type StockStatus,
+  type UnitState,
 } from "../mock-data";
 import { fmtDateTime, fmtDayMonth } from "../format";
+import { remainingUnits, useRequestDraft } from "../request/request-draft.store";
 import { useEquipmentType } from "./use-equipment-types";
 
 const STOCK_TONE: Record<StockStatus, BadgeTone> = {
@@ -32,17 +35,13 @@ const STOCK_TONE: Record<StockStatus, BadgeTone> = {
   maintenance: "neutral",
 };
 
-type UnitState = "free" | "fix" | "out";
-
 const UNIT_TONE: Record<UnitState, BadgeTone> = { free: "ok", fix: "warn", out: "neutral" };
 
 /** How far ahead the availability strip looks. */
 const AVAIL_DAYS = 14;
-/** The units table lists a sample, not every serial in a 40-unit pool. */
-const MAX_UNIT_ROWS = 6;
 
 /**
- * Equipment detail — reached from a catalog row. Layout follows the reference
+ * Equipment detail - reached from a catalog row. Layout follows the reference
  * mockup: a content column (hero → specs → availability → units) beside a
  * sticky summary rail that carries the "add to request" action.
  *
@@ -56,11 +55,13 @@ export default function EquipmentDetailPage() {
   const { data: item, isLoading } = useEquipmentType(id);
   const creditBand = useAuthStore((s) => s.user?.creditBand) ?? "D0";
 
-  // Draft request lines for this item. Local for now — same TODO as the
-  // catalog page: move into a shared request store once that flow exists.
-  const [qty, setQty] = useState(0);
+  // Draft lines live in the shared store, so the count survives navigation
+  // and the request page sees whatever was added here.
+  const draftLines = useRequestDraft((s) => s.lines);
+  const addItem = useRequestDraft((s) => s.addItem);
+  const qty = draftLines.find((l) => l.itemId === id)?.qty ?? 0;
 
-  const units = useMemo(() => (item ? buildUnits(item) : []), [item]);
+  const units = useMemo(() => (item ? unitsOf(item) : []), [item]);
   const days = useMemo(() => (item ? buildDays(item) : []), [item]);
 
   const backToCatalog = () => navigate(ROUTES.CATALOG);
@@ -87,6 +88,8 @@ export default function EquipmentDetailPage() {
     );
   }
 
+  // Out of stock, or the draft already holds every free unit.
+  const atCap = remainingUnits(draftLines, item) === 0;
   const category = EQUIPMENT_CATEGORIES.find((c) => c.id === item.categoryId);
   const loanDays = CREDIT_BANDS.find((b) => b.band === creditBand)?.loanDays ?? 14;
   // T3 is booked by slot; everything else is capped by the borrower's credit band.
@@ -95,7 +98,6 @@ export default function EquipmentDetailPage() {
       ? t("borrower.detail.perSlot")
       : t("borrower.detail.days", { count: loanDays });
 
-  const addToDraft = () => setQty((n) => n + 1);
 
   return (
     <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
@@ -135,7 +137,7 @@ export default function EquipmentDetailPage() {
           </div>
         </section>
 
-        {/* Compact summary + CTA — the sticky rail's job on wide screens. */}
+        {/* Compact summary + CTA - the sticky rail's job on wide screens. */}
         <Panel className="lg:hidden">
           <div className="divide-y divide-border px-3.5 py-1">
             <SpecRow label={t("borrower.catalog.colAvail")} mono>
@@ -147,7 +149,12 @@ export default function EquipmentDetailPage() {
             <SpecRow label={t("borrower.detail.periodL")}>{period}</SpecRow>
           </div>
           <div className="px-3.5 pb-3.5 pt-3">
-            <Button type="button" className="h-11 w-full" onClick={addToDraft}>
+            <Button
+              type="button"
+              className="h-11 w-full"
+              disabled={atCap}
+              onClick={() => addItem(item.id)}
+            >
               <Plus size={15} strokeWidth={2.2} />
               {t("borrower.detail.addToRequest")}
               {qty ? ` (${qty})` : ""}
@@ -155,7 +162,7 @@ export default function EquipmentDetailPage() {
           </div>
         </Panel>
 
-        {/* Description — hidden when the item has no blurb yet. */}
+        {/* Description - hidden when the item has no blurb yet. */}
         {item.description ? (
           <Panel title={t("borrower.detail.desc")}>
             <p className="px-3.5 py-3 text-[13px] leading-relaxed text-t2">{item.description}</p>
@@ -255,7 +262,12 @@ export default function EquipmentDetailPage() {
             </div>
           </div>
           <div className="flex flex-col gap-2 px-3.5 pb-3.5">
-            <Button type="button" className="h-10" onClick={addToDraft}>
+            <Button
+              type="button"
+              className="h-10"
+              disabled={atCap}
+              onClick={() => addItem(item.id)}
+            >
               <Plus size={15} strokeWidth={2.2} />
               {t("borrower.detail.addToRequest")}
               {qty ? ` (${qty})` : ""}
@@ -321,23 +333,6 @@ const UNIT_CONDITION_KEY: Record<UnitState, string> = {
   fix: "borrower.detail.condFix",
   out: "borrower.detail.condUse",
 };
-
-/**
- * Sample serials whose states add up to the item's real stock split — a 4/4
- * item must not show rows marked "on loan".
- */
-function buildUnits(item: CatalogItem): { serial: string; state: UnitState }[] {
-  const rows = Math.max(2, Math.min(MAX_UNIT_ROWS, item.totalUnits));
-  const free = item.totalUnits
-    ? Math.round((item.availableUnits / item.totalUnits) * rows)
-    : 0;
-  const fix = item.stockStatus === "maintenance" ? Math.max(1, rows - free) : 0;
-
-  return Array.from({ length: rows }, (_, i) => ({
-    serial: `${item.code}-${String(i + 1).padStart(2, "0")}`,
-    state: i < free ? "free" : i < free + fix ? "fix" : "out",
-  }));
-}
 
 /**
  * Placeholder booking calendar: a fully checked-out item is blocked for the

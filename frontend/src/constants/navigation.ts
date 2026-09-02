@@ -5,11 +5,11 @@ import { ROUTES } from "@/constants";
 /**
  * Role-based navigation config.
  * Section + item labels are i18n keys (`labelKey`, resolved via `t()` in the
- * Sidebar) — never hardcoded strings. Icons and counts match the reference
+ * Sidebar) - never hardcoded strings. Icons and counts match the reference
  * HTML (ULMs-login-and-shell-v3.html). Each item's `route` references an
  * existing ROUTES key.
  *
- * `icon` is a lucide-react export name (string) — mapped to a component in
+ * `icon` is a lucide-react export name (string) - mapped to a component in
  * the Sidebar via NAV_ICON.
  */
 export interface NavItem {
@@ -17,6 +17,12 @@ export interface NavItem {
   /** i18n key (e.g. "nav.home") resolved with t() at render time. */
   labelKey: string;
   icon: string;
+  /**
+   * Badge number. Left unset on the borrower items: the mockup's figures were
+   * decoration (it claimed 148 catalog rows against 13 real ones), and a wrong
+   * count is worse than none. Wire these to live totals when the API lands -
+   * from a hook in the feature, not from a literal here.
+   */
   count?: number;
   active?: boolean;
   /** Existing ROUTES value. `undefined` = route not defined yet (TODO). */
@@ -48,11 +54,12 @@ export const NAV_CONFIG: Record<Role, RoleNav> = {
         labelKey: "nav.borrower",
         items: [
           { key: "home", labelKey: "nav.home", icon: "home", route: ROUTES.HOME },
-          { key: "catalog", labelKey: "nav.catalog", icon: "grid", count: 148, route: ROUTES.CATALOG },
-          { key: "rooms", labelKey: "nav.rooms", icon: "building", count: 8, route: ROUTES.ROOMS },
-          { key: "requests", labelKey: "nav.myRequests", icon: "file", count: 2, route: ROUTES.MY_LOANS },
-          { key: "history", labelKey: "nav.loanHistory", icon: "clock", route: ROUTES.MY_HISTORY },
-          { key: "credit", labelKey: "nav.creditScore", icon: "award", route: ROUTES.MY_CREDIT },
+          { key: "catalog", labelKey: "nav.catalog", icon: "grid", route: ROUTES.CATALOG },
+          { key: "rooms", labelKey: "nav.rooms", icon: "building", route: ROUTES.ROOMS },
+          { key: "room-use", labelKey: "nav.roomUse", icon: "door-open", route: ROUTES.ROOM_USE },
+          { key: "new-request", labelKey: "nav.newRequest", icon: "file-plus", route: ROUTES.REQUEST },
+          { key: "requests", labelKey: "nav.myRequests", icon: "file", route: ROUTES.MY_LOANS },
+          { key: "pickup", labelKey: "nav.pickup", icon: "package", route: ROUTES.PICKUP },
           { key: "appeals", labelKey: "nav.appeals", icon: "shield", route: ROUTES.APPEALS },
         ],
       },
@@ -66,8 +73,9 @@ export const NAV_CONFIG: Record<Role, RoleNav> = {
         labelKey: "nav.borrower",
         items: [
           { key: "home", labelKey: "nav.home", icon: "home", route: ROUTES.HOME },
-          { key: "catalog", labelKey: "nav.catalog", icon: "grid", count: 148, route: ROUTES.CATALOG },
-          { key: "rooms", labelKey: "nav.rooms", icon: "building", count: 8, route: ROUTES.ROOMS },
+          { key: "catalog", labelKey: "nav.catalog", icon: "grid", route: ROUTES.CATALOG },
+          { key: "rooms", labelKey: "nav.rooms", icon: "building", route: ROUTES.ROOMS },
+          { key: "new-request", labelKey: "nav.newRequest", icon: "file-plus", route: ROUTES.REQUEST },
           { key: "requests", labelKey: "nav.myRequests", icon: "file", route: ROUTES.MY_LOANS },
         ],
       },
@@ -106,6 +114,7 @@ export const NAV_CONFIG: Record<Role, RoleNav> = {
           { key: "home", labelKey: "nav.home", icon: "home", route: ROUTES.HOME },
           { key: "catalog", labelKey: "nav.catalog", icon: "grid", route: ROUTES.CATALOG },
           { key: "rooms", labelKey: "nav.rooms", icon: "building", route: ROUTES.ROOMS },
+          { key: "new-request", labelKey: "nav.newRequest", icon: "file-plus", route: ROUTES.REQUEST },
           { key: "requests", labelKey: "nav.myRequests", icon: "file", route: ROUTES.MY_LOANS },
         ],
       },
@@ -156,13 +165,14 @@ export const NAV_CONFIG: Record<Role, RoleNav> = {
 };
 
 /**
- * Routes reached from the shell but not listed in the nav — the profile page
+ * Routes reached from the shell but not listed in the nav - the profile page
  * behind the avatar, and detail pages opened by clicking a row. Keys may be
  * route *patterns* ("/catalog/:id"), which `routeTitleKey` resolves.
  */
 const NON_NAV_TITLE_KEYS: Record<string, string> = {
   [ROUTES.PROFILE]: "profile.title",
   [ROUTES.EQUIPMENT_DETAIL]: "nav.equipmentDetail",
+  [ROUTES.ROOM_BOOKING]: "nav.roomBooking",
 };
 
 /** Flat lookup: route path → i18n label key (for breadcrumb + placeholder title). */
@@ -179,7 +189,7 @@ export const ROUTE_TITLE_KEYS: Record<string, string> = {
 
 /**
  * Title key for a concrete pathname. Exact match first, then parameterised
- * patterns ("/catalog/:id") — without the second pass a detail page would fall
+ * patterns ("/catalog/:id") - without the second pass a detail page would fall
  * back to the generic "overview" crumb.
  */
 export function routeTitleKey(pathname: string): string | undefined {

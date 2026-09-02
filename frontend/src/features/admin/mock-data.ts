@@ -53,7 +53,14 @@ export function departmentsByFaculty(facultyId: string): Department[] {
 }
 
 export type AuthMethod = "ku" | "local";
-export type AccountStatus = "active" | "suspended" | "invited";
+/**
+ * Mirrors the server's accountStatus enum (backend/src/admin/admin.schema.ts).
+ *
+ * There is no "disabled": AccountInfo records nothing about an account whose
+ * password was never set, so the server cannot report it and inventing it here
+ * would put a state in the UI that no query can ever return.
+ */
+export type AccountStatus = "active" | "suspended" | "disabled";
 
 export interface AdminUser {
   id: string;
@@ -89,7 +96,7 @@ export const ADMIN_USERS: AdminUser[] = [
   { id: "u-1009", name: "สุนิสา แก้วประเสริฐ", email: "sunisa.k@ku.th", govId: "EMP20997", role: "staff", departmentId: "me", auth: "local", status: "active", lastActiveAt: "2026-08-06T06:48:00Z", createdAt: "2024-03-01T02:00:00Z" },
   { id: "u-1010", name: "อนุชา ไกรทอง", email: "anucha.k@ku.th", govId: "6410504455", role: "borrower", departmentId: "ce", auth: "ku", status: "active", lastActiveAt: "2026-08-03T13:00:00Z", createdAt: "2024-06-01T02:00:00Z" },
   { id: "u-1011", name: "พรทิพย์ ชัยมงคล", email: "pornthip.c@ku.th", govId: "6410505566", role: "borrower", departmentId: "che", auth: "ku", status: "active", lastActiveAt: "2026-08-06T08:33:00Z", createdAt: "2024-06-01T02:00:00Z" },
-  { id: "u-1012", name: "เจษฎา รุ่งเรือง", email: "jessada.r@ku.th", govId: "EMP21044", role: "staff", departmentId: "ce", auth: "local", status: "invited", lastActiveAt: "-", createdAt: "2026-08-01T02:00:00Z" },
+  { id: "u-1012", name: "เจษฎา รุ่งเรือง", email: "jessada.r@ku.th", govId: "EMP21044", role: "staff", departmentId: "ce", auth: "local", status: "disabled", lastActiveAt: "-", createdAt: "2026-08-01T02:00:00Z" },
   { id: "u-1013", name: "มานพ สุขสวัสดิ์", email: "manop.s@ku.th", govId: "6410506677", role: "borrower", departmentId: "ie", auth: "ku", status: "active", lastActiveAt: "2026-08-02T09:20:00Z", createdAt: "2024-06-01T02:00:00Z" },
   { id: "u-1014", name: "ผศ. ดารณี พงษ์ไพบูลย์", email: "daranee.p@ku.th", govId: "EMP10555", role: "supervisor", departmentId: "me", auth: "ku", status: "active", lastActiveAt: "2026-08-05T15:41:00Z", createdAt: "2023-10-20T02:00:00Z" },
   { id: "u-1015", name: "ชมรมอิเล็กทรอนิกส์", email: "electron.club@ku.th", govId: "CLUB0042", role: "staff", departmentId: "ee", auth: "local", status: "active", lastActiveAt: "2026-08-01T12:10:00Z", createdAt: "2024-02-05T02:00:00Z" },
@@ -98,7 +105,7 @@ export const ADMIN_USERS: AdminUser[] = [
   { id: "u-1018", name: "สิริพร ศรีมงคล", email: "siriporn.s@ku.th", govId: "EMP21188", role: "staff", departmentId: "che", auth: "local", status: "active", lastActiveAt: "2026-08-06T07:15:00Z", createdAt: "2024-04-10T02:00:00Z" },
   { id: "u-1019", name: "ธีรภัทร คงทน", email: "teerapat.k@ku.th", govId: "6410509900", role: "borrower", departmentId: "ie", auth: "ku", status: "active", lastActiveAt: "2026-08-04T11:45:00Z", createdAt: "2024-06-01T02:00:00Z" },
   { id: "u-1020", name: "ศ.ดร. ประสิทธิ์ วงศ์ใหญ่", email: "prasit.w@ku.th", govId: "EMP10099", role: "supervisor", departmentId: "ce", auth: "ku", status: "active", lastActiveAt: "2026-08-05T09:30:00Z", createdAt: "2023-07-01T02:00:00Z" },
-  { id: "u-1021", name: "จิราภา แสนสุข", email: "jirapa.s@ku.th", govId: "6410510011", role: "borrower", departmentId: "cpe", auth: "ku", status: "invited", lastActiveAt: "-", createdAt: "2026-08-05T02:00:00Z" },
+  { id: "u-1021", name: "จิราภา แสนสุข", email: "jirapa.s@ku.th", govId: "6410510011", role: "borrower", departmentId: "cpe", auth: "ku", status: "disabled", lastActiveAt: "-", createdAt: "2026-08-05T02:00:00Z" },
   { id: "u-1022", name: "นพดล ยิ่งยง", email: "noppadol.y@ku.th", govId: "EMP21290", role: "staff", departmentId: "ie", auth: "local", status: "active", lastActiveAt: "2026-08-06T08:55:00Z", createdAt: "2024-05-01T02:00:00Z" },
   { id: "u-1023", name: "อารยา สถิตย์", email: "araya.s@ku.th", govId: "6410511122", role: "borrower", departmentId: "che", auth: "ku", status: "active", lastActiveAt: "2026-08-01T14:12:00Z", createdAt: "2024-06-01T02:00:00Z" },
   { id: "u-1024", name: "เอกชัย ประเสริฐศรี", email: "ekachai.p@ku.th", govId: "EMP00027", role: "admin", departmentId: "it", auth: "ku", status: "active", lastActiveAt: "2026-08-06T09:44:00Z", createdAt: "2023-08-01T02:00:00Z" },
@@ -235,7 +242,7 @@ export const TOP_EQUIPMENT: TopEquipment[] = [
 // endpoints are expected to return them so the charts can be re-pointed at the
 // real API with minimal changes.
 
-/** Audit events bucketed by hour of day (0–23) — reveals peak-activity windows. */
+/** Audit events bucketed by hour of day (0–23) - reveals peak-activity windows. */
 export interface HourBucket {
   hour: number;
   events: number;

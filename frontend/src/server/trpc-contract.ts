@@ -1,5 +1,5 @@
 /**
- * ULMs tRPC contract — TEMPORARY frontend-side type source.
+ * ULMs tRPC contract - TEMPORARY frontend-side type source.
  * ============================================================
  *
  * This file exists so the frontend tRPC client is fully typed TODAY, before the
@@ -13,13 +13,16 @@
  *     export type { AppRouter } from "<path-or-package-to-backend-approuter>";
  *
  * Only the `AppRouter` *type* is consumed on the frontend (via `import type`),
- * so this router value is erased at build time — @trpc/server never ships in the
+ * so this router value is erased at build time - @trpc/server never ships in the
  * client bundle.
  */
 import { initTRPC } from "@trpc/server";
 import { z } from "zod";
+import type { ServerUser } from "@/features/auth/user.adapter";
+import type { ServerItem } from "@/features/borrower/catalog/item.adapter";
+import type { ServerAdminUser } from "@/features/admin/users/admin-user.adapter";
+import type { ServerAuditEvent } from "@/features/admin/audit/audit-event.adapter";
 import type {
-  User,
   EquipmentType,
   EquipmentUnit,
   LoanRequest,
@@ -44,6 +47,8 @@ const pageInput = z.object({
 /** ว-07 shared list output. */
 type Paginated<T> = { items: T[]; total: number; page: number; pageSize: number };
 const idInput = z.object({ id: z.string() });
+/** Domains already on the real backend key by int, not string. */
+const numericIdInput = z.object({ id: z.number() });
 
 /** Cast helper for placeholder resolvers (types only; never runs in the client). */
 const as = <T>() => ({}) as T;
@@ -51,22 +56,39 @@ const as = <T>() => ({}) as T;
 export const appRouter = t.router({
   // ── auth ──────────────────────────────────────────────
   auth: t.router({
-    me: proc.query(() => as<User>()),
+    // NOTE: auth returns ServerUser, not the frontend's `User`. The backend
+    // sends database-shaped fields (numeric id, firstName/lastName,
+    // facultyName, creditTier); features/auth/user.adapter.ts converts.
+    // The other domains below still describe `User` because they are still
+    // mock-only - fix each one as its router lands.
+    me: proc.query(() => as<ServerUser>()),
     login: proc
       .input(z.object({ username: z.string(), password: z.string() }))
-      .mutation(() => as<{ user: User }>()),
+      .mutation(() => as<{ user: ServerUser }>()),
     logout: proc.mutation(() => as<{ ok: true }>()),
   }),
 
   // ── item ──────────────────────────────────────────────
   item: t.router({
-    list: proc.input(pageInput).query(() => as<Paginated<EquipmentType>>()),
-    getById: proc.input(idInput).query(() => as<EquipmentType>()),
+    // NOTE: item returns ServerItem, not the frontend's EquipmentType, and its
+    // ids are numbers. features/borrower/catalog/item.adapter.ts converts.
+    // listCategories exists in the contract but the server answers
+    // NOT_IMPLEMENTED: the schema has no category table.
+    list: proc
+      .input(
+        pageInput.extend({
+          tier: z.string().optional(),
+          ownerGroupKey: z.number().optional(),
+          availableOnly: z.boolean().optional(),
+        }),
+      )
+      .query(() => as<Paginated<ServerItem>>()),
+    getById: proc.input(numericIdInput).query(() => as<ServerItem>()),
     getAvailability: proc
-      .input(idInput)
+      .input(numericIdInput)
       .query(() => as<{ availableUnits: number; nextAvailableAt?: string }>()),
     listCategories: proc.query(() => as<{ id: string; name: string }[]>()),
-    listUnits: proc.input(idInput).query(() => as<EquipmentUnit[]>()),
+    listUnits: proc.input(numericIdInput).query(() => as<EquipmentUnit[]>()),
     create: proc.input(z.object({}).passthrough()).mutation(() => as<EquipmentType>()),
     update: proc
       .input(z.object({ id: z.string() }).passthrough())
@@ -160,27 +182,50 @@ export const appRouter = t.router({
 
   // ── admin ─────────────────────────────────────────────
   admin: t.router({
-    listUsers: proc.input(pageInput).query(() => as<Paginated<User>>()),
-    getUserById: proc.input(idInput).query(() => as<User>()),
-    createUser: proc.input(z.object({}).passthrough()).mutation(() => as<User>()),
-    updateUser: proc.input(z.object({ id: z.string() }).passthrough()).mutation(() => as<User>()),
+    // NOTE: admin returns ServerAdminUser, not the frontend's User, and keys
+    // accounts by int. features/admin/users/admin-user.adapter.ts converts.
+    // Only the procedures the UI actually calls are typed here; the rest are
+    // live on the server (30 procedures total) and can be added as they are
+    // wired up.
+    listUsers: proc
+      .input(pageInput.extend({ role: z.string().optional(), status: z.string().optional() }))
+      .query(() => as<Paginated<ServerAdminUser>>()),
+    getUserById: proc.input(numericIdInput).query(() => as<ServerAdminUser>()),
+    createUser: proc
+      .input(
+        z.object({
+          email: z.string(),
+          studentId: z.string(),
+          firstName: z.string(),
+          lastName: z.string(),
+          role: z.string(),
+          initialCredit: z.number().optional(),
+        }),
+      )
+      .mutation(() => as<{ id: number; temporaryPassword: string | null }>()),
+    changeRole: proc
+      .input(z.object({ id: z.number(), role: z.string() }))
+      .mutation(() => as<ServerAdminUser>()),
     setUserActive: proc
-      .input(z.object({ id: z.string(), active: z.boolean() }))
+      .input(z.object({ id: z.number(), active: z.boolean() }))
       .mutation(() => as<{ ok: true }>()),
-    resetPassword: proc.input(idInput).mutation(() => as<{ ok: true }>()),
-    changeRole: proc.input(z.object({ id: z.string(), role: z.string() })).mutation(() => as<User>()),
     setUserBan: proc
-      .input(z.object({ id: z.string(), banned: z.boolean(), reason: z.string().optional() }))
+      .input(
+        z.object({
+          id: z.number(),
+          banned: z.boolean(),
+          reason: z.string().optional(),
+          days: z.number().optional(),
+        }),
+      )
       .mutation(() => as<{ ok: true }>()),
-    getLendingSettings: proc.query(() => as<Record<string, unknown>>()),
-    updateLendingSettings: proc.input(z.object({}).passthrough()).mutation(() => as<{ ok: true }>()),
-    getConfig: proc.query(() => as<Record<string, unknown>>()),
-    updateConfig: proc.input(z.object({}).passthrough()).mutation(() => as<{ ok: true }>()),
-    getSystemStatus: proc.query(() => as<Record<string, unknown>>()),
-    listCronJobs: proc.query(() => as<unknown[]>()),
-    runCronJob: proc.input(z.object({ job: z.string() })).mutation(() => as<{ ok: true }>()),
-    listAudit: proc.input(pageInput.extend({ action: z.string().optional() })).query(() => as<Paginated<unknown>>()),
-    getAuditById: proc.input(idInput).query(() => as<unknown>()),
+    resetPassword: proc
+      .input(z.object({ id: z.number(), newPassword: z.string().optional() }))
+      .mutation(() => as<{ ok: true; temporaryPassword: string | null }>()),
+    listAudit: proc
+      .input(pageInput.extend({ action: z.string().optional() }))
+      .query(() => as<Paginated<ServerAuditEvent>>()),
+    getAuditById: proc.input(numericIdInput).query(() => as<ServerAuditEvent>()),
   }),
 });
 

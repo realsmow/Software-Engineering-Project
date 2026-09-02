@@ -101,14 +101,6 @@ export default function AdminDashboardPage() {
       <div className="mb-4">
         <ChartCard title={t("admin.charts.activityByRole")} height={260}>
           <AreaChart data={ACTIVITY_BY_ROLE} margin={{ top: 6, right: 8, left: -8, bottom: 0 }}>
-            <defs>
-              {ROLE_ORDER.map((r, i) => (
-                <linearGradient id={`act-${r}`} key={r} x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor={CHART_SERIES[i % CHART_SERIES.length]} stopOpacity={0.5} />
-                  <stop offset="100%" stopColor={CHART_SERIES[i % CHART_SERIES.length]} stopOpacity={0.05} />
-                </linearGradient>
-              ))}
-            </defs>
             <CartesianGrid {...gridProps} />
             <XAxis dataKey="date" tickFormatter={(d) => fmtDayShort(d as string)} {...axisProps} />
             <YAxis {...axisProps} width={44} allowDecimals={false} />
@@ -122,8 +114,14 @@ export default function AdminDashboardPage() {
                 stackId="act"
                 name={t(`nav.${r}`)}
                 stroke={CHART_SERIES[i % CHART_SERIES.length]}
-                strokeWidth={2}
-                fill={`url(#act-${r})`}
+                strokeWidth={1.5}
+                // Flat tint, no gradient. A vertical fade on stacked bands makes
+                // each band brightest where it meets the one above, so the
+                // boundaries glow. A flat tint just groups the area under its
+                // line. 0.1 was too faint to tell bands apart once the series
+                // became four distinct hues rather than shades of one.
+                fill={CHART_SERIES[i % CHART_SERIES.length]}
+                fillOpacity={0.28}
               />
             ))}
           </AreaChart>

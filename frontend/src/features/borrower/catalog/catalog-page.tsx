@@ -1,7 +1,7 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type MouseEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
-import { Package, Plus, ShoppingCart, SlidersHorizontal, X } from "lucide-react";
+import { Check, Package, Plus, ShoppingCart, SlidersHorizontal, X } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { TierBadge, TierDot, TIERS, tierNoteKey } from "@/components/shared/tier-badge";
 import { Button } from "@/components/ui/button";
@@ -31,6 +31,7 @@ import {
 } from "../mock-data";
 import { fmtDateTime } from "../format";
 import { FacetFilters, type FilterGroup } from "../facet-filters";
+import { remainingUnits, useRequestDraft } from "../request/request-draft.store";
 import { useEquipmentTypes } from "./use-equipment-types";
 
 /** Facet groups, in rail order. Keys namespace the option keys ("dept:ee"). */
@@ -43,7 +44,7 @@ type SortKey = "avail" | "name" | "popular";
 const PAGE_SIZE = 8;
 
 /**
- * Equipment catalog — the borrower's entry point for browsing what the faculty
+ * Equipment catalog - the borrower's entry point for browsing what the faculty
  * lends. Layout follows the reference mockup: a filter rail beside a single
  * card that stacks toolbar → active chips → tier legend → table.
  *
@@ -60,10 +61,9 @@ export default function CatalogPage() {
   const [sort, setSort] = useState<SortKey>("avail");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [filtersOpen, setFiltersOpen] = useState(false);
-  // Draft request lines, keyed by equipment id. Local to this page for now.
-  // TODO: move into a shared request/cart store once the "create request"
-  // flow and its route exist.
-  const [draft, setDraft] = useState<Record<string, number>>({});
+  // Draft lines live in the shared store so the request page picks them up.
+  const draftLines = useRequestDraft((s) => s.lines);
+  const addItem = useRequestDraft((s) => s.addItem);
 
   const groups = useMemo<FilterGroup[]>(() => {
     const countBy = (group: GroupKey, id: string) =>
@@ -144,7 +144,10 @@ export default function CatalogPage() {
     [groups, selected],
   );
 
-  const draftTotal = Object.values(draft).reduce((sum, n) => sum + n, 0);
+  const draftTotal = draftLines.reduce((sum, l) => sum + l.qty, 0);
+  const qtyOf = (id: string) => draftLines.find((l) => l.itemId === id)?.qty ?? 0;
+  // Out of stock, or the draft already holds every free unit.
+  const atCap = (item: CatalogItem) => remainingUnits(draftLines, item) === 0;
 
   function toggleFilter(key: string) {
     setSelected((prev) => {
@@ -157,10 +160,6 @@ export default function CatalogPage() {
   function clearFilters() {
     setSelected(new Set());
     setQuery("");
-  }
-
-  function addToDraft(item: CatalogItem) {
-    setDraft((prev) => ({ ...prev, [item.id]: (prev[item.id] ?? 0) + 1 }));
   }
 
   function openDetail(item: CatalogItem) {
@@ -211,19 +210,25 @@ export default function CatalogPage() {
       header: "",
       align: "right",
       render: (e) => (
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={(ev) => {
-            ev.stopPropagation();
-            addToDraft(e);
-          }}
+        // Button carries `disabled:pointer-events-none`, so once it is capped
+        // the click lands on the row behind it and opens the detail page. The
+        // wrapper still takes pointer events, so it swallows the click - and
+        // it is where the tooltip has to live for the same reason.
+        <span
+          className="inline-flex"
+          title={atCap(e) ? t("borrower.catalog.addCapped") : undefined}
+          onClick={(ev) => ev.stopPropagation()}
         >
-          <Plus size={14} strokeWidth={2.2} />
-          {t("borrower.catalog.add")}
-          {draft[e.id] ? ` (${draft[e.id]})` : ""}
-        </Button>
+          <AddButton
+            qty={qtyOf(e.id)}
+            capped={atCap(e)}
+            size="sm"
+            onAdd={(ev) => {
+              ev.stopPropagation();
+              addItem(e.id);
+            }}
+          />
+        </span>
       ),
     },
   ];
@@ -264,7 +269,11 @@ export default function CatalogPage() {
       <PageHeader
         title={t("nav.catalog")}
         subtitle={t("borrower.catalog.subtitle")}
-        actions={draftTotal > 0 ? <DraftPill count={draftTotal} /> : undefined}
+        actions={
+          draftTotal > 0 ? (
+            <DraftPill count={draftTotal} onOpen={() => navigate(ROUTES.REQUEST)} />
+          ) : undefined
+        }
       />
 
       <div className="grid items-start gap-4 lg:grid-cols-[224px_minmax(0,1fr)]">
@@ -288,7 +297,7 @@ export default function CatalogPage() {
             ) : (
               <DataTable
                 // Remount on any change to the result set so pagination starts
-                // over — DataTable owns its page state and has no reset prop.
+                // over - DataTable owns its page state and has no reset prop.
                 key={`${query}|${sort}|${[...selected].sort().join(",")}`}
                 columns={columns}
                 rows={rows}
@@ -346,9 +355,10 @@ export default function CatalogPage() {
                 <ItemCard
                   key={e.id}
                   item={e}
-                  qty={draft[e.id] ?? 0}
+                  qty={qtyOf(e.id)}
+                  capped={atCap(e)}
                   onOpen={() => openDetail(e)}
-                  onAdd={() => addToDraft(e)}
+                  onAdd={() => addItem(e.id)}
                 />
               ))
             )}
@@ -484,11 +494,13 @@ function LegendStrip() {
 function ItemCard({
   item,
   qty,
+  capped,
   onOpen,
   onAdd,
 }: {
   item: CatalogItem;
   qty: number;
+  capped: boolean;
   onOpen: () => void;
   onAdd: () => void;
 }) {
@@ -520,13 +532,64 @@ function ItemCard({
         <Button type="button" variant="outline" className="h-10 flex-1" onClick={onOpen}>
           {t("borrower.catalog.detail")}
         </Button>
-        <Button type="button" className="h-10 flex-1" onClick={onAdd}>
-          <Plus size={15} strokeWidth={2.2} />
-          {t("borrower.catalog.add")}
-          {qty ? ` (${qty})` : ""}
-        </Button>
+        <AddButton
+          qty={qty}
+          capped={capped}
+          variant="default"
+          className="h-10 flex-1"
+          onAdd={onAdd}
+        />
       </div>
     </div>
+  );
+}
+
+/**
+ * Add-to-request button. Flips to a "selected" state once the item is in the
+ * draft - accent fill, a check instead of the plus, and the count - so a glance
+ * down the list shows what is already picked. Still adds another unit on click
+ * until the shelf runs out, at which point it locks.
+ */
+function AddButton({
+  qty,
+  capped,
+  size,
+  variant = "outline",
+  className,
+  onAdd,
+}: {
+  qty: number;
+  capped: boolean;
+  size?: "sm";
+  /** Look to use before anything is selected; the selected look is fixed. */
+  variant?: "outline" | "default";
+  className?: string;
+  onAdd: (ev: MouseEvent<HTMLButtonElement>) => void;
+}) {
+  const { t } = useTranslation();
+  const selected = qty > 0;
+  const icon = size === "sm" ? 14 : 15;
+
+  return (
+    <Button
+      type="button"
+      size={size}
+      variant={selected ? "outline" : variant}
+      className={cn(
+        selected &&
+          "border-accent bg-[var(--accent-soft)] text-accent hover:bg-accent hover:text-white",
+        className,
+      )}
+      disabled={capped}
+      onClick={onAdd}
+    >
+      {selected ? (
+        <Check size={icon} strokeWidth={2.6} />
+      ) : (
+        <Plus size={icon} strokeWidth={2.2} />
+      )}
+      {selected ? t("borrower.catalog.selected", { count: qty }) : t("borrower.catalog.add")}
+    </Button>
   );
 }
 
@@ -558,21 +621,22 @@ function EmptyState({ onClear }: { onClear: () => void }) {
   );
 }
 
-/**
- * Draft counter. Inert until the request flow exists — it only reports what the
- * "add" buttons have collected in this page's state.
- */
-function DraftPill({ count }: { count: number }) {
+/** Draft counter - the way through to the request page. */
+function DraftPill({ count, onOpen }: { count: number; onOpen: () => void }) {
   const { t } = useTranslation();
   return (
-    <span className="inline-flex items-center gap-2 rounded-md border border-accent-border bg-[var(--accent-soft)] px-3 py-1.5 text-[13px] font-medium text-accent">
+    <button
+      type="button"
+      onClick={onOpen}
+      className="inline-flex items-center gap-2 rounded-md border border-accent-border bg-[var(--accent-soft)] px-3 py-1.5 text-[13px] font-medium text-accent transition-colors hover:bg-accent hover:text-white"
+    >
       <ShoppingCart size={15} strokeWidth={2} />
       {t("borrower.catalog.draftCount", { count })}
-    </span>
+    </button>
   );
 }
 
-/** Photo placeholder — equipment images land with the upload feature. */
+/** Photo placeholder - equipment images land with the upload feature. */
 function Thumb({ size = 44 }: { size?: number }) {
   return (
     <div

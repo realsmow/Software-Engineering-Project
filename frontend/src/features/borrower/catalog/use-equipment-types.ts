@@ -1,33 +1,59 @@
 import { useQuery } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/query-client";
-import { CATALOG_ITEMS, type CatalogItem } from "../mock-data";
+import { useTRPCClient } from "@/lib/trpc";
+import { fetchAllPages } from "@/lib/paging";
+import { toCatalogItem } from "./item.adapter";
+import type { CatalogItem } from "../mock-data";
 
 /**
- * useEquipmentTypes — equipment catalog list for the borrower view.
+ * useEquipmentTypes - equipment catalogue list for the borrower view.
  *
- * No API is wired yet (brief note #5): the queryFn returns typed mock data from
- * `features/borrower/mock-data.ts` so the catalog page can render. When the
- * backend lands, swap the queryFn for an apiClient call to GET /equipment-types
- * (keys already live in query-client) — filtering/sorting stays client-side
- * until the endpoint supports query params.
+ * The catalogue filters, sorts and counts across the whole result set on the
+ * client, so it needs every item, not the first page. The server caps pageSize
+ * at 100, so this walks the pages instead of asking for one huge one - asking
+ * for 200 is simply rejected with a 400.
+ *
+ * If the catalogue ever grows past a few hundred items this should move to
+ * server-side filtering, since the facet counts in the rail are the only
+ * reason the whole set is needed.
  */
+
 export function useEquipmentTypes(filters?: Record<string, unknown>) {
+  const trpc = useTRPCClient();
+
   return useQuery({
     queryKey: queryKeys.equipmentTypes(filters),
-    queryFn: async (): Promise<CatalogItem[]> => CATALOG_ITEMS,
+    queryFn: async (): Promise<CatalogItem[]> => {
+      const rows = await fetchAllPages((page, pageSize) =>
+        trpc.item.list.query({ page, pageSize }),
+      );
+      return rows.map(toCatalogItem);
+    },
   });
 }
 
 /**
- * useEquipmentType — one catalog item by id, for the detail page.
- * Resolves to `null` when the id matches nothing (deleted item, bad link).
- * Swap the queryFn for GET /equipment-types/:id when the backend lands.
+ * useEquipmentType - one catalogue item by id, for the detail page.
+ *
+ * Resolves to `null` when the id matches nothing, so a stale link renders the
+ * empty state instead of surfacing an error. The server keys items by integer,
+ * while routes carry strings, hence the parse.
  */
 export function useEquipmentType(id: string | undefined) {
+  const trpc = useTRPCClient();
+
   return useQuery({
     queryKey: queryKeys.equipmentType(id ?? ""),
-    queryFn: async (): Promise<CatalogItem | null> =>
-      CATALOG_ITEMS.find((it) => it.id === id) ?? null,
+    queryFn: async (): Promise<CatalogItem | null> => {
+      const numericId = Number(id);
+      if (!Number.isInteger(numericId) || numericId <= 0) return null;
+
+      try {
+        return toCatalogItem(await trpc.item.getById.query({ id: numericId }));
+      } catch {
+        return null;
+      }
+    },
     enabled: Boolean(id),
   });
 }

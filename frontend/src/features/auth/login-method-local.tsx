@@ -8,7 +8,7 @@ import { localLoginSchema, type LocalLoginValues } from "./login.schema";
 
 /**
  * Local account login method (accordion panel) for department staff without a
- * KU email. On valid submit, delegates to `onSubmit` (mock login — no API yet).
+ * KU email. On valid submit, delegates to `onSubmit` (mock login - no API yet).
  */
 export function LoginMethodLocal({
   open,
@@ -18,7 +18,7 @@ export function LoginMethodLocal({
   open: boolean;
   onToggle: () => void;
   /** Returns a Thai error message to display, or null/undefined on success. */
-  onSubmit: (values: LocalLoginValues) => string | null | void;
+  onSubmit: (values: LocalLoginValues) => Promise<string | null | void> | string | null | void;
 }) {
   const { t } = useTranslation();
   const [showPass, setShowPass] = useState(false);
@@ -34,9 +34,9 @@ export function LoginMethodLocal({
   });
 
   // Run field validation first, then the credential check from the parent.
-  const handleValid = (values: LocalLoginValues) => {
+  const handleValid = async (values: LocalLoginValues) => {
     clearErrors("root");
-    const error = onSubmit(values);
+    const error = await onSubmit(values);
     if (error) setError("root", { type: "manual", message: error });
   };
 

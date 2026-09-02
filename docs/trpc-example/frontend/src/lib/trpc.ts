@@ -12,7 +12,7 @@
  *   "@ulms/contract": "*"          <- workspace ไม่ต้องระบุเวอร์ชัน
  *
  * ไม่ต้องลง @trpc/server และไม่ต้องลง zod ซ้ำ เพราะทางเลือก ก. มี node_modules
- * กองเดียว — แพ็กเกจ contract ประกาศไว้แล้ว frontend เห็นผ่าน workspace
+ * กองเดียว - แพ็กเกจ contract ประกาศไว้แล้ว frontend เห็นผ่าน workspace
  */
 
 import { createTRPCClient, httpBatchLink, httpLink, splitLink } from '@trpc/client';
@@ -22,7 +22,7 @@ const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 /**
  * ส่ง cookie ไปกับทุก request
- * ทีมเลือก httpOnly cookie ไปแล้วโดยปริยาย — api-client.ts เดิมตั้ง
+ * ทีมเลือก httpOnly cookie ไปแล้วโดยปริยาย - api-client.ts เดิมตั้ง
  * credentials:"include" ไว้ทุก request
  */
 const fetchWithCredentials: typeof fetch = (url, opts) =>
@@ -38,7 +38,7 @@ export const trpcClient = createTRPCClient<AppRouter>({
      *
      * เอกสารรายการเรียกใช้งานกำหนด polling 10-15 วินาทีสำหรับของคงเหลือและ
      * สล็อตห้อง ถ้าไปรวมก้อนกับ query หนักอย่างรายงานสถิติ ทั้งก้อนจะช้าตาม
-     * ทุก 10 วินาที — จึงแยกเส้นให้ query ที่ทำเครื่องหมาย realtime ไว้
+     * ทุก 10 วินาที - จึงแยกเส้นให้ query ที่ทำเครื่องหมาย realtime ไว้
      *
      * ถ้าที่ประชุม ว-13 ตัดสินใจอย่างอื่น แก้ได้ที่ไฟล์นี้ไฟล์เดียว
      */

@@ -1,6 +1,6 @@
 # ตัวอย่างผลลัพธ์ของการประชุมสัญญา tRPC
 
-โฟลเดอร์นี้คือ **หน้าตาของโค้ดเมื่อประชุมจบแล้ว** — ทุกไฟล์เป็นของจริงที่ก๊อปวาง
+โฟลเดอร์นี้คือ **หน้าตาของโค้ดเมื่อประชุมจบแล้ว** - ทุกไฟล์เป็นของจริงที่ก๊อปวาง
 ไปใช้ได้ ไม่ใช่ pseudocode
 
 จุดประสงค์คือให้ทีมเห็นปลายทางก่อนเริ่มถกเถียง เพราะการเถียงว่า "แบ่งหน้าแบบไหนดี"
@@ -9,7 +9,7 @@
 > ### ⚠ อ่านก่อน
 >
 > **โค้ดชุดนี้เขียนบนสมมติฐานว่าที่ประชุมเลือก ทางเลือก ก. (npm workspaces)**
-> ในวาระ ว-01 ซึ่งเป็นทางที่ทีมมีแนวโน้มจะเลือก — ยังไม่ใช่มติ
+> ในวาระ ว-01 ซึ่งเป็นทางที่ทีมมีแนวโน้มจะเลือก - ยังไม่ใช่มติ
 >
 > มติอื่น ๆ ก็อิงข้อเสนอในเอกสาร `trpc-meeting.tex` เช่นกัน ถ้าที่ประชุมตัดสิน
 > ต่างออกไป คอลัมน์ขวาสุดของตารางข้างล่างบอกว่าต้องแก้อะไร และ
@@ -32,7 +32,7 @@
 | **ว-06** | รูปแบบ error | `packages/contract/src/errors/error-codes.ts`<br>`backend/src/common/errors/business-error.ts`<br>`frontend/src/lib/error-messages.ts` | เลือก "ตัดวันยืมอัตโนมัติ" แทนปฏิเสธ → แก้บล็อกใน `loan.service.ts` ตามคอมเมนต์ที่เขียนไว้ |
 | **ว-07** | แบ่งหน้า/กรอง | `packages/contract/src/schemas/pagination.schema.ts` | เลือก cursor → เปลี่ยน `paginated()` เป็นคืน `{ items, nextCursor }` |
 | **ว-08** | วันที่/เวลา | `packages/contract/src/schemas/datetime.schema.ts` | เลือก superjson → ลบไฟล์นี้ แล้วตั้ง transformer ทั้งสองฝั่ง |
-| **ว-09** | แปลงชื่อฟิลด์ | `packages/contract/src/schemas/user.schema.ts`<br>`backend/src/common/mappers/user.mapper.ts` | — (ข้อเสนอนี้แทบไม่มีทางเลือกอื่นที่ปลอดภัย) |
+| **ว-09** | แปลงชื่อฟิลด์ | `packages/contract/src/schemas/user.schema.ts`<br>`backend/src/common/mappers/user.mapper.ts` | - (ข้อเสนอนี้แทบไม่มีทางเลือกอื่นที่ปลอดภัย) |
 | **ว-10** | สถานะเป็นสตริง | `packages/contract/src/schemas/status.schema.ts` | เติม/แก้รายการค่าให้ตรงกับตารางในฐานข้อมูลจริง |
 | ทั้งหมด | ตารางสัญญาที่คนอ่านได้ | `CONTRACT.md` | อัปเดตทุกครั้งที่เพิ่ม procedure |
 
@@ -55,7 +55,7 @@ backend เขียน router  ──build──▶  packages/contract/src/gene
 
 - **ไม่มีขั้นตอนคัดลอก** จึงไม่มีสถานการณ์ "สัญญาเก่าเงียบ ๆ"
 - **มี `node_modules` กองเดียว** จึงไม่มีวันเจอ `zod` สองชุด
-- **frontend เอา zod schema ไป validate ฟอร์มได้เลย** — `createLoanInput`
+- **frontend เอา zod schema ไป validate ฟอร์มได้เลย** - `createLoanInput`
   ตัวเดียวกับที่ backend ใช้ตรวจ ไม่ต้องเขียนซ้ำใน `frontend/src/schemas/`
 
 ข้อสุดท้ายเป็นประโยชน์ที่ทางเลือก ข. ให้ไม่ได้ และเป็นเหตุผลที่ควรย้าย
@@ -65,7 +65,7 @@ backend เขียน router  ──build──▶  packages/contract/src/gene
 
 ## เส้นที่ควรทำให้วิ่งก่อน (vertical slice)
 
-`auth.me` — เพราะทุกหน้าใช้ และมันบังคับให้แก้เรื่อง cookie, CORS, context และ
+`auth.me` - เพราะทุกหน้าใช้ และมันบังคับให้แก้เรื่อง cookie, CORS, context และ
 การขนส่งสัญญาไปพร้อมกัน เจอปัญหาโครงสร้างทั้งหมดตั้งแต่ procedure แรก
 ตอนที่แก้แล้วกระทบแค่ตัวเดียว
 
@@ -81,14 +81,14 @@ backend เขียน router  ──build──▶  packages/contract/src/gene
 
 ---
 
-## ก่อนใช้งาน — ของที่ต้องทำ
+## ก่อนใช้งาน - ของที่ต้องทำ
 
 ```bash
-# ว-02 — ทำก่อนอย่างอื่น และแยกเป็น PR ของตัวเอง
+# ว-02 - ทำก่อนอย่างอื่น และแยกเป็น PR ของตัวเอง
 cd frontend && npm i zod@^4
 npm run typecheck   # ต้องผ่านก่อนไปต่อ (ระวัง loan-request.schema.ts + @hookform/resolvers)
 
-# ว-01 — ตั้ง workspace (ทำที่รากรีโป หลัง merge สองสาขาแล้ว)
+# ว-01 - ตั้ง workspace (ทำที่รากรีโป หลัง merge สองสาขาแล้ว)
 mv backend-preview/backend ./backend
 git worktree remove backend-preview
 git worktree remove frontend-preview
@@ -97,18 +97,18 @@ rm -f  frontend/package-lock.json backend/package-lock.json
 # วาง package.json ราก + packages/contract/ ตามไฟล์ตัวอย่าง แล้ว:
 npm install                      # ครั้งเดียว ได้ node_modules กองเดียว
 
-# ว-03 — backend ยังไม่มีตัวอ่าน cookie
+# ว-03 - backend ยังไม่มีตัวอ่าน cookie
 npm i cookie-parser -w backend
 npm i -D @types/cookie-parser -w backend
 
-# ว-01 — frontend ยังไม่มีแพ็กเกจของ tRPC เลยสักตัว
+# ว-01 - frontend ยังไม่มีแพ็กเกจของ tRPC เลยสักตัว
 npm i @trpc/client @trpc/tanstack-react-query -w frontend
 ```
 
 เพิ่ม `"@ulms/contract": "*"` ใน `dependencies` ของทั้ง `frontend/package.json`
 และ `backend/package.json`
 
-> **ไม่ต้องลง `@trpc/server` ที่ฝั่ง frontend** — ต่างจากทางเลือก ข. เพราะ
+> **ไม่ต้องลง `@trpc/server` ที่ฝั่ง frontend** - ต่างจากทางเลือก ข. เพราะ
 > `packages/contract/package.json` ประกาศไว้เป็น `peerDependencies` แล้ว และ
 > `node_modules` มีกองเดียว frontend จึง resolve เจอเอง
 
@@ -124,14 +124,14 @@ Vite จัดการได้สบาย แต่ **`tsc` ของ NestJS 
 สองทางแก้ เลือกทางใดทางหนึ่ง
 
 ```jsonc
-// ทาง A — ให้ backend มองเห็นซอร์สของ contract (ง่ายกว่า)
+// ทาง A - ให้ backend มองเห็นซอร์สของ contract (ง่ายกว่า)
 // backend/tsconfig.json
 {
   "compilerOptions": { /* ไม่ต้องตั้ง rootDir */ },
   "include": ["src", "../packages/contract/src"]
 }
 
-// ทาง B — ให้ contract build เป็น dist ก่อน (สะอาดกว่า แต่มีขั้นตอนเพิ่ม)
+// ทาง B - ให้ contract build เป็น dist ก่อน (สะอาดกว่า แต่มีขั้นตอนเพิ่ม)
 // packages/contract/package.json
 { "main": "./dist/index.js", "types": "./dist/index.d.ts",
   "scripts": { "build": "tsc" } }
@@ -144,7 +144,7 @@ Vite จัดการได้สบาย แต่ **`tsc` ของ NestJS 
 ### 2 · พาธของ Prisma พังตอนย้ายโฟลเดอร์
 
 `schema.prisma` ตั้ง `output = "../src/generated/prisma"` และ
-`prisma.config.ts` ชี้ `"prisma/schema.prisma"` — ทั้งคู่เป็นพาธสัมพัทธ์กับ cwd
+`prisma.config.ts` ชี้ `"prisma/schema.prisma"` - ทั้งคู่เป็นพาธสัมพัทธ์กับ cwd
 
 **รัน Prisma จากใน workspace เสมอ** (`npm run prisma:generate -w backend`)
 ไม่ใช่จากราก และตรวจ `npx prisma generate` ให้ผ่านทันทีหลังย้ายโฟลเดอร์
@@ -152,12 +152,12 @@ Vite จัดการได้สบาย แต่ **`tsc` ของ NestJS 
 ### 3 · phantom dependency
 
 hoisting ทำให้ `import` แพ็กเกจที่ไม่ได้ประกาศใน `package.json` ของ workspace
-ตัวเองได้ แล้วพังตอนแยกไป deploy — **ทุกครั้งที่ import ของใหม่ ให้
+ตัวเองได้ แล้วพังตอนแยกไป deploy - **ทุกครั้งที่ import ของใหม่ ให้
 `npm i <pkg> -w <workspace>` เสมอ** ห้ามพึ่งว่า "มันก็เห็นอยู่แล้ว"
 
 ### 4 · lockfile เดียว conflict บ่อยขึ้น
 
-`package-lock.json` ไฟล์เดียวสำหรับทุก workspace — เวลา conflict
+`package-lock.json` ไฟล์เดียวสำหรับทุก workspace - เวลา conflict
 **อย่าแก้ด้วยมือ** ให้เอาของฝั่งใดฝั่งหนึ่งแล้ว `npm install` ใหม่เพื่อสร้างใหม่
 
 ### 5 · `export type` ใน `index.ts` ห้ามเปลี่ยนเป็น `export`
@@ -165,7 +165,7 @@ hoisting ทำให้ `import` แพ็กเกจที่ไม่ได�
 `packages/contract/src/index.ts` ใช้ `export type { AppRouter }` โดยตั้งใจ
 ไฟล์ generated ข้างในมี `initTRPC.create()` ซึ่งเป็นโค้ดที่รันได้จริง
 ถ้า re-export แบบธรรมดา โมดูลจะถูกประเมินตอนรันและลาก `@trpc/server`
-เข้า bundle ของเบราว์เซอร์ — build ยังผ่านปกติ ไม่มี error
+เข้า bundle ของเบราว์เซอร์ - build ยังผ่านปกติ ไม่มี error
 
 กันด้วยกฎ ESLint `consistent-type-imports`
 
@@ -173,7 +173,7 @@ hoisting ทำให้ `import` แพ็กเกจที่ไม่ได�
 
 ## ข้อจำกัดที่ต้องรู้
 
-**ตรวจไวยากรณ์แล้ว แต่ยังไม่ได้ตรวจ type** — ไฟล์ `.ts` ทั้ง 21 ไฟล์ผ่าน
+**ตรวจไวยากรณ์แล้ว แต่ยังไม่ได้ตรวจ type** - ไฟล์ `.ts` ทั้ง 21 ไฟล์ผ่าน
 `tsc 5.7 --noEmit --strict` โดยไม่มี syntax error (`TS1xxx`) เหลือเลย
 
 แต่ error ที่เหลืออยู่ 46 รายการล้วนเป็น `TS2307 Cannot find module` และผลพวง
@@ -183,12 +183,12 @@ hoisting ทำให้ `import` แพ็กเกจที่ไม่ได�
 
 **ให้รัน `npm run typecheck` ที่รากอีกครั้งหลังตั้ง workspace เสร็จเสมอ**
 
-**ชื่อ decorator ของ `nestjs-trpc` ต้องเช็กกับเวอร์ชันที่ลงจริง** — รีโปใช้
+**ชื่อ decorator ของ `nestjs-trpc` ต้องเช็กกับเวอร์ชันที่ลงจริง** - รีโปใช้
 `nestjs-trpc@^2.13.0` และ API ของมันขยับระหว่างเวอร์ชันใหญ่ ถ้า
 `@UseMiddlewares` หรือรูปแบบของ `TRPCModule.forRoot()` ไม่ตรง ให้ยึดเอกสารของ
 เวอร์ชันที่ลงไว้ **โครงสร้างและการแบ่งไฟล์ยังใช้ได้เหมือนเดิม เปลี่ยนแค่ชื่อ decorator**
 
-**`autoSchemaFile: '../packages/contract/src/generated'` ต้องทดสอบจริง** —
+**`autoSchemaFile: '../packages/contract/src/generated'` ต้องทดสอบจริง** -
 ค่านี้เป็นพาธสัมพัทธ์กับ cwd ตอนรัน backend ถ้า nestjs-trpc ตีความต่างจากที่คาด
 ให้ปรับพาธ แล้วบันทึกค่าที่ใช้ได้จริงลง `CONTRACT.md`
 
@@ -205,8 +205,8 @@ hoisting ทำให้ `import` แพ็กเกจที่ไม่ได�
 
 | ไฟล์ | เนื้อหา |
 |---|---|
-| `STRUCTURE.md` (โฟลเดอร์นี้) | **ของจริงควรอยู่ที่ไหน และใครรับผิดชอบ** — โครงเป้าหมาย, ตารางแมปไฟล์ → ปลายทาง, ลำดับการย้าย 8 ขั้น |
+| `STRUCTURE.md` (โฟลเดอร์นี้) | **ของจริงควรอยู่ที่ไหน และใครรับผิดชอบ** - โครงเป้าหมาย, ตารางแมปไฟล์ → ปลายทาง, ลำดับการย้าย 8 ขั้น |
 | `CONTRACT.md` (โฟลเดอร์นี้) | ตารางสัญญา: procedure มีอะไรบ้าง input/output หน้าตาไหน |
 | `../report/trpc-guide.pdf` | หลักการของ tRPC · ทางเดินของ request · ความเสี่ยง 8 ข้อในรีโปนี้ |
-| `../report/trpc-meeting.pdf` | วาระประชุม 19 วาระ — ว-01 มีรายละเอียดทั้งสองทางเลือกและเรื่อง merge |
-| `../../รายการเรียกใช้งานจาก Backend.pdf` | ร่างสัญญาฉบับแรกของทีม — ต้นทางของตารางใน `CONTRACT.md` |
+| `../report/trpc-meeting.pdf` | วาระประชุม 19 วาระ - ว-01 มีรายละเอียดทั้งสองทางเลือกและเรื่อง merge |
+| `../../รายการเรียกใช้งานจาก Backend.pdf` | ร่างสัญญาฉบับแรกของทีม - ต้นทางของตารางใน `CONTRACT.md` |

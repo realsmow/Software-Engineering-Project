@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { applyTheme, getInitialTheme, storeTheme, type Theme } from "@/lib/theme";
 
 /**
- * useTheme — reads the initial theme on mount (localStorage → OS pref),
+ * useTheme - reads the initial theme on mount (localStorage → OS pref),
  * keeps <body class="dark"> in sync, and persists changes.
  *
  * Because every ULMs surface animates its colors together (see the

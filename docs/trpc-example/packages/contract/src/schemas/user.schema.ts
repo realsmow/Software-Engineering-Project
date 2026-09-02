@@ -1,10 +1,10 @@
 /**
  * วาระ ว-09 · output พูดภาษา frontend และห้ามส่ง Prisma model ตรง ๆ
  * ปลายทางจริง: packages/contract/src/schemas/user.schema.ts
- * (ทางเลือก ก. — schema ที่สองฝั่งใช้ร่วมกันอยู่ในแพ็กเกจกลาง ไม่ใช่ใน backend)
+ * (ทางเลือก ก. - schema ที่สองฝั่งใช้ร่วมกันอยู่ในแพ็กเกจกลาง ไม่ใช่ใน backend)
  *
  * เขียน schema กลางของแต่ละ entity ไว้ที่เดียว แล้ว procedure อื่น ๆ เอาไป
- * .pick() / .omit() / .extend() ต่อ — ไม่ต้องเขียนซ้ำทุก procedure
+ * .pick() / .omit() / .extend() ต่อ - ไม่ต้องเขียนซ้ำทุก procedure
  */
 
 import { z } from 'zod';

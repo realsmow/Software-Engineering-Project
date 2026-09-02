@@ -6,12 +6,12 @@
 
 /* ============================================================
    ULMs Design Tokens (Light + Dark)
-   Ported verbatim from ULMs-login-and-shell-v3.html — these token
+   Ported verbatim from ULMs-login-and-shell-v3.html - these token
    names/values are the contract between design and code.
    ============================================================ */
 @layer base {
   :root {
-    --font-ui: "Prompt", "Inter", system-ui, -apple-system, sans-serif;
+    --font-ui: "Prompt", system-ui, -apple-system, sans-serif;
     --font-mono: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
 
     --accent: #0e7a46;
@@ -25,17 +25,41 @@
     --accent-orange: #ea580c;
     --accent-red: #dc2626;
 
-    --s-bg: #f7f8f9;
-    --s-surface: #ffffff;
+    --s-bg: #eaedf0;
+    --s-surface: #fcfcfd;
     --s-subtle: #f1f3f5;
     --s-inset: #eaedef;
-    --s-line: #dee2e6;
+    --s-line: #d3d8de;
     --s-line-strong: #adb5bd;
 
     --s-t1: #1a1d20;
     --s-t2: #495057;
     --s-t3: #6b7075;
-    --s-t4: #8f959b;
+    --s-t4: #6f757b;
+
+    /* Chart series: one hue, five steps. Multi-series charts still separate
+       cleanly, without six competing colours implying six unrelated things. */
+    /* Qualitative series palette: four hues spaced round the wheel, each
+       solved to the same contrast (~4.3:1) so no series outweighs another.
+       A single-hue ramp was the wrong tool here - four roles are four
+       different things, not four magnitudes of one, and shades of the same
+       green are unreadable stacked on top of each other. Purple is skipped,
+       and these sit lighter and less saturated than the status colours so a
+       chart series never reads as a warning. */
+    --c-1: #288a59;
+    --c-2: #327ead;
+    --c-3: #ca4989;
+    --c-4: #96722b;
+    --c-5: #6b7075;
+
+    /* Bar and area fills. Lighter than --accent on purpose: --accent is tuned
+       for text (5.26:1) and a wall of it as solid bars reads far heavier than
+       it needs to. Large shapes only need 3:1, so fills sit in that band. */
+    --c-fill: #2f9a68;
+    /* Emphasis on a green chart. Red sits opposite green on the wheel, so it
+       separates on hue rather than on lightness - the old #9a4310 was an
+       orange-brown one step round from green and just muddied against it. */
+    --c-highlight: #c0362b;
 
     --s-ok-bg: #e8f3ec;
     --s-ok-t: #0e5c34;
@@ -53,9 +77,9 @@
     --s-alert-t: #a12222;
     --s-alert-b: #f3b8b8;
 
-    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
-    --shadow-md: 0 2px 6px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
-    --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.1), 0 2px 6px rgba(0, 0, 0, 0.06);
+    --shadow-sm: none;
+    --shadow-md: none;
+    --shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.06);
 
     /* ---- Legacy shadcn HSL tokens (kept so existing button.tsx /
        card.tsx keep compiling; not used by the new shell/login). ---- */
@@ -92,12 +116,12 @@
   }
 
   body.dark {
-    --accent: #14a35e;
-    --accent-h: #17b769;
-    --accent-p: #17c26f;
-    --accent-ring: rgba(20, 163, 94, 0.35);
-    --accent-soft: rgba(20, 163, 94, 0.13);
-    --accent-border: rgba(20, 163, 94, 0.3);
+    --accent: #3d9e6c;
+    --accent-h: #48ab78;
+    --accent-p: #53b884;
+    --accent-ring: rgba(61, 158, 108, 0.3);
+    --accent-soft: rgba(61, 158, 108, 0.12);
+    --accent-border: rgba(61, 158, 108, 0.28);
 
     --s-bg: #0d1117;
     --s-surface: #161b22;
@@ -110,6 +134,15 @@
     --s-t2: #b3bcc6;
     --s-t3: #8b949e;
     --s-t4: #6e7681;
+
+    --c-1: #3da270;
+    --c-2: #5898bf;
+    --c-3: #cb76a0;
+    --c-4: #b18c43;
+    --c-5: #8b949e;
+
+    --c-fill: #3d9e6c;
+    --c-highlight: #ef7b70;
 
     --s-ok-bg: #0f2a1c;
     --s-ok-t: #5fd394;
@@ -128,7 +161,7 @@
     --s-alert-b: #5c2828;
   }
 
-  /* Legacy shadcn dark tokens (class strategy — body.dark also matches
+  /* Legacy shadcn dark tokens (class strategy - body.dark also matches
      the `.dark` selector, so existing components adapt too). */
   .dark {
     --background: 148 21% 8%;
@@ -168,7 +201,7 @@
     -webkit-font-smoothing: antialiased;
   }
 
-  /* Synchronized dark-mode transition — every surface animates its
+  /* Synchronized dark-mode transition - every surface animates its
      background/border/color together so nothing "lags behind". */
   body,
   body *,
@@ -262,16 +295,7 @@
   overflow: hidden;
 }
 body.dark .login-left {
-  background: linear-gradient(160deg, #0a5c36 0%, #0e7a46 55%, #084829 100%);
-}
-.login-left::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(circle at 15% 20%, rgba(255, 255, 255, 0.06) 0%, transparent 40%),
-    radial-gradient(circle at 85% 80%, rgba(255, 255, 255, 0.04) 0%, transparent 45%);
-  pointer-events: none;
+  background: var(--accent-h);
 }
 .login-left > * {
   position: relative;
@@ -579,34 +603,18 @@ body.dark .login-left {
   opacity: 0.65;
   cursor: not-allowed;
 }
-.submit-btn.google {
-  background: #ffffff;
-  color: #3c4043;
-  border-color: #dadce0;
-  font-weight: 500;
-  letter-spacing: 0.01em;
-}
-.submit-btn.google:hover {
-  background: #f8f9fa;
-  border-color: #d2d5da;
-  box-shadow: 0 1px 3px rgba(60, 64, 67, 0.08);
-}
-body.dark .submit-btn.google {
-  background: #ffffff;
-  color: #3c4043;
-  border-color: #dadce0;
-}
-.google-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
+/*
+ * The KU tab used to render a white Google-styled button with Google's own
+ * brand colours and logo. Nothing here touches Google: both tabs post a
+ * password to the same auth.login. A Google mark on a form that sends a
+ * password to our server tells the user something untrue about where their
+ * credentials go, so the button is now an ordinary primary button.
+ */
 .login-notice {
   margin-top: 16px;
   padding: 10px 12px;
   background: var(--s-inset);
-  border-left: 3px solid var(--s-line-strong);
+  border: 1px solid var(--s-line);
   border-radius: 4px;
   font-size: 11.5px;
   color: var(--s-t3);
@@ -789,7 +797,7 @@ body.dark .submit-btn.google {
   width: 34px;
   height: 34px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--accent), var(--accent-h));
+  background: var(--accent);
   color: #fff;
   display: flex;
   align-items: center;
@@ -1689,7 +1697,7 @@ body.dark .submit-btn.google {
   width: 30px;
   height: 30px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--accent), var(--accent-h));
+  background: var(--accent);
   color: #fff;
   display: flex;
   align-items: center;
