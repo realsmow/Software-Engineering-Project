@@ -48,7 +48,7 @@ export function MetricCard({
     </>
   );
 
-  const base = "flex flex-col gap-2 rounded-lg border border-border bg-card px-4 py-3 text-left shadow-sm";
+  const base = "flex flex-col gap-2 rounded-lg border border-border bg-card px-4 py-3 text-left";
 
   if (onClick) {
     return (

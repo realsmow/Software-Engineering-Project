@@ -84,7 +84,7 @@ export function DataTable<T>({
   }, [safePage, pageCount]);
 
   return (
-    <div className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
+    <div className="overflow-hidden rounded-lg border border-border bg-card">
       {title ? (
         <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
           <span className="text-sm font-semibold text-foreground">{title}</span>

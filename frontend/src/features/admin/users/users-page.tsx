@@ -1,7 +1,7 @@
 import { useMemo, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Check, Download, Plus, Search } from "lucide-react";
-import { Bar, BarChart, CartesianGrid, Cell, Tooltip, XAxis, YAxis } from "recharts";
+import { Bar, BarChart, CartesianGrid, Tooltip, XAxis, YAxis } from "recharts";
 import { PageHeader } from "@/components/shared/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,8 +38,6 @@ import {
   useSetUserActive,
   useSetUserBan,
 } from "./use-admin-users";
-
-const ACTIVITY_ROLE_ORDER: Role[] = ["borrower", "staff", "supervisor", "admin"];
 
 /**
  * Turns a failed mutation into something readable.
@@ -452,14 +450,20 @@ export default function AdminUsersPage() {
               tick={{ fill: "var(--s-t3)", fontSize: 11 }}
             />
             <Tooltip content={<ChartTooltip unit={` ${t("admin.charts.actions")}`} />} cursor={{ fill: "var(--s-inset)", opacity: 0.5 }} />
-            <Bar dataKey="actions" name={t("admin.charts.actions")} radius={[0, 3, 3, 0]} maxBarSize={22}>
-              {TOP_ACTIVE_USERS.map((u) => (
-                <Cell
-                  key={u.name}
-                  fill={CHART_SERIES[ACTIVITY_ROLE_ORDER.indexOf(u.role) % CHART_SERIES.length]}
-                />
-              ))}
-            </Bar>
+            {/*
+              One series, one colour. These bars used to cycle through the
+              categorical palette by role, which made a single "actions" metric
+              read as six unrelated things - and the role is already spelled out
+              in the axis label beside each bar, so the colour carried nothing
+              the reader did not already have.
+            */}
+            <Bar
+              dataKey="actions"
+              name={t("admin.charts.actions")}
+              radius={[0, 3, 3, 0]}
+              maxBarSize={22}
+              fill={CHART_SERIES[0]}
+            />
           </BarChart>
         </ChartCard>
       </div>

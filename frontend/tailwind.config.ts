@@ -108,10 +108,6 @@ export default {
         DEFAULT: "5px",
         md: "6px",
         lg: "8px",
-        // Legacy keys kept so existing button.tsx/card.tsx compile.
-        xl: "14px",
-        "2xl": "18px",
-        "3xl": "22px",
       },
       fontFamily: {
         // Prompt is the ULMs UI font (reference HTML); JetBrains Mono for numerics.

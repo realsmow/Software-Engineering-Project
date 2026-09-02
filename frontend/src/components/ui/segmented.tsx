@@ -34,7 +34,7 @@ export function Segmented<V extends string>({
             "inline-flex h-8 items-center whitespace-nowrap rounded-[4px] px-3 text-sm font-medium transition-colors",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
             o.value === value
-              ? "bg-card text-foreground shadow-sm"
+              ? "bg-card text-foreground"
               : "text-muted-foreground hover:text-foreground",
           )}
           onClick={() => onChange(o.value)}
