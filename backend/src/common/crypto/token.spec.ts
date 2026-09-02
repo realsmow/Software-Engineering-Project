@@ -15,7 +15,9 @@ describe('signed tokens', () => {
 
   it('rejects a token signed with another secret', () => {
     const token = signToken('42:1700000000000', SECRET);
-    expect(verifyToken(token, 'a-different-secret-of-sufficient-length!!')).toBeNull();
+    expect(
+      verifyToken(token, 'a-different-secret-of-sufficient-length!!'),
+    ).toBeNull();
   });
 
   it('rejects a payload edited in place', () => {
@@ -32,7 +34,9 @@ describe('signed tokens', () => {
     const [payload, signature] = token.split('.');
     const flipped = signature[0] === 'A' ? 'B' : 'A';
 
-    expect(verifyToken(`${payload}.${flipped}${signature.slice(1)}`, SECRET)).toBeNull();
+    expect(
+      verifyToken(`${payload}.${flipped}${signature.slice(1)}`, SECRET),
+    ).toBeNull();
   });
 
   describe('rejects malformed input', () => {

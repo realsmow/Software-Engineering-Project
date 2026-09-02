@@ -18,7 +18,7 @@ import type { Role } from "@/types/domain";
  *   a placeholder (the *-page modules under features/); real content lands later.
  */
 
-// Borrower (auth-only base — shared by every role)
+// Borrower (auth-only base - shared by every role)
 const HomePage = lazy(() => import("@/features/borrower/home/home-page"));
 const CatalogPage = lazy(() => import("@/features/borrower/catalog/catalog-page"));
 const EquipmentDetailPage = lazy(
@@ -28,10 +28,10 @@ const RoomListPage = lazy(() => import("@/features/borrower/rooms/room-list-page
 const RoomBookingPage = lazy(
   () => import("@/features/borrower/rooms/room-booking-page"),
 );
+const RoomUsePage = lazy(() => import("@/features/borrower/rooms/room-use-page"));
 const RequestPage = lazy(() => import("@/features/borrower/request/request-page"));
+const PickupPage = lazy(() => import("@/features/borrower/pickup/pickup-page"));
 const MyLoansPage = lazy(() => import("@/features/borrower/loans/my-loans-page"));
-const MyHistoryPage = lazy(() => import("@/features/borrower/loans/my-history-page"));
-const MyCreditPage = lazy(() => import("@/features/borrower/credit/my-credit-page"));
 const AppealsPage = lazy(() => import("@/features/borrower/appeals/appeals-page"));
 
 // Account (any authenticated role)
@@ -106,20 +106,20 @@ export function AppRouter() {
 
         {/* Authenticated app shell */}
         <Route element={<ProtectedShell />}>
-          {/* Borrower base — any authenticated role */}
+          {/* Borrower base - any authenticated role */}
           <Route path={ROUTES.HOME} element={<HomePage />} />
           <Route path={ROUTES.CATALOG} element={<CatalogPage />} />
           <Route path={ROUTES.EQUIPMENT_DETAIL} element={<EquipmentDetailPage />} />
           <Route path={ROUTES.ROOMS} element={<RoomListPage />} />
           <Route path={ROUTES.ROOM_BOOKING} element={<RoomBookingPage />} />
+          <Route path={ROUTES.ROOM_USE} element={<RoomUsePage />} />
           <Route path={ROUTES.REQUEST} element={<RequestPage />} />
+          <Route path={ROUTES.PICKUP} element={<PickupPage />} />
           <Route path={ROUTES.MY_LOANS} element={<MyLoansPage />} />
-          <Route path={ROUTES.MY_HISTORY} element={<MyHistoryPage />} />
-          <Route path={ROUTES.MY_CREDIT} element={<MyCreditPage />} />
           <Route path={ROUTES.APPEALS} element={<AppealsPage />} />
           <Route path={ROUTES.PROFILE} element={<ProfilePage />} />
 
-          {/* Staff operations — staff + admin */}
+          {/* Staff operations - staff + admin */}
           <Route element={<RoleGuard allowedRoles={["staff", "admin"]} />}>
             <Route path={ROUTES.STAFF_DASHBOARD} element={<StaffDashboardPage />} />
             <Route path={ROUTES.STAFF_HANDOVER} element={<StaffHandoverPage />} />
@@ -127,7 +127,7 @@ export function AppRouter() {
             <Route path={ROUTES.STAFF_INVENTORY} element={<StaffInventoryPage />} />
           </Route>
 
-          {/* Department management + reports — staff + supervisor + admin */}
+          {/* Department management + reports - staff + supervisor + admin */}
           <Route element={<RoleGuard allowedRoles={["staff", "supervisor", "admin"]} />}>
             <Route path={ROUTES.STAFF_USERS} element={<StaffUsersPage />} />
             <Route path={ROUTES.STAFF_PERMISSIONS} element={<StaffPermissionsPage />} />
@@ -136,13 +136,13 @@ export function AppRouter() {
             <Route path={ROUTES.REPORT_EXPORT} element={<ReportExportPage />} />
           </Route>
 
-          {/* Supervisor — supervisor + admin */}
+          {/* Supervisor - supervisor + admin */}
           <Route element={<RoleGuard allowedRoles={["supervisor", "admin"]} />}>
             <Route path={ROUTES.SUPERVISOR_APPROVALS} element={<SupervisorApprovalsPage />} />
             <Route path={ROUTES.SUPERVISOR_APPEALS} element={<SupervisorAppealsPage />} />
           </Route>
 
-          {/* Admin — admin only */}
+          {/* Admin - admin only */}
           <Route element={<RoleGuard allowedRoles={["admin"]} />}>
             <Route path={ROUTES.ADMIN_DASHBOARD} element={<AdminDashboardPage />} />
             <Route path={ROUTES.ADMIN_USERS} element={<AdminUsersPage />} />

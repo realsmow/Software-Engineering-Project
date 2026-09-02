@@ -19,7 +19,7 @@ dist/
 build/
 .turbo/
 
-# Secrets — never commit; .env.example carries the placeholders instead
+# Secrets - never commit; .env.example carries the placeholders instead
 .env
 .env.local
 .env.*.local

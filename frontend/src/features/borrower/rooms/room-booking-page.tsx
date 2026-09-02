@@ -12,23 +12,25 @@ import { cn } from "@/lib/utils";
 import {
   ROOM_TYPES,
   TIME_SLOTS,
-  bookedSlotsOf,
+  activeRoomBookings,
   buildingName,
   slotsAdjacent,
+  takenSlotsOf,
   type Room,
 } from "../mock-data";
 import { useSubmittedRequests } from "../loans/submitted-requests.store";
+import { useMyRequests } from "../loans/use-my-requests";
 import { useRoom } from "./use-rooms";
 
 /**
- * Room booking request — reached from a room-list row. The room comes from the
+ * Room booking request - reached from a room-list row. The room comes from the
  * URL, so the page is refreshable and shareable; the date and the chosen slots
  * are form state that lives here.
  *
  * Layout follows the reference mockup: a content column (steps → chosen room →
  * date & slots) beside a sticky summary rail.
  *
- * T3 facilities are entitlement-checked and confirmed automatically — no
+ * T3 facilities are entitlement-checked and confirmed automatically - no
  * supervisor step, which is why the rail has no approval gate.
  */
 export default function RoomBookingPage() {
@@ -37,10 +39,20 @@ export default function RoomBookingPage() {
   const { id } = useParams<{ id: string }>();
   const { data: room, isLoading } = useRoom(id);
   const addRoomBooking = useSubmittedRequests((s) => s.addRoomBooking);
+  const { requests } = useMyRequests();
 
   const [picked, setPicked] = useState<Set<number>>(new Set());
 
-  const booked = useMemo(() => (room ? bookedSlotsOf(room) : new Set<number>()), [room]);
+  // Hours already spoken for, live bookings included - sending a request holds
+  // the room straight away, so a slot someone took is gone before approval.
+  const booked = useMemo(
+    () => (room ? takenSlotsOf(room, requests) : new Set<number>()),
+    [room, requests],
+  );
+
+  // One room at a time: a booking already in flight closes this form.
+  const held = activeRoomBookings(requests);
+  const heldBooking = held.length >= BUSINESS.MAX_T3_ACTIVE_BOOKINGS ? held[0] : null;
 
   const backToList = () => navigate(ROUTES.ROOMS);
 
@@ -90,7 +102,7 @@ export default function RoomBookingPage() {
     });
   }
 
-  const canSubmit = picked.size > 0 && !roomFull;
+  const canSubmit = picked.size > 0 && !roomFull && heldBooking === null;
 
   const timeLabel =
     pickedIdx.length === 0
@@ -101,7 +113,7 @@ export default function RoomBookingPage() {
     if (!canSubmit || !room) return;
     // TODO: POST /facilities/:id/bookings with { date, slots }. Until then the
     // booking is pushed to the session store so it shows up under "my requests".
-    addRoomBooking({ room, date: todayIso() });
+    addRoomBooking({ room, date: todayIso(), slots: pickedIdx });
     navigate(ROUTES.MY_LOANS);
   }
 
@@ -201,7 +213,11 @@ export default function RoomBookingPage() {
                 />
               </div>
 
-              {roomFull ? (
+              {heldBooking ? (
+                <Notice tone="alert">
+                  {t("borrower.booking.heldWarn", { name: heldBooking.name })}
+                </Notice>
+              ) : roomFull ? (
                 <Notice tone="alert">{t("borrower.booking.roomFullWarn")}</Notice>
               ) : picked.size === 0 ? (
                 <Notice tone="warn">{t("borrower.booking.pickSlotWarn")}</Notice>
@@ -265,7 +281,7 @@ export default function RoomBookingPage() {
 }
 
 /**
- * 1-2-3 progress strip. Step 2 is always current — this page *is* step 2.
+ * 1-2-3 progress strip. Step 2 is always current - this page *is* step 2.
  *
  * No draft id here: the reference mockup printed a fixed one, which made
  * every draft look identical. Show it once the server assigns a real id.
@@ -377,7 +393,7 @@ function SumRow({
   children,
 }: {
   label: string;
-  /** Room names are prose, not figures — skip the mono treatment. */
+  /** Room names are prose, not figures - skip the mono treatment. */
   plain?: boolean;
   children: ReactNode;
 }) {
@@ -395,7 +411,7 @@ function todayIso(): string {
   return format(new Date(), "yyyy-MM-dd");
 }
 
-/** "12 ส.ค. 2569" — the booking date, spelled out for the summary. */
+/** "12 ส.ค. 2569" - the booking date, spelled out for the summary. */
 function fmtToday(): string {
   const now = new Date();
   return `${format(now, "d MMM", { locale: th })} ${now.getFullYear() + 543}`;

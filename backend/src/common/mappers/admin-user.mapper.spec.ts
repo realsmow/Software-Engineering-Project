@@ -6,7 +6,11 @@ import {
   type AdminAccountRow,
 } from './admin-user.mapper';
 
-const LIMITS: BorrowLimits = { creditTier: 'D1', maxBorrowDays: 7, maxExtendTimes: 1 };
+const LIMITS: BorrowLimits = {
+  creditTier: 'D1',
+  maxBorrowDays: 7,
+  maxExtendTimes: 1,
+};
 
 function accountRow(overrides: Partial<AdminAccountRow> = {}): AdminAccountRow {
   return {
@@ -16,6 +20,7 @@ function accountRow(overrides: Partial<AdminAccountRow> = {}): AdminAccountRow {
     UserLName: 'ศรีสุวรรณ',
     Email: 'natthawut.s@ku.th',
     UserCredit: 65,
+    IsActive: true,
     Role: { RoleName: 'Student' },
     Authorities: [],
     Penalties: [],
@@ -54,7 +59,9 @@ const activePenalty = {
 
 describe('toAdminUserSummary', () => {
   it('produces a schema-valid summary', () => {
-    expect(adminUserSummary.safeParse(toAdminUserSummary(accountRow())).success).toBe(true);
+    expect(
+      adminUserSummary.safeParse(toAdminUserSummary(accountRow())).success,
+    ).toBe(true);
   });
 
   it('renames the Prisma columns to the contract field names', () => {
@@ -71,15 +78,15 @@ describe('toAdminUserSummary', () => {
   it('maps RoleInfo.RoleName through the shared role mapping', () => {
     // 'Student' is what the seed data uses; 'borrower' is what the contract says.
     expect(toAdminUserSummary(accountRow()).role).toBe('borrower');
-    expect(toAdminUserSummary(accountRow({ Role: { RoleName: 'Professor' } })).role).toBe(
-      'supervisor',
-    );
+    expect(
+      toAdminUserSummary(accountRow({ Role: { RoleName: 'Professor' } })).role,
+    ).toBe('supervisor');
   });
 
   it('throws on a RoleName nobody mapped, rather than inventing a role', () => {
-    expect(() => toAdminUserSummary(accountRow({ Role: { RoleName: 'Librarian' } }))).toThrow(
-      /Librarian/,
-    );
+    expect(() =>
+      toAdminUserSummary(accountRow({ Role: { RoleName: 'Librarian' } })),
+    ).toThrow(/Librarian/);
   });
 
   describe('status', () => {
@@ -88,9 +95,9 @@ describe('toAdminUserSummary', () => {
     });
 
     it('is suspended when one is', () => {
-      expect(toAdminUserSummary(accountRow({ Penalties: [activePenalty] })).status).toBe(
-        'suspended',
-      );
+      expect(
+        toAdminUserSummary(accountRow({ Penalties: [activePenalty] })).status,
+      ).toBe('suspended');
     });
   });
 
@@ -101,23 +108,30 @@ describe('toAdminUserSummary', () => {
 
     it('takes the name from BranchInfo for a faculty group', () => {
       expect(
-        toAdminUserSummary(accountRow({ Authorities: [branchAuthority] })).managementGroup,
+        toAdminUserSummary(accountRow({ Authorities: [branchAuthority] }))
+          .managementGroup,
       ).toEqual({ id: 7, name: 'วิศวกรรมคอมพิวเตอร์', type: 'Faculty' });
     });
 
     it('takes it from ClubInfo for a club group', () => {
       expect(
-        toAdminUserSummary(accountRow({ Authorities: [clubAuthority] })).managementGroup,
+        toAdminUserSummary(accountRow({ Authorities: [clubAuthority] }))
+          .managementGroup,
       ).toEqual({ id: 9, name: 'ชมรมหุ่นยนต์', type: 'Club' });
     });
 
     it('is null-named when neither side has a name, instead of throwing', () => {
       const nameless = {
         ...branchAuthority,
-        ManageGroup: { GroupType: 'Faculty' as const, Branch: null, Club: null },
+        ManageGroup: {
+          GroupType: 'Faculty' as const,
+          Branch: null,
+          Club: null,
+        },
       };
       expect(
-        toAdminUserSummary(accountRow({ Authorities: [nameless] })).managementGroup?.name,
+        toAdminUserSummary(accountRow({ Authorities: [nameless] }))
+          .managementGroup?.name,
       ).toBeNull();
     });
   });
@@ -126,7 +140,10 @@ describe('toAdminUserSummary', () => {
 describe('toAdminUserDetail', () => {
   it('produces a schema-valid detail', () => {
     const detail = toAdminUserDetail(
-      accountRow({ Authorities: [branchAuthority, clubAuthority], Penalties: [activePenalty] }),
+      accountRow({
+        Authorities: [branchAuthority, clubAuthority],
+        Penalties: [activePenalty],
+      }),
       LIMITS,
     );
 
@@ -169,7 +186,9 @@ describe('toAdminUserDetail', () => {
 
   it('treats a null ActionTime and a null Appealed as absent, not as an error', () => {
     const [penalty] = toAdminUserDetail(
-      accountRow({ Penalties: [{ ...activePenalty, ActionTime: null, Appealed: null }] }),
+      accountRow({
+        Penalties: [{ ...activePenalty, ActionTime: null, Appealed: null }],
+      }),
       LIMITS,
     ).activePenalties;
 

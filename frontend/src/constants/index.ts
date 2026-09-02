@@ -26,14 +26,18 @@ export const BUSINESS = {
   MAX_LOAN_DAYS: 14,
   MIN_LOAN_DAYS: 1,
   PICKUP_DEADLINE_DAYS: 1,
+  EXTENSION_DAYS: 14, // ต่อเวลาผ่านระบบได้ครั้งละกี่วัน
   LOST_THRESHOLD_DAYS: 14, // เกินกำหนดกี่วันถือว่าหาย
   MAX_T3_CONCURRENT_SLOTS: 2, // จองสล็อต T3 พร้อมกันได้สูงสุด
+  // ผู้ยืมมีห้องที่ยังไม่เสร็จได้ทีละใบเดียว - ส่งคำขอแล้วห้องนั้นถูกกันไว้ให้ทันที
+  // คนอื่นจองช่วงเวลานั้นซ้ำไม่ได้ จึงจองค้างไว้หลายห้องพร้อมกันไม่ได้
+  MAX_T3_ACTIVE_BOOKINGS: 1,
   RESERVATION_MAX_DAYS: 90, // จองล่วงหน้าสูงสุด 3 เดือน
   RETURN_CUTOFF_HOUR: 17, // 17:00 หลังจากนี้นับช้า 1 วัน
 } as const;
 
 // ==================== File Upload (client-side guard) ====================
-// First line of defense before the pre-signed PUT — the backend re-validates.
+// First line of defense before the pre-signed PUT - the backend re-validates.
 // Matches the FILE_TOO_LARGE / INVALID_FILE_TYPE copy in error-messages.ts.
 export const UPLOAD = {
   MAX_MB: 5,
@@ -95,10 +99,10 @@ export const ROUTES = {
   EQUIPMENT_DETAIL: "/catalog/:id",
   ROOMS: "/rooms",
   ROOM_BOOKING: "/rooms/:id/book",
+  ROOM_USE: "/rooms/use",
   REQUEST: "/request",
+  PICKUP: "/pickup",
   MY_LOANS: "/my/loans",
-  MY_HISTORY: "/my/history",
-  MY_CREDIT: "/my/credit",
   APPEALS: "/my/appeals",
   // Staff
   STAFF_DASHBOARD: "/staff",
@@ -137,10 +141,10 @@ export const ROLE_ROUTES = {
     ROUTES.EQUIPMENT_DETAIL,
     ROUTES.ROOMS,
     ROUTES.ROOM_BOOKING,
+    ROUTES.ROOM_USE,
     ROUTES.REQUEST,
+    ROUTES.PICKUP,
     ROUTES.MY_LOANS,
-    ROUTES.MY_HISTORY,
-    ROUTES.MY_CREDIT,
     ROUTES.APPEALS,
   ],
   staff: [

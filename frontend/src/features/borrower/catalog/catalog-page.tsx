@@ -44,7 +44,7 @@ type SortKey = "avail" | "name" | "popular";
 const PAGE_SIZE = 8;
 
 /**
- * Equipment catalog — the borrower's entry point for browsing what the faculty
+ * Equipment catalog - the borrower's entry point for browsing what the faculty
  * lends. Layout follows the reference mockup: a filter rail beside a single
  * card that stacks toolbar → active chips → tier legend → table.
  *
@@ -212,7 +212,7 @@ export default function CatalogPage() {
       render: (e) => (
         // Button carries `disabled:pointer-events-none`, so once it is capped
         // the click lands on the row behind it and opens the detail page. The
-        // wrapper still takes pointer events, so it swallows the click — and
+        // wrapper still takes pointer events, so it swallows the click - and
         // it is where the tooltip has to live for the same reason.
         <span
           className="inline-flex"
@@ -297,7 +297,7 @@ export default function CatalogPage() {
             ) : (
               <DataTable
                 // Remount on any change to the result set so pagination starts
-                // over — DataTable owns its page state and has no reset prop.
+                // over - DataTable owns its page state and has no reset prop.
                 key={`${query}|${sort}|${[...selected].sort().join(",")}`}
                 columns={columns}
                 rows={rows}
@@ -546,7 +546,7 @@ function ItemCard({
 
 /**
  * Add-to-request button. Flips to a "selected" state once the item is in the
- * draft — accent fill, a check instead of the plus, and the count — so a glance
+ * draft - accent fill, a check instead of the plus, and the count - so a glance
  * down the list shows what is already picked. Still adds another unit on click
  * until the shelf runs out, at which point it locks.
  */
@@ -621,7 +621,7 @@ function EmptyState({ onClear }: { onClear: () => void }) {
   );
 }
 
-/** Draft counter — the way through to the request page. */
+/** Draft counter - the way through to the request page. */
 function DraftPill({ count, onOpen }: { count: number; onOpen: () => void }) {
   const { t } = useTranslation();
   return (
@@ -636,7 +636,7 @@ function DraftPill({ count, onOpen }: { count: number; onOpen: () => void }) {
   );
 }
 
-/** Photo placeholder — equipment images land with the upload feature. */
+/** Photo placeholder - equipment images land with the upload feature. */
 function Thumb({ size = 44 }: { size?: number }) {
   return (
     <div

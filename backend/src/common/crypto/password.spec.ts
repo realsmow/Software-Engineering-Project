@@ -8,17 +8,24 @@ import {
 describe('password hashing', () => {
   it('accepts the password it hashed', async () => {
     const stored = await hashPassword('correct horse battery staple');
-    await expect(verifyPassword('correct horse battery staple', stored)).resolves.toBe(true);
+    await expect(
+      verifyPassword('correct horse battery staple', stored),
+    ).resolves.toBe(true);
   });
 
   it('rejects a wrong password', async () => {
     const stored = await hashPassword('correct horse battery staple');
-    await expect(verifyPassword('Correct horse battery staple', stored)).resolves.toBe(false);
+    await expect(
+      verifyPassword('Correct horse battery staple', stored),
+    ).resolves.toBe(false);
     await expect(verifyPassword('', stored)).resolves.toBe(false);
   });
 
   it('salts every hash, so identical passwords do not produce identical rows', async () => {
-    const [a, b] = await Promise.all([hashPassword('same'), hashPassword('same')]);
+    const [a, b] = await Promise.all([
+      hashPassword('same'),
+      hashPassword('same'),
+    ]);
 
     expect(a).not.toEqual(b);
     await expect(verifyPassword('same', a)).resolves.toBe(true);
@@ -55,7 +62,8 @@ describe('password hashing', () => {
       'a bcrypt hash': '$2b$12$abcdefghijklmnopqrstuv',
       'right shape, wrong algorithm': 'argon2$16384$8$1$c2FsdA==$a2V5',
       'non-numeric cost': 'scrypt$abc$8$1$c2FsdA==$a2V5',
-      'absurd cost that would exceed maxmem': 'scrypt$1073741824$8$1$c2FsdA==$a2V5',
+      'absurd cost that would exceed maxmem':
+        'scrypt$1073741824$8$1$c2FsdA==$a2V5',
       'empty salt': 'scrypt$16384$8$1$$a2V5',
     };
 
@@ -70,7 +78,7 @@ describe('password hashing', () => {
     const first = await dummyPasswordHash();
     const second = await dummyPasswordHash();
 
-    // Same object both times — the point is to spend the cost, not to
+    // Same object both times - the point is to spend the cost, not to
     // re-derive it on every failed login.
     expect(first).toBe(second);
     await expect(verifyPassword('', first)).resolves.toBe(false);
@@ -87,7 +95,9 @@ describe('generateTemporaryPassword', () => {
   });
 
   it('does not repeat itself', () => {
-    const generated = new Set(Array.from({ length: 50 }, () => generateTemporaryPassword()));
+    const generated = new Set(
+      Array.from({ length: 50 }, () => generateTemporaryPassword()),
+    );
     expect(generated.size).toBe(50);
   });
 });

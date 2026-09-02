@@ -57,10 +57,10 @@ npm test -- password.spec token.spec session.service.spec admin-user.mapper.spec
 | `admin.updateLendingSettings` | mutation | `updateLendingSettingsInput` | `lendingSettingsOutput` | staff | ✅ upsert เฉพาะแถวที่ส่งมา อยู่ใน transaction เดียว |
 | `admin.getSystemStatus` | query | — | `systemStatusOutput` | admin | ✅ ping DB จริง + นับ record · ตอบได้แม้ DB ล่ม |
 | `admin.listCronJobs` | query | — | `cronJobOutput[]` | admin | ⚠️ คืนทะเบียนงาน 8 ตัวพร้อม `implemented: false` — ยังไม่มี scheduler |
-| `admin.setUserActive` | mutation | `{ id, active }` | — | admin | ❌ `NOT_IMPLEMENTED` |
+| `admin.setUserActive` | mutation | `{ id, active }` | `adminUserDetail` | admin | ✅ **ทำแล้วบน `main`** — `AccountInfo.IsActive` มีจริงแล้ว · เพิกถอน session ของบัญชีนั้นด้วย |
 | `admin.runCronJob` | mutation | `{ job }` | — | admin | ❌ `NOT_IMPLEMENTED` |
 | `admin.getConfig` / `updateConfig` | query / mutation | — | — | admin | ❌ `NOT_IMPLEMENTED` |
-| `admin.listAudit` / `getAuditById` | query | — | — | admin | ❌ `NOT_IMPLEMENTED` |
+| `admin.listAudit` / `getAuditById` | query | `listAuditInput` / `{ id }` | `paginated(auditEvent)` / `auditEvent` | admin | ✅ **ทำแล้วบน `main`** — ตาราง `AuditLog` มีจริงแล้ว |
 
 ตัวที่ ❌ **ประกาศ schema ไว้ครบแล้ว** และโยน `NOT_IMPLEMENTED` พร้อมรายชื่อ
 คอลัมน์ที่ขาดใน `cause.missing` — frontend จึงเขียนหน้าจอรอไว้ได้เลยโดยไม่ต้อง
@@ -74,14 +74,14 @@ npm test -- password.spec token.spec session.service.spec admin-user.mapper.spec
 
 | # | ต้องเพิ่ม | ปลดล็อกอะไร | ตอนนี้เป็นยังไง |
 |---|---|---|---|
-| 1 | `AccountInfo.Email` เป็น `@unique` และ `AccountInfo.UserID` เป็น `@unique` | `auth.login` แม่นยำ · `admin.createUser` ปลอดภัยจริง | เช็คซ้ำใน service ก่อน insert ซึ่งเป็น **race condition** — admin สองคนสร้าง email เดียวกันพร้อมกันผ่านทั้งคู่ ฐานข้อมูลเท่านั้นที่กันได้จริง |
-| 2 | `AccountInfo.IsActive Boolean @default(true)` | `admin.setUserActive` | ❌ ไม่มีทางทำ — คนละเรื่องกับ ban: บัญชีที่ปิด **ล็อกอินไม่ได้** ส่วน ban แค่ยืมไม่ได้ |
-| 3 | ความสัมพันธ์ `AccountInfo` → คณะ/ภาควิชา | `ctx.user.facultyKey` · การจำกัดสิทธิ์ staff ให้เห็นเฉพาะภาควิชาตัวเอง | `facultyKey` เป็น `null` เสมอ · **`admin.setUserBan` กับ `updateLendingSettings` จึงยังไม่ถูกจำกัดขอบเขตจริง** (ดูส่วนที่ 5) · `userOutput.facultyName` เป็น null เสมอ |
-| 4 | ตาราง `AuditLog` (`actorKey`, `action`, `target`, `ip`, `userAgent`, `detail`, `at`) | `admin.listAudit`, `getAuditById` + กราฟในหน้า audit/dashboard | ไม่มีอะไรบันทึกว่าใครทำอะไรเลย |
+| ~~1~~ | ~~`AccountInfo.Email` / `UserID` เป็น `@unique`~~ | — | ✅ **เพิ่มแล้วบน `main`** |
+| ~~2~~ | ~~`AccountInfo.IsActive`~~ | — | ✅ **เพิ่มแล้วบน `main`** · `AppContext` ปฏิเสธบัญชีที่ปิดกลาง session ด้วย |
+| 3 | ความสัมพันธ์ `AccountInfo` → คณะ/ภาควิชา | `ctx.user.facultyKey` · การจำกัดสิทธิ์ staff ให้เห็นเฉพาะภาควิชาตัวเอง | ⚠️ **คอลัมน์ `AccountInfo.FacultyKey` เพิ่มแล้วบน `main`** แต่ยังไม่มีข้อมูล — `facultyKey` จึงยังเป็น `null` จนกว่าจะกรอก · procedure ที่จำกัดขอบเขตต้องอ่าน `null` ว่า "ยังไม่ถูกจำกัด" ไม่ใช่ "ไม่มีสิทธิ์" |
+| ~~4~~ | ~~ตาราง `AuditLog`~~ | — | ✅ **เพิ่มแล้วบน `main`** (`common/audit/audit.service.ts`) |
 | 5 | ตาราง `SystemConfig` (`key`, `value Json`, `updatedBy`, `updatedAt`) | `admin.getConfig`, `updateConfig` | ค่าพวกนี้เป็น env var ซึ่งแก้ตอน runtime ไม่ได้ |
 | 6 | ตาราง `CronRunLog` (`job`, `startedAt`, `finishedAt`, `result`, `detail`) | `admin.runCronJob` + `lastRunAt`/`lastResult` ใน `listCronJobs` | ยังไม่มีทั้งงานและที่บันทึกผล |
 | 7 | `AccountInfo.CreatedAt` / `LastActiveAt` | คอลัมน์ "สร้างเมื่อ" / "ใช้งานล่าสุด" ในหน้า admin users | ไม่มีข้อมูล จึงไม่ได้ใส่ในสัญญา |
-| 8 | ตาราง `SessionInfo` | logout ทุกเครื่อง · เพิกถอน session ทันทีตอน reset password | session เป็น token เซ็น HMAC ไม่มี state ฝั่ง server — เพิกถอนกลางคันไม่ได้ ต้องรอหมดอายุ |
+| ~~8~~ | ~~ตาราง `SessionInfo`~~ | — | ✅ **เพิ่มแล้วบน `main`** — เพิกถอน session ได้จริงแล้ว |
 | 9 | สถานะ `invited` (บัญชีที่สร้างแล้วแต่ยังไม่ตั้งรหัสผ่าน) | ค่าที่สามใน `accountStatus` | `accountStatus` มีแค่ `active` / `suspended` เพราะสองค่านี้พิสูจน์ได้จากฐานข้อมูล |
 
 ---

@@ -24,11 +24,15 @@ export class AuthService {
         Email: true,
         UserCredit: true,
         Role: { select: { RoleName: true } },
-        // HashedPassword intentionally not selected — cannot leak by accident
+        Faculty: { select: { FacultyName: true } },
+        // HashedPassword intentionally not selected - cannot leak by accident
       },
     });
 
-    return toUserOutput(row, await this.creditTiers.resolveBorrowLimits(row.UserCredit));
+    return toUserOutput(
+      row,
+      await this.creditTiers.resolveBorrowLimits(row.UserCredit),
+    );
   }
 
   /**
@@ -49,16 +53,16 @@ export class AuthService {
     const identifier = username.trim();
 
     const account = await this.prisma.accountInfo.findFirst({
-      // Email has no unique constraint in the schema, so this is findFirst,
-      // not findUnique. Two accounts sharing an email is a data problem —
-      // see docs/auth-admin.md.
+      // findFirst rather than findUnique because the OR spans two columns;
+      // findUnique takes a single unique field. Both Email and UserID now
+      // carry a unique constraint, so at most one row can match either arm.
       where: {
         OR: [
           { Email: { equals: identifier, mode: 'insensitive' } },
           { UserID: identifier },
         ],
       },
-      select: { AccountKey: true, HashedPassword: true },
+      select: { AccountKey: true, HashedPassword: true, IsActive: true },
     });
 
     const stored = account?.HashedPassword ?? (await dummyPasswordHash());
@@ -66,6 +70,14 @@ export class AuthService {
 
     if (!account || !matches) {
       throw new BusinessError('INVALID_CREDENTIALS');
+    }
+
+    // Checked after the password on purpose. Answering "this account is
+    // disabled" to anyone who asks would confirm the account exists; behind a
+    // correct password it tells the owner something useful and tells an
+    // attacker nothing they had not already proven.
+    if (!account.IsActive) {
+      throw new BusinessError('ACCOUNT_DISABLED');
     }
 
     return account.AccountKey;

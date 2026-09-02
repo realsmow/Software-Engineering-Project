@@ -21,7 +21,7 @@ export const creditOutput = z.object({
 
   /**
    * Penalties in force right now, newest expiry first. Empty for an account in
-   * good standing — an empty list is the normal case, not an error.
+   * good standing - an empty list is the normal case, not an error.
    */
   activePenalties: z.array(activePenalty),
   /** Sum of CreditDeducted across the list above, for the headline figure. */

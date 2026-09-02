@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 /**
- * Login validation (client-side only — no API is wired yet, brief note #5).
+ * Login validation (client-side only - no API is wired yet, brief note #5).
  * Two methods mirror the reference mockup: KU email for students/faculty and
  * a local account for department staff. Messages are Thai to match the UI.
  */

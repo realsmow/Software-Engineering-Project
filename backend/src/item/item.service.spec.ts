@@ -67,7 +67,11 @@ describe('sortItems', () => {
   });
 
   it('creditWeight sorts cheapest first', () => {
-    const items = [item('pricey', 1, 1, 10), item('free', 1, 1, 0), item('mid', 1, 1, 5)];
+    const items = [
+      item('pricey', 1, 1, 10),
+      item('free', 1, 1, 0),
+      item('mid', 1, 1, 5),
+    ];
     sortItems(items, 'creditWeight');
 
     expect(names(items)).toEqual(['free', 'mid', 'pricey']);

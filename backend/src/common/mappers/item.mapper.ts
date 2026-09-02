@@ -1,5 +1,9 @@
 import { tryMapTier } from '../schemas/status.schema';
-import type { ItemDetail, ItemSummary, RoomSummary } from '../../item/item.schema';
+import type {
+  ItemDetail,
+  ItemSummary,
+  RoomSummary,
+} from '../../item/item.schema';
 
 /**
  * Row shapes for the catalogue mappers.
@@ -90,12 +94,16 @@ function typeTier(units: ItemUnitRow[]) {
 
 /** Free to borrow right now: in storage, and the resource is open for borrowing. */
 function isAvailable(unit: ItemUnitRow): boolean {
-  return unit.Resource.ResourceStatus === 'InStorage' && unit.Resource.AllowBorrow;
+  return (
+    unit.Resource.ResourceStatus === 'InStorage' && unit.Resource.AllowBorrow
+  );
 }
 
 /** Could be borrowed eventually — excludes units that are lost or switched off. */
 function isBorrowable(unit: ItemUnitRow): boolean {
-  return unit.Resource.ResourceStatus !== 'Missing' && unit.Resource.AllowBorrow;
+  return (
+    unit.Resource.ResourceStatus !== 'Missing' && unit.Resource.AllowBorrow
+  );
 }
 
 /**

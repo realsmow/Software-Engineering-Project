@@ -1,6 +1,7 @@
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import type { ServerResponse } from 'node:http';
 import cookieParser from 'cookie-parser';
+import { requestLogger } from './common/request-logger';
 import { ImageService } from './image/image.service';
 import { MEDIA_PREFIX } from './common/schemas/image.schema';
 
@@ -35,6 +36,12 @@ export const ALLOWED_ORIGINS = [
 export function configureApp(app: NestExpressApplication): void {
   // Required, otherwise req.cookies is undefined and context can't find a session
   app.use(cookieParser());
+
+  // One line per request. Registered with app.use rather than Nest's
+  // MiddlewareConsumer because nestjs-trpc mounts /trpc straight onto Express,
+  // so route-scoped Nest middleware would miss exactly the traffic worth
+  // seeing. Adapted from feat/trpc-auth-connect via main.
+  app.use(requestLogger);
 
   /**
    * Serve what was uploaded.

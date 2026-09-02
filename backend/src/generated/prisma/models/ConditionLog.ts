@@ -550,10 +550,6 @@ export type EnumConditionTypeFieldUpdateOperationsInput = {
   set?: $Enums.ConditionType
 }
 
-export type NullableDateTimeFieldUpdateOperationsInput = {
-  set?: Date | string | null
-}
-
 export type ConditionLogCreateNestedOneWithoutUsageCheckoutsInput = {
   create?: Prisma.XOR<Prisma.ConditionLogCreateWithoutUsageCheckoutsInput, Prisma.ConditionLogUncheckedCreateWithoutUsageCheckoutsInput>
   connectOrCreate?: Prisma.ConditionLogCreateOrConnectWithoutUsageCheckoutsInput

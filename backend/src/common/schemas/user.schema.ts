@@ -10,7 +10,7 @@ import { creditTier, userRole } from './status.schema';
  *   UserFName      -> firstName
  *   UserLName      -> lastName
  *   UserCredit     -> creditScore
- *   HashedPassword -> never included — it is not declared here, so it
+ *   HashedPassword -> never included - it is not declared here, so it
  *                      cannot leak out by accident.
  */
 export const userOutput = z.object({
@@ -22,7 +22,7 @@ export const userOutput = z.object({
   role: userRole,
   facultyName: z.string().nullable(),
 
-  // Send the *computed* limit, not the raw credit score — callers should
+  // Send the *computed* limit, not the raw credit score - callers should
   // never need to know the score-to-limit business rule.
   creditScore: z.number().int(),
   creditTier,

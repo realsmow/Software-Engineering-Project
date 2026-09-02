@@ -6,29 +6,31 @@ import { KULogo } from "@/components/layout/ku-logo";
 import { LanguageToggle } from "@/components/shared/language-toggle";
 import { useTheme } from "@/hooks/use-theme";
 import { HOME_ROUTE_BY_ROLE } from "@/constants";
+import { useTRPCClient } from "@/lib/trpc";
 import { useAuthStore } from "./auth.store";
-import { MOCK_LOCAL_CREDENTIALS } from "./mock-auth";
-import type { LocalLoginValues } from "./login.schema";
+import { toClientUser } from "./user.adapter";
+import type { KuLoginValues, LocalLoginValues } from "./login.schema";
 import { LoginMethodKu } from "./login-method-ku";
 import { LoginMethodLocal } from "./login-method-local";
 
 /**
- * Login page — reference: ULMs-login-and-shell-v3.html (VIEW 1).
+ * Login page - reference: ULMs-login-and-shell-v3.html (VIEW 1).
  * Left: green KU brand panel. Right: card with a mutually-exclusive accordion
  * of two login methods (KU email, local account) built on RHF + Zod.
  *
- * No API is wired yet (brief note #5): a successful submit mock-logs-in via the
- * auth store. The KU email method is students/faculty only → always `borrower`.
- * Staff/supervisor/admin sign in through the local-account method, which is
- * validated against MOCK_LOCAL_CREDENTIALS (temporary — see mock-auth.ts).
- * Real /auth flow replaces the mock handlers later.
+ * Both methods call the same `auth.login` mutation - the only difference is
+ * which identifier is sent. The server matches it against either Email or
+ * UserID and decides the role from the account row, so the client no longer
+ * picks a role. On success the session arrives as an httpOnly cookie and the
+ * returned profile seeds the store.
  */
 type Method = "ku" | "local";
 
 export function LoginPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const loginAs = useAuthStore((s) => s.loginAs);
+  const setUser = useAuthStore((s) => s.setUser);
+  const trpcClient = useTRPCClient();
   const { isDark, toggleTheme } = useTheme();
   // `null` = both panels collapsed. Clicking an open header closes it.
   const [openMethod, setOpenMethod] = useState<Method | null>("ku");
@@ -36,23 +38,32 @@ export function LoginPage() {
   const toggleMethod = (method: Method) =>
     setOpenMethod((current) => (current === method ? null : method));
 
-  // KU email → borrower only (students & faculty).
-  const handleKuLogin = () => {
-    loginAs("borrower");
-    navigate(HOME_ROUTE_BY_ROLE.borrower, { replace: true });
+  /**
+   * Shared sign-in path. Returns a Thai error message for the form to show,
+   * or null once the store is seeded and the route has changed.
+   *
+   * Every failure maps to the same message on purpose: the server answers
+   * INVALID_CREDENTIALS whether the account is missing or the password is
+   * wrong, and re-splitting that here would undo it.
+   */
+  const signIn = async (username: string, password: string): Promise<string | null> => {
+    try {
+      const { user } = await trpcClient.auth.login.mutate({ username, password });
+      const clientUser = toClientUser(user);
+      setUser(clientUser);
+      navigate(HOME_ROUTE_BY_ROLE[clientUser.role], { replace: true });
+      return null;
+    } catch {
+      return t("auth.invalidCredentials");
+    }
   };
 
-  // Local account → staff/supervisor/admin, gated by the mock credential table.
-  // Returns a Thai error message on mismatch, or null on success (then routes).
-  const handleLocalLogin = (values: LocalLoginValues): string | null => {
-    const match = MOCK_LOCAL_CREDENTIALS.find(
-      (c) => c.username === values.username.trim() && c.password === values.password,
-    );
-    if (!match) return t("auth.invalidCredentials");
-    loginAs(match.role);
-    navigate(HOME_ROUTE_BY_ROLE[match.role], { replace: true });
-    return null;
-  };
+  // KU email → the email is the identifier.
+  const handleKuLogin = (values: KuLoginValues) => signIn(values.email.trim(), values.password);
+
+  // Local account → the assigned username (AccountInfo.UserID).
+  const handleLocalLogin = (values: LocalLoginValues) =>
+    signIn(values.username.trim(), values.password);
 
   return (
     <div className="login">

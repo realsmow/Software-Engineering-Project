@@ -1,5 +1,8 @@
 import { z } from 'zod';
-import { paginated, paginationInput } from '../common/schemas/pagination.schema';
+import {
+  paginated,
+  paginationInput,
+} from '../common/schemas/pagination.schema';
 import { activePenalty } from '../common/schemas/penalty.schema';
 import { creditTier, userRole } from '../common/schemas/status.schema';
 
@@ -9,15 +12,20 @@ export const accountIdInput = z.object({ id: z.number().int().positive() });
 /**
  * Account status.
  *
- * Only two values, because only two are provable from the database. An account
- * counts as `suspended` while it holds a PenaltyInfo row that is still
- * InEffect and not yet past ExpirationTime; otherwise it is `active`.
+ * Three values, all provable from the database:
+ *   disabled  - AccountInfo.IsActive is false. Cannot sign in at all.
+ *   suspended - holds a PenaltyInfo row still InEffect and not yet expired.
+ *               Can sign in, cannot borrow.
+ *   active    - neither of the above.
+ *
+ * Checked in that order, because a disabled account that also has a penalty
+ * is disabled first and foremost.
  *
  * The frontend's mock data also has `invited` (account created, password never
  * set). Nothing in AccountInfo records that, so it is not offered here rather
- * than being faked — see docs/auth-admin.md.
+ * than being faked - see docs/auth-admin.md.
  */
-export const accountStatus = z.enum(['active', 'suspended']);
+export const accountStatus = z.enum(['active', 'suspended', 'disabled']);
 export type AccountStatus = z.infer<typeof accountStatus>;
 
 /** Mirrors the PenaltyReason enum in schema.prisma (ว-10: fixed strings, never keys). */
@@ -45,7 +53,7 @@ export const managementGroupRef = z.object({
 
 export const adminUserSummary = z.object({
   id: z.number().int(),
-  /** AccountInfo.UserID — student ID or employee ID depending on the role */
+  /** AccountInfo.UserID - student ID or employee ID depending on the role */
   studentId: z.string(),
   firstName: z.string(),
   lastName: z.string(),
@@ -98,7 +106,7 @@ export const createUserInput = z.object({
   password: z.string().min(8).max(200).optional(),
   /**
    * Starting credit. Defaults to 100, which must fall inside some CreditTier's
-   * CreditMin..CreditMax range or the account cannot be shown — the tiers are
+   * CreditMin..CreditMax range or the account cannot be shown - the tiers are
    * seed data, so this default is a convention, not a rule in the schema.
    */
   initialCredit: z.number().int().min(0).default(100),
@@ -106,7 +114,7 @@ export const createUserInput = z.object({
 
 /**
  * The generated password is returned exactly once, at creation. It is not
- * stored anywhere in readable form, so there is no second chance to see it —
+ * stored anywhere in readable form, so there is no second chance to see it -
  * only `admin.resetPassword`, which issues a new one.
  */
 export const createUserOutput = z.object({
@@ -148,10 +156,12 @@ export const setUserBanInput = accountIdInput.extend({
   days: z.number().int().positive().max(3650).default(30),
 });
 
-export const setUserActiveInput = accountIdInput.extend({ active: z.boolean() });
+export const setUserActiveInput = accountIdInput.extend({
+  active: z.boolean(),
+});
 
 // ---------------------------------------------------------------------------
-// Lending settings (department staff — business config, not technical)
+// Lending settings (department staff - business config, not technical)
 // ---------------------------------------------------------------------------
 
 export const creditTierSetting = z.object({
@@ -259,7 +269,7 @@ export const cronJobOutput = z.object({
   schedule: z.string(),
   /**
    * False while the job has no implementation. The status page should show
-   * these as "ยังไม่เปิดใช้งาน" rather than as jobs that have never run —
+   * these as "ยังไม่เปิดใช้งาน" rather than as jobs that have never run -
    * the two look identical if this flag is missing.
    */
   implemented: z.boolean(),
@@ -309,7 +319,14 @@ export const updateTechnicalConfigInput = technicalConfigOutput.partial();
 // Audit (IT admin)
 // ---------------------------------------------------------------------------
 
-export const auditAction = z.enum(['login', 'create', 'update', 'delete', 'role', 'config']);
+export const auditAction = z.enum([
+  'login',
+  'create',
+  'update',
+  'delete',
+  'role',
+  'config',
+]);
 
 export const auditEventOutput = z.object({
   id: z.number().int(),
@@ -325,7 +342,9 @@ export const auditEventOutput = z.object({
   detail: z.string(),
 });
 
-export const listAuditInput = paginationInput.extend({ action: auditAction.optional() });
+export const listAuditInput = paginationInput.extend({
+  action: auditAction.optional(),
+});
 export const paginatedAuditEvents = paginated(auditEventOutput);
 export const auditEventIdInput = z.object({ id: z.number().int().positive() });
 
@@ -340,7 +359,11 @@ export type ChangeRoleInput = z.infer<typeof changeRoleInput>;
 export type ResetPasswordInput = z.infer<typeof resetPasswordInput>;
 export type SetUserBanInput = z.infer<typeof setUserBanInput>;
 export type SetUserActiveInput = z.infer<typeof setUserActiveInput>;
-export type UpdateLendingSettingsInput = z.infer<typeof updateLendingSettingsInput>;
+export type UpdateLendingSettingsInput = z.infer<
+  typeof updateLendingSettingsInput
+>;
 export type ListAuditInput = z.infer<typeof listAuditInput>;
+export type AuditAction = z.infer<typeof auditAction>;
+export type AuditEvent = z.infer<typeof auditEventOutput>;
 export type AdminUserSummary = z.infer<typeof adminUserSummary>;
 export type AdminUserDetail = z.infer<typeof adminUserDetail>;

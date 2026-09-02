@@ -1,16 +1,25 @@
 import { Injectable } from '@nestjs/common';
 import type { Prisma } from '../generated/prisma/client';
 import { PrismaService } from '../prisma.service';
+import { SessionService } from '../auth/session.service';
+import { AuditService, type AuditActor } from '../common/audit/audit.service';
 import { CreditTierService } from '../common/credit/credit-tier.service';
 import { BusinessError, notImplemented } from '../common/errors/business-error';
-import { generateTemporaryPassword, hashPassword } from '../common/crypto/password';
+import {
+  generateTemporaryPassword,
+  hashPassword,
+} from '../common/crypto/password';
 import {
   toAdminUserDetail,
   toAdminUserSummary,
   type AdminAccountRow,
 } from '../common/mappers/admin-user.mapper';
 import { activePenaltyWhere } from '../common/schemas/penalty.schema';
-import { toOrderBy, toPage, toSkipTake } from '../common/schemas/pagination.schema';
+import {
+  toOrderBy,
+  toPage,
+  toSkipTake,
+} from '../common/schemas/pagination.schema';
 import { tryMapUserRole, type UserRole } from '../common/schemas/status.schema';
 import { OK } from '../common/schemas/ok.schema';
 import type {
@@ -52,10 +61,22 @@ const CRON_REGISTRY = [
   { id: 'markOverdue', name: 'Mark overdue', schedule: '00:01 ทุกวัน' },
   { id: 'markLost', name: 'Mark lost', schedule: '00:15 ทุกวัน' },
   { id: 'expireDemerits', name: 'หมดอายุบทลงโทษ', schedule: '01:00 ทุกวัน' },
-  { id: 'computeAvailability', name: 'คำนวณวันที่พร้อมให้ยืม', schedule: '02:00 ทุกวัน' },
+  {
+    id: 'computeAvailability',
+    name: 'คำนวณวันที่พร้อมให้ยืม',
+    schedule: '02:00 ทุกวัน',
+  },
   { id: 'rollupDailyStats', name: 'สรุปสถิติรายวัน', schedule: '03:00 ทุกวัน' },
-  { id: 'openT3InspectionRounds', name: 'สร้างรอบตรวจสถานที่ (T3)', schedule: '06:00 ทุกวัน' },
-  { id: 'dueSoonReminder', name: 'เตือนใกล้ครบกำหนด', schedule: '08:00 ทุกวัน' },
+  {
+    id: 'openT3InspectionRounds',
+    name: 'สร้างรอบตรวจสถานที่ (T3)',
+    schedule: '06:00 ทุกวัน',
+  },
+  {
+    id: 'dueSoonReminder',
+    name: 'เตือนใกล้ครบกำหนด',
+    schedule: '08:00 ทุกวัน',
+  },
   { id: 'expireStaleRequests', name: 'คำขอหมดอายุ', schedule: 'ทุกชั่วโมง' },
 ] as const;
 
@@ -67,6 +88,8 @@ export class AdminService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly creditTiers: CreditTierService,
+    private readonly sessions: SessionService,
+    private readonly audit: AuditService,
   ) {}
 
   // =========================================================================
@@ -86,7 +109,8 @@ export class AdminService {
 
     if (input.status) {
       const active = activePenaltyWhere();
-      where.Penalties = input.status === 'suspended' ? { some: active } : { none: active };
+      where.Penalties =
+        input.status === 'suspended' ? { some: active } : { none: active };
     }
 
     if (input.q) {
@@ -98,7 +122,7 @@ export class AdminService {
       ];
     }
 
-    // One round trip for both halves — a separate count() can disagree with
+    // One round trip for both halves - a separate count() can disagree with
     // the page it is supposed to describe if a row lands in between.
     const [rows, total] = await this.prisma.$transaction([
       this.prisma.accountInfo.findMany({
@@ -112,6 +136,7 @@ export class AdminService {
           UserLName: true,
           Email: true,
           UserCredit: true,
+          IsActive: true,
           Role: { select: { RoleName: true } },
           Authorities: {
             take: 1,
@@ -124,11 +149,13 @@ export class AdminService {
                   Club: { select: { ClubName: true } },
                 },
               },
-              AuthorityRole: { select: { AuthorityName: true, AuthorityLevel: true } },
+              AuthorityRole: {
+                select: { AuthorityName: true, AuthorityLevel: true },
+              },
             },
           },
           Penalties: {
-            // Existence is all the summary needs — one row answers "suspended?".
+            // Existence is all the summary needs - one row answers "suspended?".
             where: activePenaltyWhere(),
             take: 1,
             select: {
@@ -145,15 +172,22 @@ export class AdminService {
       this.prisma.accountInfo.count({ where }),
     ]);
 
-    return toPage(rows.map((row) => toAdminUserSummary(row)), total, input);
+    return toPage(
+      rows.map((row) => toAdminUserSummary(row)),
+      total,
+      input,
+    );
   }
 
   async getUserById(accountKey: number) {
     const row = await this.findAccountDetail(accountKey);
-    return toAdminUserDetail(row, await this.creditTiers.resolveBorrowLimits(row.UserCredit));
+    return toAdminUserDetail(
+      row,
+      await this.creditTiers.resolveBorrowLimits(row.UserCredit),
+    );
   }
 
-  async createUser(input: CreateUserInput) {
+  async createUser(input: CreateUserInput, actor: AuditActor) {
     await this.assertIdentifiersFree(input.email, input.studentId, null);
 
     // A password the admin typed is theirs to communicate; a generated one is
@@ -174,17 +208,24 @@ export class AdminService {
       select: { AccountKey: true },
     });
 
+    await this.audit.record(
+      actor,
+      'create',
+      `account/${created.AccountKey}`,
+      `Created ${input.email} as ${input.role}`,
+    );
+
     return {
       user: await this.getUserById(created.AccountKey),
       temporaryPassword: generated,
     };
   }
 
-  async updateUser(input: UpdateUserInput) {
+  async updateUser(input: UpdateUserInput, actor: AuditActor) {
     await this.assertAccountExists(input.id);
     await this.assertIdentifiersFree(input.email, input.studentId, input.id);
 
-    // Only the fields actually sent — Prisma treats an explicit `undefined` as
+    // Only the fields actually sent - Prisma treats an explicit `undefined` as
     // "leave alone", so a partial update needs no branching.
     await this.prisma.accountInfo.update({
       where: { AccountKey: input.id },
@@ -197,15 +238,22 @@ export class AdminService {
       select: { AccountKey: true },
     });
 
+    await this.audit.record(
+      actor,
+      'update',
+      `account/${input.id}`,
+      'Profile fields updated',
+    );
+
     return this.getUserById(input.id);
   }
 
-  async changeRole(input: ChangeRoleInput, actorAccountKey: number) {
+  async changeRole(input: ChangeRoleInput, actor: AuditActor) {
     // An admin demoting themselves locks everyone out of the admin pages if
     // they were the last one. Blocking self-demotion is cheaper than a
-    // "count the remaining admins" rule and has no legitimate use case —
+    // "count the remaining admins" rule and has no legitimate use case -
     // another admin can always do it.
-    if (input.id === actorAccountKey && input.role !== 'admin') {
+    if (input.id === actor.accountKey && input.role !== 'admin') {
       throw new BusinessError('CANNOT_MODIFY_SELF', { action: 'changeRole' });
     }
 
@@ -217,10 +265,17 @@ export class AdminService {
       select: { AccountKey: true },
     });
 
+    await this.audit.record(
+      actor,
+      'role',
+      `account/${input.id}`,
+      `Role changed to ${input.role}`,
+    );
+
     return this.getUserById(input.id);
   }
 
-  async resetPassword(input: ResetPasswordInput) {
+  async resetPassword(input: ResetPasswordInput, actor: AuditActor) {
     await this.assertAccountExists(input.id);
 
     const generated = input.newPassword ? null : generateTemporaryPassword();
@@ -232,14 +287,25 @@ export class AdminService {
       select: { AccountKey: true },
     });
 
-    // Sessions already issued stay valid until they expire — the session token
-    // is stateless and there is no table to revoke it in. See
-    // docs/auth-admin.md.
+    // A reset means the old password is no longer trusted, so anything signed
+    // in with it must go too. Otherwise whoever prompted the reset keeps their
+    // session and the reset achieves nothing.
+    await this.sessions.revokeAllForAccount(input.id);
+
+    await this.audit.record(
+      actor,
+      'update',
+      `account/${input.id}`,
+      generated
+        ? 'Password reset, temporary password issued'
+        : 'Password set by admin',
+    );
+
     return { ...OK, temporaryPassword: generated };
   }
 
-  async setUserBan(input: SetUserBanInput, actorAccountKey: number) {
-    if (input.id === actorAccountKey) {
+  async setUserBan(input: SetUserBanInput, actor: AuditActor) {
+    if (input.id === actor.accountKey) {
       throw new BusinessError('CANNOT_MODIFY_SELF', { action: 'setUserBan' });
     }
 
@@ -251,11 +317,20 @@ export class AdminService {
         where: { AccountKey: input.id, ...activePenaltyWhere() },
         data: { InEffect: false },
       });
+
+      await this.audit.record(
+        actor,
+        'update',
+        `account/${input.id}`,
+        'Borrowing ban lifted',
+      );
       return OK;
     }
 
     const now = new Date();
-    const expiresAt = new Date(now.getTime() + input.days * 24 * 60 * 60 * 1000);
+    const expiresAt = new Date(
+      now.getTime() + input.days * 24 * 60 * 60 * 1000,
+    );
 
     await this.prisma.penaltyInfo.create({
       data: {
@@ -272,21 +347,53 @@ export class AdminService {
       select: { PenaltyKey: true },
     });
 
+    await this.audit.record(
+      actor,
+      'update',
+      `account/${input.id}`,
+      `Borrowing banned for ${input.days} days${input.reason ? `: ${input.reason}` : ''}`,
+    );
+
     return OK;
   }
 
   /**
-   * Enable/disable an account.
+   * Enable or disable an account.
    *
-   * Unimplementable as specified: AccountInfo has no column for it. Note this
-   * is NOT the same as a borrowing ban — a disabled account cannot sign in at
-   * all, which setUserBan deliberately still allows.
+   * Disabling revokes every live session as well as flipping the flag.
+   * Without that the person stays signed in until their cookie lapses, which
+   * is exactly the window you are trying to close when you disable someone.
+   *
+   * Not the same as a borrowing ban: setUserBan stops them borrowing but
+   * leaves them able to sign in and see their own history.
    */
-  setUserActive(_input: SetUserActiveInput): never {
-    return notImplemented(
-      ['AccountInfo.IsActive (Boolean, default true)'],
-      'A disabled account must fail auth.login, which a PenaltyInfo row cannot express. Use admin.setUserBan for "may not borrow".',
+  async setUserActive(input: SetUserActiveInput, actor: AuditActor) {
+    // Disabling yourself locks you out of the tool you would need to undo it.
+    if (input.id === actor.accountKey && !input.active) {
+      throw new BusinessError('CANNOT_MODIFY_SELF', {
+        action: 'setUserActive',
+      });
+    }
+
+    await this.assertAccountExists(input.id);
+
+    await this.prisma.accountInfo.update({
+      where: { AccountKey: input.id },
+      data: { IsActive: input.active },
+    });
+
+    if (!input.active) {
+      await this.sessions.revokeAllForAccount(input.id);
+    }
+
+    await this.audit.record(
+      actor,
+      'update',
+      `account/${input.id}`,
+      input.active ? 'Account enabled' : 'Account disabled, sessions revoked',
     );
+
+    return OK;
   }
 
   // =========================================================================
@@ -319,7 +426,11 @@ export class AdminService {
             },
           },
           PenaltyRules: {
-            select: { PenaltyReason: true, PenaltyAmount: true, PenaltyLength: true },
+            select: {
+              PenaltyReason: true,
+              PenaltyAmount: true,
+              PenaltyLength: true,
+            },
           },
         },
       }),
@@ -351,13 +462,18 @@ export class AdminService {
     };
   }
 
-  async updateLendingSettings(input: UpdateLendingSettingsInput) {
+  async updateLendingSettings(
+    input: UpdateLendingSettingsInput,
+    actor: AuditActor,
+  ) {
     const rule = await this.prisma.borrowRule.findUnique({
       where: { BorrowRuleKey: input.borrowRuleKey },
       select: { BorrowRuleKey: true },
     });
     if (!rule) {
-      throw new BusinessError('BORROW_RULE_NOT_FOUND', { id: input.borrowRuleKey });
+      throw new BusinessError('BORROW_RULE_NOT_FOUND', {
+        id: input.borrowRuleKey,
+      });
     }
 
     // Upserts, keyed on the @@unique pairs the schema already declares. All in
@@ -394,7 +510,10 @@ export class AdminService {
               PenaltyReason: penalty.reason,
             },
           },
-          update: { PenaltyAmount: penalty.amount, PenaltyLength: penalty.lengthDays },
+          update: {
+            PenaltyAmount: penalty.amount,
+            PenaltyLength: penalty.lengthDays,
+          },
           create: {
             BorrowRuleKey: input.borrowRuleKey,
             PenaltyReason: penalty.reason,
@@ -407,6 +526,13 @@ export class AdminService {
     ];
 
     if (writes.length > 0) await this.prisma.$transaction(writes);
+
+    await this.audit.record(
+      actor,
+      'config',
+      `borrowRule/${input.borrowRuleKey}`,
+      'Lending settings updated',
+    );
 
     return this.getLendingSettings();
   }
@@ -429,7 +555,11 @@ export class AdminService {
     }
 
     const state =
-      latencyMs === null ? 'down' : latencyMs > DB_DEGRADED_MS ? 'degraded' : 'operational';
+      latencyMs === null
+        ? 'down'
+        : latencyMs > DB_DEGRADED_MS
+          ? 'degraded'
+          : 'operational';
 
     const counts =
       latencyMs === null
@@ -440,7 +570,10 @@ export class AdminService {
       checkedAt: new Date().toISOString(),
       uptimeSeconds: Math.floor(process.uptime()),
       nodeVersion: process.version,
-      database: { state: state as 'operational' | 'degraded' | 'down', latencyMs },
+      database: {
+        state: state,
+        latencyMs,
+      },
       counts,
     };
   }
@@ -462,7 +595,10 @@ export class AdminService {
 
   runCronJob(): never {
     return notImplemented(
-      ['CronRunLog table (job, startedAt, finishedAt, result, detail)', '@nestjs/schedule'],
+      [
+        'CronRunLog table (job, startedAt, finishedAt, result, detail)',
+        '@nestjs/schedule',
+      ],
       'None of the 8 jobs exist yet, and a manual run with nowhere to record the outcome is not observable. Build the jobs first.',
     );
   }
@@ -486,19 +622,15 @@ export class AdminService {
   // Audit
   // =========================================================================
 
-  listAudit(_input: ListAuditInput): never {
-    return this.auditUnavailable();
+  listAudit(input: ListAuditInput) {
+    return this.audit.list(input);
   }
 
-  getAuditById(): never {
-    return this.auditUnavailable();
-  }
-
-  private auditUnavailable(): never {
-    return notImplemented(
-      ['AuditLog table (actorKey, action, target, ip, userAgent, detail, at)'],
-      'Nothing in the schema records who did what. This also blocks the audit charts on the admin dashboard.',
-    );
+  async getAuditById(input: { id: number }) {
+    const event = await this.audit.getById(input.id);
+    if (!event)
+      throw new BusinessError('AUDIT_EVENT_NOT_FOUND', { id: input.id });
+    return event;
   }
 
   // =========================================================================
@@ -527,7 +659,7 @@ export class AdminService {
 
   /**
    * AccountInfo declares no unique constraint on Email or UserID, so duplicates
-   * are checked here. This is a race, not a guarantee — two admins creating the
+   * are checked here. This is a race, not a guarantee - two admins creating the
    * same email at once both pass. The real fix is a unique index; see
    * docs/auth-admin.md.
    */
@@ -536,7 +668,10 @@ export class AdminService {
     studentId: string | undefined,
     exceptAccountKey: number | null,
   ): Promise<void> {
-    const notSelf = exceptAccountKey === null ? {} : { NOT: { AccountKey: exceptAccountKey } };
+    const notSelf =
+      exceptAccountKey === null
+        ? {}
+        : { NOT: { AccountKey: exceptAccountKey } };
 
     if (email) {
       const clash = await this.prisma.accountInfo.findFirst({
@@ -551,11 +686,14 @@ export class AdminService {
         where: { UserID: studentId, ...notSelf },
         select: { AccountKey: true },
       });
-      if (clash) throw new BusinessError('USER_ID_ALREADY_IN_USE', { studentId });
+      if (clash)
+        throw new BusinessError('USER_ID_ALREADY_IN_USE', { studentId });
     }
   }
 
-  private async findAccountDetail(accountKey: number): Promise<AdminAccountRow> {
+  private async findAccountDetail(
+    accountKey: number,
+  ): Promise<AdminAccountRow> {
     const row = await this.prisma.accountInfo.findUnique({
       where: { AccountKey: accountKey },
       select: {
@@ -565,6 +703,7 @@ export class AdminService {
         UserLName: true,
         Email: true,
         UserCredit: true,
+        IsActive: true,
         Role: { select: { RoleName: true } },
         Authorities: {
           select: {
@@ -576,7 +715,9 @@ export class AdminService {
                 Club: { select: { ClubName: true } },
               },
             },
-            AuthorityRole: { select: { AuthorityName: true, AuthorityLevel: true } },
+            AuthorityRole: {
+              select: { AuthorityName: true, AuthorityLevel: true },
+            },
           },
         },
         Penalties: {

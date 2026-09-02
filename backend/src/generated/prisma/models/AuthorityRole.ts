@@ -341,14 +341,6 @@ export type AuthorityRoleUpdateOneRequiredWithoutAuthoritiesNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.AuthorityRoleUpdateToOneWithWhereWithoutAuthoritiesInput, Prisma.AuthorityRoleUpdateWithoutAuthoritiesInput>, Prisma.AuthorityRoleUncheckedUpdateWithoutAuthoritiesInput>
 }
 
-export type NullableIntFieldUpdateOperationsInput = {
-  set?: number | null
-  increment?: number
-  decrement?: number
-  multiply?: number
-  divide?: number
-}
-
 export type AuthorityRoleCreateNestedOneWithoutEligibilitiesInput = {
   create?: Prisma.XOR<Prisma.AuthorityRoleCreateWithoutEligibilitiesInput, Prisma.AuthorityRoleUncheckedCreateWithoutEligibilitiesInput>
   connectOrCreate?: Prisma.AuthorityRoleCreateOrConnectWithoutEligibilitiesInput

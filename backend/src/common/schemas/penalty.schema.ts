@@ -7,14 +7,14 @@ import { z } from 'zod';
  * member someone else's penalties and `credit.me` shows a borrower their own,
  * and the two must not drift into slightly different shapes for the same row.
  *
- * "In force" always means the same pair of conditions — PenaltyInfo.InEffect
+ * "In force" always means the same pair of conditions - PenaltyInfo.InEffect
  * is true AND ExpirationTime has not passed. A query that selects penalties
  * without both filters must not be mapped through this.
  */
 export const activePenalty = z.object({
   id: z.number().int(),
   /**
-   * PenaltyInfo.Reason — free text, not an enum. The DB has a PenaltyReason
+   * PenaltyInfo.Reason - free text, not an enum. The DB has a PenaltyReason
    * enum, but it lives on PenaltyRule (the rule), not PenaltyInfo (the
    * incident), so there is no reliable code to return here.
    */
@@ -27,7 +27,7 @@ export const activePenalty = z.object({
 
 export type ActivePenalty = z.infer<typeof activePenalty>;
 
-/** Row shape the mapper needs — see the note above about filtering. */
+/** Row shape the mapper needs - see the note above about filtering. */
 export interface PenaltyRow {
   PenaltyKey: number;
   Reason: string | null;

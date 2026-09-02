@@ -16,7 +16,7 @@ import {
   type BusinessErrorData,
 } from '@ulms/contract';
 
-/** จับคู่รหัสธุรกิจกับรหัสมาตรฐานของ tRPC — ตัดสินใจครั้งเดียวที่นี่ */
+/** จับคู่รหัสธุรกิจกับรหัสมาตรฐานของ tRPC - ตัดสินใจครั้งเดียวที่นี่ */
 const TRPC_CODE: Record<BusinessErrorCode, TRPCError['code']> = {
   NOT_AUTHENTICATED: 'UNAUTHORIZED',
   ROLE_NOT_ALLOWED: 'FORBIDDEN',
@@ -37,7 +37,7 @@ const TRPC_CODE: Record<BusinessErrorCode, TRPCError['code']> = {
  *     maxDays: 7, requestedDays: 14, creditTier: 'D2',
  *   });
  *
- * message ที่ส่งไปคือ "รหัส" ไม่ใช่ประโยค — frontend เอาไปเปิดตารางแปลเอง
+ * message ที่ส่งไปคือ "รหัส" ไม่ใช่ประโยค - frontend เอาไปเปิดตารางแปลเอง
  */
 export function businessError<C extends BusinessErrorCode>(
   code: C,

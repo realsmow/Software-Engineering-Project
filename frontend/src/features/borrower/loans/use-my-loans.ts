@@ -3,7 +3,7 @@ import { queryKeys } from "@/lib/query-client";
 import type { Loan, LoanStatus } from "@/types/domain";
 
 /**
- * useMyLoans — the current borrower's loans, optionally filtered by status.
+ * useMyLoans - the current borrower's loans, optionally filtered by status.
  *
  * No API is wired yet (brief note #5): the queryFn returns typed mock data.
  * When the backend lands, swap the queryFn for an apiClient call to

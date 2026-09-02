@@ -6,7 +6,7 @@ import { TRPCError } from '@trpc/server';
  * Two layers on purpose:
  *   - the tRPC code is what HTTP/tooling understands (401, 403, 409 …)
  *   - the business code is what the frontend switches on to pick a Thai
- *     message. It rides in `message`, never as Thai text — backend does not
+ *     message. It rides in `message`, never as Thai text - backend does not
  *     own user-facing wording.
  *
  * Extra context goes in `cause` so the frontend can fill in the blanks
@@ -17,16 +17,21 @@ export const BUSINESS_ERROR_CODES = {
   NOT_AUTHENTICATED: 'UNAUTHORIZED',
   ROLE_NOT_ALLOWED: 'FORBIDDEN',
   INVALID_CREDENTIALS: 'UNAUTHORIZED',
+  /** Correct password, but the account may not sign in. Distinct from a borrowing ban. */
+  ACCOUNT_DISABLED: 'FORBIDDEN',
+  /** Too many failed logins. `cause.retryAfterSeconds` says how long to wait. */
+  TOO_MANY_ATTEMPTS: 'TOO_MANY_REQUESTS',
 
   // --- accounts (admin domain) ---
   USER_NOT_FOUND: 'NOT_FOUND',
+  AUDIT_EVENT_NOT_FOUND: 'NOT_FOUND',
   EMAIL_ALREADY_IN_USE: 'CONFLICT',
   USER_ID_ALREADY_IN_USE: 'CONFLICT',
-  /** RoleInfo has no row for the requested role — seed data problem, not user error */
+  /** RoleInfo has no row for the requested role - seed data problem, not user error */
   ROLE_NOT_CONFIGURED: 'PRECONDITION_FAILED',
   /** An admin may not strip their own admin role or ban themselves */
   CANNOT_MODIFY_SELF: 'FORBIDDEN',
-  /** No CreditTier row covers this score — CreditMin/CreditMax leave a gap */
+  /** No CreditTier row covers this score - CreditMin/CreditMax leave a gap */
   CREDIT_TIER_NOT_CONFIGURED: 'PRECONDITION_FAILED',
 
   // --- lending settings ---
@@ -102,7 +107,7 @@ export const BUSINESS_ERROR_CODES = {
 
   /**
    * The procedure exists in the contract but the database cannot back it yet.
-   * `cause.missing` names the columns/tables required — see
+   * `cause.missing` names the columns/tables required - see
    * docs/auth-admin.md. Never use this for "not written yet"; only for
    * "cannot be written until the schema grows".
    */
@@ -115,7 +120,7 @@ export type BusinessErrorCode = keyof typeof BUSINESS_ERROR_CODES;
  * The only error type a service should throw.
  *
  * Anything else that escapes becomes INTERNAL_SERVER_ERROR with its message
- * stripped by tRPC in production — which is the correct outcome for a genuine
+ * stripped by tRPC in production - which is the correct outcome for a genuine
  * bug, and the wrong outcome for an expected business rule. Hence: expected
  * rules get a code here, bugs stay uncaught.
  */

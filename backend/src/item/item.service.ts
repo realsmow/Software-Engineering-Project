@@ -165,10 +165,13 @@ export class ItemService {
 
     const available = row.Items.filter(
       (unit) =>
-        unit.Resource.ResourceStatus === 'InStorage' && unit.Resource.AllowBorrow,
+        unit.Resource.ResourceStatus === 'InStorage' &&
+        unit.Resource.AllowBorrow,
     ).length;
 
-    const dueTimes = row.Items.map((unit) => unit.Resource.UsageLogs[0]?.DueTime)
+    const dueTimes = row.Items.map(
+      (unit) => unit.Resource.UsageLogs[0]?.DueTime,
+    )
       .filter((due): due is Date => due != null)
       .map((due) => due.getTime());
 
@@ -247,7 +250,11 @@ export class ItemService {
       this.prisma.roomInfo.count({ where }),
     ]);
 
-    return toPage(rows.map((row) => toRoomSummary(row)), total, input);
+    return toPage(
+      rows.map((row) => toRoomSummary(row)),
+      total,
+      input,
+    );
   }
 
   async getRoomById(roomKey: number) {
@@ -303,7 +310,11 @@ export class ItemService {
           { ItemName: { contains: input.q, mode: 'insensitive' } },
           { ItemDesc: { contains: input.q, mode: 'insensitive' } },
           // Students often search by the asset tag printed on the item.
-          { Items: { some: { ItemID: { contains: input.q, mode: 'insensitive' } } } },
+          {
+            Items: {
+              some: { ItemID: { contains: input.q, mode: 'insensitive' } },
+            },
+          },
         ],
       });
     }
@@ -325,13 +336,17 @@ export class ItemService {
     }
 
     if (input.ownerGroupKey) {
-      and.push({ Items: { some: { Resource: { ManagedBy: input.ownerGroupKey } } } });
+      and.push({
+        Items: { some: { Resource: { ManagedBy: input.ownerGroupKey } } },
+      });
     }
 
     if (input.availableOnly) {
       and.push({
         Items: {
-          some: { Resource: { ResourceStatus: 'InStorage', AllowBorrow: true } },
+          some: {
+            Resource: { ResourceStatus: 'InStorage', AllowBorrow: true },
+          },
         },
       });
     }
@@ -357,13 +372,17 @@ export class ItemService {
     }
 
     if (input.bookableOnly) {
-      and.push({ Resource: { AllowBorrow: true, ResourceStatus: 'InStorage' } });
+      and.push({
+        Resource: { AllowBorrow: true, ResourceStatus: 'InStorage' },
+      });
     }
 
     return and.length > 0 ? { AND: and } : {};
   }
 
-  private roomOrderBy(sort: ListRoomsInput['sort']): Prisma.RoomInfoOrderByWithRelationInput {
+  private roomOrderBy(
+    sort: ListRoomsInput['sort'],
+  ): Prisma.RoomInfoOrderByWithRelationInput {
     switch (sort) {
       case 'location':
         return { RoomLocation: 'asc' };
@@ -373,7 +392,6 @@ export class ItemService {
         return { RoomName: 'asc' };
     }
   }
-
 }
 
 /** Re-exported so the row type stays visible where the selects are written. */
@@ -394,7 +412,10 @@ function byName(a: ItemSummary, b: ItemSummary): number {
  * Every key falls back to name, so equal rows come out in a stable, meaningful
  * order instead of whatever the database happened to return.
  */
-export function sortItems(items: ItemSummary[], sort: ListItemsInput['sort']): void {
+export function sortItems(
+  items: ItemSummary[],
+  sort: ListItemsInput['sort'],
+): void {
   switch (sort) {
     case 'available':
       // Anything in stock outranks everything out of stock, then by depth of

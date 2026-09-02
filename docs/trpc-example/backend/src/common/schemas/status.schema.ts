@@ -3,7 +3,7 @@
  * ปลายทางจริง: backend-preview/backend/src/common/schemas/status.schema.ts
  *
  * บริบทที่ทำให้ไฟล์นี้จำเป็น:
- *   schema.prisma มี 32 model และ 0 enum — สถานะทุกชนิดเป็น "ตารางแยก"
+ *   schema.prisma มี 32 model และ 0 enum - สถานะทุกชนิดเป็น "ตารางแยก"
  *   (ApproveStatus, ResourceStatus, ConditionType, NotificationType,
  *    PenaltyType, GroupType และแม้แต่ RoleInfo)
  *   ขณะที่ frontend/src/types/domain.ts นิยามไว้เป็นสตริง
@@ -11,7 +11,7 @@
  * ทำไมห้ามส่งเลข key ออกไป:
  *   ApproveStatusKey = 2 หมายถึง "อนุมัติแล้ว" บนเครื่องหนึ่ง แต่ถ้าอีกเครื่อง
  *   seed คนละลำดับ เลข 2 อาจกลายเป็น "ปฏิเสธ" โค้ด if (status === 2) จะ
- *   compile ผ่านทุกครั้งและผิดเงียบ ๆ — เป็นบั๊กที่จะเจอตอนสาธิตงาน
+ *   compile ผ่านทุกครั้งและผิดเงียบ ๆ - เป็นบั๊กที่จะเจอตอนสาธิตงาน
  *
  * TODO(ที่ประชุม ว-10): ยืนยันรายการค่าของแต่ละสถานะให้ครบ frontend ต้องเขียน UI
  * ครอบคลุมทุกค่า ค่าที่อยู่ในไฟล์นี้เป็นร่างจาก types/domain.ts + ชื่อตารางใน schema
@@ -19,7 +19,7 @@
 
 import { z } from 'zod';
 
-/** สถานะคำขอ/การอนุมัติ — มาจากตาราง ApproveStatus */
+/** สถานะคำขอ/การอนุมัติ - มาจากตาราง ApproveStatus */
 export const approveStatus = z.enum([
   'pending', // รออนุมัติ
   'approved', // อนุมัติแล้ว
@@ -29,7 +29,7 @@ export const approveStatus = z.enum([
 ]);
 export type ApproveStatus = z.infer<typeof approveStatus>;
 
-/** สถานะของอุปกรณ์รายชิ้น — มาจากตาราง ResourceStatus */
+/** สถานะของอุปกรณ์รายชิ้น - มาจากตาราง ResourceStatus */
 export const resourceStatus = z.enum([
   'available',
   'reserved',
@@ -39,11 +39,11 @@ export const resourceStatus = z.enum([
 ]);
 export type ResourceStatus = z.infer<typeof resourceStatus>;
 
-/** บทบาทผู้ใช้ — มาจากตาราง RoleInfo (ไม่ใช่ enum) */
+/** บทบาทผู้ใช้ - มาจากตาราง RoleInfo (ไม่ใช่ enum) */
 export const userRole = z.enum(['borrower', 'staff', 'supervisor', 'admin']);
 export type UserRole = z.infer<typeof userRole>;
 
-/** ระดับเครดิต — มาจากตาราง CreditTier (CreditMin/CreditMax) */
+/** ระดับเครดิต - มาจากตาราง CreditTier (CreditMin/CreditMax) */
 export const creditTier = z.enum(['D0', 'D1', 'D2', 'D3']);
 export type CreditTier = z.infer<typeof creditTier>;
 
@@ -62,7 +62,7 @@ export function mapStatus<T extends string>(
   const result = schema.safeParse(raw.toLowerCase());
   if (!result.success) {
     throw new Error(
-      `ค่า "${raw}" ของ ${field} ไม่อยู่ในรายการที่สัญญากำหนด — ` +
+      `ค่า "${raw}" ของ ${field} ไม่อยู่ในรายการที่สัญญากำหนด - ` +
         `เพิ่มค่านี้ใน status.schema.ts และแจ้ง frontend ก่อน (ดู ว-04)`,
     );
   }

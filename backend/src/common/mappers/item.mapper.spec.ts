@@ -52,10 +52,12 @@ function itemRow(units: ItemUnitRow[], creditWeight = 5): ItemTypeRow {
 
 describe('toItemSummary', () => {
   it('produces a schema-valid summary', () => {
-    expect(itemSummary.safeParse(toItemSummary(itemRow([unit({})]))).success).toBe(true);
+    expect(
+      itemSummary.safeParse(toItemSummary(itemRow([unit({})]))).success,
+    ).toBe(true);
   });
 
-  it('takes its tier from the units\' BorrowRule, not the credit weight', () => {
+  it("takes its tier from the units' BorrowRule, not the credit weight", () => {
     // A tier is a BorrowRule row (status.schema.ts), so the same weight can
     // carry any tier and the weight alone must never decide it.
     expect(toItemSummary(itemRow([unit({ ruleName: 'T0' })], 10)).tier).toBe(
@@ -111,7 +113,9 @@ describe('toItemSummary', () => {
 
     it('is queue when every unit is out but will come back', () => {
       const summary = toItemSummary(
-        itemRow([unit({ status: 'Lended', dueAt: new Date('2026-09-01T00:00:00Z') })]),
+        itemRow([
+          unit({ status: 'Lended', dueAt: new Date('2026-09-01T00:00:00Z') }),
+        ]),
       );
       expect(summary.stockStatus).toBe('queue');
     });
@@ -148,7 +152,9 @@ describe('toItemSummary', () => {
     });
 
     it('is null when nothing is out and nothing is free', () => {
-      expect(toItemSummary(itemRow([unit({ status: 'Missing' })])).nextAvailableAt).toBeNull();
+      expect(
+        toItemSummary(itemRow([unit({ status: 'Missing' })])).nextAvailableAt,
+      ).toBeNull();
     });
   });
 
@@ -171,7 +177,11 @@ describe('toItemDetail', () => {
     const detail = toItemDetail(
       itemRow([
         unit({ tag: 'EE-MM-001' }),
-        unit({ tag: 'EE-MM-002', status: 'Lended', dueAt: new Date('2026-09-02T03:00:00Z') }),
+        unit({
+          tag: 'EE-MM-002',
+          status: 'Lended',
+          dueAt: new Date('2026-09-02T03:00:00Z'),
+        }),
       ]),
     );
 
@@ -208,7 +218,7 @@ describe('toRoomSummary', () => {
     expect(roomSummary.safeParse(toRoomSummary(room)).success).toBe(true);
   });
 
-  it('reads its tier off the room resource\'s BorrowRule', () => {
+  it("reads its tier off the room resource's BorrowRule", () => {
     const t3 = { ...room, Resource: unit({ ruleName: 'T3' }).Resource };
     expect(toRoomSummary(t3).tier).toBe('T3');
     expect(toRoomSummary({ ...t3, CreditWeight: 10 }).tier).toBe('T3');

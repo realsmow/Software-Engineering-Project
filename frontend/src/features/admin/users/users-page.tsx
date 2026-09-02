@@ -20,7 +20,6 @@ import { ChartCard } from "@/components/ui/chart-card";
 import { ChartTooltip, CHART_SERIES, axisProps, gridProps } from "@/components/ui/chart-kit";
 import type { Role } from "@/types/domain";
 import {
-  ADMIN_USERS,
   FACULTIES,
   TOP_ACTIVE_USERS,
   departmentsByFaculty,
@@ -31,22 +30,60 @@ import {
   type AuthMethod,
 } from "../mock-data";
 import { fmtDate, fmtDateTime } from "../format";
+import {
+  useAdminUsers,
+  useChangeRole,
+  useCreateUser,
+  useResetPassword,
+  useSetUserActive,
+  useSetUserBan,
+} from "./use-admin-users";
 
 const ACTIVITY_ROLE_ORDER: Role[] = ["borrower", "staff", "supervisor", "admin"];
 
+/**
+ * Turns a failed mutation into something readable.
+ *
+ * The backend puts a business code in `message` (CANNOT_MODIFY_SELF,
+ * EMAIL_ALREADY_IN_USE, ...) rather than prose, because wording is the
+ * client's job. Anything unrecognised is shown as-is, which is better than
+ * swallowing it.
+ */
+function mutationMessage(error: unknown): string {
+  const code = error instanceof Error ? error.message : String(error);
+  return code.split("\n")[0];
+}
+
+/**
+ * Role is deliberately colourless.
+ *
+ * Role and status sit in the same table row, and they used to draw from the
+ * same tone palette: `admin` was green and so was `active`, `supervisor` was
+ * amber and so was `invited`. One colour then meant two unrelated things in a
+ * single row, which is exactly the case where colour stops being a signal.
+ *
+ * Status is the column an operator scans for problems, so it keeps the colour.
+ * Role is a category, not a severity, and the label already names it.
+ */
 const ROLE_TONE: Record<Role, BadgeTone> = {
   borrower: "neutral",
-  staff: "info",
-  supervisor: "warn",
-  admin: "ok",
+  staff: "neutral",
+  supervisor: "neutral",
+  admin: "neutral",
 };
+
+/**
+ * `invited` is blue, not amber. Amber reads as "needs attention", but an
+ * invited account is simply waiting on the person, not on staff. Reserving
+ * warm colours for states that need action keeps the amber and red meaningful.
+ */
 const STATUS_TONE: Record<AccountStatus, BadgeTone> = {
   active: "ok",
   suspended: "alert",
-  invited: "warn",
+  disabled: "neutral",
 };
 const ROLES: Role[] = ["borrower", "staff", "supervisor", "admin"];
-const STATUSES: AccountStatus[] = ["active", "suspended", "invited"];
+const STATUSES: AccountStatus[] = ["active", "suspended", "disabled"];
 
 interface NewUserForm {
   name: string;
@@ -79,13 +116,16 @@ function StatChip({
 }: {
   label: string;
   value: number;
-  tone?: "ok" | "alert" | "warn";
+  tone?: "ok" | "alert" | "info";
   active: boolean;
   onClick: () => void;
 }) {
   const dotColor = tone
-    ? { ok: "var(--s-ok-t)", alert: "var(--s-alert-t)", warn: "var(--s-warn-t)" }[tone]
-    : "var(--muted-foreground)";
+    ? { ok: "var(--s-ok-t)", alert: "var(--s-alert-t)", info: "var(--s-info-t)" }[tone]
+    // --muted-foreground holds raw HSL components ("148 8% 45%") for Tailwind,
+    // so using it bare here produced invalid CSS and an invisible dot. The
+    // --s-* tokens are complete colours, which is what a raw background needs.
+    : "var(--s-t3)";
   return (
     <button
       type="button"
@@ -115,7 +155,12 @@ function UserKvRow({ label, mono, children }: { label: string; mono?: boolean; c
 
 export default function AdminUsersPage() {
   const { t } = useTranslation();
-  const [users, setUsers] = useState<AdminUser[]>(ADMIN_USERS);
+  const { data: users = [], isLoading } = useAdminUsers();
+  const setActive = useSetUserActive();
+  const setBan = useSetUserBan();
+  const changeRole = useChangeRole();
+  const resetPassword = useResetPassword();
+  const createUser = useCreateUser();
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<Role | "all">("all");
   const [statusFilter, setStatusFilter] = useState<AccountStatus | "all">("all");
@@ -127,7 +172,7 @@ export default function AdminUsersPage() {
 
   // Status counts for the quick-filter stat strip (whole dataset, not filtered).
   const counts = useMemo(() => {
-    const c = { all: users.length, active: 0, suspended: 0, invited: 0 };
+    const c = { all: users.length, active: 0, suspended: 0, disabled: 0 };
     for (const u of users) c[u.status]++;
     return c;
   }, [users]);
@@ -150,33 +195,69 @@ export default function AdminUsersPage() {
   const statusLabel = (s: AccountStatus) =>
     t(`admin.users.status${s.charAt(0).toUpperCase() + s.slice(1)}`);
 
-  const setStatus = (id: string, status: AccountStatus) => {
-    setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, status } : u)));
-    setSelected((prev) => (prev && prev.id === id ? { ...prev, status } : prev));
+  /**
+   * Status is not set directly. It is derived server-side from IsActive and
+   * the account's penalty rows, so the UI asks for the underlying change and
+   * lets the refetch report what the status became.
+   */
+  const disable = (id: string, active: boolean) => {
+    setActive.mutate(
+      { id, active },
+      {
+        onSuccess: () => setSelected(null),
+        onError: (e) => setNotice(mutationMessage(e)),
+      },
+    );
+  };
+  const ban = (id: string, banned: boolean) => {
+    setBan.mutate(
+      { id, banned },
+      {
+        onSuccess: () => setSelected(null),
+        onError: (e) => setNotice(mutationMessage(e)),
+      },
+    );
   };
   const setRole = (id: string, role: Role) => {
-    setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, role } : u)));
-    setSelected((prev) => (prev && prev.id === id ? { ...prev, role } : prev));
+    changeRole.mutate(
+      { id, role },
+      {
+        onSuccess: () => setSelected((prev) => (prev && prev.id === id ? { ...prev, role } : prev)),
+        onError: (e) => setNotice(mutationMessage(e)),
+      },
+    );
   };
 
   const submitCreate = () => {
-    if (!form.name.trim() || !form.email.trim()) return;
-    const id = `u-${Math.floor(1000 + Math.random() * 8999)}`;
-    const created: AdminUser = {
-      id,
-      name: form.name.trim(),
-      email: form.email.trim(),
-      govId: "-",
-      role: form.role,
-      departmentId: form.departmentId,
-      auth: form.auth,
-      status: "invited",
-      lastActiveAt: "-",
-      createdAt: new Date().toISOString(),
-    };
-    setUsers((prev) => [created, ...prev]);
-    setCreateOpen(false);
-    setForm(EMPTY_FORM);
+    const name = form.name.trim();
+    if (!name || !form.email.trim()) return;
+
+    // The server wants first and last name separately; the form asks for one
+    // field, so everything after the first space is the surname.
+    const [firstName, ...rest] = name.split(/\s+/);
+
+    createUser.mutate(
+      {
+        email: form.email.trim(),
+        // The form has no user-ID field; the email local part is a sane
+        // default and admin.updateUser can correct it afterwards.
+        studentId: form.email.trim().split("@")[0],
+        firstName,
+        lastName: rest.join(" ") || "-",
+        role: form.role,
+      },
+      {
+        onSuccess: (result) => {
+          setCreateOpen(false);
+          setForm(EMPTY_FORM);
+          // Shown once and never retrievable again, so it must not be missed.
+          if (result.temporaryPassword) {
+            setNotice(`${t("admin.users.tempPassword")}: ${result.temporaryPassword}`);
+          }
+        },
+        onError: (e) => setNotice(mutationMessage(e)),
+      },
+    );
   };
 
   const exportCsv = () => {
@@ -280,11 +361,11 @@ export default function AdminUsersPage() {
           onClick={() => setStatusFilter((s) => (s === "suspended" ? "all" : "suspended"))}
         />
         <StatChip
-          label={t("admin.users.statInvited")}
-          value={counts.invited}
-          tone="warn"
-          active={statusFilter === "invited"}
-          onClick={() => setStatusFilter((s) => (s === "invited" ? "all" : "invited"))}
+          label={t("admin.users.statDisabled")}
+          value={counts.disabled}
+          tone="info"
+          active={statusFilter === "disabled"}
+          onClick={() => setStatusFilter((s) => (s === "disabled" ? "all" : "disabled"))}
         />
       </div>
 
@@ -342,7 +423,7 @@ export default function AdminUsersPage() {
 
       <DataTable
         columns={columns}
-        rows={filtered}
+        rows={isLoading ? [] : filtered}
         rowKey={(u) => u.id}
         onRowClick={(u) => {
           setNotice(null);
@@ -392,28 +473,51 @@ export default function AdminUsersPage() {
         footer={
           selected ? (
             <>
-              {selected.status === "invited" && (
+              {/*
+                Suspend and disable are genuinely different and the buttons say
+                so: a suspended account can still sign in and read its own
+                history, a disabled one cannot authenticate at all.
+              */}
+              {selected.status === "active" && (
+                <>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => ban(selected.id, true)}
+                    disabled={setBan.isPending}
+                  >
+                    {t("admin.users.suspend")}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    onClick={() => disable(selected.id, false)}
+                    disabled={setActive.isPending}
+                  >
+                    {t("admin.users.deactivate")}
+                  </Button>
+                </>
+              )}
+              {selected.status === "suspended" && (
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => setNotice(t("admin.users.inviteSent"))}
+                  onClick={() => ban(selected.id, false)}
+                  disabled={setBan.isPending}
                 >
-                  {t("admin.users.resendInvite")}
+                  {t("admin.users.liftSuspension")}
                 </Button>
               )}
-              {selected.status === "active" ? (
+              {selected.status === "disabled" && (
                 <Button
                   type="button"
-                  variant="destructive"
-                  onClick={() => setStatus(selected.id, "suspended")}
+                  variant="outline"
+                  onClick={() => disable(selected.id, true)}
+                  disabled={setActive.isPending}
                 >
-                  {t("admin.users.deactivate")}
-                </Button>
-              ) : selected.status === "suspended" ? (
-                <Button type="button" variant="outline" onClick={() => setStatus(selected.id, "active")}>
                   {t("admin.users.activate")}
                 </Button>
-              ) : null}
+              )}
               <Button type="button" onClick={() => setSelected(null)}>
                 {t("common.close")}
               </Button>
@@ -474,7 +578,25 @@ export default function AdminUsersPage() {
               type="button"
               variant="outline"
               className="mt-3 w-full"
-              onClick={() => setNotice(t("admin.users.resetSent"))}
+              disabled={!selected || resetPassword.isPending}
+              onClick={() =>
+                selected &&
+                resetPassword.mutate(
+                  { id: selected.id },
+                  {
+                    onSuccess: (result) =>
+                      // Shown once. There is no way to retrieve it again, so
+                      // it goes on screen rather than into a "sent" message
+                      // for a mail system that does not exist yet.
+                      setNotice(
+                        result.temporaryPassword
+                          ? `${t("admin.users.tempPassword")}: ${result.temporaryPassword}`
+                          : t("admin.users.resetSent"),
+                      ),
+                    onError: (e) => setNotice(mutationMessage(e)),
+                  },
+                )
+              }
             >
               {t("admin.users.resetPassword")}
             </Button>

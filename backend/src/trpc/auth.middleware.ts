@@ -3,7 +3,7 @@ import type { MiddlewareOptions, TRPCMiddleware } from 'nestjs-trpc';
 import { BusinessError } from '../common/errors/business-error';
 import type { TrpcContext, TrpcUser } from './context';
 
-/** Must be logged in — used on almost every procedure */
+/** Must be logged in - used on almost every procedure */
 @Injectable()
 export class AuthMiddleware implements TRPCMiddleware {
   async use(opts: MiddlewareOptions<TrpcContext>) {
@@ -17,7 +17,7 @@ export class AuthMiddleware implements TRPCMiddleware {
   }
 }
 
-/** Role-gated middleware factory — write once, reuse per role */
+/** Role-gated middleware factory - write once, reuse per role */
 function requireRole(...allowed: TrpcUser['role'][]) {
   @Injectable()
   class RoleMiddleware implements TRPCMiddleware {
@@ -29,7 +29,10 @@ function requireRole(...allowed: TrpcUser['role'][]) {
         throw new BusinessError('NOT_AUTHENTICATED');
       }
       if (!allowed.includes(ctx.user.role)) {
-        throw new BusinessError('ROLE_NOT_ALLOWED', { allowed, actual: ctx.user.role });
+        throw new BusinessError('ROLE_NOT_ALLOWED', {
+          allowed,
+          actual: ctx.user.role,
+        });
       }
       return next({ ctx });
     }

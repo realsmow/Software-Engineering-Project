@@ -1,7 +1,10 @@
 import { mapUserRole } from '../schemas/status.schema';
 import { toActivePenalty, type PenaltyRow } from '../schemas/penalty.schema';
 import type { BorrowLimits } from '../credit/credit-tier.service';
-import type { AdminUserDetail, AdminUserSummary } from '../../admin/admin.schema';
+import type {
+  AdminUserDetail,
+  AdminUserSummary,
+} from '../../admin/admin.schema';
 
 /**
  * Row shapes the admin mappers need.
@@ -32,7 +35,7 @@ export interface AdminAccountRow {
   UserCredit: number;
   Role: { RoleName: string };
   /**
-   * For the list view this is capped at one row — the summary only shows the
+   * For the list view this is capped at one row - the summary only shows the
    * first group. The detail view selects them all.
    */
   Authorities: AuthorityRow[];
@@ -43,6 +46,7 @@ export interface AdminAccountRow {
    * suspended.
    */
   Penalties: PenaltyRow[];
+  IsActive: boolean;
 }
 
 /** A ManagementGroup's name lives on whichever of its two optional sides exists. */
@@ -60,7 +64,13 @@ export function toAdminUserSummary(row: AdminAccountRow): AdminUserSummary {
     lastName: row.UserLName,
     email: row.Email,
     role: mapUserRole(row.Role.RoleName),
-    status: row.Penalties.length > 0 ? 'suspended' : 'active',
+    // Order matters: disabled outranks suspended, since it is the stronger
+    // statement about what the account can do.
+    status: !row.IsActive
+      ? 'disabled'
+      : row.Penalties.length > 0
+        ? 'suspended'
+        : 'active',
     creditScore: row.UserCredit,
     managementGroup: first
       ? {

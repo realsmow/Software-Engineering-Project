@@ -52,6 +52,8 @@ export const AnyNull = runtime.AnyNull
 
 export const ModelName = {
   AccountInfo: 'AccountInfo',
+  SessionInfo: 'SessionInfo',
+  AuditLog: 'AuditLog',
   RoleInfo: 'RoleInfo',
   FacultyInfo: 'FacultyInfo',
   BranchInfo: 'BranchInfo',
@@ -104,10 +106,40 @@ export const AccountInfoScalarFieldEnum = {
   UserFName: 'UserFName',
   UserLName: 'UserLName',
   UserCredit: 'UserCredit',
-  RoleKey: 'RoleKey'
+  RoleKey: 'RoleKey',
+  FacultyKey: 'FacultyKey',
+  IsActive: 'IsActive'
 } as const
 
 export type AccountInfoScalarFieldEnum = (typeof AccountInfoScalarFieldEnum)[keyof typeof AccountInfoScalarFieldEnum]
+
+
+export const SessionInfoScalarFieldEnum = {
+  SessionKey: 'SessionKey',
+  AccountKey: 'AccountKey',
+  TokenHash: 'TokenHash',
+  IssuedAt: 'IssuedAt',
+  ExpiresAt: 'ExpiresAt',
+  RevokedAt: 'RevokedAt'
+} as const
+
+export type SessionInfoScalarFieldEnum = (typeof SessionInfoScalarFieldEnum)[keyof typeof SessionInfoScalarFieldEnum]
+
+
+export const AuditLogScalarFieldEnum = {
+  AuditKey: 'AuditKey',
+  At: 'At',
+  ActorKey: 'ActorKey',
+  ActorName: 'ActorName',
+  ActorRole: 'ActorRole',
+  Action: 'Action',
+  Target: 'Target',
+  Ip: 'Ip',
+  UserAgent: 'UserAgent',
+  Detail: 'Detail'
+} as const
+
+export type AuditLogScalarFieldEnum = (typeof AuditLogScalarFieldEnum)[keyof typeof AuditLogScalarFieldEnum]
 
 
 export const RoleInfoScalarFieldEnum = {

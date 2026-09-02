@@ -10,7 +10,7 @@
  * กฎที่ compiler จับให้ไม่ได้ ต้องใช้คนรีวิว:
  *   ทุก @Query/@Mutation ต้องมีทั้ง input และ output
  *   ถ้าลืม output ฝั่ง frontend จะได้ type เป็น any แล้วทุกอย่างจะ "compile ผ่าน"
- *   โดยไม่มีการตรวจสอบเหลืออยู่เลย — เป็นความล้มเหลวที่เงียบที่สุดที่เป็นไปได้
+ *   โดยไม่มีการตรวจสอบเหลืออยู่เลย - เป็นความล้มเหลวที่เงียบที่สุดที่เป็นไปได้
  */
 
 import {
@@ -39,7 +39,7 @@ import {
 export class LoanRouter {
   constructor(private readonly loanService: LoanService) {}
 
-  /** รายการที่กำลังยืมอยู่ + ประวัติ — frontend invalidate ตัวนี้หลังทุก action */
+  /** รายการที่กำลังยืมอยู่ + ประวัติ - frontend invalidate ตัวนี้หลังทุก action */
   @Query({ input: listLoansInput, output: listLoansOutput })
   list(@Input() input: ListLoansInput, @Ctx() ctx: TrpcContext) {
     return this.loanService.listForUser(ctx.user!.accountKey, input);

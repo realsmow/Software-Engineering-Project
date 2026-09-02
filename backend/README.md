@@ -21,6 +21,100 @@
   <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
   [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
 
+## Local development
+
+The frontend cannot sign anyone in unless Postgres **and** this server are both
+running. Login checks a password against `AccountInfo.HashedPassword`, so there
+is no offline fallback.
+
+### 1. Start Postgres
+
+From `backend/`:
+
+```bash
+docker compose up -d postgres
+```
+
+From the repo root, point at the file explicitly (there is no compose file at
+the root):
+
+```bash
+docker compose -f backend/docker-compose.yml up -d postgres
+```
+
+### 2. Create `.env`
+
+```bash
+cp .env.example .env
+```
+
+Generate a `SESSION_SECRET` with `openssl rand -base64 48`. Dev runs without
+one, but it falls back to a random per-process secret, so every server restart
+signs everyone out. Production refuses to boot without it.
+
+### 3. Apply migrations
+
+```bash
+npx prisma migrate deploy
+```
+
+### 4. Seed dev data
+
+Creates roles, credit tiers, a default borrow rule, and the four test accounts.
+Idempotent, so re-running it is safe and is also how you repair drifted rows.
+
+```bash
+npm run seed
+```
+
+### 5. Run the server
+
+Listens on `http://localhost:3000`, tRPC mounted at `/trpc`.
+
+```bash
+npm run start
+```
+
+## Design decisions
+
+- [ADR-001 - Local password authentication, with OIDC as the target](docs/adr-001-authentication.md)
+- [Domain notes: auth, admin, item, credit](docs/auth-admin.md)
+
+## Test accounts (dev only)
+
+> **DEV ONLY.** These passwords are known to the whole team. Never seed these
+> accounts into a shared or production database.
+
+Both columns are the same account. The server matches whatever is submitted
+against either `Email` or `UserID`, and decides the role itself.
+
+| Role | KU email tab | Local account tab | Password |
+|---|---|---|---|
+| borrower | `borrower@ku.th` | `test_borrower` | `borrower1234` |
+| staff | `staff@ku.th` | `test_staff` | `staff1234` |
+| supervisor | `supervisor@ku.th` | `test_supervisor` | `supervisor1234` |
+| admin | `admin@ku.th` | `test_admin` | `admin1234` |
+
+The KU email tab validates the address format client-side and accepts only
+`@ku.th` / `@ku.ac.th`. Typing a username there fails before any request is
+sent. These addresses are plain identifiers, not Google Workspace accounts.
+
+## Implemented tRPC procedures
+
+| Router | Procedures |
+|---|---|
+| `auth` | `me`, `login`, `logout` |
+| `admin` | 17 total; 12 backed by real queries. `setUserActive`, `getConfig`, `runCronJob`, `listAudit`, `getAuditById` throw `NOT_IMPLEMENTED` because the schema has no column or table for them, and each names what it needs. |
+
+The remaining contract routers (`item`, `loan`, `reservation`, `approval`,
+`appeal`, `credit`, `inspection`, `notification`, `report`) are not implemented
+yet.
+
+## Running tests
+
+`npm test` talks to a real database. Postgres must be up and migrated first, or
+every spec that touches Prisma fails.
+
 ## Description
 
 [Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.

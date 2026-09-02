@@ -3,7 +3,7 @@ import { createHmac, timingSafeEqual } from 'node:crypto';
 /**
  * HMAC-signed, stateless tokens.
  *
- * "Signed" is not "encrypted" — the payload is readable by anyone holding the
+ * "Signed" is not "encrypted" - the payload is readable by anyone holding the
  * token. It is tamper-evident, not secret. Never put anything in a payload
  * that the token holder should not see.
  *
@@ -25,7 +25,7 @@ export function signToken(payload: string, secret: string): string {
 
 /**
  * Returns the payload, or null if the token is malformed or the signature does
- * not match. Callers get one answer for every kind of failure on purpose —
+ * not match. Callers get one answer for every kind of failure on purpose -
  * distinguishing "bad format" from "bad signature" tells an attacker how close
  * a forgery came.
  */

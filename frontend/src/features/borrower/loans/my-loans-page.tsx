@@ -19,7 +19,9 @@ import {
   type MyRequestStatus,
   type RequestTab,
 } from "../mock-data";
+import { useAuthStore } from "@/features/auth/auth.store";
 import { useRequestDraft } from "../request/request-draft.store";
+import { extensionState } from "./extension-rules";
 import { useMyRequests, requestsInTab, type DraftSummary } from "./use-my-requests";
 import { useSubmittedRequests } from "./submitted-requests.store";
 
@@ -51,7 +53,7 @@ const TAB_LABEL: Record<RequestTab, string> = {
 };
 
 /**
- * My requests — where every borrow and booking lands after it is sent.
+ * My requests - where every borrow and booking lands after it is sent.
  *
  * Requests are atomic: one item is one request with its own number, so a T2
  * item can sit waiting for a supervisor while the T0 item sent alongside it is
@@ -136,12 +138,25 @@ function RequestCard({ row, onCancel }: { row: MyRequest; onCancel: () => void }
   const { t } = useTranslation();
   const steps = stepsOf(row.kind);
   const at = stepAt(row.status, row.kind);
-  const noteKey = row.status === "pending" && row.tier === "T2"
-    ? "borrower.myRequests.noteWaitSup"
-    : STATUS_NOTE[row.status];
+  // Who is being waited on differs by kind: a room waits on the counter staff,
+  // a T2 item on a supervisor. Saying "อาจารย์" over a room booking would send
+  // the borrower chasing the wrong person.
+  const noteKey =
+    row.status !== "pending"
+      ? STATUS_NOTE[row.status]
+      : row.kind === "room"
+        ? "borrower.roomUse.waitStaff"
+        : row.tier === "T2"
+          ? "borrower.myRequests.noteWaitSup"
+          : STATUS_NOTE[row.status];
 
-  // Only the borrower's own in-flight work can still be pulled back.
-  const canCancel = row.status === "pending" || row.status === "approved";
+  // Only the borrower's own in-flight work can still be pulled back. A room
+  // stays cancellable after approval too, right up until check-in: dropping it
+  // hands the hours back to whoever wants them next, which is the whole point.
+  const canCancel =
+    row.status === "pending" ||
+    row.status === "approved" ||
+    (row.kind === "room" && row.status === "ready");
 
   return (
     <article className="rounded-md border border-border p-3.5 sm:px-4">
@@ -158,10 +173,12 @@ function RequestCard({ row, onCancel }: { row: MyRequest; onCancel: () => void }
 
       <h3 className="mt-2 text-[15px] font-semibold leading-snug text-foreground">{row.name}</h3>
       <div className="mt-1 font-mono text-xs text-t3">
-        {row.serial} · {fmtRange(row.startDate, row.endDate)}
+        {row.serial} · {fmtRange(row.startDate, dueDateOf(row))}
       </div>
 
-      {row.status === "inUse" ? <LoanInfo row={row} /> : null}
+      {/* Due dates are counted in days, which a room booked by the hour has
+          none of - it would read "0 days left" on every booking. */}
+      {row.status === "inUse" && row.kind === "equipment" ? <LoanInfo row={row} /> : null}
       {row.inspection ? <InspectionLine row={row} /> : null}
 
       <ProgressTrack steps={steps} at={at} stalled={isStalled(row.status)} />
@@ -177,19 +194,20 @@ function RequestCard({ row, onCancel }: { row: MyRequest; onCancel: () => void }
   );
 }
 
-/** Days left, extensions used, and what quota remains — the mockup's ext line. */
+/** Days left, extensions used, and what quota remains - the mockup's ext line. */
 function LoanInfo({ row }: { row: MyRequest }) {
   const { t } = useTranslation();
+  const band = useAuthStore((s) => s.user?.creditBand) ?? "D0";
   const left = row.daysLeft ?? 0;
   const used = row.extensionsUsed ?? 0;
-  const quota = extensionQuota(row);
+  const quota = extensionState(row, band);
 
   const parts = [
     left < 0
       ? t("borrower.myRequests.extOverdue", { count: Math.abs(left) })
       : t("borrower.myRequests.extDaysLeft", { count: left }),
     used > 0 ? t("borrower.myRequests.extUsed", { count: used }) : null,
-    t(quota.key, { count: quota.count }),
+    t(quota.reasonKey, { count: quota.count }),
   ].filter(Boolean);
 
   return (
@@ -231,7 +249,7 @@ function InspectionLine({ row }: { row: MyRequest }) {
       </p>
       {insp.reason ? (
         <p className="mt-1.5 text-xs leading-relaxed text-t3">
-          {t("borrower.myRequests.inspBy", { name: insp.inspectedBy })} — {insp.reason}
+          {t("borrower.myRequests.inspBy", { name: insp.inspectedBy })} - {insp.reason}
         </p>
       ) : null}
     </>
@@ -250,7 +268,7 @@ function ProgressTrack({
 }) {
   const { t } = useTranslation();
   // Each label owns an equal-width column, so step i's centre sits at
-  // (i + 0.5) / steps.length. The bar stops on that centre — it should read as
+  // (i + 0.5) / steps.length. The bar stops on that centre - it should read as
   // "we are at this step", not "past it". A finished request fills the track.
   const finished = at >= steps.length;
   const pct = finished ? 100 : ((at + 0.5) / steps.length) * 100;
@@ -293,12 +311,110 @@ function Actions({
   onCancel: () => void;
 }) {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const insp = row.inspection;
   const canAppeal = insp && insp.damage !== "B0" && insp.appealDaysLeft > 0;
-  const canExtend = row.status === "inUse" && extensionsLeft(row) > 0;
+  const band = useAuthStore((s) => s.user?.creditBand) ?? "D0";
+  const extendLoan = useSubmittedRequests((s) => s.extendLoan);
+  const requestExtension = useSubmittedRequests((s) => s.requestExtension);
+  const cancelExtensionRequest = useSubmittedRequests((s) => s.cancelExtensionRequest);
+  const ext = extensionState(row, band);
+  const onLoan = row.status === "inUse";
+  const onUseRoom = () => navigate(ROUTES.ROOM_USE);
+  // Between pressing "extend" and the request going out: the borrower is
+  // committing to carry the item in, so they get to read that and back out.
+  const [asking, setAsking] = useState(false);
 
   const buttons: ReactNode[] = [];
 
+  if (row.status === "ready") {
+    buttons.push(
+      row.kind === "room" ? (
+        // A confirmed room is used, not collected - send them to check in.
+        <Button key="use-room" type="button" size="sm" onClick={onUseRoom}>
+          {t("borrower.myRequests.goUseRoom")}
+        </Button>
+      ) : (
+        <Button key="pickup" type="button" size="sm" onClick={() => navigate(ROUTES.PICKUP)}>
+          {t("borrower.myRequests.goPickup")}
+        </Button>
+      ),
+    );
+  }
+  if (onLoan && asking && ext.canRequest) {
+    buttons.push(
+      <Button
+        key="extend-yes"
+        type="button"
+        size="sm"
+        onClick={() => {
+          setAsking(false);
+          requestExtension(row, ext.mode === "supervisor" ? "supervisor" : "staff");
+        }}
+      >
+        {t(ext.confirmLabelKey)}
+      </Button>,
+      <Button
+        key="extend-no"
+        type="button"
+        variant="ghost"
+        size="sm"
+        onClick={() => setAsking(false)}
+      >
+        {t("borrower.myRequests.extAskNo")}
+      </Button>,
+    );
+  } else if (onLoan && (ext.canExtend || ext.canRequest)) {
+    buttons.push(
+      // TODO: POST /loans/:id/extend once the endpoint exists; the store keeps
+      // the new due date in the meantime.
+      <Button
+        key="extend"
+        type="button"
+        variant="outline"
+        size="sm"
+        title={t(ext.reasonKey, { count: ext.count })}
+        onClick={() => (ext.canExtend ? extendLoan(row) : setAsking(true))}
+      >
+        {t(ext.labelKey)}
+      </Button>,
+    );
+  }
+  if (onLoan && ext.isPending) {
+    buttons.push(
+      <Button
+        key="cancel-ext"
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={() => cancelExtensionRequest(row.id)}
+      >
+        {t("borrower.myRequests.cancelExt")}
+      </Button>,
+    );
+  }
+  if (canAppeal) {
+    buttons.push(
+      row.appealSent ? (
+        <Button key="appeal" type="button" size="sm" disabled>
+          {t("borrower.appeals.sentTag")}
+        </Button>
+      ) : (
+        // The appeal page opens on this row rather than making the borrower
+        // find it again in a list of verdicts.
+        <Button
+          key="appeal"
+          type="button"
+          size="sm"
+          onClick={() => navigate(`${ROUTES.APPEALS}?request=${encodeURIComponent(row.id)}`)}
+        >
+          {t("borrower.myRequests.appeal")}
+        </Button>
+      ),
+    );
+  }
+  // Last, so the action the borrower came for leads and the destructive one
+  // sits beside it rather than in front of it.
   if (canCancel) {
     buttons.push(
       <Button
@@ -309,37 +425,22 @@ function Actions({
         className="border-[var(--s-alert-b)] text-[var(--s-alert-t)] hover:bg-[var(--s-alert-bg)]"
         onClick={onCancel}
       >
-        {t("borrower.myRequests.cancel")}
-      </Button>,
-    );
-  }
-  if (row.status === "ready") {
-    buttons.push(
-      // TODO: point at the pickup screen once that page exists.
-      <Button key="pickup" type="button" size="sm" disabled>
-        {t("borrower.myRequests.goPickup")}
-      </Button>,
-    );
-  }
-  if (canExtend) {
-    buttons.push(
-      // TODO: wire to POST /loans/:id/extend when the extension flow lands.
-      <Button key="extend" type="button" variant="outline" size="sm" disabled>
-        {t("borrower.myRequests.extend")}
-      </Button>,
-    );
-  }
-  if (canAppeal) {
-    buttons.push(
-      // TODO: link to the appeals page once it takes a target request.
-      <Button key="appeal" type="button" size="sm" disabled>
-        {t("borrower.myRequests.appeal")}
+        {t(row.kind === "room" ? "borrower.roomUse.cancel" : "borrower.myRequests.cancel")}
       </Button>,
     );
   }
 
   if (buttons.length === 0) return null;
-  return <div className="mt-3 flex flex-wrap gap-2">{buttons}</div>;
+  return (
+    <>
+      {asking && ext.canRequest ? (
+        <p className="mt-3 rounded border border-l-[3px] border-border border-l-accent-orange bg-[var(--s-hot-bg)] px-3 py-2 text-xs leading-relaxed text-[var(--s-hot-t)]">
+          {t(ext.askNoteKey)}
+        </p>
+      ) : null}
+      <div className="mt-3 flex flex-wrap gap-2">{buttons}</div>
+    </>
+  );
 }
 
 function DraftCard({
@@ -410,34 +511,24 @@ function statusKey(status: MyRequestStatus): string {
   return `borrower.myRequests.st${status.charAt(0).toUpperCase()}${status.slice(1)}`;
 }
 
-/** Rejected and cancelled requests stopped moving — the bar should say so. */
+/** Rejected and cancelled requests stopped moving - the bar should say so. */
 function isStalled(status: MyRequestStatus): boolean {
   return status === "rejected" || status === "cancelled";
 }
 
 /**
- * Online extensions allowed per tier, per the lending rules: T0 unlimited,
- * T1 once (then the item must be inspected), T2 needs a supervisor, T3 online.
+ * When the item is actually due back.
+ *
+ * `endDate` is what the borrower *asked* for and never moves; `dueAt` is what
+ * the loan is really running to, and it is set at the counter and pushed out
+ * by every extension. Printing `endDate` on a live loan shows a date that
+ * silently stops matching the "N days left" line right beside it.
  */
-function extensionsLeft(row: MyRequest): number {
-  const used = row.extensionsUsed ?? 0;
-  if (row.tier === "T0" || row.tier === "T3") return Infinity;
-  if (row.tier === "T1") return Math.max(0, 1 - used);
-  return 0;
+function dueDateOf(row: MyRequest): string {
+  return row.dueAt ?? row.endDate;
 }
 
-/** i18n key + count for the remaining-extensions phrase. */
-function extensionQuota(row: MyRequest): { key: string; count: number | string } {
-  if (row.tier === "T2") return { key: "borrower.myRequests.extQuotaSup", count: 0 };
-  const left = extensionsLeft(row);
-  if (left === 0) return { key: "borrower.myRequests.extQuotaNone", count: 0 };
-  return {
-    key: "borrower.myRequests.extQuota",
-    count: left === Infinity ? "∞" : left,
-  };
-}
-
-/** "12–16 ส.ค." — collapses to one date when start and end match. */
+/** "12–16 ส.ค." - collapses to one date when start and end match. */
 function fmtRange(start: string, end: string): string {
   if (start === end) return fmtDay(start);
   return `${format(parseISO(start), "d", { locale: th })}–${fmtDay(end)}`;
@@ -450,7 +541,7 @@ function fmtDay(iso: string): string {
 function exportCsv(requests: MyRequest[]): void {
   const header = ["requestId", "kind", "tier", "name", "serial", "status", "start", "end"];
   const rows = requests.map((r) =>
-    [r.id, r.kind, r.tier, r.name, r.serial, r.status, r.startDate, r.endDate]
+    [r.id, r.kind, r.tier, r.name, r.serial, r.status, r.startDate, dueDateOf(r)]
       .map((v) => `"${String(v).replace(/"/g, '""')}"`)
       .join(","),
   );

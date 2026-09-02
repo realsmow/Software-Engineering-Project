@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
  *
  * Colors are plain `var(--…)` strings that resolve to the design-system tokens
  * in globals.css. Because those tokens change under `body.dark`, every chart
- * that references them re-paints automatically when the theme is toggled — no
+ * that references them re-paints automatically when the theme is toggled - no
  * JS color recalculation needed.
  */
 

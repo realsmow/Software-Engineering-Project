@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 import type { Tier } from "@/types/domain";
 
 /**
- * Tier dot colors — the visual shorthand used everywhere a tier appears
+ * Tier dot colors - the visual shorthand used everywhere a tier appears
  * (catalog table, request review, staff queue). Values match the reference
  * mockup: T0 is neutral, T1 is the KU green accent, T2 warns, T3 is a booking.
  */
@@ -52,7 +52,7 @@ export function TierBadge({
   );
 }
 
-/** Bare 7px dot — for legends and places that render their own label. */
+/** Bare 7px dot - for legends and places that render their own label. */
 export function TierDot({ tier, className }: { tier: Tier; className?: string }) {
   return (
     <span

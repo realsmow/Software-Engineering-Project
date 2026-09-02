@@ -81,16 +81,34 @@ enum SubmissionType {
 
 model AccountInfo {
   AccountKey     Int    @id @default(autoincrement())
-  Email          String
+  // Unique because login matches on either of these. Without the constraint
+  // two rows can share an address and which one authenticates depends on
+  // insertion order, which is not something auth should ever depend on.
+  Email          String @unique
   HashedPassword String
-  UserID         String
+  UserID         String @unique
   UserFName      String
   UserLName      String
   UserCredit     Int
   RoleKey        Int
   // Student / Professor / Staff / Supervisor / Admin
 
-  Role RoleInfo @relation(fields: [RoleKey], references: [RoleKey])
+  // Nullable because existing rows predate the column and no faculty has been
+  // assigned yet. This is what department scoping needs: until it is populated
+  // ctx.user.facultyKey stays null and staff-level procedures are faculty-wide.
+  FacultyKey     Int?
+
+  /// Whether the account may sign in at all.
+  ///
+  /// Distinct from a borrowing ban: a banned user can still log in and see
+  /// their history, a deactivated one cannot authenticate. This is what you
+  /// set when someone graduates or leaves.
+  IsActive       Boolean @default(true)
+
+  Role     RoleInfo      @relation(fields: [RoleKey], references: [RoleKey])
+  Faculty  FacultyInfo?  @relation(fields: [FacultyKey], references: [FacultyKey])
+  Sessions   SessionInfo[]
+  AuditTrail AuditLog[]
 
   Authorities           Authority[]
   ConditionLogsLogged   ConditionLog[]     @relation("ConditionLogLoggedBy")
@@ -107,6 +125,59 @@ model AccountInfo {
   RepairsPerformed      RepairLog[]        @relation("RepairRepairedBy")
 }
 
+/// A single sign-in, so a session can be ended before its token expires.
+///
+/// The token itself is never stored. It carries a random id which is hashed
+/// into TokenHash, so a dump of this table cannot be replayed as a session,
+/// the same reason passwords are hashed.
+model SessionInfo {
+  SessionKey Int      @id @default(autoincrement())
+  AccountKey Int
+  /// SHA-256 of the session id carried in the cookie. Unique so a lookup is one index hit.
+  TokenHash  String   @unique
+  IssuedAt   DateTime @default(now())
+  ExpiresAt  DateTime
+  /// Set when signed out or revoked by an admin. Null means still usable.
+  RevokedAt  DateTime?
+
+  Account AccountInfo @relation(fields: [AccountKey], references: [AccountKey], onDelete: Cascade)
+
+  /// Revoking every session for one account is a single indexed delete.
+  @@index([AccountKey])
+}
+
+/// Append-only record of who did what.
+///
+/// Written by admin mutations, never updated or deleted: an audit trail that
+/// can be edited afterwards answers no question worth asking. There is
+/// deliberately no update or delete procedure, and RestrictedActor keeps the
+/// rows readable after the person who caused them is gone.
+///
+/// ActorKey is nullable and the actor's name and role are copied in at write
+/// time rather than joined. A join would rewrite history every time someone is
+/// promoted or renamed; the log must say what was true when it happened.
+model AuditLog {
+  AuditKey   Int      @id @default(autoincrement())
+  At         DateTime @default(now())
+  /// Null when the account has since been deleted. ActorName/ActorRole survive.
+  ActorKey   Int?
+  ActorName  String
+  ActorRole  String
+  /// login | create | update | delete | role | config
+  Action     String
+  /// What was acted on, as "domain/identifier", e.g. "account/12".
+  Target     String
+  Ip         String?
+  UserAgent  String?
+  Detail     String
+
+  Actor AccountInfo? @relation(fields: [ActorKey], references: [AccountKey], onDelete: SetNull)
+
+  /// The log is read newest-first and filtered by action.
+  @@index([At])
+  @@index([Action])
+}
+
 model RoleInfo {
   RoleKey  Int    @id @default(autoincrement())
   RoleName String
@@ -119,6 +190,7 @@ model FacultyInfo {
   FacultyName   String?
 
   Branches BranchInfo[]
+  Accounts AccountInfo[]
 }
 
 model BranchInfo {

@@ -5,6 +5,7 @@ import { KULogo } from "./ku-logo";
 import { NavIcon } from "./nav-icon";
 import { getNavForRole } from "@/constants/navigation";
 import { ROUTES } from "@/constants";
+import { useTRPCClient } from "@/lib/trpc";
 import { useAuthStore } from "@/features/auth/auth.store";
 import { cn } from "@/lib/utils";
 
@@ -19,11 +20,35 @@ export function Sidebar() {
   const location = useLocation();
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
+  const trpcClient = useTRPCClient();
 
   const role = user?.role ?? "borrower";
   const { persona, sections } = getNavForRole(role);
 
-  const handleLogout = () => {
+  /**
+   * Show the signed-in account, not the role's stock persona.
+   *
+   * NAV_CONFIG carries a hardcoded persona per role, which was right while
+   * auth was mocked. Against a real session it puts someone else's name and
+   * student ID under the avatar of whoever is actually logged in, which is
+   * worse than showing nothing. The persona is kept only as the pre-hydration
+   * placeholder, for the moment before auth.me resolves.
+   */
+  const displayName = user?.name ?? persona.name;
+  const displayRole = user
+    ? `${t(`nav.${user.role}`)} · ${user.studentId}`
+    : persona.role;
+  const avatar = user ? user.name.trim().slice(0, 2) : persona.avatar;
+
+  const handleLogout = async () => {
+    // Drop the httpOnly cookie server-side first; clearing only the local
+    // store would leave a still-valid session on the next page load.
+    // A failed call must not strand the user on a page they meant to leave.
+    try {
+      await trpcClient.auth.logout.mutate();
+    } catch {
+      /* sign out locally regardless */
+    }
     logout();
     navigate(ROUTES.LOGIN, { replace: true });
   };
@@ -74,10 +99,10 @@ export function Sidebar() {
           title={t("profile.viewProfile")}
           aria-label={t("profile.viewProfile")}
         >
-          <div className="side-avatar">{persona.avatar}</div>
+          <div className="side-avatar">{avatar}</div>
           <div className="side-user">
-            <div className="side-user-name">{persona.name}</div>
-            <div className="side-user-role">{persona.role}</div>
+            <div className="side-user-name">{displayName}</div>
+            <div className="side-user-role">{displayRole}</div>
           </div>
         </button>
         <button

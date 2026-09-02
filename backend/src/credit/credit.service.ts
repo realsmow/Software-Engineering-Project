@@ -39,7 +39,9 @@ export class CreditService {
 
     if (!account) throw new BusinessError('USER_NOT_FOUND', { id: accountKey });
 
-    const limits = await this.creditTiers.resolveBorrowLimits(account.UserCredit);
+    const limits = await this.creditTiers.resolveBorrowLimits(
+      account.UserCredit,
+    );
     const activePenalties = account.Penalties.map(toActivePenalty);
 
     return {
@@ -49,8 +51,8 @@ export class CreditService {
       maxBorrowDays: limits.maxBorrowDays,
       maxExtendTimes: limits.maxExtendTimes,
       activePenalties,
-      // CreditDeducted is nullable — an admin-issued borrowing ban deducts
-      // nothing — so a null contributes zero rather than breaking the sum.
+      // CreditDeducted is nullable - an admin-issued borrowing ban deducts
+      // nothing - so a null contributes zero rather than breaking the sum.
       totalDeducted: activePenalties.reduce(
         (sum, penalty) => sum + (penalty.creditDeducted ?? 0),
         0,

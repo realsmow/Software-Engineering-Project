@@ -45,6 +45,29 @@ export { Prisma }
  */
 export type AccountInfo = Prisma.AccountInfoModel
 /**
+ * Model SessionInfo
+ * A single sign-in, so a session can be ended before its token expires.
+ * 
+ * The token itself is never stored. It carries a random id which is hashed
+ * into TokenHash, so a dump of this table cannot be replayed as a session,
+ * the same reason passwords are hashed.
+ */
+export type SessionInfo = Prisma.SessionInfoModel
+/**
+ * Model AuditLog
+ * Append-only record of who did what.
+ * 
+ * Written by admin mutations, never updated or deleted: an audit trail that
+ * can be edited afterwards answers no question worth asking. There is
+ * deliberately no update or delete procedure, and RestrictedActor keeps the
+ * rows readable after the person who caused them is gone.
+ * 
+ * ActorKey is nullable and the actor's name and role are copied in at write
+ * time rather than joined. A join would rewrite history every time someone is
+ * promoted or renamed; the log must say what was true when it happened.
+ */
+export type AuditLog = Prisma.AuditLogModel
+/**
  * Model RoleInfo
  * 
  */

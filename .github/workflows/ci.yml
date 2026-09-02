@@ -77,6 +77,27 @@ jobs:
     name: backend
     runs-on: ubuntu-latest
 
+    # The specs talk to a real database rather than mocking Prisma, so CI has
+    # to provide one. Without this the whole suite fails at connect and the
+    # job proves only that the code compiles.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: app
+        ports:
+          - 5432:5432
+        # Steps start as soon as the container does, which is well before
+        # Postgres accepts connections. The health check is what makes the
+        # runner wait for ready rather than merely running.
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       # Downloads the repository onto the runner. Every workflow needs it -
       # the runner starts completely empty.
@@ -117,6 +138,21 @@ jobs:
       - name: build
         run: npm run build
         working-directory: backend
+
+      # migrate deploy, not migrate dev: dev is interactive and would hang the
+      # runner. The suite seeds and cleans up its own fixtures, so no seed step
+      # is needed - and the specs must keep it that way to stay CI-safe.
+      - name: migrate
+        run: npx prisma migrate deploy
+        working-directory: backend
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/app
+
+      - name: test
+        run: npm test
+        working-directory: backend
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/app
 
   frontend:
     name: frontend

@@ -613,10 +613,6 @@ export type ReservationsUncheckedUpdateManyWithoutResourceNestedInput = {
   deleteMany?: Prisma.ReservationsScalarWhereInput | Prisma.ReservationsScalarWhereInput[]
 }
 
-export type DateTimeFieldUpdateOperationsInput = {
-  set?: Date | string
-}
-
 export type EnumApproveStatusFieldUpdateOperationsInput = {
   set?: $Enums.ApproveStatus
 }

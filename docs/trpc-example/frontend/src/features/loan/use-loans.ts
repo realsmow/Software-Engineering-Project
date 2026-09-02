@@ -1,5 +1,5 @@
 /**
- * ตัวอย่างการใช้งานจริงฝั่ง frontend — ผลรวมของทุกมติในหน้าเดียว
+ * ตัวอย่างการใช้งานจริงฝั่ง frontend - ผลรวมของทุกมติในหน้าเดียว
  * ปลายทางจริง: frontend/src/features/borrower/loans/use-loans.ts
  *
  * สิ่งที่หายไปเทียบกับโค้ดเดิมที่ใช้ api-client.ts:
@@ -64,7 +64,7 @@ export function useCreateLoan() {
     /**
      * ว-13: mutation ต้องไม่ลองใหม่อัตโนมัติ
      * ถ้าเครือข่ายหลุดหลังจาก backend รับคำขอไปแล้ว การลองใหม่จะกลายเป็น
-     * "ยืมซ้ำสองครั้ง" — query ลองใหม่ได้ mutation ลองใหม่ไม่ได้
+     * "ยืมซ้ำสองครั้ง" - query ลองใหม่ได้ mutation ลองใหม่ไม่ได้
      */
     retry: false,
   });
@@ -74,7 +74,7 @@ export function useCreateLoan() {
  * แปลง error จาก tRPC เป็นข้อความไทย
  *
  * backend ส่ง "รหัส" มาใน message และส่ง "ข้อมูลประกอบ" มาใน cause
- * ตามที่ตกลงใน ว-06 — ไม่เคยส่งประโยคภาษาไทยมาเลย
+ * ตามที่ตกลงใน ว-06 - ไม่เคยส่งประโยคภาษาไทยมาเลย
  */
 export function toUserMessage(error: unknown): string {
   if (error instanceof TRPCClientError) {
