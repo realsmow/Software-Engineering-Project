@@ -1,4 +1,4 @@
-import { tierFromCreditWeight } from '../schemas/status.schema';
+import { tryMapTier } from '../schemas/status.schema';
 import type {
   ItemDetail,
   ItemSummary,
@@ -23,6 +23,12 @@ interface ResourceRow {
   ResourceStatus: 'InStorage' | 'Lended' | 'Missing';
   AllowBorrow: boolean;
   BufferTime: number;
+  /**
+   * The unit's tier. A tier *is* a BorrowRule row — see status.schema.ts — so
+   * every select feeding these mappers has to reach for it, and a rule outside
+   * T0-T3 maps to a null tier rather than an error.
+   */
+  BorrowRuleInfo: { RuleName: string | null };
   ManagementGroup: ManagementGroupRow;
   CurrentCondition: {
     Condition: 'Normal' | 'MinorDamage' | 'MajorDamage' | 'Broken' | 'Missing';
@@ -69,6 +75,23 @@ function toOwner(group: ManagementGroupRow) {
   };
 }
 
+/**
+ * The tier of an equipment *type*, read off its units.
+ *
+ * ItemInfo has no tier of its own: BorrowRule hangs off ResourceInfo, i.e. off
+ * each individual unit. In practice every unit of a type shares one rule, so
+ * the first unit that names a real tier answers for the type. A type with no
+ * units yet — `item.createType` registers one before any unit exists — has no
+ * tier at all, which is why the field is nullable.
+ */
+function typeTier(units: ItemUnitRow[]) {
+  for (const unit of units) {
+    const tier = tryMapTier(unit.Resource.BorrowRuleInfo.RuleName);
+    if (tier !== null) return tier;
+  }
+  return null;
+}
+
 /** Free to borrow right now: in storage, and the resource is open for borrowing. */
 function isAvailable(unit: ItemUnitRow): boolean {
   return (
@@ -76,7 +99,7 @@ function isAvailable(unit: ItemUnitRow): boolean {
   );
 }
 
-/** Could be borrowed eventually - excludes units that are lost or switched off. */
+/** Could be borrowed eventually — excludes units that are lost or switched off. */
 function isBorrowable(unit: ItemUnitRow): boolean {
   return (
     unit.Resource.ResourceStatus !== 'Missing' && unit.Resource.AllowBorrow
@@ -116,7 +139,7 @@ export function toItemSummary(row: ItemTypeRow): ItemSummary {
     description: row.ItemDesc,
     imageUrl: row.ImageURL,
 
-    tier: tierFromCreditWeight(row.CreditWeight, 'Item'),
+    tier: typeTier(units),
     creditWeight: row.CreditWeight,
 
     totalUnits: units.length,
@@ -158,8 +181,7 @@ export function toRoomSummary(row: RoomRow): RoomSummary {
     location: row.RoomLocation,
     imageUrl: row.ImageURL,
 
-    // A room is T3 regardless of its credit weight - see tierFromCreditWeight.
-    tier: tierFromCreditWeight(row.CreditWeight, 'Room'),
+    tier: tryMapTier(resource.BorrowRuleInfo.RuleName),
     creditWeight: row.CreditWeight,
 
     status: resource.ResourceStatus,

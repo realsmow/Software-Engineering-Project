@@ -33,7 +33,7 @@ describe('sortItems', () => {
       const items = [item('out', 0, 10), item('one left', 1, 1)];
       sortItems(items, 'available');
 
-      // One unit free beats ten due back later - that is the whole point.
+      // One unit free beats ten due back later — that is the whole point.
       expect(names(items)).toEqual(['one left', 'out']);
     });
 

@@ -19,6 +19,7 @@ function unit(overrides: {
   allowBorrow?: boolean;
   dueAt?: Date;
   tag?: string;
+  ruleName?: string | null;
 }): ItemUnitRow {
   return {
     IndivKey: 1,
@@ -28,6 +29,9 @@ function unit(overrides: {
       ResourceStatus: overrides.status ?? 'InStorage',
       AllowBorrow: overrides.allowBorrow ?? true,
       BufferTime: 2,
+      BorrowRuleInfo: {
+        RuleName: overrides.ruleName === undefined ? 'T1' : overrides.ruleName,
+      },
       ManagementGroup: GROUP,
       CurrentCondition: { Condition: 'Normal' },
       UsageLogs: overrides.dueAt ? [{ DueTime: overrides.dueAt }] : [],
@@ -53,10 +57,27 @@ describe('toItemSummary', () => {
     ).toBe(true);
   });
 
-  it('derives the tier from credit weight', () => {
-    expect(toItemSummary(itemRow([unit({})], 0)).tier).toBe('T0');
-    expect(toItemSummary(itemRow([unit({})], 5)).tier).toBe('T1');
-    expect(toItemSummary(itemRow([unit({})], 10)).tier).toBe('T2');
+  it("takes its tier from the units' BorrowRule, not the credit weight", () => {
+    // A tier is a BorrowRule row (status.schema.ts), so the same weight can
+    // carry any tier and the weight alone must never decide it.
+    expect(toItemSummary(itemRow([unit({ ruleName: 'T0' })], 10)).tier).toBe(
+      'T0',
+    );
+    expect(toItemSummary(itemRow([unit({ ruleName: 'T2' })], 0)).tier).toBe(
+      'T2',
+    );
+  });
+
+  it('has no tier when the type has no units yet', () => {
+    // `item.createType` registers a type before any unit exists — a catalogue
+    // entry, not stock, and nothing to read a BorrowRule off.
+    expect(toItemSummary(itemRow([])).tier).toBeNull();
+  });
+
+  it('has no tier when the units sit on a rule outside T0-T3', () => {
+    expect(
+      toItemSummary(itemRow([unit({ ruleName: 'Special lab rule' })])).tier,
+    ).toBeNull();
   });
 
   describe('availability counting', () => {
@@ -100,7 +121,7 @@ describe('toItemSummary', () => {
     });
 
     it('is maintenance when nothing is borrowable at all', () => {
-      // Switched off, and lost - neither is coming back into circulation.
+      // Switched off, and lost — neither is coming back into circulation.
       const summary = toItemSummary(
         itemRow([unit({ allowBorrow: false }), unit({ status: 'Missing' })]),
       );
@@ -109,7 +130,7 @@ describe('toItemSummary', () => {
   });
 
   describe('nextAvailableAt', () => {
-    it('is null while a unit is free - a date there would read as unavailable', () => {
+    it('is null while a unit is free — a date there would read as unavailable', () => {
       const summary = toItemSummary(
         itemRow([
           unit({ status: 'InStorage' }),
@@ -197,9 +218,15 @@ describe('toRoomSummary', () => {
     expect(roomSummary.safeParse(toRoomSummary(room)).success).toBe(true);
   });
 
-  it('is always T3, whatever the credit weight says', () => {
-    expect(toRoomSummary(room).tier).toBe('T3');
-    expect(toRoomSummary({ ...room, CreditWeight: 10 }).tier).toBe('T3');
+  it("reads its tier off the room resource's BorrowRule", () => {
+    const t3 = { ...room, Resource: unit({ ruleName: 'T3' }).Resource };
+    expect(toRoomSummary(t3).tier).toBe('T3');
+    expect(toRoomSummary({ ...t3, CreditWeight: 10 }).tier).toBe('T3');
+  });
+
+  it('has no tier when the room sits on a rule outside T0-T3', () => {
+    const odd = { ...room, Resource: unit({ ruleName: null }).Resource };
+    expect(toRoomSummary(odd).tier).toBeNull();
   });
 
   it('is bookable only when open for borrowing and actually there', () => {

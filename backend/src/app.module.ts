@@ -1,4 +1,10 @@
-import { Module } from '@nestjs/common';
+import {
+  Module,
+  RequestMethod,
+  type MiddlewareConsumer,
+  type NestModule,
+} from '@nestjs/common';
+import express from 'express';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PrismaModule } from './prisma.module';
@@ -17,6 +23,8 @@ import {
 
 import { CreditTierService } from './common/credit/credit-tier.service';
 import { AuditService } from './common/audit/audit.service';
+import { StaffScopeService } from './common/authority/staff-scope.service';
+import { PenaltyService } from './common/penalty/penalty.service';
 
 import { AuthRouter } from './auth/auth.router';
 import { AuthService } from './auth/auth.service';
@@ -28,9 +36,24 @@ import { AdminService } from './admin/admin.service';
 
 import { ItemRouter } from './item/item.router';
 import { ItemService } from './item/item.service';
+import { ItemManagementService } from './item/item.management.service';
 
 import { CreditRouter } from './credit/credit.router';
 import { CreditService } from './credit/credit.service';
+
+import { LoanRouter } from './loan/loan.router';
+import { LoanService } from './loan/loan.service';
+
+import { InspectionRouter } from './inspection/inspection.router';
+import { InspectionService } from './inspection/inspection.service';
+
+import { ImageRouter } from './image/image.router';
+import { ImageService } from './image/image.service';
+import { ImageController } from './image/image.controller';
+import {
+  MAX_UPLOAD_BYTES,
+  uploadContentType,
+} from './common/schemas/image.schema';
 
 @Module({
   imports: [
@@ -55,7 +78,8 @@ import { CreditService } from './credit/credit.service';
       onError: TrpcErrorLogger,
     }),
   ],
-  controllers: [AppController],
+  // ImageController is the one REST route: tRPC cannot carry file bytes (CONTRACT.md §3)
+  controllers: [AppController, ImageController],
   providers: [
     AppService,
 
@@ -69,6 +93,9 @@ import { CreditService } from './credit/credit.service';
     // shared business rules, used by more than one domain
     CreditTierService,
     AuditService,
+    StaffScopeService,
+    PenaltyService,
+    ImageService,
 
     // session - issued by auth, read by AppContext on every request
     SessionService,
@@ -84,9 +111,44 @@ import { CreditService } from './credit/credit.service';
 
     ItemRouter,
     ItemService,
+    ItemManagementService,
 
     CreditRouter,
     CreditService,
+
+    LoanRouter,
+    LoanService,
+
+    InspectionRouter,
+    InspectionService,
+
+    ImageRouter,
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  /**
+   * Raw body for the upload route, and nowhere else (CONTRACT.md §3).
+   *
+   * It lives here rather than in `main.ts` so it travels with the controller it
+   * exists for — a body parser configured in bootstrap is invisible to every
+   * test, which is exactly how an upload route ends up passing its unit tests
+   * and receiving `{}` in production.
+   *
+   * Scoped twice over: to this one path, and to the two image types. A global
+   * raw parser would swallow the JSON every tRPC call needs, and an
+   * unrestricted `type` would buffer whatever anyone sent.
+   *
+   * A Content-Type outside the list leaves `req.body` an empty object rather
+   * than a Buffer, and ImageController treats that as the rejection.
+   */
+  configure(consumer: MiddlewareConsumer): void {
+    consumer
+      .apply(
+        express.raw({
+          type: [...uploadContentType.options],
+          limit: MAX_UPLOAD_BYTES,
+        }),
+      )
+      .forRoutes({ path: 'uploads/*path', method: RequestMethod.PUT });
+  }
+}

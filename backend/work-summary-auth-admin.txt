@@ -1,0 +1,338 @@
+================================================================================
+ สรุปงาน: โดเมน auth (ผู้ใช้) + admin  ฝั่ง backend
+ วันที่ 23 สิงหาคม 2569
+ ไฟล์นี้เป็นบันทึกส่วนตัว ไม่ถูก push ขึ้น GitHub (ใส่ไว้ใน backend/.gitignore แล้ว)
+================================================================================
+
+--------------------------------------------------------------------------------
+ 1. ขอบเขตงาน
+--------------------------------------------------------------------------------
+
+เขียนชั้น tRPC ที่ frontend เรียกใช้ สำหรับโดเมน auth กับ admin
+ตามสัญญาใน frontend/src/constants/api-endpoints.ts
+
+ไม่ได้แตะ prisma/schema.prisma แม้แต่บรรทัดเดียว (ตารางเป็นของคนอื่นดูแล)
+ไม่ได้แตะโค้ดฝั่ง frontend เลย
+ไม่ได้ลง dependency ใหม่เพิ่มสักตัว
+
+
+--------------------------------------------------------------------------------
+ 2. ปัญหาที่เจอตอนเริ่ม (สำคัญ)
+--------------------------------------------------------------------------------
+
+auth.me ที่มีอยู่เดิม ใช้งานจริงไม่ได้เลย
+
+  src/trpc/context.ts มีเมท็อด verifySessionToken() ที่เขียนไว้ว่า
+  "TODO: replace with real session verification" แล้ว return null ตายตัว
+
+  ผลคือ ctx.user เป็น null ทุก request -> AuthMiddleware โยน UNAUTHORIZED
+  -> ทุก procedure ที่ต้องล็อกอินตอบ 401 ไม่ว่าจะทำอะไรก็ตาม
+
+  เลยต้องทำระบบ session ให้เสร็จก่อน ถึงจะทำ admin ต่อได้
+
+
+--------------------------------------------------------------------------------
+ 3. procedure ที่เขียนเสร็จ (รวม 20 ตัว)
+--------------------------------------------------------------------------------
+
+ [auth]  3 ตัว
+   auth.me       เดิมมีอยู่แล้ว แต่เพิ่งใช้งานได้จริงหลังแก้ context
+   auth.login    ตรวจรหัสผ่าน + ออก session cookie
+   auth.logout   ล้าง cookie
+
+   หมายเหตุ: login รับ username ได้ทั้ง AccountInfo.Email และ AccountInfo.UserID
+   วิธีล็อกอินสองแบบของ frontend (อีเมล KU / บัญชีภายใน) จึงเป็น procedure เดียวกัน
+   ความต่างคือไปแมตช์คอลัมน์ไหน ซึ่งเป็นเรื่องของฝั่ง server
+
+ [admin]  17 ตัว  แบ่งเป็น
+
+   ทำงานได้จริง ต่อฐานข้อมูลแล้ว (10 ตัว)
+     admin.listUsers               ค้นหา + กรอง role/status + แบ่งหน้า
+     admin.getUserById
+     admin.createUser              ไม่ส่ง password มา = สุ่มให้ คืนกลับครั้งเดียว
+     admin.updateUser
+     admin.changeRole              กันไม่ให้ปลดสิทธิ์ admin ของตัวเอง
+     admin.resetPassword
+     admin.setUserBan              บันทึกเป็นแถว PenaltyInfo
+     admin.getLendingSettings      อ่าน CreditTier/BorrowRule/BorrowConstraints/PenaltyRule
+     admin.updateLendingSettings   upsert เฉพาะแถวที่ส่งมา อยู่ใน transaction เดียว
+     admin.getSystemStatus         ping DB จริง + นับ record ตอบได้แม้ DB ล่ม
+
+   ทำได้บางส่วน (1 ตัว)
+     admin.listCronJobs            คืนทะเบียนงาน 8 ตัว ทุกตัวรายงาน implemented:false
+                                   เพราะยังไม่มี scheduler
+
+   ทำไม่ได้จริง ๆ เพราะ schema ไม่มีที่เก็บ (6 ตัว) -> โยน NOT_IMPLEMENTED
+     admin.setUserActive
+     admin.runCronJob
+     admin.getConfig
+     admin.updateConfig
+     admin.listAudit
+     admin.getAuditById
+
+   6 ตัวนี้ประกาศ zod schema ไว้ครบแล้ว frontend จึงเขียนหน้าจอรอได้เลยโดยไม่ต้อง
+   เดา type และเวลาเรียกจะได้ error ที่บอกชื่อคอลัมน์ที่ขาดใน cause.missing ตรง ๆ
+
+
+--------------------------------------------------------------------------------
+ 4. สิ่งที่ schema ยังไม่รองรับ (เอาไปคุยกับคนดูแล schema.prisma)
+--------------------------------------------------------------------------------
+
+ เรียงจากกระทบมากไปน้อย รายละเอียดเต็มอยู่ใน backend/docs/auth-admin.md ส่วนที่ 3
+
+  1) AccountInfo.Email และ AccountInfo.UserID ไม่ได้เป็น @unique
+     >>> อันนี้สำคัญที่สุด <<<
+     ตอนนี้ต้องเช็คซ้ำเองใน service ก่อน insert ซึ่งเป็น race condition จริง ๆ
+     admin สองคนสร้างอีเมลเดียวกันพร้อมกันจะผ่านทั้งคู่
+     มีแต่ unique index ที่ฐานข้อมูลเท่านั้นที่กันได้จริง
+
+  2) ไม่มี AccountInfo.IsActive
+     ทำ admin.setUserActive ไม่ได้เลย
+     คนละเรื่องกับ ban นะ: บัญชีที่ปิด = ล็อกอินไม่ได้ ส่วน ban = ล็อกอินได้แต่ยืมไม่ได้
+
+  3) AccountInfo ไม่มีความสัมพันธ์กับคณะ/ภาควิชา
+     ctx.user.facultyKey เลยเป็น null เสมอ
+     ทำให้จำกัดสิทธิ์ staff ให้เห็นเฉพาะภาควิชาตัวเองไม่ได้ (ดูข้อ 6)
+     userOutput.facultyName ก็เป็น null เสมอด้วย
+
+  4) ไม่มีตาราง AuditLog        -> ทำหน้า audit log ไม่ได้
+  5) ไม่มีตาราง SystemConfig    -> ทำหน้า technical config ไม่ได้
+  6) ไม่มีตาราง CronRunLog      -> ทำ runCronJob / lastRunAt ไม่ได้
+  7) ไม่มี CreatedAt/LastActiveAt -> คอลัมน์ "สร้างเมื่อ"/"ใช้งานล่าสุด" ไม่มีข้อมูล
+  8) ไม่มีตาราง SessionInfo     -> logout ทุกเครื่อง / เพิกถอน session ทันทีไม่ได้
+  9) ไม่มีที่เก็บสถานะ invited   -> accountStatus มีแค่ active / suspended
+
+
+--------------------------------------------------------------------------------
+ 5. ช่องโหว่ที่ยังปิดไม่ได้ (ต้องบอกทีม ห้ามลืม)
+--------------------------------------------------------------------------------
+
+  สิทธิ์ตามภาควิชายังไม่ถูกบังคับจริง
+
+  admin.setUserBan, admin.getLendingSettings, admin.updateLendingSettings
+  ใช้ StaffMiddleware ตามที่สัญญาตกลงไว้ แต่เพราะข้อ 3 ข้างบน
+  staff คนหนึ่งจึงแบนใครก็ได้ และแก้กฎการยืมของทุกภาควิชาได้
+
+  ห้ามขึ้น production ก่อนปิดช่องนี้
+
+  ส่วน admin.listUsers / getUserById ผมล็อกไว้ที่ AdminMiddleware ก่อน
+  ถึงแม้สัญญาจะบอกว่า staff ควรเห็นด้วย เพราะให้สิทธิ์เกินไว้ก่อนอันตราย
+  กว่าให้น้อยไว้ก่อน
+
+
+--------------------------------------------------------------------------------
+ 6. การตัดสินใจทางเทคนิคที่ควรรู้
+--------------------------------------------------------------------------------
+
+  * รหัสผ่านใช้ scrypt จาก node:crypto ไม่ได้ลง bcrypt/argon2
+    เหตุผล: ไม่อยากให้โปรเจกต์มี native dependency ซึ่งมักพังตอนเพื่อนคนละ OS
+    รัน npm ci  ค่า cost ถูกเก็บไว้ในตัว hash เอง ปรับขึ้นทีหลังได้โดยของเก่ายังใช้ได้
+
+  * session เป็น token เซ็นด้วย HMAC ไม่มี state ฝั่ง server
+    เพราะ schema ไม่มีตาราง session และห้ามเพิ่ม
+    ข้อเสียที่ต้องยอมรับ: เพิกถอน session กลางคันไม่ได้ ต้องรอหมดอายุ
+    เพราะงั้นตั้ง SESSION_TTL_HOURS ให้สั้นไว้ (ตอนนี้ 12 ชม.)
+
+  * auth.login ไม่บอกว่าบัญชีมีอยู่จริงหรือไม่
+    "ไม่มีผู้ใช้นี้" กับ "รหัสผิด" คืน INVALID_CREDENTIALS เหมือนกัน
+    และกรณีไม่มีผู้ใช้ก็ยังเสียเวลา hash กับค่าหลอกเท่าเดิม
+    ไม่งั้นเวลาตอบกลับจะกลายเป็นเครื่องมือไล่เดาว่าอีเมลไหนสมัครไว้แล้ว
+
+  * cookie เป็น httpOnly ถ้ามีช่องโหว่ XSS สคริปต์อ่าน session ออกไปไม่ได้
+    sameSite ปรับผ่าน env เพราะ production ที่แยกโดเมนต้องใช้ none + secure
+
+  * paginationInput.sort มี whitelist ของชื่อคอลัมน์
+    ค่ามันมาจาก client และปลายทางคือ orderBy ของ Prisma
+    ส่งต่อดิบ ๆ เท่ากับเปิดให้ไล่ดูโครงสร้างตาราง
+
+  * ban ใช้ตาราง PenaltyInfo ที่มีอยู่แล้ว แทนที่จะขอคอลัมน์ใหม่
+    ตอนปลดแบนจะ set InEffect=false ไม่ลบแถว ประวัติจะได้ไม่หาย
+
+
+--------------------------------------------------------------------------------
+ 7. ไฟล์ที่เพิ่ม
+--------------------------------------------------------------------------------
+
+  src/admin/admin.schema.ts                     zod ของ input/output ทุกตัว
+  src/admin/admin.service.ts                    ตรรกะ + query
+  src/admin/admin.router.ts                     procedure + middleware
+  src/auth/auth.schema.ts                       loginInput / loginOutput
+  src/auth/session.service.ts                   ที่เดียวที่รู้ว่ามี cookie
+  src/auth/session.service.spec.ts              เทสต์
+  src/common/credit/credit-tier.service.ts      ย้ายออกจาก AuthService เพราะ admin ใช้ด้วย
+  src/common/crypto/password.ts                 scrypt hash/verify
+  src/common/crypto/password.spec.ts            เทสต์
+  src/common/crypto/token.ts                    HMAC sign/verify
+  src/common/crypto/token.spec.ts               เทสต์
+  src/common/errors/business-error.ts           รหัส error สองชั้น (ว-06)
+  src/common/mappers/admin-user.mapper.ts       แปลง Prisma row -> รูปร่างในสัญญา
+  src/common/mappers/admin-user.mapper.spec.ts  เทสต์
+  src/common/schemas/ok.schema.ts               { ok: true }
+  src/common/schemas/pagination.schema.ts       แบ่งหน้า (ว-07)
+  .env.example                                  ตัวอย่างค่า env
+  docs/auth-admin.md                            เอกสารส่งทีม
+
+
+--------------------------------------------------------------------------------
+ 8. ไฟล์ที่แก้ของเดิม
+--------------------------------------------------------------------------------
+
+  src/trpc/context.ts               verifySessionToken ที่เป็น stub -> ของจริง
+  src/trpc/auth.middleware.ts       ใช้ BusinessError แทน TRPCError ดิบ
+                                    + แยก NOT_AUTHENTICATED ออกจาก ROLE_NOT_ALLOWED
+  src/auth/auth.service.ts          + authenticate() / ย้าย credit tier ออกไป
+  src/auth/auth.router.ts           + login / logout
+  src/auth/auth.service.spec.ts     + provider ใหม่ + เทสต์ authenticate() 5 ตัว
+  src/common/mappers/user.mapper.ts BorrowLimits ย้ายไป credit-tier.service
+  src/common/schemas/status.schema.ts  + tryMapUserRole() (แบบไม่ throw)
+  src/app.module.ts                 ลงทะเบียน provider ใหม่
+
+
+--------------------------------------------------------------------------------
+ 9. ตรวจสอบแล้ว / ยังไม่ได้ตรวจ
+--------------------------------------------------------------------------------
+
+ ผ่านแล้ว
+   npx tsc --noEmit                    ผ่าน (เท่ากับที่ CI รัน)
+   npm run build                       ผ่าน (เท่ากับที่ CI รัน)
+   เทสต์ 57 ตัว ใน 4 ไฟล์               ผ่านหมด ไม่ต้องใช้ฐานข้อมูล
+   npm run trpc:generate               สร้างสัญญาได้ 2 router 20 procedure
+
+   คำสั่งรันเทสต์:
+     npm test -- password.spec token.spec session.service.spec admin-user.mapper.spec
+
+ ยังไม่ได้ตรวจ
+   เทสต์ที่ต้องใช้ Postgres จริง คือ auth.service.spec.ts (ที่ผมเพิ่มเทสต์
+   authenticate() เข้าไป 5 ตัว) กับ prisma.service.spec.ts
+   รันไม่ได้เพราะเครื่องไม่มี docker daemon และยังไม่มีไฟล์ .env
+   พอต่อฐานข้อมูลได้ค่อยรัน:
+     cp .env.example .env   (แล้วใส่ SESSION_SECRET)
+     docker compose up -d postgres
+     npx prisma migrate dev
+     npm test
+
+
+--------------------------------------------------------------------------------
+ 10. เรื่องจุกจิกที่เจอ เพื่อนน่าจะเจอด้วย
+--------------------------------------------------------------------------------
+
+  npm run trpc:generate พังตอนแรก ขึ้น EACCES
+  เพราะ binary ของ nestjs-trpc ไม่มีสิทธิ์ execute
+
+    Failed to execute nestjs-trpc CLI: spawnSync
+    node_modules/nestjs-trpc/native/aarch64-apple-darwin/nestjs-trpc EACCES
+
+  แก้ชั่วคราว:
+    chmod +x node_modules/nestjs-trpc/native/aarch64-apple-darwin/nestjs-trpc
+
+  แต่มันอยู่ใน node_modules เพราะงั้นทุกคนที่ npm ci ใหม่จะเจอเหมือนกัน
+  น่าจะเกี่ยวกับ allowScripts ใน package.json
+
+
+--------------------------------------------------------------------------------
+ 11. งานที่ยังเหลือ / ทำต่อได้
+--------------------------------------------------------------------------------
+
+  - เขียน admin.service.spec.ts แบบต่อฐานข้อมูลจริง (ยังไม่ได้ทำ)
+  - เอาตารางในเอกสาร docs/auth-admin.md ส่วนที่ 2 ไปต่อท้าย CONTRACT.md
+  - คุยกับคนดูแล schema เรื่องข้อ 4 โดยเฉพาะ unique index (ข้อ 1)
+  - ปิดช่องโหว่เรื่องขอบเขตภาควิชา (ข้อ 5) ก่อนขึ้น production
+  - frontend ยังชี้ไปที่ frontend/src/server/trpc-contract.ts ซึ่งเป็นไฟล์ชั่วคราว
+    ต้องเปลี่ยนไป import ของจริงที่ backend generate
+    จุดที่สัญญาไม่ตรงกับ placeholder อยู่ใน docs/auth-admin.md ส่วนที่ 4
+
+================================================================================
+
+
+--------------------------------------------------------------------------------
+ 12. ตรวจงานกับ requirement จริง  (เพิ่มทีหลัง)
+--------------------------------------------------------------------------------
+
+ แหล่งอ้างอิง: docs/report/ULMs_proposal.pdf
+   หัวข้อ 5.1 บทบาทผู้ใช้งาน  และ  หัวข้อ 5.2 แผนภาพยูสเคส
+ (frontend/REQUIREMENTS.md ไม่ใช่ requirement ของระบบ มันเป็นวิธีรัน mockup เก่า)
+
+ ============================================================================
+ ผู้ดูแลระบบ (Admin) — ยูสเคสในแผนภาพมี 3 ตัว
+ ============================================================================
+
+ [1] จัดการบัญชีผู้ใช้
+     "จัดการบัญชีผู้ใช้และกำหนดบทบาท/สิทธิ์ โดยเฉพาะการกำหนดเจ้าหน้าที่"
+
+     >>> ทำครบแล้ว <<<
+     listUsers / getUserById / createUser / updateUser / changeRole /
+     resetPassword / setUserBan
+     ข้อ "กำหนดว่าผู้ใดเป็นเจ้าหน้าที่" = changeRole ตรงตัว
+
+ [2] ตั้งค่าระบบ / เครดิต
+     "ตั้งค่าพารามิเตอร์ของระบบ การจัดระดับอุปกรณ์ และระบบเครดิต"
+
+     >>> ทำได้แค่บางส่วน <<<
+       ทำแล้ว    แก้ BorrowConstraints (จำนวนวันยืม/จำนวนครั้งต่ออายุ ต่อ tier)
+                 แก้ PenaltyRule (คะแนนที่หัก / ระยะเวลาโทษ)
+       ยังไม่ได้  แก้ตัว CreditTier เอง (ชื่อระดับ, ช่วงคะแนน min-max)
+                 -> getLendingSettings อ่านออกมาให้ดูได้ แต่ updateLendingSettings แก้ไม่ได้
+       ยังไม่ได้  การจัดระดับอุปกรณ์ (Tier) — อยู่ในโดเมน item ไม่ใช่ admin
+       ยังไม่ได้  เงื่อนไขสิทธิ์การยืม — ตาราง Eligibility ยังไม่มี procedure ไหนแตะเลย
+
+ [3] ดู Dashboard / สถิติ
+     "ดูภาพรวมและรายงานสถิติการใช้งานของระบบ"
+
+     >>> ไม่ได้ทำ <<<
+     อยู่ในโดเมน report (report.dashboard / analytics / consolidated)
+     ไม่ใช่โดเมน admin เลยไม่ได้อยู่ในงานสัปดาห์นี้ แต่ในแผนภาพยูสเคสมันเป็น
+     ยูสเคสของ Admin ต้องเช็คว่ามีใครรับไปทำหรือยัง
+
+ หน้าที่ของ Admin ในหัวข้อ 5.1 ที่ไม่ได้อยู่ในแผนภาพยูสเคส
+
+   ตรวจสอบบันทึกการใช้งาน (Audit Log)   -> ทำไม่ได้ ไม่มีตาราง (NOT_IMPLEMENTED)
+   ดูแลความปลอดภัย/ควบคุมการเข้าถึง      -> middleware ตาม role ทำแล้ว
+                                            แต่ขอบเขตภาควิชายังบังคับไม่ได้ (ดูข้อ 5)
+
+ ============================================================================
+ ผู้ใช้ / การยืนยันตัวตน (auth)
+ ============================================================================
+
+   R01 "ระบบยืนยันตัวตนและจัดการสิทธิ์ตามบทบาท"    -> ทำแล้ว
+
+   ช่องว่างที่เจอ 3 จุด
+
+   (ก) ไม่มี Google OAuth
+       proposal เขียนว่า "ทุกบทบาทเข้าสู่ระบบด้วยบัญชีอีเมลของมหาวิทยาลัย (KU e-mail)"
+       และ frontend/src/constants/api-endpoints.ts เขียนว่า
+       "Google OAuth (@ku.ac.th, @ku.th) + local-account fallback"
+
+       แต่ผมทำเป็น email/username + password ตามที่
+       frontend/src/features/auth/login.schema.ts เขียนไว้จริง
+       (kuLoginSchema = email + password ไม่ใช่ปุ่ม redirect ไป Google)
+
+       คือเอกสารของทีมเองก็ขัดกันอยู่ ต้องเคลียร์ก่อนว่าจะเอาทางไหน
+       ถ้าเอา OAuth จริงต้องเพิ่ม procedure ใหม่ ไม่ใช่แก้ auth.login ที่มีอยู่
+
+   (ข) backend ไม่ได้ตรวจโดเมนอีเมล
+       frontend/src/lib/error-messages.ts บรรทัด 11 มีรหัส INVALID_DOMAIN
+       ("รองรับเฉพาะอีเมล @ku.th เท่านั้น") แต่ backend ไม่เคยส่งรหัสนี้ออกไปเลย
+       ตอนนี้กันแค่ฝั่ง frontend ซึ่งกันไม่ได้จริง (ยิง API ตรงก็ผ่าน)
+
+       ที่ยังไม่ทำเพราะมันขัดกันเอง: ถ้าบังคับ @ku.th ทุกกรณี
+       บัญชีภายในของเจ้าหน้าที่ที่ไม่มีอีเมล KU จะล็อกอินไม่ได้
+       ต้องให้ทีมตัดสินว่ากฎนี้ใช้กับทางไหนบ้าง
+
+   (ค) auth.me คืนสังกัดไม่ได้
+       "รายการเรียกใช้งานจาก Backend" กลุ่ม 2 ข้อ 3 เขียนว่า
+       "โปรไฟล์ตัวเอง + role + สังกัด"
+       role ได้แล้ว แต่ facultyName เป็น null เสมอ เพราะ AccountInfo
+       ไม่มีความสัมพันธ์กับคณะ/ภาควิชา (ตรงกับข้อ 4.3)
+
+ ============================================================================
+ สรุปสั้น
+ ============================================================================
+
+   ยูสเคสหลักของ Admin ข้อ 1 "จัดการบัญชีผู้ใช้และสิทธิ์" = ทำครบ
+   ข้อ 2 "ตั้งค่าระบบ/เครดิต" = ทำได้ประมาณครึ่ง
+   ข้อ 3 "Dashboard/สถิติ" = คนละโดเมน ยังไม่มีใครทำ
+
+   ที่เหลือติดเพราะ schema ไม่รองรับ (Audit Log, สังกัด) กับติดเพราะ
+   ทีมยังไม่ตัดสินใจ (OAuth, กฎโดเมนอีเมล) ไม่ใช่เพราะยังไม่ได้เขียน
+
+================================================================================
