@@ -348,8 +348,10 @@ export const itemSummary = z.object({
   stockStatus,
 
   /**
-   * When the earliest currently-borrowed unit is due back. null when
-   * something is already free, or when nothing is on loan at all.
+   * When the type is next lendable again: the earliest return date of a
+   * borrowed unit *plus* that unit's prep days (proposal §5.5), which is why
+   * it can land later than any `dueAt` shown on the units. null when something
+   * is already free, or when nothing is on loan at all.
    */
   nextAvailableAt: z.iso.datetime().nullable(),
 

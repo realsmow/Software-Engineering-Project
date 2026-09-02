@@ -54,6 +54,11 @@ export const BUSINESS_ERROR_CODES = {
   SERIAL_ALREADY_IN_USE: 'CONFLICT',
   /** T1/T2 units must carry a serial; T0 must not pretend to have one */
   SERIAL_REQUIRED_FOR_TIER: 'BAD_REQUEST',
+  /**
+   * T2 binds one real serial to one unit, so a batch cannot be registered from
+   * a single serial — the suffixed serials would match nothing on the shelf
+   */
+  BULK_NOT_ALLOWED_FOR_TIER: 'BAD_REQUEST',
   /** BorrowRule has no row named T0..T3 — seed data problem, not user error */
   TIER_NOT_CONFIGURED: 'PRECONDITION_FAILED',
   /** Cannot take a unit out of the pool while somebody is holding it */

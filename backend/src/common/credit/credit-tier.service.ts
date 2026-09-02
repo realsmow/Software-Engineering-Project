@@ -97,9 +97,30 @@ export class CreditTierService {
       select: {
         CreditTierName: true,
         BorrowConstraints: {
-          // Borrow rules differ per item type, so this is a general value for
-          // profile/admin display only - the actual borrow flow must look up
-          // BorrowConstraints by the item's own BorrowRuleKey.
+          /*
+           * Proposal §5.7 makes the borrow window a property of the credit
+           * tier alone (D0 14 days, D1/D2 7, D3 5). The schema is wider than
+           * that: BorrowConstraints is unique on (BorrowRuleKey,
+           * CreditTierKey), so one credit tier owns up to four rows, one per
+           * T-tier. The seed writes them identical, but
+           * `admin.updateLendingSettings` edits them one BorrowRuleKey at a
+           * time, so the first time somebody tunes T2 the four rows diverge.
+           *
+           * `take: 1` without an order would then start returning whichever
+           * row Postgres felt like — the same profile answering differently
+           * between two requests. Ordering makes it deterministic, and
+           * ordering *ascending* makes it safe: the number shown is one the
+           * borrower is entitled to for every tier of item, never a promise of
+           * more days than some item would actually grant. ConstraintsKey
+           * breaks the remaining tie so equal rows also pick stably.
+           *
+           * The actual borrow flow must still look up BorrowConstraints by the
+           * item's own BorrowRuleKey — this is the profile-level answer.
+           */
+          orderBy: [
+            { MaxBorrowDate: 'asc' as const },
+            { ConstraintsKey: 'asc' as const },
+          ],
           take: 1,
           select: { MaxBorrowDate: true, MaxExtendTime: true },
         },

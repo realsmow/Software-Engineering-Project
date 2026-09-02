@@ -36,6 +36,9 @@ const ERROR_MESSAGES: Record<string, string> = {
   SLOT_LIMIT_EXCEEDED: "จองห้อง/สล็อตพร้อมกันได้ไม่เกิน 2 รายการ",
   NOT_ELIGIBLE: "คุณไม่ตรงเงื่อนไขการยืมอุปกรณ์นี้", // → ELIGIBILITY_NOT_MET
   ALREADY_DECIDED: "คำขอนี้ถูกดำเนินการไปแล้ว ไม่สามารถแก้ไขได้",
+  SERIAL_REQUIRED_FOR_TIER: "อุปกรณ์ระดับนี้ต้องระบุหมายเลขประจำอุปกรณ์",
+  BULK_NOT_ALLOWED_FOR_TIER:
+    "อุปกรณ์ระดับ T2 ลงทะเบียนได้ครั้งละ 1 ชิ้น เพราะแต่ละชิ้นผูกกับหมายเลขจริงบนตัวอุปกรณ์",
   LOAN_PERIOD_EXCEEDS_LIMIT: "ระยะเวลายืมเกินสิทธิ์ที่คุณได้รับ",
   EXTENSION_QUOTA_EXCEEDED: "คุณต่ออายุออนไลน์ครบแล้ว ต้องนำอุปกรณ์มาให้เจ้าหน้าที่ตรวจ", // → RENEWAL_LIMIT_REACHED
   APPEAL_WINDOW_CLOSED: "หมดเวลายื่นอุทธรณ์สำหรับรายการนี้แล้ว",
