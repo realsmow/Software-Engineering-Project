@@ -3,6 +3,14 @@ import { PrismaService } from '../../prisma.service';
 import { BusinessError } from '../errors/business-error';
 import type { CreditTier } from '../schemas/status.schema';
 
+/** The CreditTier row a score falls into. */
+export interface ResolvedCreditTier {
+  /** CreditTier.CreditTierKey - what BorrowConstraints is keyed on. */
+  creditTierKey: number;
+  /** CreditTier.CreditTierName, as a contract string. */
+  creditTier: CreditTier;
+}
+
 /** Borrow limits resolved from CreditTier x BorrowConstraints. */
 export interface BorrowLimits {
   creditTier: CreditTier;
@@ -28,6 +36,57 @@ export interface BorrowLimits {
 @Injectable()
 export class CreditTierService {
   constructor(private readonly prisma: PrismaService) {}
+
+  /**
+   * Just the band, with its key.
+   *
+   * The borrow flow needs the key, not the display limits: which rule applies
+   * depends on the item's own BorrowRuleKey, so the (rule x band) row is read
+   * later by EligibilityService. Separated from resolveBorrowLimits so that
+   * path does not pay for a `take: 1` constraint it is about to ignore.
+   */
+  async resolveTier(creditScore: number): Promise<ResolvedCreditTier> {
+    const tier = await this.prisma.creditTier.findFirst({
+      where: {
+        CreditMin: { lte: creditScore },
+        CreditMax: { gte: creditScore },
+      },
+      orderBy: { CreditMin: 'desc' },
+      select: { CreditTierKey: true, CreditTierName: true },
+    });
+
+    if (!tier) {
+      throw new BusinessError('CREDIT_TIER_NOT_CONFIGURED', { creditScore });
+    }
+
+    return {
+      creditTierKey: tier.CreditTierKey,
+      creditTier: (tier.CreditTierName ?? 'D0') as CreditTier,
+    };
+  }
+
+  /**
+   * A score -> band function, with the table read once.
+   *
+   * For lists. Resolving a band per row is one query per row, and the approval
+   * queue needs the band of every requester on the page to know which desk each
+   * request belongs to.
+   */
+  async tierMapper(): Promise<(creditScore: number) => CreditTier> {
+    const tiers = await this.prisma.creditTier.findMany({
+      orderBy: { CreditMin: 'desc' },
+      select: { CreditTierName: true, CreditMin: true, CreditMax: true },
+    });
+
+    return (creditScore: number) => {
+      const hit = tiers.find(
+        (t) => creditScore >= t.CreditMin && creditScore <= t.CreditMax,
+      );
+      // The lowest band rather than a throw: a list must still render when one
+      // account's score falls in a gap left by the seed data.
+      return (hit?.CreditTierName ?? 'D3') as CreditTier;
+    };
+  }
 
   async resolveBorrowLimits(creditScore: number): Promise<BorrowLimits> {
     const tier = await this.prisma.creditTier.findFirst({

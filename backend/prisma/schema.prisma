@@ -4,8 +4,8 @@
 // Get a free hosted Postgres database in seconds: `npx create-db`
 
 generator client {
-  provider = "prisma-client"
-  output   = "../src/generated/prisma"
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
   moduleFormat = "cjs"
 }
 
@@ -75,6 +75,7 @@ enum SubmissionType {
   AfterPicture
   InspectionPicture
 }
+
 // ----------------------------------------------------------------------
 // Accounts + Authority
 // ----------------------------------------------------------------------
@@ -96,33 +97,34 @@ model AccountInfo {
   // Nullable because existing rows predate the column and no faculty has been
   // assigned yet. This is what department scoping needs: until it is populated
   // ctx.user.facultyKey stays null and staff-level procedures are faculty-wide.
-  FacultyKey     Int?
+  FacultyKey Int?
 
   /// Whether the account may sign in at all.
   ///
   /// Distinct from a borrowing ban: a banned user can still log in and see
   /// their history, a deactivated one cannot authenticate. This is what you
   /// set when someone graduates or leaves.
-  IsActive       Boolean @default(true)
+  IsActive Boolean @default(true)
 
-  Role     RoleInfo      @relation(fields: [RoleKey], references: [RoleKey])
-  Faculty  FacultyInfo?  @relation(fields: [FacultyKey], references: [FacultyKey])
+  Role       RoleInfo      @relation(fields: [RoleKey], references: [RoleKey])
+  Faculty    FacultyInfo?  @relation(fields: [FacultyKey], references: [FacultyKey])
   Sessions   SessionInfo[]
   AuditTrail AuditLog[]
 
-  Authorities           Authority[]
-  ConditionLogsLogged   ConditionLog[]     @relation("ConditionLogLoggedBy")
-  ExtensionsRequested   ExtensionRequest[] @relation("ExtensionRequestedBy")
-  ExtensionsApproved    ExtensionRequest[] @relation("ExtensionApprovedBy")
-  ReservationsMade      Reservations[]     @relation("ReservationsReservedBy")
-  UsageLogs             UsageLog[]         @relation("UsageLogAccount")
-  InspectionsPerformed  Inspection[]       @relation("InspectionInspector")
-  Penalties             PenaltyInfo[]      @relation("PenaltyAccount")
-  AppealsFiled          AppealInfo[]       @relation("AppealFiledBy")
-  AppealsResolved       AppealInfo[]       @relation("AppealResolvedBy")
-  ImagesSubmitted       Images[]           @relation("ImagesSubmittedBy")
-  Notifications         Notification[]
-  RepairsPerformed      RepairLog[]        @relation("RepairRepairedBy")
+  Authorities          Authority[]
+  ConditionLogsLogged  ConditionLog[]     @relation("ConditionLogLoggedBy")
+  ExtensionsRequested  ExtensionRequest[] @relation("ExtensionRequestedBy")
+  ExtensionsApproved   ExtensionRequest[] @relation("ExtensionApprovedBy")
+  ReservationsMade     Reservations[]     @relation("ReservationsReservedBy")
+  ReservationsApproved Reservations[]     @relation("ReservationsApprovedBy")
+  UsageLogs            UsageLog[]         @relation("UsageLogAccount")
+  InspectionsPerformed Inspection[]       @relation("InspectionInspector")
+  Penalties            PenaltyInfo[]      @relation("PenaltyAccount")
+  AppealsFiled         AppealInfo[]       @relation("AppealFiledBy")
+  AppealsResolved      AppealInfo[]       @relation("AppealResolvedBy")
+  ImagesSubmitted      Images[]           @relation("ImagesSubmittedBy")
+  Notifications        Notification[]
+  RepairsPerformed     RepairLog[]        @relation("RepairRepairedBy")
 }
 
 /// A single sign-in, so a session can be ended before its token expires.
@@ -131,11 +133,11 @@ model AccountInfo {
 /// into TokenHash, so a dump of this table cannot be replayed as a session,
 /// the same reason passwords are hashed.
 model SessionInfo {
-  SessionKey Int      @id @default(autoincrement())
+  SessionKey Int       @id @default(autoincrement())
   AccountKey Int
   /// SHA-256 of the session id carried in the cookie. Unique so a lookup is one index hit.
-  TokenHash  String   @unique
-  IssuedAt   DateTime @default(now())
+  TokenHash  String    @unique
+  IssuedAt   DateTime  @default(now())
   ExpiresAt  DateTime
   /// Set when signed out or revoked by an admin. Null means still usable.
   RevokedAt  DateTime?
@@ -157,19 +159,19 @@ model SessionInfo {
 /// time rather than joined. A join would rewrite history every time someone is
 /// promoted or renamed; the log must say what was true when it happened.
 model AuditLog {
-  AuditKey   Int      @id @default(autoincrement())
-  At         DateTime @default(now())
+  AuditKey  Int      @id @default(autoincrement())
+  At        DateTime @default(now())
   /// Null when the account has since been deleted. ActorName/ActorRole survive.
-  ActorKey   Int?
-  ActorName  String
-  ActorRole  String
+  ActorKey  Int?
+  ActorName String
+  ActorRole String
   /// login | create | update | delete | role | config
-  Action     String
+  Action    String
   /// What was acted on, as "domain/identifier", e.g. "account/12".
-  Target     String
-  Ip         String?
-  UserAgent  String?
-  Detail     String
+  Target    String
+  Ip        String?
+  UserAgent String?
+  Detail    String
 
   Actor AccountInfo? @relation(fields: [ActorKey], references: [AccountKey], onDelete: SetNull)
 
@@ -186,8 +188,8 @@ model RoleInfo {
 }
 
 model FacultyInfo {
-  FacultyKey    Int     @id @default(autoincrement())
-  FacultyName   String?
+  FacultyKey  Int     @id @default(autoincrement())
+  FacultyName String?
 
   Branches BranchInfo[]
   Accounts AccountInfo[]
@@ -200,11 +202,11 @@ model BranchInfo {
   ManageGroupKey Int     @unique
 
   ManageGroup ManagementGroup @relation(fields: [ManageGroupKey], references: [ManageGroupKey])
-  FacultyInfo FacultyInfo     @relation(fields: [FacultyKey]    , references: [FacultyKey])
+  FacultyInfo FacultyInfo     @relation(fields: [FacultyKey], references: [FacultyKey])
 }
 
 model ManagementGroup {
-  ManageGroupKey Int @id @default(autoincrement())
+  ManageGroupKey Int       @id @default(autoincrement())
   GroupType      GroupType
 
   Branch        BranchInfo?
@@ -228,7 +230,7 @@ model Authority {
 }
 
 model AuthorityRole {
-  AuthorityRoleKey Int     @id @default(autoincrement())
+  AuthorityRoleKey Int    @id @default(autoincrement())
   AuthorityName    String
   AuthorityLevel   Int?
 
@@ -259,8 +261,8 @@ model ItemInfo {
 }
 
 model ItemIndiv {
-  IndivKey    Int    @id @default(autoincrement())
-  ResourceKey Int    @unique
+  IndivKey    Int     @id @default(autoincrement())
+  ResourceKey Int     @unique
   ItemKey     Int
   ItemID      String
   ImageURL    String?
@@ -282,7 +284,7 @@ model RoomInfo {
 }
 
 model ResourceInfo {
-  ResourceKey    Int  @id @default(autoincrement())
+  ResourceKey    Int            @id @default(autoincrement())
   ManagedBy      Int
   BorrowRule     Int
   ConditionKey   Int?
@@ -308,15 +310,15 @@ model ResourceInfo {
 }
 
 model ConditionLog {
-  ConditionKey Int       @id @default(autoincrement())
+  ConditionKey Int           @id @default(autoincrement())
   ResourceKey  Int
   LoggedBy     Int
   Condition    ConditionType
   Notes        String?
   LoggedAt     DateTime?
 
-  Resource      ResourceInfo  @relation("ConditionLogResource", fields: [ResourceKey], references: [ResourceKey])
-  LoggedByUser  AccountInfo   @relation("ConditionLogLoggedBy", fields: [LoggedBy], references: [AccountKey])
+  Resource     ResourceInfo @relation("ConditionLogResource", fields: [ResourceKey], references: [ResourceKey])
+  LoggedByUser AccountInfo  @relation("ConditionLogLoggedBy", fields: [LoggedBy], references: [AccountKey])
 
   ResourcesCurrentlyOn ResourceInfo[] @relation("ResourceCurrentCondition")
   UsageCheckIns        UsageLog[]     @relation("UsageCheckInCondition")
@@ -350,13 +352,13 @@ model BorrowConstraints {
 }
 
 model PenaltyRule {
-  PenaltyRuleKey Int @id @default(autoincrement())
+  PenaltyRuleKey Int           @id @default(autoincrement())
   BorrowRuleKey  Int
   PenaltyReason  PenaltyReason
   PenaltyAmount  Int
   PenaltyLength  Int
 
-  BorrowRule  BorrowRule  @relation(fields: [BorrowRuleKey], references: [BorrowRuleKey])
+  BorrowRule BorrowRule @relation(fields: [BorrowRuleKey], references: [BorrowRuleKey])
 
   @@unique([BorrowRuleKey, PenaltyReason])
 }
@@ -388,23 +390,42 @@ model CreditTier {
 // ----------------------------------------------------------------------
 
 model Reservations {
-  ReservationKey        Int       @id @default(autoincrement())
+  ReservationKey        Int           @id @default(autoincrement())
   ResourceKey           Int
   ReservedBy            Int
   Reason                String?
   StartTime             DateTime
   EndTime               DateTime
   ApproveStatus         ApproveStatus
-  ApprovedBy            Int? // No relation defined for this field in source DBML
+  /// Who cleared the request. Null while pending, and null for the ones the
+  /// system cleared on its own - `AutoApproved` tells those two apart.
+  ApprovedBy            Int?
+  /// True when no person looked at it: the tier and the borrower's credit band
+  /// both allowed it through (see common/approval/approval-policy.ts).
+  AutoApproved          Boolean       @default(false)
+  /// When it was decided. `ResolvedAt` is set on every terminal outcome
+  /// including a cancellation, so it cannot answer "approved how long ago",
+  /// which is what the "not collected within a day" job (§5.9) needs.
+  ApprovedAt            DateTime?
   ReservationExpiration DateTime
   ActionTime            DateTime
   ResolvedAt            DateTime?
 
-  Resource       ResourceInfo  @relation(fields: [ResourceKey], references: [ResourceKey])
-  ReservedByUser AccountInfo   @relation("ReservationsReservedBy", fields: [ReservedBy], references: [AccountKey])
+  Resource       ResourceInfo @relation(fields: [ResourceKey], references: [ResourceKey])
+  ReservedByUser AccountInfo  @relation("ReservationsReservedBy", fields: [ReservedBy], references: [AccountKey])
+  /// Needed to enforce "the approver may not be the requester" (§5.9) and to
+  /// show who signed off. Without the relation ApprovedBy is a loose Int that
+  /// nothing can join on.
+  ApprovedByUser AccountInfo? @relation("ReservationsApprovedBy", fields: [ApprovedBy], references: [AccountKey])
 
   UsageLogs  UsageLog[]
   RepairLogs RepairLog[]
+
+  /// The approval queue reads "pending, oldest first".
+  @@index([ApproveStatus, ActionTime])
+  /// Finding the requests that clash with one being approved is a range scan
+  /// over one resource's bookings.
+  @@index([ResourceKey, StartTime, EndTime])
 }
 
 // ----------------------------------------------------------------------
@@ -412,7 +433,7 @@ model Reservations {
 // ----------------------------------------------------------------------
 
 model UsageLog {
-  UsageKey          Int       @id @default(autoincrement())
+  UsageKey          Int           @id @default(autoincrement())
   ReservationKey    Int?
   AccountKey        Int
   ResourceKey       Int
@@ -438,7 +459,7 @@ model UsageLog {
 }
 
 model ExtensionRequest {
-  ExtensionKey     Int       @id @default(autoincrement())
+  ExtensionKey     Int           @id @default(autoincrement())
   UsageKey         Int
   RequestedBy      Int
   ExtendNo         Int? // Count of which extension request number this is
@@ -449,9 +470,9 @@ model ExtensionRequest {
   RequestedAt      DateTime
   ResolvedAt       DateTime?
 
-  Usage           UsageLog      @relation("ExtensionRequestUsage", fields: [UsageKey], references: [UsageKey])
-  RequestedByUser AccountInfo   @relation("ExtensionRequestedBy", fields: [RequestedBy], references: [AccountKey])
-  ApprovedByUser  AccountInfo?  @relation("ExtensionApprovedBy", fields: [ApprovedBy], references: [AccountKey])
+  Usage           UsageLog     @relation("ExtensionRequestUsage", fields: [UsageKey], references: [UsageKey])
+  RequestedByUser AccountInfo  @relation("ExtensionRequestedBy", fields: [RequestedBy], references: [AccountKey])
+  ApprovedByUser  AccountInfo? @relation("ExtensionApprovedBy", fields: [ApprovedBy], references: [AccountKey])
 
   PendingOnUsageLogs UsageLog[] @relation("UsagePendingExtension")
 }
@@ -509,8 +530,8 @@ model PenaltyInfo {
 // ----------------------------------------------------------------------
 
 model AppealInfo {
-  AppealKey       Int       @id @default(autoincrement())
-  OriginalPenalty Int       @unique
+  AppealKey       Int           @id @default(autoincrement())
+  OriginalPenalty Int           @unique
   NewPenalty      Int?
   FiledBy         Int
   ResolvedBy      Int?
@@ -519,10 +540,10 @@ model AppealInfo {
   ActionTime      DateTime?
   ResolvedAt      DateTime?
 
-  OriginalPenaltyInfo PenaltyInfo   @relation("AppealOriginalPenalty", fields: [OriginalPenalty], references: [PenaltyKey])
-  NewPenaltyInfo      PenaltyInfo?  @relation("AppealNewPenalty", fields: [NewPenalty], references: [PenaltyKey])
-  FiledByUser         AccountInfo   @relation("AppealFiledBy", fields: [FiledBy], references: [AccountKey])
-  ResolvedByUser      AccountInfo?  @relation("AppealResolvedBy", fields: [ResolvedBy], references: [AccountKey])
+  OriginalPenaltyInfo PenaltyInfo  @relation("AppealOriginalPenalty", fields: [OriginalPenalty], references: [PenaltyKey])
+  NewPenaltyInfo      PenaltyInfo? @relation("AppealNewPenalty", fields: [NewPenalty], references: [PenaltyKey])
+  FiledByUser         AccountInfo  @relation("AppealFiledBy", fields: [FiledBy], references: [AccountKey])
+  ResolvedByUser      AccountInfo? @relation("AppealResolvedBy", fields: [ResolvedBy], references: [AccountKey])
 
   Inspections Inspection[]
 }
@@ -532,7 +553,7 @@ model AppealInfo {
 // ----------------------------------------------------------------------
 
 model Images {
-  ImageKey       Int       @id @default(autoincrement())
+  ImageKey       Int            @id @default(autoincrement())
   SubmittedBy    Int
   UsageKey       Int
   ResourceKey    Int
@@ -541,10 +562,10 @@ model Images {
   SubmissionType SubmissionType
   ActionTime     DateTime?
 
-  SubmittedByUser    AccountInfo         @relation("ImagesSubmittedBy", fields: [SubmittedBy], references: [AccountKey])
-  Usage              UsageLog            @relation(fields: [UsageKey], references: [UsageKey])
-  Resource           ResourceInfo        @relation(fields: [ResourceKey], references: [ResourceKey])
-  Inspection         Inspection?         @relation(fields: [InspectionKey], references: [InspectionKey])
+  SubmittedByUser AccountInfo  @relation("ImagesSubmittedBy", fields: [SubmittedBy], references: [AccountKey])
+  Usage           UsageLog     @relation(fields: [UsageKey], references: [UsageKey])
+  Resource        ResourceInfo @relation(fields: [ResourceKey], references: [ResourceKey])
+  Inspection      Inspection?  @relation(fields: [InspectionKey], references: [InspectionKey])
 }
 
 // ----------------------------------------------------------------------
@@ -552,14 +573,14 @@ model Images {
 // ----------------------------------------------------------------------
 
 model Notification {
-  NotificationKey     Int       @id @default(autoincrement())
+  NotificationKey     Int              @id @default(autoincrement())
   AccountKey          Int
   NotificationType    NotificationType
   NotificationContent String
   SentTime            DateTime?
   IsRead              Boolean?
 
-  Account              AccountInfo      @relation(fields: [AccountKey], references: [AccountKey])
+  Account AccountInfo @relation(fields: [AccountKey], references: [AccountKey])
 }
 
 // ----------------------------------------------------------------------

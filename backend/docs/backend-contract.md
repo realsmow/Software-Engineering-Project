@@ -41,6 +41,11 @@
 | **แบ่งหน้า** | `paginationInput` / `paginated()` ตัวเดียวจาก `common/schemas/pagination.schema.ts` | | ว-07 |
 | **วันเวลา** | ISO 8601 UTC ผ่าน `common/schemas/datetime.schema.ts` | | ว-08 |
 | **สถานะ** | สตริงคงที่จาก `status.schema.ts` เท่านั้น ห้ามส่ง primary key | | ว-10 |
+| **เครดิตต่ำ = เปิดคำขอไม่ได้** | D3 เปิดคำขอไม่ได้เลย (`CREDIT_TOO_LOW`) · D2 เสียสิทธิ์ auto-approve ทุก tier | `common/approval/approval-policy.ts` | `CREDIT_BAND_POLICY` ของ frontend · **ขัดกับ CONTRACT.md ฉบับเดิม** ที่ประชุมตัดสินตาม frontend และแก้ CONTRACT.md แล้ว |
+| **ใครอนุมัติ** | T2 → supervisor · T3 → staff · T0/T1 → auto (เว้น D2 ที่ขึ้น supervisor) · **คำนวณเสมอ ไม่เก็บลง DB** | `approval-policy.ts` (`routeFor`) | เก็บลง DB = สำเนาที่สามของตารางกฎ |
+| **อนุมัติแล้วต้องล้างคู่แข่ง** | คำขออื่นบนชิ้นเดียวกันที่หน้าต่างเวลาชน (บวก `ResourceInfo.BufferTime` สองข้าง) โดน `Canceled` ใน transaction เดียวกับการอนุมัติ | `approval.service.ts` · `common/booking/booking-window.ts` | ของชิ้นเดียวอยู่สองที่ไม่ได้ |
+| **สิทธิ์ยืม** | `Eligibility` × `Authority` + `MinimumAuthorityLevel` · **ไม่ดูคะแนนเครดิต** | `common/authority/eligibility.service.ts` | CONTRACT.md ส่วนที่ 1 · แยกจาก `StaffScopeService` ที่ตอบคนละคำถาม |
+| **1 คำขอ = 1 ชิ้น** | ตะกร้า 5 ชิ้น = 5 แถว `Reservations` เดินอิสระกัน ไม่มีตารางจัดกลุ่ม | `loan.request.service.ts` | frontend `mock-data.ts` ระบุเองว่า *"submitting a basket of five items produces five independent requests"* |
 
 ---
 

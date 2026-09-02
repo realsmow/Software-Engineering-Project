@@ -2857,6 +2857,8 @@ export const ReservationsScalarFieldEnum = {
   EndTime: 'EndTime',
   ApproveStatus: 'ApproveStatus',
   ApprovedBy: 'ApprovedBy',
+  AutoApproved: 'AutoApproved',
+  ApprovedAt: 'ApprovedAt',
   ReservationExpiration: 'ReservationExpiration',
   ActionTime: 'ActionTime',
   ResolvedAt: 'ResolvedAt'
