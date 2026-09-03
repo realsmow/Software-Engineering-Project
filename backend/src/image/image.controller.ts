@@ -92,7 +92,7 @@ export class ImageController {
   /** BusinessError -> HttpException, keeping the business code in the body. */
   private toHttp(error: BusinessError): HttpException {
     return new HttpException(
-      { code: error.businessCode, cause: error.cause },
+      { code: error.businessCode, cause: error.details },
       HTTP_STATUS[error.code] ?? 400,
     );
   }

@@ -43,6 +43,31 @@ const ERROR_MESSAGES: Record<string, string> = {
   EXTENSION_QUOTA_EXCEEDED: "คุณต่ออายุออนไลน์ครบแล้ว ต้องนำอุปกรณ์มาให้เจ้าหน้าที่ตรวจ", // → RENEWAL_LIMIT_REACHED
   APPEAL_WINDOW_CLOSED: "หมดเวลายื่นอุทธรณ์สำหรับรายการนี้แล้ว",
 
+  // Staff counter (loan.*) - written for someone reading this with a student
+  // standing in front of them, so each one says what to do next.
+  WRONG_LOAN_STATE:
+    "รายการนี้ถูกดำเนินการไปแล้ว (อาจมีเจ้าหน้าที่อีกคนทำไปก่อน) กรุณารีเฟรชคิว",
+  LOAN_NOT_FOUND: "ไม่พบรายการยืมนี้ อาจถูกยกเลิกหรือดำเนินการไปแล้ว",
+  RESERVATION_NOT_FOUND: "ไม่พบคำขอนี้ อาจถูกยกเลิกไปแล้ว",
+  RESOURCE_NOT_FOUND: "ไม่พบอุปกรณ์ชิ้นนี้ในระบบ",
+  NOT_APPROVED_YET: "คำขอนี้ยังไม่ผ่านการอนุมัติ จึงยังจัดเตรียมไม่ได้",
+  NOT_YET_LOST: "ยังไม่ถึงกำหนดที่จะบันทึกว่าสูญหาย (ต้องเกินกำหนดคืน 2 สัปดาห์)",
+  UNIT_DOES_NOT_MATCH_REQUEST: "หมายเลขอุปกรณ์ที่เลือกไม่ตรงกับที่ผู้ยืมขอไว้",
+  UNIT_SWAP_NOT_ALLOWED: "อุปกรณ์ระดับนี้เปลี่ยนตัวเครื่องที่เคาน์เตอร์ไม่ได้",
+  TIER_NOT_CONFIGURED: "ยังไม่ได้ตั้งค่าระดับการยืมของอุปกรณ์นี้ กรุณาแจ้งผู้ดูแลระบบ",
+  NO_MANAGEMENT_SCOPE: "คุณไม่ได้ดูแลหน่วยงานที่เป็นเจ้าของอุปกรณ์นี้",
+
+  // Approval desk (approval.*)
+  CANNOT_APPROVE_OWN_REQUEST: "คุณอนุมัติคำขอของตัวเองไม่ได้",
+  APPROVAL_NEEDS_SUPERVISOR: "คำขอนี้ต้องให้อาจารย์เป็นผู้อนุมัติ",
+  WINDOW_NOT_AVAILABLE: "ช่วงเวลานี้ถูกจองไปแล้ว",
+  CREDIT_TOO_LOW: "เครดิตของผู้ยืมไม่ถึงเกณฑ์สำหรับรายการนี้",
+  INVALID_BORROW_WINDOW: "ช่วงเวลาที่ขอยืมไม่ถูกต้อง",
+  CANNOT_CANCEL: "คำขอนี้ยกเลิกไม่ได้แล้ว",
+  EXTENSION_NOT_FOUND: "ไม่พบคำขอต่ออายุนี้",
+  EXTENSION_NEEDS_SUPERVISOR: "การต่ออายุนี้ต้องได้รับอนุมัติจากอาจารย์",
+  TOO_MANY_ATTEMPTS: "พยายามหลายครั้งเกินไป กรุณารอสักครู่แล้วลองใหม่",
+
   // File upload
   FILE_TOO_LARGE: "ไฟล์ใหญ่เกินไป (สูงสุด 5 MB)",
   INVALID_FILE_TYPE: "ไฟล์ต้องเป็นรูปภาพเท่านั้น (JPG, PNG)",

@@ -168,6 +168,19 @@ export type BusinessErrorCode = keyof typeof BUSINESS_ERROR_CODES;
 export class BusinessError extends TRPCError {
   readonly businessCode: BusinessErrorCode;
 
+  /**
+   * The context object this error was constructed with, unwrapped.
+   *
+   * `cause` is NOT this object: TRPCError's constructor wraps any non-Error
+   * cause in an internal `UnknownCauseError`, so `error.cause as
+   * Record<string, unknown>` is a cast that compiles and then lies. It shipped
+   * an `UnknownCauseError` into `loan.create`'s `rejected[].detail`, where the
+   * output schema rejected it and turned one refused basket line into a 500.
+   *
+   * Reading `details` is therefore the only supported way to get it back.
+   */
+  readonly details: Record<string, unknown> | null;
+
   constructor(code: BusinessErrorCode, details?: Record<string, unknown>) {
     super({
       code: BUSINESS_ERROR_CODES[code],
@@ -175,6 +188,7 @@ export class BusinessError extends TRPCError {
       cause: details,
     });
     this.businessCode = code;
+    this.details = details ?? null;
   }
 }
 

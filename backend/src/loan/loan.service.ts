@@ -21,6 +21,7 @@ import {
   resourceName,
 } from '../notification/notification.service';
 import type { TrpcUser } from '../trpc/context';
+import { toBorrowerRef } from './loan.schema';
 import type {
   AllocateLoanInput,
   ConfirmPickupInput,
@@ -705,7 +706,7 @@ export class LoanService {
     const items = rows.map((row) => ({
       extensionKey: row.ExtensionKey,
       usageKey: row.UsageKey,
-      borrower: this.toBorrower(row.RequestedByUser),
+      borrower: toBorrowerRef(row.RequestedByUser),
       itemName: this.nameOf(row.Usage.Resource),
       serialNo: row.Usage.Resource.Item?.ItemID ?? null,
       tier: tryMapTier(row.Usage.Resource.BorrowRuleInfo.RuleName),
@@ -873,7 +874,7 @@ export class LoanService {
       usageKey: null,
       reservationKey: row.ReservationKey,
       status: null,
-      borrower: this.toBorrower(row.ReservedByUser),
+      borrower: toBorrowerRef(row.ReservedByUser),
       itemName: this.nameOf(row.Resource),
       // The reservation already points at a unit, but staff have not confirmed
       // it yet — the serial is shown as a suggestion by `item.listManagedUnits`, not
@@ -1026,22 +1027,6 @@ export class LoanService {
     return resource.Item?.Item.ItemName ?? resource.Room?.RoomName ?? null;
   }
 
-  private toBorrower(row: {
-    AccountKey: number;
-    UserID: string;
-    UserFName: string;
-    UserLName: string;
-    UserCredit: number;
-  }) {
-    return {
-      accountKey: row.AccountKey,
-      studentId: row.UserID,
-      firstName: row.UserFName,
-      lastName: row.UserLName,
-      creditScore: row.UserCredit,
-    };
-  }
-
   private toQueueRow(usage: UsageRow, now: Date) {
     const overdueDays = daysBetween(usage.DueTime, now);
 
@@ -1049,7 +1034,7 @@ export class LoanService {
       usageKey: usage.UsageKey,
       reservationKey: usage.ReservationKey,
       status: usage.CurrentStatus,
-      borrower: this.toBorrower(usage.Account),
+      borrower: toBorrowerRef(usage.Account),
       itemName: this.nameOf(usage.Resource),
       serialNo: usage.Resource.Item?.ItemID ?? null,
       resourceKey: usage.Resource.ResourceKey,
@@ -1067,7 +1052,7 @@ export class LoanService {
       usageKey: usage.UsageKey,
       reservationKey: usage.ReservationKey,
       status: usage.CurrentStatus,
-      borrower: this.toBorrower(usage.Account),
+      borrower: toBorrowerRef(usage.Account),
       itemName: this.nameOf(usage.Resource),
       serialNo: usage.Resource.Item?.ItemID ?? null,
       resourceKey: usage.Resource.ResourceKey,

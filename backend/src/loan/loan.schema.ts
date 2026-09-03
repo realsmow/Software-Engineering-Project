@@ -71,6 +71,34 @@ export const borrowerRef = z.object({
   creditScore: z.number().int(),
 });
 
+/** The columns `toBorrowerRef` needs. Select at least these. */
+export interface BorrowerRow {
+  AccountKey: number;
+  UserID: string;
+  UserFName: string;
+  UserLName: string;
+  UserCredit: number;
+}
+
+/**
+ * The one mapping from an AccountInfo row to `borrowerRef`.
+ *
+ * Shared rather than reimplemented per service, and kept beside the schema it
+ * has to satisfy, because it already drifted once: approval.service.ts had its
+ * own copy returning `userId`/`fullName` where the schema declares
+ * `studentId`/`firstName`/`lastName`, so `approval.queue` failed output
+ * validation on every non-empty queue and the approval desk could never load.
+ */
+export function toBorrowerRef(row: BorrowerRow) {
+  return {
+    accountKey: row.AccountKey,
+    studentId: row.UserID,
+    firstName: row.UserFName,
+    lastName: row.UserLName,
+    creditScore: row.UserCredit,
+  };
+}
+
 export const staffQueueRow = z.object({
   /**
    * Null in the `toPrepare` bucket: nothing has been set aside yet, so there is

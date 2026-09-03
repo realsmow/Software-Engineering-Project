@@ -38,7 +38,8 @@
     "department": "ภาควิชา",
     "email": "อีเมล",
     "name": "ชื่อ",
-    "createdAt": "สร้างเมื่อ"
+    "createdAt": "สร้างเมื่อ",
+    "showingRange": "แสดง {{start}}-{{end}} จาก {{total}}"
   },
   "table": {
     "range": "แสดง {{start}}–{{end}} จาก {{total}} รายการ",
@@ -758,6 +759,66 @@
       "draftNoEnd": "ยังไม่ได้เลือกวันคืน",
       "draftEdit": "แก้ไขร่าง",
       "draftDrop": "ทิ้งร่าง"
+    }
+  },
+  "staff": {
+    "queue": {
+      "subtitle": "คิวงานเคาน์เตอร์ ยืม-คืนอุปกรณ์ อัปเดตอัตโนมัติทุก 30 วินาที",
+      "bucketToPrepare": "รอจัดเตรียม",
+      "bucketToHandover": "รอส่งมอบ",
+      "bucketOnLoan": "กำลังยืม",
+      "bucketOverdue": "เกินกำหนด",
+      "tileToInspect": "รอตรวจสภาพ",
+      "tileExtensions": "ต่ออายุรอตรวจ",
+      "actionPrepare": "จัดเตรียม",
+      "actionHandover": "ส่งมอบ",
+      "actionReturn": "รับคืน",
+      "actionLost": "บันทึกว่าสูญหาย",
+      "colBorrower": "ผู้ยืม",
+      "colItem": "อุปกรณ์",
+      "colPickup": "นัดรับ",
+      "colDue": "กำหนดคืน",
+      "credit": "เครดิต {{score}}",
+      "overdueBy": "เกิน {{days}} วัน",
+      "statePending": "รอดำเนินการ",
+      "statePrepared": "เตรียมแล้ว",
+      "stateLended": "อยู่กับผู้ยืม",
+      "stateReturned": "คืนแล้ว",
+      "stateInspected": "ตรวจแล้ว",
+      "searchPlaceholder": "ค้นหาด้วยชื่อ รหัสนิสิต หมายเลขอุปกรณ์ หรือชื่ออุปกรณ์",
+      "emptyTitle": "ไม่มีรายการในคิวนี้",
+      "emptyDesc": "เมื่อมีงานเข้ามา รายการจะปรากฏที่นี่",
+      "donePrepare": "จัดเตรียม {{item}} ({{serial}}) ให้ {{who}} แล้ว",
+      "doneHandover": "ส่งมอบให้ {{who}} เรียบร้อย",
+      "doneReturn": "รับคืนจาก {{who}} เรียบร้อย",
+      "doneReturnLate": "รับคืนจาก {{who}} แล้ว คืนช้า {{days}} วัน หักเครดิต {{credit}} คะแนน",
+      "doneLost": "บันทึกว่าสูญหายแล้ว และหักเครดิตของ {{who}}",
+      "confirmLost": "บันทึกว่า {{item}} ของ {{who}} สูญหาย? ระบบจะหักเครดิตและนำอุปกรณ์ออกจากคลัง"
+    }
+  },
+  "supervisor": {
+    "approvals": {
+      "subtitle": "คำขอที่รอการตัดสิน อัปเดตอัตโนมัติทุก 60 วินาที",
+      "tileSupervisor": "รออาจารย์อนุมัติ",
+      "tileStaff": "รอเจ้าหน้าที่อนุมัติ",
+      "tileOverdue": "เลยเวลาเริ่มยืมแล้ว",
+      "tileAuto": "ระบบอนุมัติเองวันนี้",
+      "colBorrower": "ผู้ขอ",
+      "colItem": "อุปกรณ์",
+      "colWindow": "ช่วงเวลา",
+      "days": "{{count}} วัน",
+      "clashes": "ทับซ้อน {{count}} คำขอ",
+      "approve": "อนุมัติ",
+      "reject": "ปฏิเสธ",
+      "confirmReject": "ยืนยันปฏิเสธ",
+      "reasonPlaceholder": "เหตุผลที่ปฏิเสธ (จำเป็น)",
+      "searchPlaceholder": "ค้นหาด้วยชื่อ รหัสนิสิต หรือชื่ออุปกรณ์",
+      "emptyTitle": "ไม่มีคำขอรอตัดสิน",
+      "emptyDesc": "เมื่อมีคำขอเข้ามา รายการจะปรากฏที่นี่",
+      "confirmClash": "การอนุมัตินี้จะยกเลิกคำขออื่นอีก {{count}} รายการที่ขออุปกรณ์ชิ้นเดียวกันในช่วงเวลาที่ทับกัน ดำเนินการต่อ?",
+      "doneApprove": "อนุมัติ {{item}} แล้ว",
+      "doneApproveCancelled": "อนุมัติ {{item}} แล้ว และยกเลิกคำขอที่ทับซ้อน {{count}} รายการ",
+      "doneReject": "ปฏิเสธ {{item}} แล้ว และแจ้งเหตุผลให้ผู้ขอ"
     }
   }
 }
