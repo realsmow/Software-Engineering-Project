@@ -10,6 +10,7 @@ import {
 } from '../common/approval/approval-policy';
 import {
   clashingWindowFilter,
+  runSerializable,
   withBuffer,
 } from '../common/booking/booking-window';
 import { BusinessError } from '../common/errors/business-error';
@@ -267,7 +268,7 @@ export class ApprovalService {
       row.Resource.BufferTime,
     );
 
-    const cancelled = await this.prisma.$transaction(async (tx) => {
+    const cancelled = await runSerializable(this.prisma, async (tx) => {
       const clashes = await tx.reservations.findMany({
         where: {
           ...clashingWindowFilter(
@@ -448,7 +449,7 @@ export class ApprovalService {
       itemName:
         row.Resource.Item?.Item.ItemName ?? row.Resource.Room?.RoomName ?? null,
       serialNo: row.Resource.Item?.ItemID ?? null,
-      kind: (row.Resource.Room ? 'room' : 'equipment') as 'equipment' | 'room',
+      kind: row.Resource.Room ? 'room' : 'equipment',
       tier: tryMapTier(row.Resource.BorrowRuleInfo.RuleName),
       startTime: toIso(row.StartTime),
       endTime: toIso(row.EndTime),
