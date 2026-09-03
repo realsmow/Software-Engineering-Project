@@ -221,6 +221,120 @@ async function main() {
     }
     console.log(`  seeded ${u.userId} (${u.role})`);
   }
+
+  await seedAccess(units);
+}
+
+/**
+ * Who may borrow what.
+ *
+ * Without this the seeded catalogue is visible and completely un-borrowable:
+ * `loan.create` refuses every line with NOT_ELIGIBLE / NO_RULES_CONFIGURED,
+ * which takes the approval desk and the staff counter down with it, because
+ * neither has anything to show until a request exists.
+ *
+ * It takes two halves that only mean something together. An Eligibility row
+ * says "members of group G holding role R may borrow this unit"; an Authority
+ * row is what actually puts somebody in (G, R). Seeding either one alone
+ * changes nothing.
+ *
+ * Eligibility hangs off ResourceKey, one row per unit - there is no
+ * type-level rule (docs/staff.md) - so a unit registered after this runs needs
+ * `item.setEligibility` or another seed.
+ */
+async function seedAccess(units: Record<UnitCode, number>): Promise<void> {
+  // Level 0: a plain student clears no authority floor above zero, which is
+  // what T0/T1 ask for. Staff get a level that can also prepare and inspect.
+  const studentRole =
+    (await prisma.authorityRole.findFirst({
+      where: { AuthorityName: 'Student' },
+    })) ??
+    (await prisma.authorityRole.create({
+      data: { AuthorityName: 'Student', AuthorityLevel: 0 },
+    }));
+  const labStaffRole =
+    (await prisma.authorityRole.findFirst({
+      where: { AuthorityName: 'Lab staff' },
+    })) ??
+    (await prisma.authorityRole.create({
+      data: { AuthorityName: 'Lab staff', AuthorityLevel: 2 },
+    }));
+
+  const groupKeys = Object.values(units);
+  const accounts = await prisma.accountInfo.findMany({
+    where: { UserID: { in: USERS.map((u) => u.userId) } },
+    select: { AccountKey: true, UserID: true, Role: { select: { RoleName: true } } },
+  });
+
+  for (const account of accounts) {
+    // Everyone is a student of both departments so cross-department borrowing
+    // is demonstrable; staff and above additionally administer them.
+    const isStaffSide = account.Role.RoleName !== 'Student';
+    for (const groupKey of groupKeys) {
+      await prisma.authority.upsert({
+        where: {
+          AccountKey_ManageGroupKey: {
+            AccountKey: account.AccountKey,
+            ManageGroupKey: groupKey,
+          },
+        },
+        update: {},
+        create: {
+          AccountKey: account.AccountKey,
+          ManageGroupKey: groupKey,
+          AuthorityRoleKey: isStaffSide
+            ? labStaffRole.AuthorityRoleKey
+            : studentRole.AuthorityRoleKey,
+        },
+      });
+    }
+  }
+
+  // Both roles, one Eligibility row each.
+  //
+  // FR-AUTH-04 says staff and supervisors can do everything a borrower can, so
+  // a staff member has to be able to borrow a multimeter like anyone else. But
+  // administering a department must not by itself grant that (see the note on
+  // EligibilityService): the check matches an exact (group, role) pair, so the
+  // permission has to be written down as its own rule rather than inferred
+  // from the Authority row that lets them manage the shelf.
+  //
+  // Authority is unique per (account, group), so one account cannot hold both
+  // roles - which is why this opens the unit to both roles instead of trying
+  // to give staff a second, student-shaped Authority row.
+  let opened = 0;
+  for (const groupKey of groupKeys) {
+    const resources = await prisma.resourceInfo.findMany({
+      where: { ManagedBy: groupKey },
+      select: { ResourceKey: true },
+    });
+    for (const resource of resources) {
+      for (const roleKey of [
+        studentRole.AuthorityRoleKey,
+        labStaffRole.AuthorityRoleKey,
+      ]) {
+        await prisma.eligibility.upsert({
+          where: {
+            GroupKey_ResourceKey_RoleKey: {
+              GroupKey: groupKey,
+              ResourceKey: resource.ResourceKey,
+              RoleKey: roleKey,
+            },
+          },
+          update: {},
+          create: {
+            GroupKey: groupKey,
+            ResourceKey: resource.ResourceKey,
+            RoleKey: roleKey,
+          },
+        });
+      }
+      opened++;
+    }
+  }
+  console.log(
+    `  access: ${accounts.length} accounts x ${groupKeys.length} groups, ${opened} units opened to students and staff`,
+  );
 }
 
 /**

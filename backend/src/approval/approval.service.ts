@@ -1,3 +1,4 @@
+import { toBorrowerRef } from '../loan/loan.schema';
 import { Injectable } from '@nestjs/common';
 import type { Prisma } from '../generated/prisma/client';
 import { PrismaService } from '../prisma.service';
@@ -363,7 +364,7 @@ export class ApprovalService {
       request: await this.requests.getAsDecider(input.reservationKey),
       cancelled: cancelled.map((c) => ({
         reservationKey: c.ReservationKey,
-        borrower: this.toBorrower(c.ReservedByUser),
+        borrower: toBorrowerRef(c.ReservedByUser),
         startTime: toIso(c.StartTime),
         endTime: toIso(c.EndTime),
       })),
@@ -394,21 +395,6 @@ export class ApprovalService {
       tier: tryMapTier(row.Resource.BorrowRuleInfo.RuleName),
       creditTier: toBand(row.ReservedByUser.UserCredit),
     });
-  }
-
-  private toBorrower(row: {
-    AccountKey: number;
-    UserID: string;
-    UserFName: string;
-    UserLName: string;
-    UserCredit: number;
-  }) {
-    return {
-      accountKey: row.AccountKey,
-      userId: row.UserID,
-      fullName: `${row.UserFName} ${row.UserLName}`.trim(),
-      creditScore: row.UserCredit,
-    };
   }
 
   private async toQueueRow(
@@ -442,7 +428,7 @@ export class ApprovalService {
     return {
       reservationKey: row.ReservationKey,
       requestedAt: toIso(row.ActionTime),
-      borrower: this.toBorrower(row.ReservedByUser),
+      borrower: toBorrowerRef(row.ReservedByUser),
       creditTier: toBand(row.ReservedByUser.UserCredit),
       route,
       resourceKey: row.Resource.ResourceKey,

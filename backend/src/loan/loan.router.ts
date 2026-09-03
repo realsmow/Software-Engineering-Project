@@ -48,11 +48,17 @@ import { LoanService } from './loan.service';
 import { LoanRequestService } from './loan.request.service';
 
 /**
- * The loan domain — staff half (ว-05).
+ * The loan domain - both halves (ว-05).
  *
- * The borrower half (`loan.list`, `loan.getById`, `loan.create`, `loan.cancel`,
- * `loan.requestExtension`) goes in this same router and is not written yet.
- * Nothing here overlaps those names.
+ * Middleware is per-procedure, not on the class, because the two halves have
+ * different audiences: the borrower slice (`create`, `list`, `getById`,
+ * `cancel`) runs on AuthMiddleware and checks row ownership itself, while the
+ * staff slice (`staffQueue`, `allocate`, `confirmPickup`, `recordReturn`, …)
+ * runs on StaffMiddleware and is scoped to the caller's department.
+ *
+ * The names were chosen not to collide across that boundary (`list` vs
+ * `staffQueue`, `getById` vs `getForStaff`) so no borrower-looking name ever
+ * reaches a staff-only view.
  *
  * Two of these are on the polling list: `staffQueue` and `queueCounts` are
  * refetched every 30 seconds, so both are paginated and neither loads an image

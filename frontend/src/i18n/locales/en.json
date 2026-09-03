@@ -38,7 +38,8 @@
     "department": "Department",
     "email": "Email",
     "name": "Name",
-    "createdAt": "Created"
+    "createdAt": "Created",
+    "showingRange": "Showing {{start}}-{{end}} of {{total}}"
   },
   "table": {
     "range": "Showing {{start}}–{{end}} of {{total}}",
@@ -758,6 +759,66 @@
       "draftNoEnd": "return date not set",
       "draftEdit": "Edit draft",
       "draftDrop": "Discard draft"
+    }
+  },
+  "staff": {
+    "queue": {
+      "subtitle": "The counter queue for lending and returns. Refreshes every 30 seconds.",
+      "bucketToPrepare": "To prepare",
+      "bucketToHandover": "To hand over",
+      "bucketOnLoan": "On loan",
+      "bucketOverdue": "Overdue",
+      "tileToInspect": "To inspect",
+      "tileExtensions": "Extensions to check",
+      "actionPrepare": "Prepare",
+      "actionHandover": "Hand over",
+      "actionReturn": "Record return",
+      "actionLost": "Mark lost",
+      "colBorrower": "Borrower",
+      "colItem": "Equipment",
+      "colPickup": "Pickup",
+      "colDue": "Due",
+      "credit": "credit {{score}}",
+      "overdueBy": "{{days}} days over",
+      "statePending": "Pending",
+      "statePrepared": "Prepared",
+      "stateLended": "With borrower",
+      "stateReturned": "Returned",
+      "stateInspected": "Inspected",
+      "searchPlaceholder": "Search by name, student ID, serial or item",
+      "emptyTitle": "Nothing in this queue",
+      "emptyDesc": "Rows appear here as work arrives.",
+      "donePrepare": "Prepared {{item}} ({{serial}}) for {{who}}",
+      "doneHandover": "Handed over to {{who}}",
+      "doneReturn": "Return recorded for {{who}}",
+      "doneReturnLate": "Return recorded for {{who}}. {{days}} days late, {{credit}} credit deducted.",
+      "doneLost": "Marked lost and charged to {{who}}",
+      "confirmLost": "Mark {{item}} held by {{who}} as lost? This charges their credit and removes the unit from stock."
+    }
+  },
+  "supervisor": {
+    "approvals": {
+      "subtitle": "Requests waiting on a decision. Refreshes every 60 seconds.",
+      "tileSupervisor": "Waiting on a teacher",
+      "tileStaff": "Waiting on staff",
+      "tileOverdue": "Start date already passed",
+      "tileAuto": "Auto-approved today",
+      "colBorrower": "Requester",
+      "colItem": "Equipment",
+      "colWindow": "Period",
+      "days": "{{count}} days",
+      "clashes": "clashes with {{count}}",
+      "approve": "Approve",
+      "reject": "Reject",
+      "confirmReject": "Confirm reject",
+      "reasonPlaceholder": "Reason for rejection (required)",
+      "searchPlaceholder": "Search by name, student ID or item",
+      "emptyTitle": "Nothing waiting",
+      "emptyDesc": "Requests appear here as they arrive.",
+      "confirmClash": "Approving this cancels {{count}} other request(s) for the same unit over an overlapping window. Continue?",
+      "doneApprove": "Approved {{item}}",
+      "doneApproveCancelled": "Approved {{item}} and cancelled {{count}} clashing request(s)",
+      "doneReject": "Rejected {{item}} and sent the reason to the requester"
     }
   }
 }

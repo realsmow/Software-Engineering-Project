@@ -25,6 +25,18 @@ import type {
   ServerItemUnit,
 } from "@/features/borrower/catalog/item.adapter";
 import type { ServerCredit } from "@/features/account/credit.adapter";
+import type {
+  LoanOutput,
+  Paginated as ServerPaginated,
+  RecordReturnOutput,
+  StaffQueueCounts,
+  StaffQueueRow,
+} from "@/features/staff/queue/queue.types";
+import type {
+  ApprovalCounts,
+  ApprovalQueueRow,
+  DecideApprovalOutput,
+} from "@/features/supervisor/approvals/approval.types";
 import type { ServerAdminUser } from "@/features/admin/users/admin-user.adapter";
 import type { ServerAuditEvent } from "@/features/admin/audit/audit-event.adapter";
 import type {
@@ -111,23 +123,91 @@ export const appRouter = t.router({
   }),
 
   // ── loan ──────────────────────────────────────────────
+  //
+  // Two audiences in one router, gated per procedure on the server: the
+  // borrower slice acts on the caller's own rows, the staff slice is scoped to
+  // the caller's department. The names do not collide across that line
+  // (`list` vs `staffQueue`, `getById` vs `getForStaff`).
   loan: t.router({
+    // Borrower slice. Still typed loosely: these pages are not connected yet,
+    // so nothing depends on the shapes and guessing them here would be fiction.
     list: proc
-      .input(pageInput.extend({ status: z.string().optional() }))
+      .input(pageInput.extend({ tab: z.string().optional() }))
       .query(() => as<Paginated<Loan>>()),
-    getById: proc.input(idInput).query(() => as<Loan>()),
+    getById: proc.input(z.object({ reservationKey: z.number() })).query(() => as<Loan>()),
     create: proc.input(z.object({}).passthrough()).mutation(() => as<LoanRequest>()),
-    cancel: proc.input(idInput).mutation(() => as<{ ok: true }>()),
+    cancel: proc
+      .input(z.object({ reservationKey: z.number() }).passthrough())
+      .mutation(() => as<{ ok: true }>()),
+
+    // Staff counter. Typed against backend/src/loan/loan.schema.ts.
+    staffQueue: proc
+      .input(
+        pageInput.extend({
+          bucket: z.enum(["toPrepare", "toHandover", "onLoan", "overdue"]),
+          tier: z.string().optional(),
+        }),
+      )
+      .query(() => as<ServerPaginated<StaffQueueRow>>()),
+    queueCounts: proc.query(() => as<StaffQueueCounts>()),
+    getForStaff: proc
+      .input(z.object({ usageKey: z.number() }))
+      .query(() => as<LoanOutput>()),
     allocate: proc
-      .input(z.object({ requestId: z.string() }).passthrough())
-      .mutation(() => as<LoanRequest>()),
+      .input(
+        z.object({
+          reservationKey: z.number(),
+          resourceKey: z.number().optional(),
+          condition: z.string().optional(),
+          note: z.string().optional(),
+        }),
+      )
+      .mutation(() => as<LoanOutput>()),
+    swapUnit: proc
+      .input(z.object({ usageKey: z.number(), resourceKey: z.number() }).passthrough())
+      .mutation(() => as<LoanOutput>()),
     confirmPickup: proc
-      .input(z.object({ loanId: z.string() }).passthrough())
-      .mutation(() => as<Loan>()),
-    return: proc
-      .input(z.object({ loanId: z.string() }).passthrough())
-      .mutation(() => as<Loan>()),
-    requestExtension: proc.input(idInput).mutation(() => as<Loan>()),
+      .input(z.object({ usageKey: z.number(), note: z.string().optional() }))
+      .mutation(() => as<LoanOutput>()),
+    recordReturn: proc
+      .input(z.object({ usageKey: z.number(), note: z.string().optional() }))
+      .mutation(() => as<RecordReturnOutput>()),
+    markLost: proc
+      .input(
+        z.object({
+          usageKey: z.number(),
+          reason: z.string().optional(),
+          reportedByBorrower: z.boolean().optional(),
+        }),
+      )
+      .mutation(() => as<LoanOutput>()),
+    extensionReviews: proc.input(pageInput).query(() => as<Paginated<unknown>>()),
+    decideExtension: proc
+      .input(z.object({ extensionKey: z.number() }).passthrough())
+      .mutation(() => as<LoanOutput>()),
+  }),
+
+  // ── approval ──────────────────────────────────────────
+  // The desk both staff and supervisors decide from, split by `route`.
+  approval: t.router({
+    queue: proc
+      .input(
+        pageInput.extend({
+          route: z.enum(["staff", "supervisor"]).optional(),
+          tier: z.string().optional(),
+        }),
+      )
+      .query(() => as<ServerPaginated<ApprovalQueueRow>>()),
+    counts: proc.query(() => as<ApprovalCounts>()),
+    decide: proc
+      .input(
+        z.object({
+          reservationKey: z.number(),
+          decision: z.enum(["approve", "reject"]),
+          reason: z.string().optional(),
+        }),
+      )
+      .mutation(() => as<DecideApprovalOutput>()),
   }),
 
   // ── reservation ───────────────────────────────────────
@@ -138,15 +218,6 @@ export const appRouter = t.router({
       .query(() => as<{ start: string; end: string; taken: boolean }[]>()),
     create: proc.input(z.object({}).passthrough()).mutation(() => as<{ id: string }>()),
     cancel: proc.input(idInput).mutation(() => as<{ ok: true }>()),
-  }),
-
-  // ── approval ──────────────────────────────────────────
-  approval: t.router({
-    list: proc.input(pageInput).query(() => as<Paginated<LoanRequest>>()),
-    getById: proc.input(idInput).query(() => as<LoanRequest>()),
-    decide: proc
-      .input(z.object({ id: z.string(), decision: z.enum(["approved", "rejected"]), note: z.string().optional() }))
-      .mutation(() => as<{ ok: true }>()),
   }),
 
   // ── appeal ────────────────────────────────────────────

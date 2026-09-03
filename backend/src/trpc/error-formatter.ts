@@ -32,15 +32,12 @@ export function formatTrpcError({
   // laptop, free reconnaissance in production.
   if (isProduction) delete (data as { stack?: string }).stack;
 
-  // TRPCError types `cause` as Error, but BusinessError deliberately passes a
-  // plain details object, so this goes through unknown.
-  const cause: unknown =
-    error instanceof BusinessError ? error.cause : undefined;
+  // Read `details`, never `cause`: TRPCError wraps a non-Error cause in an
+  // internal UnknownCauseError, so `cause` is not the object the error was
+  // built with. See the note on BusinessError.details.
   if (error instanceof BusinessError) {
     data.businessCode = error.businessCode;
-    if (cause !== null && typeof cause === 'object' && !Array.isArray(cause)) {
-      data.details = cause as Record<string, unknown>;
-    }
+    if (error.details !== null) data.details = error.details;
   }
 
   return { ...shape, data };

@@ -1,3 +1,4 @@
+import { toBorrowerRef } from './loan.schema';
 import { Injectable } from '@nestjs/common';
 import type { Prisma } from '../generated/prisma/client';
 import { PrismaService } from '../prisma.service';
@@ -174,7 +175,7 @@ export class LoanRequestService {
         rejected.push({
           resourceKey: line.resourceKey,
           code: error.message,
-          detail: (error.cause as Record<string, unknown> | undefined) ?? null,
+          detail: error.details,
         });
       }
     }
@@ -530,13 +531,7 @@ export class LoanRequestService {
         route,
         status: row.ApproveStatus,
         approvedBy: row.ApprovedByUser
-          ? {
-              accountKey: row.ApprovedByUser.AccountKey,
-              userId: row.ApprovedByUser.UserID,
-              fullName:
-                `${row.ApprovedByUser.UserFName} ${row.ApprovedByUser.UserLName}`.trim(),
-              creditScore: row.ApprovedByUser.UserCredit,
-            }
+          ? toBorrowerRef(row.ApprovedByUser)
           : null,
         autoApproved: row.AutoApproved,
         approvedAt: row.ApprovedAt ? toIso(row.ApprovedAt) : null,

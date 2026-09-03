@@ -38,7 +38,7 @@ const AppealsPage = lazy(() => import("@/features/borrower/appeals/appeals-page"
 const ProfilePage = lazy(() => import("@/features/account/profile-page"));
 
 // Staff ops
-const StaffDashboardPage = lazy(() => import("@/features/staff/dashboard/dashboard-page"));
+const StaffDashboardPage = lazy(() => import("@/features/staff/queue/staff-queue-page"));
 const StaffHandoverPage = lazy(() => import("@/features/staff/handover/handover-page"));
 const StaffInspectionPage = lazy(
   () => import("@/features/staff/inspection/inspection-page"),
@@ -62,7 +62,7 @@ const ReportExportPage = lazy(() => import("@/features/reports/export/export-pag
 
 // Supervisor
 const SupervisorApprovalsPage = lazy(
-  () => import("@/features/supervisor/approvals/approvals-page"),
+  () => import("@/features/supervisor/approvals/approvals-queue-page"),
 );
 const SupervisorAppealsPage = lazy(
   () => import("@/features/supervisor/appeals/appeals-page"),
