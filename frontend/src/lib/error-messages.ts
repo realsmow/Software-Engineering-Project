@@ -62,7 +62,7 @@ const ERROR_MESSAGES: Record<string, string> = {
   // Approval desk (approval.*)
   CANNOT_APPROVE_OWN_REQUEST: "คุณอนุมัติคำขอของตัวเองไม่ได้",
   APPROVAL_NEEDS_SUPERVISOR: "คำขอนี้ต้องให้อาจารย์เป็นผู้อนุมัติ",
-  WINDOW_NOT_AVAILABLE: "ช่วงเวลานี้ถูกจองไปแล้ว",
+  // WINDOW_NOT_AVAILABLE is already defined above with the slot codes.
   CREDIT_TOO_LOW: "เครดิตของผู้ยืมไม่ถึงเกณฑ์สำหรับรายการนี้",
   INVALID_BORROW_WINDOW: "ช่วงเวลาที่ขอยืมไม่ถูกต้อง",
   CANNOT_CANCEL: "คำขอนี้ยกเลิกไม่ได้แล้ว",
