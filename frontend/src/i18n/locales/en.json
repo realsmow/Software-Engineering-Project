@@ -81,7 +81,11 @@
     "avatarTooLarge": "File too large (max 5 MB)",
     "avatarInvalidType": "Only JPG or PNG files are allowed",
     "avatarPreviewNotice": "Local preview only - saving will work once the backend is connected.",
-    "mockNotice": "Showing mock account data - no backend is connected yet."
+    "mockNotice": "Showing mock account data - no backend is connected yet.",
+    "borrowWindow": "Max loan period",
+    "activePenalties": "{{count}} active penalties (-{{total}} credit total)",
+    "penaltyNoReason": "No reason given",
+    "penaltyUntil": "until {{date}}"
   },
   "auth": {
     "universityAccount": "University account",
@@ -461,7 +465,9 @@
       "tierNoteT3": "slot booking",
       "emptyTitle": "No equipment matches these filters",
       "emptyDesc": "Try removing a filter or searching for something else",
-      "photoPlaceholder": "Photo"
+      "photoPlaceholder": "Photo",
+      "tierUnknown": "Unclassified",
+      "tierNoteUnknown": "No borrowing tier assigned yet"
     },
     "detail": {
       "back": "Back to catalog",
@@ -549,6 +555,7 @@
       "calWarn": "Credit level {{band}} allows up to {{days}} days per loan · the return date was not set, pick one inside the allowed range",
       "serialTitle": "Choose unit serials (T2)",
       "serialHelp": "T2 equipment is issued by serial and needs supervisor approval.",
+      "serialNone": "No serials available",
       "serialPicked": "{{picked}} of {{qty}} chosen",
       "unitFree": "Free",
       "unitFix": "Servicing",
@@ -582,7 +589,10 @@
       "apvLowCredit": "Your credit level is {{band}}. Under the rules, both T1 and T2 items need supervisor approval regardless of the item.",
       "submit": "Submit request",
       "saveDraft": "Save draft",
-      "autoApproveNote": "T0–T1 items are approved automatically on submission and can be collected the same day."
+      "autoApproveNote": "T0–T1 items are approved automatically on submission and can be collected the same day.",
+      "pcTier": "Borrowing tier",
+      "pcTierOk": "Every item has a borrowing tier",
+      "pcTierBad": "Unclassified: {{items}} — ask staff to set a tier"
     },
     "pickup": {
       "subtitle": "Collect the equipment staff have prepared for you",

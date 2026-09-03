@@ -15,7 +15,14 @@ import type { DamageLevel, EquipmentType, Tier } from "@/types/domain";
  * they live here as a view type so the shared domain contract stays untouched
  * until the backend schema is final.
  */
-export interface CatalogItem extends EquipmentType {
+export interface CatalogItem extends Omit<EquipmentType, "tier"> {
+  /**
+   * Null when the server cannot determine one: a type with no units yet, or
+   * units sitting on a BorrowRule outside T0-T3. A tier decides who approves a
+   * request, so it is carried as unknown rather than defaulted - guessing T0
+   * would auto-approve something nobody has classified.
+   */
+  tier: Tier | null;
   /** Asset tag printed on the item, e.g. "EE-MM-001". */
   code: string;
   departmentId: string;

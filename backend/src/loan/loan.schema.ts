@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { dbId } from '../common/schemas/id.schema';
 import {
   paginated,
   paginationInput,
@@ -26,9 +27,9 @@ import {
  * refuses from any other state, so a double-clicked button cannot skip one.
  */
 
-export const usageIdInput = z.object({ usageKey: z.number().int().positive() });
+export const usageIdInput = z.object({ usageKey: dbId });
 export const reservationIdInput = z.object({
-  reservationKey: z.number().int().positive(),
+  reservationKey: dbId,
 });
 
 // ---------------------------------------------------------------------------
@@ -152,7 +153,7 @@ export const loanOutput = z.object({
  * wrong with the unit before it leaves must not become the borrower's problem.
  */
 export const allocateLoanInput = reservationIdInput.extend({
-  resourceKey: z.number().int().positive().optional(),
+  resourceKey: dbId.optional(),
   condition: conditionType.default('Normal'),
   note: z.string().trim().max(500).optional(),
 });
@@ -160,7 +161,7 @@ export type AllocateLoanInput = z.infer<typeof allocateLoanInput>;
 
 /** Swap the reserved unit for another of the same type. T1 only (§5.4). */
 export const swapUnitInput = usageIdInput.extend({
-  resourceKey: z.number().int().positive(),
+  resourceKey: dbId,
   reason: z.string().trim().max(500).optional(),
 });
 export type SwapUnitInput = z.infer<typeof swapUnitInput>;
@@ -254,7 +255,7 @@ export const extensionReviewRow = z.object({
 export const paginatedExtensionReviews = paginated(extensionReviewRow);
 
 export const decideExtensionInput = z.object({
-  extensionKey: z.number().int().positive(),
+  extensionKey: dbId,
   decision: z.enum(['approve', 'reject']),
   /** Condition found on the counter. Required to approve — that is the point. */
   condition: conditionType.default('Normal'),

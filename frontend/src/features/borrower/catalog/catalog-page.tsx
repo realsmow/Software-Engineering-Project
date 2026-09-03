@@ -225,7 +225,7 @@ export default function CatalogPage() {
             size="sm"
             onAdd={(ev) => {
               ev.stopPropagation();
-              addItem(e.id);
+              addItem(e.id, e.availableUnits);
             }}
           />
         </span>
@@ -358,7 +358,7 @@ export default function CatalogPage() {
                   qty={qtyOf(e.id)}
                   capped={atCap(e)}
                   onOpen={() => openDetail(e)}
-                  onAdd={() => addItem(e.id)}
+                  onAdd={() => addItem(e.id, e.availableUnits)}
                 />
               ))
             )}
@@ -652,7 +652,7 @@ function Thumb({ size = 44 }: { size?: number }) {
 function facetOf(item: CatalogItem, group: GroupKey): string {
   if (group === "dept") return item.departmentId;
   if (group === "cat") return item.categoryId;
-  if (group === "tier") return item.tier;
+  if (group === "tier") return item.tier ?? "";
   return item.stockStatus;
 }
 

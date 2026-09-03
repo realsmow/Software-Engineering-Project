@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { dbId } from '../common/schemas/id.schema';
 import {
   paginated,
   paginationInput,
@@ -28,11 +29,11 @@ import {
  */
 
 export const inspectionIdInput = z.object({
-  inspectionKey: z.number().int().positive(),
+  inspectionKey: dbId,
 });
-export const usageIdInput = z.object({ usageKey: z.number().int().positive() });
+export const usageIdInput = z.object({ usageKey: dbId });
 export const resourceIdInput = z.object({
-  resourceKey: z.number().int().positive(),
+  resourceKey: dbId,
 });
 
 // ---------------------------------------------------------------------------
@@ -229,7 +230,7 @@ export const startRepairInput = resourceIdInput.extend({
 export type StartRepairInput = z.infer<typeof startRepairInput>;
 
 export const finishRepairInput = z.object({
-  repairKey: z.number().int().positive(),
+  repairKey: dbId,
   /** What the unit is like now. `Normal` puts it back in the pool. */
   condition: conditionType.default('Normal'),
   note: z.string().trim().max(1000).optional(),

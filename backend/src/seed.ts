@@ -28,6 +28,10 @@ const TIERS = [
 
 const ROLES = ['Student', 'Staff', 'Supervisor', 'Admin'];
 
+/** The four BorrowRule rows the catalogue keys its tier off (§5.4). */
+const TIER_RULES = ['T0', 'T1', 'T2', 'T3'] as const;
+type TierRule = (typeof TIER_RULES)[number];
+
 const USERS = [
   {
     userId: 'test_borrower',
@@ -128,9 +132,20 @@ async function main() {
     roleKeys.set(name, row.RoleKey);
   }
 
-  const rule =
-    (await prisma.borrowRule.findFirst({ where: { RuleName: 'default' } })) ??
-    (await prisma.borrowRule.create({ data: { RuleName: 'default' } }));
+  // A tier *is* a BorrowRule row, and status.schema.ts reads the tier off
+  // RuleName. A single rule called 'default' therefore maps to no tier at all,
+  // and every item in the catalogue comes back with `tier: null` - which takes
+  // the tier dot, the tier facet and the whole T2 serial flow down with it.
+  const ruleKeys = {} as Record<(typeof TIER_RULES)[number], number>;
+  for (const name of TIER_RULES) {
+    const existing = await prisma.borrowRule.findFirst({
+      where: { RuleName: name },
+    });
+    const row =
+      existing ??
+      (await prisma.borrowRule.create({ data: { RuleName: name } }));
+    ruleKeys[name] = row.BorrowRuleKey;
+  }
 
   for (const t of TIERS) {
     const existing = await prisma.creditTier.findFirst({
@@ -142,28 +157,32 @@ async function main() {
         data: { CreditTierName: t.name, CreditMin: t.min, CreditMax: t.max },
       }));
 
-    await prisma.borrowConstraints.upsert({
-      where: {
-        BorrowRuleKey_CreditTierKey: {
-          BorrowRuleKey: rule.BorrowRuleKey,
-          CreditTierKey: tier.CreditTierKey,
+    // One row per (rule x credit tier) so any item can price a due date for
+    // any borrower. A missing pair makes `credit.me` fall over on that tier.
+    for (const ruleKey of Object.values(ruleKeys)) {
+      await prisma.borrowConstraints.upsert({
+        where: {
+          BorrowRuleKey_CreditTierKey: {
+            BorrowRuleKey: ruleKey,
+            CreditTierKey: tier.CreditTierKey,
+          },
         },
-      },
-      update: {
-        MaxBorrowDate: t.maxBorrowDays,
-        MaxExtendTime: t.maxExtendTimes,
-      },
-      create: {
-        BorrowRuleKey: rule.BorrowRuleKey,
-        CreditTierKey: tier.CreditTierKey,
-        MaxBorrowDate: t.maxBorrowDays,
-        MaxExtendTime: t.maxExtendTimes,
-      },
-    });
+        update: {
+          MaxBorrowDate: t.maxBorrowDays,
+          MaxExtendTime: t.maxExtendTimes,
+        },
+        create: {
+          BorrowRuleKey: ruleKey,
+          CreditTierKey: tier.CreditTierKey,
+          MaxBorrowDate: t.maxBorrowDays,
+          MaxExtendTime: t.maxExtendTimes,
+        },
+      });
+    }
   }
 
   const units = await seedUnits(faculty.FacultyKey);
-  await seedCatalogue(rule.BorrowRuleKey, units);
+  await seedCatalogue(ruleKeys, units);
 
   for (const u of USERS) {
     const hashed = await hashPassword(u.pass);
@@ -228,6 +247,7 @@ const CATALOG = [
     weight: 1,
     units: 4,
     prefix: 'ME-CAL',
+    tier: 'T0' as TierRule,
     unit: 'cpe' as UnitCode,
   },
   {
@@ -236,6 +256,7 @@ const CATALOG = [
     weight: 1,
     units: 6,
     prefix: 'EE-JMP',
+    tier: 'T0' as TierRule,
     unit: 'ee' as UnitCode,
   },
   {
@@ -244,6 +265,7 @@ const CATALOG = [
     weight: 3,
     units: 2,
     prefix: 'EE-OSC',
+    tier: 'T2' as TierRule,
     unit: 'ee' as UnitCode,
   },
   {
@@ -252,6 +274,7 @@ const CATALOG = [
     weight: 3,
     units: 3,
     prefix: 'MM-CAM',
+    tier: 'T1' as TierRule,
     unit: 'cpe' as UnitCode,
   },
 ];
@@ -298,7 +321,7 @@ async function seedUnits(
 }
 
 async function seedCatalogue(
-  borrowRuleKey: number,
+  ruleKeys: Record<TierRule, number>,
   units: Record<UnitCode, number>,
 ) {
   for (const c of CATALOG) {
@@ -320,7 +343,7 @@ async function seedCatalogue(
       const resource = await prisma.resourceInfo.create({
         data: {
           ManagedBy: units[c.unit],
-          BorrowRule: borrowRuleKey,
+          BorrowRule: ruleKeys[c.tier],
           ResourceStatus: 'InStorage',
           ResourceType: 'Item',
           BufferTime: 0,
@@ -335,7 +358,29 @@ async function seedCatalogue(
         },
       });
     }
-    console.log(`  catalogue ${c.name} (${c.units} units, ${c.unit})`);
+    // Top-up alone cannot fix a type whose units were created under a
+    // different rule - re-running would leave them on the old tier forever.
+    // Converge them instead, so the seed describes the end state rather than
+    // only the gap.
+    const moved = await prisma.resourceInfo.updateMany({
+      where: {
+        ResourceKey: {
+          in: (
+            await prisma.itemIndiv.findMany({
+              where: { ItemKey: type.ItemKey },
+              select: { ResourceKey: true },
+            })
+          ).map((r) => r.ResourceKey),
+        },
+        BorrowRule: { not: ruleKeys[c.tier] },
+      },
+      data: { BorrowRule: ruleKeys[c.tier] },
+    });
+
+    console.log(
+      `  catalogue ${c.name} (${c.units} units, ${c.unit}, ${c.tier}` +
+        `${moved.count ? `, retiered ${moved.count}` : ''})`,
+    );
   }
 }
 

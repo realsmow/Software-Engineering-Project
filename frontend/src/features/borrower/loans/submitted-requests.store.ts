@@ -1,12 +1,7 @@
 import { create } from "zustand";
 import { addDays, differenceInCalendarDays, format, parseISO } from "date-fns";
 import { BUSINESS } from "@/constants";
-import {
-  CATALOG_ITEMS,
-  type MyRequest,
-  type MyRequestStatus,
-  type Room,
-} from "../mock-data";
+import { type MyRequest, type MyRequestStatus, type Room } from "../mock-data";
 import type { RequestUnit } from "../request/request-draft.store";
 
 /**
@@ -96,24 +91,26 @@ export const useSubmittedRequests = create<SubmittedRequestsState>((set, get) =>
     // Each unit gets the next number in sequence - nothing ties them together.
     let seq = EQUIPMENT_SEQ_START + countRequests(get().requests, "REQ");
 
-    const created = units.flatMap<MyRequest>((unit) => {
-      const item = CATALOG_ITEMS.find((c) => c.id === unit.itemId);
-      if (!item) return [];
+    // Name and tier travel on the unit (see RequestUnit) - the catalogue is a
+    // server query and this store cannot await one.
+    const created = units.map<MyRequest>((unit) => {
       // Only the items that actually need sign-off wait; the others move on.
+      // An unclassified item cannot auto-approve: without a tier there is no
+      // rule saying who may sign it off, so it waits for a human.
       const status: MyRequestStatus =
-        needsSupervisor && item.tier === "T2" ? "pending" : "approved";
-      return [
-        {
-          id: refOf("REQ", seq++),
-          kind: "equipment",
-          tier: item.tier,
-          name: item.name,
-          serial: unit.serial ?? "-",
-          status,
-          startDate,
-          endDate,
-        },
-      ];
+        unit.tier === null || (needsSupervisor && unit.tier === "T2")
+          ? "pending"
+          : "approved";
+      return {
+        id: refOf("REQ", seq++),
+        kind: "equipment",
+        tier: unit.tier ?? "T2",
+        name: unit.name,
+        serial: unit.serial ?? "-",
+        status,
+        startDate,
+        endDate,
+      };
     });
 
     set((s) => ({ requests: [...created, ...s.requests] }));

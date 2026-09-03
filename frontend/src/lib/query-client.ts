@@ -39,6 +39,7 @@ export const queryKeys = {
     ["equipment-types", filters] as const,
   equipmentType: (id: string) => ["equipment-types", id] as const,
   equipmentAvailability: (id: string) => ["equipment-types", id, "availability"] as const,
+  equipmentUnits: (id: string) => ["equipment-types", id, "units"] as const,
 
   // Facility (T3)
   facilities: ["facilities"] as const,

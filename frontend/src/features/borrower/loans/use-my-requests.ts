@@ -1,11 +1,12 @@
 import { useMemo } from "react";
 import {
-  CATALOG_ITEMS,
   MY_REQUESTS,
   STATUS_TAB,
+  type CatalogItem,
   type MyRequest,
   type RequestTab,
 } from "../mock-data";
+import { useEquipmentTypes } from "../catalog/use-equipment-types";
 import { useRequestDraft, type DraftLine } from "../request/request-draft.store";
 import { useSubmittedRequests } from "./submitted-requests.store";
 
@@ -32,6 +33,9 @@ export interface DraftSummary {
  * array becomes the query and this hook keeps merging the local draft on top.
  */
 export function useMyRequests() {
+  // Only the draft needs it: a saved line is an id, and the card title is the
+  // item's name. Submitted requests already carry their own name.
+  const { data: catalog } = useEquipmentTypes();
   const submitted = useSubmittedRequests((s) => s.requests);
   const overrides = useSubmittedRequests((s) => s.overrides);
   const draftLines = useRequestDraft((s) => s.lines);
@@ -51,8 +55,8 @@ export function useMyRequests() {
   );
 
   const draft = useMemo<DraftSummary | null>(
-    () => summariseDraft(draftLines, startDate, endDate),
-    [draftLines, startDate, endDate],
+    () => summariseDraft(draftLines, catalog ?? [], startDate, endDate),
+    [draftLines, catalog, startDate, endDate],
   );
 
   const countByTab = useMemo(() => {
@@ -72,13 +76,14 @@ export function requestsInTab(requests: MyRequest[], tab: RequestTab): MyRequest
 
 function summariseDraft(
   lines: DraftLine[],
+  catalog: CatalogItem[],
   startDate: string,
   endDate: string | null,
 ): DraftSummary | null {
   if (lines.length === 0) return null;
 
   const names = lines.flatMap((l) => {
-    const item = CATALOG_ITEMS.find((c) => c.id === l.itemId);
+    const item = catalog.find((c) => c.id === l.itemId);
     return item ? [item.name] : [];
   });
 
