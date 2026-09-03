@@ -1,0 +1,11 @@
+% Standalone wrapper so the use-case TikZ body can be rendered to a bitmap for
+% the Word/PDF SDS. Not part of any LaTeX document build.
+\documentclass[border=8pt]{standalone}
+\usepackage{fontspec}
+\setmainfont{Laksaman}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric, arrows.meta, positioning, calc, fit, backgrounds}
+\begin{document}
+\input{_usecase_tikz}
+\end{document}

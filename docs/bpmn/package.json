@@ -1,0 +1,11 @@
+{
+  "name": "ulms-bpmn-render",
+  "private": true,
+  "type": "module",
+  "description": "Renders the generated .bpmn files to SVG with the real bpmn-js viewer",
+  "scripts": { "render": "node render_svg.mjs" },
+  "dependencies": {
+    "bpmn-js": "^17.11.1",
+    "puppeteer": "^23.11.1"
+  }
+}
