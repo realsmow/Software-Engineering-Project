@@ -126,6 +126,11 @@ export const BUSINESS_ERROR_CODES = {
   INVALID_BORROW_WINDOW: 'BAD_REQUEST',
   /** Somebody else's request already holds this unit for part of the window */
   WINDOW_NOT_AVAILABLE: 'CONFLICT',
+  /**
+   * Serializable kept refusing the write because other people are booking the
+   * same unit right now. `cause.attempts` says how many times it was retried.
+   */
+  TRANSACTION_CONFLICT: 'CONFLICT',
   /** Cancelling something that is already approved-and-prepared, or already over */
   CANNOT_CANCEL: 'CONFLICT',
 

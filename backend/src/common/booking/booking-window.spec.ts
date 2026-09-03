@@ -1,4 +1,10 @@
-import { clashingWindowFilter, withBuffer } from './booking-window';
+import {
+  clashingWindowFilter,
+  runSerializable,
+  withBuffer,
+  type SerializableRunner,
+} from './booking-window';
+import { BusinessError } from '../errors/business-error';
 
 /**
  * The overlap rule, which decides whose request gets cancelled.
@@ -59,5 +65,75 @@ describe('clashingWindowFilter', () => {
     );
     expect(excluding.ReservationKey).toEqual({ not: 42 });
     expect(filter.ReservationKey).toBeUndefined();
+  });
+});
+
+/**
+ * The retry loop, which is the half of Serializable that decides what the
+ * borrower actually reads.
+ *
+ * Serializable alone only guarantees the second writer is refused. Without a
+ * retry that refusal reaches the screen as a database error; with one, the
+ * rerun sees the winner's committed row and the clash check answers properly.
+ */
+describe('runSerializable', () => {
+  /** Postgres losing a serialization race, shaped the way Prisma reports it. */
+  const writeConflict = () =>
+    Object.assign(new Error('write conflict'), { code: 'P2034' });
+
+  /** A Prisma stub that fails the given number of times, then lets the work run. */
+  const runnerThatFails = (...errors: Error[]) => {
+    const isolationLevels: (string | undefined)[] = [];
+    let attempt = 0;
+
+    const db: SerializableRunner = {
+      $transaction: async (fn, options) => {
+        isolationLevels.push(options?.isolationLevel);
+        const failure = errors[attempt++];
+        if (failure) throw failure;
+        return await fn({} as never);
+      },
+    };
+
+    return { db, isolationLevels };
+  };
+
+  const work =
+    <T>(value: T) =>
+    () =>
+      Promise.resolve(value);
+
+  it('asks for Serializable, not the default isolation level', async () => {
+    const { db, isolationLevels } = runnerThatFails();
+    await runSerializable(db, work('done'));
+    expect(isolationLevels).toEqual(['Serializable']);
+  });
+
+  it('runs the work again when it loses the race, so the rerun sees the winner', async () => {
+    const { db, isolationLevels } = runnerThatFails(writeConflict());
+    await expect(runSerializable(db, work('second time lucky'))).resolves.toBe(
+      'second time lucky',
+    );
+    expect(isolationLevels).toHaveLength(2);
+  });
+
+  it('gives up as a business error, never as a raw database error', async () => {
+    const { db, isolationLevels } = runnerThatFails(
+      writeConflict(),
+      writeConflict(),
+      writeConflict(),
+    );
+    await expect(runSerializable(db, work('never reached'))).rejects.toThrow(
+      BusinessError,
+    );
+    // Bounded: three attempts, not a loop that hammers a contended row.
+    expect(isolationLevels).toHaveLength(3);
+  });
+
+  it('lets a real failure through untouched - only a lost race is retried', async () => {
+    const boom = new Error('column does not exist');
+    const { db, isolationLevels } = runnerThatFails(boom);
+    await expect(runSerializable(db, work('never reached'))).rejects.toBe(boom);
+    expect(isolationLevels).toHaveLength(1);
   });
 });

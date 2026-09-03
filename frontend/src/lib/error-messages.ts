@@ -33,6 +33,8 @@ const ERROR_MESSAGES: Record<string, string> = {
   // as the frontend codes above so either spelling resolves correctly.
   ITEM_UNAVAILABLE: "อุปกรณ์ชิ้นนี้ถูกยืมไปแล้ว กรุณาเลือกใหม่", // → CONFLICT_UNIT_TAKEN
   SLOT_TAKEN: "ช่วงเวลานี้ไม่ว่างแล้ว", // → SLOT_UNAVAILABLE
+  WINDOW_NOT_AVAILABLE: "ช่วงเวลานี้ไม่ว่างแล้ว", // → SLOT_UNAVAILABLE
+  TRANSACTION_CONFLICT: "ตอนนี้มีคนจองพร้อมกันหลายคน กรุณากดใหม่อีกครั้ง",
   SLOT_LIMIT_EXCEEDED: "จองห้อง/สล็อตพร้อมกันได้ไม่เกิน 2 รายการ",
   NOT_ELIGIBLE: "คุณไม่ตรงเงื่อนไขการยืมอุปกรณ์นี้", // → ELIGIBILITY_NOT_MET
   ALREADY_DECIDED: "คำขอนี้ถูกดำเนินการไปแล้ว ไม่สามารถแก้ไขได้",
@@ -94,8 +96,7 @@ export function extractErrorCode(error: unknown): string | undefined {
   if (error && typeof error === "object") {
     const e = error as Record<string, unknown>;
     const data = (e.data ?? (e.shape as Record<string, unknown>)?.data) as
-      | Record<string, unknown>
-      | undefined;
+      Record<string, unknown> | undefined;
     const candidate =
       (data?.businessCode as string | undefined) ??
       (data?.code as string | undefined) ??
@@ -115,11 +116,9 @@ export function getErrorPayload(error: unknown): Record<string, unknown> | undef
   if (error && typeof error === "object") {
     const e = error as Record<string, unknown>;
     const data = (e.data ?? (e.shape as Record<string, unknown>)?.data) as
-      | Record<string, unknown>
-      | undefined;
+      Record<string, unknown> | undefined;
     const payload = (data?.payload ?? data?.cause ?? data) as
-      | Record<string, unknown>
-      | undefined;
+      Record<string, unknown> | undefined;
     return payload;
   }
   return undefined;
