@@ -6,7 +6,12 @@ import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
   {
-    ignores: ['eslint.config.mjs'],
+    // Generated code is not ours to lint. `src/generated/trpc/server.ts` is
+    // rewritten by `npm run trpc:generate` and the Prisma client by
+    // `prisma generate`, so every complaint here is unfixable and drowns the
+    // real ones: `npm run lint` reported 157 errors, all of them from one
+    // generated file, which is how an actual error goes unnoticed.
+    ignores: ['eslint.config.mjs', 'src/generated/**', 'dist/**', 'dist-tools/**'],
   },
   eslint.configs.recommended,
   ...tseslint.configs.recommendedTypeChecked,

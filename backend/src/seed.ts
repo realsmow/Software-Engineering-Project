@@ -263,7 +263,11 @@ async function seedAccess(units: Record<UnitCode, number>): Promise<void> {
   const groupKeys = Object.values(units);
   const accounts = await prisma.accountInfo.findMany({
     where: { UserID: { in: USERS.map((u) => u.userId) } },
-    select: { AccountKey: true, UserID: true, Role: { select: { RoleName: true } } },
+    select: {
+      AccountKey: true,
+      UserID: true,
+      Role: { select: { RoleName: true } },
+    },
   });
 
   for (const account of accounts) {
