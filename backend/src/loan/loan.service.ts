@@ -2,9 +2,13 @@ import { Injectable } from '@nestjs/common';
 import type { Prisma } from '../generated/prisma/client';
 import { PrismaService } from '../prisma.service';
 import { StaffScopeService } from '../common/authority/staff-scope.service';
-import { PenaltyService } from '../common/penalty/penalty.service';
+import {
+  PenaltyService,
+  type PenaltyQuote,
+} from '../common/penalty/penalty.service';
 import { BusinessError } from '../common/errors/business-error';
 import {
+  addDays,
   daysBetween,
   toIso,
   toIsoNullable,
@@ -12,6 +16,10 @@ import {
 import { toPage, toSkipTake } from '../common/schemas/pagination.schema';
 import { tryMapTier, type ResourceTier } from '../common/schemas/status.schema';
 import { UNAVAILABLE_USAGE_STATES } from '../common/usage/usage-states';
+import {
+  NotificationService,
+  resourceName,
+} from '../notification/notification.service';
 import type { TrpcUser } from '../trpc/context';
 import type {
   AllocateLoanInput,
@@ -98,6 +106,7 @@ export class LoanService {
     private readonly prisma: PrismaService,
     private readonly scope: StaffScopeService,
     private readonly penalties: PenaltyService,
+    private readonly notifications: NotificationService,
   ) {}
 
   // =========================================================================
@@ -316,6 +325,16 @@ export class LoanService {
         });
       }
 
+      // "มารับของได้แล้ว". Named after the unit actually set aside rather than
+      // the one requested, because a T1 swap above may have changed it and the
+      // borrower reads this to find the right box on the counter.
+      await this.notifications.pickupReady(tx, {
+        accountKey: reservation.ReservedBy,
+        usageKey: usage.UsageKey,
+        itemName: resourceName(target),
+        collectFrom: reservation.StartTime,
+      });
+
       return usage.UsageKey;
     });
 
@@ -476,13 +495,23 @@ export class LoanService {
         });
       }
 
-      return this.penalties.apply(tx, quote, {
+      const penaltyKey = await this.penalties.apply(tx, quote, {
         accountKey: usage.Account.AccountKey,
         usageKey: usage.UsageKey,
         // The proposal starts the penalty's clock at the return, not at the
         // deadline: "จะเริ่มนับอายุของบทลงโทษเมื่อนำอุปกรณ์มาคืนแล้ว".
         effectiveFrom: now,
       });
+
+      await this.notifyDeduction(tx, {
+        penaltyKey,
+        accountKey: usage.Account.AccountKey,
+        quote,
+        effectiveFrom: now,
+        itemName: resourceName(usage.Resource),
+      });
+
+      return penaltyKey;
     });
 
     const loan = this.toLoan(await this.readUsage(input.usageKey), now);
@@ -568,15 +597,64 @@ export class LoanService {
         },
       });
 
-      await this.penalties.apply(tx, quote, {
+      const penaltyKey = await this.penalties.apply(tx, quote, {
         accountKey: usage.Account.AccountKey,
         usageKey: usage.UsageKey,
         effectiveFrom: now,
         note: input.reportedByBorrower ? 'reported by borrower' : undefined,
       });
+
+      await this.notifyDeduction(tx, {
+        penaltyKey,
+        accountKey: usage.Account.AccountKey,
+        quote,
+        effectiveFrom: now,
+        itemName: resourceName(usage.Resource),
+      });
     });
 
     return this.toLoan(await this.readUsage(input.usageKey), now);
+  }
+
+  /**
+   * Tells the borrower their credit went down — the caution in §5.7.
+   *
+   * Inside the caller's transaction, so the warning and the deduction stand or
+   * fall together. A borrower told they lost points that were never taken has
+   * no way to discover the mistake, and neither has the counter.
+   *
+   * A null `penaltyKey` means the quote came to zero — returned on time, or
+   * fair wear — and there is nothing to announce.
+   */
+  private async notifyDeduction(
+    tx: Prisma.TransactionClient,
+    params: {
+      penaltyKey: number | null;
+      accountKey: number;
+      quote: PenaltyQuote;
+      effectiveFrom: Date;
+      itemName: string;
+    },
+  ): Promise<void> {
+    if (params.penaltyKey === null) return;
+
+    // Read the score back instead of computing it. PenaltyService decrements,
+    // and a second penalty applied in the same transaction would make
+    // "the score I read earlier, minus this amount" quietly wrong.
+    const account = await tx.accountInfo.findUniqueOrThrow({
+      where: { AccountKey: params.accountKey },
+      select: { UserCredit: true },
+    });
+
+    await this.notifications.creditDeducted(tx, {
+      accountKey: params.accountKey,
+      penaltyKey: params.penaltyKey,
+      amount: params.quote.amount,
+      reason: params.quote.reason,
+      newScore: account.UserCredit,
+      expiresAt: addDays(params.effectiveFrom, params.quote.lengthDays),
+      itemName: params.itemName,
+    });
   }
 
   // =========================================================================

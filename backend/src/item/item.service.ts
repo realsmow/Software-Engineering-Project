@@ -3,6 +3,8 @@ import type { Prisma } from '../generated/prisma/client';
 import { PrismaService } from '../prisma.service';
 import { BusinessError, notImplemented } from '../common/errors/business-error';
 import {
+  isUnitAvailable,
+  nextAvailableAt,
   toItemDetail,
   toItemSummary,
   toRoomSummary,
@@ -153,6 +155,9 @@ export class ItemService {
               select: {
                 ResourceStatus: true,
                 AllowBorrow: true,
+                // available-from is the return date plus prep days (proposal
+                // 5.5), so even the leanest select has to carry BufferTime.
+                BufferTime: true,
                 UsageLogs: CURRENT_LOAN_SELECT,
               },
             },
@@ -163,25 +168,12 @@ export class ItemService {
 
     if (!row) throw new BusinessError('ITEM_NOT_FOUND', { id: itemKey });
 
-    const available = row.Items.filter(
-      (unit) =>
-        unit.Resource.ResourceStatus === 'InStorage' &&
-        unit.Resource.AllowBorrow,
-    ).length;
-
-    const dueTimes = row.Items.map(
-      (unit) => unit.Resource.UsageLogs[0]?.DueTime,
-    )
-      .filter((due): due is Date => due != null)
-      .map((due) => due.getTime());
-
+    // Both numbers come from the same helpers the catalogue mapper uses, so
+    // the polled badge and the list page cannot drift apart.
     return {
-      availableUnits: available,
+      availableUnits: row.Items.filter(isUnitAvailable).length,
       totalUnits: row.Items.length,
-      nextAvailableAt:
-        available > 0 || dueTimes.length === 0
-          ? null
-          : new Date(Math.min(...dueTimes)).toISOString(),
+      nextAvailableAt: nextAvailableAt(row.Items),
     };
   }
 

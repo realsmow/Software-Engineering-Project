@@ -262,3 +262,137 @@ export const decideExtensionInput = z.object({
   note: z.string().trim().max(500).optional(),
 });
 export type DecideExtensionInput = z.infer<typeof decideExtensionInput>;
+
+// ===========================================================================
+// Borrower slice — opening a request, tracking it, cancelling it
+//
+// A request is one `Reservations` row. A basket of five items is five rows
+// that move independently: the frontend already models it that way ("submitting
+// a basket of five items produces five independent requests that move at their
+// own speed", frontend/src/features/borrower/mock-data.ts), and the schema has
+// no table to group them under.
+// ===========================================================================
+
+/** Where a request has got to, as one string the borrower's card can show. */
+export const requestStatus = z.enum([
+  'pending', // waiting on a person
+  'approved', // cleared, nothing set aside yet
+  'preparing', // staff have a unit on the bench
+  'ready', // on the shelf with the borrower's name on it
+  'inUse', // collected
+  'returned', // back, not yet graded
+  'done', // graded, finished
+  'rejected',
+  'cancelled',
+]);
+export type RequestStatus = z.infer<typeof requestStatus>;
+
+/** Who still has to say yes. `auto` means nobody did — the system cleared it. */
+export const approvalRoute = z.enum(['auto', 'staff', 'supervisor']);
+
+export const requestIdInput = z.object({
+  reservationKey: z.number().int().positive(),
+});
+
+/**
+ * One line of a basket.
+ *
+ * `resourceKey` names a physical unit rather than a type because
+ * `Reservations.ResourceKey` is not nullable — something has to be reserved.
+ * For T0/T1 the client sends whichever unit the catalogue showed as free and
+ * staff may swap it at the counter (`loan.swapUnit`); for T2 the unit is the
+ * point, and the supervisor approves that serial.
+ */
+export const createRequestLine = z.object({
+  resourceKey: z.number().int().positive(),
+  reason: z.string().max(500).optional(),
+});
+
+/**
+ * Open one or more requests over the same window.
+ *
+ * The window is per basket, not per line, matching the request screen: one
+ * pickup date and one return date across everything in it.
+ *
+ * `startTime`/`endTime` are full instants rather than dates because T3 rooms
+ * are booked by the hour. Equipment clients send the agreed counter times.
+ */
+export const createRequestInput = z.object({
+  startTime: isoDateTime,
+  endTime: isoDateTime,
+  lines: z.array(createRequestLine).min(1).max(10),
+});
+export type CreateRequestInput = z.infer<typeof createRequestInput>;
+
+/** The thing being asked for, thin enough for a list card. */
+export const requestResourceRef = z.object({
+  resourceKey: z.number().int(),
+  name: z.string().nullable(),
+  /** Asset tag for equipment, null for a room. */
+  serialNo: z.string().nullable(),
+  kind: z.enum(['equipment', 'room']),
+  tier: resourceTier.nullable(),
+  creditWeight: z.number(),
+});
+
+/** Who signed off, when, and whether a person was involved at all. */
+export const approvalTrail = z.object({
+  route: approvalRoute,
+  status: approveStatus,
+  /** Null while pending, and null when the system cleared it — see `autoApproved`. */
+  approvedBy: borrowerRef.nullable(),
+  autoApproved: z.boolean(),
+  approvedAt: isoDateTimeNullable,
+  resolvedAt: isoDateTimeNullable,
+});
+
+export const requestOutput = z.object({
+  reservationKey: z.number().int(),
+  status: requestStatus,
+  resource: requestResourceRef,
+  startTime: isoDateTime,
+  endTime: isoDateTime,
+  reason: z.string().nullable(),
+  requestedAt: isoDateTime,
+  /** When an approved request stops being held for the borrower (§5.9). */
+  expiresAt: isoDateTimeNullable,
+  approval: approvalTrail,
+  /** Set once staff have prepared a unit; null while the request is only a request. */
+  usageKey: z.number().int().nullable(),
+  /** True while the borrower can still call `loan.cancel` on it. */
+  cancellable: z.boolean(),
+});
+
+export const listMyRequestsInput = paginationInput
+  .omit({ sort: true, order: true })
+  .extend({
+    /** The three tabs on "คำขอของฉัน". Omit for everything. */
+    tab: z.enum(['active', 'using', 'history']).optional(),
+  });
+export type ListMyRequestsInput = z.infer<typeof listMyRequestsInput>;
+
+export const paginatedRequests = paginated(requestOutput);
+
+/**
+ * What opening a basket produced.
+ *
+ * Every line gets a row even when it was refused, so the client can show which
+ * ones went through and why the rest did not, instead of failing the whole
+ * basket because one item was out.
+ */
+export const createRequestOutput = z.object({
+  created: z.array(requestOutput),
+  rejected: z.array(
+    z.object({
+      resourceKey: z.number().int(),
+      /** The BusinessError code this line would have thrown on its own. */
+      code: z.string(),
+      detail: z.record(z.string(), z.unknown()).nullable(),
+    }),
+  ),
+});
+
+export const cancelRequestInput = requestIdInput.extend({
+  reason: z.string().max(500).optional(),
+});
+export type CancelRequestInput = z.infer<typeof cancelRequestInput>;

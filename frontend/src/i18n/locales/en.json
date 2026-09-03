@@ -56,7 +56,10 @@
     "markAllRead": "Mark all read",
     "markRead": "Mark read",
     "view": "View",
-    "empty": "You're all caught up"
+    "empty": "You're all caught up",
+    "loading": "Loading...",
+    "error": "Could not load notifications",
+    "retry": "Try again"
   },
   "profile": {
     "title": "My profile",

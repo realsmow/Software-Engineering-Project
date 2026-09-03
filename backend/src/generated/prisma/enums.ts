@@ -77,9 +77,13 @@ export type ApproveStatus = (typeof ApproveStatus)[keyof typeof ApproveStatus]
 
 
 export const NotificationType = {
-  Anonuncement: 'Anonuncement',
-  Approval: 'Approval',
-  Warning: 'Warning'
+  RequestApproved: 'RequestApproved',
+  RequestRejected: 'RequestRejected',
+  PickupReminder: 'PickupReminder',
+  DueSoon: 'DueSoon',
+  Overdue: 'Overdue',
+  CreditDeducted: 'CreditDeducted',
+  AppealResult: 'AppealResult'
 } as const
 
 export type NotificationType = (typeof NotificationType)[keyof typeof NotificationType]

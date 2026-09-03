@@ -276,6 +276,7 @@ export type AccountInfoWhereInput = {
   ExtensionsRequested?: Prisma.ExtensionRequestListRelationFilter
   ExtensionsApproved?: Prisma.ExtensionRequestListRelationFilter
   ReservationsMade?: Prisma.ReservationsListRelationFilter
+  ReservationsApproved?: Prisma.ReservationsListRelationFilter
   UsageLogs?: Prisma.UsageLogListRelationFilter
   InspectionsPerformed?: Prisma.InspectionListRelationFilter
   Penalties?: Prisma.PenaltyInfoListRelationFilter
@@ -306,6 +307,7 @@ export type AccountInfoOrderByWithRelationInput = {
   ExtensionsRequested?: Prisma.ExtensionRequestOrderByRelationAggregateInput
   ExtensionsApproved?: Prisma.ExtensionRequestOrderByRelationAggregateInput
   ReservationsMade?: Prisma.ReservationsOrderByRelationAggregateInput
+  ReservationsApproved?: Prisma.ReservationsOrderByRelationAggregateInput
   UsageLogs?: Prisma.UsageLogOrderByRelationAggregateInput
   InspectionsPerformed?: Prisma.InspectionOrderByRelationAggregateInput
   Penalties?: Prisma.PenaltyInfoOrderByRelationAggregateInput
@@ -339,6 +341,7 @@ export type AccountInfoWhereUniqueInput = Prisma.AtLeast<{
   ExtensionsRequested?: Prisma.ExtensionRequestListRelationFilter
   ExtensionsApproved?: Prisma.ExtensionRequestListRelationFilter
   ReservationsMade?: Prisma.ReservationsListRelationFilter
+  ReservationsApproved?: Prisma.ReservationsListRelationFilter
   UsageLogs?: Prisma.UsageLogListRelationFilter
   InspectionsPerformed?: Prisma.InspectionListRelationFilter
   Penalties?: Prisma.PenaltyInfoListRelationFilter
@@ -400,6 +403,7 @@ export type AccountInfoCreateInput = {
   ExtensionsRequested?: Prisma.ExtensionRequestCreateNestedManyWithoutRequestedByUserInput
   ExtensionsApproved?: Prisma.ExtensionRequestCreateNestedManyWithoutApprovedByUserInput
   ReservationsMade?: Prisma.ReservationsCreateNestedManyWithoutReservedByUserInput
+  ReservationsApproved?: Prisma.ReservationsCreateNestedManyWithoutApprovedByUserInput
   UsageLogs?: Prisma.UsageLogCreateNestedManyWithoutAccountInput
   InspectionsPerformed?: Prisma.InspectionCreateNestedManyWithoutInspectorInput
   Penalties?: Prisma.PenaltyInfoCreateNestedManyWithoutAccountInput
@@ -428,6 +432,7 @@ export type AccountInfoUncheckedCreateInput = {
   ExtensionsRequested?: Prisma.ExtensionRequestUncheckedCreateNestedManyWithoutRequestedByUserInput
   ExtensionsApproved?: Prisma.ExtensionRequestUncheckedCreateNestedManyWithoutApprovedByUserInput
   ReservationsMade?: Prisma.ReservationsUncheckedCreateNestedManyWithoutReservedByUserInput
+  ReservationsApproved?: Prisma.ReservationsUncheckedCreateNestedManyWithoutApprovedByUserInput
   UsageLogs?: Prisma.UsageLogUncheckedCreateNestedManyWithoutAccountInput
   InspectionsPerformed?: Prisma.InspectionUncheckedCreateNestedManyWithoutInspectorInput
   Penalties?: Prisma.PenaltyInfoUncheckedCreateNestedManyWithoutAccountInput
@@ -455,6 +460,7 @@ export type AccountInfoUpdateInput = {
   ExtensionsRequested?: Prisma.ExtensionRequestUpdateManyWithoutRequestedByUserNestedInput
   ExtensionsApproved?: Prisma.ExtensionRequestUpdateManyWithoutApprovedByUserNestedInput
   ReservationsMade?: Prisma.ReservationsUpdateManyWithoutReservedByUserNestedInput
+  ReservationsApproved?: Prisma.ReservationsUpdateManyWithoutApprovedByUserNestedInput
   UsageLogs?: Prisma.UsageLogUpdateManyWithoutAccountNestedInput
   InspectionsPerformed?: Prisma.InspectionUpdateManyWithoutInspectorNestedInput
   Penalties?: Prisma.PenaltyInfoUpdateManyWithoutAccountNestedInput
@@ -483,6 +489,7 @@ export type AccountInfoUncheckedUpdateInput = {
   ExtensionsRequested?: Prisma.ExtensionRequestUncheckedUpdateManyWithoutRequestedByUserNestedInput
   ExtensionsApproved?: Prisma.ExtensionRequestUncheckedUpdateManyWithoutApprovedByUserNestedInput
   ReservationsMade?: Prisma.ReservationsUncheckedUpdateManyWithoutReservedByUserNestedInput
+  ReservationsApproved?: Prisma.ReservationsUncheckedUpdateManyWithoutApprovedByUserNestedInput
   UsageLogs?: Prisma.UsageLogUncheckedUpdateManyWithoutAccountNestedInput
   InspectionsPerformed?: Prisma.InspectionUncheckedUpdateManyWithoutInspectorNestedInput
   Penalties?: Prisma.PenaltyInfoUncheckedUpdateManyWithoutAccountNestedInput
@@ -774,12 +781,28 @@ export type AccountInfoCreateNestedOneWithoutReservationsMadeInput = {
   connect?: Prisma.AccountInfoWhereUniqueInput
 }
 
+export type AccountInfoCreateNestedOneWithoutReservationsApprovedInput = {
+  create?: Prisma.XOR<Prisma.AccountInfoCreateWithoutReservationsApprovedInput, Prisma.AccountInfoUncheckedCreateWithoutReservationsApprovedInput>
+  connectOrCreate?: Prisma.AccountInfoCreateOrConnectWithoutReservationsApprovedInput
+  connect?: Prisma.AccountInfoWhereUniqueInput
+}
+
 export type AccountInfoUpdateOneRequiredWithoutReservationsMadeNestedInput = {
   create?: Prisma.XOR<Prisma.AccountInfoCreateWithoutReservationsMadeInput, Prisma.AccountInfoUncheckedCreateWithoutReservationsMadeInput>
   connectOrCreate?: Prisma.AccountInfoCreateOrConnectWithoutReservationsMadeInput
   upsert?: Prisma.AccountInfoUpsertWithoutReservationsMadeInput
   connect?: Prisma.AccountInfoWhereUniqueInput
   update?: Prisma.XOR<Prisma.XOR<Prisma.AccountInfoUpdateToOneWithWhereWithoutReservationsMadeInput, Prisma.AccountInfoUpdateWithoutReservationsMadeInput>, Prisma.AccountInfoUncheckedUpdateWithoutReservationsMadeInput>
+}
+
+export type AccountInfoUpdateOneWithoutReservationsApprovedNestedInput = {
+  create?: Prisma.XOR<Prisma.AccountInfoCreateWithoutReservationsApprovedInput, Prisma.AccountInfoUncheckedCreateWithoutReservationsApprovedInput>
+  connectOrCreate?: Prisma.AccountInfoCreateOrConnectWithoutReservationsApprovedInput
+  upsert?: Prisma.AccountInfoUpsertWithoutReservationsApprovedInput
+  disconnect?: Prisma.AccountInfoWhereInput | boolean
+  delete?: Prisma.AccountInfoWhereInput | boolean
+  connect?: Prisma.AccountInfoWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.AccountInfoUpdateToOneWithWhereWithoutReservationsApprovedInput, Prisma.AccountInfoUpdateWithoutReservationsApprovedInput>, Prisma.AccountInfoUncheckedUpdateWithoutReservationsApprovedInput>
 }
 
 export type AccountInfoCreateNestedOneWithoutUsageLogsInput = {
@@ -942,6 +965,7 @@ export type AccountInfoCreateWithoutSessionsInput = {
   ExtensionsRequested?: Prisma.ExtensionRequestCreateNestedManyWithoutRequestedByUserInput
   ExtensionsApproved?: Prisma.ExtensionRequestCreateNestedManyWithoutApprovedByUserInput
   ReservationsMade?: Prisma.ReservationsCreateNestedManyWithoutReservedByUserInput
+  ReservationsApproved?: Prisma.ReservationsCreateNestedManyWithoutApprovedByUserInput
   UsageLogs?: Prisma.UsageLogCreateNestedManyWithoutAccountInput
   InspectionsPerformed?: Prisma.InspectionCreateNestedManyWithoutInspectorInput
   Penalties?: Prisma.PenaltyInfoCreateNestedManyWithoutAccountInput
@@ -969,6 +993,7 @@ export type AccountInfoUncheckedCreateWithoutSessionsInput = {
   ExtensionsRequested?: Prisma.ExtensionRequestUncheckedCreateNestedManyWithoutRequestedByUserInput
   ExtensionsApproved?: Prisma.ExtensionRequestUncheckedCreateNestedManyWithoutApprovedByUserInput
   ReservationsMade?: Prisma.ReservationsUncheckedCreateNestedManyWithoutReservedByUserInput
+  ReservationsApproved?: Prisma.ReservationsUncheckedCreateNestedManyWithoutApprovedByUserInput
   UsageLogs?: Prisma.UsageLogUncheckedCreateNestedManyWithoutAccountInput
   InspectionsPerformed?: Prisma.InspectionUncheckedCreateNestedManyWithoutInspectorInput
   Penalties?: Prisma.PenaltyInfoUncheckedCreateNestedManyWithoutAccountInput
@@ -1011,6 +1036,7 @@ export type AccountInfoUpdateWithoutSessionsInput = {
   ExtensionsRequested?: Prisma.ExtensionRequestUpdateManyWithoutRequestedByUserNestedInput
   ExtensionsApproved?: Prisma.ExtensionRequestUpdateManyWithoutApprovedByUserNestedInput
   ReservationsMade?: Prisma.ReservationsUpdateManyWithoutReservedByUserNestedInput
+  ReservationsApproved?: Prisma.ReservationsUpdateManyWithoutApprovedByUserNestedInput
   UsageLogs?: Prisma.UsageLogUpdateManyWithoutAccountNestedInput
   InspectionsPerformed?: Prisma.InspectionUpdateManyWithoutInspectorNestedInput
   Penalties?: Prisma.PenaltyInfoUpdateManyWithoutAccountNestedInput
@@ -1038,6 +1064,7 @@ export type AccountInfoUncheckedUpdateWithoutSessionsInput = {
   ExtensionsRequested?: Prisma.ExtensionRequestUncheckedUpdateManyWithoutRequestedByUserNestedInput
   ExtensionsApproved?: Prisma.ExtensionRequestUncheckedUpdateManyWithoutApprovedByUserNestedInput
   ReservationsMade?: Prisma.ReservationsUncheckedUpdateManyWithoutReservedByUserNestedInput
+  ReservationsApproved?: Prisma.ReservationsUncheckedUpdateManyWithoutApprovedByUserNestedInput
   UsageLogs?: Prisma.UsageLogUncheckedUpdateManyWithoutAccountNestedInput
   InspectionsPerformed?: Prisma.InspectionUncheckedUpdateManyWithoutInspectorNestedInput
   Penalties?: Prisma.PenaltyInfoUncheckedUpdateManyWithoutAccountNestedInput
@@ -1064,6 +1091,7 @@ export type AccountInfoCreateWithoutAuditTrailInput = {
   ExtensionsRequested?: Prisma.ExtensionRequestCreateNestedManyWithoutRequestedByUserInput
   ExtensionsApproved?: Prisma.ExtensionRequestCreateNestedManyWithoutApprovedByUserInput
   ReservationsMade?: Prisma.ReservationsCreateNestedManyWithoutReservedByUserInput
+  ReservationsApproved?: Prisma.ReservationsCreateNestedManyWithoutApprovedByUserInput
   UsageLogs?: Prisma.UsageLogCreateNestedManyWithoutAccountInput
   InspectionsPerformed?: Prisma.InspectionCreateNestedManyWithoutInspectorInput
   Penalties?: Prisma.PenaltyInfoCreateNestedManyWithoutAccountInput
@@ -1091,6 +1119,7 @@ export type AccountInfoUncheckedCreateWithoutAuditTrailInput = {
   ExtensionsRequested?: Prisma.ExtensionRequestUncheckedCreateNestedManyWithoutRequestedByUserInput
   ExtensionsApproved?: Prisma.ExtensionRequestUncheckedCreateNestedManyWithoutApprovedByUserInput
   ReservationsMade?: Prisma.ReservationsUncheckedCreateNestedManyWithoutReservedByUserInput
+  ReservationsApproved?: Prisma.ReservationsUncheckedCreateNestedManyWithoutApprovedByUserInput
   UsageLogs?: Prisma.UsageLogUncheckedCreateNestedManyWithoutAccountInput
   InspectionsPerformed?: Prisma.InspectionUncheckedCreateNestedManyWithoutInspectorInput
   Penalties?: Prisma.PenaltyInfoUncheckedCreateNestedManyWithoutAccountInput
@@ -1133,6 +1162,7 @@ export type AccountInfoUpdateWithoutAuditTrailInput = {
   ExtensionsRequested?: Prisma.ExtensionRequestUpdateManyWithoutRequestedByUserNestedInput
   ExtensionsApproved?: Prisma.ExtensionRequestUpdateManyWithoutApprovedByUserNestedInput
   ReservationsMade?: Prisma.ReservationsUpdateManyWithoutReservedByUserNestedInput
+  ReservationsApproved?: Prisma.ReservationsUpdateManyWithoutApprovedByUserNestedInput
   UsageLogs?: Prisma.UsageLogUpdateManyWithoutAccountNestedInput
   InspectionsPerformed?: Prisma.InspectionUpdateManyWithoutInspectorNestedInput
   Penalties?: Prisma.PenaltyInfoUpdateManyWithoutAccountNestedInput
@@ -1160,6 +1190,7 @@ export type AccountInfoUncheckedUpdateWithoutAuditTrailInput = {
   ExtensionsRequested?: Prisma.ExtensionRequestUncheckedUpdateManyWithoutRequestedByUserNestedInput
   ExtensionsApproved?: Prisma.ExtensionRequestUncheckedUpdateManyWithoutApprovedByUserNestedInput
   ReservationsMade?: Prisma.ReservationsUncheckedUpdateManyWithoutReservedByUserNestedInput
+  ReservationsApproved?: Prisma.ReservationsUncheckedUpdateManyWithoutApprovedByUserNestedInput
   UsageLogs?: Prisma.UsageLogUncheckedUpdateManyWithoutAccountNestedInput
   InspectionsPerformed?: Prisma.InspectionUncheckedUpdateManyWithoutInspectorNestedInput
   Penalties?: Prisma.PenaltyInfoUncheckedUpdateManyWithoutAccountNestedInput
@@ -1186,6 +1217,7 @@ export type AccountInfoCreateWithoutRoleInput = {
   ExtensionsRequested?: Prisma.ExtensionRequestCreateNestedManyWithoutRequestedByUserInput
   ExtensionsApproved?: Prisma.ExtensionRequestCreateNestedManyWithoutApprovedByUserInput
   ReservationsMade?: Prisma.ReservationsCreateNestedManyWithoutReservedByUserInput
+  ReservationsApproved?: Prisma.ReservationsCreateNestedManyWithoutApprovedByUserInput
   UsageLogs?: Prisma.UsageLogCreateNestedManyWithoutAccountInput
   InspectionsPerformed?: Prisma.InspectionCreateNestedManyWithoutInspectorInput
   Penalties?: Prisma.PenaltyInfoCreateNestedManyWithoutAccountInput
@@ -1213,6 +1245,7 @@ export type AccountInfoUncheckedCreateWithoutRoleInput = {
   ExtensionsRequested?: Prisma.ExtensionRequestUncheckedCreateNestedManyWithoutRequestedByUserInput
   ExtensionsApproved?: Prisma.ExtensionRequestUncheckedCreateNestedManyWithoutApprovedByUserInput
   ReservationsMade?: Prisma.ReservationsUncheckedCreateNestedManyWithoutReservedByUserInput
+  ReservationsApproved?: Prisma.ReservationsUncheckedCreateNestedManyWithoutApprovedByUserInput
   UsageLogs?: Prisma.UsageLogUncheckedCreateNestedManyWithoutAccountInput
   InspectionsPerformed?: Prisma.InspectionUncheckedCreateNestedManyWithoutInspectorInput
   Penalties?: Prisma.PenaltyInfoUncheckedCreateNestedManyWithoutAccountInput
@@ -1281,6 +1314,7 @@ export type AccountInfoCreateWithoutFacultyInput = {
   ExtensionsRequested?: Prisma.ExtensionRequestCreateNestedManyWithoutRequestedByUserInput
   ExtensionsApproved?: Prisma.ExtensionRequestCreateNestedManyWithoutApprovedByUserInput
   ReservationsMade?: Prisma.ReservationsCreateNestedManyWithoutReservedByUserInput
+  ReservationsApproved?: Prisma.ReservationsCreateNestedManyWithoutApprovedByUserInput
   UsageLogs?: Prisma.UsageLogCreateNestedManyWithoutAccountInput
   InspectionsPerformed?: Prisma.InspectionCreateNestedManyWithoutInspectorInput
   Penalties?: Prisma.PenaltyInfoCreateNestedManyWithoutAccountInput
@@ -1308,6 +1342,7 @@ export type AccountInfoUncheckedCreateWithoutFacultyInput = {
   ExtensionsRequested?: Prisma.ExtensionRequestUncheckedCreateNestedManyWithoutRequestedByUserInput
   ExtensionsApproved?: Prisma.ExtensionRequestUncheckedCreateNestedManyWithoutApprovedByUserInput
   ReservationsMade?: Prisma.ReservationsUncheckedCreateNestedManyWithoutReservedByUserInput
+  ReservationsApproved?: Prisma.ReservationsUncheckedCreateNestedManyWithoutApprovedByUserInput
   UsageLogs?: Prisma.UsageLogUncheckedCreateNestedManyWithoutAccountInput
   InspectionsPerformed?: Prisma.InspectionUncheckedCreateNestedManyWithoutInspectorInput
   Penalties?: Prisma.PenaltyInfoUncheckedCreateNestedManyWithoutAccountInput
@@ -1360,6 +1395,7 @@ export type AccountInfoCreateWithoutAuthoritiesInput = {
   ExtensionsRequested?: Prisma.ExtensionRequestCreateNestedManyWithoutRequestedByUserInput
   ExtensionsApproved?: Prisma.ExtensionRequestCreateNestedManyWithoutApprovedByUserInput
   ReservationsMade?: Prisma.ReservationsCreateNestedManyWithoutReservedByUserInput
+  ReservationsApproved?: Prisma.ReservationsCreateNestedManyWithoutApprovedByUserInput
   UsageLogs?: Prisma.UsageLogCreateNestedManyWithoutAccountInput
   InspectionsPerformed?: Prisma.InspectionCreateNestedManyWithoutInspectorInput
   Penalties?: Prisma.PenaltyInfoCreateNestedManyWithoutAccountInput
@@ -1387,6 +1423,7 @@ export type AccountInfoUncheckedCreateWithoutAuthoritiesInput = {
   ExtensionsRequested?: Prisma.ExtensionRequestUncheckedCreateNestedManyWithoutRequestedByUserInput
   ExtensionsApproved?: Prisma.ExtensionRequestUncheckedCreateNestedManyWithoutApprovedByUserInput
   ReservationsMade?: Prisma.ReservationsUncheckedCreateNestedManyWithoutReservedByUserInput
+  ReservationsApproved?: Prisma.ReservationsUncheckedCreateNestedManyWithoutApprovedByUserInput
   UsageLogs?: Prisma.UsageLogUncheckedCreateNestedManyWithoutAccountInput
   InspectionsPerformed?: Prisma.InspectionUncheckedCreateNestedManyWithoutInspectorInput
   Penalties?: Prisma.PenaltyInfoUncheckedCreateNestedManyWithoutAccountInput
@@ -1429,6 +1466,7 @@ export type AccountInfoUpdateWithoutAuthoritiesInput = {
   ExtensionsRequested?: Prisma.ExtensionRequestUpdateManyWithoutRequestedByUserNestedInput
   ExtensionsApproved?: Prisma.ExtensionRequestUpdateManyWithoutApprovedByUserNestedInput
   ReservationsMade?: Prisma.ReservationsUpdateManyWithoutReservedByUserNestedInput
+  ReservationsApproved?: Prisma.ReservationsUpdateManyWithoutApprovedByUserNestedInput
   UsageLogs?: Prisma.UsageLogUpdateManyWithoutAccountNestedInput
   InspectionsPerformed?: Prisma.InspectionUpdateManyWithoutInspectorNestedInput
   Penalties?: Prisma.PenaltyInfoUpdateManyWithoutAccountNestedInput
@@ -1456,6 +1494,7 @@ export type AccountInfoUncheckedUpdateWithoutAuthoritiesInput = {
   ExtensionsRequested?: Prisma.ExtensionRequestUncheckedUpdateManyWithoutRequestedByUserNestedInput
   ExtensionsApproved?: Prisma.ExtensionRequestUncheckedUpdateManyWithoutApprovedByUserNestedInput
   ReservationsMade?: Prisma.ReservationsUncheckedUpdateManyWithoutReservedByUserNestedInput
+  ReservationsApproved?: Prisma.ReservationsUncheckedUpdateManyWithoutApprovedByUserNestedInput
   UsageLogs?: Prisma.UsageLogUncheckedUpdateManyWithoutAccountNestedInput
   InspectionsPerformed?: Prisma.InspectionUncheckedUpdateManyWithoutInspectorNestedInput
   Penalties?: Prisma.PenaltyInfoUncheckedUpdateManyWithoutAccountNestedInput
@@ -1482,6 +1521,7 @@ export type AccountInfoCreateWithoutConditionLogsLoggedInput = {
   ExtensionsRequested?: Prisma.ExtensionRequestCreateNestedManyWithoutRequestedByUserInput
   ExtensionsApproved?: Prisma.ExtensionRequestCreateNestedManyWithoutApprovedByUserInput
   ReservationsMade?: Prisma.ReservationsCreateNestedManyWithoutReservedByUserInput
+  ReservationsApproved?: Prisma.ReservationsCreateNestedManyWithoutApprovedByUserInput
   UsageLogs?: Prisma.UsageLogCreateNestedManyWithoutAccountInput
   InspectionsPerformed?: Prisma.InspectionCreateNestedManyWithoutInspectorInput
   Penalties?: Prisma.PenaltyInfoCreateNestedManyWithoutAccountInput
@@ -1509,6 +1549,7 @@ export type AccountInfoUncheckedCreateWithoutConditionLogsLoggedInput = {
   ExtensionsRequested?: Prisma.ExtensionRequestUncheckedCreateNestedManyWithoutRequestedByUserInput
   ExtensionsApproved?: Prisma.ExtensionRequestUncheckedCreateNestedManyWithoutApprovedByUserInput
   ReservationsMade?: Prisma.ReservationsUncheckedCreateNestedManyWithoutReservedByUserInput
+  ReservationsApproved?: Prisma.ReservationsUncheckedCreateNestedManyWithoutApprovedByUserInput
   UsageLogs?: Prisma.UsageLogUncheckedCreateNestedManyWithoutAccountInput
   InspectionsPerformed?: Prisma.InspectionUncheckedCreateNestedManyWithoutInspectorInput
   Penalties?: Prisma.PenaltyInfoUncheckedCreateNestedManyWithoutAccountInput
@@ -1551,6 +1592,7 @@ export type AccountInfoUpdateWithoutConditionLogsLoggedInput = {
   ExtensionsRequested?: Prisma.ExtensionRequestUpdateManyWithoutRequestedByUserNestedInput
   ExtensionsApproved?: Prisma.ExtensionRequestUpdateManyWithoutApprovedByUserNestedInput
   ReservationsMade?: Prisma.ReservationsUpdateManyWithoutReservedByUserNestedInput
+  ReservationsApproved?: Prisma.ReservationsUpdateManyWithoutApprovedByUserNestedInput
   UsageLogs?: Prisma.UsageLogUpdateManyWithoutAccountNestedInput
   InspectionsPerformed?: Prisma.InspectionUpdateManyWithoutInspectorNestedInput
   Penalties?: Prisma.PenaltyInfoUpdateManyWithoutAccountNestedInput
@@ -1578,6 +1620,7 @@ export type AccountInfoUncheckedUpdateWithoutConditionLogsLoggedInput = {
   ExtensionsRequested?: Prisma.ExtensionRequestUncheckedUpdateManyWithoutRequestedByUserNestedInput
   ExtensionsApproved?: Prisma.ExtensionRequestUncheckedUpdateManyWithoutApprovedByUserNestedInput
   ReservationsMade?: Prisma.ReservationsUncheckedUpdateManyWithoutReservedByUserNestedInput
+  ReservationsApproved?: Prisma.ReservationsUncheckedUpdateManyWithoutApprovedByUserNestedInput
   UsageLogs?: Prisma.UsageLogUncheckedUpdateManyWithoutAccountNestedInput
   InspectionsPerformed?: Prisma.InspectionUncheckedUpdateManyWithoutInspectorNestedInput
   Penalties?: Prisma.PenaltyInfoUncheckedUpdateManyWithoutAccountNestedInput
@@ -1604,6 +1647,7 @@ export type AccountInfoCreateWithoutReservationsMadeInput = {
   ConditionLogsLogged?: Prisma.ConditionLogCreateNestedManyWithoutLoggedByUserInput
   ExtensionsRequested?: Prisma.ExtensionRequestCreateNestedManyWithoutRequestedByUserInput
   ExtensionsApproved?: Prisma.ExtensionRequestCreateNestedManyWithoutApprovedByUserInput
+  ReservationsApproved?: Prisma.ReservationsCreateNestedManyWithoutApprovedByUserInput
   UsageLogs?: Prisma.UsageLogCreateNestedManyWithoutAccountInput
   InspectionsPerformed?: Prisma.InspectionCreateNestedManyWithoutInspectorInput
   Penalties?: Prisma.PenaltyInfoCreateNestedManyWithoutAccountInput
@@ -1631,6 +1675,7 @@ export type AccountInfoUncheckedCreateWithoutReservationsMadeInput = {
   ConditionLogsLogged?: Prisma.ConditionLogUncheckedCreateNestedManyWithoutLoggedByUserInput
   ExtensionsRequested?: Prisma.ExtensionRequestUncheckedCreateNestedManyWithoutRequestedByUserInput
   ExtensionsApproved?: Prisma.ExtensionRequestUncheckedCreateNestedManyWithoutApprovedByUserInput
+  ReservationsApproved?: Prisma.ReservationsUncheckedCreateNestedManyWithoutApprovedByUserInput
   UsageLogs?: Prisma.UsageLogUncheckedCreateNestedManyWithoutAccountInput
   InspectionsPerformed?: Prisma.InspectionUncheckedCreateNestedManyWithoutInspectorInput
   Penalties?: Prisma.PenaltyInfoUncheckedCreateNestedManyWithoutAccountInput
@@ -1644,6 +1689,66 @@ export type AccountInfoUncheckedCreateWithoutReservationsMadeInput = {
 export type AccountInfoCreateOrConnectWithoutReservationsMadeInput = {
   where: Prisma.AccountInfoWhereUniqueInput
   create: Prisma.XOR<Prisma.AccountInfoCreateWithoutReservationsMadeInput, Prisma.AccountInfoUncheckedCreateWithoutReservationsMadeInput>
+}
+
+export type AccountInfoCreateWithoutReservationsApprovedInput = {
+  Email: string
+  HashedPassword: string
+  UserID: string
+  UserFName: string
+  UserLName: string
+  UserCredit: number
+  IsActive?: boolean
+  Role: Prisma.RoleInfoCreateNestedOneWithoutAccountsInput
+  Faculty?: Prisma.FacultyInfoCreateNestedOneWithoutAccountsInput
+  Sessions?: Prisma.SessionInfoCreateNestedManyWithoutAccountInput
+  AuditTrail?: Prisma.AuditLogCreateNestedManyWithoutActorInput
+  Authorities?: Prisma.AuthorityCreateNestedManyWithoutAccountInput
+  ConditionLogsLogged?: Prisma.ConditionLogCreateNestedManyWithoutLoggedByUserInput
+  ExtensionsRequested?: Prisma.ExtensionRequestCreateNestedManyWithoutRequestedByUserInput
+  ExtensionsApproved?: Prisma.ExtensionRequestCreateNestedManyWithoutApprovedByUserInput
+  ReservationsMade?: Prisma.ReservationsCreateNestedManyWithoutReservedByUserInput
+  UsageLogs?: Prisma.UsageLogCreateNestedManyWithoutAccountInput
+  InspectionsPerformed?: Prisma.InspectionCreateNestedManyWithoutInspectorInput
+  Penalties?: Prisma.PenaltyInfoCreateNestedManyWithoutAccountInput
+  AppealsFiled?: Prisma.AppealInfoCreateNestedManyWithoutFiledByUserInput
+  AppealsResolved?: Prisma.AppealInfoCreateNestedManyWithoutResolvedByUserInput
+  ImagesSubmitted?: Prisma.ImagesCreateNestedManyWithoutSubmittedByUserInput
+  Notifications?: Prisma.NotificationCreateNestedManyWithoutAccountInput
+  RepairsPerformed?: Prisma.RepairLogCreateNestedManyWithoutRepairedByUserInput
+}
+
+export type AccountInfoUncheckedCreateWithoutReservationsApprovedInput = {
+  AccountKey?: number
+  Email: string
+  HashedPassword: string
+  UserID: string
+  UserFName: string
+  UserLName: string
+  UserCredit: number
+  RoleKey: number
+  FacultyKey?: number | null
+  IsActive?: boolean
+  Sessions?: Prisma.SessionInfoUncheckedCreateNestedManyWithoutAccountInput
+  AuditTrail?: Prisma.AuditLogUncheckedCreateNestedManyWithoutActorInput
+  Authorities?: Prisma.AuthorityUncheckedCreateNestedManyWithoutAccountInput
+  ConditionLogsLogged?: Prisma.ConditionLogUncheckedCreateNestedManyWithoutLoggedByUserInput
+  ExtensionsRequested?: Prisma.ExtensionRequestUncheckedCreateNestedManyWithoutRequestedByUserInput
+  ExtensionsApproved?: Prisma.ExtensionRequestUncheckedCreateNestedManyWithoutApprovedByUserInput
+  ReservationsMade?: Prisma.ReservationsUncheckedCreateNestedManyWithoutReservedByUserInput
+  UsageLogs?: Prisma.UsageLogUncheckedCreateNestedManyWithoutAccountInput
+  InspectionsPerformed?: Prisma.InspectionUncheckedCreateNestedManyWithoutInspectorInput
+  Penalties?: Prisma.PenaltyInfoUncheckedCreateNestedManyWithoutAccountInput
+  AppealsFiled?: Prisma.AppealInfoUncheckedCreateNestedManyWithoutFiledByUserInput
+  AppealsResolved?: Prisma.AppealInfoUncheckedCreateNestedManyWithoutResolvedByUserInput
+  ImagesSubmitted?: Prisma.ImagesUncheckedCreateNestedManyWithoutSubmittedByUserInput
+  Notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutAccountInput
+  RepairsPerformed?: Prisma.RepairLogUncheckedCreateNestedManyWithoutRepairedByUserInput
+}
+
+export type AccountInfoCreateOrConnectWithoutReservationsApprovedInput = {
+  where: Prisma.AccountInfoWhereUniqueInput
+  create: Prisma.XOR<Prisma.AccountInfoCreateWithoutReservationsApprovedInput, Prisma.AccountInfoUncheckedCreateWithoutReservationsApprovedInput>
 }
 
 export type AccountInfoUpsertWithoutReservationsMadeInput = {
@@ -1673,6 +1778,7 @@ export type AccountInfoUpdateWithoutReservationsMadeInput = {
   ConditionLogsLogged?: Prisma.ConditionLogUpdateManyWithoutLoggedByUserNestedInput
   ExtensionsRequested?: Prisma.ExtensionRequestUpdateManyWithoutRequestedByUserNestedInput
   ExtensionsApproved?: Prisma.ExtensionRequestUpdateManyWithoutApprovedByUserNestedInput
+  ReservationsApproved?: Prisma.ReservationsUpdateManyWithoutApprovedByUserNestedInput
   UsageLogs?: Prisma.UsageLogUpdateManyWithoutAccountNestedInput
   InspectionsPerformed?: Prisma.InspectionUpdateManyWithoutInspectorNestedInput
   Penalties?: Prisma.PenaltyInfoUpdateManyWithoutAccountNestedInput
@@ -1700,6 +1806,73 @@ export type AccountInfoUncheckedUpdateWithoutReservationsMadeInput = {
   ConditionLogsLogged?: Prisma.ConditionLogUncheckedUpdateManyWithoutLoggedByUserNestedInput
   ExtensionsRequested?: Prisma.ExtensionRequestUncheckedUpdateManyWithoutRequestedByUserNestedInput
   ExtensionsApproved?: Prisma.ExtensionRequestUncheckedUpdateManyWithoutApprovedByUserNestedInput
+  ReservationsApproved?: Prisma.ReservationsUncheckedUpdateManyWithoutApprovedByUserNestedInput
+  UsageLogs?: Prisma.UsageLogUncheckedUpdateManyWithoutAccountNestedInput
+  InspectionsPerformed?: Prisma.InspectionUncheckedUpdateManyWithoutInspectorNestedInput
+  Penalties?: Prisma.PenaltyInfoUncheckedUpdateManyWithoutAccountNestedInput
+  AppealsFiled?: Prisma.AppealInfoUncheckedUpdateManyWithoutFiledByUserNestedInput
+  AppealsResolved?: Prisma.AppealInfoUncheckedUpdateManyWithoutResolvedByUserNestedInput
+  ImagesSubmitted?: Prisma.ImagesUncheckedUpdateManyWithoutSubmittedByUserNestedInput
+  Notifications?: Prisma.NotificationUncheckedUpdateManyWithoutAccountNestedInput
+  RepairsPerformed?: Prisma.RepairLogUncheckedUpdateManyWithoutRepairedByUserNestedInput
+}
+
+export type AccountInfoUpsertWithoutReservationsApprovedInput = {
+  update: Prisma.XOR<Prisma.AccountInfoUpdateWithoutReservationsApprovedInput, Prisma.AccountInfoUncheckedUpdateWithoutReservationsApprovedInput>
+  create: Prisma.XOR<Prisma.AccountInfoCreateWithoutReservationsApprovedInput, Prisma.AccountInfoUncheckedCreateWithoutReservationsApprovedInput>
+  where?: Prisma.AccountInfoWhereInput
+}
+
+export type AccountInfoUpdateToOneWithWhereWithoutReservationsApprovedInput = {
+  where?: Prisma.AccountInfoWhereInput
+  data: Prisma.XOR<Prisma.AccountInfoUpdateWithoutReservationsApprovedInput, Prisma.AccountInfoUncheckedUpdateWithoutReservationsApprovedInput>
+}
+
+export type AccountInfoUpdateWithoutReservationsApprovedInput = {
+  Email?: Prisma.StringFieldUpdateOperationsInput | string
+  HashedPassword?: Prisma.StringFieldUpdateOperationsInput | string
+  UserID?: Prisma.StringFieldUpdateOperationsInput | string
+  UserFName?: Prisma.StringFieldUpdateOperationsInput | string
+  UserLName?: Prisma.StringFieldUpdateOperationsInput | string
+  UserCredit?: Prisma.IntFieldUpdateOperationsInput | number
+  IsActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  Role?: Prisma.RoleInfoUpdateOneRequiredWithoutAccountsNestedInput
+  Faculty?: Prisma.FacultyInfoUpdateOneWithoutAccountsNestedInput
+  Sessions?: Prisma.SessionInfoUpdateManyWithoutAccountNestedInput
+  AuditTrail?: Prisma.AuditLogUpdateManyWithoutActorNestedInput
+  Authorities?: Prisma.AuthorityUpdateManyWithoutAccountNestedInput
+  ConditionLogsLogged?: Prisma.ConditionLogUpdateManyWithoutLoggedByUserNestedInput
+  ExtensionsRequested?: Prisma.ExtensionRequestUpdateManyWithoutRequestedByUserNestedInput
+  ExtensionsApproved?: Prisma.ExtensionRequestUpdateManyWithoutApprovedByUserNestedInput
+  ReservationsMade?: Prisma.ReservationsUpdateManyWithoutReservedByUserNestedInput
+  UsageLogs?: Prisma.UsageLogUpdateManyWithoutAccountNestedInput
+  InspectionsPerformed?: Prisma.InspectionUpdateManyWithoutInspectorNestedInput
+  Penalties?: Prisma.PenaltyInfoUpdateManyWithoutAccountNestedInput
+  AppealsFiled?: Prisma.AppealInfoUpdateManyWithoutFiledByUserNestedInput
+  AppealsResolved?: Prisma.AppealInfoUpdateManyWithoutResolvedByUserNestedInput
+  ImagesSubmitted?: Prisma.ImagesUpdateManyWithoutSubmittedByUserNestedInput
+  Notifications?: Prisma.NotificationUpdateManyWithoutAccountNestedInput
+  RepairsPerformed?: Prisma.RepairLogUpdateManyWithoutRepairedByUserNestedInput
+}
+
+export type AccountInfoUncheckedUpdateWithoutReservationsApprovedInput = {
+  AccountKey?: Prisma.IntFieldUpdateOperationsInput | number
+  Email?: Prisma.StringFieldUpdateOperationsInput | string
+  HashedPassword?: Prisma.StringFieldUpdateOperationsInput | string
+  UserID?: Prisma.StringFieldUpdateOperationsInput | string
+  UserFName?: Prisma.StringFieldUpdateOperationsInput | string
+  UserLName?: Prisma.StringFieldUpdateOperationsInput | string
+  UserCredit?: Prisma.IntFieldUpdateOperationsInput | number
+  RoleKey?: Prisma.IntFieldUpdateOperationsInput | number
+  FacultyKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  IsActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  Sessions?: Prisma.SessionInfoUncheckedUpdateManyWithoutAccountNestedInput
+  AuditTrail?: Prisma.AuditLogUncheckedUpdateManyWithoutActorNestedInput
+  Authorities?: Prisma.AuthorityUncheckedUpdateManyWithoutAccountNestedInput
+  ConditionLogsLogged?: Prisma.ConditionLogUncheckedUpdateManyWithoutLoggedByUserNestedInput
+  ExtensionsRequested?: Prisma.ExtensionRequestUncheckedUpdateManyWithoutRequestedByUserNestedInput
+  ExtensionsApproved?: Prisma.ExtensionRequestUncheckedUpdateManyWithoutApprovedByUserNestedInput
+  ReservationsMade?: Prisma.ReservationsUncheckedUpdateManyWithoutReservedByUserNestedInput
   UsageLogs?: Prisma.UsageLogUncheckedUpdateManyWithoutAccountNestedInput
   InspectionsPerformed?: Prisma.InspectionUncheckedUpdateManyWithoutInspectorNestedInput
   Penalties?: Prisma.PenaltyInfoUncheckedUpdateManyWithoutAccountNestedInput
@@ -1727,6 +1900,7 @@ export type AccountInfoCreateWithoutUsageLogsInput = {
   ExtensionsRequested?: Prisma.ExtensionRequestCreateNestedManyWithoutRequestedByUserInput
   ExtensionsApproved?: Prisma.ExtensionRequestCreateNestedManyWithoutApprovedByUserInput
   ReservationsMade?: Prisma.ReservationsCreateNestedManyWithoutReservedByUserInput
+  ReservationsApproved?: Prisma.ReservationsCreateNestedManyWithoutApprovedByUserInput
   InspectionsPerformed?: Prisma.InspectionCreateNestedManyWithoutInspectorInput
   Penalties?: Prisma.PenaltyInfoCreateNestedManyWithoutAccountInput
   AppealsFiled?: Prisma.AppealInfoCreateNestedManyWithoutFiledByUserInput
@@ -1754,6 +1928,7 @@ export type AccountInfoUncheckedCreateWithoutUsageLogsInput = {
   ExtensionsRequested?: Prisma.ExtensionRequestUncheckedCreateNestedManyWithoutRequestedByUserInput
   ExtensionsApproved?: Prisma.ExtensionRequestUncheckedCreateNestedManyWithoutApprovedByUserInput
   ReservationsMade?: Prisma.ReservationsUncheckedCreateNestedManyWithoutReservedByUserInput
+  ReservationsApproved?: Prisma.ReservationsUncheckedCreateNestedManyWithoutApprovedByUserInput
   InspectionsPerformed?: Prisma.InspectionUncheckedCreateNestedManyWithoutInspectorInput
   Penalties?: Prisma.PenaltyInfoUncheckedCreateNestedManyWithoutAccountInput
   AppealsFiled?: Prisma.AppealInfoUncheckedCreateNestedManyWithoutFiledByUserInput
@@ -1796,6 +1971,7 @@ export type AccountInfoUpdateWithoutUsageLogsInput = {
   ExtensionsRequested?: Prisma.ExtensionRequestUpdateManyWithoutRequestedByUserNestedInput
   ExtensionsApproved?: Prisma.ExtensionRequestUpdateManyWithoutApprovedByUserNestedInput
   ReservationsMade?: Prisma.ReservationsUpdateManyWithoutReservedByUserNestedInput
+  ReservationsApproved?: Prisma.ReservationsUpdateManyWithoutApprovedByUserNestedInput
   InspectionsPerformed?: Prisma.InspectionUpdateManyWithoutInspectorNestedInput
   Penalties?: Prisma.PenaltyInfoUpdateManyWithoutAccountNestedInput
   AppealsFiled?: Prisma.AppealInfoUpdateManyWithoutFiledByUserNestedInput
@@ -1823,6 +1999,7 @@ export type AccountInfoUncheckedUpdateWithoutUsageLogsInput = {
   ExtensionsRequested?: Prisma.ExtensionRequestUncheckedUpdateManyWithoutRequestedByUserNestedInput
   ExtensionsApproved?: Prisma.ExtensionRequestUncheckedUpdateManyWithoutApprovedByUserNestedInput
   ReservationsMade?: Prisma.ReservationsUncheckedUpdateManyWithoutReservedByUserNestedInput
+  ReservationsApproved?: Prisma.ReservationsUncheckedUpdateManyWithoutApprovedByUserNestedInput
   InspectionsPerformed?: Prisma.InspectionUncheckedUpdateManyWithoutInspectorNestedInput
   Penalties?: Prisma.PenaltyInfoUncheckedUpdateManyWithoutAccountNestedInput
   AppealsFiled?: Prisma.AppealInfoUncheckedUpdateManyWithoutFiledByUserNestedInput
@@ -1848,6 +2025,7 @@ export type AccountInfoCreateWithoutExtensionsRequestedInput = {
   ConditionLogsLogged?: Prisma.ConditionLogCreateNestedManyWithoutLoggedByUserInput
   ExtensionsApproved?: Prisma.ExtensionRequestCreateNestedManyWithoutApprovedByUserInput
   ReservationsMade?: Prisma.ReservationsCreateNestedManyWithoutReservedByUserInput
+  ReservationsApproved?: Prisma.ReservationsCreateNestedManyWithoutApprovedByUserInput
   UsageLogs?: Prisma.UsageLogCreateNestedManyWithoutAccountInput
   InspectionsPerformed?: Prisma.InspectionCreateNestedManyWithoutInspectorInput
   Penalties?: Prisma.PenaltyInfoCreateNestedManyWithoutAccountInput
@@ -1875,6 +2053,7 @@ export type AccountInfoUncheckedCreateWithoutExtensionsRequestedInput = {
   ConditionLogsLogged?: Prisma.ConditionLogUncheckedCreateNestedManyWithoutLoggedByUserInput
   ExtensionsApproved?: Prisma.ExtensionRequestUncheckedCreateNestedManyWithoutApprovedByUserInput
   ReservationsMade?: Prisma.ReservationsUncheckedCreateNestedManyWithoutReservedByUserInput
+  ReservationsApproved?: Prisma.ReservationsUncheckedCreateNestedManyWithoutApprovedByUserInput
   UsageLogs?: Prisma.UsageLogUncheckedCreateNestedManyWithoutAccountInput
   InspectionsPerformed?: Prisma.InspectionUncheckedCreateNestedManyWithoutInspectorInput
   Penalties?: Prisma.PenaltyInfoUncheckedCreateNestedManyWithoutAccountInput
@@ -1906,6 +2085,7 @@ export type AccountInfoCreateWithoutExtensionsApprovedInput = {
   ConditionLogsLogged?: Prisma.ConditionLogCreateNestedManyWithoutLoggedByUserInput
   ExtensionsRequested?: Prisma.ExtensionRequestCreateNestedManyWithoutRequestedByUserInput
   ReservationsMade?: Prisma.ReservationsCreateNestedManyWithoutReservedByUserInput
+  ReservationsApproved?: Prisma.ReservationsCreateNestedManyWithoutApprovedByUserInput
   UsageLogs?: Prisma.UsageLogCreateNestedManyWithoutAccountInput
   InspectionsPerformed?: Prisma.InspectionCreateNestedManyWithoutInspectorInput
   Penalties?: Prisma.PenaltyInfoCreateNestedManyWithoutAccountInput
@@ -1933,6 +2113,7 @@ export type AccountInfoUncheckedCreateWithoutExtensionsApprovedInput = {
   ConditionLogsLogged?: Prisma.ConditionLogUncheckedCreateNestedManyWithoutLoggedByUserInput
   ExtensionsRequested?: Prisma.ExtensionRequestUncheckedCreateNestedManyWithoutRequestedByUserInput
   ReservationsMade?: Prisma.ReservationsUncheckedCreateNestedManyWithoutReservedByUserInput
+  ReservationsApproved?: Prisma.ReservationsUncheckedCreateNestedManyWithoutApprovedByUserInput
   UsageLogs?: Prisma.UsageLogUncheckedCreateNestedManyWithoutAccountInput
   InspectionsPerformed?: Prisma.InspectionUncheckedCreateNestedManyWithoutInspectorInput
   Penalties?: Prisma.PenaltyInfoUncheckedCreateNestedManyWithoutAccountInput
@@ -1975,6 +2156,7 @@ export type AccountInfoUpdateWithoutExtensionsRequestedInput = {
   ConditionLogsLogged?: Prisma.ConditionLogUpdateManyWithoutLoggedByUserNestedInput
   ExtensionsApproved?: Prisma.ExtensionRequestUpdateManyWithoutApprovedByUserNestedInput
   ReservationsMade?: Prisma.ReservationsUpdateManyWithoutReservedByUserNestedInput
+  ReservationsApproved?: Prisma.ReservationsUpdateManyWithoutApprovedByUserNestedInput
   UsageLogs?: Prisma.UsageLogUpdateManyWithoutAccountNestedInput
   InspectionsPerformed?: Prisma.InspectionUpdateManyWithoutInspectorNestedInput
   Penalties?: Prisma.PenaltyInfoUpdateManyWithoutAccountNestedInput
@@ -2002,6 +2184,7 @@ export type AccountInfoUncheckedUpdateWithoutExtensionsRequestedInput = {
   ConditionLogsLogged?: Prisma.ConditionLogUncheckedUpdateManyWithoutLoggedByUserNestedInput
   ExtensionsApproved?: Prisma.ExtensionRequestUncheckedUpdateManyWithoutApprovedByUserNestedInput
   ReservationsMade?: Prisma.ReservationsUncheckedUpdateManyWithoutReservedByUserNestedInput
+  ReservationsApproved?: Prisma.ReservationsUncheckedUpdateManyWithoutApprovedByUserNestedInput
   UsageLogs?: Prisma.UsageLogUncheckedUpdateManyWithoutAccountNestedInput
   InspectionsPerformed?: Prisma.InspectionUncheckedUpdateManyWithoutInspectorNestedInput
   Penalties?: Prisma.PenaltyInfoUncheckedUpdateManyWithoutAccountNestedInput
@@ -2039,6 +2222,7 @@ export type AccountInfoUpdateWithoutExtensionsApprovedInput = {
   ConditionLogsLogged?: Prisma.ConditionLogUpdateManyWithoutLoggedByUserNestedInput
   ExtensionsRequested?: Prisma.ExtensionRequestUpdateManyWithoutRequestedByUserNestedInput
   ReservationsMade?: Prisma.ReservationsUpdateManyWithoutReservedByUserNestedInput
+  ReservationsApproved?: Prisma.ReservationsUpdateManyWithoutApprovedByUserNestedInput
   UsageLogs?: Prisma.UsageLogUpdateManyWithoutAccountNestedInput
   InspectionsPerformed?: Prisma.InspectionUpdateManyWithoutInspectorNestedInput
   Penalties?: Prisma.PenaltyInfoUpdateManyWithoutAccountNestedInput
@@ -2066,6 +2250,7 @@ export type AccountInfoUncheckedUpdateWithoutExtensionsApprovedInput = {
   ConditionLogsLogged?: Prisma.ConditionLogUncheckedUpdateManyWithoutLoggedByUserNestedInput
   ExtensionsRequested?: Prisma.ExtensionRequestUncheckedUpdateManyWithoutRequestedByUserNestedInput
   ReservationsMade?: Prisma.ReservationsUncheckedUpdateManyWithoutReservedByUserNestedInput
+  ReservationsApproved?: Prisma.ReservationsUncheckedUpdateManyWithoutApprovedByUserNestedInput
   UsageLogs?: Prisma.UsageLogUncheckedUpdateManyWithoutAccountNestedInput
   InspectionsPerformed?: Prisma.InspectionUncheckedUpdateManyWithoutInspectorNestedInput
   Penalties?: Prisma.PenaltyInfoUncheckedUpdateManyWithoutAccountNestedInput
@@ -2093,6 +2278,7 @@ export type AccountInfoCreateWithoutInspectionsPerformedInput = {
   ExtensionsRequested?: Prisma.ExtensionRequestCreateNestedManyWithoutRequestedByUserInput
   ExtensionsApproved?: Prisma.ExtensionRequestCreateNestedManyWithoutApprovedByUserInput
   ReservationsMade?: Prisma.ReservationsCreateNestedManyWithoutReservedByUserInput
+  ReservationsApproved?: Prisma.ReservationsCreateNestedManyWithoutApprovedByUserInput
   UsageLogs?: Prisma.UsageLogCreateNestedManyWithoutAccountInput
   Penalties?: Prisma.PenaltyInfoCreateNestedManyWithoutAccountInput
   AppealsFiled?: Prisma.AppealInfoCreateNestedManyWithoutFiledByUserInput
@@ -2120,6 +2306,7 @@ export type AccountInfoUncheckedCreateWithoutInspectionsPerformedInput = {
   ExtensionsRequested?: Prisma.ExtensionRequestUncheckedCreateNestedManyWithoutRequestedByUserInput
   ExtensionsApproved?: Prisma.ExtensionRequestUncheckedCreateNestedManyWithoutApprovedByUserInput
   ReservationsMade?: Prisma.ReservationsUncheckedCreateNestedManyWithoutReservedByUserInput
+  ReservationsApproved?: Prisma.ReservationsUncheckedCreateNestedManyWithoutApprovedByUserInput
   UsageLogs?: Prisma.UsageLogUncheckedCreateNestedManyWithoutAccountInput
   Penalties?: Prisma.PenaltyInfoUncheckedCreateNestedManyWithoutAccountInput
   AppealsFiled?: Prisma.AppealInfoUncheckedCreateNestedManyWithoutFiledByUserInput
@@ -2162,6 +2349,7 @@ export type AccountInfoUpdateWithoutInspectionsPerformedInput = {
   ExtensionsRequested?: Prisma.ExtensionRequestUpdateManyWithoutRequestedByUserNestedInput
   ExtensionsApproved?: Prisma.ExtensionRequestUpdateManyWithoutApprovedByUserNestedInput
   ReservationsMade?: Prisma.ReservationsUpdateManyWithoutReservedByUserNestedInput
+  ReservationsApproved?: Prisma.ReservationsUpdateManyWithoutApprovedByUserNestedInput
   UsageLogs?: Prisma.UsageLogUpdateManyWithoutAccountNestedInput
   Penalties?: Prisma.PenaltyInfoUpdateManyWithoutAccountNestedInput
   AppealsFiled?: Prisma.AppealInfoUpdateManyWithoutFiledByUserNestedInput
@@ -2189,6 +2377,7 @@ export type AccountInfoUncheckedUpdateWithoutInspectionsPerformedInput = {
   ExtensionsRequested?: Prisma.ExtensionRequestUncheckedUpdateManyWithoutRequestedByUserNestedInput
   ExtensionsApproved?: Prisma.ExtensionRequestUncheckedUpdateManyWithoutApprovedByUserNestedInput
   ReservationsMade?: Prisma.ReservationsUncheckedUpdateManyWithoutReservedByUserNestedInput
+  ReservationsApproved?: Prisma.ReservationsUncheckedUpdateManyWithoutApprovedByUserNestedInput
   UsageLogs?: Prisma.UsageLogUncheckedUpdateManyWithoutAccountNestedInput
   Penalties?: Prisma.PenaltyInfoUncheckedUpdateManyWithoutAccountNestedInput
   AppealsFiled?: Prisma.AppealInfoUncheckedUpdateManyWithoutFiledByUserNestedInput
@@ -2215,6 +2404,7 @@ export type AccountInfoCreateWithoutPenaltiesInput = {
   ExtensionsRequested?: Prisma.ExtensionRequestCreateNestedManyWithoutRequestedByUserInput
   ExtensionsApproved?: Prisma.ExtensionRequestCreateNestedManyWithoutApprovedByUserInput
   ReservationsMade?: Prisma.ReservationsCreateNestedManyWithoutReservedByUserInput
+  ReservationsApproved?: Prisma.ReservationsCreateNestedManyWithoutApprovedByUserInput
   UsageLogs?: Prisma.UsageLogCreateNestedManyWithoutAccountInput
   InspectionsPerformed?: Prisma.InspectionCreateNestedManyWithoutInspectorInput
   AppealsFiled?: Prisma.AppealInfoCreateNestedManyWithoutFiledByUserInput
@@ -2242,6 +2432,7 @@ export type AccountInfoUncheckedCreateWithoutPenaltiesInput = {
   ExtensionsRequested?: Prisma.ExtensionRequestUncheckedCreateNestedManyWithoutRequestedByUserInput
   ExtensionsApproved?: Prisma.ExtensionRequestUncheckedCreateNestedManyWithoutApprovedByUserInput
   ReservationsMade?: Prisma.ReservationsUncheckedCreateNestedManyWithoutReservedByUserInput
+  ReservationsApproved?: Prisma.ReservationsUncheckedCreateNestedManyWithoutApprovedByUserInput
   UsageLogs?: Prisma.UsageLogUncheckedCreateNestedManyWithoutAccountInput
   InspectionsPerformed?: Prisma.InspectionUncheckedCreateNestedManyWithoutInspectorInput
   AppealsFiled?: Prisma.AppealInfoUncheckedCreateNestedManyWithoutFiledByUserInput
@@ -2284,6 +2475,7 @@ export type AccountInfoUpdateWithoutPenaltiesInput = {
   ExtensionsRequested?: Prisma.ExtensionRequestUpdateManyWithoutRequestedByUserNestedInput
   ExtensionsApproved?: Prisma.ExtensionRequestUpdateManyWithoutApprovedByUserNestedInput
   ReservationsMade?: Prisma.ReservationsUpdateManyWithoutReservedByUserNestedInput
+  ReservationsApproved?: Prisma.ReservationsUpdateManyWithoutApprovedByUserNestedInput
   UsageLogs?: Prisma.UsageLogUpdateManyWithoutAccountNestedInput
   InspectionsPerformed?: Prisma.InspectionUpdateManyWithoutInspectorNestedInput
   AppealsFiled?: Prisma.AppealInfoUpdateManyWithoutFiledByUserNestedInput
@@ -2311,6 +2503,7 @@ export type AccountInfoUncheckedUpdateWithoutPenaltiesInput = {
   ExtensionsRequested?: Prisma.ExtensionRequestUncheckedUpdateManyWithoutRequestedByUserNestedInput
   ExtensionsApproved?: Prisma.ExtensionRequestUncheckedUpdateManyWithoutApprovedByUserNestedInput
   ReservationsMade?: Prisma.ReservationsUncheckedUpdateManyWithoutReservedByUserNestedInput
+  ReservationsApproved?: Prisma.ReservationsUncheckedUpdateManyWithoutApprovedByUserNestedInput
   UsageLogs?: Prisma.UsageLogUncheckedUpdateManyWithoutAccountNestedInput
   InspectionsPerformed?: Prisma.InspectionUncheckedUpdateManyWithoutInspectorNestedInput
   AppealsFiled?: Prisma.AppealInfoUncheckedUpdateManyWithoutFiledByUserNestedInput
@@ -2337,6 +2530,7 @@ export type AccountInfoCreateWithoutAppealsFiledInput = {
   ExtensionsRequested?: Prisma.ExtensionRequestCreateNestedManyWithoutRequestedByUserInput
   ExtensionsApproved?: Prisma.ExtensionRequestCreateNestedManyWithoutApprovedByUserInput
   ReservationsMade?: Prisma.ReservationsCreateNestedManyWithoutReservedByUserInput
+  ReservationsApproved?: Prisma.ReservationsCreateNestedManyWithoutApprovedByUserInput
   UsageLogs?: Prisma.UsageLogCreateNestedManyWithoutAccountInput
   InspectionsPerformed?: Prisma.InspectionCreateNestedManyWithoutInspectorInput
   Penalties?: Prisma.PenaltyInfoCreateNestedManyWithoutAccountInput
@@ -2364,6 +2558,7 @@ export type AccountInfoUncheckedCreateWithoutAppealsFiledInput = {
   ExtensionsRequested?: Prisma.ExtensionRequestUncheckedCreateNestedManyWithoutRequestedByUserInput
   ExtensionsApproved?: Prisma.ExtensionRequestUncheckedCreateNestedManyWithoutApprovedByUserInput
   ReservationsMade?: Prisma.ReservationsUncheckedCreateNestedManyWithoutReservedByUserInput
+  ReservationsApproved?: Prisma.ReservationsUncheckedCreateNestedManyWithoutApprovedByUserInput
   UsageLogs?: Prisma.UsageLogUncheckedCreateNestedManyWithoutAccountInput
   InspectionsPerformed?: Prisma.InspectionUncheckedCreateNestedManyWithoutInspectorInput
   Penalties?: Prisma.PenaltyInfoUncheckedCreateNestedManyWithoutAccountInput
@@ -2395,6 +2590,7 @@ export type AccountInfoCreateWithoutAppealsResolvedInput = {
   ExtensionsRequested?: Prisma.ExtensionRequestCreateNestedManyWithoutRequestedByUserInput
   ExtensionsApproved?: Prisma.ExtensionRequestCreateNestedManyWithoutApprovedByUserInput
   ReservationsMade?: Prisma.ReservationsCreateNestedManyWithoutReservedByUserInput
+  ReservationsApproved?: Prisma.ReservationsCreateNestedManyWithoutApprovedByUserInput
   UsageLogs?: Prisma.UsageLogCreateNestedManyWithoutAccountInput
   InspectionsPerformed?: Prisma.InspectionCreateNestedManyWithoutInspectorInput
   Penalties?: Prisma.PenaltyInfoCreateNestedManyWithoutAccountInput
@@ -2422,6 +2618,7 @@ export type AccountInfoUncheckedCreateWithoutAppealsResolvedInput = {
   ExtensionsRequested?: Prisma.ExtensionRequestUncheckedCreateNestedManyWithoutRequestedByUserInput
   ExtensionsApproved?: Prisma.ExtensionRequestUncheckedCreateNestedManyWithoutApprovedByUserInput
   ReservationsMade?: Prisma.ReservationsUncheckedCreateNestedManyWithoutReservedByUserInput
+  ReservationsApproved?: Prisma.ReservationsUncheckedCreateNestedManyWithoutApprovedByUserInput
   UsageLogs?: Prisma.UsageLogUncheckedCreateNestedManyWithoutAccountInput
   InspectionsPerformed?: Prisma.InspectionUncheckedCreateNestedManyWithoutInspectorInput
   Penalties?: Prisma.PenaltyInfoUncheckedCreateNestedManyWithoutAccountInput
@@ -2464,6 +2661,7 @@ export type AccountInfoUpdateWithoutAppealsFiledInput = {
   ExtensionsRequested?: Prisma.ExtensionRequestUpdateManyWithoutRequestedByUserNestedInput
   ExtensionsApproved?: Prisma.ExtensionRequestUpdateManyWithoutApprovedByUserNestedInput
   ReservationsMade?: Prisma.ReservationsUpdateManyWithoutReservedByUserNestedInput
+  ReservationsApproved?: Prisma.ReservationsUpdateManyWithoutApprovedByUserNestedInput
   UsageLogs?: Prisma.UsageLogUpdateManyWithoutAccountNestedInput
   InspectionsPerformed?: Prisma.InspectionUpdateManyWithoutInspectorNestedInput
   Penalties?: Prisma.PenaltyInfoUpdateManyWithoutAccountNestedInput
@@ -2491,6 +2689,7 @@ export type AccountInfoUncheckedUpdateWithoutAppealsFiledInput = {
   ExtensionsRequested?: Prisma.ExtensionRequestUncheckedUpdateManyWithoutRequestedByUserNestedInput
   ExtensionsApproved?: Prisma.ExtensionRequestUncheckedUpdateManyWithoutApprovedByUserNestedInput
   ReservationsMade?: Prisma.ReservationsUncheckedUpdateManyWithoutReservedByUserNestedInput
+  ReservationsApproved?: Prisma.ReservationsUncheckedUpdateManyWithoutApprovedByUserNestedInput
   UsageLogs?: Prisma.UsageLogUncheckedUpdateManyWithoutAccountNestedInput
   InspectionsPerformed?: Prisma.InspectionUncheckedUpdateManyWithoutInspectorNestedInput
   Penalties?: Prisma.PenaltyInfoUncheckedUpdateManyWithoutAccountNestedInput
@@ -2528,6 +2727,7 @@ export type AccountInfoUpdateWithoutAppealsResolvedInput = {
   ExtensionsRequested?: Prisma.ExtensionRequestUpdateManyWithoutRequestedByUserNestedInput
   ExtensionsApproved?: Prisma.ExtensionRequestUpdateManyWithoutApprovedByUserNestedInput
   ReservationsMade?: Prisma.ReservationsUpdateManyWithoutReservedByUserNestedInput
+  ReservationsApproved?: Prisma.ReservationsUpdateManyWithoutApprovedByUserNestedInput
   UsageLogs?: Prisma.UsageLogUpdateManyWithoutAccountNestedInput
   InspectionsPerformed?: Prisma.InspectionUpdateManyWithoutInspectorNestedInput
   Penalties?: Prisma.PenaltyInfoUpdateManyWithoutAccountNestedInput
@@ -2555,6 +2755,7 @@ export type AccountInfoUncheckedUpdateWithoutAppealsResolvedInput = {
   ExtensionsRequested?: Prisma.ExtensionRequestUncheckedUpdateManyWithoutRequestedByUserNestedInput
   ExtensionsApproved?: Prisma.ExtensionRequestUncheckedUpdateManyWithoutApprovedByUserNestedInput
   ReservationsMade?: Prisma.ReservationsUncheckedUpdateManyWithoutReservedByUserNestedInput
+  ReservationsApproved?: Prisma.ReservationsUncheckedUpdateManyWithoutApprovedByUserNestedInput
   UsageLogs?: Prisma.UsageLogUncheckedUpdateManyWithoutAccountNestedInput
   InspectionsPerformed?: Prisma.InspectionUncheckedUpdateManyWithoutInspectorNestedInput
   Penalties?: Prisma.PenaltyInfoUncheckedUpdateManyWithoutAccountNestedInput
@@ -2581,6 +2782,7 @@ export type AccountInfoCreateWithoutImagesSubmittedInput = {
   ExtensionsRequested?: Prisma.ExtensionRequestCreateNestedManyWithoutRequestedByUserInput
   ExtensionsApproved?: Prisma.ExtensionRequestCreateNestedManyWithoutApprovedByUserInput
   ReservationsMade?: Prisma.ReservationsCreateNestedManyWithoutReservedByUserInput
+  ReservationsApproved?: Prisma.ReservationsCreateNestedManyWithoutApprovedByUserInput
   UsageLogs?: Prisma.UsageLogCreateNestedManyWithoutAccountInput
   InspectionsPerformed?: Prisma.InspectionCreateNestedManyWithoutInspectorInput
   Penalties?: Prisma.PenaltyInfoCreateNestedManyWithoutAccountInput
@@ -2608,6 +2810,7 @@ export type AccountInfoUncheckedCreateWithoutImagesSubmittedInput = {
   ExtensionsRequested?: Prisma.ExtensionRequestUncheckedCreateNestedManyWithoutRequestedByUserInput
   ExtensionsApproved?: Prisma.ExtensionRequestUncheckedCreateNestedManyWithoutApprovedByUserInput
   ReservationsMade?: Prisma.ReservationsUncheckedCreateNestedManyWithoutReservedByUserInput
+  ReservationsApproved?: Prisma.ReservationsUncheckedCreateNestedManyWithoutApprovedByUserInput
   UsageLogs?: Prisma.UsageLogUncheckedCreateNestedManyWithoutAccountInput
   InspectionsPerformed?: Prisma.InspectionUncheckedCreateNestedManyWithoutInspectorInput
   Penalties?: Prisma.PenaltyInfoUncheckedCreateNestedManyWithoutAccountInput
@@ -2650,6 +2853,7 @@ export type AccountInfoUpdateWithoutImagesSubmittedInput = {
   ExtensionsRequested?: Prisma.ExtensionRequestUpdateManyWithoutRequestedByUserNestedInput
   ExtensionsApproved?: Prisma.ExtensionRequestUpdateManyWithoutApprovedByUserNestedInput
   ReservationsMade?: Prisma.ReservationsUpdateManyWithoutReservedByUserNestedInput
+  ReservationsApproved?: Prisma.ReservationsUpdateManyWithoutApprovedByUserNestedInput
   UsageLogs?: Prisma.UsageLogUpdateManyWithoutAccountNestedInput
   InspectionsPerformed?: Prisma.InspectionUpdateManyWithoutInspectorNestedInput
   Penalties?: Prisma.PenaltyInfoUpdateManyWithoutAccountNestedInput
@@ -2677,6 +2881,7 @@ export type AccountInfoUncheckedUpdateWithoutImagesSubmittedInput = {
   ExtensionsRequested?: Prisma.ExtensionRequestUncheckedUpdateManyWithoutRequestedByUserNestedInput
   ExtensionsApproved?: Prisma.ExtensionRequestUncheckedUpdateManyWithoutApprovedByUserNestedInput
   ReservationsMade?: Prisma.ReservationsUncheckedUpdateManyWithoutReservedByUserNestedInput
+  ReservationsApproved?: Prisma.ReservationsUncheckedUpdateManyWithoutApprovedByUserNestedInput
   UsageLogs?: Prisma.UsageLogUncheckedUpdateManyWithoutAccountNestedInput
   InspectionsPerformed?: Prisma.InspectionUncheckedUpdateManyWithoutInspectorNestedInput
   Penalties?: Prisma.PenaltyInfoUncheckedUpdateManyWithoutAccountNestedInput
@@ -2703,6 +2908,7 @@ export type AccountInfoCreateWithoutNotificationsInput = {
   ExtensionsRequested?: Prisma.ExtensionRequestCreateNestedManyWithoutRequestedByUserInput
   ExtensionsApproved?: Prisma.ExtensionRequestCreateNestedManyWithoutApprovedByUserInput
   ReservationsMade?: Prisma.ReservationsCreateNestedManyWithoutReservedByUserInput
+  ReservationsApproved?: Prisma.ReservationsCreateNestedManyWithoutApprovedByUserInput
   UsageLogs?: Prisma.UsageLogCreateNestedManyWithoutAccountInput
   InspectionsPerformed?: Prisma.InspectionCreateNestedManyWithoutInspectorInput
   Penalties?: Prisma.PenaltyInfoCreateNestedManyWithoutAccountInput
@@ -2730,6 +2936,7 @@ export type AccountInfoUncheckedCreateWithoutNotificationsInput = {
   ExtensionsRequested?: Prisma.ExtensionRequestUncheckedCreateNestedManyWithoutRequestedByUserInput
   ExtensionsApproved?: Prisma.ExtensionRequestUncheckedCreateNestedManyWithoutApprovedByUserInput
   ReservationsMade?: Prisma.ReservationsUncheckedCreateNestedManyWithoutReservedByUserInput
+  ReservationsApproved?: Prisma.ReservationsUncheckedCreateNestedManyWithoutApprovedByUserInput
   UsageLogs?: Prisma.UsageLogUncheckedCreateNestedManyWithoutAccountInput
   InspectionsPerformed?: Prisma.InspectionUncheckedCreateNestedManyWithoutInspectorInput
   Penalties?: Prisma.PenaltyInfoUncheckedCreateNestedManyWithoutAccountInput
@@ -2772,6 +2979,7 @@ export type AccountInfoUpdateWithoutNotificationsInput = {
   ExtensionsRequested?: Prisma.ExtensionRequestUpdateManyWithoutRequestedByUserNestedInput
   ExtensionsApproved?: Prisma.ExtensionRequestUpdateManyWithoutApprovedByUserNestedInput
   ReservationsMade?: Prisma.ReservationsUpdateManyWithoutReservedByUserNestedInput
+  ReservationsApproved?: Prisma.ReservationsUpdateManyWithoutApprovedByUserNestedInput
   UsageLogs?: Prisma.UsageLogUpdateManyWithoutAccountNestedInput
   InspectionsPerformed?: Prisma.InspectionUpdateManyWithoutInspectorNestedInput
   Penalties?: Prisma.PenaltyInfoUpdateManyWithoutAccountNestedInput
@@ -2799,6 +3007,7 @@ export type AccountInfoUncheckedUpdateWithoutNotificationsInput = {
   ExtensionsRequested?: Prisma.ExtensionRequestUncheckedUpdateManyWithoutRequestedByUserNestedInput
   ExtensionsApproved?: Prisma.ExtensionRequestUncheckedUpdateManyWithoutApprovedByUserNestedInput
   ReservationsMade?: Prisma.ReservationsUncheckedUpdateManyWithoutReservedByUserNestedInput
+  ReservationsApproved?: Prisma.ReservationsUncheckedUpdateManyWithoutApprovedByUserNestedInput
   UsageLogs?: Prisma.UsageLogUncheckedUpdateManyWithoutAccountNestedInput
   InspectionsPerformed?: Prisma.InspectionUncheckedUpdateManyWithoutInspectorNestedInput
   Penalties?: Prisma.PenaltyInfoUncheckedUpdateManyWithoutAccountNestedInput
@@ -2825,6 +3034,7 @@ export type AccountInfoCreateWithoutRepairsPerformedInput = {
   ExtensionsRequested?: Prisma.ExtensionRequestCreateNestedManyWithoutRequestedByUserInput
   ExtensionsApproved?: Prisma.ExtensionRequestCreateNestedManyWithoutApprovedByUserInput
   ReservationsMade?: Prisma.ReservationsCreateNestedManyWithoutReservedByUserInput
+  ReservationsApproved?: Prisma.ReservationsCreateNestedManyWithoutApprovedByUserInput
   UsageLogs?: Prisma.UsageLogCreateNestedManyWithoutAccountInput
   InspectionsPerformed?: Prisma.InspectionCreateNestedManyWithoutInspectorInput
   Penalties?: Prisma.PenaltyInfoCreateNestedManyWithoutAccountInput
@@ -2852,6 +3062,7 @@ export type AccountInfoUncheckedCreateWithoutRepairsPerformedInput = {
   ExtensionsRequested?: Prisma.ExtensionRequestUncheckedCreateNestedManyWithoutRequestedByUserInput
   ExtensionsApproved?: Prisma.ExtensionRequestUncheckedCreateNestedManyWithoutApprovedByUserInput
   ReservationsMade?: Prisma.ReservationsUncheckedCreateNestedManyWithoutReservedByUserInput
+  ReservationsApproved?: Prisma.ReservationsUncheckedCreateNestedManyWithoutApprovedByUserInput
   UsageLogs?: Prisma.UsageLogUncheckedCreateNestedManyWithoutAccountInput
   InspectionsPerformed?: Prisma.InspectionUncheckedCreateNestedManyWithoutInspectorInput
   Penalties?: Prisma.PenaltyInfoUncheckedCreateNestedManyWithoutAccountInput
@@ -2894,6 +3105,7 @@ export type AccountInfoUpdateWithoutRepairsPerformedInput = {
   ExtensionsRequested?: Prisma.ExtensionRequestUpdateManyWithoutRequestedByUserNestedInput
   ExtensionsApproved?: Prisma.ExtensionRequestUpdateManyWithoutApprovedByUserNestedInput
   ReservationsMade?: Prisma.ReservationsUpdateManyWithoutReservedByUserNestedInput
+  ReservationsApproved?: Prisma.ReservationsUpdateManyWithoutApprovedByUserNestedInput
   UsageLogs?: Prisma.UsageLogUpdateManyWithoutAccountNestedInput
   InspectionsPerformed?: Prisma.InspectionUpdateManyWithoutInspectorNestedInput
   Penalties?: Prisma.PenaltyInfoUpdateManyWithoutAccountNestedInput
@@ -2921,6 +3133,7 @@ export type AccountInfoUncheckedUpdateWithoutRepairsPerformedInput = {
   ExtensionsRequested?: Prisma.ExtensionRequestUncheckedUpdateManyWithoutRequestedByUserNestedInput
   ExtensionsApproved?: Prisma.ExtensionRequestUncheckedUpdateManyWithoutApprovedByUserNestedInput
   ReservationsMade?: Prisma.ReservationsUncheckedUpdateManyWithoutReservedByUserNestedInput
+  ReservationsApproved?: Prisma.ReservationsUncheckedUpdateManyWithoutApprovedByUserNestedInput
   UsageLogs?: Prisma.UsageLogUncheckedUpdateManyWithoutAccountNestedInput
   InspectionsPerformed?: Prisma.InspectionUncheckedUpdateManyWithoutInspectorNestedInput
   Penalties?: Prisma.PenaltyInfoUncheckedUpdateManyWithoutAccountNestedInput
@@ -2958,6 +3171,7 @@ export type AccountInfoUpdateWithoutRoleInput = {
   ExtensionsRequested?: Prisma.ExtensionRequestUpdateManyWithoutRequestedByUserNestedInput
   ExtensionsApproved?: Prisma.ExtensionRequestUpdateManyWithoutApprovedByUserNestedInput
   ReservationsMade?: Prisma.ReservationsUpdateManyWithoutReservedByUserNestedInput
+  ReservationsApproved?: Prisma.ReservationsUpdateManyWithoutApprovedByUserNestedInput
   UsageLogs?: Prisma.UsageLogUpdateManyWithoutAccountNestedInput
   InspectionsPerformed?: Prisma.InspectionUpdateManyWithoutInspectorNestedInput
   Penalties?: Prisma.PenaltyInfoUpdateManyWithoutAccountNestedInput
@@ -2985,6 +3199,7 @@ export type AccountInfoUncheckedUpdateWithoutRoleInput = {
   ExtensionsRequested?: Prisma.ExtensionRequestUncheckedUpdateManyWithoutRequestedByUserNestedInput
   ExtensionsApproved?: Prisma.ExtensionRequestUncheckedUpdateManyWithoutApprovedByUserNestedInput
   ReservationsMade?: Prisma.ReservationsUncheckedUpdateManyWithoutReservedByUserNestedInput
+  ReservationsApproved?: Prisma.ReservationsUncheckedUpdateManyWithoutApprovedByUserNestedInput
   UsageLogs?: Prisma.UsageLogUncheckedUpdateManyWithoutAccountNestedInput
   InspectionsPerformed?: Prisma.InspectionUncheckedUpdateManyWithoutInspectorNestedInput
   Penalties?: Prisma.PenaltyInfoUncheckedUpdateManyWithoutAccountNestedInput
@@ -3035,6 +3250,7 @@ export type AccountInfoUpdateWithoutFacultyInput = {
   ExtensionsRequested?: Prisma.ExtensionRequestUpdateManyWithoutRequestedByUserNestedInput
   ExtensionsApproved?: Prisma.ExtensionRequestUpdateManyWithoutApprovedByUserNestedInput
   ReservationsMade?: Prisma.ReservationsUpdateManyWithoutReservedByUserNestedInput
+  ReservationsApproved?: Prisma.ReservationsUpdateManyWithoutApprovedByUserNestedInput
   UsageLogs?: Prisma.UsageLogUpdateManyWithoutAccountNestedInput
   InspectionsPerformed?: Prisma.InspectionUpdateManyWithoutInspectorNestedInput
   Penalties?: Prisma.PenaltyInfoUpdateManyWithoutAccountNestedInput
@@ -3062,6 +3278,7 @@ export type AccountInfoUncheckedUpdateWithoutFacultyInput = {
   ExtensionsRequested?: Prisma.ExtensionRequestUncheckedUpdateManyWithoutRequestedByUserNestedInput
   ExtensionsApproved?: Prisma.ExtensionRequestUncheckedUpdateManyWithoutApprovedByUserNestedInput
   ReservationsMade?: Prisma.ReservationsUncheckedUpdateManyWithoutReservedByUserNestedInput
+  ReservationsApproved?: Prisma.ReservationsUncheckedUpdateManyWithoutApprovedByUserNestedInput
   UsageLogs?: Prisma.UsageLogUncheckedUpdateManyWithoutAccountNestedInput
   InspectionsPerformed?: Prisma.InspectionUncheckedUpdateManyWithoutInspectorNestedInput
   Penalties?: Prisma.PenaltyInfoUncheckedUpdateManyWithoutAccountNestedInput
@@ -3097,6 +3314,7 @@ export type AccountInfoCountOutputType = {
   ExtensionsRequested: number
   ExtensionsApproved: number
   ReservationsMade: number
+  ReservationsApproved: number
   UsageLogs: number
   InspectionsPerformed: number
   Penalties: number
@@ -3115,6 +3333,7 @@ export type AccountInfoCountOutputTypeSelect<ExtArgs extends runtime.Types.Exten
   ExtensionsRequested?: boolean | AccountInfoCountOutputTypeCountExtensionsRequestedArgs
   ExtensionsApproved?: boolean | AccountInfoCountOutputTypeCountExtensionsApprovedArgs
   ReservationsMade?: boolean | AccountInfoCountOutputTypeCountReservationsMadeArgs
+  ReservationsApproved?: boolean | AccountInfoCountOutputTypeCountReservationsApprovedArgs
   UsageLogs?: boolean | AccountInfoCountOutputTypeCountUsageLogsArgs
   InspectionsPerformed?: boolean | AccountInfoCountOutputTypeCountInspectionsPerformedArgs
   Penalties?: boolean | AccountInfoCountOutputTypeCountPenaltiesArgs
@@ -3181,6 +3400,13 @@ export type AccountInfoCountOutputTypeCountExtensionsApprovedArgs<ExtArgs extend
  * AccountInfoCountOutputType without action
  */
 export type AccountInfoCountOutputTypeCountReservationsMadeArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.ReservationsWhereInput
+}
+
+/**
+ * AccountInfoCountOutputType without action
+ */
+export type AccountInfoCountOutputTypeCountReservationsApprovedArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   where?: Prisma.ReservationsWhereInput
 }
 
@@ -3261,6 +3487,7 @@ export type AccountInfoSelect<ExtArgs extends runtime.Types.Extensions.InternalA
   ExtensionsRequested?: boolean | Prisma.AccountInfo$ExtensionsRequestedArgs<ExtArgs>
   ExtensionsApproved?: boolean | Prisma.AccountInfo$ExtensionsApprovedArgs<ExtArgs>
   ReservationsMade?: boolean | Prisma.AccountInfo$ReservationsMadeArgs<ExtArgs>
+  ReservationsApproved?: boolean | Prisma.AccountInfo$ReservationsApprovedArgs<ExtArgs>
   UsageLogs?: boolean | Prisma.AccountInfo$UsageLogsArgs<ExtArgs>
   InspectionsPerformed?: boolean | Prisma.AccountInfo$InspectionsPerformedArgs<ExtArgs>
   Penalties?: boolean | Prisma.AccountInfo$PenaltiesArgs<ExtArgs>
@@ -3326,6 +3553,7 @@ export type AccountInfoInclude<ExtArgs extends runtime.Types.Extensions.Internal
   ExtensionsRequested?: boolean | Prisma.AccountInfo$ExtensionsRequestedArgs<ExtArgs>
   ExtensionsApproved?: boolean | Prisma.AccountInfo$ExtensionsApprovedArgs<ExtArgs>
   ReservationsMade?: boolean | Prisma.AccountInfo$ReservationsMadeArgs<ExtArgs>
+  ReservationsApproved?: boolean | Prisma.AccountInfo$ReservationsApprovedArgs<ExtArgs>
   UsageLogs?: boolean | Prisma.AccountInfo$UsageLogsArgs<ExtArgs>
   InspectionsPerformed?: boolean | Prisma.AccountInfo$InspectionsPerformedArgs<ExtArgs>
   Penalties?: boolean | Prisma.AccountInfo$PenaltiesArgs<ExtArgs>
@@ -3357,6 +3585,7 @@ export type $AccountInfoPayload<ExtArgs extends runtime.Types.Extensions.Interna
     ExtensionsRequested: Prisma.$ExtensionRequestPayload<ExtArgs>[]
     ExtensionsApproved: Prisma.$ExtensionRequestPayload<ExtArgs>[]
     ReservationsMade: Prisma.$ReservationsPayload<ExtArgs>[]
+    ReservationsApproved: Prisma.$ReservationsPayload<ExtArgs>[]
     UsageLogs: Prisma.$UsageLogPayload<ExtArgs>[]
     InspectionsPerformed: Prisma.$InspectionPayload<ExtArgs>[]
     Penalties: Prisma.$PenaltyInfoPayload<ExtArgs>[]
@@ -3787,6 +4016,7 @@ export interface Prisma__AccountInfoClient<T, Null = never, ExtArgs extends runt
   ExtensionsRequested<T extends Prisma.AccountInfo$ExtensionsRequestedArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AccountInfo$ExtensionsRequestedArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ExtensionRequestPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   ExtensionsApproved<T extends Prisma.AccountInfo$ExtensionsApprovedArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AccountInfo$ExtensionsApprovedArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ExtensionRequestPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   ReservationsMade<T extends Prisma.AccountInfo$ReservationsMadeArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AccountInfo$ReservationsMadeArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ReservationsPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  ReservationsApproved<T extends Prisma.AccountInfo$ReservationsApprovedArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AccountInfo$ReservationsApprovedArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ReservationsPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   UsageLogs<T extends Prisma.AccountInfo$UsageLogsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AccountInfo$UsageLogsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$UsageLogPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   InspectionsPerformed<T extends Prisma.AccountInfo$InspectionsPerformedArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AccountInfo$InspectionsPerformedArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$InspectionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   Penalties<T extends Prisma.AccountInfo$PenaltiesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AccountInfo$PenaltiesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$PenaltyInfoPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
@@ -4401,6 +4631,30 @@ export type AccountInfo$ExtensionsApprovedArgs<ExtArgs extends runtime.Types.Ext
  * AccountInfo.ReservationsMade
  */
 export type AccountInfo$ReservationsMadeArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the Reservations
+   */
+  select?: Prisma.ReservationsSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the Reservations
+   */
+  omit?: Prisma.ReservationsOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ReservationsInclude<ExtArgs> | null
+  where?: Prisma.ReservationsWhereInput
+  orderBy?: Prisma.ReservationsOrderByWithRelationInput | Prisma.ReservationsOrderByWithRelationInput[]
+  cursor?: Prisma.ReservationsWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.ReservationsScalarFieldEnum | Prisma.ReservationsScalarFieldEnum[]
+}
+
+/**
+ * AccountInfo.ReservationsApproved
+ */
+export type AccountInfo$ReservationsApprovedArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   /**
    * Select specific fields to fetch from the Reservations
    */

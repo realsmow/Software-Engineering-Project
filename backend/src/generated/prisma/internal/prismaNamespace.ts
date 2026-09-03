@@ -2856,6 +2856,8 @@ export const ReservationsScalarFieldEnum = {
   EndTime: 'EndTime',
   ApproveStatus: 'ApproveStatus',
   ApprovedBy: 'ApprovedBy',
+  AutoApproved: 'AutoApproved',
+  ApprovedAt: 'ApprovedAt',
   ReservationExpiration: 'ReservationExpiration',
   ActionTime: 'ActionTime',
   ResolvedAt: 'ResolvedAt'
@@ -2960,9 +2962,12 @@ export const NotificationScalarFieldEnum = {
   NotificationKey: 'NotificationKey',
   AccountKey: 'AccountKey',
   NotificationType: 'NotificationType',
-  NotificationContent: 'NotificationContent',
-  SentTime: 'SentTime',
-  IsRead: 'IsRead'
+  Title: 'Title',
+  Body: 'Body',
+  LinkTo: 'LinkTo',
+  CreatedAt: 'CreatedAt',
+  ReadAt: 'ReadAt',
+  DedupeKey: 'DedupeKey'
 } as const
 
 export type NotificationScalarFieldEnum = (typeof NotificationScalarFieldEnum)[keyof typeof NotificationScalarFieldEnum]
