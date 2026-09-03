@@ -64,10 +64,17 @@ enum ApproveStatus {
   Canceled
 }
 
+// One value per kind of thing the system tells a borrower about. These mirror
+// the frontend's `NotificationType` union (types/domain.ts) — the bell picks
+// its icon and colour from the type, so the two lists have to agree.
 enum NotificationType {
-  Anonuncement
-  Approval
-  Warning
+  RequestApproved
+  RequestRejected
+  PickupReminder
+  DueSoon
+  Overdue
+  CreditDeducted
+  AppealResult
 }
 
 enum SubmissionType {
@@ -572,15 +579,38 @@ model Images {
 // Notification
 // ----------------------------------------------------------------------
 
+// Shaped to match the frontend's `Notification` interface (types/domain.ts)
+// field for field, because the bell dropdown is what consumes this and the
+// frontend defines the contract. `NotificationContent`/`SentTime`/`IsRead`
+// are gone: the UI needs a title separate from a body (it renders them at
+// different weights), a route to open, and a read *time* rather than a flag —
+// `IsRead` could not say when, and a nullable boolean had three states for a
+// question with two answers.
 model Notification {
-  NotificationKey     Int              @id @default(autoincrement())
-  AccountKey          Int
-  NotificationType    NotificationType
-  NotificationContent String
-  SentTime            DateTime?
-  IsRead              Boolean?
+  NotificationKey  Int              @id @default(autoincrement())
+  AccountKey       Int
+  NotificationType NotificationType
+  Title            String
+  Body             String
+  // Frontend route the entry opens, e.g. `/my/loans`. Null for informational
+  // items with nowhere to drill into.
+  LinkTo           String?
+  CreatedAt        DateTime         @default(now())
+  // Null while unread. The unread badge counts these.
+  ReadAt           DateTime?
+  // Identifies the thing this notification is *about* (a usage key, a
+  // reservation key). It exists so a reminder sweep that runs every minute
+  // writes one row instead of one per run — see NotificationService.
+  // Null for notifications with no natural key, which may legitimately
+  // repeat: Postgres treats NULLs as distinct in a unique index, so those
+  // rows never collide.
+  DedupeKey        String?
 
   Account AccountInfo @relation(fields: [AccountKey], references: [AccountKey])
+
+  // The bell reads "my notifications, newest first" and nothing else.
+  @@unique([AccountKey, NotificationType, DedupeKey])
+  @@index([AccountKey, CreatedAt])
 }
 
 // ----------------------------------------------------------------------

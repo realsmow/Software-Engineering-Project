@@ -17,6 +17,10 @@ import { addDays, daysBetween, toIso } from '../common/schemas/datetime.schema';
 import { toPage, toSkipTake } from '../common/schemas/pagination.schema';
 import { tryMapTier, type CreditTier } from '../common/schemas/status.schema';
 import { LoanRequestService } from '../loan/loan.request.service';
+import {
+  NotificationService,
+  resourceName,
+} from '../notification/notification.service';
 import type { TrpcUser } from '../trpc/context';
 import type {
   DecideApprovalInput,
@@ -78,6 +82,7 @@ export class ApprovalService {
     private readonly scope: StaffScopeService,
     private readonly creditTiers: CreditTierService,
     private readonly requests: LoanRequestService,
+    private readonly notifications: NotificationService,
   ) {}
 
   // =========================================================================
@@ -225,16 +230,29 @@ export class ApprovalService {
     const now = new Date();
 
     if (input.decision === 'reject') {
-      await this.prisma.reservations.update({
-        where: { ReservationKey: input.reservationKey },
-        data: {
-          ApproveStatus: 'Rejected',
-          ApprovedBy: user.accountKey,
-          ApprovedAt: now,
-          ResolvedAt: now,
-          Reason: input.reason ?? row.Reason,
-        },
+      // In a transaction only so the borrower's notification cannot outlive a
+      // rejection that failed to write. "คำขอถูกปฏิเสธ" for a request still
+      // sitting in the queue is worse than no notification.
+      await this.prisma.$transaction(async (tx) => {
+        await tx.reservations.update({
+          where: { ReservationKey: input.reservationKey },
+          data: {
+            ApproveStatus: 'Rejected',
+            ApprovedBy: user.accountKey,
+            ApprovedAt: now,
+            ResolvedAt: now,
+            Reason: input.reason ?? row.Reason,
+          },
+        });
+
+        await this.notifications.requestRejected(tx, {
+          accountKey: row.ReservedBy,
+          reservationKey: input.reservationKey,
+          itemName: resourceName(row.Resource),
+          reason: input.reason,
+        });
       });
+
       return {
         request: await this.requests.getAsDecider(input.reservationKey),
         cancelled: [],
@@ -289,6 +307,9 @@ export class ApprovalService {
         });
       }
 
+      // The clock on collecting it starts now, not when it was asked for.
+      const collectBy = addDays(now, COLLECT_WITHIN_DAYS);
+
       await tx.reservations.update({
         where: { ReservationKey: row.ReservationKey },
         data: {
@@ -297,9 +318,17 @@ export class ApprovalService {
           AutoApproved: false,
           ApprovedAt: now,
           ResolvedAt: now,
-          // The clock on collecting it starts now, not when it was asked for.
-          ReservationExpiration: addDays(now, COLLECT_WITHIN_DAYS),
+          ReservationExpiration: collectBy,
         },
+      });
+
+      const itemName = resourceName(row.Resource);
+
+      await this.notifications.requestApproved(tx, {
+        accountKey: row.ReservedBy,
+        reservationKey: row.ReservationKey,
+        itemName,
+        collectBy,
       });
 
       if (clashes.length > 0) {
@@ -312,6 +341,18 @@ export class ApprovalService {
             ResolvedAt: now,
           },
         });
+
+        // The losers find out here or not at all. Their request is gone from
+        // the queue and nothing else in the system will ever mention it again,
+        // so silence would leave them waiting on a decision already made.
+        for (const clash of clashes) {
+          await this.notifications.requestRejected(tx, {
+            accountKey: clash.ReservedByUser.AccountKey,
+            reservationKey: clash.ReservationKey,
+            itemName,
+            reason: 'อุปกรณ์ถูกจองในช่วงเวลาที่ทับซ้อนกันแล้ว',
+          });
+        }
       }
 
       return clashes;

@@ -96,6 +96,15 @@ export const BUSINESS_ERROR_CODES = {
   /** Catch-all for a write refused before it happened — see cause */
   UPLOAD_REJECTED: 'BAD_REQUEST',
 
+  // --- notifications (the topbar bell) ---
+  /**
+   * No such notification for this account.
+   *
+   * Deliberately the same answer for "does not exist" and "belongs to someone
+   * else", so the bell cannot be used to enumerate notification ids.
+   */
+  NOTIFICATION_NOT_FOUND: 'NOT_FOUND',
+
   // --- inspection (staff domain) ---
   INSPECTION_NOT_FOUND: 'NOT_FOUND',
   /** This return has already been graded; corrections go through an appeal */

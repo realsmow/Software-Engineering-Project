@@ -52,6 +52,9 @@ import { ApprovalService } from './approval/approval.service';
 import { InspectionRouter } from './inspection/inspection.router';
 import { InspectionService } from './inspection/inspection.service';
 
+import { NotificationRouter } from './notification/notification.router';
+import { NotificationService } from './notification/notification.service';
+
 import { ImageRouter } from './image/image.router';
 import { ImageService } from './image/image.service';
 import { ImageController } from './image/image.controller';
@@ -131,6 +134,9 @@ import {
 
     InspectionRouter,
     InspectionService,
+
+    NotificationRouter,
+    NotificationService,
 
     ImageRouter,
   ],

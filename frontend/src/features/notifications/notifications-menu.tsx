@@ -5,7 +5,14 @@ import { Bell, CheckCheck, ChevronRight } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { NavIcon } from "@/components/layout/nav-icon";
 import type { BadgeTone } from "@/components/ui/badge";
-import { MOCK_NOTIFICATIONS, NOTIFICATION_META, type AppNotification } from "./mock-notifications";
+import type { Notification } from "@/types/domain";
+import { NOTIFICATION_META } from "./notification.meta";
+import {
+  useMarkAllRead,
+  useMarkRead,
+  useNotifications,
+  useUnreadCount,
+} from "./use-notifications";
 
 /** Tone → soft background + text color, using the semantic surface tokens. */
 function toneStyle(tone: BadgeTone): React.CSSProperties {
@@ -33,28 +40,36 @@ function useRelativeTime() {
   }, [i18n.language]);
 }
 
-/** Bell + dropdown of notifications with unread badge and mark-read actions. */
+/**
+ * Bell + dropdown of notifications with unread badge and mark-read actions.
+ *
+ * The badge count comes from its own query rather than from the rows below it,
+ * because the rows are only fetched while the dropdown is open and the count
+ * has to be right on every page. It also means the badge is honest when there
+ * are more unread notifications than the one page the dropdown shows.
+ *
+ * Rows arrive ready to render: the server's `notificationOutput` mirrors the
+ * `Notification` type, so the only mapping here is type → icon and colour.
+ */
 export function NotificationsMenu() {
   const { t } = useTranslation();
   const rel = useRelativeTime();
   const navigate = useNavigate();
-  const [items, setItems] = useState<AppNotification[]>(MOCK_NOTIFICATIONS);
   const [open, setOpen] = useState(false);
 
-  const unread = items.filter((n) => !n.read).length;
+  const unreadQuery = useUnreadCount();
+  const listQuery = useNotifications(open);
+  const markRead = useMarkRead();
+  const markAllRead = useMarkAllRead();
 
-  function markOne(id: string) {
-    setItems((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
-  }
-  function markAll() {
-    setItems((prev) => prev.map((n) => ({ ...n, read: true })));
-  }
+  const unread = unreadQuery.data?.unread ?? 0;
+  const items = listQuery.data?.items ?? [];
 
   /** Open a notification: mark it read, close the menu, and jump to its target. */
-  function openNotification(n: AppNotification) {
-    markOne(n.id);
+  function openNotification(n: Notification) {
+    if (!n.readAt) markRead.mutate(n.id);
     setOpen(false);
-    if (n.route) navigate(n.route);
+    if (n.linkTo) navigate(n.linkTo);
   }
 
   return (
@@ -79,8 +94,9 @@ export function NotificationsMenu() {
           {unread > 0 ? (
             <button
               type="button"
-              onClick={markAll}
-              className="flex items-center gap-1 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
+              onClick={() => markAllRead.mutate()}
+              disabled={markAllRead.isPending}
+              className="flex items-center gap-1 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
             >
               <CheckCheck size={13} strokeWidth={2} />
               {t("notifications.markAllRead")}
@@ -89,22 +105,41 @@ export function NotificationsMenu() {
         </div>
 
         <div className="max-h-96 overflow-y-auto">
-          {items.length === 0 ? (
+          {listQuery.isPending ? (
+            <div className="px-3 py-10 text-center text-sm text-muted-foreground">
+              {t("notifications.loading")}
+            </div>
+          ) : listQuery.isError ? (
+            // The bell must not be a dead end when the request fails - without
+            // a retry the only way back is a full page reload.
+            <div className="flex flex-col items-center gap-2 px-3 py-10 text-center">
+              <span className="text-sm text-muted-foreground">
+                {t("notifications.error")}
+              </span>
+              <button
+                type="button"
+                onClick={() => void listQuery.refetch()}
+                className="text-xs font-medium text-foreground underline"
+              >
+                {t("notifications.retry")}
+              </button>
+            </div>
+          ) : items.length === 0 ? (
             <div className="px-3 py-10 text-center text-sm text-muted-foreground">
               {t("notifications.empty")}
             </div>
           ) : (
             <div className="flex flex-col divide-y divide-border">
               {items.map((n) => {
-                const meta = NOTIFICATION_META[n.kind];
-                const clickable = Boolean(n.route);
+                const meta = NOTIFICATION_META[n.type];
+                const clickable = Boolean(n.linkTo);
                 return (
                   <button
                     key={n.id}
                     type="button"
                     onClick={() => openNotification(n)}
                     className={`group flex w-full gap-3 px-3.5 py-3 text-left transition-colors hover:bg-secondary ${
-                      n.read ? "" : "bg-secondary/50"
+                      n.readAt ? "" : "bg-secondary/50"
                     }`}
                   >
                     <span
@@ -116,15 +151,17 @@ export function NotificationsMenu() {
                     <div className="min-w-0 flex-1">
                       <div className="flex items-start justify-between gap-2">
                         <span className="text-sm font-medium text-foreground">{n.title}</span>
-                        {!n.read ? (
+                        {!n.readAt ? (
                           <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--accent-red)]" />
                         ) : null}
                       </div>
                       <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-                        {n.detail}
+                        {n.body}
                       </p>
                       <div className="mt-1 flex items-center justify-between">
-                        <span className="text-[11px] text-muted-foreground">{rel(n.at)}</span>
+                        <span className="text-[11px] text-muted-foreground">
+                          {rel(n.createdAt)}
+                        </span>
                         {clickable ? (
                           <span className="flex items-center gap-0.5 text-[11px] font-medium text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100">
                             {t("notifications.view")}
