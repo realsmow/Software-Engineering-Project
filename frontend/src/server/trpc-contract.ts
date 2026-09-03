@@ -166,8 +166,16 @@ export const appRouter = t.router({
   }),
 
   // ── notification ──────────────────────────────────────
+  // Live on the server (backend/src/notification/). Unlike the placeholder
+  // domains above, `Notification` here is the real thing: the backend's
+  // `notificationOutput` mirrors types/domain.ts field for field, so no
+  // adapter is needed and this describes what actually comes back.
   notification: t.router({
-    list: proc.input(pageInput.partial()).query(() => as<Paginated<Notification>>()),
+    list: proc
+      .input(pageInput.extend({ unreadOnly: z.boolean().default(false) }))
+      .query(() => as<Paginated<Notification>>()),
+    /** Badge only, so the bell can poll without fetching a page of rows. */
+    unreadCount: proc.query(() => as<{ unread: number }>()),
     markRead: proc.input(idInput).mutation(() => as<{ ok: true }>()),
     markAllRead: proc.mutation(() => as<{ ok: true }>()),
   }),

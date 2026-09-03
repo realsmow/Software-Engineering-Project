@@ -1,5 +1,6 @@
 import {
   Activity,
+  AlertTriangle,
   Award,
   BarChart3,
   Bell,
@@ -23,6 +24,7 @@ import {
   TrendingUp,
   UserX,
   Users,
+  XCircle,
   type LucideIcon,
 } from "lucide-react";
 
@@ -55,6 +57,11 @@ const NAV_ICON: Record<string, LucideIcon> = {
   server: Server,
   "bar-chart": BarChart3,
   bell: Bell,
+  // Used by the notification bell rather than by NAV_CONFIG: a rejection and
+  // a credit deduction need to read as bad news at a glance, and every icon
+  // above is either neutral or positive.
+  "x-circle": XCircle,
+  "alert-triangle": AlertTriangle,
 };
 
 export function NavIcon({ name, size = 15 }: { name: string; size?: number }) {

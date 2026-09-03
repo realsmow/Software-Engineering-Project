@@ -20,6 +20,7 @@ function unit(overrides: {
   dueAt?: Date;
   tag?: string;
   ruleName?: string | null;
+  prepDays?: number;
 }): ItemUnitRow {
   return {
     IndivKey: 1,
@@ -28,7 +29,7 @@ function unit(overrides: {
     Resource: {
       ResourceStatus: overrides.status ?? 'InStorage',
       AllowBorrow: overrides.allowBorrow ?? true,
-      BufferTime: 2,
+      BufferTime: overrides.prepDays ?? 2,
       BorrowRuleInfo: {
         RuleName: overrides.ruleName === undefined ? 'T1' : overrides.ruleName,
       },
@@ -140,7 +141,7 @@ describe('toItemSummary', () => {
       expect(summary.nextAvailableAt).toBeNull();
     });
 
-    it('is the earliest due date when everything is out', () => {
+    it('adds the prep days to the return date, per proposal §5.5', () => {
       const summary = toItemSummary(
         itemRow([
           unit({ status: 'Lended', dueAt: new Date('2026-09-10T00:00:00Z') }),
@@ -148,7 +149,29 @@ describe('toItemSummary', () => {
           unit({ status: 'Lended', dueAt: new Date('2026-09-20T00:00:00Z') }),
         ]),
       );
-      expect(summary.nextAvailableAt).toBe('2026-09-02T00:00:00.000Z');
+      // earliest return 02/09 + the 2 prep days that unit needs
+      expect(summary.nextAvailableAt).toBe('2026-09-04T00:00:00.000Z');
+    });
+
+    it('compares units after their own buffer, not before it', () => {
+      // The trap: 09/03 is the earliest *return*, but that unit sits in prep
+      // for a week, so the one back on 09/05 with no prep is ready first.
+      // Taking the minimum of the raw due dates would answer 09/10.
+      const summary = toItemSummary(
+        itemRow([
+          unit({
+            status: 'Lended',
+            dueAt: new Date('2026-09-03T00:00:00Z'),
+            prepDays: 7,
+          }),
+          unit({
+            status: 'Lended',
+            dueAt: new Date('2026-09-05T00:00:00Z'),
+            prepDays: 0,
+          }),
+        ]),
+      );
+      expect(summary.nextAvailableAt).toBe('2026-09-05T00:00:00.000Z');
     });
 
     it('is null when nothing is out and nothing is free', () => {

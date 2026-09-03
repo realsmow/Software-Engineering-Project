@@ -157,6 +157,11 @@ export type NotificationType =
   | "pickup_reminder"
   | "due_soon"
   | "overdue"
+  // The caution raised when a penalty docks the borrower's credit (§5.7).
+  // Distinct from `overdue`: being late is the event, losing points is the
+  // consequence, and they can arrive days apart - the penalty's clock only
+  // starts once the item is actually back.
+  | "credit_deducted"
   | "appeal_result";
 
 export interface Notification {

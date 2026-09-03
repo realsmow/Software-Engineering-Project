@@ -44,11 +44,31 @@
 | `EXTENSION_QUOTA_EXCEEDED` | `FORBIDDEN` | `{ used, maxTimes }` |
 | `ALREADY_DECIDED` | `CONFLICT` | `{ decidedAt }` |
 | `APPEAL_WINDOW_CLOSED` | `FORBIDDEN` | `{ closedAt }` |
+| `CREDIT_TOO_LOW` | `FORBIDDEN` | `{ creditTier, creditScore }` |
+| `INVALID_BORROW_WINDOW` | `BAD_REQUEST` | `{ reason, startTime, endTime }` |
+| `WINDOW_NOT_AVAILABLE` | `CONFLICT` | `{ resourceKey, nextAvailableAt }` |
+| `CANNOT_CANCEL` | `CONFLICT` | `{ reservationKey, usageKey, reason }` |
+| `CANNOT_APPROVE_OWN_REQUEST` | `FORBIDDEN` | `{ reservationKey }` |
+| `APPROVAL_NEEDS_SUPERVISOR` | `FORBIDDEN` | `{ reservationKey, route, tier }` |
+| `ALREADY_AUTO_APPROVED` | `CONFLICT` | `{ reservationKey, status }` |
 
-> **ไม่มีรหัส "เครดิตต่ำจนยืมไม่ได้" เพราะกฎแบบนั้นไม่มีในระบบ**
-> เครดิตกำหนดแค่ *จำนวนวันยืมสูงสุด* ผ่าน `CreditTier` → `BorrowConstraints.MaxBorrowDate`
-> สิ่งที่กันไม่ให้ยืมเป็นคนละกลไก คือตาราง `Eligibility` (สังกัด × บทบาท × ของ)
-> และ `MinimumAuthorityLevel` ซึ่งไม่ดูคะแนนเครดิตเลย
+> **แก้แล้ว — เดิมข้อนี้เขียนว่า "ไม่มีรหัสเครดิตต่ำจนยืมไม่ได้ เพราะกฎแบบนั้นไม่มีในระบบ"**
+>
+> frontend ถูกเขียนตามกฎตรงข้าม: `CREDIT_BAND_POLICY` ใน
+> `frontend/src/constants/index.ts` ให้ D3 เป็น `blocked: true` พร้อมคอมเมนต์
+> *"D3 cannot open a new request until outstanding items are cleared"* และหน้าจอ
+> คำขอถูกสร้างรอบกฎนี้ · ที่ประชุมตัดสินตาม frontend รหัส `CREDIT_TOO_LOW` จึงมีจริง
+>
+> สรุปกลไกที่ใช้อยู่ตอนนี้ **สามชั้น แยกกันคนละเรื่อง**:
+>
+> | ชั้น | ตอบคำถาม | ดูจาก |
+> |---|---|---|
+> | `Eligibility` × `Authority` | "ของชิ้นนี้เปิดให้คนสังกัดนี้บทบาทนี้ยืมไหม" | ไม่ดูเครดิตเลย |
+> | `BorrowConstraints.MinimumAuthorityLevel` | "ระดับอำนาจถึงขั้นต่ำของกฎไหม" | ไม่ดูเครดิตเลย |
+> | `CreditTier` | ① เปิดคำขอได้ไหม (D3 = ไม่ได้) ② ยืมได้กี่วัน ③ ต้องให้ใครอนุมัติ | คะแนนเครดิต |
+>
+> ทั้งหมดอยู่ที่ `backend/src/common/approval/approval-policy.ts` และ
+> `backend/src/common/authority/eligibility.service.ts` ที่เดียว
 
 ---
 
@@ -78,20 +98,31 @@
 |---|---|---|---|---|---|
 | `loan.list` | query | `listLoansInput` | `paginated(loanSummaryOutput)` | ล็อกอินแล้ว | invalidate หลังทุก action |
 | `loan.getById` | query | `{ id }` | `loanOutput` | ล็อกอินแล้ว | |
-| `loan.create` | mutation | `createLoanInput` | `loanOutput` | ผู้ยืม | `NOT_ELIGIBLE` · `ITEM_UNAVAILABLE` · `LOAN_PERIOD_EXCEEDS_LIMIT` · **ต้องคืน `dueAt` จริง** |
-| `loan.cancel` | mutation | `{ id }` | `{ ok: true }` | ผู้ยืม | `ALREADY_DECIDED` |
+| `loan.create` | mutation | `{ startTime, endTime, lines[] }` | `createRequestOutput` | ผู้ยืม | ✅ basket 1 บรรทัด = 1 `Reservations` · บรรทัดที่ไม่ผ่านคืนใน `rejected` ไม่ทำให้ทั้งตะกร้าล้ม · `CREDIT_TOO_LOW` · `NOT_ELIGIBLE` · `LOAN_PERIOD_EXCEEDS_LIMIT` · `WINDOW_NOT_AVAILABLE` |
+| `loan.list` | query | `paginationInput + { tab? }` | `paginated(requestOutput)` | ผู้ยืม | ✅ คำขอของตัวเองเท่านั้น · `tab` = active / using / history |
+| `loan.getById` | query | `{ reservationKey }` | `requestOutput` | ผู้ยืม | ✅ ของคนอื่นตอบ `RESERVATION_NOT_FOUND` ไม่ใช่ 403 |
+| `loan.cancel` | mutation | `{ reservationKey, reason? }` | `requestOutput` | ผู้ยืม | ✅ ได้เฉพาะตอนยังไม่มีใครจัดของ · `CANNOT_CANCEL` · `ALREADY_DECIDED` |
 
 ### `approval`
 
+คิวเดียวสองโต๊ะ แยกด้วย `route` ที่คำนวณจาก `approval-policy.ts` (ไม่เก็บลง DB):
+
+| tier | เครดิต D0/D1 | เครดิต D2 | เครดิต D3 |
+|---|---|---|---|
+| T0 · T1 | **auto** ระบบอนุมัติเอง | supervisor | เปิดคำขอไม่ได้ (`CREDIT_TOO_LOW`) |
+| T2 | supervisor | supervisor | เปิดคำขอไม่ได้ |
+| T3 (ห้อง) | staff | staff | เปิดคำขอไม่ได้ |
+
 | procedure | ชนิด | input | output | role | หมายเหตุ |
 |---|---|---|---|---|---|
-| `approval.queue` | query | `paginationInput` | `paginated(approvalItemOutput)` | อาจารย์ | **poll 30–60 วิ** · แบ่งหน้าเสมอ |
-| `approval.decide` | mutation | `{ id, decision, reason? }` | `{ ok: true }` | อาจารย์ | `ALREADY_DECIDED` |
+| `approval.queue` | query | `paginationInput + { route?, tier? }` | `paginated(approvalQueueRow)` | staff · supervisor | ✅ **poll 30–60 วิ** · เห็นเฉพาะแถวที่ตัวเองตัดสินได้และอยู่ในภาควิชาตัวเอง · แต่ละแถวบอก `clashesWith` ว่าถ้าอนุมัติจะไปยกเลิกใครบ้าง |
+| `approval.counts` | query | — | `approvalCounts` | staff · supervisor | ✅ **poll 30–60 วิ** · 4 ตัวเลขสำหรับ dashboard |
+| `approval.decide` | mutation | `{ reservationKey, decision, reason? }` | `decideApprovalOutput` | staff · supervisor | ✅ **อนุมัติแล้วยกเลิกคำขออื่นที่ชนหน้าต่างเวลา (รวม buffer) ใน transaction เดียว** · `CANNOT_APPROVE_OWN_REQUEST` · `APPROVAL_NEEDS_SUPERVISOR` · `ALREADY_AUTO_APPROVED` |
 
 ### ยังไม่ได้ทำ - ต้องเติมให้ครบ
 
-`reservation.*` (จองห้อง T3) · `appeal.*` · `credit.*` · `inspection.*` ·
-`notification.*` · `report.*` · `admin.*`
+`reservation.*` (สล็อตเวลาห้อง T3 — การ *จอง* ห้องทำผ่าน `loan.create` แล้ว
+เหลือแต่ระบบสล็อต) · `appeal.*` · `notification.*` · `report.*`
 ที่มา: *รายการเรียกใช้งานจาก Backend.pdf* กลุ่มที่ 1 (6 รายการ polling) และ
 กลุ่มที่ 2 (9 read + 9 mutation)
 

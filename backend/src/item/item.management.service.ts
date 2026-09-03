@@ -296,7 +296,9 @@ export class ItemManagementService {
 
   /**
    * Registers one or more physical units of a type (proposal §5.9
-   * "ลงทะเบียนชิ้นอุปกรณ์": T2 binds a serial, T1 is recorded as a count).
+   * "ลงทะเบียนชิ้นอุปกรณ์"). Both tracked tiers carry a serial — T2 the
+   * one printed on the unit, T1 a per-unit tag derived from the batch — while
+   * T0 is counted and gets a generated placeholder. See `buildSerials`.
    *
    * Both rows are written in one transaction because ItemIndiv.ResourceKey is
    * required and unique — a ResourceInfo created without its ItemIndiv is an
@@ -862,6 +864,15 @@ export class ItemManagementService {
    * "หมายเลขประจำอุปกรณ์ (Serial Number): ติดบนอุปกรณ์ระดับ T1–T2"). T0 is
    * counted, not tracked, so a readable placeholder is generated instead of
    * forcing staff to invent one for each jumper wire.
+   *
+   * The two tracked tiers differ in how a batch may be registered. T1 arrives
+   * as a box of interchangeable units, so one base serial plus a numeric
+   * suffix gives every row its own addressable tag. T2 does not: §5.4 has the
+   * borrower pick a specific unit by the serial printed on it, so deriving
+   * "OSC-001-1", "OSC-001-2" from a single typed serial would file units under
+   * tags that match nothing on the shelf, and §5.5 then quotes an
+   * available-from date per those invented tags. A T2 batch is refused rather
+   * than invented — staff register those one at a time, with the real tag.
    */
   private buildSerials(
     input: CreateItemUnitInput,
@@ -876,15 +887,22 @@ export class ItemManagementService {
       });
     }
 
+    if (input.tier === 'T2' && input.quantity > 1) {
+      throw new BusinessError('BULK_NOT_ALLOWED_FOR_TIER', {
+        tier: input.tier,
+        quantity: input.quantity,
+      });
+    }
+
     const base =
       input.serialNo ??
       `${(itemName ?? 'ITEM').trim().slice(0, 12).toUpperCase().replace(/\s+/g, '-')}-${input.itemKey}`;
 
     if (input.quantity === 1) return [input.serialNo ?? `${base}-1`];
 
-    // Suffixed rather than repeated: ItemIndiv.ItemID is how a staff member
-    // tells two boxes apart at the counter, and two rows reading "ARDUINO-7"
-    // make the allocation step a guess.
+    // T0/T1 only, per the guard above. Suffixed rather than repeated:
+    // ItemIndiv.ItemID is how a staff member tells two boxes apart at the
+    // counter, and two rows reading "ARDUINO-7" make allocation a guess.
     return Array.from(
       { length: input.quantity },
       (_, index) => `${base}-${index + 1}`,

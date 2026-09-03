@@ -54,6 +54,11 @@ export const BUSINESS_ERROR_CODES = {
   SERIAL_ALREADY_IN_USE: 'CONFLICT',
   /** T1/T2 units must carry a serial; T0 must not pretend to have one */
   SERIAL_REQUIRED_FOR_TIER: 'BAD_REQUEST',
+  /**
+   * T2 binds one real serial to one unit, so a batch cannot be registered from
+   * a single serial — the suffixed serials would match nothing on the shelf
+   */
+  BULK_NOT_ALLOWED_FOR_TIER: 'BAD_REQUEST',
   /** BorrowRule has no row named T0..T3 — seed data problem, not user error */
   TIER_NOT_CONFIGURED: 'PRECONDITION_FAILED',
   /** Cannot take a unit out of the pool while somebody is holding it */
@@ -91,10 +96,46 @@ export const BUSINESS_ERROR_CODES = {
   /** Catch-all for a write refused before it happened — see cause */
   UPLOAD_REJECTED: 'BAD_REQUEST',
 
+  // --- notifications (the topbar bell) ---
+  /**
+   * No such notification for this account.
+   *
+   * Deliberately the same answer for "does not exist" and "belongs to someone
+   * else", so the bell cannot be used to enumerate notification ids.
+   */
+  NOTIFICATION_NOT_FOUND: 'NOT_FOUND',
+
   // --- inspection (staff domain) ---
   INSPECTION_NOT_FOUND: 'NOT_FOUND',
   /** This return has already been graded; corrections go through an appeal */
   ALREADY_INSPECTED: 'CONFLICT',
+
+  // --- borrowing requests (borrower slice) ---
+  /**
+   * Credit too low to open a request at all.
+   *
+   * CONTRACT.md says no such rule exists - credit only shortens the borrow
+   * window. The team decided otherwise: `CREDIT_BAND_POLICY` in
+   * frontend/src/constants/index.ts marks D3 `blocked: true` ("D3 cannot open
+   * a new request until outstanding items are cleared"), and the screens are
+   * built around it. This code is the backend half of that decision; the
+   * contract table has been corrected to match.
+   */
+  CREDIT_TOO_LOW: 'FORBIDDEN',
+  /** The requested window is backwards, in the past, or longer than the tier allows */
+  INVALID_BORROW_WINDOW: 'BAD_REQUEST',
+  /** Somebody else's request already holds this unit for part of the window */
+  WINDOW_NOT_AVAILABLE: 'CONFLICT',
+  /** Cancelling something that is already approved-and-prepared, or already over */
+  CANNOT_CANCEL: 'CONFLICT',
+
+  // --- approval queue (supervisor slice) ---
+  /** A request cleared by the system needs no decision */
+  ALREADY_AUTO_APPROVED: 'CONFLICT',
+  /** §5.9: the approver may not be the person who asked */
+  CANNOT_APPROVE_OWN_REQUEST: 'FORBIDDEN',
+  /** This request is above the caller's pay grade - T2 belongs to a supervisor */
+  APPROVAL_NEEDS_SUPERVISOR: 'FORBIDDEN',
 
   // --- borrowing (declared here so other domains reuse the same table) ---
   NOT_ELIGIBLE: 'FORBIDDEN',

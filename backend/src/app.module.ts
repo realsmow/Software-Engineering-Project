@@ -24,6 +24,7 @@ import {
 import { CreditTierService } from './common/credit/credit-tier.service';
 import { AuditService } from './common/audit/audit.service';
 import { StaffScopeService } from './common/authority/staff-scope.service';
+import { EligibilityService } from './common/authority/eligibility.service';
 import { PenaltyService } from './common/penalty/penalty.service';
 
 import { AuthRouter } from './auth/auth.router';
@@ -43,9 +44,16 @@ import { CreditService } from './credit/credit.service';
 
 import { LoanRouter } from './loan/loan.router';
 import { LoanService } from './loan/loan.service';
+import { LoanRequestService } from './loan/loan.request.service';
+
+import { ApprovalRouter } from './approval/approval.router';
+import { ApprovalService } from './approval/approval.service';
 
 import { InspectionRouter } from './inspection/inspection.router';
 import { InspectionService } from './inspection/inspection.service';
+
+import { NotificationRouter } from './notification/notification.router';
+import { NotificationService } from './notification/notification.service';
 
 import { ImageRouter } from './image/image.router';
 import { ImageService } from './image/image.service';
@@ -94,6 +102,7 @@ import {
     CreditTierService,
     AuditService,
     StaffScopeService,
+    EligibilityService,
     PenaltyService,
     ImageService,
 
@@ -118,9 +127,16 @@ import {
 
     LoanRouter,
     LoanService,
+    LoanRequestService,
+
+    ApprovalRouter,
+    ApprovalService,
 
     InspectionRouter,
     InspectionService,
+
+    NotificationRouter,
+    NotificationService,
 
     ImageRouter,
   ],
