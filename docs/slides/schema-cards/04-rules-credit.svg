@@ -1,0 +1,98 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="490" viewBox="0 0 1080 490">
+<rect x="0" y="0" width="1080" height="490" rx="14" fill="#FFFFFF"/>
+<rect x="44" y="30" width="5" height="40" rx="2.5" fill="#2A7A3E"/>
+<text x="62" y="48" font-family="Laksaman, Noto Sans Thai, sans-serif" font-size="21" font-weight="700" fill="#13211F">กฎการยืมและเครดิต</text>
+<text x="62" y="66" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11.5" fill="#2A7A3E" letter-spacing="0.6">BORROW RULES &amp; CREDIT</text>
+<text x="1036" y="48" font-family="Laksaman, Noto Sans Thai, sans-serif" font-size="12.5" fill="#7E8F8D" text-anchor="end">กฎถูกแยกออกจากข้อมูล ปรับค่าได้โดยไม่ต้องแก้โครงสร้าง · Eligibility เป็นตัวเชื่อมข้าม 3 กลุ่ม</text>
+<text x="1036" y="66" font-family="Laksaman, Noto Sans Thai, sans-serif" font-size="11" fill="#7E8F8D" text-anchor="end">4 ตาราง &#183; ULMs Database Design v4</text>
+<path d="M474 323.0 C542.16 323.0 542.16 121.0 483 121.0" fill="none" stroke="#2A7A3E" stroke-width="1.6" opacity="0.7"/><path d="M474 121.0 L483 116.5 L483 125.5 z" fill="#2A7A3E" opacity="0.7"/><circle cx="474" cy="323.0" r="3.2" fill="#2A7A3E" opacity="0.7"/>
+<path d="M474 349.0 C529 349.0 551 121.0 597 121.0" fill="none" stroke="#2A7A3E" stroke-width="1.6" opacity="0.7"/><path d="M606 121.0 L597 116.5 L597 125.5 z" fill="#2A7A3E" opacity="0.7"/><circle cx="474" cy="349.0" r="3.2" fill="#2A7A3E" opacity="0.7"/>
+<rect x="46" y="100.0" width="426" height="108" rx="10" fill="#0A1F1D" opacity="0.05"/>
+<rect x="45" y="98.0" width="428" height="108" rx="10" fill="#0A1F1D" opacity="0.05"/>
+<rect x="44" y="96.0" width="430" height="108" rx="10" fill="#FFFFFF" stroke="#DCE7E5"/>
+<path d="M44 106.0 a10 10 0 0 1 10 -10 h410 a10 10 0 0 1 10 10 v40 h-430 z" fill="#2A7A3E"/>
+<text x="60" y="117.0" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="14.5" font-weight="700" fill="#FFFFFF">BorrowRule</text>
+<text x="60" y="135.0" font-family="Laksaman, Noto Sans Thai, sans-serif" font-size="12" fill="#FFFFFF" opacity="0.85">หัวข้อรวมของกฎการยืม</text>
+<rect x="57" y="152.0" width="26" height="14" rx="4" fill="#9E5714"/><text x="70" y="162.5" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="9" font-weight="700" fill="#FFFFFF" text-anchor="middle">PK</text>
+<text x="92" y="163.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="600" fill="#13211F">BorrowRuleKey</text>
+<text x="460" y="163.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">INT</text>
+<rect x="45" y="172.0" width="428" height="26" fill="#F2F7F7"/>
+<text x="92" y="189.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="400" fill="#13211F">BorrowRuleName</text>
+<text x="460" y="189.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">VARCHAR</text>
+<line x1="57" y1="172.0" x2="461" y2="172.0" stroke="#DCE7E5" stroke-width="0.8"/>
+<rect x="46" y="238.0" width="426" height="212" rx="10" fill="#0A1F1D" opacity="0.05"/>
+<rect x="45" y="236.0" width="428" height="212" rx="10" fill="#0A1F1D" opacity="0.05"/>
+<rect x="44" y="234.0" width="430" height="212" rx="10" fill="#FFFFFF" stroke="#DCE7E5"/>
+<path d="M44 244.0 a10 10 0 0 1 10 -10 h410 a10 10 0 0 1 10 10 v40 h-430 z" fill="#2A7A3E"/>
+<text x="60" y="255.0" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="14.5" font-weight="700" fill="#FFFFFF">BorrowConstraints</text>
+<text x="60" y="273.0" font-family="Laksaman, Noto Sans Thai, sans-serif" font-size="12" fill="#FFFFFF" opacity="0.85">ข้อกำหนดการยืม แยกตามช่วงเครดิต</text>
+<rect x="57" y="290.0" width="26" height="14" rx="4" fill="#9E5714"/><text x="70" y="300.5" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="9" font-weight="700" fill="#FFFFFF" text-anchor="middle">PK</text>
+<text x="92" y="301.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="600" fill="#13211F">ConstraintsKey</text>
+<text x="460" y="301.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">INT</text>
+<rect x="45" y="310.0" width="428" height="26" fill="#F2F7F7"/>
+<rect x="57" y="316.0" width="26" height="14" rx="4" fill="none" stroke="#2A7A3E" stroke-width="1.2"/><text x="70" y="326.5" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="9" font-weight="700" fill="#2A7A3E" text-anchor="middle">FK</text>
+<text x="92" y="327.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="400" fill="#13211F">BorrowRuleKey</text>
+<text x="460" y="327.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">INT</text>
+<line x1="57" y1="310.0" x2="461" y2="310.0" stroke="#DCE7E5" stroke-width="0.8"/>
+<rect x="57" y="342.0" width="26" height="14" rx="4" fill="none" stroke="#2A7A3E" stroke-width="1.2"/><text x="70" y="352.5" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="9" font-weight="700" fill="#2A7A3E" text-anchor="middle">FK</text>
+<text x="92" y="353.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="400" fill="#13211F">CreditTierKey</text>
+<text x="460" y="353.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">INT</text>
+<line x1="57" y1="336.0" x2="461" y2="336.0" stroke="#DCE7E5" stroke-width="0.8"/>
+<rect x="45" y="362.0" width="428" height="26" fill="#F2F7F7"/>
+<text x="92" y="379.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="400" fill="#13211F">MinimumAuthorityLevel</text>
+<text x="460" y="379.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">INT</text>
+<line x1="57" y1="362.0" x2="461" y2="362.0" stroke="#DCE7E5" stroke-width="0.8"/>
+<text x="92" y="405.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="400" fill="#13211F">MaxBorrowDate</text>
+<text x="460" y="405.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">INT</text>
+<line x1="57" y1="388.0" x2="461" y2="388.0" stroke="#DCE7E5" stroke-width="0.8"/>
+<rect x="45" y="414.0" width="428" height="26" fill="#F2F7F7"/>
+<text x="92" y="431.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="400" fill="#13211F">MaxExtendTime</text>
+<text x="460" y="431.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">INT</text>
+<line x1="57" y1="414.0" x2="461" y2="414.0" stroke="#DCE7E5" stroke-width="0.8"/>
+<rect x="608" y="100.0" width="426" height="160" rx="10" fill="#0A1F1D" opacity="0.05"/>
+<rect x="607" y="98.0" width="428" height="160" rx="10" fill="#0A1F1D" opacity="0.05"/>
+<rect x="606" y="96.0" width="430" height="160" rx="10" fill="#FFFFFF" stroke="#DCE7E5"/>
+<path d="M606 106.0 a10 10 0 0 1 10 -10 h410 a10 10 0 0 1 10 10 v40 h-430 z" fill="#2A7A3E"/>
+<text x="622" y="117.0" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="14.5" font-weight="700" fill="#FFFFFF">CreditTier</text>
+<text x="622" y="135.0" font-family="Laksaman, Noto Sans Thai, sans-serif" font-size="12" fill="#FFFFFF" opacity="0.85">การแบ่งช่วงคะแนนเครดิต</text>
+<rect x="619" y="152.0" width="26" height="14" rx="4" fill="#9E5714"/><text x="632" y="162.5" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="9" font-weight="700" fill="#FFFFFF" text-anchor="middle">PK</text>
+<text x="654" y="163.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="600" fill="#13211F">CreditTierKey</text>
+<text x="1022" y="163.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">INT</text>
+<rect x="607" y="172.0" width="428" height="26" fill="#F2F7F7"/>
+<text x="654" y="189.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="400" fill="#13211F">CreditTierName</text>
+<text x="1022" y="189.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">VARCHAR</text>
+<line x1="619" y1="172.0" x2="1023" y2="172.0" stroke="#DCE7E5" stroke-width="0.8"/>
+<text x="654" y="215.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="400" fill="#13211F">CreditMin</text>
+<text x="1022" y="215.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">INT</text>
+<line x1="619" y1="198.0" x2="1023" y2="198.0" stroke="#DCE7E5" stroke-width="0.8"/>
+<rect x="607" y="224.0" width="428" height="26" fill="#F2F7F7"/>
+<text x="654" y="241.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="400" fill="#13211F">CreditMax</text>
+<text x="1022" y="241.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">INT</text>
+<line x1="619" y1="224.0" x2="1023" y2="224.0" stroke="#DCE7E5" stroke-width="0.8"/>
+<rect x="608" y="290.0" width="426" height="160" rx="10" fill="#0A1F1D" opacity="0.05"/>
+<rect x="607" y="288.0" width="428" height="160" rx="10" fill="#0A1F1D" opacity="0.05"/>
+<rect x="606" y="286.0" width="430" height="160" rx="10" fill="#FFFFFF" stroke="#DCE7E5"/>
+<path d="M606 296.0 a10 10 0 0 1 10 -10 h410 a10 10 0 0 1 10 10 v40 h-430 z" fill="#2A7A3E"/>
+<text x="622" y="307.0" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="14.5" font-weight="700" fill="#FFFFFF">Eligibility</text>
+<text x="622" y="325.0" font-family="Laksaman, Noto Sans Thai, sans-serif" font-size="12" fill="#FFFFFF" opacity="0.85">สิทธิ์การยืมข้ามคณะ / ชมรม</text>
+<rect x="619" y="342.0" width="26" height="14" rx="4" fill="#9E5714"/><text x="632" y="352.5" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="9" font-weight="700" fill="#FFFFFF" text-anchor="middle">PK</text>
+<text x="654" y="353.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="600" fill="#13211F">EliKey</text>
+<text x="1022" y="353.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">INT</text>
+<rect x="607" y="362.0" width="428" height="26" fill="#F2F7F7"/>
+<rect x="619" y="368.0" width="26" height="14" rx="4" fill="none" stroke="#2A7A3E" stroke-width="1.2"/><text x="632" y="378.5" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="9" font-weight="700" fill="#2A7A3E" text-anchor="middle">FK</text>
+<text x="654" y="379.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="400" fill="#13211F">ResourceKey</text>
+<text x="746.775" y="379.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="10.5" fill="#7E8F8D">&#8594; ResourceInfo</text>
+<text x="1022" y="379.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">INT</text>
+<line x1="619" y1="362.0" x2="1023" y2="362.0" stroke="#DCE7E5" stroke-width="0.8"/>
+<rect x="619" y="394.0" width="26" height="14" rx="4" fill="none" stroke="#2A7A3E" stroke-width="1.2"/><text x="632" y="404.5" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="9" font-weight="700" fill="#2A7A3E" text-anchor="middle">FK</text>
+<text x="654" y="405.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="400" fill="#13211F">GroupKey</text>
+<text x="724.2" y="405.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="10.5" fill="#7E8F8D">&#8594; ManagementGroup</text>
+<text x="1022" y="405.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">INT</text>
+<line x1="619" y1="388.0" x2="1023" y2="388.0" stroke="#DCE7E5" stroke-width="0.8"/>
+<rect x="607" y="414.0" width="428" height="26" fill="#F2F7F7"/>
+<rect x="619" y="420.0" width="26" height="14" rx="4" fill="none" stroke="#2A7A3E" stroke-width="1.2"/><text x="632" y="430.5" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="9" font-weight="700" fill="#2A7A3E" text-anchor="middle">FK</text>
+<text x="654" y="431.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="400" fill="#13211F">RoleKey</text>
+<text x="716.675" y="431.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="10.5" fill="#7E8F8D">&#8594; AuthorityRole</text>
+<text x="1022" y="431.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">INT</text>
+<line x1="619" y1="414.0" x2="1023" y2="414.0" stroke="#DCE7E5" stroke-width="0.8"/>
+</svg>

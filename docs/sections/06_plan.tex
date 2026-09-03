@@ -1,0 +1,84 @@
+% Start on a fresh page so the (colour-headed) longtable below does not split
+% across a page boundary — colortbl + longtable page-splitting triggers the
+% "Infinite glue shrinkage found in box being split" error.
+\section{แผนการดำเนินงาน (Project Plan)}
+
+\renewcommand{\arraystretch}{1.25}
+\begin{longtable}{@{} L{3.2cm} L{5.0cm} L{2.6cm} L{3.2cm} @{}}
+\toprule
+\hrow \thead{ระยะ (Phase)} & \thead{กิจกรรมหลัก} & \thead{ผู้รับผิดชอบหลัก} & \thead{ผลผลิต (Deliverable)} \\
+\midrule
+\endfirsthead
+\toprule
+\hrow \thead{ระยะ (Phase)} & \thead{กิจกรรมหลัก} & \thead{ผู้รับผิดชอบหลัก} & \thead{ผลผลิต (Deliverable)} \\
+\midrule
+\endhead
+1. เริ่มต้น \& วางแผน &
+  แบ่งทีม ตั้งหัวข้อ จัดทำข้อเสนอโครงการ นำเสนอและขออนุมัติ &
+  PM &
+  Proposal, PPT นำเสนอ \\
+2. วิเคราะห์ความต้องการ R01 &
+  เก็บและวิเคราะห์ความต้องการ กำหนด Use Case &
+  System Analyst &
+  เอกสารขอบเขตงาน R01 \\
+3. ออกแบบ \& ต้นแบบ R01 &
+  ออกแบบ UI/UX, API และสถาปัตยกรรม ทำ Prototype &
+  UI/UX, API Designer &
+  Design Doc, Prototype \\
+4. พัฒนา R01 &
+  พัฒนาฟังก์ชันหลัก ทดสอบ และ Demo &
+  Front-End, Back-End, QA &
+  ระบบ R01 (Demo) \\
+5. ปรับขอบเขต \& ออกแบบ R02 &
+  ปรับขอบเขตรอบ 3 วิเคราะห์/ออกแบบฟังก์ชันเสริม &
+  SA, API Designer &
+  ขอบเขต \& Design R02 \\
+6. พัฒนา R02 &
+  พัฒนาฟังก์ชันเสริม ทดสอบ Integration และ Demo &
+  ALL Dev, QA &
+  ระบบ R02 (Demo) \\
+7. สรุป \& ส่งมอบ &
+  ทดสอบรวม จัดทำเอกสารสรุป และนำเสนอ Final Release &
+  ALL &
+  Final Release \\
+\bottomrule
+\end{longtable}
+
+\subsection{แผนภูมิ Gantt แสดงระยะเวลา (Gantt Chart)}
+
+% ---- Gantt-chart colours (green → orange gradient, mirroring the source) -----
+% Monochrome ramp, dark → light, to keep the phases distinguishable in grayscale.
+\definecolor{ganttdark}{HTML}{4D4D4D}   % planning        (darkest gray)
+\definecolor{ganttgreen}{HTML}{808080}  % analysis/design (medium gray)
+\definecolor{ganttorange}{HTML}{999999} % development R01  (mid gray)
+\definecolor{ganttlight}{HTML}{C0C0C0}  % development R02  (light gray)
+\definecolor{ganttpeach}{HTML}{D9D9D9}  % wrap-up          (lighter gray)
+\definecolor{gantthead}{HTML}{ECECEC}   % header row       (lightest gray)
+
+% Short aliases so each week-cell is just one token; keeps the grid readable.
+\providecommand{\ga}{\cellcolor{ganttdark}}
+\providecommand{\gb}{\cellcolor{ganttgreen}}
+\providecommand{\go}{\cellcolor{ganttorange}}
+\providecommand{\gl}{\cellcolor{ganttlight}}
+\providecommand{\gp}{\cellcolor{ganttpeach}}
+
+\begin{center}
+\footnotesize
+\setlength{\tabcolsep}{2pt}
+\renewcommand{\arraystretch}{1.5}
+\arrayrulecolor{black!30}
+\begin{tabular}{|>{\raggedright\arraybackslash}p{3.7cm}|*{16}{>{\centering\arraybackslash}p{0.45cm}|}}
+\hline
+\rowcolor{gantthead}
+\textbf{แผนพัฒนา} & 1 & 2 & 3 & 4 & 5 & 6 & 7 & 8 & 9 & 10 & 11 & 12 & 13 & 14 & 15 & 16 \\
+\hline
+เริ่มต้น \& วางแผน            & \ga & \ga &     &     &     &     &     &     &     &     &     &     &     &     &     &     \\ \hline
+วิเคราะห์ความต้องการ R01     &     & \gb & \gb &     &     &     &     &     &     &     &     &     &     &     &     &     \\ \hline
+ออกแบบ \& ต้นแบบ R01         &     &     &     & \gb &     &     &     &     &     &     &     &     &     &     &     &     \\ \hline
+พัฒนา R01                    &     &     &     &     & \go & \go & \go & \go & \go &     &     &     &     &     &     &     \\ \hline
+ปรับขอบเขต \& ออกแบบ R02      &     &     &     &     &     &     &     &     &     & \go &     &     &     &     &     &     \\ \hline
+พัฒนา Second Release R02     &     &     &     &     &     &     &     &     &     &     & \gl & \gl & \gl & \gl & \gl &    \\ \hline
+สรุป \& ส่งมอบ               &     &     &     &     &     &     &     &     &     &     &     &     &     &     &     & \gp \\ \hline
+\end{tabular}
+\arrayrulecolor{black}
+\end{center}

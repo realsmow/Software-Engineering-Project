@@ -1,0 +1,21 @@
+% =============================================================================
+%  fig_erd.tex — figure float for the Entity–Relationship diagram (§5).
+%  The image is the ERD exported from dbdiagram.io, extracted from
+%  resource/DatabaseDesign4.pdf (page 1) and trimmed of its white border.
+%
+%  Uses `sidewaysfigure` (package rotating): the diagram is landscape
+%  (aspect ≈ 1.51), so rotating it onto a dedicated page lets it be scaled to
+%  the FULL page height instead of the text width — roughly 1.5× larger, which
+%  is what makes the ~4 pt column labels legible in print.
+% =============================================================================
+\begin{sidewaysfigure}
+  \centering
+  % Height is the binding constraint once rotated (it becomes the page width),
+  % so cap both: whichever limit is hit first keeps the aspect ratio intact.
+  \includegraphics[width=0.95\textheight, height=0.92\textwidth, keepaspectratio]{er_diagram.png}
+  \caption{แผนภาพความสัมพันธ์ของข้อมูล (Entity–Relationship Diagram) ของระบบ ULMs
+    แสดงตารางทั้งหมด 33 ตารางพร้อมความสัมพันธ์ระหว่างกัน โดยมีตาราง \texttt{ResourceInfo}
+    เป็นศูนย์กลางที่เชื่อมอุปกรณ์ (\texttt{ItemIndiv}) และห้อง (\texttt{RoomInfo})
+    เข้ากับการจอง การใช้งาน การตรวจสอบ และการซ่อมบำรุง}
+  \label{fig:erd}
+\end{sidewaysfigure}

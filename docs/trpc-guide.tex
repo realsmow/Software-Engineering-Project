@@ -1,0 +1,1471 @@
+% =============================================================================
+%  trpc-guide.tex — เอกสารฉบับที่ 1 ของชุด "สัญญา tRPC" ของโครงการ ULMs
+%
+%  หลักการของ tRPC · ต้องมีอะไรบ้าง · ต้องทำอะไรบ้าง ·
+%  ความเสี่ยงและข้อกำหนดเมื่อนำมาใช้ใน repo นี้โดยเฉพาะ
+%
+%  ต้องคอมไพล์ด้วย XeLaTeX เท่านั้น (เอกสารเป็นภาษาไทย)
+%      cd docs && latexmk trpc-guide.tex        → build/trpc-guide.pdf
+%
+%  ที่มาของข้อเท็จจริงทุกข้อในเอกสารนี้ (ถ้าไฟล์เหล่านี้เปลี่ยน เนื้อความต้องตามไปแก้):
+%    · backend-preview/backend/package.json      เวอร์ชันของ nestjs-trpc, @trpc/server, zod, Prisma
+%    · backend-preview/backend/src/app.module.ts สถานะการตั้งค่า TRPCModule
+%    · backend-preview/backend/src/main.ts       สถานะ CORS
+%    · backend-preview/backend/prisma/schema.prisma  32 model, 0 enum, ชื่อฟิลด์แบบ PascalCase
+%    · frontend/package.json                     เวอร์ชัน zod / TanStack Query, ยังไม่มี @trpc/client
+%    · frontend/src/lib/api-client.ts            รูปแบบ error และการใช้ cookie ที่ตกลงไว้แล้ว
+%    · frontend/src/types/domain.ts              type ที่ frontend เขียนมือไว้ก่อน
+%    · "รายการเรียกใช้งานจาก Backend.pdf"        รายการ endpoint 3 กลุ่ม + ความถี่ polling
+%
+%  รูปทุกรูปในเอกสารนี้เป็น "ภาพอธิบาย" ที่วาดด้วย TikZ ไม่ใช่ผลการทดลอง
+% =============================================================================
+
+\input{trpc-preamble}
+
+\renewcommand{\docshort}{สัญญา tRPC · ฉบับหลักการ}
+\hypersetup{pdftitle={สัญญา tRPC สำหรับ ULMs — หลักการ ความเสี่ยง และสิ่งที่ต้องทำ},
+            pdfauthor={ทีมพัฒนา ULMs}}
+
+% ป้ายชื่อสี่ชั้นของระบบ — สีเดียวกันนี้ใช้ในไดอะแกรมและตารางทุกที่ในเล่ม
+\newcommand{\sctr}{\stg{ctr}{สัญญา}}
+\newcommand{\sbe}{\stg{beo}{backend}}
+\newcommand{\sfe}{\stg{feg}{frontend}}
+\newcommand{\sops}{\stg{ops}{เครือข่าย}}
+
+\begin{document}
+
+% =============================================================================
+%  หน้าปก
+% =============================================================================
+\begin{titlepage}
+\thispagestyle{empty}
+\begin{tikzpicture}[remember picture, overlay]
+  \fill[ctr!8] (current page.north west) rectangle
+       ([yshift=-9.5cm]current page.north east);
+  \fill[ctr] ([yshift=-9.5cm]current page.north west) rectangle
+       ([yshift=-9.62cm]current page.north east);
+\end{tikzpicture}
+
+\vspace*{1.4cm}
+{\sansall\color{muted}\small สำหรับทีมพัฒนา ULMs ทั้งฝั่ง frontend และ backend --- อ่านก่อนเขียน \en{router} ตัวแรก}
+
+\vspace{0.9cm}
+{\sansall\bfseries\fontsize{27}{33}\selectfont\color{ctr!90!black}
+สัญญา \en{tRPC}\\คืออะไร และเราต้องทำอะไรบ้าง\par}
+
+\vspace{0.5cm}
+{\sansall\fontsize{13.5}{19}\selectfont\color{ink}
+หลักการของ \en{tRPC} · องค์ประกอบที่ต้องมีให้ครบ\\
+และความเสี่ยง 8 ข้อที่มาจากสภาพจริงของรีโปนี้\par}
+
+\vspace{3.0cm}
+
+\begin{minipage}{0.66\textwidth}
+เอกสารนี้อธิบายว่า ``สัญญา'' (\en{contract}) ระหว่าง \en{frontend} กับ \en{backend}
+ในสถาปัตยกรรมแบบ \en{tRPC} คืออะไรกันแน่ ต้องประกอบด้วยอะไรบ้าง และเมื่อเอามาวางบน
+กองโค้ดที่ทีม ULMs มีอยู่จริงตอนนี้ จะเจอข้อจำกัดอะไรที่ต้องตัดสินใจก่อน
+
+\vspace{0.6em}
+รูปทั้งหมดเป็นภาพอธิบายที่วาดขึ้นเพื่อสอน \textbf{ไม่ใช่ผลการทดลอง} แต่ข้อเท็จจริง
+ทุกข้อ (เวอร์ชันไลบรารี จำนวนตาราง สถานะการตั้งค่า) สืบกลับไปยังไฟล์จริงในรีโปได้
+ตามรายการในภาคผนวก ง
+
+\vspace{0.6em}
+ภาค 5 คือลำดับงานที่เสนอให้ทำ และเอกสารคู่กันอีกฉบับ
+(\code{trpc-meeting.tex}) คือวาระประชุมสำหรับตกลงสิ่งที่เอกสารนี้ชี้ว่าต้องตกลง
+\end{minipage}
+
+\vfill
+\begin{tikzpicture}
+  \draw[rule, line width=0.6pt] (0,0) -- (\textwidth,0);
+\end{tikzpicture}
+\vspace{0.3em}
+
+{\sansall\footnotesize\color{muted}
+โครงการ: ระบบบริหารจัดการการยืม--คืนอุปกรณ์มหาวิทยาลัย (ULMs) \\
+ที่มาของข้อมูล: รีโป \code{SoftwareEn} สาขา \code{document-branch} · สถานะ: ยังไม่มี \en{router} \en{tRPC} ในรีโปแม้แต่ตัวเดียว \\
+ปรับปรุงล่าสุด: 8 สิงหาคม 2569}
+\end{titlepage}
+
+% =============================================================================
+%  สารบัญ
+% =============================================================================
+\microtypesetup{protrusion=false}
+{\hypersetup{allcolors=ink}
+\tableofcontents}
+\microtypesetup{protrusion=true}
+\clearpage
+
+% =============================================================================
+%  เอกสารนี้อ่านอย่างไร
+% =============================================================================
+\section*{เอกสารนี้อ่านอย่างไร}
+\addcontentsline{toc}{section}{เอกสารนี้อ่านอย่างไร}
+\markboth{เอกสารนี้อ่านอย่างไร}{}
+
+เอกสารแบ่งเป็นห้าภาค \textbf{เรียงตามเส้นทางที่ \en{request} หนึ่งครั้งเดินทางจริง}
+ไม่ได้เรียงตามหัวข้อทฤษฎี เหตุผลคือเมื่อผู้อ่านหลงว่าตัวเองอยู่ตรงไหน คำถามที่ตอบ
+ตัวเองได้เสมอคือ ``ตอนนี้ข้อมูลอยู่ในรูปอะไร และอยู่ที่เครื่องไหน'' --- การเรียงตาม
+หัวข้อทฤษฎีไม่ให้หลักยึดแบบนั้น
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[node distance=4mm]
+  \node[stage, text width=3.05cm] (p1)
+       {\textbf{ภาค 1}\\\en{tRPC} คืออะไร\\[1pt]
+        \scriptsize\color{muted}สัญญาคือ \en{type} ไม่ใช่ไฟล์สเปก};
+  \node[stage, text width=3.05cm, right=of p1] (p2)
+       {\textbf{ภาค 2}\\ทางเดินของ \en{request}\\[1pt]
+        \scriptsize\color{muted}คลิก $\to$ \en{HTTP} $\to$ \en{DB} $\to$ กลับ};
+  \node[stage, text width=3.05cm, right=of p2] (p3)
+       {\textbf{ภาค 3}\\ต้องมีอะไรบ้าง\\[1pt]
+        \scriptsize\color{muted}ชิ้นส่วนที่ขาดไม่ได้};
+  \node[bestage, text width=4.6cm, below=9mm of p2, xshift=-1.6cm] (p4)
+       {\textbf{ภาค 4}\\ความเสี่ยงและข้อกำหนดในรีโปนี้\\[1pt]
+        \scriptsize\color{muted}8 ข้อที่มาจากของจริง ไม่ใช่ทฤษฎี};
+  \node[festage, text width=4.6cm, right=6mm of p4] (p5)
+       {\textbf{ภาค 5}\\ต้องทำอะไรบ้าง ตามลำดับ\\[1pt]
+        \scriptsize\color{muted}จบที่ \en{Definition of Done}};
+
+  \draw[ar] (p1) -- (p2);
+  \draw[ar] (p2) -- (p3);
+  \draw[ar] (p3.south) -- ++(0,-4mm) -| (p5.north);
+  \draw[ar] (p4) -- (p5);
+
+  \node[lbl, below=1.5mm of p1, text width=3.2cm] {ข้ามได้ถ้าเคยใช้ \en{tRPC} แล้ว};
+  \node[lbl, above=1.5mm of p3, text width=3.2cm] {ใช้เป็น \en{checklist} ตอนลงมือ};
+\end{tikzpicture}
+\caption{แผนที่ของเอกสาร ภาค 1--3 เป็นความรู้ที่ย้ายไปโครงการอื่นได้ ส่วนภาค 4--5 ผูกกับรีโปนี้โดยเฉพาะ}
+\end{figure}
+
+\subsection*{ระบบสีในเอกสารฉบับนี้}
+
+สีไม่ได้ใส่เพื่อความสวย ในเล่มนี้สีสี่สีแทน \textbf{สี่ชั้นของระบบ} และใช้ความหมาย
+เดียวกันทุกที่ ทั้งในเนื้อความ ในไดอะแกรม และในตาราง เมื่อผู้อ่านเห็นกล่องสีส้ม
+ในรูปที่หน้า 20 จะรู้ทันทีว่ามันคือของฝั่ง \en{backend} โดยไม่ต้องอ่านป้าย
+
+\begin{itemize}
+\item \sctr{} --- สิ่งที่เป็น ``สัญญา'' เอง: \en{zod schema}, \en{type} ของ \en{AppRouter}, \en{input}/\en{output}
+\item \sbe{} --- ฝั่ง \en{NestJS}: \en{router}, \en{service}, \en{Prisma}, ฐานข้อมูล
+\item \sfe{} --- ฝั่ง \en{React}: \en{component}, \en{hook}, \en{TanStack Query} \en{cache}
+\item \sops{} --- ระหว่างทาง: \en{HTTP}, \en{cookie}, การแปลงเป็น \en{JSON}, การรวม \en{request}
+\end{itemize}
+
+ชุดสีฐานคือ Okabe--Ito ซึ่งเลือกมาให้แยกออกจากกันได้แม้ผู้อ่านมองสีบางคู่ไม่ต่าง
+
+\subsection*{กล่องสี่แบบ}
+
+กล่องแต่ละสีมีความหมายตายตัวทั้งเล่ม ตัวอย่างข้างล่างนี้ \emph{คือ} คำนิยามของมัน
+
+\begin{keybox}[title={ฟ้า --- ใจความที่ต้องจำติดตัวไป}]
+ใช้กับข้อสรุปที่ร้อยหลายบทเข้าด้วยกัน ถ้าอ่านเอกสารนี้แล้วจำได้แค่กล่องฟ้า
+ก็ถือว่าได้สาระหลักไปแล้ว
+\end{keybox}
+
+\begin{warnbox}[title={ส้ม --- กับดัก หรือข้อสมมติที่ถ้าลืมแล้วข้อสรุปจะผิด}]
+ใช้กับจุดที่คนพลาดกันบ่อย และกับข้อจำกัดที่ทำให้ข้อสรุปในหน้าเดียวกันใช้ไม่ได้
+ถ้าเงื่อนไขไม่ครบ
+\end{warnbox}
+
+\begin{goodbox}[title={เขียว --- ตรวจสอบกับของจริงในรีโปแล้ว}]
+ใช้เมื่อข้อความนั้นได้จากการเปิดไฟล์จริงดู ไม่ใช่จากความจำหรือจากเอกสารของไลบรารี
+ใช้อย่างประหยัด
+\end{goodbox}
+
+\begin{badbox}[title={แดง --- วิธีที่ผิดจริง ๆ}]
+ใช้กับแนวทางที่ดูสมเหตุสมผลแต่จะพังในภายหลัง พร้อมเหตุผลว่าพังเพราะอะไร
+เป็นกล่องที่ควรมีน้อยที่สุด
+\end{badbox}
+
+
+
+\clearpage
+
+% =============================================================================
+\part{\en{tRPC} คืออะไร และสัญญาของมันอยู่ตรงไหน}
+% =============================================================================
+
+\textbf{คำถามที่ภาคนี้ตอบ: ก่อนจะลงมือเขียน เราตกลงอะไรกันแน่ และไฟล์ ``สัญญา''
+ที่ว่านั้นหน้าตาเป็นอย่างไร}
+
+\section{ปัญหาที่ \en{tRPC} เกิดมาเพื่อแก้}
+
+ในระบบที่ \en{frontend} กับ \en{backend} เขียนแยกกัน ปัญหาที่กินเวลาทีมมากที่สุด
+ไม่ใช่การเขียน \en{endpoint} แต่คือ \textbf{ความจริงสองชุดที่ค่อย ๆ เลื่อนออกจากกัน}
+(\en{type drift})
+
+ตอนนี้ในรีโปของเรามีอาการนั้นครบทุกองค์ประกอบแล้ว ทั้งที่ยังไม่ได้ต่อ \en{API}
+กันเลยด้วยซ้ำ
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[node distance=6mm]
+  \node[bestage, text width=4.3cm] (db)
+       {\code{schema.prisma}\\[1pt]
+        \scriptsize\color{muted}\code{UserFName}, \code{UserCredit}\\32 ตาราง 0 \en{enum}};
+  \node[festage, text width=4.3cm, right=32mm of db] (fe)
+       {\code{types/domain.ts}\\[1pt]
+        \scriptsize\color{muted}\code{name}, \code{creditScore}\\เขียนมือ ``sync กันเป็นระยะ''};
+
+  \draw[ar, dashed, draw=bad, line width=1pt] (db) -- node[tag, above, text=bad]
+       {ไม่มีอะไรบังคับให้ตรงกัน} node[lbl, below, text width=3.4cm]
+       {คนแปลด้วยมือ\\ผิดเมื่อไรก็รู้ตอน \en{runtime}} (fe);
+
+  \node[blk, fill=badwash, draw=bad!45, text width=11.4cm, below=10mm of db,
+        xshift=21mm]
+       {คอมเมนต์บรรทัดแรกของ \code{frontend/src/types/domain.ts} เขียนไว้เองว่า
+        ``ตรงกับ \en{schema} ฝั่ง \en{backend} (\en{Prisma}) --- \en{sync} กันเป็นระยะ''\\[3pt]
+        \scriptsize\color{muted}ประโยคนี้คือคำจำกัดความของหนี้ทางเทคนิค: ความถูกต้อง
+        ขึ้นกับวินัยของคน ไม่ใช่ขึ้นกับเครื่องมือ};
+\end{tikzpicture}
+\caption{สภาพปัจจุบันของรีโป --- ความจริงสองชุดที่ยังไม่มีสะพานเชื่อม นี่คือช่องว่างที่ \en{tRPC} เข้ามาปิด}
+\end{figure}
+
+วิธีแก้แบบคลาสสิกมีสามแนว และแต่ละแนวจ่ายราคาคนละแบบ
+
+\begin{table}[H]
+\centering\small
+\begin{tabular}{L{2.2cm}L{4.3cm}L{4.3cm}L{3.6cm}}
+\toprule
+\sansall\bfseries แนวทาง & \sansall\bfseries สัญญาอยู่ที่ไหน &
+\sansall\bfseries ได้อะไร & \sansall\bfseries จ่ายอะไร \\
+\midrule
+\en{REST} + เขียน \en{type} เอง & ไม่มีที่ไหน (อยู่ในหัวคน) &
+เริ่มเร็วที่สุด ข้ามภาษาได้ & \en{type} เพี้ยนเงียบ ๆ รู้ตอน \en{runtime} \\
+\addlinespace
+\en{OpenAPI} / \en{codegen} & ไฟล์ \code{openapi.yaml} &
+ข้ามภาษาได้ มีเอกสารอัตโนมัติ & ต้องรัน \en{codegen} ทุกครั้ง เครื่องมือหนัก \\
+\addlinespace
+\en{GraphQL} & \en{schema} \en{SDL} &
+\en{client} เลือกฟิลด์เองได้ & ต้องเรียนของใหม่ทั้งทีม \en{N+1} ต้องระวัง \\
+\addlinespace
+\textbf{\en{tRPC}} & \textbf{\en{type} ของ \en{TypeScript} เอง} &
+\textbf{ผิดปุ๊บ \en{compile} ไม่ผ่านปั๊บ ไม่ต้องเรียนภาษาใหม่} &
+\textbf{ผูกกับ \en{TypeScript} ทั้งสองฝั่งเท่านั้น} \\
+\bottomrule
+\end{tabular}
+\caption{สี่แนวทาง ต่างกันที่ ``สัญญาถูกเก็บไว้ที่ไหน'' --- และนั่นเป็นตัวกำหนดว่าใครเป็นคนจับผิด}
+\end{table}
+
+\begin{keybox}[title={ทำไม \en{tRPC} จึงเหมาะกับโครงการนี้}]
+ทีมนี้ใช้ \en{TypeScript} ทั้งสองฝั่งอยู่แล้ว (\en{Vite} + \en{React} กับ
+\en{NestJS}) และเป็นทีมนักศึกษาที่มีเวลาจำกัด --- ประโยชน์ข้ามภาษาของ
+\en{OpenAPI}/\en{GraphQL} จึงไม่ได้ใช้ ในขณะที่ต้นทุนการเรียนรู้ของมันต้องจ่ายเต็ม
+\en{tRPC} ให้สิ่งที่ต้องการที่สุด (จับ \en{type} ผิดตั้งแต่ตอน \en{compile})
+ด้วยของที่ทีมรู้จักอยู่แล้ว
+\end{keybox}
+
+\section{สัญญาของ \en{tRPC} คืออะไรกันแน่}
+
+นี่คือจุดที่คนเข้าใจผิดมากที่สุด และเข้าใจผิดแล้วจะวางแผนงานผิดตาม
+
+\begin{keybox}[title={\en{tRPC} ไม่มีไฟล์สเปกกลาง --- สัญญาคือ \en{type} ของ \en{TypeScript}}]
+ใน \en{OpenAPI} สัญญาคือไฟล์ \code{.yaml} ที่คนอ่านได้ ใน \en{gRPC} คือไฟล์
+\code{.proto} แต่ใน \en{tRPC} สัญญาคือ \textbf{ชนิดข้อมูลของตัวแปรชื่อ
+\code{AppRouter}} ที่ \en{backend} \code{export} ออกมา แล้ว \en{frontend}
+\code{import type} เข้าไป
+
+จากนั้น \en{TypeScript} จะอนุมาน \en{input} และ \en{output} ของทุก
+\en{procedure} ให้เอง ถ้า \en{backend} เปลี่ยนชื่อฟิลด์ \en{frontend} จะ
+\textbf{\en{compile} ไม่ผ่านทันที} --- ไม่ต้องรัน ไม่ต้องเปิดเบราว์เซอร์
+\end{keybox}
+
+ผลที่ตามมาซึ่งต้องเข้าใจให้ตรงกันทั้งทีมมีสามข้อ
+
+\subsection{ผลที่ 1 --- สัญญามีผลเฉพาะตอน \en{compile} เท่านั้น}
+
+\en{type} ของ \en{TypeScript} หายไปหมดตอน \en{build} เป็น \en{JavaScript}
+แปลว่าถ้ามีใครยิง \en{request} เข้ามาตรง ๆ ด้วยข้อมูลผิดรูป \en{type} ช่วยอะไรไม่ได้เลย
+สิ่งที่ป้องกันจริงตอน \en{runtime} คือ \textbf{\en{zod schema}} ต่างหาก
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[node distance=5mm]
+  \node[stage, text width=3.6cm] (t) {\en{type} ของ \en{TypeScript}\\[1pt]
+        \scriptsize\color{muted}จับผิดตอนเขียนโค้ด};
+  \node[opstage, text width=3.6cm, right=14mm of t] (z) {\en{zod schema}\\[1pt]
+        \scriptsize\color{muted}จับผิดตอน \en{request} วิ่งจริง};
+  \node[lbl, below=2mm of t, text width=4cm] {หายไปตอน \en{build}\\ป้องกันโปรแกรมเมอร์};
+  \node[lbl, below=2mm of z, text width=4cm] {อยู่ใน \en{bundle} จริง\\ป้องกันผู้ใช้และผู้ไม่หวังดี};
+  \draw[ar, <->] (t) -- node[tag, above, text=ink, text width=2.4cm] {คนละหน้าที่\\ต้องมีทั้งคู่} (z);
+\end{tikzpicture}
+\caption{\en{type} กับ \en{zod} ไม่ใช่ของซ้ำซ้อนกัน --- ตัวหนึ่งทำงานก่อนโค้ดรัน อีกตัวทำงานตอนโค้ดรันแล้ว}
+\end{figure}
+
+\begin{warnbox}[title={อย่าคิดว่า ``มี \en{type} แล้วไม่ต้อง \en{validate}''}]
+\en{input} ทุกตัวต้องมี \en{zod schema} เสมอ แม้ \en{frontend} ของเราเองจะส่งค่าถูก
+เพราะ \en{endpoint} เปิดรับจากอินเทอร์เน็ต ใครก็ยิงเข้ามาได้ --- ระบบนี้มีเรื่อง
+เครดิตผู้ใช้และการอนุมัติของอาจารย์อยู่ในนั้น
+\end{warnbox}
+
+\subsection{ผลที่ 2 --- สัญญาต้องเดินทางข้ามฝั่งให้ได้จริง}
+
+ถ้าสัญญาคือ \en{type} แปลว่า \en{frontend} ต้อง ``มองเห็น'' ไฟล์ของ \en{backend}
+ผ่านระบบ \en{module} ของ \en{TypeScript} ให้ได้ ซึ่งในรีโปนี้ยัง \textbf{ทำไม่ได้}
+เพราะ \code{frontend/} กับ \code{backend-preview/backend/} เป็นคนละโปรเจกต์
+\en{npm} ที่ไม่มีอะไรเชื่อมถึงกัน --- รายละเอียดอยู่ในภาค 4 หัวข้อ
+\ref{sec:risk-transport} และเป็นวาระที่ต้องตกลงเป็นอันดับแรกสุด
+
+\subsection{ผลที่ 3 --- ``เอกสาร \en{API}'' ไม่เกิดขึ้นเองอัตโนมัติ}
+
+\en{OpenAPI} แถมหน้าเอกสารให้ฟรี แต่ \en{tRPC} ไม่มี สิ่งที่ทดแทนได้คือ
+\textbf{ตารางสัญญา} ที่ทีมเขียนเอง (ดูภาคผนวก ข) ซึ่งไม่ใช่งานเสียเปล่า เพราะ
+ตารางนั้นใช้เป็นภาคผนวกของรายงานส่งอาจารย์ได้ด้วย
+
+\section{ขอบเขต --- \en{tRPC} ไม่ใช่อะไรบ้าง}
+
+การรู้ขอบเขตช่วยกันไม่ให้ทีมพยายามยัดทุกอย่างเข้าไปในเครื่องมือเดียว
+
+\begin{table}[H]
+\centering\small
+\begin{tabular}{L{4.8cm}L{9.8cm}}
+\toprule
+\sansall\bfseries ความเข้าใจผิด & \sansall\bfseries ความจริง \\
+\midrule
+``\en{tRPC} แทน \en{REST} ได้ทั้งหมด'' &
+แทนได้เกือบหมด \textbf{ยกเว้นการอัปโหลดไฟล์} เพราะ \en{tRPC} คุยกันด้วย
+\en{JSON} ส่ง \en{binary} ไม่ได้ --- โครงการนี้มีอัปโหลดรูปตอนรับและตอนคืนของ
+จึงต้องเหลือทาง \en{REST} ไว้ \\
+\addlinespace
+``\en{tRPC} เป็นโปรโตคอลใหม่'' &
+ข้างล่างมันคือ \en{HTTP POST}/\en{GET} ธรรมดา เปิด \en{Network} \en{tab} ก็เห็น
+เพียงแต่รูปแบบ \en{URL} และ \en{body} ถูกกำหนดโดยไลบรารี \\
+\addlinespace
+``ใช้ \en{tRPC} แล้วภาษาอื่นเรียกได้'' &
+เรียกได้ในทางเทคนิค แต่จะไม่ได้ประโยชน์อะไรเลยเพราะสัญญาอยู่ในรูป \en{type} ของ
+\en{TypeScript} ถ้าอนาคตต้องมีแอปมือถือที่ไม่ใช่ \en{TypeScript} ต้องวางแผนใหม่ \\
+\addlinespace
+``\en{tRPC} จัดการ \en{cache} ให้'' &
+ไม่ --- คนจัดการ \en{cache}, \en{refetch}, \en{polling} คือ \textbf{TanStack
+Query} ซึ่งรีโปนี้ลงไว้แล้ว (\code{@tanstack/react-query} รุ่น 5)
+\en{tRPC} แค่เป็นตัวยิงและตัวให้ \en{type} \\
+\bottomrule
+\end{tabular}
+\caption{ขอบเขตของ \en{tRPC} --- ข้อแรกกับข้อสุดท้ายเป็นข้อที่กระทบแผนงานของทีมโดยตรง}
+\end{table}
+
+\clearpage
+
+% =============================================================================
+\part{ทางเดินของ \en{request} หนึ่งครั้ง}
+% =============================================================================
+
+\textbf{คำถามที่ภาคนี้ตอบ: ตั้งแต่ผู้ใช้กดปุ่ม ``ส่งคำขอยืม'' จนข้อมูลกลับมาแสดงบนจอ
+มันผ่านมือใครบ้าง และแต่ละมือทำอะไรกับข้อมูล}
+
+ภาคนี้คือแกนกลางของเอกสาร ถ้าเข้าใจรูปที่ \ref{fig:pipeline} ได้ทั้งรูป
+ที่เหลือเป็นรายละเอียด
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[node distance=3.5mm, x=1cm, y=1cm]
+
+  % ---- แถวบน: ฝั่ง frontend (เขียว) ----
+  \node[festage, text width=2.75cm] (c1)
+       {\textbf{1} \en{component}\\[1pt]\scriptsize\color{muted}กดปุ่ม เรียก \code{mutate()}};
+  \node[festage, text width=2.75cm, right=of c1] (c2)
+       {\textbf{2} \en{TanStack Query}\\[1pt]\scriptsize\color{muted}จัดการ \en{cache} + \en{retry}};
+  \node[stage, text width=2.75cm, right=of c2] (c3)
+       {\textbf{3} \en{tRPC client}\\[1pt]\scriptsize\color{muted}\en{type} มาจากสัญญา};
+  \node[opstage, text width=2.75cm, right=of c3] (c4)
+       {\textbf{4} \en{httpBatchLink}\\[1pt]\scriptsize\color{muted}รวมหลาย \en{call} เป็น 1};
+
+  % ---- ลูกศรลง ----
+  \node[opstage, text width=11.9cm, below=8mm of c2, xshift=1.55cm] (net)
+       {\textbf{5} \en{HTTP POST /trpc/...} พร้อม \en{cookie} (\code{credentials: include})\\[2pt]
+        \scriptsize\color{muted}ตรงนี้ทุกอย่างกลายเป็น \en{JSON} ล้วน --- \code{Date} กลายเป็นสตริง, \code{Map}/\code{Set} หาย, \code{undefined} หาย};
+
+  % ---- แถวล่าง: ฝั่ง backend (ส้ม) ----
+  \node[bestage, text width=2.75cm, below=8mm of c1, yshift=-1.55cm] (s1)
+       {\textbf{6} \en{context}\\[1pt]\scriptsize\color{muted}อ่าน \en{cookie} $\to$ \code{ctx.user}};
+  \node[bestage, text width=2.75cm, right=of s1] (s2)
+       {\textbf{7} \en{middleware}\\[1pt]\scriptsize\color{muted}ล็อกอินหรือยัง? \en{role} ผ่านไหม?};
+  \node[stage, text width=2.75cm, right=of s2] (s3)
+       {\textbf{8} \en{input schema}\\[1pt]\scriptsize\color{muted}\en{zod} ตรวจข้อมูลจริง};
+  \node[bestage, text width=2.75cm, right=of s3] (s4)
+       {\textbf{9} \en{service} + \en{Prisma}\\[1pt]\scriptsize\color{muted}ตรรกะธุรกิจ + \en{DB}};
+
+  \node[stage, text width=11.9cm, below=8mm of s2, xshift=1.55cm] (out)
+       {\textbf{10} \en{output schema} --- แปลง \en{Prisma model} เป็นรูปที่ \en{frontend} ใช้\\[2pt]
+        \scriptsize\color{muted}\code{UserFName} $\to$ \code{firstName} · ตัด \code{HashedPassword} ทิ้ง · \code{DateTime} $\to$ สตริง \en{ISO}};
+
+  \draw[ar] (c1) -- (c2);
+  \draw[ar] (c2) -- (c3);
+  \draw[ar] (c3) -- (c4);
+  \draw[ar] (c4.south) -- ++(0,-2mm) -| ([xshift=3cm]net.north);
+  \draw[ar] ([xshift=-3cm]net.south) -- ++(0,-2mm) -| (s1.north);
+  \draw[ar] (s1) -- (s2);
+  \draw[ar] (s2) -- (s3);
+  \draw[ar] (s3) -- (s4);
+  \draw[ar] (s4.south) -- ++(0,-2mm) -| ([xshift=3cm]out.north);
+  \draw[ar, draw=ctr, line width=1pt] ([xshift=-5.6cm]out.south) -- ++(0,-5mm)
+       -- ++(-1.2,0) node[lbl, below=1mm, text width=3cm, text=ctr]
+       {เดินทางกลับตามทางเดิม\\แล้ว \en{type} ปลายทางถูกเสมอ};
+\end{tikzpicture}
+\caption{ทางเดินของ \en{request} หนึ่งครั้ง สีบอกว่าขั้นนั้นเป็นความรับผิดชอบของใคร --- ขั้นที่เป็นสีฟ้า (3, 8, 10) คือ ``สัญญา'' และเป็นสามจุดเดียวที่ทั้งสองฝั่งต้องตกลงกันให้ตรง}
+\label{fig:pipeline}
+\end{figure}
+
+\section{ขั้นที่ 1--2 --- จาก \en{component} ถึง \en{TanStack Query}}
+
+ฝั่ง \en{React} จะไม่ได้เรียก \code{fetch} ตรง ๆ อีกต่อไป แต่เรียกผ่าน \en{hook}
+ที่ \en{tRPC} สร้างให้ ซึ่งข้างในก็คือ \en{TanStack Query} ที่ทีมใช้อยู่แล้ว
+
+\begin{lstlisting}
+// what a screen looks like after the contract exists
+const { data, isLoading } = trpc.item.list.useQuery({
+  page: 1,
+  q: searchText,
+});
+// `data` is fully typed. No `as Equipment[]`, no hand-written interface.
+
+const createLoan = trpc.loan.create.useMutation({
+  onSuccess: () => {
+    // refetch the lists this action invalidates
+    utils.loan.myActive.invalidate();
+    utils.item.list.invalidate();
+  },
+});
+\end{lstlisting}
+
+สังเกตว่างานที่ \en{TanStack Query} รับไปทำคือสิ่งที่เอกสาร
+``รายการเรียกใช้งานจาก \en{Backend}'' ระบุไว้ทั้งกลุ่มที่ 1 และกลุ่มที่ 2 พอดี:
+\en{polling} ทุก 10--15 วินาที คือ \code{refetchInterval} และ ``\en{refetch}
+หลังทำ \en{action}'' คือ \code{invalidate()}
+
+\begin{keybox}[title={แบ่งงานให้ชัด: \en{tRPC} ยิงกับให้ \en{type} · \en{TanStack Query} จำและตัดสินใจว่าจะยิงเมื่อไร}]
+ถ้าคำถามคือ ``ข้อมูลนี้เก่าไปหรือยัง'' ``ต้อง \en{refetch} ไหม'' ``มีคนถามพร้อมกันสองที่
+จะยิงซ้ำไหม'' --- คำตอบทั้งหมดอยู่ที่ \en{TanStack Query} ไม่ใช่ \en{tRPC}
+เวลาดีบักให้แยกสองเรื่องนี้ออกจากกันก่อนเสมอ
+\end{keybox}
+
+\section{ขั้นที่ 3--4 --- \en{tRPC client} และ \en{link}}
+
+\en{link} คือชั้นที่ตัดสินใจว่า ``จะเอา \en{call} นี้ส่งออกไปยังไง'' ตัวที่จะใช้คือ
+\code{httpBatchLink} ซึ่งมีพฤติกรรมหนึ่งที่ต้องรู้ล่วงหน้า ไม่งั้นจะงงตอนดีบัก
+
+\begin{warnbox}[title={\en{httpBatchLink} รวมหลาย \en{query} เป็น \en{request} เดียว --- \en{Network} \en{tab} จะไม่ตรงกับที่คิด}]
+ถ้าหน้าหนึ่งเรียก 4 \en{query} พร้อมกัน คุณจะเห็นใน \en{DevTools} แค่
+\textbf{หนึ่งบรรทัด} ที่มี \en{URL} หน้าตาประหลาดแบบ
+\code{/trpc/item.list,user.me,credit.mine,notification.unread?batch=1}
+
+ผลตามมาที่ต้องระวังสองข้อ
+
+\begin{enumerate}
+\item \textbf{ช้าที่สุดลากทุกตัว} --- \en{response} ทั้งก้อนกลับพร้อมกัน ถ้ามี
+      \en{query} เดียวที่ช้า 3 วินาที อีกสามตัวก็รอด้วย
+\item \textbf{หน้าที่ \en{polling} ถี่ต้องระวังเป็นพิเศษ} --- เอกสารระบุ
+      \en{polling} 10--15 วินาทีสำหรับของคงเหลือและสล็อตห้อง ถ้าไปรวมก้อนกับ
+      \en{query} หนักอย่างรายงานสถิติ ทั้งก้อนจะช้าตามทุก 10 วินาที
+\end{enumerate}
+
+ถ้าเจอปัญหานี้ ทางแก้คือแยก \en{link} ตามเงื่อนไข (\code{splitLink}) หรือใช้
+\code{httpLink} ธรรมดาสำหรับเส้นที่ถี่
+\end{warnbox}
+
+\section{ขั้นที่ 5 --- ระหว่างทาง: สิ่งที่ \en{JSON} ทำหาย}
+\label{sec:json}
+
+จุดนี้เป็นบ่อเกิดของบั๊กที่หายากที่สุดในระบบแบบนี้ เพราะ \en{type} ฝั่ง
+\en{TypeScript} บอกว่าเป็น \code{Date} แต่ของที่มาถึงจริงเป็นสตริง
+
+\begin{table}[H]
+\centering\small
+\begin{tabular}{L{3.4cm}L{4.0cm}L{7.2cm}}
+\toprule
+\sansall\bfseries ส่งออกจาก \en{backend} & \sansall\bfseries ถึง \en{frontend} เป็น &
+\sansall\bfseries ผลกับโครงการนี้ \\
+\midrule
+\code{Date} & สตริง \en{ISO} &
+กระทบหนัก --- \code{schema.prisma} มีฟิลด์ \code{DateTime} อย่างน้อย 19 จุด เช่น
+\code{DueTime}, \code{CheckoutTime}, \code{ExpirationTime} \\
+\addlinespace
+\code{undefined} & หายไปจาก \en{object} &
+ต้องระวังตอนเช็ก \code{'key' in obj} \\
+\addlinespace
+\code{Decimal} (\en{Prisma}) & สตริง หรือพัง &
+ยังไม่กระทบ --- \en{schema} ปัจจุบันไม่ใช้ \code{Decimal} \\
+\addlinespace
+\code{Map}, \code{Set}, \code{BigInt} & พัง &
+อย่าใส่ใน \en{output} \\
+\bottomrule
+\end{tabular}
+\caption{การแปลงเป็น \en{JSON} คือด่านที่ข้อมูลเปลี่ยนรูปโดยที่ \en{type} ไม่บอก}
+\end{table}
+
+มีสองทางเลือกและต้องเลือกให้เหมือนกันทั้งระบบ
+
+\begin{table}[H]
+\centering\small
+\begin{tabular}{L{3.2cm}L{5.6cm}L{5.8cm}}
+\toprule
+\sansall\bfseries ทางเลือก & \sansall\bfseries ได้อะไร & \sansall\bfseries เสียอะไร \\
+\midrule
+ใส่ \code{superjson} เป็น \en{transformer} &
+ได้ \code{Date} จริงกลับมา เขียนโค้ดฝั่งหน้าเว็บง่ายกว่า &
+ต้องตั้งค่าให้ตรงกันเป๊ะทั้งสองฝั่ง ถ้าตั้งข้างเดียวจะพังแบบอ่านสาเหตุไม่ออก
+เพิ่มขนาด \en{payload} \\
+\addlinespace
+\textbf{ประกาศเป็นสตริง \en{ISO} ใน \en{output schema}} &
+\textbf{ตรงไปตรงมา ดีบักง่าย เห็นใน \en{Network} \en{tab} แล้วเข้าใจทันที
+ทีมมี \code{date-fns} อยู่แล้ว} &
+\textbf{ต้อง \code{parseISO} เองทุกที่ที่จะเอาไปคำนวณ} \\
+\bottomrule
+\end{tabular}
+\caption{ข้อเสนอของเอกสารนี้คือแถวที่สอง --- แต่เป็นเรื่องที่ต้องมีมติร่วมกัน ไม่ใช่ใครเลือกเองกลางทาง}
+\end{table}
+
+\section{ขั้นที่ 6--7 --- \en{context} และ \en{middleware}}
+
+\en{context} คือ \en{object} ที่ถูกสร้างใหม่ทุก \en{request} และส่งต่อให้ทุก
+\en{procedure} ในคำขอนั้น หน้าที่ของมันคือแปลง ``สิ่งที่มากับ \en{HTTP}''
+ให้เป็น ``สิ่งที่ตรรกะธุรกิจใช้ได้''
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[node distance=6mm]
+  \node[opstage, text width=3.2cm] (req) {\en{HTTP request}\\[1pt]
+        \scriptsize\color{muted}มี \en{header} \code{Cookie}};
+  \node[bestage, text width=3.6cm, right=10mm of req] (ctx) {สร้าง \en{context}\\[1pt]
+        \scriptsize\color{muted}ถอด \en{token} $\to$ หา \en{user} จาก \en{DB}};
+  \node[stage, text width=3.9cm, right=10mm of ctx] (user) {\code{ctx.user}\\[1pt]
+        \scriptsize\color{muted}\code{\{ accountKey, role,}\\\code{facultyKey, creditTier \}}};
+  \draw[ar] (req) -- (ctx);
+  \draw[ar] (ctx) -- (user);
+
+  \node[blk, fill=warnwash, draw=beo!45, text width=13.2cm, below=8mm of ctx, xshift=1.2cm]
+       {รูปร่างของ \code{ctx.user} คือสิ่งที่ต้องตกลง \textbf{ก่อน} เขียน \en{procedure} ตัวแรก
+        เพราะทุก \en{procedure} พึ่งมัน\\[3pt]
+        \scriptsize\color{muted}ถ้าลืมใส่ \code{facultyKey} ไว้ตั้งแต่ต้น แล้ววันหลังพบว่าการ
+        ตรวจสิทธิ์ยืมต้องใช้ ต้องกลับไปแก้ทุก \en{procedure} ที่เขียนไปแล้ว};
+\end{tikzpicture}
+\caption{\en{context} คือด่านแปลงจากภาษาเครือข่ายเป็นภาษาธุรกิจ --- และเป็นสัญญาภายในที่ทุก \en{procedure} ใช้ร่วมกัน}
+\end{figure}
+
+\en{middleware} คือชั้นที่คั่นก่อนเข้า \en{procedure} ใช้บังคับเรื่องสิทธิ์
+รูปแบบที่ควรใช้คือสร้าง \en{procedure} สำเร็จรูปไว้เป็นชั้น ๆ แล้วเลือกใช้ตามงาน
+แทนที่จะเขียน \code{if} ตรวจ \en{role} ซ้ำในทุก \en{service}
+
+\begin{lstlisting}
+// four ready-made procedure levels, defined once
+publicProcedure      // anyone: login, catalog browsing
+protectedProcedure   // any logged-in user
+staffProcedure       // staff only: prepare, check-in, damage assessment
+supervisorProcedure  // supervisor only: approve, rule on appeals
+adminProcedure       // admin only: user management, system settings
+\end{lstlisting}
+
+\begin{badbox}[title={อย่าตรวจ \en{role} ข้างใน \en{service}}]
+\code{if (user.role !== 'staff') throw ...} ที่กระจายอยู่ใน \en{service}
+หลายสิบไฟล์ ทำให้ตอบคำถามว่า ``ใครเรียก \en{procedure} นี้ได้บ้าง'' ไม่ได้
+โดยไม่อ่านโค้ดทั้งไฟล์ --- และนั่นคือคำถามที่ต้องตอบได้จากตารางสัญญา
+
+สิทธิ์การเข้าถึง \textbf{เป็นส่วนหนึ่งของสัญญา} ไม่ใช่รายละเอียดการทำงานภายใน
+\end{badbox}
+
+\section{ขั้นที่ 8 --- \en{zod} ตรวจ \en{input}}
+
+ด่านนี้คือสิ่งเดียวที่ป้องกันข้อมูลผิดรูปได้จริงตอนรัน ถ้า \en{schema} ไม่ผ่าน
+\en{tRPC} จะโยน \code{BAD\_REQUEST} กลับไปโดยที่ \en{service} ไม่ถูกเรียกเลย
+
+\begin{lstlisting}
+export const createLoanInput = z.object({
+  itemId:    z.number().int().positive(),
+  startDate: z.string().datetime(),   // ISO string, per the team decision
+  endDate:   z.string().datetime(),
+  note:      z.string().max(500).optional(),
+});
+export type CreateLoanInput = z.infer<typeof createLoanInput>;
+\end{lstlisting}
+
+\begin{keybox}[title={เขียน \en{schema} หนึ่งครั้ง ได้ทั้ง \en{validation} และ \en{type}}]
+\code{z.infer} ดึง \en{type} ของ \en{TypeScript} ออกมาจาก \en{schema} เดียวกัน
+แปลว่ากฎการตรวจสอบกับ \en{type} จะไม่มีวันไม่ตรงกัน --- นี่คือเหตุผลที่ \en{tRPC}
+เลือกผูกกับ \en{zod} ตั้งแต่แรก
+\end{keybox}
+
+\section{ขั้นที่ 9--10 --- \en{service}, \en{Prisma} และด่านแปลงขาออก}
+
+ขั้นที่ 10 เป็นขั้นที่ทีมมักข้าม และเป็นข้อผิดพลาดที่แพงที่สุดในระยะยาว
+
+\begin{badbox}[title={ห้าม \code{return} \en{Prisma model} ตรง ๆ ออกไปเป็น \en{output}}]
+มันดูสะดวกมาก เพราะ \en{type} ก็มีให้พร้อมอยู่แล้ว แต่มีปัญหาสามข้อที่ร้ายแรงกับ
+โครงการนี้โดยเฉพาะ
+
+\begin{enumerate}
+\item \textbf{ข้อมูลลับหลุด} --- \code{AccountInfo} มีฟิลด์
+      \code{HashedPassword} อยู่ในตารางเดียวกับชื่อและอีเมล \code{findUnique}
+      แล้วส่งกลับตรง ๆ คือส่ง \en{hash} รหัสผ่านออกไปที่เบราว์เซอร์
+\item \textbf{ฐานข้อมูลเปลี่ยนไม่ได้อีกเลย} --- ถ้าสัญญาคือรูปร่างของตาราง
+      การเปลี่ยนชื่อคอลัมน์จะทำให้ \en{frontend} พังทันที ทั้งที่ไม่ควรเกี่ยวกัน
+\item \textbf{\en{frontend} ต้องพูดภาษาฐานข้อมูล} --- \en{schema} ของเราใช้
+      \code{PascalCase} (\code{UserFName}, \code{UserCredit}, \code{AccountKey})
+      ซึ่งขัดกับธรรมเนียมของโค้ด \en{React} ทั้งโปรเจกต์
+\end{enumerate}
+\end{badbox}
+
+ทางที่ถูกคือให้ \en{output schema} เป็น ``ภาษาของ \en{frontend}'' แล้วให้
+\en{service} เป็นคนแปลง ชั้นการแปลงนี้เล็กแต่เป็นสิ่งที่ทำให้สองฝั่งเป็นอิสระต่อกัน
+
+\begin{lstlisting}
+export const userOutput = z.object({
+  id:         z.number().int(),       // from AccountKey
+  studentId:  z.string(),             // from UserID
+  firstName:  z.string(),             // from UserFName
+  lastName:   z.string(),             // from UserLName
+  email:      z.string().email(),
+  role:       z.enum(['borrower', 'staff', 'supervisor', 'admin']),
+  creditScore: z.number().int(),      // from UserCredit
+  // HashedPassword is not here, and cannot leak by accident
+});
+\end{lstlisting}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[node distance=8mm]
+  \node[bestage, text width=3.5cm] (db)
+       {ตาราง \code{AccountInfo}\\[1pt]\scriptsize\color{muted}\code{AccountKey}\\\code{UserFName}\\\textcolor{bad}{\code{HashedPassword}}};
+  \node[stage, text width=3.8cm, right=14mm of db] (out)
+       {\code{userOutput}\\[1pt]\scriptsize\color{muted}\code{id}\\\code{firstName}\\\textcolor{feg!60!black}{(ไม่มีรหัสผ่าน)}};
+  \node[festage, text width=3.5cm, right=14mm of out] (fe)
+       {\en{React component}\\[1pt]\scriptsize\color{muted}ใช้ \code{user.firstName}};
+
+  \draw[ar] (db) -- node[tag, above, text width=2.6cm, text=ink] {\en{service}\\แปลงชื่อ + คัดฟิลด์} (out);
+  \draw[ar] (out) -- node[tag, above, text width=2.4cm, text=ink] {\en{type} ไหลอัตโนมัติ} (fe);
+
+  \node[blk, fill=wash, draw=ctr!45, text width=13.6cm, below=9mm of out, xshift=0cm]
+       {ชั้นตรงกลางนี้ราคาไม่แพง แต่ซื้ออิสรภาพสองทาง: \en{DBA} เปลี่ยนชื่อคอลัมน์ได้โดยไม่พัง
+        หน้าเว็บ และคนทำ \en{frontend} ไม่ต้องรู้ว่าฐานข้อมูลตั้งชื่อยังไง\\[3pt]
+        \scriptsize\color{muted}ในรีโปนี้ชั้นนี้จำเป็นกว่าปกติ เพราะ \en{schema} ใช้ \code{PascalCase}
+        และไม่มี \en{enum} เลยสักตัว (สถานะทั้งหมดเป็นตารางแยก)};
+\end{tikzpicture}
+\caption{ด่านแปลงขาออก --- จุดที่ ``รูปร่างของฐานข้อมูล'' กับ ``รูปร่างของสัญญา'' แยกออกจากกันอย่างตั้งใจ}
+\end{figure}
+
+\subsection{\en{output} ต้องบรรจุ ``ค่าที่คำนวณแล้ว'' ไม่ใช่วัตถุดิบให้ไปคำนวณเอง}
+
+กฎเครดิตของระบบนี้เป็นตัวอย่างที่ดีที่สุดของหลักข้อนี้ และเป็นจุดที่เข้าใจผิดกันบ่อย
+
+\begin{keybox}[title={เครดิตต่ำไม่ได้ทำให้ยืมไม่ได้ --- มันทำให้ยืมได้สั้นลง}]
+ใน \code{schema.prisma} คะแนนเครดิตถูกจับเป็นระดับผ่าน \code{CreditTier}
+(\code{CreditMin}, \code{CreditMax}) แล้วระดับนั้นไปคู่กับกฎการยืมในตาราง
+\code{BorrowConstraints} ซึ่งเก็บ \code{MaxBorrowDate} (จำนวนวันยืมสูงสุด) และ
+\code{MaxExtendTime} (จำนวนครั้งที่ต่ออายุได้)
+
+\textbf{ไม่มีฟิลด์ไหนในสคีมาที่บอกว่าคะแนนเท่าไรถึงห้ามยืม} สิ่งที่กันไม่ให้ยืม
+เป็นคนละกลไก คือตาราง \code{Eligibility} (สังกัด $\times$ บทบาท $\times$ ของ)
+และ \code{MinimumAuthorityLevel} --- ทั้งคู่ไม่เกี่ยวกับคะแนนเครดิต
+
+ฝั่ง \en{frontend} ก็มองแบบเดียวกันอยู่แล้ว: \code{CreditBandConfig} ใน
+\code{types/domain.ts} มีฟิลด์ \code{loanDays} ไม่ใช่ฟิลด์ ``ยืมได้/ไม่ได้''
+\end{keybox}
+
+ผลต่อการออกแบบ \en{output} มีสองข้อ
+
+\begin{enumerate}
+\item \code{loan.create} ต้อง \textbf{คืนวันครบกำหนดจริง} ที่ระบบให้ ไม่ใช่คืนแค่
+      ``สำเร็จ'' แล้วให้ \en{frontend} เอาจำนวนวันของระดับเครดิตไปบวกเอง เพราะ
+      ถ้าเครดิตถูกหักระหว่างทาง สองฝั่งจะคำนวณได้คนละคำตอบ
+\item \code{auth.me} หรือ \code{credit.mine} ควรคืน \textbf{เพดานวันยืมและ
+      จำนวนครั้งต่ออายุที่เหลือ} มาเป็นค่าสำเร็จรูป ไม่ใช่คืนคะแนนดิบแล้วให้
+      \en{frontend} ไปเปิดตารางเทียบเอง --- ตารางเทียบนั้นคือกฎธุรกิจ
+      และกฎธุรกิจอยู่ฝั่ง \en{backend} ที่เดียว
+\end{enumerate}
+
+\begin{warnbox}[title={ถ้า \en{frontend} คำนวณเองเมื่อไร กฎจะมีสองชุดทันที}]
+วันที่ทีมเปลี่ยนเพดานของระดับ D2 จาก 7 วันเป็น 5 วัน ถ้ากฎถูกคัดลอกไว้ฝั่ง
+\en{frontend} ด้วย จะมีคนแก้ที่เดียวแล้วอีกฝั่งค้าง --- และเป็นความไม่ตรงกันที่
+\en{type} ตรวจไม่เจอ เพราะทั้งสองฝั่งยังเป็น \code{number} เหมือนเดิม
+\end{warnbox}
+
+\clearpage
+
+% =============================================================================
+\part{ต้องมีอะไรบ้างให้ครบ}
+% =============================================================================
+
+\textbf{คำถามที่ภาคนี้ตอบ: ถ้าจะบอกว่า ``เรามีสัญญา \en{tRPC} แล้ว'' ต้องมีชิ้นส่วน
+อะไรอยู่ในรีโปบ้าง และตอนนี้ขาดอะไร}
+
+\section{ฝั่ง \en{backend} --- ห้าชิ้นที่ขาดไม่ได้}
+
+รีโปนี้ใช้ \code{nestjs-trpc} ซึ่งทำงานต่างจาก \en{tRPC} เพียว ๆ ตรงที่มันเป็นแบบ
+\textbf{เขียนโค้ดก่อนแล้วให้เครื่องสร้างไฟล์สัญญาให้} (\en{code-first} +
+\en{codegen}) แทนที่จะประกอบ \en{router} ด้วยมือ เราติด \en{decorator} บน
+\en{class} แล้วมันจะสแกนโค้ดตอน \en{build} เพื่อ \textbf{เขียนไฟล์ \en{router}
+ออกมาให้} --- ไฟล์นั้นแหละคือตัวสัญญาที่ \en{frontend} ต้องเอาไปใช้
+
+\begin{goodbox}[title={ตรวจสอบกับรีโปแล้ว: ของที่ลงไว้ครบ แต่ยังไม่ได้เปิดใช้}]
+\code{backend-preview/backend/package.json} มี \code{nestjs-trpc} รุ่น 2.13,
+\code{@trpc/server} รุ่น 11.18, \code{zod} รุ่น 4.4 และ \code{@prisma/client}
+รุ่น 7.9 ครบแล้ว
+
+แต่ \code{src/app.module.ts} เรียก \code{TRPCModule.forRoot()} แบบ
+\textbf{ไม่ส่งค่าตั้งค่าใด ๆ} แปลว่ายังไม่ได้บอกให้มันสร้างไฟล์สัญญา และใน
+\code{src/} ยังไม่มีไฟล์ \en{router} สักไฟล์เดียว
+\end{goodbox}
+
+\begin{table}[H]
+\centering\small
+\begin{tabular}{L{0.6cm}L{3.4cm}L{6.2cm}L{4.4cm}}
+\toprule
+\sansall\bfseries \# & \sansall\bfseries ชิ้นส่วน & \sansall\bfseries หน้าที่ &
+\sansall\bfseries สถานะในรีโป \\
+\midrule
+1 & \code{TRPCModule} + \code{autoSchemaFile} &
+บอกให้ \en{Nest} เปิด \en{endpoint} และให้เขียนไฟล์สัญญาออกมา &
+\textcolor{bad}{เรียกแบบไม่ส่ง \en{option}} \\
+\addlinespace
+2 & \en{context factory} &
+สร้าง \code{ctx.user} จาก \en{cookie} ทุก \en{request} &
+\textcolor{bad}{ยังไม่มี} \\
+\addlinespace
+3 & \en{middleware} ตาม \en{role} &
+บังคับสิทธิ์ก่อนเข้า \en{service} &
+\textcolor{bad}{ยังไม่มี} \\
+\addlinespace
+4 & \en{router} ต่อโดเมน &
+\code{item}, \code{loan}, \code{reservation}, \code{appeal}, \code{credit},
+\code{notification}, \code{admin} &
+\textcolor{bad}{ยังไม่มีสักตัว} \\
+\addlinespace
+5 & \en{input}/\en{output schema} &
+ตรวจข้อมูลขาเข้า และกำหนดรูปร่างขาออก &
+\textcolor{bad}{ยังไม่มี} \\
+\bottomrule
+\end{tabular}
+\caption{ชิ้นส่วนฝั่ง \en{backend} --- ทั้งห้าชิ้นยังไม่มี แต่ของที่ต้องลงเพิ่มคือศูนย์ ทุกอย่างติดตั้งไว้แล้ว}
+\end{table}
+
+\subsection{หน้าตาของ \en{router} ที่จะเขียน}
+
+\begin{lstlisting}
+@Router({ alias: 'loan' })
+export class LoanRouter {
+  constructor(private readonly loanService: LoanService) {}
+
+  @UseMiddlewares(AuthMiddleware)
+  @Query({ input: listLoansInput, output: listLoansOutput })
+  list(@Input() input: ListLoansInput, @Ctx() ctx: TrpcContext) {
+    return this.loanService.listForUser(ctx.user.id, input);
+  }
+
+  @UseMiddlewares(AuthMiddleware)
+  @Mutation({ input: createLoanInput, output: loanOutput })
+  create(@Input() input: CreateLoanInput, @Ctx() ctx: TrpcContext) {
+    return this.loanService.create(ctx.user.id, input);
+  }
+}
+\end{lstlisting}
+
+\begin{warnbox}[title={\code{nestjs-trpc} ต้องระบุ \code{output} เอง ไม่งั้นสัญญาไร้ความหมาย}]
+\en{tRPC} เพียว ๆ อนุมาน \en{output} จากค่าที่ฟังก์ชัน \code{return} ได้เอง แต่
+\code{nestjs-trpc} สร้างไฟล์สัญญาจากการ \textbf{อ่านโค้ดแบบสถิต} มันจึงต้องมี
+\en{schema} ที่เขียนไว้ตรง ๆ ให้อ่าน
+
+ถ้าลืมใส่ \code{output} ฝั่ง \en{frontend} จะได้ \en{type} เป็น \code{any}
+แล้วทุกอย่างจะ ``\en{compile} ผ่าน'' โดยไม่มีการตรวจสอบใด ๆ เหลืออยู่เลย ---
+เป็นความล้มเหลวที่เงียบที่สุดที่เป็นไปได้ในสถาปัตยกรรมนี้
+
+\textbf{ข้อนี้ต้องเป็นกฎของทีมและต้องมีคนตรวจตอนรีวิว \en{PR}} เพราะ \en{compiler}
+จับให้ไม่ได้ --- ดูข้อเสนอวิธีบังคับในหัวข้อ \ref{sec:enforce}
+\end{warnbox}
+
+\section{ฝั่ง \en{frontend} --- สามชิ้นที่ยังไม่มี}
+
+\begin{goodbox}[title={ตรวจสอบกับรีโปแล้ว: \code{frontend/package.json} ยังไม่มีแพ็กเกจของ \en{tRPC} เลย}]
+มี \code{@tanstack/react-query} รุ่น 5.59 และ \code{zod} รุ่น 3.23 แต่ไม่มี
+\code{@trpc/client} และไม่มี \code{@trpc/react-query} --- และเวอร์ชัน
+\code{zod} ก็ไม่ตรงกับฝั่ง \en{backend} ซึ่งเป็นความเสี่ยงข้อแรกในภาค 4
+\end{goodbox}
+
+\begin{enumerate}
+\item \textbf{แพ็กเกจ} --- \code{@trpc/client} และตัวเชื่อมกับ \en{TanStack Query}
+      ต้องเลือกเวอร์ชันให้เข้าชุดกับ \code{@trpc/server} รุ่น 11 ที่ \en{backend} ใช้
+\item \textbf{ตัวตั้งค่า \en{client}} --- กำหนด \en{link}, \en{URL} และที่สำคัญคือ
+      \code{credentials: 'include'} เพื่อให้ \en{cookie} ติดไปด้วย
+\item \textbf{ไฟล์สัญญาที่นำเข้ามาได้} --- ข้อนี้คือข้อที่ยังไม่มีทางทำ ดูภาค 4
+\end{enumerate}
+
+\begin{lstlisting}
+// frontend/src/lib/trpc.ts — the shape this file will take
+import { createTRPCClient, httpBatchLink } from '@trpc/client';
+import type { AppRouter } from '@/server-types/appRouter';  // the contract
+
+export const trpcClient = createTRPCClient<AppRouter>({
+  links: [
+    httpBatchLink({
+      url: import.meta.env.VITE_API_URL + '/trpc',
+      // the team already chose httpOnly cookies, so every call must carry them
+      fetch: (url, opts) => fetch(url, { ...opts, credentials: 'include' }),
+    }),
+  ],
+});
+\end{lstlisting}
+
+\begin{keybox}[title={\code{api-client.ts} เดิมไม่ได้ทิ้ง}]
+ไฟล์ \code{frontend/src/lib/api-client.ts} ที่มีอยู่ยังต้องใช้ต่อสำหรับ
+\code{uploadFile} เพราะ \en{tRPC} ส่งไฟล์ไม่ได้ ส่วนเมท็อด \code{get}/\code{post}
+ทั่วไปจะถูกแทนที่ด้วย \en{tRPC} ทีละ \en{feature} --- ไม่ต้องรื้อทีเดียวทั้งไฟล์
+\end{keybox}
+
+\section{ตัวเชื่อม --- ชิ้นที่สำคัญที่สุดและยังไม่มีเลย}
+\label{sec:bridge}
+
+สองฝั่งข้างบนต่อให้ทำครบก็ยังใช้ไม่ได้ ถ้าไฟล์สัญญาเดินทางข้ามฝั่งไม่ได้
+นี่เป็นหัวข้อที่ต้องตัดสินใจก่อนอย่างอื่นทั้งหมด และมีรายละเอียดอยู่ในหัวข้อ
+\ref{sec:risk-transport}
+
+\section{\en{checklist} รวม}
+
+ใช้ตารางนี้ตอบคำถาม ``เรามีสัญญาแล้วหรือยัง'' --- ตอบว่ามีได้ก็ต่อเมื่อครบทุกข้อ
+
+\begin{table}[H]
+\centering\small
+\begin{tabular}{L{0.5cm}L{9.6cm}L{4.4cm}}
+\toprule
+\sansall\bfseries \# & \sansall\bfseries รายการ & \sansall\bfseries เจ้าของ \\
+\midrule
+1 & ตกลงวิธีให้ไฟล์สัญญาเดินทางข้ามฝั่ง และทำจริงแล้ว & ทั้งทีม \\
+2 & \code{zod} เวอร์ชันเดียวกันทั้งสองฝั่ง & ทั้งทีม \\
+3 & ตกลงรูปร่างของ \code{ctx.user} แล้ว & \en{backend} \\
+4 & ตั้ง \code{autoSchemaFile} และมีไฟล์สัญญาถูกสร้างจริง & \en{backend} \\
+5 & เปิด \en{CORS} พร้อม \code{credentials} และทดสอบว่า \en{cookie} ไปถึง & \en{backend} \\
+6 & มี \en{procedure} 4 ระดับตาม \en{role} & \en{backend} \\
+7 & ทุก \en{procedure} มีทั้ง \code{input} และ \code{output schema} & \en{backend} \\
+8 & ไม่มี \en{procedure} ไหน \code{return} \en{Prisma model} ตรง ๆ & \en{backend} \\
+9 & \en{frontend} \code{import type} สัญญาได้และ \code{tsc --noEmit} ผ่าน & \en{frontend} \\
+10 & มีตารางสัญญาที่คนอ่านได้ อัปเดตตรงกับโค้ด & ทั้งทีม \\
+\bottomrule
+\end{tabular}
+\caption{\en{checklist} ความครบถ้วนของสัญญา --- ข้อ 7 กับ 8 เป็นข้อที่ \en{compiler} จับให้ไม่ได้ ต้องใช้คนรีวิว}
+\end{table}
+
+\clearpage
+
+% =============================================================================
+\part{ความเสี่ยงและข้อกำหนดในรีโปนี้}
+% =============================================================================
+
+\textbf{คำถามที่ภาคนี้ตอบ: อะไรในกองโค้ดที่เรามีอยู่ตอนนี้ ที่จะทำให้การทำสัญญา
+\en{tRPC} สะดุด และต้องแก้ก่อนหรือระวังตอนไหน}
+
+ทุกข้อในภาคนี้มาจากการเปิดไฟล์จริงในรีโปดู ไม่ใช่ความเสี่ยงตามตำรา แต่ละข้อบอก
+ว่าอาการเป็นอย่างไร ถ้าไม่จัดการจะเจออะไร และวิธีกัน
+
+\begin{table}[H]
+\centering\small
+\begin{tabular}{L{0.5cm}L{5.0cm}L{2.2cm}L{2.2cm}L{4.2cm}}
+\toprule
+\sansall\bfseries \# & \sansall\bfseries ความเสี่ยง & \sansall\bfseries โอกาสเกิด &
+\sansall\bfseries ความรุนแรง & \sansall\bfseries ต้องจัดการเมื่อไร \\
+\midrule
+1 & \code{zod} คนละเวอร์ชัน (3 กับ 4) & แน่นอน & สูง & ก่อนเขียนบรรทัดแรก \\
+2 & คนละโปรเจกต์ \en{npm} ที่ไม่มีอะไรเชื่อมถึงกัน & แน่นอน & สูงมาก & ก่อนเขียนบรรทัดแรก \\
+3 & \en{schema} เป็น \code{PascalCase} และไม่มี \en{enum} & แน่นอน & กลาง & ตอนออกแบบ \en{output} \\
+4 & \code{DateTime} กลายเป็นสตริง & แน่นอน & กลาง & ตอนออกแบบ \en{output} \\
+5 & อัปโหลดรูปผ่าน \en{tRPC} ไม่ได้ & แน่นอน & กลาง & ตอนทำ \en{feature} รับ--คืนของ \\
+6 & \en{polling} ถี่ปะทะ \en{batching} & สูง & กลาง & ตอนต่อหน้าที่ \en{polling} \\
+7 & ยังไม่ได้เปิด \en{CORS} + \en{cookie} & แน่นอน & สูง & วันแรกที่ต่อสองฝั่ง \\
+8 & ลืมใส่ \code{output} แล้วได้ \code{any} & สูง & สูงมาก & ตลอดโครงการ \\
+\bottomrule
+\end{tabular}
+\caption{สรุปความเสี่ยงแปดข้อ --- ข้อ 1, 2 และ 7 ต้องจบก่อนงานอื่นทั้งหมด ส่วนข้อ 8 เป็นความเสี่ยงที่ต้องเฝ้าตลอด}
+\end{table}
+
+\section{ความเสี่ยง 1 --- \code{zod} คนละเวอร์ชัน}
+
+\begin{goodbox}[title={ตัวเลขจริงจากรีโป}]
+\code{backend-preview/backend/package.json} ระบุ \code{"zod": "\^{}4.4.3"} \\
+\code{frontend/package.json} ระบุ \code{"zod": "\^{}3.23.8"}
+\end{goodbox}
+
+ไฟล์สัญญาที่ \code{nestjs-trpc} สร้างออกมาไม่ได้มีแค่ \en{type} ล้วน ๆ แต่มีโค้ด
+\en{zod schema} ประกอบอยู่ด้วย เมื่อ \en{frontend} เอาไป \en{compile} ด้วย
+\code{zod} คนละรุ่นใหญ่ จะได้ \en{error} ของ \en{TypeScript} ที่อ่านแล้วไม่รู้ว่า
+สาเหตุคือเรื่องเวอร์ชัน เพราะข้อความจะพูดถึงชนิดข้อมูลภายในของ \code{zod} เอง
+
+\begin{warnbox}[title={การอัป \code{zod} ฝั่ง \en{frontend} ไม่ใช่แค่เปลี่ยนตัวเลข}]
+ต้องขยับของที่พึ่งพากันด้วย
+
+\begin{itemize}
+\item \code{frontend/src/schemas/loan-request.schema.ts} --- \en{schema} ที่เขียนไว้แล้ว
+      ต้องตรวจว่ายังใช้ได้ (\code{zod} 4 เปลี่ยนรูปแบบข้อความ \en{error} และเปลี่ยน
+      \en{API} บางตัว)
+\item \code{@hookform/resolvers} --- ตัวเชื่อม \code{react-hook-form} กับ \code{zod}
+      ต้องใช้รุ่นที่รองรับ \code{zod} 4
+\item ทุกที่ที่เรียก \code{.errors} หรืออ่านโครงสร้างผลลัพธ์ของ \code{safeParse}
+\end{itemize}
+
+ทำเรื่องนี้เป็นงานแยกให้จบและ \code{tsc --noEmit} ผ่านก่อน แล้วค่อยเริ่มงาน
+\en{tRPC} --- อย่ารวมสองเรื่องนี้ไว้ใน \en{PR} เดียวกัน เพราะเวลาพังจะแยกไม่ออกว่า
+พังเพราะอะไร
+\end{warnbox}
+
+ทางเลือกสำรองคือ \textbf{ให้ \en{frontend} ใช้ไฟล์สัญญาเป็น \en{type} อย่างเดียว}
+โดยไม่ \en{compile} โค้ด \code{zod} ในนั้น ซึ่งลดแรงเสียดทานได้ แต่แลกมากับการที่
+\en{frontend} เอา \en{schema} เดียวกันไปใช้ \en{validate} ฟอร์มไม่ได้ ต้องเขียน
+\en{schema} ฟอร์มซ้ำเอง --- ซึ่งก็คือการเปิดช่องให้ความจริงสองชุดเลื่อนออกจากกันอีก
+
+\section{ความเสี่ยง 2 --- คนละโปรเจกต์ \en{npm} ที่ไม่มีอะไรเชื่อมถึงกัน}
+\label{sec:risk-transport}
+
+นี่คือความเสี่ยงที่บล็อกทุกอย่าง และเป็นวาระแรกของการประชุม
+
+\begin{goodbox}[title={สภาพจริงของรีโป}]
+มี \code{package.json} สามไฟล์ที่ไม่รู้จักกัน: \code{frontend/},
+\code{frontend-preview/frontend/} และ \code{backend-preview/backend/} ---
+ไม่มี \code{pnpm-workspace.yaml} ไม่มี \code{workspaces} ใน \code{package.json}
+ระดับบนสุด
+
+โครงสร้างที่ต้องเข้าใจให้ตรงกันก่อนถกวาระนี้: \code{frontend-preview/} กับ
+\code{backend-preview/} \textbf{ไม่ใช่โฟลเดอร์สำเนา แต่เป็น \en{git worktree}}
+ของ \code{front-end-branch} และ \code{back-end-branch} ตามลำดับ แปลว่าโค้ดของ
+ทั้งสองสาขาถูกเช็กเอาต์อยู่บนดิสก์พร้อมกันแล้วภายใต้รีโปเดียว
+(ส่วน \code{frontend/} ที่ราก คือสำเนาบน \code{document-branch} ซึ่งตอนนี้
+เนื้อหาตรงกับสาขา \code{front-end-branch} ทุกไฟล์)
+\end{goodbox}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[node distance=7mm]
+  \node[bestage, text width=4.2cm] (be)
+       {\code{backend-preview/backend/}\\[1pt]\scriptsize\color{muted}สร้างไฟล์สัญญาไว้ที่นี่};
+  \node[festage, text width=4.2cm, right=34mm of be] (fe)
+       {\code{frontend/}\\[1pt]\scriptsize\color{muted}ต้อง \code{import type} จากที่ไหนสักแห่ง};
+  \draw[ar, dashed, draw=bad, line width=1pt] (be) --
+       node[tag, above, text=bad, text width=3.2cm] {ยังไม่มีทางเชื่อม}
+       node[lbl, below, text width=3.4cm] {คนละ \code{node\_modules}\\คนละ \code{package.json}} (fe);
+
+  \node[stage, text width=3.9cm, below=13mm of be, xshift=0cm] (a)
+       {\textbf{ก. \en{workspaces}}\\[1pt]\scriptsize\color{muted}ถูกที่สุดในระยะยาว\\ต้องรื้อโครงรีโป};
+  \node[stage, text width=3.9cm, right=6mm of a] (b)
+       {\textbf{ข. คัดลอกไฟล์}\\[1pt]\scriptsize\color{muted}เริ่มได้พรุ่งนี้\\ต้องมีวินัย/สคริปต์};
+  \node[stage, text width=3.9cm, right=6mm of b] (c)
+       {\textbf{ค. \code{paths} ใน \code{tsconfig}}\\[1pt]\scriptsize\color{muted}ไม่ต้อง \en{publish}\\\en{build} จริงตั้งยาก};
+
+  \node[lbl, below=2mm of b, text width=12cm]
+       {ข้อเสนอ: เริ่มด้วย \textbf{ข.} พร้อมสคริปต์ \code{npm run sync:contract} แล้วค่อยขยับไป \textbf{ก.} ถ้ามีเวลาเหลือ};
+\end{tikzpicture}
+\caption{สามทางเลือกของการขนส่งสัญญา --- ต่างกันที่จ่ายตอนนี้หรือจ่ายทีหลัง ไม่มีทางไหนฟรี}
+\end{figure}
+
+\begin{badbox}[title={ทางที่ห้ามเลือก: คัดลอกด้วยมือแล้วไม่มีอะไรตรวจ}]
+ถ้าเลือกวิธีคัดลอกไฟล์ แต่ไม่มีสคริปต์และไม่มีการตรวจตอน \en{merge} สัญญาฝั่ง
+\en{frontend} จะเก่ากว่าของจริงภายในไม่กี่วัน แล้วจะได้สิ่งที่แย่กว่าไม่มีสัญญาเลย
+คือ \textbf{\en{compiler} ที่บอกว่าทุกอย่างเรียบร้อยทั้งที่ไม่จริง}
+
+อย่างน้อยที่สุดต้องมี: สคริปต์คัดลอก + \code{tsc --noEmit} ทั้งสองฝั่งเป็นเงื่อนไข
+ก่อน \en{merge}
+\end{badbox}
+
+\section{ความเสี่ยง 3 --- \en{schema} เป็น \code{PascalCase} และไม่มี \en{enum} เลย}
+
+\begin{goodbox}[title={นับจาก \code{schema.prisma} จริง}]
+32 \code{model} และ \textbf{0 \code{enum}} --- สถานะทุกชนิดถูกทำเป็นตารางแยก:
+\code{ApproveStatus}, \code{ResourceStatus}, \code{ConditionType},
+\code{ImageSubmissionType}, \code{NotificationType}, \code{PenaltyType},
+\code{GroupType} และแม้แต่ \code{RoleInfo} ก็เป็นตาราง ไม่ใช่ \en{enum}
+
+ขณะที่ \code{frontend/src/types/domain.ts} นิยาม \code{Role} ไว้เป็น
+\code{"borrower" | "staff" | "supervisor" | "admin"} และ \code{UnitStatus} เป็น
+\code{"available" | "reserved" | "borrowed" | "maintenance" | "lost"}
+\end{goodbox}
+
+ความไม่ตรงกันนี้มีสองชั้น และต้องแก้คนละแบบ
+
+\begin{table}[H]
+\centering\small
+\begin{tabular}{L{2.6cm}L{5.4cm}L{6.6cm}}
+\toprule
+\sansall\bfseries ชั้น & \sansall\bfseries อาการ & \sansall\bfseries วิธีจัดการ \\
+\midrule
+ชื่อฟิลด์ &
+\code{UserFName} กับ \code{firstName} &
+แปลงใน \en{output schema} --- เขียนครั้งเดียวต่อ \en{entity} แล้วเอาไป
+\code{.pick()}/\code{.extend()} ต่อ ไม่ต้องเขียนซ้ำทุก \en{procedure} \\
+\addlinespace
+สถานะ &
+ฐานข้อมูลให้ \code{ApproveStatusKey} เป็นตัวเลข แต่ \en{frontend} อยากได้คำ &
+\en{output} ต้องเป็น \textbf{สตริงคงที่} เช่น\newline
+\code{z.enum([}\newline\code{~~'pending', 'approved',}\newline\code{~~'rejected'])}\newline
+\emph{ห้าม} ส่งเลข \en{primary key} ออกไปให้ \en{frontend} ตีความเอง \\
+\bottomrule
+\end{tabular}
+\caption{สองชั้นของความไม่ตรงกัน --- ชั้นล่างอันตรายกว่า เพราะเลขคีย์เปลี่ยนได้เมื่อ \en{seed} ข้อมูลใหม่}
+\end{table}
+
+\begin{warnbox}[title={ถ้าส่งเลข \en{key} ของสถานะออกไป \en{frontend} จะพังตอนย้ายเครื่อง}]
+\code{ApproveStatusKey = 2} หมายถึง ``อนุมัติแล้ว'' บนฐานข้อมูลของเครื่องคนหนึ่ง
+แต่ถ้าอีกเครื่อง \code{seed} ข้อมูลคนละลำดับ เลข 2 อาจกลายเป็น ``ปฏิเสธ''
+
+โค้ดฝั่งหน้าเว็บที่เขียนว่า \code{if (status === 2)} จะยังคอมไพล์ผ่านทุกครั้ง
+และจะผิดเงียบ ๆ --- \textbf{แปลงเป็นสตริงที่ชั้น \en{output} เสมอ}
+\end{warnbox}
+
+\section{ความเสี่ยง 4 --- \code{DateTime} กลายเป็นสตริง}
+
+อธิบายกลไกไว้แล้วในหัวข้อ \ref{sec:json} ที่ต้องเพิ่มคือขนาดของปัญหาในรีโปนี้:
+\code{schema.prisma} มีฟิลด์ \code{DateTime} กระจายอยู่ใน \code{Reservations},
+\code{UsageLog}, \code{ExtensionRequest}, \code{Inspection}, \code{PenaltyInfo},
+\code{AppealInfo}, \code{Images}, \code{Notification} และ \code{ConditionLog}
+--- แทบทุกโดเมนหลักของระบบ
+
+และเป็นระบบที่ ``เวลา'' คือแก่นของตรรกะธุรกิจ: กำหนดคืน การเลยกำหนด การหักเครดิต
+รายวัน อายุของบทลงโทษ วันหมดอายุคำขอ ถ้าตกลงรูปแบบเวลาไม่ตรงกัน บั๊กจะไปโผล่ที่
+การคำนวณค่าปรับ ซึ่งเป็นที่ที่แย่ที่สุดที่จะมีบั๊ก
+
+\begin{keybox}[title={ตกลงครั้งเดียว เขียนลงตารางสัญญา แล้วห้ามมีข้อยกเว้น}]
+ไม่ว่าจะเลือก \code{superjson} หรือสตริง \en{ISO} สิ่งที่สำคัญกว่าคือ
+\textbf{ทั้งระบบต้องเหมือนกันหมด} --- \en{procedure} ที่ส่ง \code{Date} จริง
+ปนกับ \en{procedure} ที่ส่งสตริง คือสถานการณ์ที่แย่ที่สุดในสามแบบ
+\end{keybox}
+
+\section{ความเสี่ยง 5 --- อัปโหลดรูปผ่าน \en{tRPC} ไม่ได้}
+
+เอกสาร ``รายการเรียกใช้งานจาก \en{Backend}'' ระบุไว้สองรายการ: ``ยืนยันรับของ +
+อัปโหลดรูปตอนรับ'' และ ``แจ้งคืน + อัปโหลดรูปตอนคืน'' และ \code{schema.prisma}
+มีตาราง \code{Images} กับ \code{ImageSubmissionType} รองรับไว้แล้ว
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[node distance=4mm]
+  \node[stage, text width=3.2cm] (s1)
+       {\textbf{1} \en{tRPC}\\{\scriptsize\code{image.requestUpload}}\\[1pt]\scriptsize\color{muted}ขอ \en{URL} ชั่วคราว};
+  \node[opstage, text width=3.2cm, right=of s1] (s2)
+       {\textbf{2} \code{PUT} ตรง\\[1pt]\scriptsize\color{muted}ไม่ผ่าน \en{tRPC}\\ใช้ \code{uploadFile()} เดิม};
+  \node[stage, text width=3.2cm, right=of s2] (s3)
+       {\textbf{3} \en{tRPC}\\{\scriptsize\code{loan.confirmPickup}}\\[1pt]\scriptsize\color{muted}ส่ง \code{imageKey} กลับ};
+  \node[bestage, text width=3.2cm, right=of s3] (s4)
+       {\textbf{4} บันทึกลงตาราง \code{Images}};
+  \draw[ar] (s1) -- (s2); \draw[ar] (s2) -- (s3); \draw[ar] (s3) -- (s4);
+  \node[lbl, below=2mm of s2, text width=3.4cm] {ขั้นเดียวที่ไม่ใช่ \en{tRPC}};
+\end{tikzpicture}
+\caption{รูปแบบผสมสำหรับการอัปโหลด --- \en{tRPC} คุมหัวและท้าย ส่วนตัวไฟล์ไปเส้นทางของมันเอง}
+\end{figure}
+
+\begin{warnbox}[title={จุดที่ต้องคิดต่อ: ไฟล์ที่อัปแล้วแต่ไม่มีใครอ้างถึง}]
+ถ้าผู้ใช้อัปรูปสำเร็จ (ขั้น 2) แล้วปิดเบราว์เซอร์ก่อนขั้น 3 จะมีไฟล์ค้างอยู่โดยไม่มี
+แถวใน \code{Images} ชี้ถึง ต้องมี \en{job} เก็บกวาด หรือยอมรับว่ามีขยะสะสม ---
+ตัดสินใจตอนทำ \en{feature} นี้ ไม่ต้องตัดสินใจตอนนี้
+\end{warnbox}
+
+\section{ความเสี่ยง 6 --- \en{polling} ถี่ปะทะ \en{batching}}
+
+เอกสารรายการเรียกใช้งานกำหนด \en{polling} ไว้ 6 รายการ ที่ถี่ที่สุดคือ 10--15
+วินาที (ของคงเหลือ และสล็อตเวลาว่างของห้อง) ซึ่งเป็นความถี่ที่ต้องคิดเรื่องภาระ
+ฝั่ง \en{backend} ตั้งแต่ตอนออกแบบสัญญา ไม่ใช่ตอนพบว่าช้า
+
+\begin{table}[H]
+\centering\small
+\begin{tabular}{L{5.6cm}L{2.0cm}L{6.8cm}}
+\toprule
+\sansall\bfseries \en{query} & \sansall\bfseries ความถี่ & \sansall\bfseries สิ่งที่ต้องเตรียม \\
+\midrule
+ของคงเหลือ / วันที่พร้อมให้ยืม & 10--15 วิ &
+\en{output} ต้องเล็กที่สุด --- ส่งแค่จำนวนคงเหลือกับวันพร้อมยืม ไม่ต้องส่งรายละเอียดอุปกรณ์ซ้ำ \\
+\addlinespace
+สล็อตเวลาว่างของห้อง (T3) & 10--15 วิ &
+ต้องมี \en{index} บน \code{Reservations} ตามช่วงเวลา \\
+\addlinespace
+สถานะคำขอของตัวเอง & 30 วิ & กรองด้วย \code{ctx.user} เสมอ \\
+\addlinespace
+\en{notification} ในแอป & 30--60 วิ & ส่งเฉพาะจำนวนที่ยังไม่อ่านก็พอสำหรับ \en{badge} \\
+\addlinespace
+คิวงานฝั่ง \en{staff} & 30 วิ & แบ่งหน้าเสมอ อย่าส่งทั้งคิว \\
+\addlinespace
+คิวรออนุมัติฝั่งอาจารย์ & 30--60 วิ & แบ่งหน้าเสมอ \\
+\bottomrule
+\end{tabular}
+\caption{รายการที่ \en{polling} จากเอกสารรายการเรียกใช้งาน --- ความถี่เป็นข้อมูลที่ \en{backend} ต้องรู้ตั้งแต่ตอนออกแบบ \en{output}}
+\end{table}
+
+\begin{keybox}[title={ใส่คอลัมน์ ``ความถี่ที่ตั้งใจ'' ลงในตารางสัญญา}]
+ความถี่ในการเรียกไม่ใช่เรื่องของ \en{frontend} ฝ่ายเดียว มันคือข้อกำหนดที่
+\en{backend} ต้องออกแบบ \en{query} และ \en{index} รองรับ --- จึงเป็นส่วนหนึ่งของ
+สัญญา และต้องอยู่ในตารางเดียวกับ \en{input}/\en{output}
+\end{keybox}
+
+\section{ความเสี่ยง 7 --- ยังไม่ได้เปิด \en{CORS} และยังไม่มีเส้นทางของ \en{cookie}}
+
+\begin{goodbox}[title={ตรวจสอบกับรีโปแล้ว}]
+\code{backend-preview/backend/src/main.ts} มีแค่ \code{NestFactory.create} กับ
+\code{app.listen} --- ไม่มี \code{app.enableCors()} ไม่มีการอ่าน \en{cookie}
+ขณะที่ \code{frontend/src/lib/api-client.ts} ตั้ง \code{credentials: "include"}
+ไว้แล้วทุก \en{request} แปลว่าฝั่งหน้าเว็บตัดสินใจเรื่องนี้ไปแล้ว
+\end{goodbox}
+
+วันแรกที่เอาสองฝั่งมาต่อกัน อาการที่จะเจอคือ \en{request} ถูกบล็อกโดยเบราว์เซอร์
+พร้อมข้อความ \en{CORS} ซึ่งมักถูกแก้แบบผิด ๆ ด้วยการตั้ง \code{origin: '*'}
+
+\begin{badbox}[title={\code{origin: '*'} ใช้กับ \code{credentials: true} ไม่ได้ และไม่ใช่แค่เพราะเบราว์เซอร์ห้าม}]
+เบราว์เซอร์ปฏิเสธการส่ง \en{cookie} ไปยัง \en{origin} แบบ \en{wildcard} อยู่แล้ว
+แต่ถึงแม้จะบังคับได้ ก็ไม่ควรทำ เพราะระบบนี้ใช้ \en{cookie} เป็นตัวยืนยันตัวตน
+การเปิด \en{origin} กว้างคือการเปิดช่องให้เว็บอื่นยิง \en{request} ในนามผู้ใช้ที่
+ล็อกอินอยู่ (\en{CSRF})
+
+ต้องระบุ \en{origin} ให้ชัดเจน และต้องมีรายการแยกสำหรับตอนพัฒนา
+(\code{http://localhost:5173} ของ \en{Vite}) กับตอนใช้งานจริง
+\end{badbox}
+
+\section{ความเสี่ยง 8 --- ลืมใส่ \code{output} แล้วได้ \code{any}}
+\label{sec:enforce}
+
+นี่คือความเสี่ยงที่อันตรายที่สุด เพราะมันทำลายเหตุผลทั้งหมดของการใช้ \en{tRPC}
+โดยไม่มีอะไรส่งเสียงเตือน
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[node distance=7mm]
+  \node[bestage, text width=4.4cm] (a)
+       {\en{procedure} ที่ลืมใส่ \code{output}};
+  \node[stage, text width=4.0cm, right=8mm of a] (b)
+       {ไฟล์สัญญาระบุเป็น \code{any}};
+  \node[festage, text width=4.4cm, right=8mm of b] (c)
+       {\en{frontend} เขียนอะไรก็ ``ผ่าน''};
+  \draw[ar] (a) -- (b); \draw[ar] (b) -- (c);
+  \node[blk, fill=badwash, draw=bad!45, text width=13.8cm, below=8mm of b, xshift=-0.2cm]
+       {\code{tsc} ไม่ฟ้อง \code{eslint} ไม่ฟ้อง เทสต์ก็ผ่าน เพราะ \code{any} เข้ากันได้กับทุกอย่าง\\[3pt]
+        \scriptsize\color{muted}จะรู้ตัวก็ตอนผู้ใช้กดแล้วหน้าขาว --- ซึ่งเป็นสภาพเดียวกับตอนที่ยังไม่มีสัญญาเลย
+        แต่แย่กว่าตรงที่ทีมเชื่อไปแล้วว่ามี};
+\end{tikzpicture}
+\caption{ทางที่สัญญาพังเงียบ --- \code{any} หนึ่งตัวทำให้ทั้งเส้นทางไม่มีการตรวจสอบเหลืออยู่}
+\end{figure}
+
+วิธีกันสามชั้น เรียงจากถูกที่สุดไปแพงที่สุด
+
+\begin{enumerate}
+\item \textbf{กฎในการรีวิว \en{PR}} --- ``ทุก \code{@Query}/\code{@Mutation}
+      ต้องมีทั้ง \code{input} และ \code{output}'' เขียนไว้ในเอกสารสัญญาและใน
+      \en{template} ของ \en{PR}
+\item \textbf{เปิด \code{noImplicitAny} และเปิดกฎ \en{ESLint} ที่ห้าม \code{any}
+      ชัดแจ้ง} ฝั่ง \en{frontend} --- จับได้บางกรณี ไม่ใช่ทุกกรณี
+\item \textbf{\code{tsc --noEmit} ทั้งสองฝั่งเป็นเงื่อนไขก่อน \en{merge}} ---
+      จับกรณีสัญญาเก่าไม่ตรงกับโค้ด ซึ่งเป็นอาการที่พบบ่อยกว่า
+\end{enumerate}
+
+\begin{keybox}[title={สัญญาที่ไม่มีใครบังคับ จะเน่าภายในสองสัปดาห์}]
+ข้อนี้ไม่ใช่เรื่องเทคนิค แต่เป็นเรื่องกระบวนการ และเป็นข้อที่ทีมนักศึกษาพลาดบ่อยที่สุด
+เพราะช่วงใกล้เดดไลน์ทุกคนจะยอมข้ามการตรวจ --- ต้องทำให้การตรวจเป็นอัตโนมัติตั้งแต่
+ตอนที่ยังไม่รีบ
+\end{keybox}
+
+\clearpage
+
+% =============================================================================
+\part{ต้องทำอะไรบ้าง ตามลำดับ}
+% =============================================================================
+
+\textbf{คำถามที่ภาคนี้ตอบ: พรุ่งนี้เช้าเปิดคอมมา ทำอะไรก่อน และจะรู้ได้อย่างไรว่าทำเสร็จแล้ว}
+
+\section{ลำดับงานที่เสนอ}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[node distance=5mm]
+  \node[blk, fill=badwash, draw=bad!45, text width=13.8cm] (z)
+       {\textbf{ขั้นที่ 0 --- ตกลงสี่เรื่องที่บล็อกทุกอย่าง} (ดูเอกสารวาระประชุม)\\[2pt]
+        \scriptsize\color{muted}วิธีขนส่งสัญญา · เวอร์ชัน \code{zod} · รูปร่าง \code{ctx.user} · ใครเป็นเจ้าของสัญญา};
+  \node[stage, text width=13.8cm, below=of z] (a)
+       {\textbf{ขั้นที่ 1 --- ทำเส้นเดียวให้วิ่งครบตั้งแต่ต้นจนจบ} เสนอให้ใช้ \code{auth.me}\\[2pt]
+        \scriptsize\color{muted}เพราะทุกหน้าใช้ และมันบังคับให้เราต้องแก้เรื่อง \en{cookie}, \en{CORS}, \en{context} และการขนส่งสัญญาไปพร้อมกัน};
+  \node[bestage, text width=6.8cm, below=of a, xshift=-3.5cm] (b1)
+       {\textbf{ขั้นที่ 2ก --- \en{backend}}\\[2pt]\scriptsize\color{muted}เขียน \en{service} จริงทีละโดเมน};
+  \node[festage, text width=6.8cm, right=4mm of b1] (b2)
+       {\textbf{ขั้นที่ 2ข --- \en{frontend}}\\[2pt]\scriptsize\color{muted}ต่อหน้าจอจาก \en{stub} ที่ยัง \en{mock} อยู่};
+  \node[stage, text width=13.8cm, below=6mm of b1, xshift=3.5cm] (c)
+       {\textbf{ขั้นที่ 3 --- แทน \en{mock} ด้วยของจริงทีละ \en{procedure}}};
+
+  \draw[ar] (z) -- (a);
+  \draw[ar] (a.south) -- ++(0,-2mm) -| (b1.north);
+  \draw[ar] (a.south) -- ++(0,-2mm) -| (b2.north);
+  \draw[ar] (b1.south) -- ++(0,-2mm) -| ([xshift=-3.5cm]c.north);
+  \draw[ar] (b2.south) -- ++(0,-2mm) -| ([xshift=3.5cm]c.north);
+
+  \node[lbl, left=3mm of b1, text width=1.2cm, rotate=90, anchor=south] {ขนานกัน};
+\end{tikzpicture}
+\caption{ลำดับงาน --- ขั้นที่ 1 เป็นคอขวดโดยตั้งใจ หลังจากนั้นสองฝั่งทำงานขนานกันได้เต็มที่}
+\end{figure}
+
+\subsection{ทำไมต้องทำเส้นเดียวให้ครบก่อน}
+
+สัญชาตญาณของทีมมักบอกให้ ``เขียน \en{router} ให้ครบทุกโดเมนก่อน แล้วค่อยต่อ
+\en{frontend}'' ซึ่งเป็นลำดับที่แพงที่สุด เพราะปัญหาโครงสร้าง (\en{cookie} ไม่ไป
+ถึง, สัญญาข้ามฝั่งไม่ได้, \code{zod} ชนกัน) จะไปโผล่ตอนที่เขียนไปแล้ว 30
+\en{procedure} และต้องแก้ทั้ง 30 ตัว
+
+การทำเส้นเดียวให้วิ่งครบ (\en{vertical slice}) เจอปัญหาเดียวกันทั้งหมดตั้งแต่
+\en{procedure} แรก ตอนที่แก้แล้วกระทบแค่ตัวเดียว
+
+\begin{keybox}[title={เกณฑ์ว่าขั้นที่ 1 เสร็จ}]
+เปิดหน้าเว็บที่ยังไม่ล็อกอิน $\to$ ถูกเด้งไปหน้า \en{login} $\to$ ล็อกอิน $\to$
+หน้าแสดงชื่อผู้ใช้จริงจากฐานข้อมูล และเมื่อลองเปลี่ยนชื่อฟิลด์ใน \en{output
+schema} ฝั่ง \en{backend} แล้วรัน \code{tsc --noEmit} ฝั่ง \en{frontend}
+\textbf{ต้องขึ้น \en{error}}
+
+ประโยคหลังคือการทดสอบว่าสัญญาทำงานจริง ไม่ใช่แค่ข้อมูลวิ่งถึง
+\end{keybox}
+
+\subsection{\en{stub} ที่คืนค่า \en{mock} --- ประโยชน์ที่แท้จริงของการทำสัญญาก่อน}
+
+หลังตกลง \en{output schema} ของ \en{procedure} หนึ่งแล้ว \en{backend} สามารถ
+เขียน \en{procedure} ที่ \code{return} ข้อมูลปลอมที่ตรงตาม \en{schema} ได้ทันที
+โดยยังไม่ต้องแตะฐานข้อมูล
+
+\begin{lstlisting}
+@Query({ input: listLoansInput, output: listLoansOutput })
+list(@Input() input: ListLoansInput) {
+  // TODO(backend): replace with loanService.listForUser once ready
+  return {
+    items: [
+      { id: 1, itemName: 'Canon EOS R5', dueAt: '2569-08-20T09:00:00Z',
+        status: 'borrowed' as const },
+    ],
+    total: 1, page: 1, pageSize: 20,
+  };
+}
+\end{lstlisting}
+
+\en{frontend} ต่อหน้าจอได้เลยโดยไม่ต้องรอฐานข้อมูล และเมื่อ \en{backend} เปลี่ยน
+มาใช้ของจริง \en{frontend} ไม่ต้องแก้อะไรเลยถ้า \en{output schema} ไม่เปลี่ยน
+--- นี่คือเหตุผลทั้งหมดที่เราลงทุนทำสัญญาก่อน
+
+\section{กติกาที่ต้องบังคับ}
+
+\begin{table}[H]
+\centering\small
+\begin{tabular}{L{0.5cm}L{7.8cm}L{6.2cm}}
+\toprule
+\sansall\bfseries \# & \sansall\bfseries กติกา & \sansall\bfseries บังคับด้วยอะไร \\
+\midrule
+1 & ทุก \en{procedure} มีทั้ง \code{input} และ \code{output schema} & คนรีวิว \en{PR} \\
+2 & ห้าม \code{return} \en{Prisma model} ตรง ๆ & คนรีวิว \en{PR} \\
+3 & สถานะส่งออกเป็นสตริงคงที่ ไม่ใช่เลข \en{key} & คนรีวิว \en{PR} \\
+4 & \code{tsc --noEmit} ผ่านทั้งสองฝั่ง & อัตโนมัติก่อน \en{merge} \\
+5 & แก้สัญญาแล้วต้องรันสคริปต์ \en{sync} & อัตโนมัติ + คนรีวิว \\
+6 & เปลี่ยนสัญญาแบบ \en{breaking} ต้องแจ้งอีกฝั่งก่อน & ข้อตกลงของทีม \\
+\bottomrule
+\end{tabular}
+\caption{หกกติกา --- สี่ข้อแรกเป็นเรื่องความถูกต้อง สองข้อหลังเป็นเรื่องไม่ทำให้เพื่อนร่วมทีมงานพัง}
+\end{table}
+
+\section{\en{Definition of Done} ของ \en{procedure} หนึ่งตัว}
+
+ใช้เป็น \en{checklist} ตอนปิด \en{issue} แต่ละอัน
+
+\begin{table}[H]
+\centering\small
+\begin{tabular}{L{0.5cm}L{14.0cm}}
+\toprule
+\sansall\bfseries \# & \sansall\bfseries เกณฑ์ \\
+\midrule
+1 & มีแถวในตารางสัญญา ระบุ \en{input}, \en{output}, \en{role} ที่เรียกได้, \en{error} ที่เป็นไปได้ \\
+2 & มี \code{input schema} ที่ครอบคลุมค่าขอบ (ค่าว่าง ค่าติดลบ สตริงยาวเกิน) \\
+3 & มี \code{output schema} ที่ไม่มีฟิลด์ภายในของฐานข้อมูลหลุดออกไป \\
+4 & ผูก \en{middleware} ตาม \en{role} ที่ระบุในตารางสัญญาแล้ว \\
+5 & \en{error} ทางธุรกิจถูกโยนด้วยรหัสที่อยู่ในรายการที่ตกลงกันไว้ ไม่ใช่ข้อความไทยดิบ \\
+6 & \en{frontend} เรียกได้จริง และ \code{tsc --noEmit} ผ่านทั้งสองฝั่ง \\
+7 & ถ้าเป็น \en{mutation} --- ระบุแล้วว่าต้อง \code{invalidate} \en{query} ตัวไหนบ้าง \\
+8 & ถ้าเป็น \en{query} ที่ \en{polling} --- ระบุความถี่ และตรวจแล้วว่า \en{output} ไม่ใหญ่เกินจำเป็น \\
+\bottomrule
+\end{tabular}
+\caption{\en{Definition of Done} --- ข้อ 7 กับ 8 เป็นข้อที่ทีมมักลืม แล้วไปพบว่าหน้าจอไม่อัปเดตหลังกดปุ่ม}
+\end{table}
+
+\begin{keybox}[title={สรุปทั้งเล่มในสามประโยค}]
+\begin{enumerate}
+\item สัญญาของ \en{tRPC} คือ \en{type} ของ \en{TypeScript} --- มีผลตอน
+      \en{compile} เท่านั้น ตอน \en{runtime} ต้องพึ่ง \code{zod}
+\item สัญญาจะมีประโยชน์ก็ต่อเมื่อ \textbf{เดินทางข้ามฝั่งได้จริง} และ
+      \textbf{มีคนบังคับให้ตรงกัน} --- สองเรื่องนี้เป็นเรื่องกระบวนการ ไม่ใช่เรื่องโค้ด
+\item สิ่งที่ต้องตกลงก่อนเขียนบรรทัดแรกมีสี่เรื่อง และอยู่ในเอกสารวาระประชุม
+      ฉบับคู่กัน
+\end{enumerate}
+\end{keybox}
+
+\clearpage
+
+% =============================================================================
+\appendix
+\part*{ภาคผนวก}
+\addcontentsline{toc}{part}{ภาคผนวก}
+% =============================================================================
+
+% ใช้อักษรไทยเป็นเลขภาคผนวก แทน A B C ของ article class
+\makeatletter
+\newcommand{\thaialph}[1]{\ifcase\value{#1}\or ก\or ข\or ค\or ง\or จ\or ฉ\fi}
+\makeatother
+\renewcommand{\thesection}{\thaialph{section}}
+
+\section{อภิธานศัพท์ ไทย--อังกฤษ}
+
+ผู้อ่านจะเจอศัพท์อังกฤษเหล่านี้ในเอกสารของไลบรารี ในข้อความ \en{error} และในโค้ด
+ตารางนี้จึงจำเป็น --- การแปลเป็นไทยอย่างเดียวจะตัดผู้อ่านออกจากแหล่งข้อมูลจริง
+
+\begin{longtable}{L{3.9cm}L{3.6cm}L{7.1cm}}
+\toprule
+\sansall\bfseries ไทย & \sansall\bfseries อังกฤษ & \sansall\bfseries ความหมายย่อ \\
+\midrule
+\endfirsthead
+\toprule
+\sansall\bfseries ไทย & \sansall\bfseries อังกฤษ & \sansall\bfseries ความหมายย่อ \\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+สัญญา & contract &
+  ข้อตกลงเรื่องรูปร่างข้อมูลระหว่างสองฝั่ง ใน \en{tRPC} คือ \en{type} ของ \code{AppRouter} \\
+ตัวจัดเส้นทาง & router &
+  กลุ่มของ \en{procedure} ที่จัดไว้ด้วยกันตามโดเมน เช่น \code{loan}, \code{item} \\
+หน่วยเรียกใช้ & procedure &
+  หนึ่งการเรียกที่ \en{frontend} ใช้ได้ แบ่งเป็น \en{query} กับ \en{mutation} \\
+การอ่าน & query &
+  \en{procedure} ที่อ่านอย่างเดียว ไม่เปลี่ยนข้อมูล จึง \en{cache} และเรียกซ้ำได้ปลอดภัย \\
+การเปลี่ยนแปลง & mutation &
+  \en{procedure} ที่เขียนข้อมูล เรียกซ้ำแล้วผลไม่เหมือนเดิม \\
+บริบทของคำขอ & context &
+  \en{object} ที่สร้างใหม่ทุก \en{request} เก็บสิ่งที่ทุก \en{procedure} ต้องใช้ เช่น \code{ctx.user} \\
+ชั้นคั่นกลาง & middleware &
+  โค้ดที่ทำงานก่อนเข้า \en{procedure} ใช้บังคับสิทธิ์และการล็อกอิน \\
+ชั้นส่งออก & link &
+  ชั้นที่ตัดสินใจว่าจะส่ง \en{call} ออกไปอย่างไร เช่น \code{httpBatchLink} \\
+การรวมคำขอ & batching &
+  รวมหลาย \en{query} ที่เกิดพร้อมกันให้เป็น \en{HTTP request} เดียว \\
+การถามซ้ำเป็นรอบ & polling &
+  เรียก \en{query} เดิมซ้ำตามเวลาที่กำหนด เพื่อให้ข้อมูลใหม่ \\
+การทำให้ข้อมูลหมดอายุ & invalidate &
+  บอก \en{TanStack Query} ว่าข้อมูลชุดนี้เก่าแล้ว ให้ไปดึงใหม่ \\
+การอนุมานชนิดข้อมูล & type inference &
+  การที่ \en{TypeScript} คิดชนิดข้อมูลออกเองโดยไม่ต้องเขียนกำกับ \\
+ชนิดข้อมูลเลื่อน & type drift &
+  อาการที่ \en{type} ฝั่งหนึ่งกับอีกฝั่งค่อย ๆ ไม่ตรงกันโดยไม่มีใครรู้ \\
+การตรวจความถูกต้อง & validation &
+  ตรวจว่าข้อมูลที่รับมาถูกรูปแบบจริงตอน \en{runtime} --- งานของ \code{zod} \\
+เส้นเดียวครบวงจร & vertical slice &
+  ทำหนึ่ง \en{feature} ให้วิ่งครบตั้งแต่หน้าจอถึงฐานข้อมูล ก่อนขยายจำนวน \\
+ข้อมูลจำลอง & mock / stub &
+  ค่าปลอมที่ตรงตาม \en{schema} ใช้ให้ \en{frontend} ทำงานต่อได้ระหว่างรอของจริง \\
+การแบ่งหน้า & pagination &
+  ส่งข้อมูลทีละหน้าแทนที่จะส่งทั้งหมด \\
+ตัวแปลงข้อมูล & transformer &
+  ตัวที่แปลงชนิดข้อมูลที่ \en{JSON} ส่งไม่ได้ เช่น \code{superjson} จัดการ \code{Date} \\
+\end{longtable}
+
+\section{ร่างตารางสัญญาที่ต้องทำให้เสร็จ}
+
+ตารางนี้คือ \textbf{รูปแบบ} ที่เสนอ ไม่ใช่เนื้อหาที่เสร็จแล้ว --- เนื้อหาจริงต้อง
+แปลงมาจากเอกสาร ``รายการเรียกใช้งานจาก \en{Backend}'' ทั้ง 18 รายการ บวกกับหน้าจอ
+ใน \code{frontend/src/features/} ที่มีอยู่ 6 กลุ่ม (\code{admin}, \code{staff},
+\code{supervisor}, \code{borrower}, \code{reports}, \code{auth})
+
+\begin{table}[H]
+\centering\footnotesize
+\begin{tabular}{L{2.9cm}L{1.4cm}L{2.8cm}L{2.6cm}L{1.5cm}L{2.5cm}}
+\toprule
+\sansall\bfseries \en{procedure} & \sansall\bfseries ชนิด &
+\sansall\bfseries \en{input} & \sansall\bfseries \en{output} &
+\sansall\bfseries \en{role} & \sansall\bfseries หมายเหตุ \\
+\midrule
+\code{auth.me} & \en{query} & --- & \code{userOutput} & ล็อกอินแล้ว & ทุกหน้าใช้ \\
+\addlinespace
+\code{item.list} & \en{query} & \code{q, page, filters} & \code{items[], total} & ล็อกอินแล้ว & แบ่งหน้า \\
+\addlinespace
+\code{item.availability} & \en{query} & \code{itemId} & \code{available, nextAt} & ล็อกอินแล้ว & \textbf{\en{poll} 10--15 วิ} \\
+\addlinespace
+\code{loan.create} & \en{mutation} & \code{createLoanInput} & \code{loanOutput} & ผู้ยืม &
+\code{ITEM\_UNAVAILABLE},\newline\code{LOAN\_PERIOD\_}\newline\code{EXCEEDS\_LIMIT} \\
+\addlinespace
+\code{loan.myActive} & \en{query} & --- & \code{loans[]} & ผู้ยืม & \en{invalidate} หลังทุก \en{action} \\
+\addlinespace
+\code{approval.queue} & \en{query} & \code{page} & \code{requests[], total} & อาจารย์ & \textbf{\en{poll} 30--60 วิ} \\
+\addlinespace
+\code{approval.decide} & \en{mutation} & \code{id, decision, reason} & \code{ok} & อาจารย์ & \code{ALREADY\_DECIDED} \\
+\bottomrule
+\end{tabular}
+\caption{ตัวอย่างรูปแบบของตารางสัญญา --- คอลัมน์ \en{role} กับหมายเหตุคือสิ่งที่ทำให้ตารางนี้ต่างจากรายการ \en{endpoint} ธรรมดา}
+\end{table}
+
+\section{คำสั่งที่ต้องรันจริง}
+
+\begin{enumerate}
+\item \code{cd frontend \&\& npm i zod@\^{}4} --- แก้ความเสี่ยงข้อ 1
+      แล้วรัน \code{npm run typecheck} ให้ผ่านก่อนทำอย่างอื่น
+\item \code{cd frontend \&\& npm i @trpc/client} (พร้อมตัวเชื่อม \en{TanStack Query}
+      รุ่นที่เข้าชุดกับ \code{@trpc/server} 11)
+\item ตั้ง \code{autoSchemaFile} ใน \code{backend-preview/backend/src/app.module.ts}
+      แล้ว \code{npm run start:dev} --- ตรวจว่าไฟล์สัญญาถูกสร้างขึ้นจริง
+\item \code{cd backend-preview/backend \&\& npx prisma generate} ---
+      ถ้ายังไม่เคยรัน \code{src/generated/prisma} จะยังไม่มี \en{client}
+\item \code{npm run sync:contract} --- สคริปต์คัดลอกไฟล์สัญญา (ยังไม่มี ต้องเขียน
+      หลังตกลงวิธีขนส่งในการประชุม)
+\item สร้างเอกสารชุดนี้ใหม่: \code{cd docs \&\& latexmk trpc-guide.tex}
+\end{enumerate}
+
+\section{ที่มาของข้อเท็จจริงทุกข้อในเอกสารนี้}
+
+เอกสารนี้ไม่มีผลการทดลอง มีแต่ข้อเท็จจริงที่อ่านจากไฟล์ในรีโป ตารางนี้คือรายการ
+ไฟล์ที่ถูกอ่าน --- ถ้าไฟล์ไหนเปลี่ยน เนื้อความในหัวข้อที่ระบุต้องถูกตรวจซ้ำ
+
+\begin{table}[H]
+\centering\small
+\begin{tabular}{L{6.4cm}L{8.0cm}}
+\toprule
+\sansall\bfseries ไฟล์ & \sansall\bfseries เอกสารนี้ใช้มันยืนยันอะไร \\
+\midrule
+\code{backend-preview/backend/}\newline\code{package.json} &
+เวอร์ชัน \code{nestjs-trpc} 2.13, \code{@trpc/server} 11.18, \code{zod} 4.4,
+\code{@prisma/client} 7.9 --- ความเสี่ยงข้อ 1 และภาค 3 \\
+\addlinespace
+\code{.../src/app.module.ts} &
+\code{TRPCModule.forRoot()} เรียกแบบไม่ส่ง \en{option} --- ภาค 3 \\
+\addlinespace
+\code{.../src/main.ts} &
+ยังไม่มี \code{enableCors} --- ความเสี่ยงข้อ 7 \\
+\addlinespace
+\code{.../prisma/schema.prisma} &
+32 \code{model}, 0 \code{enum}, ชื่อฟิลด์ \code{PascalCase},
+\code{HashedPassword} อยู่ในตารางเดียวกับข้อมูลผู้ใช้, ฟิลด์ \code{DateTime}
+กระจาย 9 ตาราง --- ความเสี่ยงข้อ 3 และ 4 \\
+\addlinespace
+\code{frontend/package.json} &
+\code{zod} 3.23, \code{@tanstack/react-query} 5.59, ไม่มี \code{@trpc/client}
+--- ความเสี่ยงข้อ 1 และภาค 3 \\
+\addlinespace
+\code{frontend/src/lib/api-client.ts} &
+เลือกใช้ \en{httpOnly cookie} และ \code{credentials: "include"} ไปแล้ว,
+รูปแบบ \code{ApiError} --- ความเสี่ยงข้อ 7 \\
+\addlinespace
+\code{frontend/src/types/domain.ts} &
+\en{type} เขียนมือแบบ \code{camelCase} และ \en{union} ของสถานะ
+--- ความเสี่ยงข้อ 3 \\
+\addlinespace
+\fnth{รายการเรียกใช้งานจาก Backend.pdf} &
+รายการ \en{endpoint} 3 กลุ่ม, ความถี่ \en{polling} 6 รายการ, งาน \en{cron} 7 งาน
+--- ความเสี่ยงข้อ 5 และ 6 \\
+\bottomrule
+\end{tabular}
+\caption{ที่มาของข้อเท็จจริง --- ตารางนี้คือสิ่งที่ทำให้เอกสารนี้ตรวจสอบย้อนกลับได้ ไม่ใช่แค่ความเห็น}
+\end{table}
+
+\begin{keybox}[title={เอกสารภายในโครงการที่ควรอ่านคู่กัน}]
+\begin{itemize}
+\item \code{docs/trpc-meeting.tex} --- วาระประชุมสำหรับตกลงสิ่งที่เอกสารนี้ชี้ว่าต้องตกลง
+\item \fnth{รายการเรียกใช้งานจาก Backend.pdf} --- ร่างสัญญาฉบับแรกของทีม ยังใช้เป็นตัวตั้งได้ดี
+\item \code{docs/PROGRESS.md} --- สถานะสะสมของงานเอกสาร
+\end{itemize}
+\end{keybox}
+
+\vfill
+\begin{center}
+\begin{tikzpicture}
+  \draw[rule, line width=0.6pt] (0,0) -- (\textwidth,0);
+\end{tikzpicture}
+\end{center}
+{\sansall\footnotesize\color{muted}
+รูปทุกรูปในเอกสารนี้วาดด้วย \en{TikZ} ในไฟล์ \code{docs/trpc-guide.tex} เอง
+ไม่มีรูปที่มาจากการรันโค้ด และไม่มีรูปที่เป็นผลการทดลอง \\
+ข้อเท็จจริงทุกข้อตรวจสอบย้อนกลับได้ตามตารางในภาคผนวก ง
+สถานะที่อ้างถึงเป็นสถานะ ณ วันที่ระบุบนหน้าปก \par}
+
+\end{document}
+

@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="482" viewBox="0 0 1080 482">
+<rect x="0" y="0" width="1080" height="482" rx="14" fill="#FFFFFF"/>
+<rect x="44" y="30" width="5" height="40" rx="2.5" fill="#35827C"/>
+<text x="62" y="48" font-family="Laksaman, Noto Sans Thai, sans-serif" font-size="21" font-weight="700" fill="#13211F">การจองและการอนุมัติ</text>
+<text x="62" y="66" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11.5" fill="#35827C" letter-spacing="0.6">RESERVATION &amp; APPROVAL</text>
+<text x="1036" y="48" font-family="Laksaman, Noto Sans Thai, sans-serif" font-size="12.5" fill="#7E8F8D" text-anchor="end">ทุกคำขอในระบบใช้ชุดสถานะการอนุมัติเดียวกัน</text>
+<text x="1036" y="66" font-family="Laksaman, Noto Sans Thai, sans-serif" font-size="11" fill="#7E8F8D" text-anchor="end">2 ตาราง &#183; ULMs Database Design v4</text>
+<path d="M474 315.0 C529 315.0 551 238.0 597 238.0" fill="none" stroke="#35827C" stroke-width="1.6" opacity="0.7"/><path d="M606 238.0 L597 233.5 L597 242.5 z" fill="#35827C" opacity="0.7"/><circle cx="474" cy="315.0" r="3.2" fill="#35827C" opacity="0.7"/>
+<rect x="46" y="100.0" width="426" height="342" rx="10" fill="#0A1F1D" opacity="0.05"/>
+<rect x="45" y="98.0" width="428" height="342" rx="10" fill="#0A1F1D" opacity="0.05"/>
+<rect x="44" y="96.0" width="430" height="342" rx="10" fill="#FFFFFF" stroke="#DCE7E5"/>
+<path d="M44 106.0 a10 10 0 0 1 10 -10 h410 a10 10 0 0 1 10 10 v40 h-430 z" fill="#35827C"/>
+<text x="60" y="117.0" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="14.5" font-weight="700" fill="#FFFFFF">Reservations</text>
+<text x="60" y="135.0" font-family="Laksaman, Noto Sans Thai, sans-serif" font-size="12" fill="#FFFFFF" opacity="0.85">ตารางเวลาการจองล่วงหน้า</text>
+<rect x="57" y="152.0" width="26" height="14" rx="4" fill="#9E5714"/><text x="70" y="162.5" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="9" font-weight="700" fill="#FFFFFF" text-anchor="middle">PK</text>
+<text x="92" y="163.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="600" fill="#13211F">ReservationKey</text>
+<text x="460" y="163.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">INT</text>
+<rect x="45" y="172.0" width="428" height="26" fill="#F2F7F7"/>
+<rect x="57" y="178.0" width="26" height="14" rx="4" fill="none" stroke="#35827C" stroke-width="1.2"/><text x="70" y="188.5" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="9" font-weight="700" fill="#35827C" text-anchor="middle">FK</text>
+<text x="92" y="189.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="400" fill="#13211F">ResourceKey</text>
+<text x="184.77499999999998" y="189.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="10.5" fill="#7E8F8D">&#8594; ResourceInfo</text>
+<text x="460" y="189.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">INT</text>
+<line x1="57" y1="172.0" x2="461" y2="172.0" stroke="#DCE7E5" stroke-width="0.8"/>
+<rect x="57" y="204.0" width="26" height="14" rx="4" fill="none" stroke="#35827C" stroke-width="1.2"/><text x="70" y="214.5" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="9" font-weight="700" fill="#35827C" text-anchor="middle">FK</text>
+<text x="92" y="215.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="400" fill="#13211F">ReservedBy</text>
+<text x="177.25" y="215.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="10.5" fill="#7E8F8D">&#8594; AccountInfo</text>
+<text x="460" y="215.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">INT</text>
+<line x1="57" y1="198.0" x2="461" y2="198.0" stroke="#DCE7E5" stroke-width="0.8"/>
+<rect x="45" y="224.0" width="428" height="26" fill="#F2F7F7"/>
+<text x="92" y="241.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="400" fill="#13211F">Reason</text>
+<text x="460" y="241.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">VARCHAR</text>
+<line x1="57" y1="224.0" x2="461" y2="224.0" stroke="#DCE7E5" stroke-width="0.8"/>
+<text x="92" y="267.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="400" fill="#13211F">StartTime</text>
+<text x="460" y="267.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">DATETIME</text>
+<line x1="57" y1="250.0" x2="461" y2="250.0" stroke="#DCE7E5" stroke-width="0.8"/>
+<rect x="45" y="276.0" width="428" height="26" fill="#F2F7F7"/>
+<text x="92" y="293.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="400" fill="#13211F">EndTime</text>
+<text x="460" y="293.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">DATETIME</text>
+<line x1="57" y1="276.0" x2="461" y2="276.0" stroke="#DCE7E5" stroke-width="0.8"/>
+<rect x="57" y="308.0" width="26" height="14" rx="4" fill="none" stroke="#35827C" stroke-width="1.2"/><text x="70" y="318.5" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="9" font-weight="700" fill="#35827C" text-anchor="middle">FK</text>
+<text x="92" y="319.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="400" fill="#13211F">ApproveStatus</text>
+<text x="460" y="319.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">INT</text>
+<line x1="57" y1="302.0" x2="461" y2="302.0" stroke="#DCE7E5" stroke-width="0.8"/>
+<rect x="45" y="328.0" width="428" height="26" fill="#F2F7F7"/>
+<rect x="57" y="334.0" width="26" height="14" rx="4" fill="none" stroke="#35827C" stroke-width="1.2"/><text x="70" y="344.5" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="9" font-weight="700" fill="#35827C" text-anchor="middle">FK</text>
+<text x="92" y="345.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="400" fill="#13211F">ApprovedBy</text>
+<text x="177.25" y="345.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="10.5" fill="#7E8F8D">&#8594; AccountInfo</text>
+<text x="460" y="345.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">INT</text>
+<line x1="57" y1="328.0" x2="461" y2="328.0" stroke="#DCE7E5" stroke-width="0.8"/>
+<text x="92" y="371.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="400" fill="#13211F">ReservationExpire</text>
+<text x="460" y="371.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">DATETIME</text>
+<line x1="57" y1="354.0" x2="461" y2="354.0" stroke="#DCE7E5" stroke-width="0.8"/>
+<rect x="45" y="380.0" width="428" height="26" fill="#F2F7F7"/>
+<text x="92" y="397.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="400" fill="#13211F">ActionTime</text>
+<text x="460" y="397.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">DATETIME</text>
+<line x1="57" y1="380.0" x2="461" y2="380.0" stroke="#DCE7E5" stroke-width="0.8"/>
+<text x="92" y="423.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="400" fill="#13211F">ResolvedAt</text>
+<text x="460" y="423.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">DATETIME</text>
+<line x1="57" y1="406.0" x2="461" y2="406.0" stroke="#DCE7E5" stroke-width="0.8"/>
+<rect x="608" y="217.0" width="426" height="108" rx="10" fill="#0A1F1D" opacity="0.05"/>
+<rect x="607" y="215.0" width="428" height="108" rx="10" fill="#0A1F1D" opacity="0.05"/>
+<rect x="606" y="213.0" width="430" height="108" rx="10" fill="#FFFFFF" stroke="#DCE7E5"/>
+<path d="M606 223.0 a10 10 0 0 1 10 -10 h410 a10 10 0 0 1 10 10 v40 h-430 z" fill="#35827C"/>
+<text x="622" y="234.0" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="14.5" font-weight="700" fill="#FFFFFF">ApproveStatus</text>
+<text x="622" y="252.0" font-family="Laksaman, Noto Sans Thai, sans-serif" font-size="12" fill="#FFFFFF" opacity="0.85">สถานะการอนุมัติ (ใช้ร่วมกัน)</text>
+<rect x="619" y="269.0" width="26" height="14" rx="4" fill="#9E5714"/><text x="632" y="279.5" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="9" font-weight="700" fill="#FFFFFF" text-anchor="middle">PK</text>
+<text x="654" y="280.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="600" fill="#13211F">ApproveStatusKey</text>
+<text x="1022" y="280.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">INT</text>
+<rect x="607" y="289.0" width="428" height="26" fill="#F2F7F7"/>
+<text x="654" y="306.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="400" fill="#13211F">StatusName</text>
+<text x="1022" y="306.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">VARCHAR</text>
+<line x1="619" y1="289.0" x2="1023" y2="289.0" stroke="#DCE7E5" stroke-width="0.8"/>
+</svg>

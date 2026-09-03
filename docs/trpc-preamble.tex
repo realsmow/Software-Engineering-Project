@@ -1,0 +1,278 @@
+% =============================================================================
+%  trpc-preamble.tex — preamble ร่วมของเอกสารชุด "สัญญา tRPC" ของโครงการ ULMs
+%
+%  ใช้โดย:  trpc-guide.tex    (ฉบับที่ 1 — หลักการ tRPC + ความเสี่ยงใน repo นี้)
+%           trpc-meeting.tex  (ฉบับที่ 2 — วาระประชุมเรียงตามลำดับความสำคัญ)
+%
+%  ทำไมไม่ใช้ ulms-preamble.tex ที่มีอยู่แล้ว
+%  ----------------------------------------
+%  ulms-preamble.tex ตั้งใจให้เป็น "โทนเดียว (monochrome)" สำหรับเอกสารที่ต้อง
+%  ส่งอาจารย์/พิมพ์ขาวดำ แต่เอกสารสอนสองฉบับนี้ใช้ "สีเชิงความหมาย" เป็นเครื่องมือ
+%  สอนหลัก (สีเดียวกัน = แนวคิดเดียวกัน ทั้งในเนื้อความ ในไดอะแกรม และในตาราง)
+%  จึงต้องมี preamble ของตัวเอง — ไม่ใช่ก๊อปมาแก้สีทับ
+%
+%  เอกสารที่เรียกใช้ต้องทำสองอย่างหลัง \input{trpc-preamble}:
+%    1) \hypersetup{pdftitle={...}}
+%    2) \begin{document}
+%
+%  Build:  cd docs && latexmk trpc-guide.tex     (.latexmkrc บังคับ xelatex ให้แล้ว)
+%          PDF ออกที่ docs/build/ แล้วค่อยคัดลอกไป docs/report/
+% =============================================================================
+
+\documentclass[11pt,a4paper]{article}
+
+% ---------------------------------------------------------------------
+%  FONTS
+%
+%  ต้องใช้ XeLaTeX เท่านั้น — pdflatex เรียงพิมพ์ภาษาไทยไม่ได้เลย (ไม่ใช่ "ได้แต่ไม่สวย")
+%
+%  ใช้ตระกูล TLWG ที่มีทั้งอักษรไทยและละตินอยู่ในไฟล์เดียว จงใจเลี่ยงการจับคู่
+%  ฟอนต์ละตินกับฟอนต์ไทยล้วนผ่าน ucharclasses เพราะ ucharclasses สลับฟอนต์ตาม
+%  "บล็อกยูนิโคด" ของตัวอักษร โดยไม่รู้จักขอบเขตของ TeX group → ข้อความละตินที่
+%  ตามหลัง \textbf{...} จะยังค้างอยู่ในฟอนต์ไทยซึ่งไม่มีสัญลักษณ์ละติน แล้ว
+%  "หายไปจาก PDF เงียบ ๆ" โดยไม่มี warning
+% ---------------------------------------------------------------------
+\usepackage{fontspec}
+
+\setmainfont{Laksaman}[Ligatures=TeX]          % ไทย+ละติน — เนื้อความ
+\setsansfont{Garuda}[Ligatures=TeX]            % ไทย+ละติน หนักกว่า — หัวข้อ/ป้ายในไดอะแกรม
+\setmonofont{DejaVu Sans Mono}[Scale=0.84]     % 0.84 ทำให้ x-height ใกล้เคียง TLWG
+
+% --- การตัดบรรทัดภาษาไทย ---
+% ภาษาไทยเขียนติดกันไม่มีช่องว่าง TeX จึงหาจุดตัดบรรทัดเองไม่ได้ และจะปล่อยให้
+% บรรทัดล้นออกนอกหน้ากระดาษ สองบรรทัดนี้ยกงานให้ ICU ตัดคำแบบพจนานุกรม
+% ค่า stretch ต้องมากกว่าศูนย์อย่างมีนัยสำคัญ ไม่งั้น TeX แทบไม่มีอิสระในการจัด
+% บรรทัดไทยและจะออกมาเป็น overfull box แทนที่จะยืด/หดช่องไฟ
+\XeTeXlinebreaklocale "th"
+\XeTeXlinebreakskip = 0pt plus 0.15em minus 0.02em
+\emergencystretch=2.2em
+
+% หัวข้อ ป้ายในไดอะแกรม หัวตาราง header/footer ใช้ sans — เนื้อความไม่ใช้
+% นี่คือสิ่งที่แยก "โครงสร้างสำหรับกวาดสายตา" ออกจาก "เนื้อหาสำหรับอ่าน"
+\newcommand{\sansall}{\sffamily}
+
+% ---------------------------------------------------------------------
+%  LAYOUT
+% ---------------------------------------------------------------------
+\usepackage[a4paper,margin=2.3cm,top=2.5cm,bottom=2.5cm,headsep=12pt]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\graphicspath{{figures/}}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{multirow}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,calc,shapes.geometric,shapes.misc,
+                fit,backgrounds,decorations.pathmorphing}
+\usepackage[most]{tcolorbox}
+\usepackage[font=small,labelfont=bf,width=0.95\textwidth]{caption}
+\usepackage{fancyhdr}
+\usepackage{enumitem}
+\usepackage{titlesec}
+\usepackage{float}        % figure[H] — ตรึงรูปไว้ข้างเนื้อความที่อธิบายมัน
+\usepackage{microtype}
+\usepackage{listings}
+\usepackage[colorlinks=true,allcolors=ctr,breaklinks=true,
+            bookmarksnumbered=true]{hyperref}
+
+% ภาษาไทยต้องการระยะบรรทัดมากกว่าละติน สระบนซ้อนวรรณยุกต์ และมีสระล่างด้วย
+% ที่ระยะปกติจะชนกันข้ามบรรทัด — 1.28 คือค่าที่ทดสอบแล้ว
+\linespread{1.28}
+\setlength{\parskip}{0.35em}
+\setlength{\parindent}{0pt}
+
+% ---------------------------------------------------------------------
+%  สี — ระบบสีเชิงความหมาย (semantic colour)
+%
+%  ฐานสีคือชุด Okabe–Ito ซึ่งปลอดภัยสำหรับผู้ที่มองสีบางคู่ไม่แยก (colour-blind safe)
+%
+%  สีสี่สีหลักถูก "ตั้งชื่อกลาง ๆ" ไว้ที่นี่ แล้วให้แต่ละเอกสารประกาศความหมายของ
+%  ตัวเองในหน้า "เอกสารนี้อ่านอย่างไร":
+%
+%    trpc-guide.tex   → 4 ชั้นของระบบ:   สัญญา / backend / frontend / เครือข่าย
+%    trpc-meeting.tex → 4 ระดับเร่งด่วน: P0 / P1 / P2 / P3
+%
+%  สองเอกสารใช้คนละความหมายได้ เพราะแต่ละฉบับ "ประกาศระบบสีของตัวเองไว้หน้าแรก"
+%  และคงเส้นคงวาภายในเล่ม — สิ่งที่ห้ามคือเปลี่ยนความหมายกลางเล่ม
+% ---------------------------------------------------------------------
+\definecolor{ctr}{HTML}{0072B2}      % ฟ้า   — สัญญา/schema/type   · หรือ P2
+\definecolor{beo}{HTML}{D55E00}      % ส้ม   — ฝั่ง backend         · หรือ P1
+\definecolor{feg}{HTML}{009E73}      % เขียว — ฝั่ง frontend        · หรือ P3
+\definecolor{ops}{HTML}{7B5EA7}      % ม่วง  — เครือข่าย/รันไทม์/ops
+
+\definecolor{ink}{HTML}{1A2733}      % เข้ม — หัวข้อรอง
+\definecolor{muted}{HTML}{5B6B7A}    % ข้อความรอง เส้นคั่น ป้ายกำกับ
+\definecolor{rule}{HTML}{C9D2DB}     % เส้นบาง ขอบไดอะแกรม
+\definecolor{wash}{HTML}{F1F6FA}     % พื้นกล่องฟ้า/กลาง
+\definecolor{warnwash}{HTML}{FDF3E7} % พื้นกล่องส้ม
+\definecolor{goodwash}{HTML}{E9F4F0} % พื้นกล่องเขียว
+\definecolor{badwash}{HTML}{FBEDED}  % พื้นกล่องแดง
+\definecolor{bad}{HTML}{B3261E}      % แดง — ผิด/อันตราย · หรือ P0
+\definecolor{codebg}{HTML}{F7F9FB}   % พื้นบล็อกโค้ด
+
+% ---------------------------------------------------------------------
+%  HEADINGS
+%  \part ใช้เลขอารบิก เพื่อให้อ้างอิงข้ามเล่มอ่านว่า "ภาค 3" ไม่ใช่ "ภาค III"
+% ---------------------------------------------------------------------
+\renewcommand{\thepart}{\arabic{part}}
+\titleformat{\part}[display]
+  {\sansall\huge\bfseries\color{ctr}}
+  {\normalsize\color{muted}ภาค \thepart}{0.4em}{}
+\titlespacing*{\part}{0pt}{0pt}{1.5em}
+
+\titleformat{\section}
+  {\sansall\Large\bfseries\color{ctr!88!black}}{\thesection}{0.7em}{}
+\titleformat{\subsection}
+  {\sansall\large\bfseries\color{ink}}{\thesubsection}{0.6em}{}
+\titleformat{\subsubsection}
+  {\sansall\normalsize\bfseries\color{muted}}{\thesubsubsection}{0.55em}{}
+\titlespacing*{\section}{0pt}{1.9em}{0.7em}
+\titlespacing*{\subsection}{0pt}{1.3em}{0.45em}
+\titlespacing*{\subsubsection}{0pt}{1.0em}{0.35em}
+
+% หัวกระดาษ: ชื่อเอกสารคงที่ทางซ้าย ชื่อหัวข้อปัจจุบันทางขวา ผู้อ่านจะรู้ตลอดว่าอยู่ตรงไหน
+% \docshort ถูกกำหนดในไฟล์เอกสารแต่ละฉบับ
+\providecommand{\docshort}{}
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\headrulewidth}{0.4pt}
+\fancyhead[L]{\footnotesize\sansall\color{muted}\docshort}
+\fancyhead[R]{\footnotesize\sansall\color{muted}\leftmark}
+\fancyfoot[C]{\footnotesize\color{muted}\thepage}
+\renewcommand{\sectionmark}[1]{\markboth{#1}{}}
+
+% รายการแบบกระชับ — ค่าเริ่มต้นของ LaTeX ดูหลวมเมื่ออยู่กับ \parskip
+\setlist[itemize]{itemsep=1pt,topsep=3pt,parsep=0pt,leftmargin=1.4em}
+\setlist[enumerate]{itemsep=1pt,topsep=3pt,parsep=0pt,leftmargin=1.6em}
+\setlist[description]{itemsep=2pt,topsep=3pt,parsep=0pt}
+
+% ---------------------------------------------------------------------
+%  กล่องข้อความ 4 แบบ ความหมายตายตัว ห้ามคิดแบบที่ห้ากลางเล่ม
+%
+%  colbacktitle ต้องตั้งให้เท่ากับ colback มิฉะนั้น tcolorbox จะใช้ colframe
+%  (สีเข้ม) เป็นพื้นหลังของหัวกล่อง แล้วตัวอักษรหัวกล่องสีเข้มจะอ่านไม่ออก
+% ---------------------------------------------------------------------
+\tcbset{guidebox/.style={
+  enhanced, breakable, boxrule=0pt, leftrule=2.5pt, arc=1pt,
+  left=8pt, right=8pt, top=6pt, bottom=6pt,
+  fonttitle=\sansall\bfseries\small, titlerule=0pt,
+  toptitle=1pt, bottomtitle=1pt}}
+
+% ฟ้า — ใจความที่ต้องจำ / ประโยคที่ร้อยหลายบทเข้าด้วยกัน
+\newtcolorbox{keybox}[1][]{guidebox, colback=wash, colframe=ctr,
+  colbacktitle=wash, coltitle=ctr!85!black, #1}
+% ส้ม — กับดัก หรือข้อสมมติที่ถ้าลืมแล้วข้อสรุปจะผิด
+\newtcolorbox{warnbox}[1][]{guidebox, colback=warnwash, colframe=beo,
+  colbacktitle=warnwash, coltitle=beo!80!black, #1}
+% เขียว — สิ่งที่ตรวจสอบกับของจริงในรีโปแล้ว
+\newtcolorbox{goodbox}[1][]{guidebox, colback=goodwash, colframe=feg,
+  colbacktitle=goodwash, coltitle=feg!65!black, #1}
+% แดง — วิธีที่ผิดจริง ๆ อย่าทำ
+\newtcolorbox{badbox}[1][]{guidebox, colback=badwash, colframe=bad,
+  colbacktitle=badwash, coltitle=bad, #1}
+
+% ---------------------------------------------------------------------
+%  SEMANTIC MARKUP
+% ---------------------------------------------------------------------
+% ศัพท์อังกฤษที่แทรกในประโยคภาษาไทย ฟอนต์เนื้อความครอบคลุมละตินอยู่แล้วจึงไม่ต้อง
+% สลับฟอนต์ — เก็บแมโครไว้เป็น "เครื่องหมายเชิงความหมาย" เผื่อวันหลังอยากเปลี่ยน
+% การแสดงผลทั้งเล่มพร้อมกัน
+\newcommand{\en}[1]{#1}
+% ชื่อไฟล์ ฟังก์ชัน หรือค่าที่ปรากฏในโค้ดจริง
+% ไม่บังคับขนาดตัวอักษร ปล่อยให้รับขนาดจากบริบท (สำคัญในตารางที่ใช้ \footnotesize
+% มิฉะนั้นโค้ดจะกลายเป็นตัวใหญ่กว่าข้อความรอบข้างแล้วดันคอลัมน์ล้น)
+% ฟอนต์ mono ถูกย่อไว้ 0.84 แล้วใน \setmonofont จึงพอดีกับเนื้อความอยู่แล้ว
+\newcommand{\code}[1]{{\ttfamily #1}}
+
+% ชื่อไฟล์ที่มีอักษรไทยอยู่ในชื่อ — ห้ามใช้ \code เพราะ DejaVu Sans Mono ไม่มี
+% สัญลักษณ์ไทย ตัวอักษรจะหายไปจาก PDF โดยขึ้นแค่ warning "Missing character"
+% ใช้ Garuda (sans ที่มีทั้งไทยและละติน) แทน
+\newcommand{\fnth}[1]{{\sffamily\small #1}}
+
+% ป้ายชื่อแนวคิด — สีเดียวกับที่ใช้ในไดอะแกรมและตาราง
+\newcommand{\stg}[2]{\textcolor{#1}{\textbf{\en{#2}}}}
+
+% ---------------------------------------------------------------------
+%  ไวยากรณ์ของไดอะแกรม — นิยามครั้งเดียว ทุกรูปจะดูเป็นชุดเดียวกัน
+%  หมายเหตุ: node ที่มีข้อความไทยต้องเผื่อ inner ysep มากกว่าไดอะแกรมภาษาละติน
+%  เพราะสระบน/ล่างกินที่แนวตั้ง
+% ---------------------------------------------------------------------
+\tikzset{
+  blk/.style={draw=rule, line width=0.6pt, rounded corners=2.5pt,
+              fill=wash, minimum height=9mm, inner xsep=6pt, inner ysep=5pt,
+              align=center, font=\sansall\footnotesize},
+  stage/.style={blk, fill=ctr!8, draw=ctr!45},
+  bestage/.style={blk, fill=beo!8, draw=beo!45},
+  festage/.style={blk, fill=feg!8, draw=feg!45},
+  opstage/.style={blk, fill=ops!8, draw=ops!45},
+  ar/.style={-{Stealth[length=2.2mm,width=1.8mm]}, line width=0.7pt,
+             draw=muted},
+  lbl/.style={font=\sansall\scriptsize, text=muted, align=center},
+  tag/.style={font=\sansall\scriptsize\bfseries, align=center},
+}
+
+% ---------------------------------------------------------------------
+%  ตาราง
+%  คอลัมน์แบบชิดซ้าย: ข้อความจัดชิดขอบสองข้าง (justified) ในคอลัมน์แคบจะเปิด
+%  ช่องไฟกว้างมาก และแย่เป็นพิเศษกับภาษาไทย เพราะ ICU ตัดไทยเป็นก้อนที่ใหญ่กว่า
+%  คำภาษาอังกฤษ → ใช้ L{} แทน p{} ในทุกคอลัมน์ที่มีข้อความยาว
+% ---------------------------------------------------------------------
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\captionsetup{skip=6pt}
+
+% ---------------------------------------------------------------------
+%  บล็อกโค้ด
+%
+%  ข้อจำกัดที่ต้องรู้: listings อ่านไฟล์แบบไบต์ ไม่เข้าใจ UTF-8 หลายไบต์
+%  → "ห้ามใส่ภาษาไทยในบล็อกโค้ด" คอมเมนต์ในโค้ดทุกอันเป็นภาษาอังกฤษ
+%    คำอธิบายภาษาไทยให้อยู่นอกบล็อกเสมอ
+% ---------------------------------------------------------------------
+\lstdefinelanguage{TypeScript}{
+  keywords={await, async, break, case, catch, class, const, continue, default,
+            delete, do, else, enum, export, extends, false, finally, for, from,
+            function, if, implements, import, in, instanceof, interface, let,
+            new, null, of, private, public, readonly, return, super, switch,
+            this, throw, true, try, type, typeof, undefined, var, void, while,
+            yield, satisfies, as},
+  keywordstyle=\color{ctr}\bfseries,
+  ndkeywords={string, number, boolean, Date, Promise, z, Record, Array},
+  ndkeywordstyle=\color{ops},
+  sensitive=true,
+  comment=[l]{//},
+  morecomment=[s]{/*}{*/},
+  commentstyle=\color{muted}\itshape,
+  stringstyle=\color{feg!70!black},
+  morestring=[b]',
+  morestring=[b]",
+  morestring=[b]`,
+}
+
+\lstset{
+  language=TypeScript,
+  basicstyle=\ttfamily\scriptsize,
+  backgroundcolor=\color{codebg},
+  frame=leftline,
+  framerule=2pt,
+  rulecolor=\color{rule},
+  framesep=7pt,
+  xleftmargin=10pt,
+  breaklines=true,
+  breakatwhitespace=true,
+  columns=fullflexible,
+  keepspaces=true,
+  showstringspaces=false,
+  aboveskip=0.9em,
+  belowskip=0.9em,
+  literate={->}{{$\rightarrow$}}2 {=>}{{=>}}2,
+}
+
+% ชื่อ float ภาษาไทย — ถ้าไม่ตั้ง จะได้ "Figure 3" อยู่ใต้เนื้อความภาษาไทย
+\renewcommand{\figurename}{รูปที่}
+\renewcommand{\tablename}{ตารางที่}
+\renewcommand{\refname}{เอกสารอ้างอิง}
+\renewcommand{\contentsname}{สารบัญ}
+% หมายเหตุ: ห้ามใส่ \color ใน \contentsname เพราะ \tableofcontents ส่งมันผ่าน
+% \MakeUppercase ซึ่งจะเปลี่ยน ctr เป็น CTR แล้ว xcolor จะฟ้องว่าไม่รู้จักสีนั้น
+% ถ้าจะจัดสไตล์หัวสารบัญ ให้ทำผ่าน \titleformat{\section} แทน

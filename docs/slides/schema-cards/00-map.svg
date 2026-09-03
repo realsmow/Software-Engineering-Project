@@ -1,0 +1,159 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1538" height="750" viewBox="0 0 1538 750">
+<rect x="0" y="0" width="1538" height="750" rx="14" fill="#FFFFFF"/>
+<rect x="44" y="30" width="5" height="40" rx="2.5" fill="#16726D"/>
+<text x="62" y="48" font-family="Laksaman, Noto Sans Thai, sans-serif" font-size="21" font-weight="700" fill="#13211F">ภาพรวมความสัมพันธ์ของฐานข้อมูล ULMs</text>
+<text x="62" y="66" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11.5" fill="#16726D" letter-spacing="0.6">33 TABLES · 9 GROUPS · DATABASE DESIGN V4</text>
+<text x="1494" y="48" font-family="Laksaman, Noto Sans Thai, sans-serif" font-size="12.5" fill="#7E8F8D" text-anchor="end">ความหนาของเส้น = จำนวน Foreign Key ที่เชื่อมสองกลุ่มนั้น</text>
+<text x="1494" y="66" font-family="Laksaman, Noto Sans Thai, sans-serif" font-size="11" fill="#7E8F8D" text-anchor="end">อ่านไล่ตามเลขกลุ่ม 01–09 ซึ่งเป็นลำดับเดียวกับสไลด์ถัดไป</text>
+<line x1="294.0" y1="164.0" x2="435.0" y2="164.0" stroke="#4E6B67" stroke-width="3.0" opacity="0.7" stroke-linecap="round"/>
+<path d="M444.0 164.0 L435.0 168.1 L435.0 159.9 z" fill="#4E6B67" opacity="0.7"/>
+<line x1="703.0" y1="167.7" x2="844.0" y2="171.6" stroke="#4E6B67" stroke-width="3.0" opacity="0.7" stroke-linecap="round"/>
+<path d="M694.0 167.4 L702.9 171.7 L703.1 163.6 z" fill="#4E6B67" opacity="0.7"/>
+<line x1="1105.0" y1="171.3" x2="1233.0" y2="167.7" stroke="#4E6B67" stroke-width="4.3" opacity="0.7" stroke-linecap="round"/>
+<path d="M1244.0 167.4 L1233.1 172.7 L1232.9 162.8 z" fill="#4E6B67" opacity="0.7"/>
+<path d="M1094.0 171.6 L1105.1 176.2 L1104.9 166.3 z" fill="#4E6B67" opacity="0.7"/>
+<circle cx="1169.0" cy="169.5" r="13" fill="#FFFFFF" stroke="#4E6B67" stroke-width="1.3" opacity="0.95"/>
+<text x="1169.0" y="174.0" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="700" fill="#4E6B67" text-anchor="middle">2</text>
+<line x1="969.0" y1="265.0" x2="969.0" y2="333.0" stroke="#4E6B67" stroke-width="7.0" opacity="0.7" stroke-linecap="round"/>
+<path d="M969.0 344.0 L964.0 333.0 L974.0 333.0 z" fill="#4E6B67" opacity="0.7"/>
+<path d="M969.0 254.0 L964.0 265.0 L974.0 265.0 z" fill="#4E6B67" opacity="0.7"/>
+<circle cx="969.0" cy="299.0" r="13" fill="#FFFFFF" stroke="#4E6B67" stroke-width="1.3" opacity="0.95"/>
+<text x="969.0" y="303.5" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="700" fill="#4E6B67" text-anchor="middle">4</text>
+<line x1="703.0" y1="164.0" x2="1244.0" y2="164.0" stroke="#4E6B67" stroke-width="3.0" opacity="0.7" stroke-linecap="round"/>
+<path d="M694.0 164.0 L703.0 168.1 L703.0 159.9 z" fill="#4E6B67" opacity="0.7"/>
+<line x1="303.0" y1="164.0" x2="1244.0" y2="164.0" stroke="#4E6B67" stroke-width="3.0" opacity="0.7" stroke-linecap="round"/>
+<path d="M294.0 164.0 L303.0 168.1 L303.0 159.9 z" fill="#4E6B67" opacity="0.7"/>
+<line x1="835.3" y1="210.9" x2="294.0" y2="356.4" stroke="#4E6B67" stroke-width="3.0" opacity="0.7" stroke-linecap="round"/>
+<path d="M844.0 208.6 L834.3 207.0 L836.4 214.8 z" fill="#4E6B67" opacity="0.7"/>
+<line x1="169.0" y1="241.0" x2="169.0" y2="344.0" stroke="#4E6B67" stroke-width="3.0" opacity="0.7" stroke-linecap="round"/>
+<path d="M169.0 232.0 L164.9 241.0 L173.1 241.0 z" fill="#4E6B67" opacity="0.7"/>
+<line x1="305.0" y1="390.0" x2="444.0" y2="390.0" stroke="#4E6B67" stroke-width="4.3" opacity="0.7" stroke-linecap="round"/>
+<path d="M294.0 390.0 L305.0 394.9 L305.0 385.1 z" fill="#4E6B67" opacity="0.7"/>
+<circle cx="369.0" cy="390.0" r="13" fill="#FFFFFF" stroke="#4E6B67" stroke-width="1.3" opacity="0.95"/>
+<text x="369.0" y="394.5" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="700" fill="#4E6B67" text-anchor="middle">2</text>
+<line x1="298.9" y1="237.4" x2="487.6" y2="344.0" stroke="#4E6B67" stroke-width="4.3" opacity="0.7" stroke-linecap="round"/>
+<path d="M289.4 232.0 L296.5 241.7 L301.4 233.1 z" fill="#4E6B67" opacity="0.7"/>
+<circle cx="388.5" cy="288.0" r="13" fill="#FFFFFF" stroke="#4E6B67" stroke-width="1.3" opacity="0.95"/>
+<text x="388.5" y="292.5" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="700" fill="#4E6B67" text-anchor="middle">2</text>
+<line x1="834.3" y1="247.4" x2="654.6" y2="344.0" stroke="#4E6B67" stroke-width="4.3" opacity="0.7" stroke-linecap="round"/>
+<path d="M844.0 242.2 L832.0 243.0 L836.7 251.8 z" fill="#4E6B67" opacity="0.7"/>
+<circle cx="749.3" cy="293.1" r="13" fill="#FFFFFF" stroke="#4E6B67" stroke-width="1.3" opacity="0.95"/>
+<text x="749.3" y="297.6" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="700" fill="#4E6B67" text-anchor="middle">2</text>
+<line x1="705.0" y1="401.2" x2="833.0" y2="411.8" stroke="#4E6B67" stroke-width="5.7" opacity="0.7" stroke-linecap="round"/>
+<path d="M844.0 412.7 L832.6 416.7 L833.4 406.8 z" fill="#4E6B67" opacity="0.7"/>
+<path d="M694.0 400.3 L704.6 406.2 L705.4 396.3 z" fill="#4E6B67" opacity="0.7"/>
+<circle cx="769.0" cy="406.5" r="13" fill="#FFFFFF" stroke="#4E6B67" stroke-width="1.3" opacity="0.95"/>
+<text x="769.0" y="411.0" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="700" fill="#4E6B67" text-anchor="middle">3</text>
+<line x1="304.5" y1="207.9" x2="844.0" y2="382.5" stroke="#4E6B67" stroke-width="5.7" opacity="0.7" stroke-linecap="round"/>
+<path d="M294.0 204.5 L302.9 212.6 L306.0 203.1 z" fill="#4E6B67" opacity="0.7"/>
+<circle cx="569.0" cy="293.5" r="13" fill="#FFFFFF" stroke="#4E6B67" stroke-width="1.3" opacity="0.95"/>
+<text x="569.0" y="298.0" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="700" fill="#4E6B67" text-anchor="middle">3</text>
+<line x1="1094.0" y1="419.6" x2="1233.0" y2="415.7" stroke="#4E6B67" stroke-width="4.3" opacity="0.7" stroke-linecap="round"/>
+<path d="M1244.0 415.4 L1233.1 420.7 L1232.9 410.8 z" fill="#4E6B67" opacity="0.7"/>
+<circle cx="1169.0" cy="417.5" r="13" fill="#FFFFFF" stroke="#4E6B67" stroke-width="1.3" opacity="0.95"/>
+<text x="1169.0" y="422.0" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="700" fill="#4E6B67" text-anchor="middle">2</text>
+<line x1="304.8" y1="192.1" x2="1244.0" y2="386.2" stroke="#4E6B67" stroke-width="4.3" opacity="0.7" stroke-linecap="round"/>
+<path d="M294.0 189.8 L303.8 196.9 L305.8 187.2 z" fill="#4E6B67" opacity="0.7"/>
+<circle cx="769.0" cy="288.0" r="13" fill="#FFFFFF" stroke="#4E6B67" stroke-width="1.3" opacity="0.95"/>
+<text x="769.0" y="292.5" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="700" fill="#4E6B67" text-anchor="middle">2</text>
+<line x1="703.0" y1="393.7" x2="1244.0" y2="408.6" stroke="#4E6B67" stroke-width="3.0" opacity="0.7" stroke-linecap="round"/>
+<path d="M694.0 393.4 L702.9 397.7 L703.1 389.6 z" fill="#4E6B67" opacity="0.7"/>
+<line x1="1369.0" y1="241.0" x2="1369.0" y2="344.0" stroke="#4E6B67" stroke-width="3.0" opacity="0.7" stroke-linecap="round"/>
+<path d="M1369.0 232.0 L1365.0 241.0 L1373.0 241.0 z" fill="#4E6B67" opacity="0.7"/>
+<line x1="303.0" y1="392.5" x2="1244.0" y2="409.7" stroke="#4E6B67" stroke-width="3.0" opacity="0.7" stroke-linecap="round"/>
+<path d="M294.0 392.3 L302.9 396.5 L303.1 388.4 z" fill="#4E6B67" opacity="0.7"/>
+<line x1="169.0" y1="445.0" x2="169.0" y2="592.0" stroke="#4E6B67" stroke-width="3.0" opacity="0.7" stroke-linecap="round"/>
+<path d="M169.0 436.0 L164.9 445.0 L173.1 445.0 z" fill="#4E6B67" opacity="0.7"/>
+<line x1="169.0" y1="243.0" x2="169.0" y2="592.0" stroke="#4E6B67" stroke-width="4.3" opacity="0.7" stroke-linecap="round"/>
+<path d="M169.0 232.0 L164.1 243.0 L173.9 243.0 z" fill="#4E6B67" opacity="0.7"/>
+<circle cx="169.0" cy="412.0" r="13" fill="#FFFFFF" stroke="#4E6B67" stroke-width="1.3" opacity="0.95"/>
+<text x="169.0" y="416.5" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="700" fill="#4E6B67" text-anchor="middle">2</text>
+<line x1="836.3" y1="253.7" x2="265.2" y2="592.0" stroke="#4E6B67" stroke-width="3.0" opacity="0.7" stroke-linecap="round"/>
+<path d="M844.0 249.1 L834.2 250.2 L838.3 257.1 z" fill="#4E6B67" opacity="0.7"/>
+<line x1="835.3" y1="460.8" x2="294.0" y2="613.7" stroke="#4E6B67" stroke-width="3.0" opacity="0.7" stroke-linecap="round"/>
+<path d="M844.0 458.3 L834.2 456.9 L836.4 464.7 z" fill="#4E6B67" opacity="0.7"/>
+<rect x="46" y="100" width="246" height="136" rx="10" fill="#0A1F1D" opacity="0.05"/>
+<rect x="44" y="96" width="250" height="136" rx="10" fill="#FFFFFF" stroke="#A6C9C8"/>
+<path d="M44 106 a10 10 0 0 1 10 -10 h230 a10 10 0 0 1 10 10 v24 h-250 z" fill="#16726D"/>
+<text x="58" y="119" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12" font-weight="700" fill="#FFFFFF" opacity="0.8">01</text>
+<text x="86" y="119" font-family="Laksaman, Noto Sans Thai, sans-serif" font-size="14.5" font-weight="700" fill="#FFFFFF">บัญชีและสิทธิ์</text>
+<text x="60" y="148" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" fill="#13211F">AccountInfo</text>
+<text x="60" y="170" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" fill="#13211F">Authority</text>
+<text x="60" y="192" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" fill="#13211F">AuthorityRole</text>
+<text x="60" y="214" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" fill="#13211F">RoleInfo</text>
+<rect x="446" y="100" width="246" height="136" rx="10" fill="#0A1F1D" opacity="0.05"/>
+<rect x="444" y="96" width="250" height="136" rx="10" fill="#FFFFFF" stroke="#A9BCBD"/>
+<path d="M444 106 a10 10 0 0 1 10 -10 h230 a10 10 0 0 1 10 10 v24 h-250 z" fill="#1D5052"/>
+<text x="458" y="119" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12" font-weight="700" fill="#FFFFFF" opacity="0.8">02</text>
+<text x="486" y="119" font-family="Laksaman, Noto Sans Thai, sans-serif" font-size="14.5" font-weight="700" fill="#FFFFFF">หน่วยงานผู้ให้ยืม</text>
+<text x="460" y="148" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" fill="#13211F">FacultyInfo</text>
+<text x="460" y="170" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" fill="#13211F">ClubInfo</text>
+<text x="460" y="192" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" fill="#13211F">ManagementGroup</text>
+<text x="460" y="214" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" fill="#13211F">GroupType</text>
+<rect x="846" y="100" width="246" height="158" rx="10" fill="#0A1F1D" opacity="0.05"/>
+<rect x="844" y="96" width="250" height="158" rx="10" fill="#FFFFFF" stroke="#A1CCC2"/>
+<path d="M844 106 a10 10 0 0 1 10 -10 h230 a10 10 0 0 1 10 10 v24 h-250 z" fill="#077A5F"/>
+<text x="858" y="119" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12" font-weight="700" fill="#FFFFFF" opacity="0.8">03</text>
+<text x="886" y="119" font-family="Laksaman, Noto Sans Thai, sans-serif" font-size="14.5" font-weight="700" fill="#FFFFFF">ทรัพยากร</text>
+<text x="860" y="148" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" fill="#13211F">ResourceInfo</text>
+<text x="860" y="170" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" fill="#13211F">ItemIndiv</text>
+<text x="860" y="192" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" fill="#13211F">RoomInfo</text>
+<text x="860" y="214" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" fill="#13211F">ItemInfo</text>
+<text x="860" y="236" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" fill="#13211F">ResourceStatus</text>
+<rect x="1246" y="100" width="246" height="136" rx="10" fill="#0A1F1D" opacity="0.05"/>
+<rect x="1244" y="96" width="250" height="136" rx="10" fill="#FFFFFF" stroke="#AECCB6"/>
+<path d="M1244 106 a10 10 0 0 1 10 -10 h230 a10 10 0 0 1 10 10 v24 h-250 z" fill="#2A7A3E"/>
+<text x="1258" y="119" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12" font-weight="700" fill="#FFFFFF" opacity="0.8">04</text>
+<text x="1286" y="119" font-family="Laksaman, Noto Sans Thai, sans-serif" font-size="14.5" font-weight="700" fill="#FFFFFF">กฎและเครดิต</text>
+<text x="1260" y="148" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" fill="#13211F">BorrowRule</text>
+<text x="1260" y="170" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" fill="#13211F">BorrowConstraints</text>
+<text x="1260" y="192" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" fill="#13211F">CreditTier</text>
+<text x="1260" y="214" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" fill="#13211F">Eligibility</text>
+<rect x="46" y="348" width="246" height="92" rx="10" fill="#0A1F1D" opacity="0.05"/>
+<rect x="44" y="344" width="250" height="92" rx="10" fill="#FFFFFF" stroke="#B2D0CD"/>
+<path d="M44 354 a10 10 0 0 1 10 -10 h230 a10 10 0 0 1 10 10 v24 h-250 z" fill="#35827C"/>
+<text x="58" y="367" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12" font-weight="700" fill="#FFFFFF" opacity="0.8">05</text>
+<text x="86" y="367" font-family="Laksaman, Noto Sans Thai, sans-serif" font-size="14.5" font-weight="700" fill="#FFFFFF">การจอง</text>
+<text x="60" y="396" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" fill="#13211F">Reservations</text>
+<text x="60" y="418" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" fill="#13211F">ApproveStatus</text>
+<rect x="446" y="348" width="246" height="92" rx="10" fill="#0A1F1D" opacity="0.05"/>
+<rect x="444" y="344" width="250" height="92" rx="10" fill="#FFFFFF" stroke="#A2C7C8"/>
+<path d="M444 354 a10 10 0 0 1 10 -10 h230 a10 10 0 0 1 10 10 v24 h-250 z" fill="#0B6B6E"/>
+<text x="458" y="367" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12" font-weight="700" fill="#FFFFFF" opacity="0.8">06</text>
+<text x="486" y="367" font-family="Laksaman, Noto Sans Thai, sans-serif" font-size="14.5" font-weight="700" fill="#FFFFFF">ยืม–คืน</text>
+<text x="460" y="396" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" fill="#13211F">UsageLog</text>
+<text x="460" y="418" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" fill="#13211F">ExtensionRequest</text>
+<rect x="846" y="348" width="246" height="158" rx="10" fill="#0A1F1D" opacity="0.05"/>
+<rect x="844" y="344" width="250" height="158" rx="10" fill="#FFFFFF" stroke="#C1CDBC"/>
+<path d="M844 354 a10 10 0 0 1 10 -10 h230 a10 10 0 0 1 10 10 v24 h-250 z" fill="#5C7C4E"/>
+<text x="858" y="367" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12" font-weight="700" fill="#FFFFFF" opacity="0.8">07</text>
+<text x="886" y="367" font-family="Laksaman, Noto Sans Thai, sans-serif" font-size="14.5" font-weight="700" fill="#FFFFFF">ตรวจสภาพ</text>
+<text x="860" y="396" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" fill="#13211F">ConditionLog</text>
+<text x="860" y="418" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" fill="#13211F">Inspection</text>
+<text x="860" y="440" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" fill="#13211F">Image</text>
+<text x="860" y="462" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" fill="#13211F">ConditionType</text>
+<text x="860" y="484" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" fill="#13211F">ImageSubmissionType</text>
+<rect x="1246" y="348" width="246" height="136" rx="10" fill="#0A1F1D" opacity="0.05"/>
+<rect x="1244" y="344" width="250" height="136" rx="10" fill="#FFFFFF" stroke="#E0BCA3"/>
+<path d="M1244 354 a10 10 0 0 1 10 -10 h230 a10 10 0 0 1 10 10 v24 h-250 z" fill="#AD4E0C"/>
+<text x="1258" y="367" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12" font-weight="700" fill="#FFFFFF" opacity="0.8">08</text>
+<text x="1286" y="367" font-family="Laksaman, Noto Sans Thai, sans-serif" font-size="14.5" font-weight="700" fill="#FFFFFF">บทลงโทษ</text>
+<text x="1260" y="396" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" fill="#13211F">PenaltyRule</text>
+<text x="1260" y="418" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" fill="#13211F">PenaltyInfo</text>
+<text x="1260" y="440" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" fill="#13211F">AppealInfo</text>
+<text x="1260" y="462" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" fill="#13211F">PenaltyType</text>
+<rect x="46" y="596" width="246" height="114" rx="10" fill="#0A1F1D" opacity="0.05"/>
+<rect x="44" y="592" width="250" height="114" rx="10" fill="#FFFFFF" stroke="#BAC1BE"/>
+<path d="M44 602 a10 10 0 0 1 10 -10 h230 a10 10 0 0 1 10 10 v24 h-250 z" fill="#4A5D54"/>
+<text x="58" y="615" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12" font-weight="700" fill="#FFFFFF" opacity="0.8">09</text>
+<text x="86" y="615" font-family="Laksaman, Noto Sans Thai, sans-serif" font-size="14.5" font-weight="700" fill="#FFFFFF">งานสนับสนุน</text>
+<text x="60" y="644" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" fill="#13211F">RepairLog</text>
+<text x="60" y="666" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" fill="#13211F">Notification</text>
+<text x="60" y="688" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" fill="#13211F">NotificationType</text>
+<rect x="444" y="592" width="1050" height="114" rx="10" fill="#FAFCFC" stroke="#DCE7E5"/>
+<text x="462" y="618" font-family="Laksaman, Noto Sans Thai, sans-serif" font-size="13.5" font-weight="700" fill="#13211F">วิธีอ่านแผนภาพ</text>
+<text x="462" y="642" font-family="Laksaman, Noto Sans Thai, sans-serif" font-size="11.5" fill="#7E8F8D">ฐานข้อมูลมี Foreign Key ทั้งหมด 58 เส้น ในจำนวนนี้ 22 เส้นเชื่อมกันเองภายในกลุ่ม</text>
+<text x="462" y="662" font-family="Laksaman, Noto Sans Thai, sans-serif" font-size="11.5" fill="#7E8F8D">ที่เหลือถูกยุบเป็น 22 เส้นระหว่างกลุ่มในภาพนี้ ตัวเลขในวงกลมคือจำนวน FK ของเส้นนั้น</text>
+<text x="462" y="682" font-family="Laksaman, Noto Sans Thai, sans-serif" font-size="11.5" fill="#7E8F8D">หัวลูกศรชี้ไปยังกลุ่มที่ถูกอ้างถึง เส้นที่มีหัวสองข้างคืออ้างถึงกันทั้งคู่</text>
+<text x="462" y="702" font-family="Laksaman, Noto Sans Thai, sans-serif" font-size="11.5" fill="#7E8F8D">รายละเอียดฟิลด์ของแต่ละตารางอยู่ในสไลด์ 01–09</text>
+</svg>
