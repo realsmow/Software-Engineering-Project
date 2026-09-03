@@ -10,6 +10,7 @@ import {
 } from '../common/approval/approval-policy';
 import {
   clashingWindowFilter,
+  runSerializable,
   withBuffer,
 } from '../common/booking/booking-window';
 import { BusinessError } from '../common/errors/business-error';
@@ -237,7 +238,7 @@ export class LoanRequestService {
     const now = new Date();
     const approved = route === 'auto';
 
-    const key = await this.prisma.$transaction(async (tx) => {
+    const key = await runSerializable(this.prisma, async (tx) => {
       // Re-check inside the transaction. Two people submitting the same unit
       // for the same hours a moment apart both pass the check above; only one
       // may come out of here holding it.
@@ -510,8 +511,7 @@ export class LoanRequestService {
           row.Resource.Room?.RoomName ??
           null,
         serialNo: row.Resource.Item?.ItemID ?? null,
-        kind: (row.Resource.Room ? 'room' : 'equipment') as
-          'equipment' | 'room',
+        kind: row.Resource.Room ? 'room' : 'equipment',
         tier: tryMapTier(row.Resource.BorrowRuleInfo.RuleName),
         creditWeight:
           row.Resource.Item?.Item.CreditWeight ??
