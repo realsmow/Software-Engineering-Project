@@ -19,7 +19,12 @@
 import { initTRPC } from "@trpc/server";
 import { z } from "zod";
 import type { ServerUser } from "@/features/auth/user.adapter";
-import type { ServerItem } from "@/features/borrower/catalog/item.adapter";
+import type {
+  ServerItem,
+  ServerItemDetail,
+  ServerItemUnit,
+} from "@/features/borrower/catalog/item.adapter";
+import type { ServerCredit } from "@/features/account/credit.adapter";
 import type { ServerAdminUser } from "@/features/admin/users/admin-user.adapter";
 import type { ServerAuditEvent } from "@/features/admin/audit/audit-event.adapter";
 import type {
@@ -30,7 +35,6 @@ import type {
   Appeal,
   DamageReport,
   Notification,
-  CreditBand,
 } from "@/types/domain";
 
 const t = initTRPC.create();
@@ -83,12 +87,20 @@ export const appRouter = t.router({
         }),
       )
       .query(() => as<Paginated<ServerItem>>()),
-    getById: proc.input(numericIdInput).query(() => as<ServerItem>()),
-    getAvailability: proc
-      .input(numericIdInput)
-      .query(() => as<{ availableUnits: number; nextAvailableAt?: string }>()),
+    // getById answers `itemDetail` - the summary plus every unit, so the detail
+    // page needs one round trip, not two.
+    getById: proc.input(numericIdInput).query(() => as<ServerItemDetail>()),
+    // Polled every 15s by the detail page. Deliberately small: three numbers,
+    // no units and no history.
+    getAvailability: proc.input(numericIdInput).query(() =>
+      as<{
+        availableUnits: number;
+        totalUnits: number;
+        nextAvailableAt: string | null;
+      }>(),
+    ),
     listCategories: proc.query(() => as<{ id: string; name: string }[]>()),
-    listUnits: proc.input(numericIdInput).query(() => as<EquipmentUnit[]>()),
+    listUnits: proc.input(numericIdInput).query(() => as<ServerItemUnit[]>()),
     create: proc.input(z.object({}).passthrough()).mutation(() => as<EquipmentType>()),
     update: proc
       .input(z.object({ id: z.string() }).passthrough())
@@ -151,10 +163,11 @@ export const appRouter = t.router({
 
   // ── credit ────────────────────────────────────────────
   credit: t.router({
-    me: proc.query(() => as<{ score: number; band: CreditBand; demerits: unknown[] }>()),
-    getById: proc
-      .input(idInput)
-      .query(() => as<{ score: number; band: CreditBand; demerits: unknown[] }>()),
+    // NOTE: credit returns ServerCredit; features/account/credit.adapter.ts
+    // converts. `auth.me` already carries score and tier for the shell - this
+    // adds the borrow window and the penalties actually in force.
+    me: proc.query(() => as<ServerCredit>()),
+    getById: proc.input(numericIdInput).query(() => as<ServerCredit>()),
   }),
 
   // ── inspection ────────────────────────────────────────

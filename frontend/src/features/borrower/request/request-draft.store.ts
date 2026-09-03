@@ -1,6 +1,6 @@
+import type { Tier } from "@/types/domain";
 import { create } from "zustand";
 import { addDays, format } from "date-fns";
-import { CATALOG_ITEMS } from "../mock-data";
 
 /**
  * The borrower's in-progress loan request ("cart").
@@ -27,8 +27,13 @@ interface RequestDraftState {
   /** Return date, ISO yyyy-MM-dd. Null until the borrower picks one. */
   endDate: string | null;
 
-  addItem: (itemId: string) => void;
-  setQty: (itemId: string, qty: number) => void;
+  /**
+   * `stock` comes from the caller because the catalogue is a server query now:
+   * the store cannot look availability up without holding a second copy of it.
+   * The cap is still enforced here so a stale button cannot overfill a line.
+   */
+  addItem: (itemId: string, stock: number) => void;
+  setQty: (itemId: string, qty: number, stock: number) => void;
   removeItem: (itemId: string) => void;
   /** Check/uncheck one serial on a line. */
   toggleSerial: (itemId: string, serial: string) => void;
@@ -49,14 +54,33 @@ export interface RequestUnit {
   index: number;
   /** Serial reserved for this unit (T2 only; undefined until picked). */
   serial?: string;
+  /**
+   * Name and tier copied in here rather than looked up later.
+   *
+   * The draft holds catalogue ids, and the catalogue is now a server query -
+   * so anything downstream that wanted the name would have to be async, or
+   * hold a second copy of the catalogue. Copying two fields at expand time is
+   * cheaper than either, and a submitted request should keep the name it was
+   * submitted under even if the item is renamed afterwards.
+   */
+  name: string;
+  /** Null when the server could not classify the item - see CatalogItem.tier. */
+  tier: Tier | null;
 }
 
-export function expandToUnits(lines: DraftLine[]): RequestUnit[] {
-  return lines.flatMap((l) =>
-    Array.from({ length: l.qty }, (_, i) => ({
-      itemId: l.itemId,
+/** A draft line joined with the catalogue row it points at. */
+export interface DraftLineWithItem extends DraftLine {
+  item: { name: string; tier: Tier | null };
+}
+
+export function expandToUnits(rows: DraftLineWithItem[]): RequestUnit[] {
+  return rows.flatMap((r) =>
+    Array.from({ length: r.qty }, (_, i) => ({
+      itemId: r.itemId,
       index: i + 1,
-      serial: l.serials[i],
+      serial: r.serials[i],
+      name: r.item.name,
+      tier: r.item.tier,
     })),
   );
 }
@@ -74,15 +98,6 @@ export function remainingUnits(
   return Math.max(0, item.availableUnits - qty);
 }
 
-/**
- * Units on the shelf for an item. Reads mock data today; swap for the fetched
- * availability once the API lands. Unknown ids cap at 0 so a bad id cannot
- * silently create an unbounded line.
- */
-function stockOf(itemId: string): number {
-  return CATALOG_ITEMS.find((i) => i.id === itemId)?.availableUnits ?? 0;
-}
-
 export function todayIso(): string {
   return format(new Date(), "yyyy-MM-dd");
 }
@@ -96,9 +111,8 @@ export const useRequestDraft = create<RequestDraftState>((set) => ({
   startDate: todayIso(),
   endDate: null,
 
-  addItem: (itemId) =>
+  addItem: (itemId, stock) =>
     set((s) => {
-      const stock = stockOf(itemId);
       // Nothing on the shelf: adding it would only fail the pre-submit check.
       if (stock === 0) return s;
 
@@ -110,12 +124,12 @@ export const useRequestDraft = create<RequestDraftState>((set) => ({
       };
     }),
 
-  setQty: (itemId, qty) =>
+  setQty: (itemId, qty, stock) =>
     set((s) => ({
       lines: s.lines.map((l) => {
         if (l.itemId !== itemId) return l;
         // Never below one unit, never past what is on the shelf.
-        const next = Math.min(Math.max(1, qty), Math.max(1, stockOf(itemId)));
+        const next = Math.min(Math.max(1, qty), Math.max(1, stock));
         // Dropping the quantity must drop any serials that no longer fit.
         return { ...l, qty: next, serials: l.serials.slice(0, next) };
       }),

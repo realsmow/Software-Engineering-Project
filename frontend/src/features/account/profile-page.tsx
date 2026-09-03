@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CREDIT_BANDS } from "@/constants";
 import { useAuthStore } from "@/features/auth/auth.store";
+import { useMyCredit } from "./use-my-credit";
 import { validateUploadFile, uploadAcceptAttr } from "@/lib/upload-validation";
 import type { Role } from "@/types/domain";
 
@@ -33,13 +34,16 @@ const DEPT_LABEL: Record<string, string> = {
 export default function ProfilePage() {
   const { t } = useTranslation();
   const user = useAuthStore((s) => s.user);
+  // Score and band come from `auth.me` via the store; this adds the borrow
+  // window and the penalties actually in force behind them.
+  const { data: credit } = useMyCredit();
 
   if (!user) return null;
 
   const role = user.role;
   const isKuEmail = /@ku\.(ac\.)?th$/i.test(user.email);
-  const band =
-    CREDIT_BANDS.find((b) => b.band === user.creditBand) ?? CREDIT_BANDS[0];
+  const creditBand = credit?.band ?? user.creditBand;
+  const band = CREDIT_BANDS.find((b) => b.band === creditBand) ?? CREDIT_BANDS[0];
   const initials = user.name.trim().slice(0, 2);
 
   return (
@@ -113,7 +117,44 @@ export default function ProfilePage() {
                   <span className="text-sm text-muted-foreground">{band.label}</span>
                 </div>
               </div>
+              {/* The real window, from BorrowConstraints - not the static
+                  CREDIT_BANDS row, which is only a fallback. */}
+              {credit ? (
+                <div>
+                  <div className="text-xs text-muted-foreground">{t("profile.borrowWindow")}</div>
+                  <div className="mt-1 font-mono text-sm font-semibold tabular-nums text-foreground">
+                    {t("borrower.detail.days", { count: credit.maxBorrowDays })}
+                  </div>
+                </div>
+              ) : null}
             </CardContent>
+
+            {/* Only when there are any - an empty list is the normal case and
+                does not need a heading of its own. */}
+            {credit && credit.penalties.length > 0 ? (
+              <CardContent className="border-t border-border py-4">
+                <div className="mb-2 text-xs text-muted-foreground">
+                  {t("profile.activePenalties", {
+                    count: credit.penalties.length,
+                    total: credit.totalDeducted,
+                  })}
+                </div>
+                <ul className="flex flex-col gap-1.5">
+                  {credit.penalties.map((p) => (
+                    <li key={p.id} className="flex items-baseline justify-between gap-3 text-sm">
+                      <span className="min-w-0 truncate text-foreground">
+                        {p.reason ?? t("profile.penaltyNoReason")}
+                      </span>
+                      <span className="shrink-0 font-mono text-xs tabular-nums text-muted-foreground">
+                        -{p.creditDeducted} · {t("profile.penaltyUntil", {
+                          date: new Date(p.expiresAt).toLocaleDateString(),
+                        })}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            ) : null}
           </Card>
         )}
       </div>

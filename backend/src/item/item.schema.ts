@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { dbId } from '../common/schemas/id.schema';
 import {
   paginated,
   paginationInput,
@@ -34,10 +35,10 @@ import {
 // ---------------------------------------------------------------------------
 
 export const itemTypeIdInput = z.object({
-  itemKey: z.number().int().positive(),
+  itemKey: dbId,
 });
 export const resourceIdInput = z.object({
-  resourceKey: z.number().int().positive(),
+  resourceKey: dbId,
 });
 
 /** The department or club that owns a unit (ResourceInfo.ManagedBy). */
@@ -143,7 +144,7 @@ export type ListManagedUnitsInput = z.infer<typeof listManagedUnitsInput>;
 
 export const createItemUnitInput = itemTypeIdInput.extend({
   /** The department that will own the unit. Must be one the caller has authority in. */
-  manageGroupKey: z.number().int().positive(),
+  manageGroupKey: dbId,
   tier: resourceTier,
   /**
    * The sticker serial. Required for T1 and T2, which are tracked per unit;
@@ -222,7 +223,7 @@ export const listManagedRoomsInput = paginationInput.extend({
 export type ListManagedRoomsInput = z.infer<typeof listManagedRoomsInput>;
 
 export const createRoomInput = z.object({
-  manageGroupKey: z.number().int().positive(),
+  manageGroupKey: dbId,
   name: z.string().trim().min(1).max(200),
   description: z.string().trim().max(2000).optional(),
   location: z.string().trim().max(200).optional(),
@@ -272,8 +273,8 @@ export const setTypeEligibilityInput = itemTypeIdInput.extend({
   rules: z
     .array(
       z.object({
-        groupKey: z.number().int().positive(),
-        authorityRoleKey: z.number().int().positive(),
+        groupKey: dbId,
+        authorityRoleKey: dbId,
       }),
     )
     .max(200),
@@ -307,8 +308,8 @@ export const authorityRoleOptionOutput = z.object({
 // `getManagedById` above.
 // ===========================================================================
 
-export const itemIdInput = z.object({ id: z.number().int().positive() });
-export const roomIdInput = z.object({ id: z.number().int().positive() });
+export const itemIdInput = z.object({ id: dbId });
+export const roomIdInput = z.object({ id: dbId });
 
 /**
  * Who owns the thing. Same shape the admin domain uses for an account's
@@ -413,7 +414,7 @@ export const listItemsInput = paginationInput
     sort: itemSortKey.default('available'),
     tier: resourceTier.optional(),
     /** ManagementGroup.ManageGroupKey — the owning department or club */
-    ownerGroupKey: z.number().int().positive().optional(),
+    ownerGroupKey: dbId.optional(),
     /** Hide anything with no unit free right now. */
     availableOnly: z.boolean().default(false),
   });
@@ -458,7 +459,7 @@ export const listRoomsInput = paginationInput
   .extend({
     /** Matches room name, description and location. */
     sort: roomSortKey.default('name'),
-    ownerGroupKey: z.number().int().positive().optional(),
+    ownerGroupKey: dbId.optional(),
     /** Hide rooms that are not open for booking. */
     bookableOnly: z.boolean().default(false),
   });

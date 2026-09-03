@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { dbId } from '../common/schemas/id.schema';
 import {
   paginated,
   paginationInput,
@@ -7,7 +8,7 @@ import { activePenalty } from '../common/schemas/penalty.schema';
 import { creditTier, userRole } from '../common/schemas/status.schema';
 
 /** Every admin procedure that addresses one account takes this. */
-export const accountIdInput = z.object({ id: z.number().int().positive() });
+export const accountIdInput = z.object({ id: dbId });
 
 /**
  * Account status.
@@ -204,11 +205,11 @@ export const lendingSettingsOutput = z.object({
  * are untouched, so a client can send just the one line the user edited.
  */
 export const updateLendingSettingsInput = z.object({
-  borrowRuleKey: z.number().int().positive(),
+  borrowRuleKey: dbId,
   constraints: z
     .array(
       z.object({
-        creditTierKey: z.number().int().positive(),
+        creditTierKey: dbId,
         maxBorrowDays: z.number().int().positive(),
         maxExtendTimes: z.number().int().min(0),
         minimumAuthorityLevel: z.number().int().nullable().optional(),
@@ -346,7 +347,7 @@ export const listAuditInput = paginationInput.extend({
   action: auditAction.optional(),
 });
 export const paginatedAuditEvents = paginated(auditEventOutput);
-export const auditEventIdInput = z.object({ id: z.number().int().positive() });
+export const auditEventIdInput = z.object({ id: dbId });
 
 // ---------------------------------------------------------------------------
 // Inferred types, so services state their inputs without repeating the shapes

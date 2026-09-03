@@ -19,6 +19,9 @@ export const CACHE = {
   MASTER_DATA_MS: 60 * 60 * 1000, // 1 ชม. สำหรับ tier/category/damage-level
   USER_PROFILE_MS: 5 * 60 * 1000, // 5 นาที
   DEFAULT_STALE_MS: 30 * 1000, // 30 วิ (default)
+  // Live stock on the equipment detail page. The backend sizes
+  // `item.getAvailability` for a 10-15s poll (item.router.ts).
+  AVAILABILITY_POLL_MS: 15 * 1000,
 } as const;
 
 // ==================== Business Rules ====================
