@@ -204,15 +204,39 @@ export const lendingSettingsOutput = z.object({
  * Partial update of one borrow rule. Rows listed are upserted; rows left out
  * are untouched, so a client can send just the one line the user edited.
  */
+/**
+ * Ceilings on the lending rules.
+ *
+ * Every one of these was unbounded, which let a mistyped figure become policy
+ * silently: a 999999999-day borrow window and a penalty larger than the whole
+ * credit scale were both accepted and stored. These are not the real limits a
+ * department would choose, they are the point past which the number is
+ * certainly a typo rather than a decision.
+ *
+ * The audit-range input in this same file already caps at 3650 days, so a
+ * decade is the established outer bound for a duration here.
+ */
+const MAX_BORROW_DAYS = 365;
+const MAX_EXTEND_TIMES = 50;
+/** Credit runs 0-100 (CreditTier.CreditMin/CreditMax), so a bigger deduction is meaningless. */
+const MAX_PENALTY_AMOUNT = 100;
+const MAX_PENALTY_DAYS = 3650;
+
 export const updateLendingSettingsInput = z.object({
   borrowRuleKey: dbId,
   constraints: z
     .array(
       z.object({
         creditTierKey: dbId,
-        maxBorrowDays: z.number().int().positive(),
-        maxExtendTimes: z.number().int().min(0),
-        minimumAuthorityLevel: z.number().int().nullable().optional(),
+        maxBorrowDays: z.number().int().positive().max(MAX_BORROW_DAYS),
+        maxExtendTimes: z.number().int().min(0).max(MAX_EXTEND_TIMES),
+        minimumAuthorityLevel: z
+          .number()
+          .int()
+          .min(0)
+          .max(100)
+          .nullable()
+          .optional(),
       }),
     )
     .optional(),
@@ -220,8 +244,8 @@ export const updateLendingSettingsInput = z.object({
     .array(
       z.object({
         reason: penaltyReason,
-        amount: z.number().int().min(0),
-        lengthDays: z.number().int().min(0),
+        amount: z.number().int().min(0).max(MAX_PENALTY_AMOUNT),
+        lengthDays: z.number().int().min(0).max(MAX_PENALTY_DAYS),
       }),
     )
     .optional(),
