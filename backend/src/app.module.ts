@@ -10,6 +10,7 @@ import { AppService } from './app.service';
 import { PrismaModule } from './prisma.module';
 import { ConfigModule } from '@nestjs/config';
 import { TRPCModule } from 'nestjs-trpc';
+import { ScheduleModule } from '@nestjs/schedule';
 
 import { AppContext } from './trpc/context';
 import { formatTrpcError } from './trpc/error-formatter';
@@ -55,6 +56,8 @@ import { InspectionService } from './inspection/inspection.service';
 import { NotificationRouter } from './notification/notification.router';
 import { NotificationService } from './notification/notification.service';
 
+import { CronService } from './cron/cron.service';
+import { CronScheduler } from './cron/cron.scheduler';
 import { ReportRouter } from './report/report.router';
 import { ReportService } from './report/report.service';
 import { ImageRouter } from './image/image.router';
@@ -70,6 +73,9 @@ import {
     ConfigModule.forRoot({
       isGlobal: true,
     }),
+    // Registered only outside tests. A suite that boots the module must not
+    // acquire timers that write to its database behind the assertions.
+    ...(process.env.NODE_ENV === 'test' ? [] : [ScheduleModule.forRoot()]),
     PrismaModule,
     TRPCModule.forRoot({
       // Builds ctx.user per request - see trpc/context.ts
@@ -139,6 +145,12 @@ import {
 
     NotificationRouter,
     NotificationService,
+
+    CronService,
+    // The clock itself is skipped in tests, along with ScheduleModule above;
+    // CronService stays available so runCronJob and the specs can drive the
+    // jobs directly.
+    ...(process.env.NODE_ENV === 'test' ? [] : [CronScheduler]),
 
     ReportRouter,
     ReportService,

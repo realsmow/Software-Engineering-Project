@@ -28,6 +28,7 @@ import {
   resetPasswordInput,
   resetPasswordOutput,
   runCronJobInput,
+  type RunCronJobInput,
   setUserActiveInput,
   setUserBanInput,
   systemStatusOutput,
@@ -214,8 +215,8 @@ export class AdminRouter {
   /** Not implemented - there are no jobs to run yet. */
   @UseMiddlewares(AdminMiddleware)
   @Mutation({ input: runCronJobInput, output: okOutput })
-  runCronJob() {
-    return this.adminService.runCronJob();
+  runCronJob(@Input() input: RunCronJobInput, @Ctx() ctx: TrpcContext) {
+    return this.adminService.runCronJob(input, AdminRouter.actorFrom(ctx));
   }
 
   // ── Audit (IT admin) ────────────────────────────────────────────────────

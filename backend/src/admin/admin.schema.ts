@@ -304,6 +304,7 @@ export const cronJobOutput = z.object({
 });
 
 export const runCronJobInput = z.object({ job: cronJobId });
+export type RunCronJobInput = z.infer<typeof runCronJobInput>;
 
 // ---------------------------------------------------------------------------
 // Technical config (IT admin)

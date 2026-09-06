@@ -7,6 +7,7 @@ import { SessionService } from '../auth/session.service';
 import { AuditService, type AuditActor } from '../common/audit/audit.service';
 import { CreditTierService } from '../common/credit/credit-tier.service';
 import { StaffScopeService } from '../common/authority/staff-scope.service';
+import { CronService } from '../cron/cron.service';
 import { BusinessError, notImplemented } from '../common/errors/business-error';
 import {
   generateTemporaryPassword,
@@ -34,6 +35,7 @@ import type {
   ListUsersInput,
   ResetPasswordInput,
   SetUserActiveInput,
+  RunCronJobInput,
   SetUserBanInput,
   UpdateLendingSettingsInput,
   UpdateUserInput,
@@ -130,6 +132,18 @@ const CRON_REGISTRY = [
   { id: 'expireStaleRequests', name: 'คำขอหมดอายุ', schedule: 'ทุกชั่วโมง' },
 ] as const;
 
+/**
+ * The jobs that do real work today. The other three need a table that does not
+ * exist (see CronService for what each is missing).
+ */
+const IMPLEMENTED_JOBS: readonly string[] = [
+  'markOverdue',
+  'markLost',
+  'expireDemerits',
+  'dueSoonReminder',
+  'expireStaleRequests',
+];
+
 /** Above this, the database is answering but not healthily. */
 const DB_DEGRADED_MS = 250;
 
@@ -164,6 +178,7 @@ export class AdminService {
     private readonly audit: AuditService,
     private readonly staffScope: StaffScopeService,
     private readonly config: ConfigService,
+    private readonly cron: CronService,
   ) {}
 
   // =========================================================================
@@ -646,29 +661,49 @@ export class AdminService {
     };
   }
 
-  listCronJobs() {
-    return CRON_REGISTRY.map((job) => ({
-      id: job.id,
-      name: job.name,
-      schedule: job.schedule,
-      // Nothing schedules these yet. Reporting `implemented: false` instead of
-      // a null last-run keeps "not built" distinguishable from "built but
-      // never fired", which the status page has to show differently.
-      implemented: false,
-      lastRunAt: null,
-      lastResult: null,
-      durationMs: null,
-    }));
+  /**
+   * The jobs, with what actually happened last time.
+   *
+   * `implemented` still distinguishes the five that do work from the three
+   * that cannot yet - a job with no last run and a job that does not exist
+   * look identical otherwise, and an administrator reading "never run" would
+   * go hunting a scheduler fault that is really a missing table.
+   */
+  async listCronJobs() {
+    const last = await this.cron.lastRuns();
+
+    return CRON_REGISTRY.map((job) => {
+      const run = last.get(job.id);
+      return {
+        id: job.id,
+        name: job.name,
+        schedule: job.schedule,
+        implemented: IMPLEMENTED_JOBS.includes(job.id),
+        lastRunAt: run ? run.at.toISOString() : null,
+        lastResult: run
+          ? (run.result as 'success' | 'failed' | 'pending')
+          : null,
+        durationMs: run?.durationMs ?? null,
+      };
+    });
   }
 
-  runCronJob(): never {
-    return notImplemented(
-      [
-        'CronRunLog table (job, startedAt, finishedAt, result, detail)',
-        '@nestjs/schedule',
-      ],
-      'None of the 8 jobs exist yet, and a manual run with nowhere to record the outcome is not observable. Build the jobs first.',
+  /**
+   * Runs one job now.
+   *
+   * The three unbuilt jobs still throw NOT_IMPLEMENTED from CronService, with
+   * the missing pieces named, so pressing the button on one explains itself
+   * rather than failing silently.
+   */
+  async runCronJob(input: RunCronJobInput, actor: AuditActor) {
+    const outcome = await this.cron.run(input.job);
+    await this.audit.record(
+      actor,
+      'update',
+      `cron/${input.job}`,
+      `Ran manually: ${outcome.detail}`,
     );
+    return OK;
   }
 
   // =========================================================================
