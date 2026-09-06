@@ -1,0 +1,82 @@
+% =============================================================================
+%  business-objects.tex — Business Object Diagram for the ULMs SDS (§4.3).
+%  Renders to business-objects.png; see figures/README.md for the command.
+%  Grayscale on purpose: the SDS is meant to print in black and white.
+% =============================================================================
+\documentclass[border=10pt]{standalone}
+\usepackage{fontspec}
+\setmainfont{Laksaman}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{positioning, arrows.meta, fit, backgrounds}
+
+\definecolor{boFill}{HTML}{F0F0F0}
+\definecolor{boCore}{HTML}{DCDCDC}
+\definecolor{boEdge}{HTML}{4A4A4A}
+
+\tikzset{
+  obj/.style={
+    draw=boEdge, line width=0.5pt, fill=boFill, rounded corners=2pt,
+    align=center, inner sep=5pt, minimum height=1.05cm, minimum width=2.9cm,
+    font=\small},
+  core/.style={obj, fill=boCore, line width=0.9pt},
+  rel/.style={-{Stealth[length=4pt]}, draw=boEdge, line width=0.5pt,
+              font=\scriptsize},
+  lbl/.style={fill=white, inner sep=1.5pt, font=\scriptsize},
+}
+
+\begin{document}
+\begin{tikzpicture}[x=1cm, y=1cm]
+
+  % Absolute coordinates rather than relative placement: the relation labels
+  % need predictable gaps, and `above/left of` kept sliding boxes into each other.
+
+  % --- who acts -------------------------------------------------------------
+  \node[obj]  (role) at ( 9.0,  2.0) {\textbf{Role}\\{\scriptsize 4 บทบาท}};
+  \node[core] (acc)  at ( 9.0,  0.0) {\textbf{Account}\\{\scriptsize ผู้ใช้ · เครดิต · บทบาท}};
+  \node[obj]  (auth) at ( 5.0,  0.0) {\textbf{Authority}\\{\scriptsize อำนาจในหน่วยงาน}};
+  \node[obj]  (grp)  at ( 1.0,  0.0) {\textbf{ManagementGroup}\\{\scriptsize ภาควิชา / ชมรม}};
+
+  % --- what is lent, and the rules that govern it ---------------------------
+  \node[core] (res)  at ( 1.0, -3.4) {\textbf{Resource}\\{\scriptsize สิ่งที่ยืมได้}};
+  \node[obj]  (rule) at (-3.2, -3.4) {\textbf{BorrowRule}\\{\scriptsize + Constraints}};
+  \node[obj]  (tier) at (-3.2, -5.7) {\textbf{CreditTier}\\{\scriptsize D0--D3}};
+  \node[obj]  (item) at ( 0.7, -5.9) {\textbf{ItemIndiv}\\{\scriptsize ของรายชิ้น}};
+  \node[obj]  (room) at ( 4.0, -5.9) {\textbf{Room}\\{\scriptsize สถานที่}};
+
+  % --- the transaction chain ------------------------------------------------
+  \node[core] (rsv)  at ( 9.0, -3.4) {\textbf{Reservation}\\{\scriptsize คำขอ / การจอง}};
+  \node[core] (use)  at ( 9.0, -6.0) {\textbf{UsageLog}\\{\scriptsize การถือครองจริง}};
+  \node[obj]  (ext)  at (13.2, -6.0) {\textbf{ExtensionRequest}\\{\scriptsize ขอต่ออายุ}};
+
+  % --- what happens after the return ---------------------------------------
+  \node[core] (insp) at ( 9.0, -8.6) {\textbf{Inspection}\\{\scriptsize ผลตรวจสภาพ}};
+  \node[obj]  (cond) at ( 4.8, -8.6) {\textbf{ConditionLog}\\{\scriptsize สภาพที่บันทึก}};
+  \node[obj]  (pen)  at (13.2, -8.6) {\textbf{Penalty}\\{\scriptsize หักเครดิต}};
+  \node[obj]  (img)  at ( 9.0, -10.8) {\textbf{Image}\\{\scriptsize รูปหลักฐาน}};
+  \node[obj]  (app)  at (13.2, -10.8) {\textbf{Appeal}\\{\scriptsize อุทธรณ์}};
+
+  % --- relations ------------------------------------------------------------
+  \draw[rel] (acc)  -- (role) node[lbl, midway] {มี 1};
+  \draw[rel] (acc)  -- (auth) node[lbl, midway] {ถืออำนาจ};
+  \draw[rel] (auth) -- (grp)  node[lbl, midway] {ใน};
+  \draw[rel] (res)  -- (grp)  node[lbl, midway] {ดูแลโดย};
+  \draw[rel] (res)  -- (rule) node[lbl, midway] {ใช้กฎ};
+  \draw[rel] (rule) -- (tier) node[lbl, midway] {คู่กับ};
+  \draw[rel] (item) -- (res)  node[lbl, midway] {เป็น};
+  \draw[rel] (room) -- (res)  node[lbl, midway] {เป็น};
+
+  \draw[rel] (acc)  -- (rsv)  node[lbl, midway] {ยื่น};
+  \draw[rel] (res)  -- (rsv)  node[lbl, midway] {ของ};
+  \draw[rel] (rsv)  -- (use)  node[lbl, midway] {อนุมัติแล้วจ่ายของ};
+  \draw[rel] (use)  -- (ext)  node[lbl, midway] {ขอต่อ};
+  \draw[rel] (use)  -- (insp) node[lbl, midway] {คืนแล้วตรวจ};
+  \draw[rel] (insp) -- (cond) node[lbl, midway] {บันทึก};
+  \draw[rel] (insp) -- (pen)  node[lbl, midway] {ทำให้เกิด};
+  \draw[rel] (insp) -- (img)  node[lbl, midway] {แนบ};
+  \draw[rel] (pen)  -- (app)  node[lbl, midway] {อุทธรณ์ได้ 1 ครั้ง};
+  \draw[rel] (pen.east) to[out=20, in=-20, looseness=1.1]
+             node[lbl, midway] {ลดเครดิตของ} (acc.east);
+
+\end{tikzpicture}
+\end{document}

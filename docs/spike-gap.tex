@@ -1,0 +1,1647 @@
+% =============================================================================
+%  spike-gap.tex — เอกสารฉบับที่ 3 ของชุด "สัญญา tRPC" ของโครงการ ULMs
+%
+%  ระยะห่างระหว่างโค้ดจริงในรีโปกับ spike ที่ต่อสำเร็จแล้ว
+%  เดินตามเส้นทางข้อมูล 5 สถานี — แต่ละสถานีบอก 3 อย่าง:
+%      ทีมมีอะไรตอนนี้ · spike เปลี่ยนอะไร · ยังพังตรงไหน
+%
+%  ต้องคอมไพล์ด้วย XeLaTeX เท่านั้น (เอกสารเป็นภาษาไทย)
+%      cd docs && latexmk spike-gap.tex        → build/spike-gap.pdf
+%
+%  ที่มาของข้อเท็จจริงทุกข้อ — ดูภาคผนวก ง ซึ่งอ้างไฟล์:บรรทัดครบทุกข้อ
+%  สรุปแหล่งหลัก:
+%    · frontend/src/**                          สภาพ frontend ของทีม ณ 10 ส.ค. 2569
+%    · frontend/package.json                     zod ^3.23.8
+%    · backend/src/**                            backend ของทีม (ยังไม่มี auth)
+%    · backend/prisma/schema.prisma              33 model, 0 enum, ไม่มีตาราง Session
+%    · spike-option-b/frontend-real/**           สำเนาที่ต่อ backend สำเร็จ
+%    · spike-option-b/backend/src/**             backend ของ spike
+%    · spike-option-b/browser-check/shots/*.png  ภาพหน้าจอจากการทดสอบจริง
+%
+%  รูปที่วาดด้วย TikZ = ภาพอธิบาย · รูปที่เป็น .png = ผลการทดสอบจริง
+% =============================================================================
+
+\input{trpc-preamble}
+
+% หมายเหตุ: ห้ามใช้อักขระลูกศร U+2194 ที่นี่ ฟอนต์ Garuda ไม่มีสัญลักษณ์นั้น
+% ตัวอักษรจะหายไปเงียบ ๆ เหลือแค่ warning "Missing character" ในล็อก
+\renewcommand{\docshort}{ระยะห่างทีมกับ spike}
+\hypersetup{pdftitle={ระยะห่างระหว่างโค้ดจริงกับ spike — ULMs},
+            pdfauthor={ทีมพัฒนา ULMs}}
+
+\graphicspath{{figures/}{../spike-option-b/browser-check/shots/}}
+
+% ป้ายชื่อสี่ชั้นของระบบ — สีเดียวกันนี้ใช้ในไดอะแกรมและตารางทุกที่ในเล่ม
+\newcommand{\sctr}{\stg{ctr}{สัญญา}}
+\newcommand{\sbe}{\stg{beo}{backend}}
+\newcommand{\sfe}{\stg{feg}{frontend}}
+\newcommand{\sops}{\stg{ops}{เครือข่าย}}
+
+% ป้ายระดับความรุนแรง — ใช้เหมือนกันทั้งเล่ม ห้ามคิดระดับที่ห้า
+\newcommand{\pzero}{\textcolor{bad}{\textbf{\en{P0}}}}
+\newcommand{\pone}{\textcolor{beo}{\textbf{\en{P1}}}}
+\newcommand{\ptwo}{\textcolor{ctr}{\textbf{\en{P2}}}}
+\newcommand{\pthree}{\textcolor{feg}{\textbf{\en{P3}}}}
+
+\begin{document}
+
+% =============================================================================
+%  หน้าปก
+% =============================================================================
+\begin{titlepage}
+\thispagestyle{empty}
+\begin{tikzpicture}[remember picture, overlay]
+  \fill[ctr!8] (current page.north west) rectangle
+       ([yshift=-9.5cm]current page.north east);
+  \fill[ctr] ([yshift=-9.5cm]current page.north west) rectangle
+       ([yshift=-9.62cm]current page.north east);
+\end{tikzpicture}
+
+\vspace*{1.4cm}
+{\sansall\color{muted}\small สำหรับทีมพัฒนา ULMs --- อ่านก่อนตัดสินใจว่าจะต่อ \en{frontend} เข้ากับ \en{backend} ด้วยวิธีไหน}
+
+\vspace{0.9cm}
+{\sansall\bfseries\fontsize{27}{33}\selectfont\color{ctr!90!black}
+เราห่างจากจุดที่\\ต่อกันได้จริงแค่ไหน\par}
+
+\vspace{0.5cm}
+{\sansall\fontsize{13.5}{19}\selectfont\color{ink}
+เดินตามเส้นทางข้อมูล 5 สถานี · ทุกจุดที่ \en{spike} แก้จากโค้ดจริง\\
+และจุดผิดพลาดที่ต้องแก้ก่อน เรียงตามความรุนแรง\par}
+
+\vspace{2.6cm}
+
+\begin{minipage}{0.68\textwidth}
+วันที่ 10 สิงหาคม 2569 มีการทดลองเอา \code{frontend/} ของทีมทั้งก้อน
+ไปต่อกับ \en{backend} ที่เขียนขึ้นจริง แล้ว\textbf{ล็อกอินสำเร็จทั้งสามบทบาท}
+ผ่านการตรวจ 13 ข้อที่ชั้นข้อมูล และ 15 ข้อในเบราว์เซอร์จริง
+
+\vspace{0.6em}
+เอกสารนี้ไม่ได้เขียนเพื่อฉลองว่าสำเร็จ แต่เขียนเพื่อตอบว่า
+\textbf{ระหว่างทางต้องแก้อะไรบ้าง} และ \textbf{อะไรที่ยังพังอยู่ในโค้ดปัจจุบัน
+โดยที่ยังไม่มีใครเห็น} เพราะข้อมูลจำลองปิดบังไว้
+
+\vspace{0.6em}
+จุดสำคัญที่สุดไม่ได้อยู่ที่ \en{frontend} หรือ \en{backend}
+แต่อยู่ที่\textbf{ฐานข้อมูล} --- ภาค 6
+\end{minipage}
+
+\vfill
+\begin{tikzpicture}
+  \draw[rule, line width=0.6pt] (0,0) -- (\textwidth,0);
+\end{tikzpicture}
+\vspace{0.4em}
+
+{\sansall\footnotesize\color{muted}
+เอกสารฉบับที่ 3 ของชุดสัญญา \en{tRPC} · ฉบับที่ 1 \code{trpc-guide.tex} หลักการ ·
+ฉบับที่ 2 \code{trpc-meeting.tex} วาระประชุม\\
+ปรับปรุง 10 สิงหาคม 2569 · ข้อเท็จจริงทุกข้อสืบกลับไฟล์จริงได้ตามภาคผนวก ง}
+\end{titlepage}
+
+% =============================================================================
+%  วิธีอ่านเอกสารนี้
+% =============================================================================
+\section*{วิธีอ่านเอกสารนี้}
+\addcontentsline{toc}{section}{วิธีอ่านเอกสารนี้}
+
+เอกสารนี้\textbf{เดินตามเส้นทางที่ข้อมูลเดินจริง} ไม่ได้เรียงตามหัวข้อทฤษฎี
+เริ่มจากนิ้วที่กดปุ่มบนหน้าจอ แล้วไล่ตามไปจนถึงแถวในฐานข้อมูล
+ผ่านทั้งหมด 5 สถานี
+
+เหตุผลที่เรียงแบบนี้: ปัญหาที่เจอเวลาต่อ \en{frontend} กับ \en{backend}
+มักไม่ได้อยู่ที่ปลายทางใดปลายทางหนึ่ง แต่อยู่ที่\textbf{รอยต่อ}
+ซึ่งจะมองไม่เห็นเลยถ้าอ่านแยกเป็น ``บทของ \en{frontend}'' กับ ``บทของ \en{backend}''
+
+ทุกสถานีตอบสามคำถามเดิมเสมอ
+
+\begin{enumerate}
+  \item \textbf{ทีมมีอะไรตอนนี้} --- อ้างไฟล์และบรรทัดจริงในรีโป
+  \item \textbf{\en{spike} เปลี่ยนอะไร} --- โค้ดก่อน/หลังของจริง
+  \item \textbf{ยังพังตรงไหน} --- สิ่งที่ \en{spike} ไม่ได้แก้ พร้อมระดับความรุนแรง
+\end{enumerate}
+
+\subsection*{ระดับความรุนแรง}
+
+\begin{center}
+\footnotesize\sansall
+\begin{tabular}{@{}lL{11.6cm}@{}}
+\toprule
+\pzero & แก้ก่อนใครทำงานต่อได้ ถ้าปล่อยไว้ งานที่ทำเพิ่มจะต้องรื้อ หรือระบบไม่ปลอดภัย \\
+\pone & แก้ก่อนเริ่มลงมือทำหน้าที่มีฟอร์ม ต้นทุนโตขึ้นทุกสัปดาห์ที่เลื่อน \\
+\ptwo & แก้ตอนแตะโค้ดส่วนนั้นพอดี ไม่ต้องหยุดงานอื่นเพื่อมาแก้ \\
+\pthree & งานเก็บกวาด ทำตอนไหนก็ได้ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection*{กล่องสี่แบบ}
+
+\begin{center}
+\footnotesize\sansall
+\begin{tabular}{@{}lL{11.6cm}@{}}
+\toprule
+\textcolor{ctr}{\textbf{กล่องฟ้า}} & ใจความที่ต้องจำ ประโยคที่ร้อยหลายภาคเข้าด้วยกัน \\
+\textcolor{beo}{\textbf{กล่องส้ม}} & กับดัก หรือข้อสมมติที่ถ้าลืมแล้วข้อสรุปจะผิด \\
+\textcolor{feg}{\textbf{กล่องเขียว}} & สิ่งที่ทดสอบกับของจริงแล้ว มีผลการรันยืนยัน \\
+\textcolor{bad}{\textbf{กล่องแดง}} & วิธีที่ผิดจริง ๆ อยู่ในโค้ดตอนนี้และต้องเอาออก \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection*{สีประจำชั้นของระบบ}
+
+สีเดียวกันนี้ใช้ทั้งในเนื้อความ ไดอะแกรม และตารางตลอดเล่ม
+เห็นสีแล้วควรรู้ทันทีว่ากำลังพูดถึงชั้นไหน
+
+\begin{center}
+\footnotesize\sansall
+\begin{tabular}{@{}lL{11.0cm}@{}}
+\toprule
+\sfe & สิ่งที่รันในเบราว์เซอร์ผู้ใช้ \\
+\sctr & ข้อตกลงเรื่องรูปร่างข้อมูล สิ่งที่เดินทางระหว่างสองฝั่ง \\
+\sops & เครือข่าย คุกกี้ \en{CORS} สิ่งที่อยู่ระหว่างทาง \\
+\sbe & สิ่งที่รันบนเซิร์ฟเวอร์ รวมถึงฐานข้อมูล \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{warnbox}[title={ข้อจำกัดของเอกสารนี้ที่ต้องรู้ก่อน}]
+\en{spike} ที่อ้างถึงต่อ\textbf{เฉพาะระบบล็อกอิน}เท่านั้น ไม่ใช่ทั้งระบบ
+เพราะเป็นเส้นเดียวที่ทั้งสองฝั่งมีของจริงพร้อมกัน ณ วันที่ทดลอง
+
+ข้อสรุปเรื่อง ``ต่อกันได้'' จึงหมายถึง ``กลไกการต่อใช้ได้จริง''
+ไม่ได้แปลว่าทั้งระบบพร้อมต่อ ส่วนที่เหลืออีก 15 \en{procedure} ยังไม่ได้เขียน
+\end{warnbox}
+
+\clearpage
+\tableofcontents
+\clearpage
+
+% =============================================================================
+\part{ภาพรวม --- ทีมอยู่ตรงไหน \en{spike} อยู่ตรงไหน}
+% =============================================================================
+
+\section{สามคำถามที่เอกสารนี้ตอบ}
+
+คำถามที่ทำให้เกิดเอกสารนี้มีสามข้อ และทั้งสามข้อตอบด้วยข้อมูลจากรีโปจริง
+ไม่ใช่การประเมิน
+
+\begin{enumerate}
+  \item \en{spike} แก้อะไรจากโค้ดจริงบ้าง --- ตอบครบทุกไฟล์ในภาคผนวก ก
+  \item ทีมห่างจากจุดที่ต่อกันได้จริงแค่ไหน --- ตอบในหัวข้อ \ref{sec:distance}
+  \item จุดผิดพลาดสำคัญที่ต้องแก้ก่อนคืออะไร --- ตอบตลอดเล่ม สรุปในภาค 7
+\end{enumerate}
+
+\begin{keybox}[title={ข้อสรุปสามบรรทัด ถ้าอ่านต่อไม่ไหว}]
+\textbf{หนึ่ง} กลไกการต่อใช้ได้จริง พิสูจน์แล้วด้วยการล็อกอินสำเร็จทั้งสามบทบาท
+ผ่านการตรวจ 28 ข้อ (13 ที่ชั้นข้อมูล + 15 ในเบราว์เซอร์)
+
+\textbf{สอง} ราคาที่ต้องจ่ายก่อนเริ่มคือ\textbf{ยก \code{zod} จาก 3 เป็น 4}
+ตอนนี้ยกแล้วไม่พังเลย แต่ต้นทุนจะโตตามจำนวนฟอร์มที่ยังไม่ได้ทำ
+
+\textbf{สาม} ปัญหาที่หนักที่สุดไม่ได้อยู่ที่โค้ดฝั่งไหนเลย แต่อยู่ที่
+\textbf{ฐานข้อมูล} --- ไม่มี \code{@unique} บนคอลัมน์ที่ใช้ล็อกอิน
+และไม่มีตารางเก็บ \en{session} ทั้งสองข้อต้องเขียน \en{migration} ซึ่งแปลว่า
+ต้องตกลงกันทั้งทีมก่อน
+\end{keybox}
+
+\section{แผนที่ 5 สถานี}
+
+รูปที่~\ref{fig:map} คือโครงของทั้งเล่ม แต่ละกล่องคือหนึ่งภาค
+ตัวเลขในวงกลมคือจำนวนจุดที่ต้องแก้ที่พบในสถานีนั้น
+
+\begin{figure}[htbp]
+\centering
+% วางด้วยพิกัดตรง ๆ แทน relative positioning เพราะแบบ relative เคยทำให้
+% กล่องคำอธิบายไปทับกล่องสถานีที่ 5 โดยไม่มี error แจ้งเตือน
+% ระยะห่างระหว่างจุดศูนย์กลาง 3.25 ซม. กล่องกว้าง 2.85 ซม. รวม 15.85 ซม.
+% ซึ่งพอดีกับ \textwidth 16.4 ซม.
+\begin{tikzpicture}[
+  st/.style={minimum width=2.85cm, minimum height=1.6cm, font=\sansall\scriptsize},
+  cnt/.style={circle, fill=#1, text=white, font=\sansall\bfseries\scriptsize,
+              inner sep=1.7pt}]
+
+% --- ห้าสถานีเรียงเป็นเส้นเดียว ตามที่ข้อมูลเดินจริง
+\node[festage, st] (s1) at (0,0)    {สถานีที่ 1\\[1pt]หน้าจอ + ฟอร์ม};
+\node[stage,   st] (s2) at (3.25,0) {สถานีที่ 2\\[1pt]สัญญา + \en{type}};
+\node[opstage, st] (s3) at (6.5,0)  {สถานีที่ 3\\[1pt]เครือข่าย\\[1pt]+ \en{session}};
+\node[bestage, st] (s4) at (9.75,0) {สถานีที่ 4\\[1pt]\en{server}};
+\node[blk, fill=bad!8, draw=bad!45, st] (s5) at (13.0,0) {สถานีที่ 5\\[1pt]ฐานข้อมูล};
+
+\draw[ar] (s1) -- (s2);
+\draw[ar] (s2) -- (s3);
+\draw[ar] (s3) -- (s4);
+\draw[ar] (s4) -- (s5);
+
+% --- ป้ายภาคอยู่เหนือกล่อง
+\node[lbl, above=1.6mm of s1] {ภาค 2};
+\node[lbl, above=1.6mm of s2] {ภาค 3};
+\node[lbl, above=1.6mm of s3] {ภาค 4};
+\node[lbl, above=1.6mm of s4] {ภาค 5};
+\node[lbl, above=1.6mm of s5] {ภาค 6};
+
+% --- จำนวนจุดที่ต้องแก้ ติดมุมบนซ้ายของแต่ละกล่อง
+\node[cnt=feg] at ([xshift=-1.2cm,yshift=0.6cm]s1.center) {5};
+\node[cnt=ctr] at ([xshift=-1.2cm,yshift=0.6cm]s2.center) {4};
+\node[cnt=ops] at ([xshift=-1.2cm,yshift=0.6cm]s3.center) {3};
+\node[cnt=beo] at ([xshift=-1.2cm,yshift=0.6cm]s4.center) {1};
+\node[cnt=bad] at ([xshift=-1.2cm,yshift=0.6cm]s5.center) {6};
+
+% --- คำอธิบายอยู่ใต้ทุกกล่อง เต็มความกว้าง ไม่ทับใคร
+\node[blk, fill=white, draw=rule, align=left, font=\sansall\scriptsize,
+      text width=14.6cm] at (6.5,-2.3)
+  {\textbf{ตัวเลขในวงกลม} = จำนวนจุดที่ต้องแก้ที่พบในสถานีนั้น รวมทั้งหมด 19 จุด\\[2pt]
+   สถานีที่ 5 เป็นสีแดงเพราะเป็นสถานีเดียวที่แก้แล้วกระทบทุกคนในทีมพร้อมกัน
+   --- ทุกจุดในนั้นต้องเขียน \en{migration} หรือต้องตกลงกันก่อน};
+
+\end{tikzpicture}
+\caption{เส้นทางที่ข้อมูลเดินจริงเมื่อผู้ใช้กดปุ่มเข้าสู่ระบบ และภาคที่อธิบายแต่ละสถานี}
+\label{fig:map}
+\end{figure}
+
+\section{ระยะห่างระหว่างทีมกับ \en{spike}}
+\label{sec:distance}
+
+ตารางที่~\ref{tab:distance} คือคำตอบตรง ๆ ของคำถาม ``ห่างแค่ไหน''
+ตัวเลขทุกช่องนับจากไฟล์จริงในรีโป
+
+\begin{table}[htbp]
+\centering
+\footnotesize\sansall
+\caption{สภาพของแต่ละส่วน ณ วันที่ 10 สิงหาคม 2569}
+\label{tab:distance}
+\begin{tabular}{@{}L{3.2cm}L{4.6cm}L{4.6cm}@{}}
+\toprule
+\textbf{ส่วน} & \textbf{ทีมมีอะไรตอนนี้} & \textbf{\en{spike} ต้องเพิ่มอะไร} \\
+\midrule
+\sfe\ โครง &
+โครงเสร็จหมด \en{routing}, \en{RBAC}, \en{AppShell}, \en{ui-kit}, \en{i18n}, \en{theme} &
+ไม่ต้องแตะเลย --- สวมกับสัญญาได้พอดี \\
+\addlinespace[2pt]
+\sfe\ หน้าจอ &
+เสร็จจริง 8 จาก 26 หน้า (\en{login} + \en{admin} 6 หน้า + 1) &
+ไม่เกี่ยว --- \en{spike} ต่อเฉพาะ \en{auth} \\
+\addlinespace[2pt]
+\sfe\ ข้อมูล &
+จำลองทั้งหมด &
+เปลี่ยน 3 เส้นเป็นของจริง (\en{login}/\en{me}/\en{logout}) \\
+\addlinespace[2pt]
+\sctr\ สัญญา &
+\textbf{ยังไม่มี} &
+ไฟล์ที่ \en{generate} มา 56 บรรทัด \\
+\addlinespace[2pt]
+\sctr\ \code{zod} &
+\code{\textasciicircum 3.23.8} &
+\textbf{ต้องยกเป็น 4.4.3} \\
+\addlinespace[2pt]
+\sops\ คุกกี้ &
+\code{api-client.ts} เตรียม \code{credentials: include} ไว้แล้ว &
+ต้องตั้ง \en{CORS} ให้ระบุ \en{origin} ตรง ๆ \\
+\addlinespace[2pt]
+\sbe\ \en{auth} &
+\textbf{ไม่มีเลย} --- \code{src/} มีแต่โครง \en{Nest} เปล่ากับ \en{Prisma} &
+8 ไฟล์ใหม่ \\
+\addlinespace[2pt]
+\sbe\ ฐานข้อมูล &
+33 \en{model} 1 \en{migration} &
+\textbf{ต้องมี \en{migration} เพิ่ม} ---
+\en{spike} เลี่ยงไปก่อนโดยไม่แก้ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+อ่านตารางนี้แล้วภาพที่ควรได้คือ: \textbf{ฝั่ง frontend ใกล้มาก ฝั่ง backend ไกลมาก
+และฐานข้อมูลคือที่ที่ยังไม่มีใครแตะ}
+
+\begin{keybox}[title={ตัวเลขที่ควรจำจากตารางนี้}]
+\en{frontend} ของทีมต้องแก้แค่ \textbf{14 ไฟล์ เพิ่ม 4 ลบ 1}
+ซึ่งน้อยกว่าที่ทุกคนกลัวกันมาก
+
+แต่ \en{backend} ต้องเขียนใหม่ \textbf{8 ไฟล์} จากศูนย์
+และฐานข้อมูลต้องมี \en{migration} ที่ยังไม่มีใครเขียน
+\end{keybox}
+
+\section{สิ่งที่พิสูจน์แล้วจริง ๆ}
+
+\begin{goodbox}[title={ผลการทดสอบ 28 ข้อ ผ่านหมด}]
+\textbf{ชั้นข้อมูล 13 ข้อ} (\code{spike-option-b/frontend-real/e2e-check.mjs})
+ใช้ \code{@trpc/client} ตัวเดียวกับที่แอปใช้ --- ยังไม่ล็อกอินแล้วถาม \code{auth.me},
+ล็อกอินด้วยบัญชีภายใน, คุกกี้ติดไปกับคำขอถัดไป, รหัสผ่านผิด, อีเมลไม่ใช่ \en{KU},
+ข้อความยาวเกิน \code{max(200)}, อาจารย์ล็อกอินด้วยอีเมล \en{KU},
+นิสิตเครดิตต่ำได้ \en{D3}, \en{logout} แล้วคุกกี้หาย
+
+\textbf{ชั้นหน้าจอ 15 ข้อ} (\code{spike-option-b/browser-check/ui-check.mjs})
+เปิด \en{Firefox} จริง กรอกฟอร์มจริง --- รวมสามข้อที่ทดสอบด้วยวิธีอื่นไม่ได้เลย คือ
+คุกกี้เป็น \code{httpOnly} จริง (\code{document.cookie} อ่านไม่เจอ),
+กด \en{F5} แล้ว \en{session} ไม่หลุด, และ \en{RBAC} ยึดจริงเมื่อพิมพ์ \en{URL} ตรง ๆ
+\end{goodbox}
+
+รูปที่~\ref{fig:shell} คือภาพหน้าจอจริงหลังล็อกอินสำเร็จด้วยบัญชี \code{test\_staff}
+สังเกตว่าเนื้อหน้าเขียนว่า \en{``Under development''} --- ถูกต้องแล้ว
+เพราะหน้านั้นยังเป็น \en{placeholder} สิ่งที่รูปนี้พิสูจน์คือ\textbf{กรอบรอบ ๆ}
+ทั้งหมดมาจากเซิร์ฟเวอร์จริง ไม่ใช่ข้อมูลจำลอง
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.92\textwidth]{03-staff-shell.png}
+\caption{หน้าจอหลังล็อกอินด้วยบัญชีจริงจากฐานข้อมูล เมนูฝั่งซ้ายมาจากบทบาทที่เซิร์ฟเวอร์ตอบกลับ ไม่ใช่บทบาทที่เบราว์เซอร์เลือกเอง}
+\label{fig:shell}
+\end{figure}
+
+\clearpage
+
+% =============================================================================
+\part{สถานีที่ 1 --- หน้าจอและฟอร์ม}
+% =============================================================================
+
+สถานีแรกคือสิ่งที่ผู้ใช้เห็นและแตะ ข่าวดีของสถานีนี้คือ\textbf{โครงทั้งหมดใช้ได้เลย}
+ข่าวร้ายคือ ตรรกะการตัดสินใจว่า ``ใครเป็นใคร'' ถูกเขียนไว้ผิดที่
+
+\section{ทีมมีอะไรตอนนี้}
+
+โครงพื้นฐานเสร็จหมดและไม่ต้องแตะเลยตอนต่อ \en{backend} ได้แก่ \en{routing} พร้อม
+\en{RBAC guard}, \en{AppShell} (แถบข้าง/แถบบน), ชุด \en{ui-kit}, \en{i18n}
+ไทย--อังกฤษ, สลับธีมสว่าง/มืด และ \en{design tokens}
+
+ส่วนเนื้อหน้าจอเสร็จไม่เท่ากันมาก ตามตารางที่~\ref{tab:pages}
+
+\begin{table}[htbp]
+\centering
+\footnotesize\sansall
+\caption{สถานะหน้าจอทั้ง 26 หน้า นับจากไฟล์จริงใน \code{frontend/src/features/}}
+\label{tab:pages}
+\begin{tabular}{@{}L{2.6cm}cL{8.4cm}@{}}
+\toprule
+\textbf{กลุ่ม} & \textbf{เสร็จ} & \textbf{รายละเอียด} \\
+\midrule
+\en{auth} & 1/1 & \code{login-page.tsx} 124 บรรทัด สองวิธีเข้าระบบ \\
+\en{admin} & 6/7 & \en{dashboard}, \en{users} (511 บรรทัด), \en{status}, \en{audit},
+\en{config}, \en{reports} --- ขาด \en{settings} \\
+\en{borrower} & 0/7 & \en{placeholder} 6 บรรทัดทั้งหมด \\
+\en{staff} & 0/7 & \en{placeholder} 6 บรรทัดทั้งหมด \\
+\en{supervisor} & 0/2 & \en{placeholder} \\
+\en{reports} & 0/2 & \en{placeholder} \\
+\midrule
+\textbf{รวม} & \textbf{8/26} & หน้าที่เสร็จทุกหน้ากินข้อมูลจาก \code{features/admin/mock-data.ts} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{warnbox}[title={ตัวเลข 8/26 อ่านผิดได้ง่าย}]
+อย่าอ่านว่า ``เสร็จ 31\%'' เพราะงานที่เหลือไม่ได้เท่ากันทุกหน้า
+
+หน้าที่ยังไม่ทำคือ\textbf{หน้าที่มีฟอร์ม} (ยืม คืน ตรวจสภาพ อุทธรณ์)
+ซึ่งเป็นหน้าที่ผูกกับ \code{zod} มากที่สุด นี่คือเหตุผลที่หัวข้อ~\ref{sec:zod}
+ยืนยันว่าต้องยก \code{zod} \textbf{ตอนนี้} ไม่ใช่ตอนหน้าฟอร์มเสร็จหมดแล้ว
+\end{warnbox}
+
+\section{จุดที่ 1 --- หน้าล็อกอินเดาบทบาทเอง}
+
+นี่คือจุดที่ร้ายแรงที่สุดในฝั่ง \en{frontend} และเป็นจุดที่ข้อมูลจำลองปิดบังไว้ได้สนิท
+
+\begin{badbox}[title={โค้ดที่อยู่ในรีโปตอนนี้ · \code{login-page.tsx:40--43}}]
+\begin{lstlisting}
+// KU email -> borrower only (students & faculty).
+const handleKuLogin = () => {
+  loginAs("borrower");
+  navigate(HOME_ROUTE_BY_ROLE.borrower, { replace: true });
+};
+\end{lstlisting}
+\vspace{-0.4em}
+คอมเมนต์เขียนไว้เองว่า ``\en{students \& faculty}'' แต่โค้ดใต้คอมเมนต์
+กำหนดบทบาทเป็น \code{borrower} ตายตัว
+\end{badbox}
+
+ปัญหาคือ\textbf{อาจารย์ทุกคนก็ใช้อีเมล \en{KU}} เมื่อทดสอบกับฐานข้อมูลจริง
+บัญชี \code{orawan.p@ku.th} มี \code{RoleName} เป็น \code{Professor}
+ซึ่งแปลงเป็นบทบาท \code{supervisor} ไม่ใช่ \code{borrower}
+
+โค้ดเดิมจึงจะจับอาจารย์ทั้งคณะยัดเข้าหน้าผู้ยืม พร้อมสิทธิ์ที่ผิด
+และไม่มีอะไรจับได้ เพราะข้อมูลจำลองไม่เคยมีอาจารย์ที่ล็อกอินด้วยอีเมล \en{KU}
+
+รูปที่~\ref{fig:whodecides} อธิบายว่าความผิดพลาดนี้เกิดจากการวาง
+``ผู้ตัดสินใจ'' ไว้ผิดฝั่ง
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}
+
+% ===== แถวบน: วิธีเดิม
+\node[lbl, anchor=west] at (0,2.75) {\textbf{วิธีเดิม} --- เบราว์เซอร์ตัดสินใจเอง};
+\node[festage, minimum width=2.5cm] (a1) at (1.4,1.9) {ฟอร์ม};
+\node[festage, minimum width=3.0cm, fill=bad!12, draw=bad!50] (a2) at (5.3,1.9)
+  {\en{loginAs("borrower")}};
+\node[festage, minimum width=2.5cm] (a3) at (9.2,1.9) {หน้าผู้ยืม};
+\draw[ar] (a1) -- (a2);
+\draw[ar] (a2) -- (a3);
+\node[lbl, text=bad, anchor=west] at (11.0,1.9) {เซิร์ฟเวอร์\\ไม่เคยถูกถาม};
+
+% ===== แถวล่าง: วิธีใหม่
+\node[lbl, anchor=west] at (0,0.75) {\textbf{วิธีที่ \en{spike} ใช้} --- เซิร์ฟเวอร์ตัดสินใจ};
+\node[festage, minimum width=2.5cm] (b1) at (1.4,-0.1) {ฟอร์ม};
+\node[bestage, minimum width=3.0cm] (b2) at (5.3,-0.1) {\en{auth.login}};
+\node[festage, minimum width=2.5cm] (b3) at (9.2,-0.1) {หน้าตามบทบาท};
+\draw[ar] (b1) -- node[lbl, above] {\scriptsize อีเมล+รหัส} (b2);
+\draw[ar] (b2) -- node[lbl, above] {\scriptsize \en{role}} (b3);
+\node[lbl, text=feg, anchor=west] at (11.0,-0.1) {อ่าน \en{RoleInfo}\\จากฐานข้อมูล};
+
+\end{tikzpicture}
+\caption{ความต่างไม่ได้อยู่ที่จำนวนบรรทัด แต่อยู่ที่ว่าใครเป็นคนตอบคำถาม ``คนนี้เป็นใคร''}
+\label{fig:whodecides}
+\end{figure}
+
+\begin{goodbox}[title={\en{spike} แก้เป็นอย่างนี้ · ทดสอบผ่านในเบราว์เซอร์จริงแล้ว}]
+\begin{lstlisting}
+const submit = async (method, identifier, password) => {
+  const user = await login.mutateAsync({ method, identifier, password });
+  navigate(HOME_ROUTE_BY_ROLE[user.role], { replace: true });
+  return null;
+};
+\end{lstlisting}
+\vspace{-0.4em}
+ปลายทางมาจาก \code{user.role} ที่เซิร์ฟเวอร์ตอบ ไม่ใช่ค่าที่หน้าเว็บรู้ล่วงหน้า
+ผลการทดสอบ: \code{orawan.p@ku.th} ไปโผล่ที่ \code{/supervisor/approvals} ถูกต้อง
+\end{goodbox}
+
+\section{จุดที่ 2 --- บทบาทเก็บอยู่ใน \en{localStorage}}
+
+จุดนี้รุนแรงกว่าจุดแรก เพราะไม่ใช่แค่ ``เดาผิด'' แต่เป็น ``ให้ผู้ใช้เลือกเองได้''
+
+\begin{badbox}[title={\pzero\ ช่องโหว่ · \code{auth.store.ts:36, 46}}]
+\begin{lstlisting}
+// login
+window.localStorage.setItem(MOCK_USER_STORAGE_KEY, role);
+// on app start
+role = window.localStorage.getItem(MOCK_USER_STORAGE_KEY);
+set({ user: isRole(role) ? MOCK_USERS[role] : null, isLoading: false });
+\end{lstlisting}
+\vspace{-0.4em}
+\en{localStorage} แก้ได้จาก \en{DevTools} ของเบราว์เซอร์ในสามวินาที
+ใครก็ตามที่เปิดหน้าเว็บนี้ พิมพ์คำเดียวก็เป็น \code{admin} ได้
+\end{badbox}
+
+ตอนนี้ยังไม่อันตรายจริง เพราะหลังบ้านยังไม่มีข้อมูลจริงให้เข้าถึง
+แต่\textbf{วันที่ backend ต่อเสร็จ ช่องนี้จะกลายเป็นประตูหลังทันที}
+ถ้าไม่มีใครจำได้ว่าต้องเอาออก
+
+\en{spike} แก้โดยลบทั้งสองฟังก์ชันทิ้ง แล้วให้เซิร์ฟเวอร์เป็นผู้ตอบแทน
+ผ่านคุกกี้ \code{httpOnly} ซึ่ง \en{JavaScript} อ่านไม่ได้เลย ---
+รายละเอียดกลไกอยู่ในภาค 4
+
+\begin{keybox}[title={ประโยคที่ร้อยจุดที่ 1 กับจุดที่ 2 เข้าด้วยกัน}]
+ทั้งสองจุดคือความผิดพลาดชนิดเดียวกัน: \textbf{ให้เบราว์เซอร์เป็นผู้ตัดสินใจ
+เรื่องที่เบราว์เซอร์ไม่มีสิทธิ์ตัดสิน}
+
+หลังแก้แล้ว ไม่มีอะไรในเบราว์เซอร์แจกสิทธิ์ให้ตัวเองได้อีก
+นี่คือประโยชน์ที่จับต้องได้ที่สุดของการต่อ \en{backend} จริง
+มากกว่าเรื่อง ``ได้ข้อมูลจริงมาแสดง''
+\end{keybox}
+
+\section{จุดที่ 3 --- รหัสผ่านทดสอบอยู่ในรีโป}
+
+\code{frontend/src/features/auth/mock-auth.ts:62--70} เก็บตารางบัญชีและรหัสผ่าน
+เป็นข้อความธรรมดา และ \code{frontend/README.md:14--18} พิมพ์ซ้ำอีกรอบเป็นตาราง
+
+ทั้งสองที่มีคำเตือนเขียนกำกับไว้แล้วว่าให้ลบเมื่อ \en{backend} มา
+ซึ่งดีมาก แต่\textbf{คำเตือนไม่ใช่กลไก} --- ไม่มีอะไรบังคับให้ลบจริง
+
+\en{spike} ลบ \code{mock-auth.ts} ทิ้งทั้งไฟล์ (70 บรรทัด) บัญชีทดสอบย้ายไปอยู่ใน
+\code{seed.ts} ของฐานข้อมูล ซึ่งเป็นที่ที่ถูกต้อง เพราะรหัสผ่านถูก \en{hash}
+ด้วย \en{scrypt} ก่อนเก็บ ไม่ได้อยู่เป็นข้อความธรรมดาอีกต่อไป
+
+\section{จุดที่ 4 --- ฟอร์มต้องกลายเป็น \en{async}}
+
+จุดนี้ไม่ใช่ความผิดพลาด แต่เป็น\textbf{ผลกระทบลูกโซ่}ที่ทีมควรรู้ล่วงหน้า
+เพราะจะเกิดซ้ำกับทุกฟอร์มที่เหลือ
+
+ตอนที่การล็อกอินเป็นของจำลอง มันตอบทันที ฟังก์ชันจึงเขียนแบบ \en{synchronous} ได้
+
+\begin{lstlisting}
+// before: the mock answers instantly
+onSubmit: (values: LocalLoginValues) => string | null | void;
+// after: a real round trip
+onSubmit: (values: LocalLoginValues) => Promise<string | null | void>;
+\end{lstlisting}
+
+การเปลี่ยนคำเดียวนี้ลากของตามมาอีกสามอย่างในทุกฟอร์ม
+
+\begin{enumerate}
+  \item ตัวเรียกต้อง \code{await} และตัวจัดการต้องเป็น \code{async}
+  \item ปุ่มต้องมีสถานะ ``กำลังส่ง'' เพราะคำขอจริงช้าพอที่ผู้ใช้จะกดซ้ำ
+  \item ต้องมีที่แสดงข้อความผิดพลาดจากเซิร์ฟเวอร์ ซึ่งฟอร์มเดิมไม่มี
+\end{enumerate}
+
+ข้อ 3 เห็นชัดที่ช่องอีเมล \en{KU}: ตอนเป็นของจำลอง เส้นทางนั้น\textbf{ล้มเหลวไม่ได้เลย}
+จึงไม่เคยมีที่ให้แสดง ``รหัสผ่านไม่ถูกต้อง'' พอต่อของจริงกลายเป็นกรณีที่พบบ่อยที่สุด
+
+\begin{warnbox}[title={คูณด้วยจำนวนฟอร์มที่ยังไม่ได้ทำ}]
+งานสามข้อข้างบนใช้เวลาไม่กี่นาทีต่อฟอร์ม แต่ต้องทำ\textbf{ทุกฟอร์ม}
+และหน้าที่ยังเป็น \en{placeholder} อีก 19 หน้าส่วนใหญ่มีฟอร์ม
+
+ถ้าทีมเขียนฟอร์มที่เหลือแบบ \en{synchronous} ต่อไปโดยยังไม่ต่อ \en{backend}
+งานรื้อรอบเดียวจะใหญ่กว่านี้หลายเท่า
+\end{warnbox}
+
+\section{จุดที่ 5 --- แถบข้างแสดงชื่อที่ตายตัว}
+
+\code{sidebar.tsx} แสดง \code{persona.name} ซึ่งมาจาก \code{constants/navigation.ts}
+--- เป็นค่าคงที่หนึ่งชุดต่อหนึ่งบทบาท ไม่ใช่ชื่อของคนที่ล็อกอินจริง
+
+ตอนนี้ยังไม่มีใครเห็นความต่าง เพราะ \code{seed.ts} ตั้งชื่อให้ตรงกับข้อมูลจำลองพอดี
+แต่พอดูให้ละเอียดจะพบว่าไม่ตรง: ฐานข้อมูลเก็บว่า ``อรวรรณ ภักดี''
+ส่วนแถบข้างเขียนว่า ``ผศ.ดร. อรวรรณ ภักดี''
+
+\en{spike} \textbf{ไม่ได้แก้จุดนี้} เพราะเป็นงานของเจ้าของ \en{AppShell}
+ไม่ใช่ของระบบล็อกอิน จัดเป็น \ptwo\ --- แก้ตอนแตะไฟล์นั้นพอดี
+
+\section{สรุปสถานีที่ 1}
+
+\begin{table}[htbp]
+\centering
+\footnotesize\sansall
+\caption{ห้าจุดของสถานีที่ 1 และสถานะ}
+\label{tab:station1}
+\begin{tabular}{@{}cL{6.0cm}cL{4.2cm}@{}}
+\toprule
+\textbf{ระดับ} & \textbf{จุด} & \textbf{\en{spike} แก้แล้ว} & \textbf{ไฟล์} \\
+\midrule
+\pzero & บทบาทเก็บใน \en{localStorage} & ใช่ & \code{auth.store.ts} \\
+\pzero & รหัสผ่านทดสอบอยู่ในรีโป & ใช่ (ลบทั้งไฟล์) & \code{mock-auth.ts} \\
+\pone & หน้าล็อกอินเดาบทบาทเอง & ใช่ & \code{login-page.tsx} \\
+\ptwo & ฟอร์มต้องเป็น \en{async} & ใช่ (2 ไฟล์) & \code{login-method-*.tsx} \\
+\ptwo & แถบข้างแสดงชื่อตายตัว & \textbf{ยังไม่แก้} & \code{sidebar.tsx} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\clearpage
+
+% =============================================================================
+\part{สถานีที่ 2 --- สัญญาและ \en{type}}
+% =============================================================================
+
+สถานีนี้คือรอยต่อที่แท้จริง และเป็นที่ที่ค่าผ่านทางทั้งหมดของทางเลือก ข. อยู่
+
+\section{สัญญาเดินทางมาแบบไหน}
+
+ในทางเลือก ข. ``สัญญา'' คือ\textbf{ไฟล์หนึ่งไฟล์}ที่เครื่องมือสร้างจาก \en{router}
+ของ \en{backend} แล้วคัดลอกมาวางไว้ใน \code{frontend/src/generated/server.ts}
+
+ไฟล์นั้น \en{import} แค่สองอย่าง
+
+\begin{lstlisting}
+import { initTRPC } from "@trpc/server";
+import { z } from "zod";
+\end{lstlisting}
+
+บรรทัดที่สองคือต้นเหตุของทุกอย่างในภาคนี้
+
+\section{จุดที่ 6 --- \code{zod} คนละรุ่น}
+\label{sec:zod}
+
+\begin{badbox}[title={\pone\ ตัวบล็อกที่เจอตั้งแต่ยังไม่เขียนโค้ดบรรทัดแรก}]
+\code{frontend/package.json:40} ประกาศ \code{"zod": "\textasciicircum 3.23.8"}
+
+\code{spike-option-b/backend/package.json} ประกาศ \code{"zod": "4.4.3"}
+
+ไฟล์สัญญาที่ \en{generate} ออกมาผูกกับรุ่นของฝั่งที่สร้างมัน คือ 4.4.3
+\end{badbox}
+
+ทำไมรุ่นต่างกันแล้วพัง --- และทำไมมันพัง\textbf{เงียบ}
+
+\en{TypeScript} ตัดสินว่า \en{type} สองตัวเหมือนกันหรือไม่จากโครงสร้าง
+แต่ \code{ZodString} ของ \code{zod@3} กับของ \code{zod@4} มีโครงสร้างภายในต่างกัน
+ทั้งคู่ชื่อ \code{ZodString} เหมือนกันแต่ไม่ใช่ตัวเดียวกัน ผลคือการอ่าน \en{type}
+ออกจากสัญญาจะล้มเหลว แล้วทุก \en{procedure} ตกเป็น \code{any}
+
+\code{any} ไม่ทำให้ \en{build} พัง มันแค่แปลว่า ``ไม่ต้องตรวจอะไรเลย''
+ซึ่งคือ\textbf{การสูญเสียเหตุผลทั้งหมดที่เลือกใช้ tRPC ตั้งแต่แรก}
+โดยที่ไม่มีข้อความเตือนสักบรรทัด
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}
+
+\node[bestage, minimum width=3.1cm] (be) at (0,0) {\en{backend}\\\scriptsize \en{zod 4.4.3}};
+\node[stage, minimum width=3.1cm] (ct) at (4.6,0) {ไฟล์สัญญา\\\scriptsize อ้าง \en{ZodString} ของ 4.4.3};
+\node[festage, minimum width=3.1cm] (fe) at (9.2,0) {\en{frontend}\\\scriptsize \en{zod 3.23.8}};
+
+\draw[ar] (be) -- node[lbl, above] {\scriptsize \en{generate}} (ct);
+\draw[ar] (ct) -- node[lbl, above] {\scriptsize \en{import type}} (fe);
+
+\node[blk, fill=bad!10, draw=bad!50, text width=6.6cm, align=left,
+      font=\sansall\scriptsize] (out) at (4.6,-2.3)
+  {\textbf{ผลลัพธ์} \en{TypeScript} จับคู่ \en{type} ไม่ได้\\
+   $\rightarrow$ ทุก \en{procedure} กลายเป็น \en{any}\\
+   $\rightarrow$ \textbf{\en{build} ยังผ่าน} ไม่มีคำเตือนใด ๆ\\
+   $\rightarrow$ พิมพ์ชื่อฟิลด์ผิดก็ไม่มีใครทัก};
+\draw[ar, draw=bad!60] (ct) -- (out);
+
+\end{tikzpicture}
+\caption{เหตุผลที่ \code{zod} คนละรุ่นเป็นความล้มเหลวแบบเงียบ ไม่ใช่ข้อผิดพลาดที่มองเห็น}
+\label{fig:zoddrift}
+\end{figure}
+
+\subsection{ข่าวดี: ยกตอนนี้ไม่พังเลย}
+
+\begin{goodbox}[title={ทดลองแล้ว ยก \code{zod} เป็น 4.4.3 โดยยังไม่แตะโค้ดสักบรรทัด}]
+ผลการรัน \code{tsc --noEmit} คือ \textbf{ผ่าน 0 ข้อผิดพลาด}
+
+เหตุผล: ทั้งโปรเจกต์ใช้ \code{zod} แค่ \textbf{2 ไฟล์} คือ
+\code{features/auth/login.schema.ts} กับ \code{schemas/loan-request.schema.ts}
+และทั้งสองใช้แต่ \en{API} ที่ \code{zod@4} ยังรองรับ
+(\code{.email()} และ \code{.datetime()} ถูกประกาศเลิกใช้แล้วแต่ยังทำงานได้)
+\end{goodbox}
+
+การยก \code{zod} ลากของตามมาหนึ่งอย่าง คือ \code{@hookform/resolvers}
+ต้องขึ้นจาก \code{\textasciicircum 3.10.0} เป็น \code{5.2.2}
+เพราะรุ่น 3 รองรับเฉพาะ \code{zod@3}
+
+\begin{warnbox}[title={ข่าวดีนี้มีวันหมดอายุ}]
+ที่ยกได้ฟรีวันนี้เพราะมี \en{schema} แค่ 2 ไฟล์
+
+หน้าที่ยังไม่ทำอีก 19 หน้าคือหน้าที่มีฟอร์ม แต่ละฟอร์มจะเพิ่ม \en{schema}
+ต้นทุนการยกจึงโตทุกสัปดาห์ที่เลื่อนออกไป
+
+\textbf{ถ้าทีมจะเลือกทางนี้ ต้องยก \code{zod} ตอนนี้ ไม่ใช่ตอนหน้าฟอร์มเสร็จหมดแล้ว}
+\end{warnbox}
+
+\section{จุดที่ 7 --- \en{type} ของผู้ใช้ที่เขียนด้วยมือ}
+
+\code{frontend/src/types/domain.ts:9--18} เขียน \code{interface User} ขึ้นเอง
+โดยอ้างอิงความเข้าใจ ณ ตอนนั้น พอเทียบกับสิ่งที่เซิร์ฟเวอร์ส่งจริง พบว่าผิด 3 ฟิลด์
+
+\begin{table}[htbp]
+\centering
+\footnotesize\sansall
+\caption{สามฟิลด์ที่เดาผิด และเหตุผลจากฐานข้อมูลจริง}
+\label{tab:userdrift}
+\begin{tabular}{@{}L{2.7cm}L{2.4cm}L{2.4cm}L{4.9cm}@{}}
+\toprule
+\textbf{ฟิลด์} & \textbf{ทีมเขียนไว้} & \textbf{ของจริง} & \textbf{เพราะอะไร} \\
+\midrule
+\code{id} & \code{string} & \code{number} &
+\code{AccountInfo.AccountKey} เป็น \code{Int @id} \\
+\addlinespace[2pt]
+\code{departmentId} & \code{string} & \code{string | null} &
+ผู้ใช้ที่ยังไม่ถูกผูกกับภาควิชาใดจะไม่มีค่า \\
+\addlinespace[2pt]
+\code{maxBorrowDays} & \textbf{ไม่มีเลย} & \code{number} &
+เซิร์ฟเวอร์คำนวณจาก \en{CreditTier} ส่งมาให้ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+ข้อ \code{departmentId} อันตรายแบบเงียบที่สุด: โค้ดที่เอาไปต่อสตริงจะได้คำว่า
+\code{"null"} โผล่บนหน้าจอ ไม่ใช่ค่าว่าง
+
+\subsection{วิธีที่ \en{spike} ใช้กันไม่ให้เกิดอีก}
+
+เลิกเขียน \code{User} ด้วยมือ เปลี่ยนเป็นดึงออกมาจากสัญญาโดยตรง
+
+\begin{lstlisting}
+// src/types/domain.ts
+export type User = ContractUser;               // from inferRouterOutputs
+export type Role = ContractUser["role"];
+export type CreditBand = ContractUser["creditBand"];
+\end{lstlisting}
+
+ผลทันทีเมื่อทำแบบนี้: \code{tsc} ชี้จุดที่ขัดกับเซิร์ฟเวอร์ให้เอง และมันชี้จริง ---
+\code{mock-auth.ts} พัง 4 บรรทัด ซึ่งเป็นไฟล์ที่ต้องลบอยู่แล้ว
+
+\begin{goodbox}[title={ผลที่สำคัญกว่านั้น}]
+\textbf{นอกจากไฟล์ที่ต้องลบแล้ว ไม่มีอะไรพังเลยทั้งโปรเจกต์}
+
+แปลว่ารูปร่างข้อมูลที่เซิร์ฟเวอร์ส่งมาสวมกับโค้ดที่ทีมเขียนไว้ได้พอดี
+งานต่อ \en{backend} จึงไม่ใช่การรื้อ แต่เป็นการเสียบ
+\end{goodbox}
+
+\section{จุดที่ 8 --- รหัสข้อผิดพลาดคนละชุด}
+
+\code{frontend/src/lib/error-messages.ts:11} เตรียมข้อความไว้สำหรับรหัส
+\code{INVALID\_DOMAIN}
+
+\code{backend/src/contract.types.ts} ส่งรหัส \code{NOT\_KU\_EMAIL}
+
+\begin{badbox}[title={คนละรหัส ทั้งสองฝั่ง \en{build} ผ่าน ไม่มีใครเตือน}]
+ผู้ใช้ที่กรอกอีเมล \en{gmail} จะเห็นข้อความ ``เกิดข้อผิดพลาดที่ไม่ทราบสาเหตุ''
+แทนข้อความที่เขียนเตรียมไว้อย่างดี
+
+สาเหตุเชิงโครงสร้าง: ตารางแปลรหัสประกาศเป็น \code{Record<string, string>}
+ซึ่งรับ \en{key} อะไรก็ได้ การค้นหาที่ไม่เจอไม่ใช่ข้อผิดพลาด มันแค่คืนค่าว่าง
+\end{badbox}
+
+นี่คือความต่างที่ชัดที่สุดระหว่างสองทางเลือก: ในทางเลือก ก. ฝั่ง \en{frontend}
+\code{import \{ BUSINESS\_ERROR \}} จากแพ็กเกจกลาง การเพิ่มรหัสใหม่แล้วไม่แปล
+จะกลายเป็น \en{compile error} ทันที ในทางเลือก ข. ไม่มีอะไรเชื่อมสองฝั่งเลย
+
+\section{จุดที่ 9 --- สัญญาเก่าค้างได้ และ \en{CI} มองไม่เห็น}
+
+ทางเลือก ข. มีความเสี่ยงเฉพาะตัวคือ ไฟล์สัญญาเป็นสำเนา ถ้าแก้ \en{router}
+แล้วลืมสั่ง \en{generate} ฝั่ง \en{frontend} จะยัง \en{build} ผ่าน
+เพราะ \en{type} เก่าก็ยังเป็น \en{type} ที่ถูกต้อง
+
+\en{spike} จึงเขียนด่าน \en{CI} ไว้สองตัวเพื่อจับเรื่องนี้ และทดสอบแล้วว่าจับได้จริง
+\textbf{แต่ตอนเอา \en{frontend} จริงมาต่อ พบว่าด่านทั้งสองมองไม่เห็นมัน}
+
+\begin{badbox}[title={\ptwo\ ทดลองทำให้พังแล้ว ด่านยังเขียวทั้งคู่}]
+ตั้ง \code{frontend-real} ให้ประกาศ \code{zod} เป็น \code{\textasciicircum 4.7.0}
+(ผิดทั้งรุ่นและไม่ \en{pin}) และแก้ไฟล์สัญญาให้เพี้ยนจากต้นฉบับ แล้วรันด่านทั้งสอง
+
+\begin{lstlisting}
+check-versions:       PASS
+check-contract-fresh: PASS
+\end{lstlisting}
+\vspace{-0.4em}
+สาเหตุ: สคริปต์ทั้งคู่ระบุ \en{path} ไว้ตรง ๆ ว่า \code{frontend/}
+ผู้บริโภคสัญญารายที่สองจึงอยู่นอกสายตา
+\end{badbox}
+
+\begin{keybox}[title={นี่ไม่ใช่บั๊กของสคริปต์ แต่เป็นรูปร่างของปัญหา}]
+ทางเลือก ข. ต้องมี\textbf{ด่านหนึ่งด่านต่อผู้บริโภคหนึ่งราย}
+และต้องมีคนจำได้ว่าต้องเพิ่มด่านเมื่อมีผู้บริโภครายใหม่
+(แอปมือถือ, \en{admin portal}, ชุดทดสอบ \en{e2e})
+
+ทางเลือก ก. ไม่มีคำถามนี้ เพราะ \en{npm workspaces} ยุบ \code{zod}
+ให้เหลือก้อนเดียวโดยโครงสร้าง ไม่ใช่โดยวินัย
+
+ถ้าทีมเลือกทางนี้ ต้องแก้สคริปต์ให้\textbf{วนทุกโฟลเดอร์ที่กินสัญญา}
+ไม่ใช่เขียนชื่อเดียวตายตัว
+\end{keybox}
+
+\section{สรุปสถานีที่ 2}
+
+\begin{table}[htbp]
+\centering
+\footnotesize\sansall
+\caption{ห้าจุดของสถานีที่ 2 และสถานะ}
+\label{tab:station2}
+\begin{tabular}{@{}cL{6.4cm}cL{3.8cm}@{}}
+\toprule
+\textbf{ระดับ} & \textbf{จุด} & \textbf{\en{spike} แก้แล้ว} & \textbf{ไฟล์} \\
+\midrule
+\pone & \code{zod} 3 ต้องยกเป็น 4 (ลาก \code{@hookform/resolvers} 3$\rightarrow$5 ตามมาด้วย) & ใช่ & \code{package.json} \\
+\pone & \code{User} เขียนมือ ผิด 3 ฟิลด์ & ใช่ & \code{types/domain.ts} \\
+\ptwo & รหัสข้อผิดพลาดคนละชุด & ใช่ & \code{error-messages.ts} \\
+\ptwo & \en{CI} มองไม่เห็นผู้บริโภครายที่สอง & \textbf{ยังไม่แก้} & \code{scripts/*.mjs} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\clearpage
+
+% =============================================================================
+\part{สถานีที่ 3 --- เครือข่ายและ \en{session}}
+% =============================================================================
+
+สถานีนี้คือระยะทางระหว่างเบราว์เซอร์กับเซิร์ฟเวอร์ สิ่งที่เดินทางบนเส้นนี้
+ไม่ได้มีแค่ข้อมูล แต่มี\textbf{ตัวตนของผู้ใช้}ด้วย
+
+\section{ทีมเตรียมอะไรไว้แล้ว}
+
+ข่าวดี: \code{frontend/src/lib/api-client.ts:42} ตั้ง \code{credentials: "include"}
+ไว้แล้วพร้อมคอมเมนต์ว่า ``ส่ง \en{cookie} ทุกครั้ง'' แปลว่าทีมตัดสินใจเรื่อง
+รูปแบบการยืนยันตัวตนถูกต้องมาตั้งแต่ต้น --- ใช้คุกกี้ ไม่ใช่ \en{token} ใน \en{localStorage}
+
+\code{frontend/README.md} ก็เขียนไว้ชัดว่า \en{``Auth: httpOnly cookie (session-based)''}
+
+\begin{keybox}[title={การตัดสินใจที่ถูกแล้ว ไม่ต้องเปลี่ยน}]
+เลือกคุกกี้ \code{httpOnly} แทนการเก็บ \en{token} ใน \en{localStorage}
+เป็นการตัดสินใจที่ถูกและสำคัญ เพราะ \en{JavaScript} อ่านคุกกี้แบบนี้ไม่ได้เลย
+สคริปต์ที่ถูกฝังในหน้าเว็บจึงขโมยไปไม่ได้
+
+\en{spike} ทดสอบยืนยันในเบราว์เซอร์จริงแล้วว่า \code{document.cookie}
+มองไม่เห็น \code{ulms\_session} จริง ๆ
+\end{keybox}
+
+\section{กลไกที่เกิดขึ้นจริงเมื่อล็อกอิน}
+
+รูปที่~\ref{fig:seq} คือลำดับที่เกิดขึ้นจริง วัดจากการทดสอบ ไม่ใช่ภาพอุดมคติ
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[font=\sansall\scriptsize]
+
+% เส้นชีวิตสามเส้น
+\node[festage, minimum width=2.6cm] (b) at (0,0) {เบราว์เซอร์};
+\node[bestage, minimum width=2.6cm] (s) at (6.0,0) {เซิร์ฟเวอร์ \en{:3002}};
+\node[blk, fill=bad!8, draw=bad!45, minimum width=2.6cm] (d) at (11.4,0) {ฐานข้อมูล};
+
+\draw[rule, dashed] (b.south) -- ++(0,-6.7);
+\draw[rule, dashed] (s.south) -- ++(0,-6.7);
+\draw[rule, dashed] (d.south) -- ++(0,-6.7);
+
+% ขั้นตอน
+\draw[ar] (0,-1.0) -- node[lbl, above]{\en{auth.login} + \en{Origin}} (6.0,-1.0);
+\draw[ar] (6.0,-1.7) -- node[lbl, above]{\en{findFirst} ตามอีเมล} (11.4,-1.7);
+\draw[ar] (11.4,-2.4) -- node[lbl, above]{แถวบัญชี + \en{RoleName}} (6.0,-2.4);
+\draw[ar, draw=ops] (6.0,-3.1) -- node[lbl, above, text=ops]{\textbf{\en{Set-Cookie}} \en{httpOnly}} (0,-3.1);
+
+% เส้นคั่นบอกว่าเวลาเดินไปแล้ว ผู้ใช้กลับมาใหม่ในภายหลัง
+\draw[rule, dotted] (-0.6,-3.7) -- (12.0,-3.7);
+\node[lbl, anchor=west, text=muted, fill=white, inner sep=2pt] at (0.2,-3.7)
+  {ผู้ใช้กด \en{F5} --- หน้าเว็บลืมทุกอย่างที่อยู่ในหน่วยความจำ};
+
+\draw[ar] (0,-4.6) -- node[lbl, above]{\en{auth.me} + คุกกี้ที่เบราว์เซอร์แนบให้เอง} (6.0,-4.6);
+\draw[ar] (6.0,-5.4) -- node[lbl, above]{อ่านบทบาท\textbf{ใหม่}ทุกครั้ง} (11.4,-5.4);
+\draw[ar] (6.0,-6.2) -- node[lbl, above]{ผู้ใช้คนเดิม ยังอยู่ในระบบ} (0,-6.2);
+
+\end{tikzpicture}
+\caption{ลำดับจริงของการล็อกอินและการกู้ \en{session} คืนหลังรีเฟรช --- ทั้งสองเส้นทางถูกทดสอบในเบราว์เซอร์จริงแล้ว}
+\label{fig:seq}
+\end{figure}
+
+จุดที่ควรสังเกตในรูปคือลูกศรเส้นที่ห้า: หลังรีเฟรช เบราว์เซอร์แนบคุกกี้ให้เอง
+โดยที่โค้ดไม่ต้องทำอะไรเลย และเซิร์ฟเวอร์\textbf{อ่านบทบาทใหม่จากฐานข้อมูลทุกครั้ง}
+ไม่ได้ฝังบทบาทไว้ในคุกกี้
+
+การอ่านใหม่ทุกครั้งช้ากว่า แต่แลกมาด้วยความถูกต้อง: วันที่ผู้ดูแลถอนสิทธิ์ใคร
+คนนั้นเสียสิทธิ์ทันที ไม่ใช่ตอนคุกกี้หมดอายุ
+
+\section{จุดที่ 10 --- \en{CORS} ที่ยังไม่มี}
+
+\code{backend/src/main.ts} ของทีมตอนนี้มี 7 บรรทัด และ\textbf{ไม่มี \en{CORS}
+ไม่มี \en{cookie-parser}}
+
+\begin{badbox}[title={\pone\ ถ้าไม่ตั้งสองอย่างนี้ ทุกอย่างที่เหลือใช้ไม่ได้}]
+\begin{lstlisting}
+// backend/src/main.ts as it stands today
+const app = await NestFactory.create(AppModule);
+await app.listen(process.env.PORT ?? 3000);
+\end{lstlisting}
+\vspace{-0.4em}
+เบราว์เซอร์จะทิ้งคำตอบทุกอันก่อนที่โค้ดฝั่งหน้าเว็บจะได้เห็น
+และเซิร์ฟเวอร์จะอ่านคุกกี้ที่ส่งมาไม่ได้
+\end{badbox}
+
+สิ่งที่ต้องเพิ่ม และเหตุผลของแต่ละบรรทัด
+
+\begin{lstlisting}
+app.use(cookieParser());          // without this, req.cookies is undefined
+app.enableCors({
+  origin: allowedOrigins,         // must be an explicit list, NOT "*"
+  credentials: true,              // without this the browser drops the cookie
+  methods: ['GET', 'POST', 'OPTIONS'],
+});
+\end{lstlisting}
+
+\begin{warnbox}[title={กับดักที่คนเจอบ่อยที่สุดเรื่อง \en{CORS} กับคุกกี้}]
+เมื่อ \code{credentials: true} มาตรฐานของเบราว์เซอร์\textbf{ห้าม}ใช้
+\code{origin: "*"} ต้องระบุที่อยู่ให้ครบทุกอันแบบเจาะจง
+
+แปลว่าทุกครั้งที่มีคนรัน \en{frontend} บนพอร์ตใหม่ ต้องไปเพิ่มชื่อในฝั่งเซิร์ฟเวอร์ด้วย
+--- ในการทดลองครั้งนี้ต้องเพิ่ม \code{http://localhost:5275} เข้าไปจริง ๆ
+ก่อนถึงจะล็อกอินได้
+\end{warnbox}
+
+\section{จุดที่ 11 --- \en{proxy} ที่ชี้ผิดที่}
+
+\code{frontend/vite.config.ts} ตั้ง \en{proxy} ให้ \code{/api} วิ่งไปที่
+\code{localhost:3000} ซึ่งเป็นการตั้งค่าสำหรับ \en{REST} ไม่ใช่ \en{tRPC}
+
+ถ้าใช้ \en{tRPC} แบบที่ \en{spike} ทำ คือคุยตรงกับ \code{:3002} พร้อม \en{CORS}
+\en{proxy} ตัวนี้จะไม่ถูกใช้เลย จัดเป็น \ptwo\ --- ไม่ได้พัง แต่ทำให้สับสน
+และควรตัดสินใจให้ตรงกันว่าจะใช้แบบไหน
+
+\section{จุดที่ 12 --- แยก ``ต่อไม่ติด'' ออกจาก ``รหัสผิด'' ไม่ได้}
+
+\code{error-messages.ts} เดิมไม่มีทางแยกสองกรณีนี้ ผลคือ
+\textbf{ถ้าเซิร์ฟเวอร์ดับ ผู้ใช้จะเห็นข้อความว่ารหัสผ่านไม่ถูกต้อง} ซึ่งเป็นการโกหก
+และทำให้ผู้ใช้พิมพ์รหัสซ้ำอีกสิบรอบโดยไม่มีทางสำเร็จ
+
+\en{spike} แก้โดยดูว่าคำตอบมีข้อมูลจากเซิร์ฟเวอร์แนบมาหรือไม่
+
+\begin{lstlisting}
+export function isConnectionError(error: unknown): boolean {
+  // tRPC still throws TRPCClientError on transport failure, but with no
+  // server payload attached. That absence is the signal.
+  return error instanceof TRPCClientError && !error.data;
+}
+\end{lstlisting}
+
+\begin{goodbox}[title={ทดลองได้เองใน 30 วินาที}]
+ปิด \en{backend} แล้วลองล็อกอิน ต้องขึ้นข้อความว่า
+``เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ กรุณาตรวจสอบว่า \en{backend} ทำงานอยู่''
+ไม่ใช่ ``ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง''
+\end{goodbox}
+
+\section{สรุปสถานีที่ 3}
+
+\begin{table}[htbp]
+\centering
+\footnotesize\sansall
+\caption{สามจุดของสถานีที่ 3 และสถานะ}
+\label{tab:station3}
+\begin{tabular}{@{}cL{6.4cm}cL{3.8cm}@{}}
+\toprule
+\textbf{ระดับ} & \textbf{จุด} & \textbf{\en{spike} แก้แล้ว} & \textbf{ไฟล์} \\
+\midrule
+\pone & \en{main.ts} ไม่มี \en{CORS} / \en{cookie-parser} & ใช่ (ในฝั่ง \en{spike}) & \code{backend/src/main.ts} \\
+\ptwo & แยกกรณีต่อไม่ติดไม่ได้ & ใช่ & \code{lib/trpc.ts} \\
+\ptwo & \en{proxy} \code{/api} ชี้ \code{:3000} & \textbf{ยังไม่ตัดสินใจ} & \code{vite.config.ts} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\clearpage
+
+% =============================================================================
+\part{สถานีที่ 4 --- \en{server}}
+% =============================================================================
+
+\section{ทีมมีอะไรตอนนี้}
+
+คำตอบสั้น ๆ คือ \textbf{ยังไม่มีระบบล็อกอินเลย} ไม่ใช่ ``มีแต่ยังไม่เสร็จ''
+แต่คือยังไม่ได้เริ่ม
+
+\code{backend/src/} ที่ไม่ใช่ไฟล์ที่เครื่องมือสร้างให้ มีอยู่ 9 ไฟล์
+และเป็นโครงเปล่าของ \en{NestJS} กับการต่อ \en{Prisma} ทั้งหมด
+
+\begin{table}[htbp]
+\centering
+\footnotesize\sansall
+\caption{ไฟล์ทั้งหมดใน \code{backend/src/} ที่คนเขียนเอง}
+\label{tab:beteam}
+\begin{tabular}{@{}L{4.4cm}L{8.6cm}@{}}
+\toprule
+\textbf{ไฟล์} & \textbf{คืออะไร} \\
+\midrule
+\code{main.ts} & 7 บรรทัด ไม่มี \en{CORS} ไม่มี \en{cookie-parser} \\
+\code{app.module.ts} & โครงเปล่า ยังไม่ได้ตั้ง \code{TRPCModule} \\
+\code{app.controller.ts} & \en{controller} ตัวอย่างที่ \en{Nest} สร้างให้ตอน \code{new} \\
+\code{app.service.ts} & \en{service} ตัวอย่าง \\
+\code{prisma.service.ts} & ต่อฐานข้อมูล --- ส่วนนี้ใช้ได้จริง \\
+\code{prisma.module.ts} & \en{module} ของข้างบน \\
+\code{querytest.ts} & สคริปต์ลองคิวรี \\
+\code{*.spec.ts} & ไฟล์ทดสอบตัวอย่าง 2 ไฟล์ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{จุดที่ 13 --- แปดไฟล์ที่ต้องเขียนเพิ่ม}
+
+\en{spike} เขียนไฟล์เหล่านี้ขึ้นมาแล้วและใช้งานได้จริง ยกมาได้เลย
+รายการนี้คือ ``ระยะห่าง'' ฝั่ง \en{backend} ที่เป็นรูปธรรมที่สุด
+
+\begin{table}[htbp]
+\centering
+\footnotesize\sansall
+\caption{ไฟล์ที่ \en{backend} ต้องมีเพิ่มเพื่อให้ล็อกอินได้ อ้างจาก \code{spike-option-b/backend/src/}}
+\label{tab:befiles}
+\begin{tabular}{@{}L{4.0cm}L{9.0cm}@{}}
+\toprule
+\textbf{ไฟล์} & \textbf{หน้าที่ และเหตุผลที่ต้องแยกไฟล์} \\
+\midrule
+\code{auth/auth.router.ts} & นิยาม 3 \en{procedure} พร้อม \en{schema} ---
+เป็นไฟล์เดียวที่เครื่องมืออ่านเพื่อสร้างสัญญา \\
+\addlinespace[2pt]
+\code{auth/auth.service.ts} & ตรรกะการล็อกอิน ไม่รู้จัก \en{tRPC} คุกกี้ หรือ \en{HTTP}
+เลย จึงทดสอบได้โดยไม่ต้องยิงคำขอ \\
+\addlinespace[2pt]
+\code{auth/password.ts} & \en{hash} และตรวจรหัสผ่านด้วย \en{scrypt} \\
+\addlinespace[2pt]
+\code{auth/session.ts} & ออกและตรวจ \en{token} + ตั้งค่าคุกกี้ \\
+\addlinespace[2pt]
+\code{auth/auth.module.ts} & ประกอบสามไฟล์ข้างบนเข้า \en{Nest} \\
+\addlinespace[2pt]
+\code{trpc/context.ts} & แปลงคุกกี้ในคำขอเป็น ``ผู้ใช้คนนี้คือใคร'' \\
+\addlinespace[2pt]
+\code{trpc/auth.middleware.ts} & ด่านที่ปฏิเสธคำขอที่ยังไม่ล็อกอิน \\
+\addlinespace[2pt]
+\code{common/user.mapper.ts} & แปลงแถว \en{Prisma} เป็นรูปร่างตามสัญญา \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{keybox}[title={ไฟล์ที่สำคัญที่สุดในตารางคือ \code{user.mapper.ts}}]
+เป็นที่เดียวในระบบที่รู้จักทั้ง ``รูปร่างของ \en{Prisma}'' และ ``รูปร่างของสัญญา''
+ทุก \en{procedure} ที่ส่งข้อมูลผู้ใช้ออกไปต้องผ่านที่นี่
+
+เหตุผลไม่ใช่ความเป็นระเบียบ แต่เป็นความปลอดภัย: ตาราง \code{AccountInfo}
+เก็บ \code{HashedPassword} ไว้ในแถวเดียวกัน การคืนแถว \en{Prisma}
+ออกไปตรง ๆ จะทำให้รหัสผ่านที่ \en{hash} แล้วหลุดไปถึงเบราว์เซอร์
+\end{keybox}
+
+\section{บทเรียนจากโค้ดจริง --- การกันการเดาบัญชี}
+
+หัวข้อนี้ไม่ใช่จุดที่ต้องแก้ แต่เป็นสิ่งที่ทีมควรรู้ก่อนเขียน \code{auth.service.ts} เอง
+เพราะเป็นความผิดพลาดที่เขียนเองแล้วพลาดกันบ่อยมาก
+
+ถ้าเขียนตรงไปตรงมา โค้ดจะคืนค่าทันทีเมื่อหาบัญชีไม่เจอ
+
+\begin{lstlisting}
+// the obvious version - and it leaks information
+const account = await findAccount(identifier);
+if (!account) throw new TRPCError({ code: 'UNAUTHORIZED' });
+const ok = await verifyPassword(input.password, account.HashedPassword);
+\end{lstlisting}
+
+ปัญหาคือกรณี ``ไม่มีบัญชีนี้'' จะตอบ\textbf{เร็วกว่า}กรณี ``รหัสผิด'' อย่างเห็นได้ชัด
+เพราะไม่ได้รัน \en{scrypt} ซึ่งจงใจให้ช้า คนที่ยิงอีเมลไปเรื่อย ๆ
+แล้วจับเวลาจะรู้ได้ว่าอีเมลไหนมีบัญชีอยู่จริง
+
+วิธีที่ \en{spike} ใช้คือรัน \en{scrypt} กับค่าหลอกเสมอ ให้เวลาเท่ากันทั้งสองกรณี
+
+\begin{lstlisting}
+const stored = account?.HashedPassword ?? DUMMY_HASH;
+const ok = await verifyPassword(input.password, stored);
+if (!account || !ok) throw new TRPCError({ code: 'UNAUTHORIZED',
+                                           message: 'INVALID_CREDENTIALS' });
+\end{lstlisting}
+
+สังเกตว่าข้อความที่ตอบกลับเหมือนกันทั้งสองกรณีโดยตั้งใจ ---
+ห้ามบอกผู้ใช้ว่า ``ไม่มีบัญชีนี้''
+
+\section{สรุปสถานีที่ 4}
+
+\begin{table}[htbp]
+\centering
+\footnotesize\sansall
+\caption{จุดเดียวของสถานีที่ 4 --- แต่เป็นจุดที่ใหญ่ที่สุดในเอกสารเมื่อวัดเป็นปริมาณงาน}
+\label{tab:station4}
+\begin{tabular}{@{}cL{6.4cm}cL{3.8cm}@{}}
+\toprule
+\textbf{ระดับ} & \textbf{จุด} & \textbf{\en{spike} แก้แล้ว} & \textbf{ที่ยกมาใช้ได้} \\
+\midrule
+\pzero & \en{backend} ยังไม่มีระบบล็อกอินเลย ต้องเขียนเพิ่ม 8 ไฟล์ & ใช่ (เขียนครบและรันได้) & \code{spike-option-b/backend/src/} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\clearpage
+
+% =============================================================================
+\part{สถานีที่ 5 --- ฐานข้อมูล}
+% =============================================================================
+
+นี่คือภาคที่สำคัญที่สุดของเอกสาร ทุกจุดในภาคนี้มีลักษณะร่วมกันสองอย่าง:
+\textbf{\en{spike} แก้ไม่ได้} เพราะต้องเขียน \en{migration} ซึ่งกระทบทุกคน
+และ\textbf{ยิ่งเลื่อนยิ่งแพง} เพราะทุกตารางที่ถูกใช้งานเพิ่มทำให้การแก้ยากขึ้น
+
+\section{สภาพปัจจุบัน}
+
+\code{backend/prisma/schema.prisma} มี 33 \en{model} และ \en{migration}
+เพียงชุดเดียวคือ \code{20260805125233\_init}
+
+\en{spike} ใช้\textbf{สำเนา}ของไฟล์นี้ ไม่ได้ชี้ไปที่ไฟล์จริง และตรวจแล้วว่า
+เนื้อหาตรงกันทุกบรรทัด ต่างกันแค่คอมเมนต์ที่เติมไว้ตอนต้นไฟล์
+ข้อค้นพบทั้งหมดในภาคนี้จึงใช้กับฐานข้อมูลจริงของทีมได้โดยตรง
+
+\section{\pzero\ จุดที่ 14 --- คอลัมน์ที่ใช้ล็อกอินไม่มี \code{@unique}}
+
+\begin{badbox}[title={ช่องโหว่ที่ร้ายแรงที่สุดในเอกสารนี้ · \code{schema.prisma:22, 24}}]
+\begin{lstlisting}[language={}]
+model AccountInfo {
+  AccountKey     Int    @id @default(autoincrement())
+  Email          String        // <-- no @unique
+  HashedPassword String
+  UserID         String        // <-- no @unique
+  ...
+}
+\end{lstlisting}
+\vspace{-0.4em}
+ฐานข้อมูล\textbf{อนุญาตให้มีอีเมลซ้ำกันได้} และอนุญาตให้มี \code{UserID}
+ซ้ำกันได้ ทั้งสองคอลัมน์คือคอลัมน์ที่ระบบล็อกอินใช้ค้นหาผู้ใช้
+\end{badbox}
+
+ผลที่ตามมาในโค้ดเห็นได้ทันที: \code{auth.service.ts} ต้องใช้ \code{findFirst}
+ไม่ใช่ \code{findUnique} เพราะ \en{Prisma} ไม่ยอมให้ค้นแบบ \en{unique}
+กับคอลัมน์ที่ไม่ได้ประกาศว่า \en{unique}
+
+และ ``\en{first}'' แปลว่า\textbf{แถวไหนก็ได้ที่เจอก่อน}
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[font=\sansall\scriptsize]
+
+\node[blk, fill=white, draw=rule, text width=5.2cm, align=left] (t) at (0,0)
+  {\textbf{ตาราง \en{AccountInfo}}\\[3pt]
+   \begin{tabular}{@{}lll@{}}
+   \en{Key} & \en{Email} & \en{Role}\\
+   1 & \en{somchai@ku.th} & \en{Student}\\
+   \textcolor{bad}{2} & \textcolor{bad}{\en{somchai@ku.th}} & \textcolor{bad}{\en{Admin}}\\
+   \end{tabular}};
+
+% เว้นระยะแนวตั้งให้พอ มิฉะนั้นกล่องสองใบจะชนกันจนอ่านลูกศรไม่ออก
+\node[bestage, text width=5.0cm, align=left] (q) at (8.2,1.25)
+  {\en{findFirst(\{ Email: ... \})}\\[1pt]
+   \scriptsize คิวรีที่ระบบล็อกอินใช้};
+
+\node[blk, fill=bad!10, draw=bad!50, text width=5.0cm, align=left] (r) at (8.2,-1.5)
+  {\textbf{คืนแถวไหน?}\\[1pt]
+   ไม่มีใครรับประกัน ลำดับขึ้นกับ\\แผนคิวรีของฐานข้อมูลในขณะนั้น};
+
+\draw[ar] (t) -- (q);
+\draw[ar] (q) -- node[lbl, right] {เจอสองแถว} (r);
+
+% ต้องกำหนด text width ให้ node นี้ มิฉะนั้นข้อความไทยยาวจะไม่ตัดบรรทัด
+% แล้วดันขอบรูปล้นออกนอกหน้ากระดาษ (overfull hbox 38pt)
+\node[lbl, text=bad, align=left, anchor=north west, text width=13.8cm]
+  at (-2.6,-2.9)
+  {\textbf{สถานการณ์โจมตี} สมัครบัญชีด้วยอีเมลของคนอื่น
+   แล้วรอให้ระบบเลือกแถวของเรา --- หรือแย่กว่านั้น
+   ให้ระบบเลือกแถวของ \en{Admin} ตอนเจ้าตัวล็อกอิน};
+
+\end{tikzpicture}
+\caption{ผลของการไม่มี \code{@unique} บนคอลัมน์ที่ใช้ล็อกอิน --- ปัญหานี้ไม่ได้อยู่ที่โค้ด แต่อยู่ที่โครงสร้างตาราง}
+\label{fig:unique}
+\end{figure}
+
+\begin{keybox}[title={\en{migration} ที่ต้องเขียน ข้อที่ 1}]
+เติม \code{@unique} ให้ \code{Email} และ \code{UserID}
+
+ต้องทำก่อนมีข้อมูลจริง เพราะถ้ามีแถวซ้ำอยู่แล้ว \en{migration} จะรันไม่ผ่าน
+และต้องมาไล่ลบข้อมูลทีหลัง ตอนนี้ฐานข้อมูลยังว่าง --- \textbf{นี่คือช่วงเวลาที่ถูกที่สุด}
+\end{keybox}
+
+\section{\pzero\ จุดที่ 15 --- ไม่มีตารางเก็บ \en{session}}
+
+ค้นทั้ง 33 \en{model} ไม่พบตารางชื่อ \code{Session}, \code{Token},
+\code{RefreshToken} หรืออะไรที่ทำหน้าที่นี้เลยแม้แต่ตารางเดียว
+
+นั่นทำให้เหลือทางเลือกสองทาง และทั้งสองทางมีราคา
+
+\begin{table}[htbp]
+\centering
+\footnotesize\sansall
+\caption{สองทางเลือกเรื่อง \en{session} และสิ่งที่ต้องแลก}
+\label{tab:session}
+\begin{tabular}{@{}L{3.4cm}L{4.6cm}L{4.6cm}@{}}
+\toprule
+& \textbf{ก. \en{JWT} ไร้สถานะ} & \textbf{ข. เพิ่มตาราง \en{Session}} \\
+\midrule
+\en{spike} ใช้ & ใช่ & ไม่ \\
+\addlinespace[2pt]
+ต้อง \en{migrate} & ไม่ต้อง & ต้อง --- แตะงานคนอื่น \\
+\addlinespace[2pt]
+ทำได้เมื่อไร & วันนี้ & ต้องตกลงกันก่อน \\
+\addlinespace[2pt]
+เพิกถอน \en{session} & \textbf{ทำไม่ได้จริง} --- ``ออกจากระบบ''
+แค่ลบคุกกี้ในเบราว์เซอร์ \en{token} นั้นยังใช้ได้จนหมดอายุ &
+ทำได้ และดูได้ว่าผู้ใช้ล็อกอินจากที่ไหนบ้าง \\
+\addlinespace[2pt]
+ต้นทุนต่อคำขอ & ไม่มีคิวรีเพิ่ม & คิวรีเพิ่ม 1 ครั้งทุกคำขอ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{warnbox}[title={ประโยคที่ต้องเข้าที่ประชุม}]
+ถ้าเลือกทาง ก. ต้องยอมรับอย่างเป็นทางการว่า
+\textbf{ถ้ามีคนขโมย \en{token} ไปได้ เราหยุดมันไม่ได้} นอกจากเปลี่ยน
+\code{JWT\_SECRET} ซึ่งจะเตะผู้ใช้ทุกคนออกจากระบบพร้อมกัน
+
+ระบบนี้ให้ยืมครุภัณฑ์ที่มีมูลค่าและมีขั้นตอนอนุมัติ การยอมรับข้อนี้
+ต้องเป็นการตัดสินใจร่วม ไม่ใช่ผลพลอยได้จากการที่ไม่มีใครสังเกตว่าไม่มีตาราง
+\end{warnbox}
+
+\section{\pone\ จุดที่ 16 --- จำนวนวันที่ยืมได้ ไม่ได้ขึ้นกับเครดิตอย่างเดียว}
+
+\code{frontend/src/constants/index.ts:44--49} เขียนตารางนี้ไว้
+
+\begin{lstlisting}
+export const CREDIT_BANDS = [
+  { band: "D0", min: 80, max: 100, loanDays: 14, label: "..." },
+  { band: "D1", min: 50, max:  79, loanDays:  7, label: "..." },
+  { band: "D2", min: 30, max:  49, loanDays:  7, label: "..." },
+  { band: "D3", min:  0, max:  29, loanDays:  5, label: "..." },
+];
+\end{lstlisting}
+
+แต่ฐานข้อมูลบอกอีกอย่าง
+
+\begin{lstlisting}[language={}]
+model BorrowConstraints {
+  BorrowRuleKey Int
+  CreditTierKey Int
+  MaxBorrowDate Int
+  @@unique([BorrowRuleKey, CreditTierKey])   // <-- a PAIR, not one key
+}
+\end{lstlisting}
+
+\code{MaxBorrowDate} ผูกกับ\textbf{คู่} (กฎการยืมของสิ่งของ $\times$ ระดับเครดิต)
+ไม่ใช่ระดับเครดิตอย่างเดียว
+
+\begin{badbox}[title={คำถามที่ไม่มีคำตอบเดียว}]
+``ผู้ใช้คนนี้ยืมได้กี่วัน'' \textbf{ถ้าไม่บอกว่าจะยืมอะไร เป็นคำถามที่ตอบไม่ได้}
+
+ตาราง \code{CREDIT\_BANDS} จึงผิดมาตั้งแต่บรรทัดแรกที่เขียน และผิดแบบเงียบ
+เพราะข้อมูลจำลองก็ตอบตามตารางนั้นอยู่แล้ว
+\end{badbox}
+
+\en{spike} แก้ปัญหาเฉพาะหน้าโดยให้เซิร์ฟเวอร์ส่ง \code{maxBorrowDays}
+ที่เป็น\textbf{ค่าสูงสุดที่เป็นไปได้} มาให้แสดงคร่าว ๆ พร้อมคอมเมนต์กำกับว่า
+ตัวเลขที่ผูกพันจริงต้องมาจากตอนสร้างคำขอยืม เมื่อรู้แล้วว่าจะยืมชิ้นไหน
+
+\begin{goodbox}[title={ทดสอบแล้วว่าตัวเลขมาจากฐานข้อมูลจริง}]
+บัญชี \code{test\_lowcredit} เครดิต 20 ได้ \code{creditBand: "D3"}
+และ \code{maxBorrowDays: 5} ซึ่งอ่านมาจากตาราง ไม่ใช่จากค่าคงที่ในโค้ดหน้าเว็บ
+\end{goodbox}
+
+\section{\pone\ จุดที่ 17 --- ``สังกัด'' ของผู้ใช้เป็นการเดา}
+
+\code{AccountInfo} ไม่มี \code{FacultyKey} เส้นทางไปหาภาควิชาต้องเดินผ่านสี่ตาราง
+
+\begin{center}
+\footnotesize\sansall
+\code{AccountInfo} $\rightarrow$ \code{Authority[]} $\rightarrow$
+\code{ManagementGroup} $\rightarrow$ \code{FacultyInfo}
+\end{center}
+
+และ \code{Authority} มี \code{@@unique([AccountKey, ManageGroupKey])}
+ซึ่งแปลว่า\textbf{คนหนึ่งคนอยู่ได้หลายกลุ่ม} เช่นอาจารย์ที่ดูแลสองภาควิชา
+
+\en{spike} เลือกเอากลุ่มแรกที่เจอ ซึ่งเป็น\textbf{การเดา}และเขียนกำกับไว้ตรง ๆ ในโค้ด
+ว่าเป็นการเดา ที่ประชุมต้องนิยามว่า ``สังกัดหลัก'' คืออะไร
+หรือเปลี่ยนให้สัญญาส่งกลับเป็นรายการ
+
+\section{\ptwo\ จุดที่ 18 --- ชื่อระดับเครดิตเป็นค่าที่ไม่บังคับ}
+
+\code{CreditTier.CreditTierName} ประกาศเป็น \code{String?} คือมีหรือไม่มีก็ได้
+
+เมื่อไม่มีชื่อ โค้ดต้องเดาระดับจากคะแนนแทน ซึ่งทำให้\textbf{กฎการแบ่งระดับ
+ไปอยู่สองที่}: ในฐานข้อมูล และในโค้ดที่เดาแทนเมื่อฐานข้อมูลไม่บอก
+
+ทางแก้คือทำให้ฟิลด์นี้บังคับ แล้วลบตรรกะการเดาออก
+
+\section{\ptwo\ จุดที่ 19 --- \code{RoleInfo} เป็นตาราง ไม่ใช่ \en{enum}}
+
+\begin{lstlisting}[language={}]
+model RoleInfo {
+  RoleKey  Int    @id @default(autoincrement())
+  RoleName String
+}
+\end{lstlisting}
+
+\en{schema} ทั้งไฟล์มี 0 \en{enum} แปลว่าชื่อบทบาทเป็นข้อความอิสระในฐานข้อมูล
+โค้ดต้องมีตัวแปลงจากข้อความเป็นบทบาทตามสัญญา และต้องตัดสินใจว่า
+ถ้าเจอชื่อที่ไม่รู้จักจะทำอย่างไร
+
+\en{spike} เลือกให้\textbf{โยนข้อผิดพลาดทันที}แทนที่จะถอยไปใช้ค่าเริ่มต้น
+เพราะการถอยไปใช้ค่าเริ่มต้นแปลว่าให้สิทธิ์ผิดโดยไม่มีใครรู้
+
+\begin{lstlisting}
+default:
+  throw new Error(`Unknown RoleName "${roleName}" - add a mapping`);
+\end{lstlisting}
+
+\section{สรุปสถานีที่ 5}
+
+\begin{table}[htbp]
+\centering
+\footnotesize\sansall
+\caption{หกจุดของสถานีที่ 5 --- ไม่มีข้อไหนที่ \en{spike} แก้ได้ เพราะทุกข้อต้องตกลงกันก่อน}
+\label{tab:station5}
+\begin{tabular}{@{}cL{6.8cm}L{4.4cm}@{}}
+\toprule
+\textbf{ระดับ} & \textbf{จุด} & \textbf{ต้องทำอะไร} \\
+\midrule
+\pzero & \code{Email}/\code{UserID} ไม่มี \code{@unique} & \en{migration} \\
+\pzero & ไม่มีตารางเก็บ \en{session} & ตัดสินใจ แล้วอาจ \en{migrate} \\
+\pone & \code{maxBorrowDays} ขึ้นกับคู่ ไม่ใช่เครดิตเดี่ยว & แก้สัญญา + ลบ \code{CREDIT\_BANDS} \\
+\pone & ``สังกัดหลัก'' ยังไม่ถูกนิยาม & ตัดสินใจ \\
+\ptwo & \code{CreditTierName} ไม่บังคับ & \en{migration} เล็ก \\
+\ptwo & \code{RoleInfo} เป็นตาราง & เขียนตัวแปลง + ตกลงรายชื่อบทบาท \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\clearpage
+
+% =============================================================================
+\part{ต้องแก้อะไรบ้าง และเรียงลำดับอย่างไร}
+% =============================================================================
+
+\section{ตารางรวมทั้ง 19 จุด}
+
+\begin{table}[htbp]
+\centering
+\footnotesize\sansall
+\caption{ทุกจุดที่พบ เรียงตามความรุนแรง --- คอลัมน์สุดท้ายคือคำถามที่สำคัญที่สุด}
+\label{tab:all}
+\begin{tabular}{@{}cL{5.5cm}L{2.5cm}L{3.4cm}@{}}
+\toprule
+\textbf{ระดับ} & \textbf{จุด} & \textbf{สถานี} & \textbf{\en{spike} แก้ให้แล้วหรือยัง} \\
+\midrule
+\pzero & \code{Email}/\code{UserID} ไม่มี \code{@unique} & ฐานข้อมูล & \textbf{ไม่ --- ต้องตกลงกัน} \\
+\pzero & ไม่มีตารางเก็บ \en{session} & ฐานข้อมูล & \textbf{ไม่ --- ต้องตกลงกัน} \\
+\pzero & บทบาทเก็บใน \en{localStorage} & หน้าจอ & ใช่ \\
+\pzero & รหัสผ่านทดสอบอยู่ในรีโป & หน้าจอ & ใช่ \\
+\pzero & \en{backend} ไม่มีระบบล็อกอิน (8 ไฟล์) & \en{server} & ใช่ ยกไปใช้ได้ \\
+\midrule
+\pone & \code{zod} 3 ต้องยกเป็น 4 & สัญญา & ใช่ \\
+\pone & \code{User} เขียนมือ ผิด 3 ฟิลด์ & สัญญา & ใช่ \\
+\pone & หน้าล็อกอินเดาบทบาทเอง & หน้าจอ & ใช่ \\
+\pone & \code{main.ts} ไม่มี \en{CORS}/\en{cookie-parser} & เครือข่าย & ใช่ ยกไปใช้ได้ \\
+\pone & \code{maxBorrowDays} ขึ้นกับคู่ & ฐานข้อมูล & บรรเทาชั่วคราว \\
+\pone & ``สังกัดหลัก'' ยังไม่ถูกนิยาม & ฐานข้อมูล & \textbf{ไม่ --- ต้องตกลงกัน} \\
+\midrule
+\ptwo & รหัสข้อผิดพลาดคนละชุด & สัญญา & ใช่ \\
+\ptwo & \en{CI} มองไม่เห็นผู้บริโภครายที่สอง & สัญญา & \textbf{ไม่} \\
+\ptwo & ฟอร์มต้องเป็น \en{async} & หน้าจอ & ใช่ (2 ไฟล์) \\
+\ptwo & แถบข้างแสดงชื่อตายตัว & หน้าจอ & \textbf{ไม่} \\
+\ptwo & แยกกรณีต่อไม่ติดไม่ได้ & เครือข่าย & ใช่ \\
+\ptwo & \en{proxy} \code{/api} ชี้ \code{:3000} & เครือข่าย & \textbf{ไม่ --- ต้องตัดสินใจ} \\
+\ptwo & \code{CreditTierName} ไม่บังคับ & ฐานข้อมูล & \textbf{ไม่} \\
+\ptwo & \code{RoleInfo} เป็นตาราง & ฐานข้อมูล & บรรเทาแล้ว (มีตัวแปลง) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{keybox}[title={อ่านตารางนี้แล้วจะเห็นรูปแบบหนึ่ง}]
+ทุกจุดที่ \en{spike} \textbf{แก้ให้แล้ว} คือจุดที่แก้ได้ด้วยคนคนเดียวในไฟล์ของตัวเอง
+
+ทุกจุดที่ \en{spike} \textbf{แก้ไม่ได้} คือจุดที่ต้องแตะของกลาง ---
+\en{schema} ฐานข้อมูล หรือข้อตกลงของทีม
+
+นั่นแปลว่า\textbf{งานที่เหลือส่วนใหญ่ไม่ใช่งานเขียนโค้ด แต่เป็นงานตัดสินใจ}
+และการตัดสินใจเลื่อนได้เรื่อย ๆ จนกว่าจะมีคนกำหนดวัน
+\end{keybox}
+
+\section{ลำดับที่ต้องลงมือ}
+
+ลำดับนี้ไม่ได้เรียงตามความสำคัญอย่างเดียว แต่เรียงตาม\textbf{การพึ่งพากัน}
+งานบางอย่างทำก่อนแล้วถูกกว่ามาก
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[font=\sansall\scriptsize, node distance=6mm]
+
+\node[blk, fill=bad!10, draw=bad!50, text width=3.5cm] (d1)
+  {\textbf{ขั้นที่ 1 · ตัดสินใจ}\\ตาราง \en{Session} เอาหรือไม่\\นิยาม ``สังกัดหลัก''};
+\node[blk, fill=bad!10, draw=bad!50, text width=3.5cm, right=8mm of d1] (d2)
+  {\textbf{ขั้นที่ 2 · \en{migration}}\\เติม \code{@unique}\\(ทำตอนฐานข้อมูลยังว่าง)};
+\node[stage, text width=3.5cm, right=8mm of d2] (d3)
+  {\textbf{ขั้นที่ 3 · ยก \code{zod}}\\3 $\rightarrow$ 4 ใน \code{frontend/}\\ตอนนี้ยังฟรี};
+
+\node[bestage, text width=3.5cm, below=10mm of d1] (d4)
+  {\textbf{ขั้นที่ 4 · \en{backend}}\\ยก 8 ไฟล์จาก \en{spike}\\+ ตั้ง \en{CORS}};
+\node[festage, text width=3.5cm, right=8mm of d4] (d5)
+  {\textbf{ขั้นที่ 5 · \en{frontend}}\\ยก 14 ไฟล์ที่แก้แล้ว\\ลบ \code{mock-auth.ts}};
+\node[opstage, text width=3.5cm, right=8mm of d5] (d6)
+  {\textbf{ขั้นที่ 6 · \en{CI}}\\แก้ให้วนทุกโฟลเดอร์\\ที่กินสัญญา};
+
+\draw[ar] (d1) -- (d2);
+\draw[ar] (d2) -- (d3);
+\draw[ar] (d3.south) -- ++(0,-0.5) -| (d4.north);
+\draw[ar] (d4) -- (d5);
+\draw[ar] (d5) -- (d6);
+
+\end{tikzpicture}
+\caption{ลำดับการลงมือที่เรียงตามการพึ่งพากัน ไม่ใช่ตามความสำคัญเพียงอย่างเดียว}
+\label{fig:order}
+\end{figure}
+
+สองประโยคที่อธิบายรูปที่~\ref{fig:order} ได้ครบ
+
+\begin{itemize}
+  \item ขั้นที่ 1--2 คืองานที่\textbf{ต้องทำก่อนใครเขียนโค้ดเพิ่ม}
+        เพราะเป็นการแก้ของกลาง ยิ่งมีคนสร้างงานทับข้างบนมากเท่าไร การรื้อยิ่งแพง
+  \item ขั้นที่ 3 ทำตอนนี้\textbf{ฟรี} ทำทีหลังจ่ายตามจำนวนฟอร์มที่เพิ่มเข้ามาระหว่างนั้น
+\end{itemize}
+
+\begin{warnbox}[title={ขั้นที่ 2 มีหน้าต่างเวลาที่กำลังจะปิด}]
+การเติม \code{@unique} ตอนฐานข้อมูลยังว่างคือการแก้ไฟล์บรรทัดเดียวแล้วรัน \en{migration}
+
+การเติม \code{@unique} ตอนมีข้อมูลจริงแล้วคือการต้องไล่หาแถวซ้ำ ตัดสินใจว่าจะลบแถวไหน
+ติดต่อผู้ใช้ที่ได้รับผลกระทบ แล้วค่อยรัน \en{migration}
+
+\textbf{ตอนนี้ฐานข้อมูลยังว่าง} นี่คือช่วงเวลาที่ถูกที่สุดและกำลังหมดลง
+\end{warnbox}
+
+\section{สิ่งที่ยังไม่รู้}
+
+เอกสารนี้พยายามไม่เดา สิ่งที่ยังไม่มีคำตอบขอเขียนไว้ตรง ๆ
+
+\begin{itemize}
+  \item \textbf{ต่อได้แค่ \en{auth}} --- \en{backend} มี 3 \en{procedure}
+        จากที่ระบบต้องการทั้งหมดราว 18 ยังไม่รู้ว่า \en{procedure} ที่ซับซ้อนกว่านี้
+        (เช่นการสร้างคำขอยืมที่มีหลายรายการ) จะเจอข้อจำกัดอะไรเพิ่ม
+  \item \textbf{ยังไม่ได้ทดสอบตอน \en{session} หมดอายุกลางคัน} --- ตั้ง \en{TTL} ไว้ 8 ชั่วโมง
+        แต่ยังไม่ได้ลองว่าหน้าจอจะทำตัวอย่างไรเมื่อหมดอายุระหว่างใช้งาน
+  \item \textbf{ยังไม่ได้ทดสอบบนมือถือและยังไม่ได้ตรวจ \en{accessibility}}
+  \item \textbf{ยังไม่ได้ลองรัน \en{CI} บน \en{GitHub} จริง} ---
+        สคริปต์ทุกตัวทดสอบแล้วในเครื่อง แต่ตัว \en{workflow} เองยังไม่เคยผ่าน \en{runner}
+        ยังไม่รู้ว่าไบนารีของเครื่องมือสร้างสัญญามีรุ่นที่ตรงกับ \en{ubuntu-latest} หรือไม่
+\end{itemize}
+
+\clearpage
+
+% =============================================================================
+\appendix
+\part{ภาคผนวก}
+% =============================================================================
+
+\section*{ภาคผนวก ก --- ทุกไฟล์ที่ \en{spike} แก้}
+\addcontentsline{toc}{section}{ภาคผนวก ก --- ทุกไฟล์ที่ \en{spike} แก้}
+
+ตารางนี้คือคำตอบครบถ้วนของคำถาม ``\en{spike} แก้อะไรจากโค้ดจริงบ้าง''
+นับจาก \code{diff} ระหว่าง \code{frontend/} กับ \code{spike-option-b/frontend-real/}
+
+\begin{table}[htbp]
+\centering
+\footnotesize\sansall
+\caption{ไฟล์ที่แก้ 13 ไฟล์ --- ตัวเลขคือบรรทัดที่เพิ่ม/ลบ}
+\label{tab:diffmod}
+\begin{tabular}{@{}L{4.6cm}ccL{5.6cm}@{}}
+\toprule
+\textbf{ไฟล์} & \textbf{+} & \textbf{--} & \textbf{แก้อะไร} \\
+\midrule
+\code{package.json} & 5 & 3 & \code{zod} 3$\rightarrow$4.4.3, \code{resolvers} 3$\rightarrow$5.2.2, เพิ่ม \code{@trpc/client} \\
+\code{vite.config.ts} & 7 & 8 & พอร์ต 5173$\rightarrow$5275, ตัด \en{proxy} \\
+\code{src/types/domain.ts} & 18 & 12 & \code{User}/\code{Role}/\code{CreditBand} ดึงจากสัญญา \\
+\code{src/types/env.d.ts} & 2 & 0 & เพิ่ม \code{VITE\_TRPC\_URL} \\
+\code{src/lib/error-messages.ts} & 30 & 1 & รหัสตรงกับ \en{backend} + แยกกรณีต่อไม่ติด \\
+\code{src/app/app.tsx} & 28 & 18 & \code{hydrate()} $\rightarrow$ \code{<SessionBootstrap>} \\
+\code{src/features/auth/auth.store.ts} & 19 & 38 & ตัด \code{loginAs} และ \code{hydrate} ทิ้ง \\
+\code{src/features/auth/use-me.ts} & 15 & 6 & เรียก \code{trpc.auth.me} \\
+\code{src/features/auth/login-page.tsx} & 34 & 24 & เรียกเซิร์ฟเวอร์จริง บทบาทมาจากคำตอบ \\
+\code{...login-method-ku.tsx} & 24 & 6 & \en{async} + ปุ่มมีสถานะ + ที่แสดงข้อผิดพลาด \\
+\code{...login-method-local.tsx} & 14 & 8 & \en{async} + ปุ่มมีสถานะ \\
+\code{src/components/layout/sidebar.tsx} & 8 & 3 & \en{logout} เป็นการเรียกเซิร์ฟเวอร์ \\
+\code{src/i18n/locales/\{th,en\}.json} & 4 & 2 & เพิ่มคำว่า ``กำลังเข้าสู่ระบบ'' \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\footnotesize\sansall
+\caption{ไฟล์ใหม่ 4 ไฟล์ และไฟล์ที่ลบ 1 ไฟล์}
+\label{tab:diffnew}
+\begin{tabular}{@{}L{5.4cm}cL{6.4cm}@{}}
+\toprule
+\textbf{ไฟล์} & \textbf{บรรทัด} & \textbf{คืออะไร} \\
+\midrule
+\code{src/lib/trpc.ts} & 66 & ตัวเรียก \en{tRPC} + ตัวแยกประเภทข้อผิดพลาด \\
+\code{src/generated/server.ts} & 56 & \textbf{สัญญา} --- สร้างโดยเครื่องมือ ห้ามแก้มือ \\
+\code{src/features/auth/use-login.ts} & 28 & \en{mutation} สำหรับล็อกอิน \\
+\code{src/features/auth/use-logout.ts} & 29 & \en{mutation} สำหรับออกจากระบบ \\
+\midrule
+\code{src/features/auth/mock-auth.ts} & \textbf{--70} & \textbf{ลบทั้งไฟล์} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{keybox}[title={ตัวเลขรวมที่ควรจำ}]
+แก้ 13 ไฟล์ (เพิ่ม 208 บรรทัด ลบ 129) เพิ่มใหม่ 4 ไฟล์ (179 บรรทัด)
+ลบทิ้ง 1 ไฟล์ (70 บรรทัด)
+
+เทียบกับขนาดของ \code{frontend/src/} ทั้งหมดแล้วนี่คือ\textbf{ส่วนน้อยมาก}
+--- และไม่มีไฟล์ในกลุ่ม \code{components/ui/}, \code{features/admin/}
+หรือ \code{app/router.tsx} ถูกแตะเลยแม้แต่ไฟล์เดียว
+\end{keybox}
+
+\section*{ภาคผนวก ข --- วิธีรัน \en{spike} เพื่อดูด้วยตาเอง}
+\addcontentsline{toc}{section}{ภาคผนวก ข --- วิธีรัน \en{spike} เพื่อดูด้วยตาเอง}
+
+\begin{lstlisting}[language=bash]
+# 1. database
+docker compose -f spike-option-b/docker-compose.yml up -d
+
+# 2. backend on :3002
+cd spike-option-b/backend && npm ci && cp .env.example .env
+npx prisma generate && npm run dev
+
+# 3. the team's real frontend, wired, on :5275
+cd spike-option-b/frontend-real && npm ci && npm run dev
+\end{lstlisting}
+
+เปิด \code{http://localhost:5275} แล้วใช้บัญชีในตารางที่~\ref{tab:accounts}
+รหัสผ่านทั้งหมดถูก \en{hash} ด้วย \en{scrypt} เก็บในฐานข้อมูลจริง
+
+\begin{table}[htbp]
+\centering
+\footnotesize\sansall
+\caption{บัญชีทดสอบที่ \code{seed.ts} สร้างไว้}
+\label{tab:accounts}
+\begin{tabular}{@{}L{2.6cm}L{3.8cm}L{2.8cm}L{3.4cm}@{}}
+\toprule
+\textbf{ช่องที่ใช้} & \textbf{กรอก} & \textbf{รหัสผ่าน} & \textbf{บทบาทที่ได้} \\
+\midrule
+อีเมล \en{KU} & \code{natthawut.s@ku.th} & \code{borrower1234} & \en{borrower} \\
+อีเมล \en{KU} & \code{orawan.p@ku.th} & \code{supervisor1234} & \textbf{\en{supervisor}} \\
+อีเมล \en{KU} & \code{lowcredit.s@ku.th} & \code{lowcredit1234} & \en{borrower} เครดิต 20 \\
+บัญชีภายใน & \code{test\_staff} & \code{staff1234} & \en{staff} \\
+บัญชีภายใน & \code{test\_admin} & \code{admin1234} & \en{admin} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+สิ่งที่ควรลองกดมี 4 อย่างที่เห็นผลชัดที่สุด
+
+\begin{enumerate}
+  \item ล็อกอินด้วย \code{orawan.p@ku.th} --- ต้องไปโผล่หน้าอนุมัติของหัวหน้า
+        ไม่ใช่หน้าผู้ยืม (จุดที่ 1)
+  \item ล็อกอินแล้วกด \en{F5} --- ต้องยังอยู่ในระบบ (สถานีที่ 3)
+  \item เปิดเครื่องมือนักพัฒนา พิมพ์ \code{document.cookie} --- ต้องไม่เห็น
+        \code{ulms\_session} (จุดที่ 2)
+  \item ปิด \en{backend} แล้วลองล็อกอิน --- ต้องขึ้นข้อความว่าเชื่อมต่อไม่ได้
+        ไม่ใช่ว่ารหัสผ่านผิด (จุดที่ 12)
+\end{enumerate}
+
+\section*{ภาคผนวก ค --- ผลการทดสอบ 28 ข้อ}
+\addcontentsline{toc}{section}{ภาคผนวก ค --- ผลการทดสอบ 28 ข้อ}
+
+\subsection*{ชั้นข้อมูล 13 ข้อ}
+\addcontentsline{toc}{subsection}{ชั้นข้อมูล 13 ข้อ}
+
+รันด้วย \code{node spike-option-b/frontend-real/e2e-check.mjs}
+ใช้ \code{@trpc/client} ตัวเดียวกับที่แอปใช้ จึงครอบคลุมรูปแบบการส่งข้อมูลจริง
+และวิธีที่ข้อผิดพลาดจากเซิร์ฟเวอร์กลายเป็น \code{TRPCClientError} ฝั่งหน้าเว็บ
+
+\begin{lstlisting}[language=bash]
+PASS  auth.me without a session -> NOT_AUTHENTICATED 401
+PASS  auth.login local test_staff -> role staff
+PASS    contract field id is a number, not a string
+PASS    contract field maxBorrowDays present
+PASS  auth.me after login -> same user
+PASS  auth.login wrong password -> INVALID_CREDENTIALS 401
+PASS  auth.login non-KU email -> NOT_KU_EMAIL 400
+PASS  auth.login identifier > 200 chars -> BAD_REQUEST
+PASS  auth.login KU email of an academic -> role supervisor
+PASS  low-credit student -> D3 from the DB
+PASS    maxBorrowDays for D3 comes from the DB, not CREDIT_BANDS
+PASS  auth.logout -> ok
+PASS  auth.me after logout -> NOT_AUTHENTICATED
+\end{lstlisting}
+
+\subsection*{ชั้นหน้าจอ 15 ข้อ}
+\addcontentsline{toc}{subsection}{ชั้นหน้าจอ 15 ข้อ}
+
+รันด้วย \code{node spike-option-b/browser-check/ui-check.mjs}
+เปิด \en{Firefox} จริง กรอกฟอร์มจริง
+
+\begin{lstlisting}[language=bash]
+PASS  visiting / with no session lands on /login
+PASS  wrong password shows the mapped Thai message
+PASS    and stays on /login
+PASS  staff login lands on the staff dashboard
+PASS  browser stored the session cookie
+PASS    and it is httpOnly (JS cannot read it)
+PASS    document.cookie really cannot see it
+PASS  reload keeps the session (auth.me bootstrap)
+PASS  staff visiting /admin is bounced back to /staff
+PASS  logout returns to /login
+PASS    session cookie is gone
+PASS    and /staff is no longer reachable
+PASS  academic signing in with a KU email lands on SUPERVISOR home
+PASS  no console errors during the whole run
+\end{lstlisting}
+
+\begin{keybox}[title={สามข้อในรายการบนที่ทดสอบด้วยวิธีอื่นไม่ได้เลย}]
+\textbf{คุกกี้เป็น \code{httpOnly} จริง} --- ต้องมี \en{JavaScript}
+ที่รันอยู่ในหน้าเว็บถึงจะลองอ่านได้ สคริปต์ยิง \en{HTTP} เฉย ๆ ตรวจข้อนี้ไม่ได้
+
+\textbf{รีเฟรชแล้วไม่หลุด} --- พิสูจน์ว่ากลไกกู้ \en{session} ทำงานถูก
+
+\textbf{\en{RBAC} ยึดจริง} --- พิมพ์ \en{URL} ตรง ๆ แล้วถูกเด้งกลับ
+\end{keybox}
+
+\section*{ภาคผนวก ง --- ที่มาของข้อเท็จจริงทุกข้อ}
+\addcontentsline{toc}{section}{ภาคผนวก ง --- ที่มาของข้อเท็จจริงทุกข้อ}
+
+ถ้าไฟล์เหล่านี้เปลี่ยน เนื้อความในเอกสารต้องตามไปแก้
+
+\begin{table}[htbp]
+\centering
+\footnotesize\sansall
+\caption{ข้อเท็จจริงในเอกสารนี้และแหล่งที่มา อ้างถึงบรรทัด ณ วันที่ 10 ส.ค. 2569}
+\label{tab:sources}
+\begin{tabular}{@{}L{6.2cm}L{6.8cm}@{}}
+\toprule
+\textbf{ข้อเท็จจริง} & \textbf{ไฟล์:บรรทัด} \\
+\midrule
+หน้าล็อกอินกำหนดบทบาทตายตัว & \code{frontend/src/features/auth/login-page.tsx:41} \\
+บทบาทเก็บใน \en{localStorage} & \code{frontend/src/features/auth/auth.store.ts:36, 46} \\
+ตารางรหัสผ่านทดสอบ & \code{frontend/src/features/auth/mock-auth.ts:62} \\
+รหัสผ่านทดสอบใน \en{README} & \code{frontend/README.md:14--18} \\
+\code{User.id} เป็น \code{string} & \code{frontend/src/types/domain.ts:10} \\
+\code{departmentId} ไม่ยอมรับค่าว่าง & \code{frontend/src/types/domain.ts:15} \\
+\code{zod} รุ่น 3 & \code{frontend/package.json:40} \\
+ตาราง \code{CREDIT\_BANDS} & \code{frontend/src/constants/index.ts:44--49} \\
+รหัส \code{INVALID\_DOMAIN} & \code{frontend/src/lib/error-messages.ts:11} \\
+\en{proxy} ชี้ \code{:3000} & \code{frontend/vite.config.ts} \\
+\en{backend} ไม่มี \en{CORS} & \code{backend/src/main.ts} ทั้งไฟล์ 7 บรรทัด \\
+\code{Email} ไม่มี \code{@unique} & \code{backend/prisma/schema.prisma:22} \\
+\code{UserID} ไม่มี \code{@unique} & \code{backend/prisma/schema.prisma:24} \\
+ไม่มีตาราง \en{session} & \code{backend/prisma/schema.prisma} ทั้งไฟล์ 33 \en{model} \\
+\code{MaxBorrowDate} ผูกกับคู่ & \code{backend/prisma/schema.prisma:232} \\
+\code{CreditTierName} ไม่บังคับ & \code{backend/prisma/schema.prisma} \en{model} \code{CreditTier} \\
+\code{RoleInfo} เป็นตาราง & \code{backend/prisma/schema.prisma} \en{model} \code{RoleInfo} \\
+สถานะหน้าจอ 8/26 & \code{frontend/src/features/**/*-page.tsx} \\
+\en{diff} ทุกไฟล์ & \code{spike-option-b/frontend-real/} \\
+ผลทดสอบชั้นข้อมูล & \code{spike-option-b/frontend-real/e2e-check.mjs} \\
+ผลทดสอบชั้นหน้าจอ & \code{spike-option-b/browser-check/ui-check.mjs} \\
+ภาพหน้าจอ & \code{spike-option-b/browser-check/shots/} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\vfill
+\begin{center}
+\footnotesize\sansall\color{muted}
+รูปที่วาดด้วย \en{TikZ} เป็นภาพอธิบาย · รูปที่เป็นภาพถ่ายหน้าจอเป็นผลการทดสอบจริง\\
+เอกสารนี้สร้างจาก \code{docs/spike-gap.tex} ด้วย \code{latexmk spike-gap.tex}
+\end{center}
+
+\end{document}
