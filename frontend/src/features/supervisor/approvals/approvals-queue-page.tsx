@@ -161,6 +161,8 @@ export default function SupervisorApprovalsPage() {
       key: "act",
       header: "",
       align: "right",
+      // Same reasoning as the staff queue: approve/reject is the row's purpose.
+      className: "sticky right-0 bg-card",
       render: (r) => {
         const busy = busyKey === r.reservationKey;
         if (rejecting === r.reservationKey) {

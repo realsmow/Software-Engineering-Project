@@ -183,6 +183,7 @@ async function main() {
 
   const units = await seedUnits(faculty.FacultyKey);
   await seedCatalogue(ruleKeys, units);
+  await removeStrayBorrowRules(Object.values(ruleKeys));
 
   for (const u of USERS) {
     const hashed = await hashPassword(u.pass);
@@ -223,6 +224,47 @@ async function main() {
   }
 
   await seedAccess(units);
+}
+
+/**
+ * Drops BorrowRule rows that are not one of the four tiers and that nothing
+ * points at.
+ *
+ * An earlier version of this seed created a single rule called 'default'. It
+ * owns no equipment now, but it still carries BorrowConstraints, so it shows
+ * up on the lending-settings screen as a fifth rule a staff member can edit -
+ * and editing it changes nothing at all, because `tryMapTier` maps the name to
+ * no tier and no resource uses it.
+ *
+ * Only rules with zero resources are removed: a rule somebody's equipment is
+ * actually on is never this function's to delete, whatever it is called.
+ */
+async function removeStrayBorrowRules(keepKeys: number[]): Promise<void> {
+  const stray = await prisma.borrowRule.findMany({
+    where: {
+      BorrowRuleKey: { notIn: keepKeys },
+      Resources: { none: {} },
+    },
+    select: { BorrowRuleKey: true, RuleName: true },
+  });
+  if (stray.length === 0) return;
+
+  const keys = stray.map((r) => r.BorrowRuleKey);
+  // Both children first: BorrowConstraints and PenaltyRule each hold a foreign
+  // key to the rule, and Postgres refuses the parent delete while either
+  // remains.
+  await prisma.borrowConstraints.deleteMany({
+    where: { BorrowRuleKey: { in: keys } },
+  });
+  await prisma.penaltyRule.deleteMany({
+    where: { BorrowRuleKey: { in: keys } },
+  });
+  await prisma.borrowRule.deleteMany({
+    where: { BorrowRuleKey: { in: keys } },
+  });
+  console.log(
+    `  removed ${stray.length} unused borrow rule(s): ${stray.map((r) => r.RuleName).join(', ')}`,
+  );
 }
 
 /**

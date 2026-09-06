@@ -68,3 +68,14 @@ export function getCreditBandColor(band: "D0" | "D1" | "D2" | "D3"): string {
   };
   return map[band];
 }
+
+/**
+ * Capitalises the first letter.
+ *
+ * Used to turn a server enum value into an i18n key suffix
+ * (`operational` -> `admin.status.stateOperational`). It was copy-pasted into
+ * seven files before it lived here.
+ */
+export function cap(s: string): string {
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}

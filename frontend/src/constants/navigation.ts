@@ -18,10 +18,13 @@ export interface NavItem {
   labelKey: string;
   icon: string;
   /**
-   * Badge number. Left unset on the borrower items: the mockup's figures were
-   * decoration (it claimed 148 catalog rows against 13 real ones), and a wrong
-   * count is worse than none. Wire these to live totals when the API lands -
-   * from a hook in the feature, not from a literal here.
+   * Badge number.
+   *
+   * Never a literal. The mockup's figures were decoration (it claimed 148
+   * catalog rows against 13 real ones, and 23 queue items against 5), and a
+   * wrong count is worse than none. The live values come from
+   * components/layout/use-nav-counts.ts and are merged in by the Sidebar; an
+   * item nothing can count stays blank on purpose.
    */
   count?: number;
   active?: boolean;
@@ -82,7 +85,7 @@ export const NAV_CONFIG: Record<Role, RoleNav> = {
       {
         labelKey: "nav.staff",
         items: [
-          { key: "queue", labelKey: "nav.queue", icon: "inbox", count: 23, active: true, route: ROUTES.STAFF_DASHBOARD },
+          { key: "queue", labelKey: "nav.queue", icon: "inbox", active: true, route: ROUTES.STAFF_DASHBOARD },
           { key: "inventory", labelKey: "nav.inventory", icon: "package", route: ROUTES.STAFF_INVENTORY },
           { key: "inspect", labelKey: "nav.inspect", icon: "check-square", route: ROUTES.STAFF_INSPECTION },
         ],
@@ -121,8 +124,8 @@ export const NAV_CONFIG: Record<Role, RoleNav> = {
       {
         labelKey: "nav.supervisor",
         items: [
-          { key: "approvals", labelKey: "nav.approvals", icon: "check-circle", count: 6, active: true, route: ROUTES.SUPERVISOR_APPROVALS },
-          { key: "appeals-review", labelKey: "nav.appealsReview", icon: "shield", count: 2, route: ROUTES.SUPERVISOR_APPEALS },
+          { key: "approvals", labelKey: "nav.approvals", icon: "check-circle", active: true, route: ROUTES.SUPERVISOR_APPROVALS },
+          { key: "appeals-review", labelKey: "nav.appealsReview", icon: "shield", route: ROUTES.SUPERVISOR_APPEALS },
         ],
       },
       {

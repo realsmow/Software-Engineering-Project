@@ -154,7 +154,8 @@
     "roomBooking": "New room booking",
     "systemSettings": "System settings",
     "overview": "My overview",
-    "thisPage": "This page"
+    "thisPage": "This page",
+    "systemOverview": "System overview"
   },
   "theme": {
     "darkMode": "Dark mode",
@@ -229,7 +230,7 @@
     },
     "status": {
       "title": "System status",
-      "subtitle": "Real-time health of services, the database, and scheduled (cron) jobs.",
+      "subtitle": "System health and scheduled jobs. Refreshes every 30 seconds.",
       "uptime": "Uptime",
       "apiLatency": "API latency",
       "dbConnections": "DB connections",
@@ -251,8 +252,31 @@
       "colResult": "Result",
       "success": "Success",
       "failed": "Failed",
-      "pending": "Pending",
-      "runNow": "Run now"
+      "pending": "{{count}} awaiting a decision",
+      "runNow": "Run now",
+      "checkedAt": "checked {{when}}",
+      "unreachable": "Cannot reach the server, so its status is unknown.",
+      "database": "Database",
+      "stateOperational": "Operational",
+      "stateDegraded": "Degraded",
+      "stateDown": "Down",
+      "latency": "responded in {{ms}}ms",
+      "noLatency": "latency not measurable",
+      "nodeVersion": "Node version",
+      "uptimeSeconds": "{{count}}s",
+      "uptimeMinutes": "{{count}}m",
+      "uptimeHours": "{{count}}h",
+      "uptimeDays": "{{count}}d",
+      "activeLoans": "Active loans",
+      "accounts": "Accounts",
+      "resources": "Resources",
+      "scheduledJobs": "Scheduled jobs",
+      "ms": "({{ms}}ms)",
+      "notImplemented": "Not implemented",
+      "neverRun": "Never run",
+      "resultSuccess": "Success",
+      "resultFailed": "Failed",
+      "resultPending": "Running"
     },
     "audit": {
       "title": "Audit log",
@@ -317,7 +341,7 @@
     },
     "reports": {
       "title": "Consolidated reports",
-      "subtitle": "System-wide statistics across all departments, for administrators and management.",
+      "subtitle": "Lending activity, counted from the records when this page opened",
       "totalLoans": "Total loans",
       "activeLoans": "Active loans",
       "overdueRate": "Overdue rate",
@@ -334,7 +358,20 @@
       "period": "Period",
       "thisMonth": "This month",
       "thisSemester": "This semester",
-      "thisYear": "This year"
+      "thisYear": "This year",
+      "unavailable": "The report could not be produced.",
+      "scopeAll": "Covering every department in the system",
+      "scopeMine": "Covering only the departments you manage",
+      "overdueNow": "Overdue right now",
+      "unitsOut": "Units currently out",
+      "ofHeld": "of {{held}} held",
+      "byDepartment": "By department",
+      "colDepartment": "Department",
+      "colUnits": "Out / held",
+      "colUtilization": "Utilisation",
+      "unnamedGroup": "(unnamed group)",
+      "mostBorrowed": "Most borrowed",
+      "noBorrowing": "Nothing has been borrowed in this scope yet"
     },
     "charts": {
       "systemHealth": "System health (last 24h)",
@@ -359,6 +396,18 @@
       "returns": "Returns",
       "overdue": "Overdue",
       "utilByDept": "Utilization by department"
+    },
+    "overview": {
+      "subtitle": "System state and the record of what changed. Every figure here is read from the server.",
+      "records": "Records held",
+      "awaitingDecision": "Awaiting a decision",
+      "accountsByRole": "Accounts by role",
+      "openUsers": "Manage users",
+      "jobsSummary": "{{total}} jobs · {{pending}} not implemented",
+      "changeRecord": "Change record",
+      "openAudit": "View all",
+      "noActivity": "Nothing has been recorded yet",
+      "noChanges": "No configuration or account changes recorded yet. Sign-ins are in the full log."
     }
   },
   "borrower": {
@@ -872,6 +921,27 @@
       "noUnits": "No units registered for this type yet",
       "emptyTitle": "No equipment in your scope",
       "emptyDesc": "Equipment appears here once it is registered to a department you have authority over."
+    },
+    "users": {
+      "subtitle": "People in the departments you have authority over",
+      "searchPlaceholder": "Search by name, ID or email",
+      "colPerson": "Person",
+      "colRole": "Role",
+      "colCredit": "Credit",
+      "statusActive": "Active",
+      "statusSuspended": "Borrowing suspended",
+      "statusDisabled": "Account disabled",
+      "emptyTitle": "No users in your departments",
+      "emptyDesc": "People appear here once they hold authority in a department you manage."
+    },
+    "permissions": {
+      "subtitle": "Suspend or restore borrowing for people in your departments",
+      "ban": "Suspend borrowing",
+      "lift": "Restore",
+      "confirmBan": "Confirm {{days}}-day suspension",
+      "reasonPlaceholder": "Reason (the borrower will see this)",
+      "doneBanned": "Suspended borrowing for {{who}} for {{days}} days",
+      "doneLifted": "Restored borrowing for {{who}}"
     }
   },
   "supervisor": {
@@ -924,5 +994,11 @@
       "emptyTitle": "No appeals waiting",
       "emptyDesc": "Appeals appear here as borrowers file them."
     }
+  },
+  "damage": {
+    "B0": "Fair wear and tear",
+    "B1": "Minor damage beyond normal use",
+    "B2": "Moderate damage beyond normal use",
+    "B3": "Severe damage beyond normal use"
   }
 }

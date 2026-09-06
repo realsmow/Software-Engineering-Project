@@ -55,6 +55,8 @@ import { InspectionService } from './inspection/inspection.service';
 import { NotificationRouter } from './notification/notification.router';
 import { NotificationService } from './notification/notification.service';
 
+import { ReportRouter } from './report/report.router';
+import { ReportService } from './report/report.service';
 import { ImageRouter } from './image/image.router';
 import { ImageService } from './image/image.service';
 import { ImageController } from './image/image.controller';
@@ -137,6 +139,9 @@ import {
 
     NotificationRouter,
     NotificationService,
+
+    ReportRouter,
+    ReportService,
 
     ImageRouter,
   ],

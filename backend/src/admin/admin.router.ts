@@ -91,6 +91,21 @@ export class AdminRouter {
     return this.adminService.listUsers(input);
   }
 
+  /**
+   * The same list, scoped to the caller's own departments.
+   *
+   * Staff and supervisors need to find a borrower before they can ban one, but
+   * `listUsers` above is unscoped and admin-only (SDS §7.3 scopes them to the
+   * groups they hold Authority in). Without this the ban screens were
+   * unusable: a staff member could suspend an account they had no way to look
+   * up. An admin calling it gets the unscoped list, same as `listUsers`.
+   */
+  @UseMiddlewares(StaffMiddleware)
+  @Query({ input: listUsersInput, output: paginatedAdminUsers })
+  listUsersInScope(@Input() input: ListUsersInput, @Ctx() ctx: TrpcContext) {
+    return this.adminService.listUsersInScope(ctx.user!, input);
+  }
+
   @UseMiddlewares(AdminMiddleware)
   @Query({ input: accountIdInput, output: adminUserDetail })
   getUserById(@Input() input: { id: number }) {

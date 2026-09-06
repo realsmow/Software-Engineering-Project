@@ -1,9 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import type { Prisma } from '../generated/prisma/client';
 import { PrismaService } from '../prisma.service';
+import type { TrpcUser } from '../trpc/context';
 import { SessionService } from '../auth/session.service';
 import { AuditService, type AuditActor } from '../common/audit/audit.service';
 import { CreditTierService } from '../common/credit/credit-tier.service';
+import { StaffScopeService } from '../common/authority/staff-scope.service';
 import { BusinessError, notImplemented } from '../common/errors/business-error';
 import {
   generateTemporaryPassword,
@@ -135,16 +137,40 @@ export class AdminService {
     private readonly creditTiers: CreditTierService,
     private readonly sessions: SessionService,
     private readonly audit: AuditService,
+    private readonly staffScope: StaffScopeService,
   ) {}
 
   // =========================================================================
   // Accounts
   // =========================================================================
 
-  async listUsers(input: ListUsersInput) {
+  /**
+   * The same list, narrowed to the caller's own departments.
+   *
+   * Staff need to find a borrower to ban or look up, but SDS §7.3 scopes them
+   * to the groups they hold an Authority in - `admin.listUsers` is unscoped
+   * and admin-only for that reason. Without this, the ban screens sat behind a
+   * list staff could not open: they could suspend an account they had no way
+   * to search for.
+   *
+   * Scope is membership of the same ManagementGroup, which is the only link
+   * between an account and a department the schema has.
+   */
+  async listUsersInScope(user: TrpcUser, input: ListUsersInput) {
+    const groupKeys = await this.staffScope.resolveGroupKeys(user);
+    return this.listUsers(
+      input,
+      // null means admin - unscoped, same as the admin-facing procedure.
+      groupKeys === null
+        ? undefined
+        : { Authorities: { some: { ManageGroupKey: { in: groupKeys } } } },
+    );
+  }
+
+  async listUsers(input: ListUsersInput, scope?: Prisma.AccountInfoWhereInput) {
     // Typed, not a loose object: Prisma's where-input is the one place a
     // typo silently becomes "match everything" rather than an error.
-    const where: Prisma.AccountInfoWhereInput = {};
+    const where: Prisma.AccountInfoWhereInput = { ...scope };
 
     if (input.role) {
       // RoleInfo is seed data with free-text names, so the set of keys behind

@@ -15,6 +15,7 @@ import {
   withBuffer,
 } from '../common/booking/booking-window';
 import { BusinessError } from '../common/errors/business-error';
+import { activeBanWhere } from '../common/schemas/penalty.schema';
 import { addDays, daysBetween, toIso } from '../common/schemas/datetime.schema';
 import { toPage, toSkipTake } from '../common/schemas/pagination.schema';
 import { tryMapTier, type CreditTier } from '../common/schemas/status.schema';
@@ -137,6 +138,8 @@ export class LoanRequestService {
     const startTime = new Date(input.startTime);
     const endTime = new Date(input.endTime);
     this.assertWindowShape(startTime, endTime);
+
+    await this.assertNotBanned(user);
 
     const band = await this.creditTiers.resolveTier(user.creditScore);
     if (isBlockedByCredit(band.creditTier)) {
@@ -416,6 +419,31 @@ export class LoanRequestService {
   // =========================================================================
   // Internals
   // =========================================================================
+
+  /**
+   * Refuses a request from an account with a borrowing ban in force.
+   *
+   * Without this the ban was decoration: `admin.setUserBan` wrote the penalty
+   * row, the account showed as "suspended" on every staff screen, and the
+   * person carried on opening requests exactly as before. Checked here rather
+   * than per line, because a ban is about the borrower and not about any
+   * particular item - a banned account gets one clear refusal, not one per
+   * basket line.
+   */
+  private async assertNotBanned(user: TrpcUser): Promise<void> {
+    const ban = await this.prisma.penaltyInfo.findFirst({
+      where: { AccountKey: user.accountKey, ...activeBanWhere() },
+      select: { PenaltyKey: true, Reason: true, ExpirationTime: true },
+      orderBy: { ExpirationTime: 'desc' },
+    });
+    if (!ban) return;
+
+    throw new BusinessError('BORROWING_SUSPENDED', {
+      penaltyKey: ban.PenaltyKey,
+      reason: ban.Reason,
+      expiresAt: ban.ExpirationTime.toISOString(),
+    });
+  }
 
   private assertWindowShape(startTime: Date, endTime: Date): void {
     if (endTime <= startTime) {
