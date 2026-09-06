@@ -258,7 +258,7 @@ function Subject({ usageKey }: { usageKey: number }) {
               ].join(" ")}
             >
               <span className="font-mono text-xs font-semibold text-foreground">{g}</span>
-              <span className="ml-2 text-xs text-t3">{DAMAGE_LEVELS[g].label}</span>
+              <span className="ml-2 text-xs text-t3">{t(`damage.${g}`)}</span>
             </button>
           ))}
         </div>

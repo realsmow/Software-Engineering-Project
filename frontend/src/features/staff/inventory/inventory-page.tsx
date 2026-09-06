@@ -157,8 +157,8 @@ function Units({ itemKey }: { itemKey: number }) {
   }
 
   return (
-    <div className="border-t border-border">
-      <table className="w-full border-collapse text-[13px]">
+    <div className="border-t border-border overflow-x-auto">
+      <table className="w-full min-w-[34rem] border-collapse text-[13px]">
         <thead>
           <tr className="bg-secondary">
             <Th>{t("staff.inventory.colSerial")}</Th>

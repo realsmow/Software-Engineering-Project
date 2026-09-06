@@ -54,3 +54,21 @@ export function toActivePenalty(row: PenaltyRow): ActivePenalty {
 export function activePenaltyWhere() {
   return { InEffect: true, ExpirationTime: { gt: new Date() } };
 }
+
+/**
+ * A borrowing ban in force, as opposed to a damage penalty.
+ *
+ * The two are both PenaltyInfo rows and must not be treated alike. A damage
+ * penalty deducts credit and lets the lower score do the limiting, which is
+ * the whole design of the credit system; a ban is an administrative decision
+ * that stops new requests outright, and `admin.setUserBan` writes it with no
+ * UsageKey (it came from no particular loan) and no CreditDeducted (it takes
+ * no points).
+ *
+ * Blocking on every active penalty instead would stop anyone who has ever
+ * damaged anything from borrowing again, which is not what the proposal says
+ * and not what the credit tiers are for.
+ */
+export function activeBanWhere() {
+  return { ...activePenaltyWhere(), UsageKey: null, CreditDeducted: null };
+}

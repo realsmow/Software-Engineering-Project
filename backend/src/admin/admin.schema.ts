@@ -304,6 +304,7 @@ export const cronJobOutput = z.object({
 });
 
 export const runCronJobInput = z.object({ job: cronJobId });
+export type RunCronJobInput = z.infer<typeof runCronJobInput>;
 
 // ---------------------------------------------------------------------------
 // Technical config (IT admin)
@@ -334,6 +335,19 @@ export const technicalConfigOutput = z.object({
     notificationsSeconds: z.number().int().positive(),
     staffQueueSeconds: z.number().int().positive(),
     supervisorQueueSeconds: z.number().int().positive(),
+  }),
+  /**
+   * How this instance is actually secured, read from the live process.
+   *
+   * The most useful group on the page: it answers "is the deployment
+   * configured the way we think it is" - a cookie missing `secure`, or a
+   * forgotten localhost origin in CORS, is invisible everywhere else.
+   */
+  security: z.object({
+    cookieSecure: z.boolean(),
+    cookieSameSite: z.string(),
+    allowedOrigins: z.array(z.string()),
+    nodeEnv: z.string(),
   }),
 });
 

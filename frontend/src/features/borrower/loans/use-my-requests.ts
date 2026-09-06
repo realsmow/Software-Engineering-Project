@@ -1,11 +1,11 @@
 import { useMemo } from "react";
 import {
-  MY_REQUESTS,
   STATUS_TAB,
   type CatalogItem,
   type MyRequest,
   type RequestTab,
 } from "../mock-data";
+import { useMyRequestsApi } from "./use-my-requests-api";
 import { useEquipmentTypes } from "../catalog/use-equipment-types";
 import { useRequestDraft, type DraftLine } from "../request/request-draft.store";
 import { useSubmittedRequests } from "./submitted-requests.store";
@@ -25,34 +25,43 @@ export interface DraftSummary {
 }
 
 /**
- * useMyRequests - everything the "คำขอของฉัน" page lists, in one place:
- * seeded history, requests submitted this session, and the open draft.
+ * useMyRequests - everything the "คำขอของฉัน" page lists: the borrower's real
+ * requests from the server, plus the unsent draft sitting in the local store.
  *
- * Not a TanStack query: two of the three sources are client stores, so there
- * is nothing to fetch or cache yet. When GET /loan-requests lands, the mock
- * array becomes the query and this hook keeps merging the local draft on top.
+ * The seeded `MY_REQUESTS` array is gone; `loan.list` answers for real now.
+ * The draft stays local because it is not a request yet - nothing has been
+ * sent, so there is nothing for the server to have an opinion about.
+ *
+ * `overrides` also stays. It carries the extension and inspection state the
+ * pages show, and `requestOutput` cannot supply any of it: a reservation
+ * describes what was asked for, not the loan that follows. Those fields are
+ * still local until a borrower-side view of UsageLog exists.
  */
 export function useMyRequests() {
   // Only the draft needs it: a saved line is an id, and the card title is the
   // item's name. Submitted requests already carry their own name.
   const { data: catalog } = useEquipmentTypes();
+  const { data: server, isLoading } = useMyRequestsApi();
   const submitted = useSubmittedRequests((s) => s.requests);
   const overrides = useSubmittedRequests((s) => s.overrides);
   const draftLines = useRequestDraft((s) => s.lines);
   const startDate = useRequestDraft((s) => s.startDate);
   const endDate = useRequestDraft((s) => s.endDate);
 
-  const requests = useMemo<MyRequest[]>(
-    () =>
-      // Session submissions first - they are the most recent thing that happened.
-      [...submitted, ...MY_REQUESTS].map((r) => {
-        // Applied here rather than in the store so seeded rows move too: they
-        // come from a module constant that cannot be rewritten in place.
-        const changes = overrides[r.id];
-        return changes ? { ...r, ...changes } : r;
-      }),
-    [submitted, overrides],
-  );
+  const requests = useMemo<MyRequest[]>(() => {
+    // Equipment comes from the server. Room bookings do not: there is no
+    // reservation router yet, so a booking only exists in this session's store
+    // and dropping it here would make it vanish from the page that just
+    // confirmed it.
+    const rooms = submitted.filter((r) => r.kind === "room");
+
+    return [...rooms, ...(server ?? [])].map((r) => {
+      // Local extension/inspection state layered on top of the server row.
+      // Keyed by the reservation number, which is what `id` now holds.
+      const changes = overrides[r.id];
+      return changes ? { ...r, ...changes } : r;
+    });
+  }, [server, submitted, overrides]);
 
   const draft = useMemo<DraftSummary | null>(
     () => summariseDraft(draftLines, catalog ?? [], startDate, endDate),
@@ -67,7 +76,7 @@ export function useMyRequests() {
     return counts;
   }, [requests, draft]);
 
-  return { requests, draft, countByTab };
+  return { requests, draft, countByTab, isLoading };
 }
 
 export function requestsInTab(requests: MyRequest[], tab: RequestTab): MyRequest[] {

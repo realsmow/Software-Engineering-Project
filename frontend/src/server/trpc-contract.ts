@@ -25,6 +25,7 @@ import type {
   ServerItemUnit,
 } from "@/features/borrower/catalog/item.adapter";
 import type { ServerCredit } from "@/features/account/credit.adapter";
+import type { ServerRequest } from "@/features/borrower/loans/request.adapter";
 import type { LendingSettings } from "@/features/staff/settings/settings.types";
 import type {
   InspectionQueueRow,
@@ -50,11 +51,12 @@ import type {
 } from "@/features/supervisor/approvals/approval.types";
 import type { ServerAdminUser } from "@/features/admin/users/admin-user.adapter";
 import type { ServerAuditEvent } from "@/features/admin/audit/audit-event.adapter";
+import type { CronJob, SystemStatus } from "@/features/admin/status/status.types";
+import type { ReportSummary } from "@/features/admin/reports/report.types";
+import type { TechnicalConfig } from "@/features/admin/config/config.types";
 import type {
   EquipmentType,
   EquipmentUnit,
-  LoanRequest,
-  Loan,
   Appeal,
   DamageReport,
   Notification,
@@ -170,16 +172,30 @@ export const appRouter = t.router({
   // the caller's department. The names do not collide across that line
   // (`list` vs `staffQueue`, `getById` vs `getForStaff`).
   loan: t.router({
-    // Borrower slice. Still typed loosely: these pages are not connected yet,
-    // so nothing depends on the shapes and guessing them here would be fiction.
+    // Borrower slice, typed against backend/src/loan/loan.schema.ts.
     list: proc
       .input(pageInput.extend({ tab: z.string().optional() }))
-      .query(() => as<Paginated<Loan>>()),
-    getById: proc.input(z.object({ reservationKey: z.number() })).query(() => as<Loan>()),
-    create: proc.input(z.object({}).passthrough()).mutation(() => as<LoanRequest>()),
+      .query(() => as<ServerPaginated<ServerRequest>>()),
+    getById: proc
+      .input(z.object({ reservationKey: z.number() }))
+      .query(() => as<ServerRequest>()),
+    create: proc
+      .input(
+        z.object({
+          startTime: z.string(),
+          endTime: z.string(),
+          lines: z.array(z.object({ resourceKey: z.number(), reason: z.string().optional() })),
+        }),
+      )
+      .mutation(() =>
+        as<{
+          created: ServerRequest[];
+          rejected: { resourceKey: number; code: string; detail: Record<string, unknown> | null }[];
+        }>(),
+      ),
     cancel: proc
-      .input(z.object({ reservationKey: z.number() }).passthrough())
-      .mutation(() => as<{ ok: true }>()),
+      .input(z.object({ reservationKey: z.number(), reason: z.string().optional() }))
+      .mutation(() => as<ServerRequest>()),
 
     // Staff counter. Typed against backend/src/loan/loan.schema.ts.
     staffQueue: proc
@@ -332,11 +348,13 @@ export const appRouter = t.router({
   }),
 
   // ── report ────────────────────────────────────────────
+  // One procedure. Department totals and a most-borrowed list, counted from
+  // UsageLog/ResourceInfo/ItemInfo; scoped by Authority like every other
+  // staff-facing read.
   report: t.router({
-    dashboard: proc.query(() => as<Record<string, number>>()),
-    analytics: proc.input(z.object({ period: z.string().optional() })).query(() => as<unknown>()),
-    export: proc.input(z.object({}).passthrough()).mutation(() => as<{ url: string }>()),
-    consolidated: proc.input(z.object({ period: z.string().optional() })).query(() => as<unknown>()),
+    summary: proc
+      .input(z.object({ topLimit: z.number().optional() }))
+      .query(() => as<ReportSummary>()),
   }),
 
   // ── admin ─────────────────────────────────────────────
@@ -350,6 +368,11 @@ export const appRouter = t.router({
       .input(pageInput.extend({ role: z.string().optional(), status: z.string().optional() }))
       .query(() => as<Paginated<ServerAdminUser>>()),
     getUserById: proc.input(numericIdInput).query(() => as<ServerAdminUser>()),
+    // The same list scoped to the caller's departments. StaffMiddleware, not
+    // admin: staff must be able to find someone before they can ban them.
+    listUsersInScope: proc
+      .input(pageInput.extend({ role: z.string().optional(), status: z.string().optional() }))
+      .query(() => as<Paginated<ServerAdminUser>>()),
     createUser: proc
       .input(
         z.object({
@@ -371,6 +394,14 @@ export const appRouter = t.router({
     // Lending rules. StaffMiddleware on the server, not admin: a department
     // sets the rules for its own equipment (SRS FR-AUTH-05), so staff and
     // teachers reach these two as well.
+    // System status. Only the database is probed server-side; there is no
+    // multi-service health check behind this.
+    // Read-only: every value is an env var or a compiled-in constant, so
+    // updateConfig still refuses rather than accepting an edit that would do
+    // nothing until a redeploy.
+    getConfig: proc.query(() => as<TechnicalConfig>()),
+    getSystemStatus: proc.query(() => as<SystemStatus>()),
+    listCronJobs: proc.query(() => as<CronJob[]>()),
     getLendingSettings: proc.query(() => as<LendingSettings>()),
     updateLendingSettings: proc
       .input(

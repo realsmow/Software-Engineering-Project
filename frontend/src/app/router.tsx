@@ -55,9 +55,10 @@ const StaffPermissionsPage = lazy(
 const StaffSettingsPage = lazy(() => import("@/features/staff/settings/settings-page"));
 
 // Reports (staff + supervisor)
-const ReportAnalyticsPage = lazy(
-  () => import("@/features/reports/analytics/analytics-page"),
-);
+// Staff and teachers reach the same report as an admin. `report.summary` is
+// StaffMiddleware and scoped by Authority, and the page states which scope it
+// is showing, so one component serves all three roles honestly.
+const ReportAnalyticsPage = lazy(() => import("@/features/admin/reports/reports-page"));
 const ReportExportPage = lazy(() => import("@/features/reports/export/export-page"));
 
 // Supervisor
@@ -76,7 +77,6 @@ const AdminUsersPage = lazy(() => import("@/features/admin/users/users-page"));
 const AdminStatusPage = lazy(() => import("@/features/admin/status/status-page"));
 const AdminAuditPage = lazy(() => import("@/features/admin/audit/audit-page"));
 const AdminConfigPage = lazy(() => import("@/features/admin/config/config-page"));
-const AdminSettingsPage = lazy(() => import("@/features/admin/settings/settings-page"));
 const AdminReportsPage = lazy(() => import("@/features/admin/reports/reports-page"));
 
 /** Layout: guarantees auth, then renders AppShell (which hosts <Outlet/>). */
@@ -149,7 +149,6 @@ export function AppRouter() {
             <Route path={ROUTES.ADMIN_STATUS} element={<AdminStatusPage />} />
             <Route path={ROUTES.ADMIN_AUDIT} element={<AdminAuditPage />} />
             <Route path={ROUTES.ADMIN_CONFIG} element={<AdminConfigPage />} />
-            <Route path={ROUTES.ADMIN_SETTINGS} element={<AdminSettingsPage />} />
             <Route path={ROUTES.ADMIN_REPORTS} element={<AdminReportsPage />} />
           </Route>
         </Route>

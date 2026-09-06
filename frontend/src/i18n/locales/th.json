@@ -39,7 +39,9 @@
     "email": "อีเมล",
     "name": "ชื่อ",
     "createdAt": "สร้างเมื่อ",
-    "showingRange": "แสดง {{start}}-{{end}} จาก {{total}}"
+    "showingRange": "แสดง {{start}}-{{end}} จาก {{total}}",
+    "yes": "เปิด",
+    "no": "ปิด"
   },
   "table": {
     "range": "แสดง {{start}}–{{end}} จาก {{total}} รายการ",
@@ -152,9 +154,10 @@
     "handover": "ส่งมอบ/รับคืน",
     "equipmentDetail": "รายละเอียดครุภัณฑ์",
     "roomBooking": "สร้างคำขอจองห้อง",
-    "systemSettings": "ตั้งค่าระบบ",
     "overview": "ภาพรวมของฉัน",
-    "thisPage": "หน้านี้"
+    "thisPage": "หน้านี้",
+    "systemOverview": "ภาพรวมระบบ",
+    "technicalConfig": "ตั้งค่าเชิงเทคนิค"
   },
   "theme": {
     "darkMode": "โหมดมืด",
@@ -229,7 +232,7 @@
     },
     "status": {
       "title": "สถานะระบบ",
-      "subtitle": "ตรวจสอบสุขภาพของบริการ ฐานข้อมูล และงานตามเวลา (cron) แบบเรียลไทม์",
+      "subtitle": "สถานะระบบและงานตามกำหนดเวลา อัปเดตทุก 30 วินาที",
       "uptime": "อัปไทม์",
       "apiLatency": "เวลาตอบสนอง API",
       "dbConnections": "การเชื่อมต่อ DB",
@@ -251,8 +254,31 @@
       "colResult": "ผล",
       "success": "สำเร็จ",
       "failed": "ล้มเหลว",
-      "pending": "รอรัน",
-      "runNow": "รันตอนนี้"
+      "pending": "รออนุมัติ {{count}} คำขอ",
+      "runNow": "รันตอนนี้",
+      "checkedAt": "ตรวจล่าสุด {{when}}",
+      "unreachable": "ติดต่อเซิร์ฟเวอร์ไม่ได้ จึงยังไม่ทราบสถานะ",
+      "database": "ฐานข้อมูล",
+      "stateOperational": "ปกติ",
+      "stateDegraded": "ช้ากว่าปกติ",
+      "stateDown": "ใช้งานไม่ได้",
+      "latency": "ตอบใน {{ms}} มิลลิวินาที",
+      "noLatency": "วัดเวลาตอบไม่ได้",
+      "nodeVersion": "เวอร์ชัน Node",
+      "uptimeSeconds": "{{count}} วินาที",
+      "uptimeMinutes": "{{count}} นาที",
+      "uptimeHours": "{{count}} ชั่วโมง",
+      "uptimeDays": "{{count}} วัน",
+      "activeLoans": "กำลังถูกยืม",
+      "accounts": "บัญชีผู้ใช้",
+      "resources": "ทรัพยากรในระบบ",
+      "scheduledJobs": "งานตามกำหนดเวลา",
+      "ms": "({{ms}} มิลลิวินาที)",
+      "notImplemented": "ยังไม่เปิดใช้งาน",
+      "neverRun": "ยังไม่เคยรัน",
+      "resultSuccess": "สำเร็จ",
+      "resultFailed": "ล้มเหลว",
+      "resultPending": "กำลังรัน"
     },
     "audit": {
       "title": "บันทึกการใช้งาน",
@@ -293,11 +319,11 @@
       "allowedDomains": "โดเมนที่อนุญาต",
       "localFallback": "บัญชีภายในสำรอง",
       "localFallbackDesc": "ให้เจ้าหน้าที่ที่ไม่มีอีเมล KU เข้าสู่ระบบด้วยบัญชีภายใน",
-      "sessionTimeout": "หมดเวลาเซสชัน (นาที)",
+      "sessionTimeout": "อายุเซสชัน",
       "storageTitle": "การจัดเก็บไฟล์และรูปภาพ",
       "provider": "ผู้ให้บริการ",
       "bucket": "Bucket",
-      "maxUpload": "ขนาดอัปโหลดสูงสุด (MB)",
+      "maxUpload": "ขนาดอัปโหลดสูงสุด",
       "presignedUrl": "อัปโหลดผ่าน pre-signed URL",
       "presignedUrlDesc": "ให้ไคลเอนต์อัปโหลดรูปตรงไปยังพื้นที่จัดเก็บ",
       "emailTitle": "อีเมลและการแจ้งเตือน",
@@ -313,11 +339,37 @@
       "pNotifications": "แจ้งเตือน",
       "pStaffQueue": "คิวเจ้าหน้าที่",
       "pSupervisorQueue": "คิวอาจารย์",
-      "savedToast": "บันทึกการตั้งค่าแล้ว"
+      "savedToast": "บันทึกการตั้งค่าแล้ว",
+      "unavailable": "อ่านค่าตั้งจากเซิร์ฟเวอร์ไม่ได้",
+      "readOnlyNotice": "ค่าทั้งหมดมาจากตัวแปรสภาพแวดล้อมและค่าคงที่ในโค้ด แก้จากหน้าเว็บไม่ได้ ต้องแก้ที่การ deploy แล้วรีสตาร์ต",
+      "security": "ความปลอดภัย",
+      "environment": "สภาพแวดล้อม",
+      "cookieSecure": "คุกกี้ตั้ง secure",
+      "cookieSameSite": "คุกกี้ SameSite",
+      "allowedOrigins": "Origin ที่อนุญาต (CORS)",
+      "authentication": "การเข้าสู่ระบบ",
+      "localLogin": "เข้าสู่ระบบด้วยบัญชีภายใน",
+      "emailDomains": "โดเมนอีเมลที่จำกัด",
+      "noDomainRestriction": "ไม่ได้จำกัดโดเมน",
+      "storage": "ที่เก็บไฟล์",
+      "location": "ตำแหน่งจัดเก็บ",
+      "email": "อีเมล",
+      "dueReminders": "เตือนใกล้ครบกำหนด",
+      "notConfigured": "ยังไม่ได้ตั้งค่า",
+      "polling": "ความถี่การดึงข้อมูล",
+      "pollingNote": "ค่าตามข้อตกลงใน SRS ฝั่งหน้าเว็บเป็นผู้ตั้งเวลาเอง",
+      "pollAvailability": "ของคงเหลือ",
+      "pollRequestStatus": "สถานะคำขอ",
+      "pollStaffQueue": "คิวเจ้าหน้าที่",
+      "pollSupervisorQueue": "คิวอาจารย์",
+      "pollNotifications": "การแจ้งเตือน",
+      "minutes": "{{count}} นาที",
+      "megabytes": "{{count}} MB",
+      "seconds": "{{count}} วินาที"
     },
     "reports": {
       "title": "รายงานรวม",
-      "subtitle": "สถิติภาพรวมทั้งระบบทุกภาควิชา สำหรับผู้ดูแลระบบและผู้บริหาร",
+      "subtitle": "สรุปการยืมจากข้อมูลจริง นับ ณ เวลาที่เปิดหน้านี้",
       "totalLoans": "การยืมทั้งหมด",
       "activeLoans": "กำลังยืมอยู่",
       "overdueRate": "อัตราเกินกำหนด",
@@ -334,7 +386,20 @@
       "period": "ช่วงเวลา",
       "thisMonth": "เดือนนี้",
       "thisSemester": "ภาคเรียนนี้",
-      "thisYear": "ปีนี้"
+      "thisYear": "ปีนี้",
+      "unavailable": "ยังไม่สามารถดึงรายงานได้",
+      "scopeAll": "ครอบคลุมทุกหน่วยงานในระบบ",
+      "scopeMine": "เฉพาะหน่วยงานที่คุณดูแล",
+      "overdueNow": "เกินกำหนดอยู่ขณะนี้",
+      "unitsOut": "อุปกรณ์ที่ถูกยืมอยู่",
+      "ofHeld": "จาก {{held}} ชิ้น",
+      "byDepartment": "แยกตามหน่วยงาน",
+      "colDepartment": "หน่วยงาน",
+      "colUnits": "ถูกยืม/ทั้งหมด",
+      "colUtilization": "อัตราการใช้",
+      "unnamedGroup": "(ไม่มีชื่อหน่วยงาน)",
+      "mostBorrowed": "อุปกรณ์ที่ถูกยืมมากที่สุด",
+      "noBorrowing": "ยังไม่มีการยืมในขอบเขตนี้"
     },
     "charts": {
       "systemHealth": "สุขภาพระบบ (24 ชม.ล่าสุด)",
@@ -359,6 +424,18 @@
       "returns": "การคืน",
       "overdue": "เกินกำหนด",
       "utilByDept": "อัตราการใช้งานตามภาควิชา"
+    },
+    "overview": {
+      "subtitle": "สถานะระบบและบันทึกการเปลี่ยนแปลง ทุกตัวเลขในหน้านี้อ่านจากเซิร์ฟเวอร์โดยตรง",
+      "records": "จำนวนข้อมูลในระบบ",
+      "awaitingDecision": "คำขอรอการตัดสิน",
+      "accountsByRole": "บัญชีแยกตามบทบาท",
+      "openUsers": "จัดการผู้ใช้",
+      "jobsSummary": "{{total}} งาน · ยังไม่เปิดใช้งาน {{pending}}",
+      "changeRecord": "บันทึกการเปลี่ยนแปลง",
+      "openAudit": "ดูทั้งหมด",
+      "noActivity": "ยังไม่มีการเปลี่ยนแปลงที่บันทึกไว้",
+      "noChanges": "ยังไม่มีการเปลี่ยนแปลงการตั้งค่าหรือบัญชีที่บันทึกไว้ (การเข้าสู่ระบบดูได้ในบันทึกทั้งหมด)"
     }
   },
   "borrower": {
@@ -872,6 +949,27 @@
       "noUnits": "ประเภทนี้ยังไม่มีชิ้นอุปกรณ์ในระบบ",
       "emptyTitle": "ยังไม่มีอุปกรณ์ในความดูแลของคุณ",
       "emptyDesc": "อุปกรณ์จะปรากฏที่นี่เมื่อลงทะเบียนเข้าหน่วยงานที่คุณมีสิทธิ์ดูแล"
+    },
+    "users": {
+      "subtitle": "รายชื่อผู้ใช้ในหน่วยงานที่คุณดูแล",
+      "searchPlaceholder": "ค้นหาด้วยชื่อ รหัสนิสิต หรืออีเมล",
+      "colPerson": "ผู้ใช้",
+      "colRole": "บทบาท",
+      "colCredit": "เครดิต",
+      "statusActive": "ปกติ",
+      "statusSuspended": "ถูกระงับการยืม",
+      "statusDisabled": "ปิดบัญชี",
+      "emptyTitle": "ไม่พบผู้ใช้ในหน่วยงานของคุณ",
+      "emptyDesc": "ผู้ใช้จะปรากฏที่นี่เมื่อมีสิทธิ์อยู่ในหน่วยงานเดียวกับคุณ"
+    },
+    "permissions": {
+      "subtitle": "ระงับหรือคืนสิทธิ์การยืมของผู้ใช้ในหน่วยงานของคุณ",
+      "ban": "ระงับการยืม",
+      "lift": "คืนสิทธิ์",
+      "confirmBan": "ยืนยันระงับ {{days}} วัน",
+      "reasonPlaceholder": "เหตุผลที่ระงับ (จะแจ้งให้ผู้ใช้ทราบ)",
+      "doneBanned": "ระงับสิทธิ์การยืมของ {{who}} เป็นเวลา {{days}} วันแล้ว",
+      "doneLifted": "คืนสิทธิ์การยืมให้ {{who}} แล้ว"
     }
   },
   "supervisor": {
@@ -924,5 +1022,11 @@
       "emptyTitle": "ไม่มีคำอุทธรณ์รอตัดสิน",
       "emptyDesc": "เมื่อมีผู้ยืมยื่นอุทธรณ์ รายการจะปรากฏที่นี่"
     }
+  },
+  "damage": {
+    "B0": "ตามการใช้งานปรกติ",
+    "B1": "เกินการใช้งานปรกติ ระดับเล็กน้อย",
+    "B2": "เกินการใช้งานปรกติ ระดับปานกลาง",
+    "B3": "เกินการใช้งานปรกติ ระดับรุนแรง"
   }
 }

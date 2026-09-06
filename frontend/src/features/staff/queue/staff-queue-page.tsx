@@ -184,6 +184,10 @@ export default function StaffQueuePage() {
       key: "act",
       header: "",
       align: "right",
+      // Pinned to the right edge. The table is wider than a phone, and the
+      // action is the reason the row exists - leaving it to scroll off meant a
+      // staff member could read the row and not reach the button.
+      className: "sticky right-0 bg-card",
       render: (r) => {
         const busy = busyKey === rowKey(r);
         return (
