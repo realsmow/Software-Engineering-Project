@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import type { Prisma } from '../generated/prisma/client';
 import { PrismaService } from '../prisma.service';
 import type { TrpcUser } from '../trpc/context';
@@ -17,6 +18,8 @@ import {
   type AdminAccountRow,
 } from '../common/mappers/admin-user.mapper';
 import { activePenaltyWhere } from '../common/schemas/penalty.schema';
+import { MAX_UPLOAD_BYTES } from '../common/schemas/image.schema';
+import { ALLOWED_ORIGINS } from '../bootstrap';
 import {
   toOrderBy,
   toPage,
@@ -130,6 +133,28 @@ const CRON_REGISTRY = [
 /** Above this, the database is answering but not healthily. */
 const DB_DEGRADED_MS = 250;
 
+/**
+ * Fallbacks matching the services that own these settings, so the reported
+ * value equals the effective one when the variable is unset.
+ * SessionService uses 12 hours; ImageService writes under ./media.
+ */
+const DEFAULT_SESSION_TTL_HOURS = 12;
+const DEFAULT_MEDIA_ROOT = './media';
+
+/**
+ * The polling intervals the contract fixes (SRS). Reported, not enforced: the
+ * client sets its own timers, so these are the agreed figures rather than a
+ * setting this server applies.
+ */
+const POLLING_CONTRACT = {
+  availabilitySeconds: 15,
+  facilitySlotsSeconds: 15,
+  requestStatusSeconds: 30,
+  notificationsSeconds: 60,
+  staffQueueSeconds: 30,
+  supervisorQueueSeconds: 60,
+} as const;
+
 @Injectable()
 export class AdminService {
   constructor(
@@ -138,6 +163,7 @@ export class AdminService {
     private readonly sessions: SessionService,
     private readonly audit: AuditService,
     private readonly staffScope: StaffScopeService,
+    private readonly config: ConfigService,
   ) {}
 
   // =========================================================================
@@ -649,15 +675,69 @@ export class AdminService {
   // Technical config
   // =========================================================================
 
-  getConfig(): never {
-    return notImplemented(
-      ['SystemConfig table (key, value Json, updatedBy, updatedAt)'],
-      'Auth/storage/email/polling settings are currently environment variables, which are read-only at runtime and per-instance. Editing them from the UI needs a table.',
-    );
+  /**
+   * What this server is actually running with, read from the live process.
+   *
+   * Read-only, and that is the point rather than a limitation. Every value
+   * below comes from an environment variable or a compiled-in constant, so it
+   * is per-instance and fixed for the lifetime of the process; there is no
+   * SystemConfig table and adding one would be the wrong answer for most of
+   * these. An SMTP host or a storage root changed in a web form would not take
+   * effect until a redeploy, and a UI that accepts an edit which silently does
+   * nothing is worse than one that refuses it.
+   *
+   * So `updateConfig` still refuses. This procedure exists to let an
+   * administrator confirm what is deployed - which is the question they
+   * actually arrive with - rather than to pretend the values are editable.
+   */
+  getConfig() {
+    const env = (key: string) => this.config.get<string>(key);
+    const isProduction = env('NODE_ENV') === 'production';
+    const mediaRoot = env('MEDIA_ROOT') ?? DEFAULT_MEDIA_ROOT;
+
+    return {
+      auth: {
+        // No OIDC integration exists yet; see docs/adr-001-authentication.md.
+        googleOauthEnabled: false,
+        localFallbackEnabled: true,
+        // Not enforced by a list: `auth.login` accepts any account row, and
+        // the KU-email path is a frontend affordance. Reported empty rather
+        // than inventing a restriction the server does not apply.
+        allowedEmailDomains: [],
+        sessionTimeoutMinutes:
+          Number(env('SESSION_TTL_HOURS') ?? DEFAULT_SESSION_TTL_HOURS) * 60,
+      },
+      storage: {
+        provider: 'local-disk',
+        bucket: mediaRoot,
+        maxUploadMb: Math.round(MAX_UPLOAD_BYTES / (1024 * 1024)),
+        presignedUploads: true,
+      },
+      email: {
+        // Nothing sends mail yet. Empty strings say so; a plausible-looking
+        // default here would read as a configured mail server.
+        smtpHost: '',
+        fromAddress: 'noreply@ku.th',
+        dueReminderEnabled: false,
+      },
+      // The polling intervals the contract fixes (SRS §"ช่วงเวลา polling").
+      // The server does not enforce them - the client sets its own timers - so
+      // these are reported as the agreed figures, not as a live setting.
+      polling: POLLING_CONTRACT,
+      security: {
+        cookieSecure: env('COOKIE_SECURE') === 'true' || isProduction,
+        cookieSameSite: env('COOKIE_SAMESITE') ?? 'lax',
+        allowedOrigins: ALLOWED_ORIGINS,
+        nodeEnv: env('NODE_ENV') ?? 'development',
+      },
+    };
   }
 
   updateConfig(): never {
-    return this.getConfig();
+    return notImplemented(
+      ['SystemConfig table (key, value Json, updatedBy, updatedAt)'],
+      'These settings are environment variables and compiled-in constants, fixed per instance for the life of the process. Accepting an edit here would change nothing until a redeploy.',
+    );
   }
 
   // =========================================================================

@@ -55,9 +55,10 @@ const StaffPermissionsPage = lazy(
 const StaffSettingsPage = lazy(() => import("@/features/staff/settings/settings-page"));
 
 // Reports (staff + supervisor)
-const ReportAnalyticsPage = lazy(
-  () => import("@/features/reports/analytics/analytics-page"),
-);
+// Staff and teachers reach the same report as an admin. `report.summary` is
+// StaffMiddleware and scoped by Authority, and the page states which scope it
+// is showing, so one component serves all three roles honestly.
+const ReportAnalyticsPage = lazy(() => import("@/features/admin/reports/reports-page"));
 const ReportExportPage = lazy(() => import("@/features/reports/export/export-page"));
 
 // Supervisor

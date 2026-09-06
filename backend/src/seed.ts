@@ -184,6 +184,7 @@ async function main() {
   const units = await seedUnits(faculty.FacultyKey);
   await seedCatalogue(ruleKeys, units);
   await removeStrayBorrowRules(Object.values(ruleKeys));
+  await removeNamelessGroups();
 
   for (const u of USERS) {
     const hashed = await hashPassword(u.pass);
@@ -264,6 +265,46 @@ async function removeStrayBorrowRules(keepKeys: number[]): Promise<void> {
   });
   console.log(
     `  removed ${stray.length} unused borrow rule(s): ${stray.map((r) => r.RuleName).join(', ')}`,
+  );
+}
+
+/**
+ * Drops ManagementGroup rows that nothing names and nothing uses.
+ *
+ * A group holds no name of its own: the name lives in BranchInfo (a
+ * department, pinned to one faculty) or ClubInfo (a club, deliberately pinned
+ * to none, so it can span faculties). Those rows are written *after* the group
+ * and not in the same transaction - interrupt a seed between the two
+ * statements and a nameless group is left behind. One is in this database now,
+ * owning nothing and holding nobody, showing in reports as "(unnamed group)".
+ *
+ * The predicate is deliberately narrow: no name, no equipment, no members. A
+ * club is always named by a ClubInfo row, so clubs are never matched; and a
+ * group holding one unit or one Authority is somebody's, whatever it is
+ * called, and is left alone.
+ */
+async function removeNamelessGroups(): Promise<void> {
+  const stray = await prisma.managementGroup.findMany({
+    where: {
+      Branch: { is: null },
+      Club: { is: null },
+      Resources: { none: {} },
+      Authorities: { none: {} },
+    },
+    select: { ManageGroupKey: true },
+  });
+  if (stray.length === 0) return;
+
+  const keys = stray.map((g) => g.ManageGroupKey);
+  // Eligibility is the only other table pointing at a group. It cannot have
+  // rows here (the group owns no resources), but delete first so the parent
+  // is never blocked by one.
+  await prisma.eligibility.deleteMany({ where: { GroupKey: { in: keys } } });
+  await prisma.managementGroup.deleteMany({
+    where: { ManageGroupKey: { in: keys } },
+  });
+  console.log(
+    `  removed ${stray.length} nameless management group(s): ${keys.join(', ')}`,
   );
 }
 

@@ -335,6 +335,19 @@ export const technicalConfigOutput = z.object({
     staffQueueSeconds: z.number().int().positive(),
     supervisorQueueSeconds: z.number().int().positive(),
   }),
+  /**
+   * How this instance is actually secured, read from the live process.
+   *
+   * The most useful group on the page: it answers "is the deployment
+   * configured the way we think it is" - a cookie missing `secure`, or a
+   * forgotten localhost origin in CORS, is invisible everywhere else.
+   */
+  security: z.object({
+    cookieSecure: z.boolean(),
+    cookieSameSite: z.string(),
+    allowedOrigins: z.array(z.string()),
+    nodeEnv: z.string(),
+  }),
 });
 
 /** Send only the groups being changed. */

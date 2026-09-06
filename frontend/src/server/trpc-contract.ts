@@ -53,6 +53,7 @@ import type { ServerAdminUser } from "@/features/admin/users/admin-user.adapter"
 import type { ServerAuditEvent } from "@/features/admin/audit/audit-event.adapter";
 import type { CronJob, SystemStatus } from "@/features/admin/status/status.types";
 import type { ReportSummary } from "@/features/admin/reports/report.types";
+import type { TechnicalConfig } from "@/features/admin/config/config.types";
 import type {
   EquipmentType,
   EquipmentUnit,
@@ -395,6 +396,10 @@ export const appRouter = t.router({
     // teachers reach these two as well.
     // System status. Only the database is probed server-side; there is no
     // multi-service health check behind this.
+    // Read-only: every value is an env var or a compiled-in constant, so
+    // updateConfig still refuses rather than accepting an edit that would do
+    // nothing until a redeploy.
+    getConfig: proc.query(() => as<TechnicalConfig>()),
     getSystemStatus: proc.query(() => as<SystemStatus>()),
     listCronJobs: proc.query(() => as<CronJob[]>()),
     getLendingSettings: proc.query(() => as<LendingSettings>()),
