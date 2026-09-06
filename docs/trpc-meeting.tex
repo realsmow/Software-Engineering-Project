@@ -1,0 +1,1470 @@
+% =============================================================================
+%  trpc-meeting.tex — เอกสารฉบับที่ 2 ของชุด "สัญญา tRPC" ของโครงการ ULMs
+%
+%  วาระประชุม 19 วาระ เรียงตามลำดับว่าอะไรบล็อกอะไร
+%  ใช้เป็นเอกสารตั้งต้นในห้องประชุม ผู้เข้าร่วมทุกคนควรอ่านภาค 1 มาก่อน
+%
+%  เอกสารคู่กัน: trpc-guide.tex อธิบายว่าทำไมแต่ละวาระถึงสำคัญ
+%
+%  ต้องคอมไพล์ด้วย XeLaTeX เท่านั้น
+%      cd docs && latexmk trpc-meeting.tex     → build/trpc-meeting.pdf
+%
+%  ที่มาของข้อเท็จจริง: เหมือนกับ trpc-guide.tex (ดูภาคผนวก ง ของฉบับนั้น)
+% =============================================================================
+
+\input{trpc-preamble}
+
+\renewcommand{\docshort}{สัญญา tRPC · วาระประชุม}
+\hypersetup{pdftitle={วาระประชุมตกลงสัญญา tRPC — ULMs},
+            pdfauthor={ทีมพัฒนา ULMs}}
+
+% -----------------------------------------------------------------------------
+%  ป้ายระดับความเร่งด่วน — ระบบสีเฉพาะของเอกสารฉบับนี้
+%  (ฉบับ trpc-guide.tex ใช้สีชุดเดียวกันแทน "ชั้นของระบบ" ซึ่งเป็นคนละความหมาย
+%   แต่ละฉบับประกาศระบบสีของตัวเองไว้ในหน้า "อ่านอย่างไร" และคงเส้นคงวาภายในเล่ม)
+% -----------------------------------------------------------------------------
+\newcommand{\badge}[2]{{\sansall\bfseries\scriptsize%
+  \colorbox{#1!16}{\textcolor{#1!72!black}{\,#2\,}}}}
+\newcommand{\pzero}{\badge{bad}{P0}}
+\newcommand{\pone}{\badge{beo}{P1}}
+\newcommand{\ptwo}{\badge{ctr}{P2}}
+\newcommand{\pthree}{\badge{feg}{P3}}
+
+% กล่อง "ผลลัพธ์ที่ต้องได้" — ปิดท้ายทุกวาระ เพื่อไม่ให้คุยจบแบบไม่มีมติ
+\newtcolorbox{outbox}{guidebox, colback=wash, colframe=ctr,
+  colbacktitle=wash, coltitle=ctr!85!black,
+  title={ผลลัพธ์ที่ต้องจดลงบันทึกก่อนปิดวาระนี้}}
+
+\begin{document}
+
+% =============================================================================
+%  หน้าปก
+% =============================================================================
+\begin{titlepage}
+\thispagestyle{empty}
+\begin{tikzpicture}[remember picture, overlay]
+  \fill[ctr!8] (current page.north west) rectangle
+       ([yshift=-9.5cm]current page.north east);
+  \fill[ctr] ([yshift=-9.5cm]current page.north west) rectangle
+       ([yshift=-9.62cm]current page.north east);
+\end{tikzpicture}
+
+\vspace*{1.4cm}
+{\sansall\color{muted}\small เอกสารสำหรับใช้ในห้องประชุม --- ผู้เข้าร่วมทุกคนควรอ่านภาค 1 มาก่อน}
+
+\vspace{0.9cm}
+{\sansall\bfseries\fontsize{27}{33}\selectfont\color{ctr!90!black}
+วาระประชุม\\ตกลงสัญญา \en{tRPC}\par}
+
+\vspace{0.5cm}
+{\sansall\fontsize{13.5}{19}\selectfont\color{ink}
+19 เรื่องที่ต้องตกลง เรียงตามว่าอะไรบล็อกอะไร\\
+เรื่องไหนต้องจบก่อนออกจากห้อง เรื่องไหนผลัดไปก่อนได้\par}
+
+\vspace{2.8cm}
+
+\begin{minipage}{0.66\textwidth}
+เอกสารนี้ไม่ใช่บันทึกการประชุม แต่เป็น \textbf{สิ่งที่ต้องเตรียมก่อนประชุม}
+แต่ละวาระมาพร้อมคำถามที่ต้องตอบ ตัวเลือกที่มี ข้อเสนอของฝ่ายเทคนิค
+และผลที่จะตามมาถ้าไม่ตกลงในรอบนี้
+
+\vspace{0.6em}
+จุดประสงค์คือให้ทุกคนเข้าห้องประชุมโดยรู้ตรงกันว่า \emph{กำลังจะตัดสินใจอะไร}
+และ \emph{ทำไมลำดับถึงเป็นแบบนี้} --- ไม่ใช่มาถกกันว่าเรื่องไหนสำคัญกว่ากัน
+
+\vspace{0.6em}
+เหตุผลเบื้องหลังของแต่ละวาระอยู่ในเอกสารคู่กัน \code{trpc-guide.tex}
+ส่วนภาคผนวก ก ของเล่มนี้คือแบบฟอร์มบันทึกมติที่กรอกได้ระหว่างประชุม
+\end{minipage}
+
+\vfill
+\begin{tikzpicture}
+  \draw[rule, line width=0.6pt] (0,0) -- (\textwidth,0);
+\end{tikzpicture}
+\vspace{0.3em}
+
+{\sansall\footnotesize\color{muted}
+โครงการ: ระบบบริหารจัดการการยืม--คืนอุปกรณ์มหาวิทยาลัย (ULMs) \\
+เวลาที่เสนอ: 90 นาที สำหรับภาค 1--2 (\pzero{} และ \pone{}) · ภาค 3--4 ไม่ต้องคุยในรอบนี้ \\
+ปรับปรุงล่าสุด: 8 สิงหาคม 2569}
+\end{titlepage}
+
+% =============================================================================
+%  สารบัญ
+% =============================================================================
+\microtypesetup{protrusion=false}
+{\hypersetup{allcolors=ink}
+\tableofcontents}
+\microtypesetup{protrusion=true}
+\clearpage
+
+% =============================================================================
+%  เอกสารนี้อ่านอย่างไร
+% =============================================================================
+\section*{เอกสารนี้อ่านอย่างไร}
+\addcontentsline{toc}{section}{เอกสารนี้อ่านอย่างไร}
+\markboth{เอกสารนี้อ่านอย่างไร}{}
+
+เอกสารแบ่งเป็นห้าภาค \textbf{เรียงตามว่าเรื่องไหนบล็อกเรื่องไหน} ไม่ได้เรียงตาม
+ความยากหรือตามลำดับที่จะเขียนโค้ด เหตุผลคือในการประชุมที่มีเวลาจำกัด สิ่งที่ทำให้
+ประชุมล้มเหลวไม่ใช่การตกลงไม่ได้ แต่คือ \textbf{การใช้เวลาไปกับเรื่องที่รอได้
+จนเรื่องที่รอไม่ได้ไม่ได้คุย}
+
+\subsection*{ระบบสีในเอกสารฉบับนี้ --- สี่ระดับความเร่งด่วน}
+
+\begin{table}[H]
+\centering\small
+\begin{tabular}{L{1.3cm}L{4.6cm}L{9.0cm}}
+\toprule
+\sansall\bfseries ระดับ & \sansall\bfseries กำหนด & \sansall\bfseries เกณฑ์ที่ใช้จัดระดับ \\
+\midrule
+\pzero{} & ต้องจบก่อนออกจากห้อง &
+ถ้าไม่ตกลง \textbf{ไม่มีใครเขียนโค้ดต่อได้เลย} ทั้งสองฝั่ง \\
+\addlinespace
+\pone{} & ต้องจบภายในสัปดาห์นี้ &
+เขียน \en{procedure} ตัวแรกได้ แต่ถ้ายังไม่ตกลง \en{procedure} ตัวที่ 2--30
+จะออกมาไม่เหมือนกัน แล้วต้องกลับมาแก้ทั้งหมด \\
+\addlinespace
+\ptwo{} & ตกลงตอนเริ่มทำ \en{feature} นั้น &
+กระทบเฉพาะบางส่วนของระบบ ตัดสินใจช้าแล้วแก้ทีหลังได้ในต้นทุนที่ยอมรับได้ \\
+\addlinespace
+\pthree{} & ผลัดไปหลัง \en{MVP} ได้ &
+ไม่กระทบการส่งงาน ถ้าคุยตอนนี้จะกินเวลาโดยไม่ได้อะไรกลับมา \\
+\bottomrule
+\end{tabular}
+\caption{สี่ระดับ --- เกณฑ์คือ ``ถ้าไม่ตกลงตอนนี้ จะต้องกลับมาแก้ของที่ทำไปแล้วมากแค่ไหน'' ไม่ใช่ ``เรื่องนี้สำคัญแค่ไหน''}
+\end{table}
+
+\begin{warnbox}[title={ทุกวาระสำคัญ --- แต่ไม่ใช่ทุกวาระเร่งด่วน}]
+วาระใน \pthree{} ไม่ได้แปลว่าไม่สำคัญ การจำกัดอัตราการเรียก (\en{rate limit})
+สำคัญมากในระบบจริง แต่มันแก้ทีหลังได้โดยไม่ต้องรื้อของเดิม ต่างจากการตั้งชื่อ
+\en{procedure} ที่ถ้าเปลี่ยนตอนมี 30 ตัวแล้วจะกระทบทุกไฟล์ทั้งสองฝั่ง
+
+การจัดลำดับนี้ใช้เกณฑ์ \textbf{ต้นทุนของการตัดสินใจช้า} ไม่ใช่ความสำคัญ
+\end{warnbox}
+
+\subsection*{แผนที่ความสัมพันธ์ --- อะไรบล็อกอะไร}
+
+รูปข้างล่างคือเหตุผลของลำดับทั้งหมด ลูกศรอ่านว่า ``ต้องตกลงข้อนี้ก่อน จึงจะตกลง
+ข้อถัดไปได้อย่างมีความหมาย''
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[node distance=4mm, every node/.style={font=\sansall\scriptsize}]
+
+  % ---- P0 ----
+  \node[blk, fill=badwash, draw=bad!45, text width=3.2cm] (d1)
+       {\textbf{ว-01} ขนส่งสัญญา\\[1pt]\scriptsize\color{muted}monorepo / \mbox{คัดลอก} / paths};
+  \node[blk, fill=badwash, draw=bad!45, text width=3.2cm, right=of d1] (d2)
+       {\textbf{ว-02} เวอร์ชัน \code{zod}};
+  \node[blk, fill=badwash, draw=bad!45, text width=3.2cm, right=of d2] (d3)
+       {\textbf{ว-03} \code{ctx.user} + \en{cookie}};
+  \node[blk, fill=badwash, draw=bad!45, text width=3.2cm, right=of d3] (d4)
+       {\textbf{ว-04} เจ้าของสัญญา + วิธีแก้};
+
+  % ---- P1 ----
+  \node[blk, fill=warnwash, draw=beo!45, text width=3.2cm, below=11mm of d1] (d5)
+       {\textbf{ว-05} ชื่อ \en{router}/\en{procedure}};
+  \node[blk, fill=warnwash, draw=beo!45, text width=3.2cm, right=of d5] (d6)
+       {\textbf{ว-06} รูปแบบ \en{error}};
+  \node[blk, fill=warnwash, draw=beo!45, text width=3.2cm, right=of d6] (d7)
+       {\textbf{ว-07} แบ่งหน้า/กรอง};
+  \node[blk, fill=warnwash, draw=beo!45, text width=3.2cm, right=of d7] (d8)
+       {\textbf{ว-08} รูปแบบวันที่};
+
+  \node[blk, fill=warnwash, draw=beo!45, text width=5.2cm, below=6mm of d5, xshift=1.1cm] (d9)
+       {\textbf{ว-09} กฎการแปลงชื่อฟิลด์ + ห้ามส่ง \en{Prisma model} ตรง ๆ};
+  \node[blk, fill=warnwash, draw=beo!45, text width=5.2cm, right=of d9] (d10)
+       {\textbf{ว-10} สถานะเป็นสตริงคงที่ ไม่ใช่เลข \en{key}};
+
+  % ---- P2/P3 รวบ ----
+  \node[blk, fill=wash, draw=ctr!45, text width=7.0cm, below=11mm of d9, xshift=1.0cm] (p2)
+       {\textbf{ว-11 ถึง ว-15} อัปโหลด · ความถี่ \en{polling} · \en{batching} · ข้อความ · \en{log}\\[1pt]
+        \scriptsize\color{muted}ตกลงตอนเริ่มทำ \en{feature} นั้น};
+  \node[blk, fill=goodwash, draw=feg!45, text width=6.2cm, right=of p2] (p3)
+       {\textbf{ว-16 ถึง ว-19} \en{realtime} · \en{rate limit} · \en{versioning} · เทสต์สัญญา\\[1pt]
+        \scriptsize\color{muted}หลัง \en{MVP}};
+
+  \draw[ar] (d1.south) -- ++(0,-3mm) -| (d5.north);
+  \draw[ar] (d1.south) -- ++(0,-3mm) -| (d9.north);
+  \draw[ar] (d2.south) -- ++(0,-3mm) -| ([xshift=-1cm]d5.north);
+  \draw[ar] (d3.south) -- ++(0,-3mm) -| (d6.north);
+  \draw[ar] (d4.south) -- ++(0,-3mm) -| (d8.north);
+  \draw[ar] (d9.south) -- ++(0,-3mm) -| ([xshift=-1.5cm]p2.north);
+  \draw[ar] (d10.south) -- ++(0,-3mm) -| ([xshift=1.5cm]p2.north);
+  \draw[ar, dashed] (p2) -- (p3);
+
+\end{tikzpicture}
+\caption{แผนที่วาระ --- แถวบนสุดคือสี่เรื่องที่ทุกอย่างข้างล่างพึ่งพา ถ้าประชุมได้แค่ 30 นาที ให้คุยเฉพาะแถวบน ลูกศรประหมายถึง ``คุยได้แต่ไม่จำเป็น'' คือภาค 3 กับ 4 ที่ไม่ควรอยู่ในวาระของรอบนี้}
+\label{fig:dep}
+\end{figure}
+
+\subsection*{แต่ละวาระเขียนในรูปแบบเดียวกัน}
+
+เพื่อให้ประชุมเร็วและไม่หลงประเด็น ทุกวาระมีหัวข้อย่อยชุดเดียวกัน:
+\textbf{คำถามที่ต้องตอบ} $\to$ \textbf{ทำไมอยู่ระดับนี้} $\to$
+\textbf{ตัวเลือก} $\to$ \textbf{ข้อเสนอ} $\to$ \textbf{ถ้าไม่ตกลงจะเกิดอะไร}
+$\to$ \textbf{ผลลัพธ์ที่ต้องจด}
+
+กล่องฟ้าปิดท้ายทุกวาระคือรายการที่ต้อง \emph{จดลงบันทึกจริง} --- ถ้าคุยจบแล้ว
+กรอกกล่องนั้นไม่ได้ แปลว่ายังไม่ได้ตกลง
+
+\clearpage
+
+% =============================================================================
+\part{\pzero{} ต้องจบก่อนออกจากห้อง}
+% =============================================================================
+
+\textbf{สี่วาระนี้บล็อกทุกคน ถ้าไม่จบ ทั้ง \en{frontend} และ \en{backend}
+เขียนโค้ดที่จะได้ใช้จริงไม่ได้เลย เวลาที่เสนอ: 55 นาที}
+
+\section{ว-01 · ไฟล์สัญญาจะเดินทางข้ามฝั่งอย่างไร}
+
+\textbf{คำถามที่ต้องตอบ:} \en{frontend} จะ \code{import type} ไฟล์สัญญาที่
+\en{backend} สร้างขึ้นได้ด้วยวิธีไหน
+
+\textbf{ทำไมอยู่ระดับ \pzero{}:} สัญญาของ \en{tRPC} คือ \en{type} ของ
+\en{TypeScript} ถ้าฝั่งหนึ่งมองไม่เห็นไฟล์ของอีกฝั่ง ก็ไม่มีสัญญา ---
+มีแต่ \en{REST} ที่เขียนด้วยไวยากรณ์ของ \en{tRPC} ตอนนี้รีโปมี
+\code{package.json} สามไฟล์ที่ไม่รู้จักกัน --- ไม่มี \en{workspace} เชื่อม
+จึง \code{import type} ข้ามกันไม่ได้ (หมายเหตุ: \code{frontend-preview/} กับ
+\code{backend-preview/} เป็น \en{git worktree} ของอีกสองสาขา โค้ดจึงอยู่บนดิสก์
+พร้อมกันแล้ว สคริปต์คัดลอกในทางเลือก ข. รันข้ามได้ทันทีในเครื่องนักพัฒนา)
+
+\subsection{คำถามแรกที่จะถูกถามในห้อง: ``\en{merge} รวมสาขาให้จบก็แก้ได้ไม่ใช่เหรอ''}
+
+คำถามนี้สมเหตุสมผลมากและต้องตอบให้จบก่อน ไม่งั้นจะวนกลับมาถามซ้ำระหว่างคุย
+ทางเลือก คำตอบคือ \textbf{\en{merge} แก้ได้ครึ่งเดียว และครึ่งที่เหลือคือครึ่งที่
+บล็อกเราอยู่จริง ๆ}
+
+\begin{goodbox}[title={ข่าวดีก่อน: งาน \en{merge} เหลือน้อยกว่าที่คิด และไม่มี \en{conflict}}]
+ตรวจกับ \code{origin} จริงเมื่อ 8 ส.ค. 2569 (หลังทีมทยอย \en{merge} เข้า
+\code{main} ไปแล้วหลายรอบ)
+
+\begin{itemize}
+\item \code{front-end-branch} --- \textbf{ถูก \en{merge} เข้า \code{main}
+      ไปเรียบร้อยแล้ว} เหลือ 0 \en{commit} ที่ค้าง
+\item \code{back-end-branch} --- เหลือ 2 \en{commit} (\code{Set up Nest.js+Prisma}
+      และ \code{Added tRPC}) ส่วน \code{main} นำอยู่ 19 \en{commit}
+\item \textbf{\en{conflict} ที่จะเกิดจากการรวม \code{back-end-branch} เข้า
+      \code{main}: 0 จุด} (ตรวจด้วย \code{git merge-tree --write-tree})
+\end{itemize}
+
+แปลว่างานที่เหลือคือ \en{merge} สาขาเดียว 2 \en{commit} แบบไม่มีอะไรชน ---
+การ \en{merge} ไม่ใช่งานที่น่ากลัว และควรทำ แต่ด้วยเหตุผลอื่นที่ไม่ใช่เรื่องสัญญา
+\end{goodbox}
+
+สมมติว่า \en{merge} เสร็จแล้ว ทุกอย่างอยู่บน \code{main} โฟลเดอร์เดียวกัน
+แล้วฝั่ง \en{frontend} เขียนบรรทัดนี้
+
+\begin{lstlisting}
+// after the merge — everything is in one branch, one folder tree
+import type { AppRouter } from '../../backend/src/@generated/appRouter';
+\end{lstlisting}
+
+จะเจอด่านสามชั้นเรียงกัน และ \textbf{ไม่มีด่านไหนเลยที่เกี่ยวกับสาขา \en{git}}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[node distance=4mm]
+  \node[festage, text width=3.0cm] (fe)
+       {\en{frontend} เขียน\\\code{import type}};
+  \node[blk, fill=warnwash, draw=beo!45, text width=3.1cm, right=of fe] (g1)
+       {\textbf{ด่าน 1}\\\code{tsconfig include}\\[1pt]
+        \scriptsize\color{muted}\en{TS} ไม่มองไฟล์นอก \code{src/}};
+  \node[blk, fill=badwash, draw=bad!55, text width=3.4cm, right=of g1] (g2)
+       {\textbf{ด่าน 2}\\\code{node\_modules} สองกอง\\[1pt]
+        \scriptsize\color{muted}ด่านที่แก้ยากจริง};
+  \node[blk, fill=warnwash, draw=beo!45, text width=3.0cm, right=of g2] (g3)
+       {\textbf{ด่าน 3}\\\code{zod} 3 กับ 4\\[1pt]
+        \scriptsize\color{muted}คือวาระ ว-02};
+
+  \draw[ar] (fe) -- (g1); \draw[ar] (g1) -- (g2); \draw[ar] (g2) -- (g3);
+
+  \node[blk, fill=goodwash, draw=feg!45, text width=3.1cm, below=9mm of g1] (m1)
+       {\en{merge} ช่วยไหม?\\[1pt]\scriptsize\color{muted}\textbf{ไม่} แต่แก้ง่าย เพิ่มบรรทัดเดียว};
+  \node[blk, fill=badwash, draw=bad!45, text width=3.4cm, below=9mm of g2] (m2)
+       {\en{merge} ช่วยไหม?\\[1pt]\scriptsize\color{muted}\textbf{ไม่ช่วยเลย} เพราะตัวที่แยกคือ \code{package.json} ไม่ใช่สาขา};
+  \node[blk, fill=badwash, draw=bad!45, text width=3.0cm, below=9mm of g3] (m3)
+       {\en{merge} ช่วยไหม?\\[1pt]\scriptsize\color{muted}\textbf{ไม่} ต้องตกลง ว-02 อยู่ดี};
+
+  \draw[ar, draw=rule] (g1) -- (m1);
+  \draw[ar, draw=rule] (g2) -- (m2);
+  \draw[ar, draw=rule] (g3) -- (m3);
+\end{tikzpicture}
+\caption{สามด่านที่ \code{import type} ต้องผ่าน --- แถวล่างคือคำตอบว่า \en{merge} ช่วยด่านไหนบ้าง}
+\label{fig:merge-gates}
+\end{figure}
+
+\subsubsection{ด่าน 1 --- \en{TypeScript} ไม่มองไฟล์นั้นตั้งแต่แรก}
+
+\code{frontend/tsconfig.json} ระบุ \code{"include": ["src", "vite.config.ts",
+"tailwind.config.ts"]} ไฟล์ที่อยู่นอก \code{src/} จึงไม่ถูกคอมไพล์เลย
+
+ด่านนี้ \textbf{แก้ง่ายที่สุด} แค่เติมพาธเข้าไปใน \code{include} หรือเพิ่ม
+\code{paths} --- แต่พอผ่านด่านนี้ไปได้ จะไปเจอด่าน 2 ทันที และด่าน 2 คือด่านจริง
+
+\subsubsection{ด่าน 2 --- \code{node\_modules} สองกองแยกกัน (ปัญหาของการไม่ใช้ \en{npm} เดียวกัน)}
+
+นี่คือหัวใจของทั้งวาระ ต้องเข้าใจกลไกให้ตรงกันก่อนเลือกทางเลือก
+
+ไฟล์สัญญาที่ \en{backend} สร้างขึ้น \textbf{ไม่ใช่ \en{type} ล้วน ๆ} มันมีโค้ด
+\code{zod} อยู่ข้างในและ \code{import} ของมันเองต่อ
+
+\begin{lstlisting}
+// inside the generated contract file, which physically lives in backend/
+import { z } from 'zod';
+import { initTRPC } from '@trpc/server';
+
+const userOutput = z.object({ id: z.number(), firstName: z.string() });
+// ...
+\end{lstlisting}
+
+เมื่อ \en{frontend} ดึงไฟล์นี้เข้ามาในโปรแกรมของตัวเอง \en{TypeScript} ต้อง
+ตามไป \en{resolve} \code{'zod'} และ \code{'@trpc/server'} ให้ได้ด้วย ---
+และตรงนี้แหละที่พัง เพราะ
+
+\begin{enumerate}
+\item \textbf{\en{npm} ติดตั้งแยกกอง} --- \code{frontend/node\_modules} กับ
+      \code{backend/node\_modules} เป็นคนละต้นไม้ ไม่มีการใช้ร่วมกัน
+      \en{merge} สาขาไม่ได้ทำให้สองกองนี้รวมกัน เพราะสิ่งที่กำหนดว่ามีกี่กองคือ
+      \textbf{จำนวนไฟล์ \code{package.json}} ไม่ใช่จำนวนสาขา
+\item \textbf{\en{frontend} ไม่มี \code{@trpc/server} เลย} --- ตรวจแล้วใน
+      \code{frontend/package.json} ไม่มีแพ็กเกจของ \en{tRPC} สักตัว
+      \en{resolve} ไม่เจอ ผลคือ \en{type} ทั้งก้อนกลายเป็น \code{any} หรือ
+      \en{error}
+\item \textbf{\code{zod} คนละเวอร์ชันใหญ่} --- 3.23 กับ 4.4 (ด่าน 3)
+\end{enumerate}
+
+\begin{warnbox}[title={อาการเฉพาะที่ควรจำไว้: ``\en{Type} X ใช้แทน \en{Type} X ไม่ได้''}]
+สมมติแก้ข้อ 2 และ 3 แล้ว คือ \en{frontend} ลง \code{zod} เวอร์ชันเดียวกันเป๊ะ
+แต่ยัง \en{install} แยกกองอยู่ --- ก็ยังมีโอกาสพังได้อีกแบบ
+
+\en{TypeScript} ตัดสินว่า \en{type} สองตัวเป็นตัวเดียวกันไหมจาก
+\textbf{ไฟล์ประกาศที่มันมาจาก} ไม่ใช่จากชื่อ ถ้ามี \code{zod} สองชุดบนดิสก์
+มันจะเห็น \code{ZodString} \textbf{สองชนิดที่ไม่เท่ากัน} แล้วฟ้อง \en{error}
+หน้าตาแบบ ``\code{Type 'ZodString' is not assignable to type 'ZodString'}''
+ซึ่งอ่านแล้วไม่มีทางเดาสาเหตุถูก และเป็นบั๊กที่กินเวลาทีมได้ทั้งวัน
+
+\en{workspaces} แก้ปัญหานี้โดยตรง เพราะมันยุบให้เหลือชุดเดียวจริง ๆ
+\end{warnbox}
+
+\subsubsection{ด่าน 3 --- \code{zod} คนละเวอร์ชัน}
+
+รายละเอียดอยู่ในวาระ ว-02 ที่ต้องเน้นตรงนี้คือ \en{merge} ไม่ได้ทำให้เวอร์ชัน
+ตรงกันเอง ยังต้องมีคนตัดสินใจและลงมือ
+
+\begin{keybox}[title={ประโยคที่ใช้ตอบในห้องประชุมได้เลย}]
+``\en{merge} ทำเถอะ ง่ายมาก ไม่มี \en{conflict} เลย แต่มันไม่ทำให้
+\code{import type} ข้ามฝั่งได้ เพราะตัวที่แยกคือ \code{package.json} สองไฟล์
+ไม่ใช่สาขา --- เรายังต้องเลือกระหว่าง \en{workspaces} กับคัดลอกไฟล์อยู่ดี''
+\end{keybox}
+
+\subsubsection{แล้ว \en{merge} ให้อะไรเรา}
+
+ไม่ใช่ว่าไม่คุ้ม --- \en{merge} \textbf{ควรทำ} แต่ต้องรู้ว่าได้อะไรจริง
+
+\begin{itemize}
+\item ทุกคนเห็นโค้ดชุดเดียวกัน รีวิว \en{PR} ข้ามฝั่งได้
+\item \textbf{เป็นเงื่อนไขที่ต้องมีก่อน ถ้าจะไปทางเลือก ก.} เพราะ
+      \code{package.json} ระดับรากต้องอยู่บนสาขาเดียวกับทั้งสองโฟลเดอร์
+\item ทำให้ \en{CI} ในอนาคตตรวจทั้งสองฝั่งได้ในการรันเดียว
+\item ลดโอกาสที่โค้ดสองฝั่งจะห่างกันจนรวมยากในภายหลัง
+\end{itemize}
+
+\begin{badbox}[title={ทางเลือก ค. (\code{paths} ใน \code{tsconfig}) ตายตรงด่าน 2}]
+ทางเลือกที่เคยเสนอไว้ว่า ``ชี้ \code{paths} ข้ามโฟลเดอร์เอา ไม่ต้องคัดลอก''
+คือการแก้เฉพาะด่าน 1 แล้วเดินชนด่าน 2 เต็ม ๆ
+
+มันไม่ได้ทำอะไรกับ \code{node\_modules} สองกองเลย จึงไม่ใช่ทางเลือกจริง
+--- \textbf{ตัดออกจากการพิจารณาได้ เหลือแค่ ก. กับ ข.}
+\end{badbox}
+
+\subsection{ทางเลือก ก. --- \en{npm workspaces}}
+
+\subsubsection{แนวคิด}
+
+บอก \en{npm} ว่า \code{frontend/} กับ \code{backend/} เป็น ``\en{workspace}''
+ของรีโปเดียวกัน \en{npm} จะ \textbf{ยุบ \code{node\_modules} ให้เหลือกองเดียว
+ที่ราก} แล้วทั้งสองฝั่ง \en{resolve} แพ็กเกจจากที่เดียวกัน
+
+ด่าน 2 จึงหายไปเองโดยไม่ต้องทำอะไรเพิ่ม และด่าน 3 จะถูกบังคับให้แก้ เพราะ
+\en{npm} จะบ่นทันทีถ้าสองฝั่งขอ \code{zod} คนละเวอร์ชันใหญ่
+
+จากนั้นสร้าง \en{workspace} ตัวที่สามชื่อ \code{packages/contract} ไว้เก็บ
+ไฟล์สัญญา --- ทั้งสองฝั่ง \code{import} จากชื่อแพ็กเกจ ไม่ใช่จากพาธสัมพัทธ์
+
+\subsubsection{วิธีทำ ทีละขั้น}
+
+\begin{enumerate}
+\en{merge} \code{back-end-branch} เข้า \code{main} (0 \en{conflict}
+      --- \code{front-end-branch} เข้าไปแล้ว)
+\item ย้าย \code{backend-preview/backend/} $\to$ \code{backend/} ให้ชื่อโฟลเดอร์
+      สม่ำเสมอ แล้วลบ \en{worktree} ทิ้งด้วย \code{git worktree remove}
+\item สร้าง \code{package.json} ที่รากรีโป
+\item สร้าง \code{packages/contract/} พร้อม \code{package.json} ของตัวเอง
+\item ชี้ \code{autoSchemaFile} ของ \en{backend} ให้เขียนลงใน \en{package} นั้น
+\item เพิ่ม \code{"@ulms/contract": "*"} ใน \code{dependencies} ของทั้งสองฝั่ง
+\item \textbf{ลบ \code{node\_modules} และ \code{package-lock.json} ของทั้งสอง
+      โฟลเดอร์ย่อยทิ้ง} แล้ว \code{npm install} ที่รากครั้งเดียว
+\item ยก \code{zod} เป็น 4 ทั้งคู่ (ว-02) --- ขั้นนี้จะง่ายขึ้นเพราะเห็นชัดใน
+      ที่เดียว
+\end{enumerate}
+
+\begin{lstlisting}[language={}]
+{
+  "name": "ulms",
+  "private": true,
+  "workspaces": ["frontend", "backend", "packages/*"],
+  "scripts": {
+    "dev:fe":    "npm run dev -w frontend",
+    "dev:be":    "npm run start:dev -w backend",
+    "typecheck": "npm run typecheck -w frontend && npm run typecheck -w backend"
+  }
+}
+\end{lstlisting}
+
+\begin{lstlisting}[language=bash]
+# one install for the whole repo, from the root
+rm -rf frontend/node_modules backend/node_modules
+rm -f  frontend/package-lock.json backend/package-lock.json
+npm install
+\end{lstlisting}
+
+\subsubsection{ปัญหาที่จะเกิด}
+
+\begin{table}[H]
+\centering\small
+\begin{tabular}{L{4.4cm}L{5.0cm}L{5.0cm}}
+\toprule
+\sansall\bfseries ปัญหา & \sansall\bfseries อาการ & \sansall\bfseries กันไว้อย่างไร \\
+\midrule
+พาธใน \en{Prisma} พังตอนย้ายโฟลเดอร์ &
+\code{schema.prisma} ตั้ง \code{output = "../src/generated/prisma"} แบบสัมพัทธ์
+และ \code{prisma.config.ts} ชี้ \code{"prisma/schema.prisma"} &
+รัน \en{Prisma} จากใน \en{workspace} เสมอ (\code{npm run -w backend ...})
+ไม่ใช่จากราก และตรวจ \code{npx prisma generate} ให้ผ่านทันทีหลังย้าย \\
+\addlinespace
+\textbf{\en{phantom dependency}} &
+\en{hoisting} ทำให้ \code{import} แพ็กเกจที่ไม่ได้ประกาศไว้ใน
+\code{package.json} ของตัวเองได้ แล้วพังตอนแยกไป \en{deploy} &
+ทุกครั้งที่ \code{import} ของใหม่ ให้ \code{npm i -w <ws> <pkg>} เสมอ
+ห้ามพึ่งว่า ``มันก็เห็นอยู่แล้ว'' \\
+\addlinespace
+\en{lockfile} ใหญ่ขึ้นและ \en{conflict} บ่อยขึ้น &
+\code{package-lock.json} ไฟล์เดียวสำหรับทุก \en{workspace} &
+เวลา \en{conflict} \textbf{อย่าแก้ด้วยมือ} ให้เอาของฝั่งใดฝั่งหนึ่งแล้ว
+\code{npm install} ใหม่เพื่อสร้างใหม่ \\
+\addlinespace
+\en{Vite} กับ \en{package} ที่เป็น \en{TypeScript} ดิบ &
+\code{@ulms/contract} เป็นซอร์ส \code{.ts} ไม่ได้ \en{build} เป็น \code{.d.ts}
+\en{Vite} อาจ \en{pre-bundle} ผิด &
+ให้ \code{contract} \en{export} เป็นซอร์ส \code{.ts} ตรง ๆ และตั้ง
+\code{optimizeDeps.exclude} ถ้าเจออาการแปลก \\
+\addlinespace
+ทุกคนต้องทำพร้อมกัน &
+คนที่ยังไม่ลบ \code{node\_modules} เก่าจะเจออาการที่อธิบายไม่ได้ &
+ประกาศล่วงหน้า ให้ทุกคน \code{git pull} แล้วรันชุดคำสั่งเดียวกัน \\
+\bottomrule
+\end{tabular}
+\caption{ปัญหาของทางเลือก ก. --- สังเกตว่าทั้งหมดเป็นปัญหา ``ครั้งเดียวตอนย้าย'' ไม่ใช่ปัญหาที่กวนใจไปตลอด}
+\end{table}
+
+\subsubsection{สิ่งที่ควรรู้ก่อนลงมือ}
+
+\begin{itemize}
+\item \textbf{ไม่ต้องลงเครื่องมือใหม่} --- \en{npm} 10.9 ที่ทีมใช้อยู่รองรับ
+      \en{workspaces} มาตั้งแต่ \en{npm} 7 และ \code{package-lock.json}
+      ทั้งสองไฟล์เป็น \code{lockfileVersion 3} อยู่แล้ว
+\item \textbf{\en{pnpm} ดีกว่าในเชิงเทคนิค แต่ไม่แนะนำตอนนี้} --- มันเข้มงวดกว่า
+      และกัน \en{phantom dependency} ได้จริง แต่ทุกคนต้องลง \en{pnpm} เพิ่ม
+      และเปลี่ยนคำสั่งที่ใช้ทุกวัน --- เป็นการเปลี่ยนสองเรื่องพร้อมกัน
+      ซึ่งเวลาพังจะแยกไม่ออกว่าพังเพราะอะไร
+\item \textbf{ทำเป็น \en{PR} เดียว คนเดียวทำ} คนอื่นหยุด \en{push} ระหว่างนั้น
+      ประเมินเวลา 2--3 ชั่วโมง
+\item \textbf{ต้องมีแผนถอย} --- ถ้าเกินเวลาที่ตั้งไว้แล้วยังไม่จบ ให้
+      \code{git revert} แล้วไปทางเลือก ข. ก่อน อย่าปล่อยให้รีโปค้างอยู่ครึ่งทาง
+      ข้ามคืน
+\item \textbf{อย่าทำในสัปดาห์ที่มีเดดไลน์ส่งงาน}
+\end{itemize}
+
+\subsection{ทางเลือก ข. --- คัดลอกไฟล์ที่ถูกสร้าง}
+
+\subsubsection{แนวคิด}
+
+ปล่อยให้ \code{node\_modules} แยกกันเหมือนเดิม แล้วแก้ด่าน 2 ด้วยการ
+\textbf{ทำให้ฝั่ง \en{frontend} มีของครบพอที่จะ \en{resolve} ไฟล์สัญญาได้เอง}
+คือลง \code{zod} กับ \code{@trpc/server} เพิ่มในฝั่งนั้นด้วย
+
+แล้วคัดลอกไฟล์สัญญาข้ามมาด้วยสคริปต์
+
+\subsubsection{วิธีทำ ทีละขั้น}
+
+\begin{enumerate}
+\item \en{merge} สองสาขาเข้า \code{main} --- ทางเลือกนี้ \emph{ทำงานได้} โดยไม่
+      \en{merge} เพราะ \en{worktree} ทำให้โค้ดอยู่บนดิสก์พร้อมกันแล้ว
+      \textbf{แต่ \en{CI} จะตรวจไม่ได้ถ้าโค้ดยังอยู่คนละสาขา} จึงควร \en{merge} อยู่ดี
+\item ตั้ง \code{autoSchemaFile} ใน \code{app.module.ts} ฝั่ง \en{backend}
+\item \textbf{ลงแพ็กเกจเพิ่มฝั่ง \en{frontend} สามตัว} (ดูกล่องเตือนข้างล่าง)
+\item เขียนสคริปต์ \code{scripts/sync-contract.sh} พร้อมโหมด \code{--check}
+\item เพิ่ม \code{npm run sync:contract} และ \code{check:contract} ใน
+      \code{package.json}
+\item \textbf{ตั้ง \en{CI} หรือกติกาก่อน \en{merge}} ให้รัน
+      \code{check:contract} กับ \code{tsc --noEmit} ทั้งสองฝั่ง
+\end{enumerate}
+
+\begin{warnbox}[title={\en{frontend} ต้องลงเพิ่มสามตัว ไม่ใช่ตัวเดียว --- จุดที่พลาดกันบ่อย}]
+เพราะไฟล์สัญญาที่คัดลอกมามี \code{import} ของตัวเองอยู่ข้างใน ฝั่งที่รับต้องมี
+ของครบด้วย
+
+\begin{lstlisting}[language=bash]
+cd frontend
+npm i zod@^4               # must match the backend major exactly - see agenda 02
+npm i @trpc/client         # to actually make calls
+npm i -D @trpc/server      # types only — the contract file imports it
+\end{lstlisting}
+
+\code{@trpc/server} ฝั่ง \en{frontend} เป็น \code{devDependency} เพราะใช้แค่
+\en{type} ตอน \en{compile} ไม่ได้ใช้ตอนรัน --- และเวอร์ชันต้องตรงกับฝั่ง
+\en{backend} (ตอนนี้ 11.18) ไม่งั้นจะเจออาการ ``\en{Type} X ใช้แทน \en{Type} X
+ไม่ได้'' แบบเดียวกับที่อธิบายไว้ในด่าน 2
+\end{warnbox}
+
+\begin{badbox}[title={ต้องเป็น \code{import type} เท่านั้น ห้ามลืมคำว่า \code{type}}]
+ไฟล์สัญญามี \code{initTRPC.create()} ซึ่งเป็นโค้ดที่รันได้จริง ไม่ใช่ \en{type} ล้วน
+
+\begin{lstlisting}
+import type { AppRouter } from '@/server-types/appRouter';  // correct
+import { AppRouter } from '@/server-types/appRouter';       // WRONG
+\end{lstlisting}
+
+บรรทัดล่างจะทำให้ \en{Vite} ลาก \code{@trpc/server} ทั้งก้อนเข้าไปใน \en{bundle}
+ที่ส่งไปเบราว์เซอร์ --- \en{build} ผ่านปกติ ไม่มี \en{error} แต่ขนาดไฟล์จะโตขึ้น
+โดยไม่มีใครสังเกต
+
+กันด้วยการเปิดกฎ \en{ESLint} \code{consistent-type-imports}
+\end{badbox}
+
+\subsubsection{ปัญหาที่จะเกิด}
+
+\begin{table}[H]
+\centering\small
+\begin{tabular}{L{4.4cm}L{5.0cm}L{5.0cm}}
+\toprule
+\sansall\bfseries ปัญหา & \sansall\bfseries อาการ & \sansall\bfseries กันไว้อย่างไร \\
+\midrule
+\textbf{สัญญาเก่าได้เงียบ ๆ} (ปัญหาหลัก) &
+มีคนแก้ \en{schema} ฝั่ง \en{backend} แล้วลืมรันสคริปต์ \en{frontend} ยังใช้
+สัญญาเก่าโดย \code{tsc} ไม่ฟ้อง &
+\code{check:contract} ต้องเป็นเงื่อนไขก่อน \en{merge} --- \textbf{ถ้าไม่มีข้อนี้
+ทางเลือก ข. แย่กว่าไม่มีสัญญาเลย} \\
+\addlinespace
+เวอร์ชัน \code{zod}/\code{@trpc/server} หลุดจากกันภายหลัง &
+มีคนอัป \code{zod} ข้างเดียว แล้ว \en{type} เพี้ยนแบบอ่านไม่ออก &
+เพิ่มการเทียบเวอร์ชันเข้าไปในสคริปต์ \code{--check} ด้วย ไม่ใช่ตรวจแค่เนื้อไฟล์ \\
+\addlinespace
+ไฟล์ \en{generated} เข้า \en{git} ทุกครั้ง &
+\en{PR} มี \en{diff} ยาวมากจนรีวิวโค้ดจริงไม่เจอ &
+ใส่ \code{.gitattributes} ทำเครื่องหมาย \code{linguist-generated} เพื่อให้
+\en{GitHub} ยุบ \en{diff} ให้ \\
+\addlinespace
+\en{conflict} ในไฟล์ที่ถูก \en{generate} &
+สอง \en{PR} แก้สัญญาพร้อมกัน &
+\textbf{ห้ามแก้ \en{conflict} ด้วยมือ} ให้ \en{regenerate} แล้ว \en{commit} ทับ \\
+\addlinespace
+มี \code{zod} สองชุดบนดิสก์ตลอดไป &
+ต่อให้เวอร์ชันตรงกัน ก็ยังมีโอกาสเจอ \en{error} \en{type} ซ้อน &
+ยอมรับความเสี่ยงนี้ หรือย้ายไปทางเลือก ก. ในภายหลัง \\
+\bottomrule
+\end{tabular}
+\caption{ปัญหาของทางเลือก ข. --- ต่างจาก ก. ตรงที่เป็นปัญหา ``กวนใจไปเรื่อย ๆ'' ไม่ใช่ปัญหาครั้งเดียว}
+\end{table}
+
+\subsubsection{สิ่งที่ควรรู้ก่อนลงมือ}
+
+\begin{itemize}
+\item \textbf{ตอนนี้รีโปยังไม่มี \en{CI} เลย} --- ไม่มีโฟลเดอร์ \code{.github/}
+      แปลว่ากติกา ``ต้องผ่าน \code{check:contract} ก่อน \en{merge}'' ยังไม่มี
+      อะไรบังคับได้จริง \textbf{เลือกทางนี้ = รับปากว่าจะตั้ง \en{CI} ด้วย}
+      หรือไม่ก็ยอมรับว่าเป็นการตรวจด้วยคนล้วน ๆ
+\item \textbf{ทางเลือกนี้ไม่ได้ห้ามย้ายไป ก. ทีหลัง} --- ย้ายได้ และตอนย้ายจะ
+      ง่ายกว่าตอนนี้ เพราะสัญญาถูกแยกเป็นโฟลเดอร์ของตัวเองอยู่แล้ว
+\item \textbf{สคริปต์ต้องเขียนให้ ``ล้มดัง''} --- ถ้าหาไฟล์ต้นทางไม่เจอ ต้อง
+      \en{exit} พร้อมบอกสาเหตุ ไม่ใช่คัดลอกไฟล์เปล่าแล้วผ่าน
+\item มีตัวอย่างสคริปต์เขียนไว้แล้วที่ \code{docs/trpc-example/scripts/sync-contract.sh}
+      (ดูภาคผนวก ค)
+\end{itemize}
+
+\subsection{เทียบสองทางเลือกแบบตัดสินใจได้}
+
+\begin{table}[H]
+\centering\small
+\begin{tabular}{L{4.0cm}L{5.2cm}L{5.2cm}}
+\toprule
+\sansall\bfseries เกณฑ์ & \sansall\bfseries ก. \en{workspaces} &
+\sansall\bfseries ข. คัดลอกไฟล์ \\
+\midrule
+แก้ด่าน 2 ได้จริงไหม & \textbf{ใช่ ที่ต้นเหตุ} --- เหลือ \code{node\_modules} กองเดียว &
+เลี่ยงได้ --- แต่ยังมีสองกอง ต้องดูแลเวอร์ชันเอง \\
+\addlinespace
+ต้นทุนตอนเริ่ม & สูง --- 2--3 ชม. ทุกคนหยุด \en{push} & ต่ำ --- เริ่มได้ในครึ่งวัน \\
+\addlinespace
+ต้นทุนต่อเนื่อง & \textbf{แทบไม่มี} & ต้องรันสคริปต์ทุกครั้ง + ต้องมี \en{CI} ตรวจ \\
+\addlinespace
+ถ้าทีมวินัยหลุด & ยังปลอดภัย \en{type} ตรงกันเสมอ &
+\textbf{อันตราย} --- สัญญาเก่าเงียบ ๆ แย่กว่าไม่มีสัญญา \\
+\addlinespace
+ความเสี่ยงตอนทำ & มี --- อาจติดพาธ \en{Prisma} หรือ \en{Vite} & น้อยมาก \\
+\addlinespace
+ต้องมี \en{CI} ก่อนไหม & ไม่ต้อง & \textbf{ควรมี} (ตอนนี้ยังไม่มี) \\
+\addlinespace
+ย้ายไปอีกทางทีหลัง & ย้ายกลับยาก & ย้ายไป ก. ได้ง่าย \\
+\bottomrule
+\end{tabular}
+\caption{แถวที่ชี้ขาดคือแถวที่สี่ --- คำถามจริงคือ ``ทีมเราจะรักษาวินัยรันสคริปต์ได้ตลอดไหม ในสัปดาห์ที่ใกล้เดดไลน์''}
+\end{table}
+
+\subsection{ข้อเสนอ}
+
+\textbf{เลือก ก. --- \en{npm workspaces}} โดยมีเงื่อนไขสามข้อ
+
+\begin{enumerate}
+\item \en{merge} \code{back-end-branch} เข้า \code{main} ก่อน เพราะไม่มีต้นทุน
+      (0 \en{conflict}) และเป็นสิ่งที่ต้องมีก่อนอยู่แล้วสำหรับทางเลือกนี้
+\item ทำเป็น \en{PR} เดียว คนเดียวทำ คนอื่นหยุด \en{push} ระหว่างนั้น ---
+      ตั้งเพดานเวลาไว้ 3 ชั่วโมง
+\item \textbf{ต้องมีแผนถอย} ถ้าเกินเพดาน ให้ \code{git revert} แล้วไปทางเลือก ข.
+      ชั่วคราว อย่าปล่อยให้รีโปค้างครึ่งทางข้ามคืน
+\end{enumerate}
+
+\textbf{เหตุผลที่เปลี่ยนมาเสนอ ก. แทน ข.} --- ร่างแรกของเอกสารนี้เสนอ ข. ด้วย
+เหตุผลว่า ``เริ่มได้เร็วกว่า'' แต่พอไล่รายละเอียดครบทั้งสองทางแล้ว น้ำหนักเปลี่ยน
+
+\begin{table}[H]
+\centering\small
+\begin{tabular}{L{4.6cm}L{10.0cm}}
+\toprule
+\sansall\bfseries ข้อค้นพบ & \sansall\bfseries ผลต่อการตัดสินใจ \\
+\midrule
+\textbf{รีโปยังไม่มี \en{CI} เลย} &
+ทางเลือก ข. ทั้งหมดฝากความปลอดภัยไว้กับ \code{check:contract} ที่รันอัตโนมัติ
+--- ซึ่งยังไม่มีอะไรรันมันได้ ต้นทุนจริงของ ข. จึงรวมค่าตั้ง \en{CI} เข้าไปด้วย
+ไม่ได้ ``เริ่มได้เร็วกว่า'' อย่างที่คิดตอนแรก \\
+\addlinespace
+\textbf{ข. ยังต้องแก้ปัญหาเวอร์ชันอยู่ดี} &
+ต้องลง \code{zod@4} และ \code{@trpc/server} เพิ่มฝั่ง \en{frontend} ให้ตรง
+เวอร์ชันเป๊ะ แล้วต้องคอยกันไม่ให้หลุดจากกันตลอดไป ---
+ก. ทำให้ปัญหานี้ \emph{หายไป} ไม่ใช่ \emph{ต้องคอยดูแล} \\
+\addlinespace
+\textbf{ก. ให้ประโยชน์ที่ ข. ให้ไม่ได้} &
+\en{frontend} เอา \code{zod schema} ตัวเดียวกับที่ \en{backend} ใช้ \en{validate}
+ไปตรวจฟอร์มได้เลย ไม่ต้องเขียนซ้ำใน \code{frontend/src/schemas/} ---
+ซึ่งการเขียนซ้ำก็คือการเปิดช่องให้ความจริงสองชุดเลื่อนออกจากกันอีกรอบ
+อันเป็นปัญหาเดิมที่เรากำลังแก้อยู่ \\
+\addlinespace
+\textbf{ความเสี่ยงของ ก. เป็นแบบ ``ครั้งเดียว''} &
+ติดพาธ \en{Prisma} หรือ \en{tsconfig} ของ \en{Nest} --- เจอแล้วแก้จบ
+มีทางแก้เขียนไว้ให้แล้วใน \code{trpc-example/README.md} หัวข้อกับดัก
+ส่วนความเสี่ยงของ ข. เป็นแบบ ``กวนใจไปตลอด'' และพึ่งวินัยของคน \\
+\bottomrule
+\end{tabular}
+\caption{สี่ข้อที่ทำให้ข้อเสนอเปลี่ยนจาก ข. เป็น ก. --- ข้อแรกคือข้อที่ชี้ขาด}
+\end{table}
+
+\begin{warnbox}[title={ทางเลือก ข. ยังเป็นทางถอยที่ใช้ได้ อย่าลบทิ้งจากความจำ}]
+หัวข้อ ข. ข้างบนยังอยู่ในเอกสารเพราะสองเหตุผล: เป็นแผนถอยถ้าการย้ายไป
+\en{workspaces} ติดปัญหาเกินเพดานเวลา และเป็นทางที่เลือกได้ถ้าที่ประชุมประเมินว่า
+ตอนนี้ไม่ใช่จังหวะที่จะรื้อโครงรีโป
+
+\code{trpc-example/STRUCTURE.md} หัวข้อ 8 สรุปไว้แล้วว่าถ้าสลับไป ข.
+ต้องเปลี่ยนสี่จุดไหน
+\end{warnbox}
+
+\textbf{ถ้าไม่ตกลงวันนี้:} \en{backend} จะเขียน \en{router} ไปเรื่อย ๆ โดยที่
+\en{frontend} ยังต้องเดา \en{type} เอง แล้วเมื่อถึงวันที่เชื่อมจริงจะพบว่าต้องแก้
+ทั้งสองฝั่งพร้อมกัน --- ซึ่งคือสถานการณ์ที่ \en{tRPC} ควรจะป้องกันตั้งแต่แรก
+
+\begin{outbox}
+\begin{itemize}
+\item จะ \en{merge} สองสาขาเข้า \code{main} เมื่อไร ใครทำ ---
+\item เลือกทางเลือก ก. หรือ ข. ---
+\item ถ้าเลือก ข. --- ใครรับผิดชอบตั้ง \en{CI} และเสร็จวันไหน ---
+\item ถ้าเลือก ก. --- ใครทำ วันไหน และเวลาที่ยอมให้ใช้ก่อนตัดสินใจถอย ---
+\item ตำแหน่งไฟล์สัญญาฝั่ง \en{backend} (ค่าของ \code{autoSchemaFile}) ---
+\item ตำแหน่งปลายทางฝั่ง \en{frontend} ---
+\item ยืนยันว่า \en{frontend} จะลง \code{zod@4}, \code{@trpc/client},
+      \code{@trpc/server} (\en{dev}) และใครทำ
+\end{itemize}
+\end{outbox}
+
+\section{ว-02 · ใช้ \code{zod} เวอร์ชันเดียวกันทั้งสองฝั่ง}
+
+\textbf{คำถามที่ต้องตอบ:} จะยก \en{frontend} ขึ้น \code{zod} 4 หรือจะลด
+\en{backend} ลงมา 3 และใครทำ เสร็จเมื่อไร
+
+\textbf{ทำไมอยู่ระดับ \pzero{}:} ตอนนี้ \en{backend} ใช้ \code{zod} 4.4 ส่วน
+\en{frontend} ใช้ 3.23 ไฟล์สัญญาที่ \code{nestjs-trpc} สร้างมีโค้ด \code{zod}
+อยู่ข้างใน เมื่อ \en{frontend} เอาไป \en{compile} ด้วยรุ่นใหญ่คนละรุ่นจะได้
+\en{error} ที่อ่านไม่ออกว่าสาเหตุคือเรื่องเวอร์ชัน --- และจะเสียเวลาไล่หาสาเหตุ
+กันทั้งทีม
+
+\textbf{ข้อเสนอ:} ยก \en{frontend} ขึ้น \code{zod} 4 เพราะ \en{backend} เขียน
+โค้ดไปน้อยกว่ามาก และ \code{zod} 4 คือทิศทางที่ไลบรารีไปต่อ
+
+\begin{warnbox}[title={งานนี้ไม่ใช่แค่เปลี่ยนตัวเลขใน \code{package.json}}]
+ต้องตรวจของที่พึ่งพากันด้วย: \code{frontend/src/schemas/loan-request.schema.ts}
+ที่เขียนไว้แล้ว, แพ็กเกจ \code{@hookform/resolvers} ที่เชื่อม
+\code{react-hook-form} กับ \code{zod} และทุกจุดที่อ่านผลของ \code{safeParse}
+
+\textbf{ต้องทำเป็น \en{PR} แยกให้จบก่อน} ไม่รวมกับงาน \en{tRPC} เพราะถ้ารวมกัน
+แล้วพัง จะแยกไม่ออกว่าพังเพราะเรื่องไหน
+\end{warnbox}
+
+\textbf{ถ้าไม่ตกลงวันนี้:} คนแรกที่ลองเชื่อมสองฝั่งจะติดกำแพงนี้ และจะเสียเวลา
+ครึ่งวันไปกับ \en{error} ที่ไม่ได้บอกสาเหตุจริง
+
+\begin{outbox}
+\begin{itemize}
+\item เวอร์ชัน \code{zod} ที่ทั้งทีมใช้ ---
+\item ใครทำการอัปเกรด และ \en{PR} นี้จะ \en{merge} วันไหน ---
+\item ยืนยันแล้วหรือยังว่า \code{npm run typecheck} ฝั่ง \en{frontend} ผ่านหลังอัป
+\end{itemize}
+\end{outbox}
+
+\section{ว-03 · รูปร่างของ \code{ctx.user} และวิธีส่งข้อมูลยืนยันตัวตน}
+
+\textbf{คำถามที่ต้องตอบ:} \en{object} ที่ทุก \en{procedure} จะได้รับมีฟิลด์อะไรบ้าง
+และ \en{token} เดินทางมาถึง \en{backend} ได้อย่างไร
+
+\textbf{ทำไมอยู่ระดับ \pzero{}:} ทุก \en{procedure} ที่ต้องล็อกอินพึ่ง
+\code{ctx.user} ถ้าเขียนไป 20 ตัวแล้วพบว่าขาดฟิลด์หนึ่ง ต้องกลับไปแก้ทั้ง 20 ตัว
+พร้อมกับ \en{service} ที่เรียกใช้
+
+\textbf{ข้อเสนอเรื่องการส่ง \en{token}:} เรื่องนี้ตัดสินใจไปแล้วโดยปริยาย ---
+\code{frontend/src/lib/api-client.ts} ตั้ง \code{credentials: "include"} ไว้ทุก
+\en{request} แปลว่าใช้ \en{httpOnly cookie} สิ่งที่เหลือคือทำให้ฝั่ง \en{backend}
+รองรับ ซึ่งตอนนี้ \code{main.ts} ยังไม่มี \code{enableCors} เลย
+
+\textbf{ข้อเสนอเรื่องฟิลด์:} เริ่มจากชุดนี้ และเพิ่มได้เฉพาะเมื่อมีเหตุผลชัดเจน
+
+\begin{table}[H]
+\centering\small
+\begin{tabular}{L{3.4cm}L{4.0cm}L{7.0cm}}
+\toprule
+\sansall\bfseries ฟิลด์ & \sansall\bfseries มาจาก & \sansall\bfseries ใครใช้ \\
+\midrule
+\code{accountKey} & \code{AccountInfo.AccountKey} & ทุก \en{query} ที่กรองตามเจ้าของ \\
+\code{role} & \code{RoleInfo.RoleName} & \en{middleware} ตรวจสิทธิ์ทุกตัว \\
+\code{facultyKey} & \code{FacultyInfo} & กฎการยืมที่ผูกกับสังกัด \\
+\code{creditScore} & \code{AccountInfo.UserCredit} &
+  ใช้หาระดับเครดิต (\code{CreditTier}) เพื่อคำนวณ \textbf{จำนวนวันยืมสูงสุด}
+  และจำนวนครั้งที่ต่ออายุได้ \\
+\bottomrule
+\end{tabular}
+\caption{ชุดฟิลด์ขั้นต่ำที่เสนอ --- ทุกฟิลด์ต้องตอบได้ว่ามีใครใช้ ไม่งั้นอย่าใส่}
+\end{table}
+
+\begin{keybox}[title={เครดิตต่ำ \emph{ไม่ได้} แปลว่ายืมไม่ได้ --- แปลว่ายืมได้สั้นลง}]
+ข้อนี้ต้องเข้าใจตรงกันทั้งทีมก่อนออกแบบ \en{output} เพราะมันเปลี่ยนว่า
+\code{loan.create} ควรตอบอะไรกลับมา
+
+ใน \code{schema.prisma} ระดับเครดิตเชื่อมกับกฎการยืมผ่านตาราง
+\code{BorrowConstraints} ซึ่งเก็บ \code{MaxBorrowDate} (จำนวนวันยืมสูงสุด) กับ
+\code{MaxExtendTime} (จำนวนครั้งที่ต่ออายุได้) ต่อคู่ ``กฎการยืม $\times$
+ระดับเครดิต'' --- \textbf{ไม่มีฟิลด์ไหนเลยที่บอกว่าเครดิตเท่าไรถึงห้ามยืม}
+
+สิ่งที่กันไม่ให้ยืมคือคนละเรื่องกัน: ตาราง \code{Eligibility} (สิทธิ์ตามสังกัด
+และบทบาท) และ \code{MinimumAuthorityLevel} --- ทั้งคู่ไม่เกี่ยวกับคะแนนเครดิต
+\end{keybox}
+
+\begin{warnbox}[title={\code{creditScore} ใน \code{ctx} เสี่ยงเป็นข้อมูลเก่า}]
+ถ้า \en{cron} หักเครดิตรายวันระหว่างที่ผู้ใช้กำลังกรอกคำขออยู่ ค่าที่ค้างใน
+\code{ctx} จะไม่ตรงกับฐานข้อมูล ผลคือหน้าจอบอกว่ายืมได้ 14 วัน แต่ระบบให้จริง 7 วัน
+
+ต้องตกลงว่า \en{procedure} ที่ \emph{คำนวณจำนวนวันยืมจริง} (เช่น
+\code{loan.create}) อ่านคะแนนสดจากฐานข้อมูลเสมอ ส่วนค่าใน \code{ctx}
+ใช้แสดงผลอย่างเดียว
+\end{warnbox}
+
+\textbf{ถ้าไม่ตกลงวันนี้:} ไม่มีใครเขียน \en{procedure} ที่ต้องล็อกอินได้เลย
+ซึ่งคือเกือบทั้งหมดของระบบ
+
+\begin{outbox}
+\begin{itemize}
+\item รายการฟิลด์ใน \code{ctx.user} (สรุปให้ครบ ห้ามค้าง ``ไว้ค่อยเพิ่ม'') ---
+\item ยืนยันใช้ \en{httpOnly cookie} ---
+\item รายการ \en{origin} ที่จะอนุญาตใน \en{CORS} ทั้งตอนพัฒนาและตอนใช้จริง ---
+\item อายุของ \en{session} และพฤติกรรมเมื่อหมดอายุ ---
+\item ใครทำ \en{context} + \en{CORS} และเสร็จเมื่อไร
+\end{itemize}
+\end{outbox}
+
+\section{ว-04 · ใครเป็นเจ้าของสัญญา และการเปลี่ยนสัญญาทำอย่างไร}
+
+\textbf{คำถามที่ต้องตอบ:} เมื่อมีคนอยากเพิ่มฟิลด์หรือเปลี่ยนชื่อ \en{procedure}
+กระบวนการคืออะไร และใครมีสิทธิ์ตัดสินขั้นสุดท้าย
+
+\textbf{ทำไมอยู่ระดับ \pzero{}:} นี่เป็นวาระเดียวในภาคนี้ที่ไม่ใช่เรื่องเทคนิค
+แต่เป็นวาระที่ทำให้อีกสามวาระมีผลจริง สัญญาที่ไม่มีเจ้าของจะถูกแก้โดยใครก็ได้
+โดยไม่มีใครรู้ และภายในสองสัปดาห์จะไม่มีใครเชื่อถือมันอีก
+
+\textbf{ข้อเสนอ:} กำหนดสามอย่าง
+
+\begin{enumerate}
+\item \textbf{เจ้าของ} --- หนึ่งคนต่อหนึ่งโดเมน (\code{item}, \code{loan},
+      \code{approval}, \code{admin}) เจ้าของเป็นคนอนุมัติการเปลี่ยน \en{schema}
+      ของโดเมนนั้น ไม่ใช่คนเดียวคุมทั้งหมด เพราะจะกลายเป็นคอขวด
+\item \textbf{การแบ่งชนิดการเปลี่ยน} --- แยกให้ชัดว่าอันไหนแจ้งอย่างเดียวพอ
+      อันไหนต้องคุยก่อน
+\item \textbf{ช่องทางแจ้ง} --- ที่เดียว ทุกคนเห็น ไม่ใช่แชตส่วนตัว
+\end{enumerate}
+
+\begin{table}[H]
+\centering\small
+\begin{tabular}{L{4.2cm}L{4.6cm}L{5.6cm}}
+\toprule
+\sansall\bfseries ชนิดการเปลี่ยน & \sansall\bfseries ตัวอย่าง & \sansall\bfseries ต้องทำอะไร \\
+\midrule
+เพิ่มฟิลด์ที่ไม่บังคับ &
+เพิ่ม \code{note?} ใน \en{output} &
+แจ้งในช่องทางกลาง ไม่ต้องรออนุมัติ \\
+\addlinespace
+เพิ่ม \en{procedure} ใหม่ &
+เพิ่ม \code{loan.extend} &
+แจ้ง + เพิ่มแถวในตารางสัญญา \\
+\addlinespace
+\textbf{เปลี่ยนชื่อ / ลบฟิลด์ / เปลี่ยนชนิด} &
+\code{dueAt} เป็น \code{dueDate} &
+\textbf{ต้องคุยกับอีกฝั่งก่อน} และแก้พร้อมกันใน \en{PR} เดียว \\
+\addlinespace
+เปลี่ยนความหมายโดยรูปร่างเหมือนเดิม &
+\code{status} เดิมนับ ``รอรับของ'' เป็น \code{pending} เปลี่ยนเป็นสถานะใหม่ &
+\textbf{อันตรายที่สุด} --- \en{compiler} จับไม่ได้ ต้องคุยและต้องมีคนทดสอบ \\
+\bottomrule
+\end{tabular}
+\caption{สี่ชนิดการเปลี่ยน --- แถวล่างสุดคือชนิดที่ระบบ \en{type} ช่วยอะไรไม่ได้เลย จึงต้องใช้กระบวนการของคนล้วน ๆ}
+\end{table}
+
+\textbf{ถ้าไม่ตกลงวันนี้:} จะมีคนแก้ \en{schema} แล้วอีกฝั่งพังโดยไม่รู้ตัว
+เกิดขึ้นแน่นอน คำถามคือเกิดกี่ครั้งและเสียเวลาไปเท่าไร
+
+\begin{outbox}
+\begin{itemize}
+\item เจ้าของแต่ละโดเมน ---
+\item ช่องทางแจ้งการเปลี่ยนสัญญา ---
+\item ยืนยันว่าการเปลี่ยนแบบ \en{breaking} ต้องแก้สองฝั่งใน \en{PR} เดียว ---
+\item ใครดูแลตารางสัญญาให้ตรงกับโค้ด
+\end{itemize}
+\end{outbox}
+
+\clearpage
+
+% =============================================================================
+\part{\pone{} ต้องจบภายในสัปดาห์นี้}
+% =============================================================================
+
+\textbf{หกวาระนี้ไม่บล็อกการเริ่มต้น แต่บล็อก ``ความสม่ำเสมอ'' --- เขียน
+\en{procedure} ตัวแรกได้โดยไม่ต้องตกลง แต่ถ้าตกลงตอนมี 30 ตัวแล้วจะต้องแก้ทั้ง 30
+เวลาที่เสนอ: 35 นาทีในรอบนี้ ที่เหลือแยกคุยเป็นรอบย่อย}
+
+\section{ว-05 · โครงและการตั้งชื่อ \en{router} กับ \en{procedure}}
+
+\textbf{คำถามที่ต้องตอบ:} จัดกลุ่ม \en{procedure} ตามอะไร และใช้คำกริยาชุดไหน
+
+\textbf{ทำไมอยู่ระดับ \pone{}:} เปลี่ยนชื่อทีหลังต้องแก้ทุกจุดที่เรียกใช้ทั้งสองฝั่ง
+และเป็นการเปลี่ยนที่ไม่ได้ประโยชน์อะไรกลับมานอกจากความสม่ำเสมอ --- งานที่ทีมมักไม่ยอมทำ
+แล้วปล่อยให้ชื่อมั่วต่อไปจนจบโครงการ
+
+\textbf{ข้อเสนอ 1 --- จัดกลุ่มตามโดเมน ไม่ใช่ตามบทบาทผู้ใช้}
+
+\begin{table}[H]
+\centering\small
+\begin{tabular}{L{6.8cm}L{7.6cm}}
+\toprule
+\sansall\bfseries แบบที่เสนอ (ตามโดเมน) & \sansall\bfseries แบบที่ไม่เสนอ (ตามบทบาท) \\
+\midrule
+\code{approval.decide} ตัวเดียว ตรวจสิทธิ์ด้วย \en{middleware} &
+\code{staff.approveLoan} กับ \code{supervisor.approveLoan} สองตัว \\
+\addlinespace
+ตรรกะการอนุมัติอยู่ที่เดียว แก้ครั้งเดียว &
+ตรรกะเดียวกันถูกคัดลอกสองที่ แก้ที่หนึ่งลืมอีกที่ \\
+\addlinespace
+เพิ่มบทบาทใหม่ = เพิ่ม \en{middleware} &
+เพิ่มบทบาทใหม่ = เพิ่ม \en{router} ทั้งชุด \\
+\bottomrule
+\end{tabular}
+\caption{จัดกลุ่มตามโดเมนชนะเพราะบทบาทเปลี่ยนบ่อยกว่าโดเมน --- ในระบบนี้มี 4--5 บทบาทที่ยังอาจปรับได้อีก}
+\end{table}
+
+โดเมนที่เสนอ: \code{auth}, \code{item}, \code{loan}, \code{reservation},
+\code{approval}, \code{appeal}, \code{credit}, \code{inspection},
+\code{notification}, \code{report}, \code{admin}
+
+\textbf{ข้อเสนอ 2 --- ชุดคำกริยาที่ใช้ซ้ำทั้งระบบ}
+
+\code{list} · \code{getById} · \code{create} · \code{update} · \code{cancel} ·
+\code{decide} · \code{confirm} --- ห้ามปน \code{getAll} กับ \code{fetchList}
+กับ \code{findMany} ในความหมายเดียวกัน
+
+\begin{outbox}
+\begin{itemize}
+\item รายชื่อโดเมน (\en{router}) ที่ตกลง ---
+\item ชุดคำกริยามาตรฐาน ---
+\item ยืนยันว่าตรวจสิทธิ์ด้วย \en{middleware} ไม่ใช่แยก \en{router} ตามบทบาท
+\end{itemize}
+\end{outbox}
+
+\section{ว-06 · รูปแบบ \en{error} และรายการรหัสข้อผิดพลาดทางธุรกิจ}
+
+\textbf{คำถามที่ต้องตอบ:} เมื่อ ``ของถูกคนอื่นจองตัดหน้าไปแล้ว'' \en{backend}
+ส่งอะไรกลับมา และ \en{frontend} แปลงเป็นข้อความที่ไหน
+
+\textbf{ทำไมอยู่ระดับ \pone{}:} \en{frontend} ต้องเขียน \en{UI} รองรับแต่ละกรณี
+รายการรหัสจึงเป็น \textbf{ส่วนหนึ่งของ \en{output}} ไม่ใช่รายละเอียดปลีกย่อย ---
+ถ้าไม่มีรายการตั้งแต่ต้น \en{frontend} จะเขียนได้แค่ ``เกิดข้อผิดพลาด'' แล้วต้อง
+กลับมาแก้ทีหลังทุกหน้า
+
+\textbf{ข้อเสนอ:} สองชั้น --- ชั้นนอกใช้รหัสมาตรฐานของ \en{tRPC}
+(\code{UNAUTHORIZED}, \code{FORBIDDEN}, \code{NOT\_FOUND}, \code{CONFLICT},
+\code{BAD\_REQUEST}) ชั้นในใส่รหัสธุรกิจของเราเอง
+
+\begin{table}[H]
+\centering\small
+\begin{tabular}{L{4.4cm}L{2.6cm}L{7.4cm}}
+\toprule
+\sansall\bfseries รหัสธุรกิจ & \sansall\bfseries รหัส \en{tRPC} &
+\sansall\bfseries \en{frontend} ต้องทำอะไร \\
+\midrule
+\code{NOT\_ELIGIBLE} & \code{FORBIDDEN} & บอกว่าสังกัด/บทบาทนี้ยืมของชิ้นนี้ไม่ได้ \\
+\code{ITEM\_UNAVAILABLE} & \code{CONFLICT} & แสดงวันที่พร้อมให้ยืมถัดไป \\
+\code{SLOT\_TAKEN} & \code{CONFLICT} & \en{refetch} สล็อตแล้วให้เลือกใหม่ \\
+\code{LOAN\_PERIOD\_EXCEEDS\_LIMIT} & \code{BAD\_REQUEST} &
+  บอกเพดานวันยืมของระดับเครดิตปัจจุบัน แล้วให้เลือกวันใหม่ \\
+\code{EXTENSION\_QUOTA\_EXCEEDED} & \code{FORBIDDEN} & บอกจำนวนครั้งที่ใช้ไปแล้วจากเพดานของระดับเครดิต \\
+\code{ALREADY\_DECIDED} & \code{CONFLICT} & \en{refetch} คิว --- มีคนตัดสินไปก่อนแล้ว \\
+\code{APPEAL\_WINDOW\_CLOSED} & \code{FORBIDDEN} & บอกวันที่หมดเขต \\
+\bottomrule
+\end{tabular}
+\caption{ร่างรายการรหัส --- ยังไม่ครบ ต้องเติมให้ครบตอนแปลงเอกสารรายการเรียกใช้งานเป็นตารางสัญญา สังเกตว่า \emph{ไม่มี} รหัสว่า ``เครดิตต่ำจนยืมไม่ได้'' เพราะกฎแบบนั้นไม่มีในระบบ}
+\end{table}
+
+\begin{warnbox}[title={คำถามที่ยังไม่มีใครตอบ: เครดิตต่ำแล้วขอยืมนานเกินเพดาน จะ ``ปฏิเสธ'' หรือ ``ให้เท่าที่ได้''}]
+เพราะเครดิตกำหนดแค่ \emph{ความยาว} ของการยืม ไม่ใช่สิทธิ์ยืม จึงเกิดทางแยกที่
+กระทบทั้ง \en{error} และ \en{output} ของ \code{loan.create}
+
+\begin{itemize}
+\item \textbf{ก. ปฏิเสธ} --- โยน \code{LOAN\_PERIOD\_EXCEEDS\_LIMIT} พร้อมเพดาน
+      แล้วให้ผู้ใช้เลือกวันใหม่ · ชัดเจน ไม่มีเซอร์ไพรส์ แต่เพิ่มขั้นตอนให้ผู้ใช้
+\item \textbf{ข. ตัดให้อัตโนมัติ} --- อนุมัติแต่ย่นวันคืนให้เท่าเพดาน ·
+      ลื่นไหลกว่า แต่ \textbf{\en{output} ต้องบอกกลับมาให้ชัดว่าได้กี่วันจริง
+      และถูกย่นเพราะอะไร} ไม่งั้นผู้ใช้จะคืนของสาย
+\end{itemize}
+
+ข้อเสนอ: เลือก \textbf{ก.} สำหรับ \en{MVP} เพราะแสดงผลง่ายกว่าและไม่ต้องออกแบบ
+ช่องทางแจ้งเตือนเพิ่ม --- แต่ไม่ว่าจะเลือกทางไหน \en{output} ของ
+\code{loan.create} ต้องมีวันครบกำหนดจริงเสมอ ห้ามให้ \en{frontend} คำนวณเอง
+\end{warnbox}
+
+\begin{badbox}[title={ห้าม \en{backend} ส่งข้อความภาษาไทยมาให้แสดงตรง ๆ}]
+โปรเจกต์ลง \code{i18next} และ \code{react-i18next} ไว้แล้ว แปลว่าตั้งใจรองรับ
+หลายภาษา ถ้า \en{backend} ส่ง ``ขอยืมได้ไม่เกิน 7 วัน'' มาแล้ว \en{frontend}
+เอาไปแสดงเลย ระบบหลายภาษาจะใช้ไม่ได้ทันที และข้อความจะกระจายอยู่ในโค้ดสองที่
+
+\en{backend} ส่ง \textbf{รหัส} กับ \textbf{ข้อมูลประกอบ} (เช่น เพดานวันยืมของ
+ระดับเครดิตปัจจุบัน จำนวนวันที่ขอมา) แล้วให้ \en{frontend} ประกอบเป็นประโยค
+\end{badbox}
+
+\begin{outbox}
+\begin{itemize}
+\item ยืนยันโครงสร้าง \en{error} สองชั้น ---
+\item รายการรหัสธุรกิจฉบับเริ่มต้น และใครเป็นคนเติมให้ครบ ---
+\item ยืนยันว่าข้อความภาษาไทยอยู่ฝั่ง \en{frontend} เท่านั้น ---
+\item เลือก ก. ปฏิเสธ หรือ ข. ตัดวันยืมให้อัตโนมัติ เมื่อขอเกินเพดานของระดับเครดิต ---
+\item รูปแบบข้อมูลประกอบที่แนบไปกับ \en{error}
+\end{itemize}
+\end{outbox}
+
+\section{ว-07 · รูปแบบการแบ่งหน้าและการกรอง}
+
+\textbf{คำถามที่ต้องตอบ:} \en{procedure} ที่คืนรายการ จะรับพารามิเตอร์ชุดไหน
+และคืนอะไรกลับมา
+
+\textbf{ทำไมอยู่ระดับ \pone{}:} เอกสารรายการเรียกใช้งานมีรายการที่ต้องแบ่งหน้า
+อย่างน้อย 5 จุด ถ้าแต่ละคนออกแบบเอง \en{frontend} จะต้องเขียน \en{component}
+ตารางคนละแบบสำหรับแต่ละหน้า
+
+\begin{table}[H]
+\centering\small
+\begin{tabular}{L{2.6cm}L{5.4cm}L{6.4cm}}
+\toprule
+\sansall\bfseries แบบ & \sansall\bfseries หน้าตา & \sansall\bfseries เหมาะกับ \\
+\midrule
+\textbf{ตามเลขหน้า} &
+รับ \code{page, pageSize, sort, q} คืน \code{items, total, page, pageSize} &
+\textbf{หน้าจอฝั่ง \en{staff}/\en{admin} ที่ต้องเห็นว่ามีทั้งหมดกี่หน้า และกระโดดไปหน้าที่ต้องการได้} \\
+\addlinespace
+ตามตัวชี้ (\en{cursor}) &
+รับ \code{cursor, limit} คืน \code{items, nextCursor} &
+เลื่อนลงเรื่อย ๆ บนมือถือ ประสิทธิภาพดีกว่าเมื่อข้อมูลเยอะมาก \\
+\bottomrule
+\end{tabular}
+\caption{สองแบบ --- ข้อเสนอคือแบบเลขหน้า เพราะหน้าจอส่วนใหญ่ในระบบนี้เป็นตารางงานของเจ้าหน้าที่}
+\end{table}
+
+\textbf{ข้อเสนอ:} ใช้แบบเลขหน้าทั้งระบบ กำหนด \code{pageSize} ปริยาย 20
+และเพดาน 100 (กันคนยิงขอทีเดียวหมื่นแถว)
+
+\begin{outbox}
+\begin{itemize}
+\item แบบที่เลือก และชื่อฟิลด์ที่ตกลง ---
+\item ค่าปริยายและเพดานของ \code{pageSize} ---
+\item รูปแบบการส่งเงื่อนไขกรอง (แยกเป็นฟิลด์ หรือรวมเป็น \en{object} \code{filters})
+\end{itemize}
+\end{outbox}
+
+\section{ว-08 · รูปแบบของวันที่และเวลา}
+
+\textbf{คำถามที่ต้องตอบ:} ส่ง \code{Date} จริงผ่าน \code{superjson} หรือส่งเป็น
+สตริง \en{ISO}
+
+\textbf{ทำไมอยู่ระดับ \pone{}:} \code{schema.prisma} มีฟิลด์ \code{DateTime}
+กระจายอยู่ 9 ตารางหลัก และระบบนี้ ``เวลา'' คือแก่นของตรรกะธุรกิจ --- กำหนดคืน
+การเลยกำหนด การหักเครดิตรายวัน อายุบทลงโทษ ถ้าตกลงไม่ตรงกัน บั๊กจะไปโผล่ที่
+การคำนวณค่าปรับ
+
+\textbf{ข้อเสนอ:} สตริง \en{ISO} เพราะดีบักง่าย (เปิด \en{Network tab} แล้วอ่านออก
+ทันที) ไม่ต้องตั้งค่าให้ตรงกันสองฝั่ง และทีมมี \code{date-fns} อยู่แล้ว
+
+\begin{warnbox}[title={สิ่งที่สำคัญกว่าการเลือกแบบไหน คือห้ามมีข้อยกเว้น}]
+\en{procedure} ที่ส่ง \code{Date} จริงปนกับ \en{procedure} ที่ส่งสตริง คือ
+สถานการณ์ที่แย่ที่สุดในสามแบบ เพราะ \en{frontend} จะไม่รู้ว่าต้อง \code{parseISO}
+เมื่อไร --- และ \en{type} จะบอกว่าถูกทั้งสองแบบ
+\end{warnbox}
+
+นอกจากรูปแบบแล้วต้องตกลงอีกสองเรื่องที่ลืมกันบ่อย: \textbf{เขตเวลา}
+(เก็บเป็น \en{UTC} แล้วแปลงตอนแสดงผลใช่ไหม) และ \textbf{ค่าที่เป็นวันล้วน}
+เช่นวันครบกำหนดคืน --- เป็นวันที่อย่างเดียวหรือมีเวลาด้วย และถ้ามีเวลา
+กำหนดคืน ``วันที่ 20'' หมายถึงกี่โมง
+
+\begin{outbox}
+\begin{itemize}
+\item รูปแบบที่เลือก ---
+\item เขตเวลาที่เก็บและที่แสดง ---
+\item ฟิลด์ที่เป็นวันล้วน จัดการอย่างไร ---
+\item เวลาตัดของ ``ครบกำหนดคืน''
+\end{itemize}
+\end{outbox}
+
+\section{ว-09 · กฎการแปลงชื่อฟิลด์ และห้ามส่ง \en{Prisma model} ออกไปตรง ๆ}
+
+\textbf{คำถามที่ต้องตอบ:} \en{output} จะพูดภาษาฐานข้อมูลหรือภาษา \en{frontend}
+
+\textbf{ทำไมอยู่ระดับ \pone{}:} \code{schema.prisma} ตั้งชื่อแบบ
+\code{PascalCase} (\code{UserFName}, \code{AccountKey}) ส่วน
+\code{frontend/src/types/domain.ts} ใช้ \code{camelCase} (\code{firstName},
+\code{id}) ถ้าไม่ตกลงตอนนี้ \en{procedure} ที่เขียนก่อนจะส่งชื่อแบบหนึ่ง
+ตัวที่เขียนทีหลังส่งอีกแบบ
+
+\textbf{ข้อเสนอ:} \en{output} เป็นภาษา \en{frontend} เสมอ (\code{camelCase})
+และห้าม \code{return} \en{Prisma model} ตรง ๆ ในทุกกรณี
+
+\begin{badbox}[title={เหตุผลที่ห้ามไม่ใช่แค่เรื่องความสวยงามของชื่อ}]
+ตาราง \code{AccountInfo} มีฟิลด์ \code{HashedPassword} อยู่ในตารางเดียวกับชื่อ
+และอีเมล การ \code{findUnique} แล้วส่งกลับตรง ๆ คือการส่ง \en{hash} รหัสผ่าน
+ออกไปที่เบราว์เซอร์ --- และไม่มีอะไรในระบบเตือนเลย
+
+ประโยชน์อีกข้อคือฐานข้อมูลเปลี่ยนได้โดยหน้าเว็บไม่พัง ซึ่งสำคัญกับรีโปนี้เป็นพิเศษ
+เพราะ \en{schema} ยังอยู่ในช่วงที่อาจปรับอีก
+\end{badbox}
+
+\begin{outbox}
+\begin{itemize}
+\item ยืนยันว่า \en{output} ใช้ \code{camelCase} ---
+\item ยืนยันกฎ ``ห้ามส่ง \en{Prisma model} ตรง ๆ'' และใครตรวจตอนรีวิว ---
+\item ที่เก็บ \en{output schema} กลางที่นำไป \code{.pick()}/\code{.extend()} ต่อได้
+\end{itemize}
+\end{outbox}
+
+\section{ว-10 · สถานะส่งออกเป็นสตริงคงที่ ไม่ใช่เลข \en{key}}
+
+\textbf{คำถามที่ต้องตอบ:} \en{frontend} จะได้รับสถานะเป็นอะไร
+
+\textbf{ทำไมอยู่ระดับ \pone{}:} \code{schema.prisma} \textbf{ไม่มี \en{enum}
+เลยสักตัว} --- สถานะทุกชนิดเป็นตารางแยก (\code{ApproveStatus},
+\code{ResourceStatus}, \code{ConditionType}, \code{NotificationType},
+\code{PenaltyType} และแม้แต่ \code{RoleInfo}) ขณะที่ \en{frontend} นิยามไว้
+เป็นสตริง เช่น \code{"available" | "reserved" | "borrowed"}
+
+\begin{badbox}[title={ส่งเลข \en{primary key} ของสถานะออกไป = บั๊กที่จะโผล่ตอนย้ายเครื่อง}]
+\code{ApproveStatusKey = 2} หมายถึง ``อนุมัติแล้ว'' บนฐานข้อมูลเครื่องหนึ่ง
+แต่ถ้าอีกเครื่อง \code{seed} คนละลำดับ เลข 2 อาจกลายเป็น ``ปฏิเสธ''
+
+โค้ด \code{if (status === 2)} จะคอมไพล์ผ่านทุกครั้งและผิดเงียบ ๆ ---
+เป็นบั๊กที่จะเจอตอนสาธิตงาน ไม่ใช่ตอนพัฒนา
+\end{badbox}
+
+\textbf{ข้อเสนอ:} \en{output} ใช้ \code{z.enum([...])} ที่เป็นสตริงคงที่เสมอ
+และต้องตกลง \textbf{รายการค่าที่เป็นไปได้ของแต่ละสถานะ} ให้ครบในวาระนี้ เพราะ
+\en{frontend} ต้องเขียน \en{UI} ครอบคลุมทุกค่า
+
+\begin{outbox}
+\begin{itemize}
+\item ยืนยันว่าสถานะส่งเป็นสตริง ---
+\item รายการค่าของ \code{ApproveStatus} ---
+\item รายการค่าของ \code{ResourceStatus} ---
+\item รายการค่าของ \code{RoleInfo} ---
+\item ใครดูแลให้ตารางในฐานข้อมูลกับ \code{z.enum} ไม่หลุดจากกัน
+\end{itemize}
+\end{outbox}
+
+\clearpage
+
+% =============================================================================
+\part{\ptwo{} ตกลงตอนเริ่มทำ \en{feature} นั้น}
+% =============================================================================
+
+\textbf{ห้าวาระนี้ \emph{ไม่ต้องคุยในการประชุมรอบนี้} เอกสารระบุไว้เพื่อให้ทุกคน
+เห็นว่ามันไม่ได้ถูกลืม และรู้ว่าจะถูกหยิบมาคุยเมื่อไร --- การเขียนสิ่งที่ยัง
+ไม่ตัดสินใจลงกระดาษ คือสิ่งที่ทำให้ ``ผลัดไปก่อน'' ต่างจาก ``ลืม''}
+
+\section{ว-11 · ขั้นตอนการอัปโหลดรูป}
+
+\textbf{คำถาม:} รูปตอนรับของและตอนคืนของเดินทางอย่างไร เก็บที่ไหน
+
+\textbf{ทำไมผลัดได้:} \en{tRPC} ส่งไฟล์ไม่ได้อยู่แล้ว จึงต้องใช้เส้นทาง
+\en{REST} แยก ซึ่ง \code{api-client.ts} มี \code{uploadFile} รองรับไว้แล้ว
+--- โครงสร้างส่วนนี้ไม่ขึ้นกับการตัดสินใจเรื่องสัญญา
+
+\textbf{คุยเมื่อ:} เริ่มทำ \en{feature} รับ--คืนของ
+
+\textbf{ประเด็นที่ต้องเตรียมไว้:} ที่เก็บไฟล์ · การขอ \en{URL} ชั่วคราว ·
+เพดานขนาดและชนิดไฟล์ · การจัดการไฟล์ที่อัปแล้วแต่ไม่มีแถวใน \code{Images} ชี้ถึง
+(ผู้ใช้ปิดเบราว์เซอร์กลางคัน) · การบีบอัดรูปก่อนอัปจากมือถือ
+
+\section{ว-12 · ความถี่ \en{polling} จริง และ \code{staleTime}}
+
+\textbf{คำถาม:} ตัวเลขในเอกสารรายการเรียกใช้งานใช้ได้จริงไหม
+
+\textbf{ทำไมผลัดได้:} เปลี่ยนตัวเลขเป็นการแก้บรรทัดเดียวฝั่ง \en{frontend}
+ไม่กระทบสัญญา
+
+\textbf{คุยเมื่อ:} หลังต่อหน้าจอที่ \en{polling} หน้าแรกได้แล้ว และวัดภาระจริงได้
+
+\textbf{ประเด็น:} 10--15 วินาทีสำหรับของคงเหลือเหมาะกับจำนวนผู้ใช้จริงหรือไม่ ·
+\code{staleTime} ยาวสำหรับข้อมูลหลัก (หมวดหมู่ \en{tier} ระดับความเสียหาย) ·
+หยุด \en{polling} เมื่อผู้ใช้สลับแท็บออกไป
+
+\section{ว-13 · การรวมคำขอ เวลาหมดอายุ และการลองใหม่}
+
+\textbf{คำถาม:} ใช้ \code{httpBatchLink} ทั้งหมด หรือแยกเส้นสำหรับ \en{query} ที่ถี่
+
+\textbf{ทำไมผลัดได้:} เปลี่ยน \en{link} เป็นการแก้ไฟล์ตั้งค่าไฟล์เดียว
+
+\textbf{คุยเมื่อ:} พบว่าหน้าใดหน้าหนึ่งช้าผิดปกติ
+
+\textbf{ประเด็น:} \en{query} ที่ \en{poll} ทุก 10 วินาทีไปรวมก้อนกับรายงานสถิติ
+จะถูกลากให้ช้าตาม · จะลองใหม่กี่ครั้งเมื่อเครือข่ายหลุด · \en{mutation}
+ต้องไม่ลองใหม่อัตโนมัติ (ยืมซ้ำสองครั้ง)
+
+\section{ว-14 · ข้อความ \en{error} อยู่ฝั่งไหน}
+
+\textbf{คำถาม:} แผนผังจากรหัสธุรกิจไปเป็นประโยคเก็บที่ไหน
+
+\textbf{ทำไมผลัดได้:} เมื่อ ว-06 ตกลงแล้วว่าส่งเป็นรหัส ที่เหลือเป็นงานภายในของ
+\en{frontend} ล้วน ๆ
+
+\textbf{คุยเมื่อ:} เริ่มทำหน้าจอที่มี \en{error} หลายกรณี
+
+\textbf{ประเด็น:} รวมเข้ากับ \code{lib/error-messages.ts} ที่มีอยู่แล้ว หรือย้าย
+เข้าไฟล์แปลของ \code{i18next} · ข้อความปริยายเมื่อเจอรหัสที่ยังไม่ได้แปล
+
+\section{ว-15 · การบันทึกและตามรอยปัญหา}
+
+\textbf{คำถาม:} เมื่อผู้ใช้แจ้งว่า ``กดยืมแล้วขึ้น \en{error}'' จะหาสาเหตุอย่างไร
+
+\textbf{ทำไมผลัดได้:} เพิ่มทีหลังได้โดยไม่กระทบสัญญา
+
+\textbf{คุยเมื่อ:} ใกล้ส่งงาน หรือเมื่อเริ่มมีผู้ใช้จริงทดลอง
+
+\textbf{ประเด็น:} \en{log} ชื่อ \en{procedure} เวลาที่ใช้ และรหัสข้อผิดพลาด ·
+รหัสอ้างอิงต่อ \en{request} ที่แสดงให้ผู้ใช้บอกกลับมาได้ · ระวังอย่า \en{log}
+ข้อมูลส่วนบุคคล
+
+\clearpage
+
+% =============================================================================
+\part{\pthree{} ผลัดไปหลัง \en{MVP} ได้}
+% =============================================================================
+
+\textbf{สี่วาระนี้สำคัญในระบบที่ใช้งานจริง แต่ไม่กระทบการส่งงาน และที่สำคัญคือ
+\emph{แก้ทีหลังได้โดยไม่ต้องรื้อของเดิม} --- เขียนไว้เพื่อไม่ให้หายไปจากความทรงจำของทีม}
+
+\section{ว-16 · การอัปเดตแบบเรียลไทม์}
+
+ทีมเลือก \en{polling} ไปแล้วในเอกสารรายการเรียกใช้งาน ซึ่งเป็นการตัดสินใจที่
+เหมาะกับขนาดของระบบและเวลาที่มี \en{tRPC} รองรับ \en{subscription} ได้ถ้าอนาคต
+ต้องการ และการย้ายจาก \en{polling} ไป \en{subscription} ไม่กระทบรูปร่างของ
+\en{output} ที่ตกลงกันไว้ --- นี่คือเหตุผลที่ผลัดได้อย่างปลอดภัย
+
+\section{ว-17 · การจำกัดอัตราการเรียกและการป้องกันการยิงถี่}
+
+\en{query} ที่ \en{poll} ทุก 10 วินาทีคูณจำนวนผู้ใช้พร้อมกันเป็นภาระที่คาดเดาได้
+ส่วนที่คาดเดาไม่ได้คือคนที่ยิงตรงเข้ามา เพิ่มการจำกัดอัตราทีหลังได้ที่ชั้น
+\en{middleware} โดยไม่แตะสัญญา
+
+\section{ว-18 · การทำเวอร์ชันของสัญญาอย่างเป็นทางการ}
+
+ตราบใดที่ยังส่งพร้อมกันทั้งสองฝั่ง ไม่ต้องมีเวอร์ชัน เรื่องนี้จำเป็นเมื่อมี
+\en{client} ที่อัปเดตไม่พร้อมกัน เช่นแอปมือถือที่ผู้ใช้ยังไม่กดอัป ---
+ยังไม่ใช่สถานการณ์ของโครงการนี้
+
+\section{ว-19 · การทดสอบสัญญาอัตโนมัติ}
+
+\code{tsc --noEmit} ที่ตกลงใน ว-01 ครอบคลุมความเสี่ยงหลักไปแล้ว ส่วนการเขียน
+เทสต์ที่ยิง \en{procedure} จริงแล้วตรวจ \en{output} กับ \en{schema} เป็นชั้นถัดไป
+ที่เพิ่มได้เมื่อมีเวลา --- \en{backend} มี \code{jest} กับ \code{supertest}
+ติดตั้งไว้แล้ว
+
+\clearpage
+
+% =============================================================================
+\part{วิธีดำเนินการประชุม}
+% =============================================================================
+
+\textbf{คำถามที่ภาคนี้ตอบ: ทำอย่างไรให้ 90 นาทีนี้จบด้วยมติ ไม่ใช่จบด้วย
+``เดี๋ยวไปคุยกันต่อ''}
+
+\section{ตารางเวลาที่เสนอ}
+
+\begin{table}[H]
+\centering\small
+\begin{tabular}{L{1.6cm}L{7.4cm}L{5.4cm}}
+\toprule
+\sansall\bfseries เวลา & \sansall\bfseries วาระ & \sansall\bfseries หมายเหตุ \\
+\midrule
+5 นาที & ทบทวนแผนที่ในรูปที่ \ref{fig:dep} & ให้ทุกคนเห็นตรงกันว่าจะคุยอะไรบ้าง \\
+\addlinespace
+25 นาที & \pzero{} ว-01 ขนส่งสัญญา & วาระที่ยาวที่สุด --- เผื่อเวลาสำหรับคำถาม ``\en{merge} ก็จบแล้วไม่ใช่เหรอ'' ไว้แล้ว \\
+5 นาที & \pzero{} ว-02 เวอร์ชัน \code{zod} & น่าจะจบเร็ว มีข้อเสนอชัดอยู่แล้ว \\
+20 นาที & \pzero{} ว-03 \code{ctx.user} + \en{cookie} & ต้องได้รายการฟิลด์ที่ครบ \\
+10 นาที & \pzero{} ว-04 เจ้าของสัญญา & เรื่องคน ไม่ใช่เรื่องเทคนิค \\
+\addlinespace
+20 นาที & \pone{} ว-05 ถึง ว-10 รวบคุย & ถ้าเวลาไม่พอ ให้ยกไปรอบย่อย --- อย่ายืมเวลาจาก \pzero{} \\
+\addlinespace
+5 นาที & ทวนมติ + ผู้รับผิดชอบ + กำหนดเสร็จ & \textbf{ห้ามข้าม} \\
+\bottomrule
+\end{tabular}
+\caption{90 นาที --- สังเกตว่า \pzero{} กินเวลา 55 นาที จากทั้งหมด 90 นาที ซึ่งเป็นสัดส่วนที่ตั้งใจ}
+\end{table}
+
+\section{กติกาที่ทำให้ประชุมจบเป็นมติ}
+
+\begin{enumerate}
+\item \textbf{ทุกวาระต้องได้ครบสามอย่าง} --- ข้อตกลง · ผู้รับผิดชอบ · วันเสร็จ
+      ขาดข้อใดข้อหนึ่งแปลว่ายังไม่จบวาระ
+\item \textbf{มีคนจับเวลา} และมีสิทธิ์ตัดบทได้จริง
+\item \textbf{ถ้าเถียงกันเกิน 5 นาทีโดยไม่มีข้อมูลใหม่} ให้เลือกข้อเสนอในเอกสาร
+      ไปก่อน แล้วบันทึกว่าเป็นการตัดสินใจแบบทบทวนได้ --- การตัดสินใจที่กลับได้
+      ไม่ควรใช้เวลาเท่าการตัดสินใจที่กลับไม่ได้
+\item \textbf{เรื่องที่ไม่อยู่ในภาค 1--2 ห้ามคุย} จดลงรายการค้างแล้วไปต่อ
+\item \textbf{ผู้เข้าร่วมต้องอ่านภาค 1 มาก่อน} ---
+      ถ้ายังไม่มีใครอ่าน ให้เลื่อนประชุมดีกว่าใช้เวลาครึ่งหนึ่งไปกับการอธิบาย
+\end{enumerate}
+
+\begin{keybox}[title={สิ่งที่วัดว่าประชุมนี้สำเร็จ}]
+กรอกกล่องฟ้า ``ผลลัพธ์ที่ต้องจดลงบันทึก'' ของวาระ ว-01 ถึง ว-04 ได้ครบทุกช่อง
+--- ไม่ใช่ ``คุยครบทุกวาระ''
+\end{keybox}
+
+\clearpage
+
+% =============================================================================
+\appendix
+\part*{ภาคผนวก}
+\addcontentsline{toc}{part}{ภาคผนวก}
+% =============================================================================
+
+\makeatletter
+\newcommand{\thaialph}[1]{\ifcase\value{#1}\or ก\or ข\or ค\or ง\or จ\or ฉ\fi}
+\makeatother
+\renewcommand{\thesection}{\thaialph{section}}
+
+\section{แบบฟอร์มบันทึกมติ}
+
+พิมพ์หน้านี้ออกมาหรือเปิดคู่ไว้ระหว่างประชุม กรอกให้ครบทุกช่องก่อนปิดวาระ
+
+\begin{longtable}{L{1.3cm}L{4.8cm}L{4.0cm}L{2.0cm}L{2.0cm}}
+\toprule
+\sansall\bfseries วาระ & \sansall\bfseries ข้อตกลง &
+\sansall\bfseries รายละเอียด/เงื่อนไข & \sansall\bfseries ผู้รับผิดชอบ &
+\sansall\bfseries วันเสร็จ \\
+\midrule
+\endfirsthead
+\toprule
+\sansall\bfseries วาระ & \sansall\bfseries ข้อตกลง &
+\sansall\bfseries รายละเอียด/เงื่อนไข & \sansall\bfseries ผู้รับผิดชอบ &
+\sansall\bfseries วันเสร็จ \\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+ว-01 & \vspace{9mm} & & & \\
+ว-02 & \vspace{9mm} & & & \\
+ว-03 & \vspace{9mm} & & & \\
+ว-04 & \vspace{9mm} & & & \\
+ว-05 & \vspace{9mm} & & & \\
+ว-06 & \vspace{9mm} & & & \\
+ว-07 & \vspace{9mm} & & & \\
+ว-08 & \vspace{9mm} & & & \\
+ว-09 & \vspace{9mm} & & & \\
+ว-10 & \vspace{9mm} & & & \\
+\end{longtable}
+
+\section{เช็กลิสต์ก่อนเข้าประชุม}
+
+\begin{table}[H]
+\centering\small
+\begin{tabular}{L{0.6cm}L{8.6cm}L{5.2cm}}
+\toprule
+\sansall\bfseries \# & \sansall\bfseries สิ่งที่ต้องเตรียม & \sansall\bfseries ใคร \\
+\midrule
+1 & อ่านภาค 1 ของเอกสารนี้ (\pzero{} สี่วาระ) & ทุกคน \\
+2 & อ่านภาค 4 ของ \code{trpc-guide.tex} (ความเสี่ยง 8 ข้อ) & อย่างน้อยฝ่ายเทคนิค \\
+3 & เปิดดู \code{frontend/package.json} กับ \code{backend-preview/backend/package.json} เทียบเวอร์ชัน \code{zod} จริง & คนเสนอ ว-02 \\
+4 & เตรียมรายการฟิลด์ที่คิดว่า \code{ctx.user} ต้องมี & \en{backend} \\
+5 & เตรียมรายการหน้าจอที่ต้องใช้ข้อมูลผู้ใช้ & \en{frontend} \\
+6 & เปิด \code{schema.prisma} ค้างไว้ที่ตารางสถานะ (\code{ApproveStatus}, \code{ResourceStatus}) & คนนำ ว-10 \\
+7 & เปิด \code{docs/trpc-example/} ค้างไว้ --- ตัวอย่างโค้ดของทุกวาระ (ภาคผนวก ค) & ทุกคน \\
+8 & เปิด \code{trpc-example/STRUCTURE.md} เตรียมกรอกช่องผู้รับผิดชอบ & ผู้จดบันทึก \\
+9 & เตรียมกระดาษ/ไฟล์สำหรับกรอกแบบฟอร์มภาคผนวก ก & ผู้จดบันทึก \\
+\bottomrule
+\end{tabular}
+\caption{เช็กลิสต์ --- ข้อ 1 เป็นข้อที่ตัดสินว่าประชุมจะได้ผลหรือไม่}
+\end{table}
+
+\section{โค้ดตัวอย่างของผลลัพธ์ --- \code{docs/trpc-example/}}
+
+มีโฟลเดอร์ \code{docs/trpc-example/} ที่เขียน \textbf{หน้าตาของโค้ดเมื่อประชุม
+จบแล้ว} ไว้ให้ครบทุกวาระใน \pzero{} และ \pone{} --- เป็นไฟล์จริงที่ก๊อปวางไปใช้ได้
+ไม่ใช่ \en{pseudocode}
+
+จุดประสงค์คือให้ดูปลายทางก่อนถกเถียง เพราะการเถียงว่า ``แบ่งหน้าแบบไหนดี''
+บนกระดาษกินเวลากว่าการดูโค้ดสองแบบวางข้างกันมาก
+
+\begin{table}[H]
+\centering\footnotesize
+\begin{tabular}{L{1.1cm}L{6.6cm}L{6.9cm}}
+\toprule
+\sansall\bfseries วาระ & \sansall\bfseries ไฟล์ที่แสดงผลลัพธ์ &
+\sansall\bfseries ถ้าที่ประชุมเลือกอย่างอื่น \\
+\midrule
+ว-01 & \code{package.json} (\en{workspace root})\newline\code{packages/contract/}\newline\code{backend/src/app.module.ts} &
+เลือก ข. $\to$ ลบ \code{packages/contract/} ย้าย \en{schema} กลับเข้า
+\code{backend/} แล้วเพิ่ม \code{scripts/sync-contract.sh} \\
+\addlinespace
+ว-02 & \code{packages/contract/package.json} ประกาศ \code{zod} ที่เดียว &
+เลือกลด \en{backend} เป็น \code{zod} 3 $\to$ แก้ \code{z.email()} กับ \code{z.iso.datetime()} \\
+\addlinespace
+ว-03 & \code{backend/src/trpc/context.ts}\newline\code{backend/src/trpc/auth.middleware.ts}\newline\code{backend/src/main.ts} &
+แก้ฟิลด์ใน \code{TrpcUser} ที่เดียว แล้ว \en{compiler} จะฟ้องทุกจุดที่ต้องตามแก้ \\
+\addlinespace
+ว-04 & \code{process/CONTRACT-OWNERS.md}\newline\code{process/pull\_request\_template.md} &
+กรอกชื่อเจ้าของในตารางระหว่างประชุม \\
+\addlinespace
+ว-05 & \code{backend/src/loan/loan.router.ts}\newline\code{backend/src/auth/auth.router.ts} &
+เปลี่ยนชุดคำกริยา $\to$ แก้ชื่อเมท็อดในทุก \en{router} \\
+\addlinespace
+ว-06 & \code{packages/contract/src/errors/error-codes.ts}\newline\code{common/errors/business-error.ts}\newline\code{frontend/src/lib/error-messages.ts} &
+เลือก ``ตัดวันยืมอัตโนมัติ'' แทนปฏิเสธ $\to$ แก้บล็อกใน \code{loan.service.ts}
+ตามคอมเมนต์ที่เขียนไว้ให้แล้ว \\
+\addlinespace
+ว-07 & \code{packages/contract/src/schemas/pagination.schema.ts} &
+เลือก \en{cursor} $\to$ เปลี่ยน \code{paginated()} เป็นคืน \code{nextCursor} \\
+\addlinespace
+ว-08 & \code{packages/contract/src/schemas/datetime.schema.ts} &
+เลือก \code{superjson} $\to$ ลบไฟล์นี้ แล้วตั้ง \en{transformer} สองฝั่ง \\
+\addlinespace
+ว-09 & \code{packages/contract/src/schemas/user.schema.ts}\newline\code{common/mappers/user.mapper.ts} &
+--- (แทบไม่มีทางเลือกอื่นที่ปลอดภัย) \\
+\addlinespace
+ว-10 & \code{packages/contract/src/schemas/status.schema.ts} &
+เติมรายการค่าให้ตรงกับตารางสถานะจริงในฐานข้อมูล \\
+\addlinespace
+รวม & \code{CONTRACT.md} ตารางสัญญาที่คนอ่านได้\newline\code{frontend/.../use-loans.ts} ตัวอย่างการใช้จริง &
+อัปเดตทุกครั้งที่เพิ่ม \en{procedure} \\
+\addlinespace
+โครงสร้าง & \code{STRUCTURE.md} --- ของจริงควรอยู่ที่ไหน ใครรับผิดชอบ &
+มีโครงเป้าหมาย \textbf{ทั้งสองแบบ} (ก. และ ข.) วางเทียบกันไว้แล้ว
+พร้อมตารางเจ้าของที่เว้นให้กรอกในห้อง \\
+\bottomrule
+\end{tabular}
+\caption{แผนที่จากวาระไปหาไฟล์ --- ทุกไฟล์มีคอมเมนต์หัวไฟล์บอกว่าตอบวาระไหน สมมติว่าเลือกอะไร และปลายทางจริงอยู่พาธไหน}
+\end{table}
+
+\begin{warnbox}[title={โค้ดชุดนั้นเขียนบน \emph{ข้อเสนอ} ยังไม่ใช่มติ}]
+ทุกไฟล์เขียนบนสมมติฐานว่าที่ประชุมเลือกตามข้อเสนอในเอกสารฉบับนี้ ถ้าที่ประชุม
+ตัดสินต่างออกไป คอลัมน์ขวาสุดของตารางบอกไว้แล้วว่าต้องแก้ไฟล์ไหน
+
+โค้ดชุดนั้นเขียนบน \textbf{ทางเลือก ก.} ตามข้อเสนอข้างต้น ถ้าที่ประชุมเลือก ข.
+ดู \code{STRUCTURE.md} หัวข้อ 8
+
+สถานะการตรวจสอบ: ไฟล์ \code{.ts} ทั้ง 21 ไฟล์ผ่าน \code{tsc --strict} โดยไม่มี
+\en{syntax error} เหลือ แต่ \textbf{ยังไม่ได้พิสูจน์ว่า \en{type} ตรงกันจริง}
+เพราะเครื่องที่สร้างยังไม่ได้ลง \code{node\_modules} ของทั้งสองโปรเจกต์ ---
+ต้องรัน \code{tsc --noEmit} ซ้ำหลังคัดลอกไปวางในโปรเจกต์จริง
+\end{warnbox}
+
+\clearpage
+
+\section{สรุปทั้ง 19 วาระในหน้าเดียว}
+
+\begin{longtable}{L{1.2cm}L{1.3cm}L{7.0cm}L{4.6cm}}
+\toprule
+\sansall\bfseries วาระ & \sansall\bfseries ระดับ & \sansall\bfseries เรื่อง &
+\sansall\bfseries ตกลงเมื่อไร \\
+\midrule
+\endfirsthead
+\toprule
+\sansall\bfseries วาระ & \sansall\bfseries ระดับ & \sansall\bfseries เรื่อง &
+\sansall\bfseries ตกลงเมื่อไร \\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+ว-01 & \pzero{} & ไฟล์สัญญาเดินทางข้ามฝั่งอย่างไร & ก่อนออกจากห้อง \\
+ว-02 & \pzero{} & เวอร์ชัน \code{zod} ตรงกันทั้งสองฝั่ง & ก่อนออกจากห้อง \\
+ว-03 & \pzero{} & รูปร่าง \code{ctx.user} + \en{cookie}/\en{CORS} & ก่อนออกจากห้อง \\
+ว-04 & \pzero{} & เจ้าของสัญญาและวิธีขอเปลี่ยน & ก่อนออกจากห้อง \\
+\addlinespace
+ว-05 & \pone{} & ชื่อ \en{router} และ \en{procedure} & ในสัปดาห์นี้ \\
+ว-06 & \pone{} & รูปแบบ \en{error} + รหัสธุรกิจ & ในสัปดาห์นี้ \\
+ว-07 & \pone{} & การแบ่งหน้าและการกรอง & ในสัปดาห์นี้ \\
+ว-08 & \pone{} & รูปแบบวันที่และเขตเวลา & ในสัปดาห์นี้ \\
+ว-09 & \pone{} & แปลงชื่อฟิลด์ + ห้ามส่ง \en{Prisma model} & ในสัปดาห์นี้ \\
+ว-10 & \pone{} & สถานะเป็นสตริงคงที่ & ในสัปดาห์นี้ \\
+\addlinespace
+ว-11 & \ptwo{} & ขั้นตอนอัปโหลดรูป & เริ่มทำ \en{feature} รับ--คืน \\
+ว-12 & \ptwo{} & ความถี่ \en{polling} จริง & หลังต่อหน้าแรกที่ \en{poll} \\
+ว-13 & \ptwo{} & \en{batching} / \en{timeout} / \en{retry} & เมื่อเจอหน้าที่ช้า \\
+ว-14 & \ptwo{} & ข้อความ \en{error}  & หน้าจอที่มี \en{error} หลายกรณี \\
+ว-15 & \ptwo{} & การ \en{log} และตามรอยปัญหา & ใกล้ส่งงาน \\
+\addlinespace
+ว-16 & \pthree{} & \en{realtime} / \en{subscription} & หลัง \en{MVP} \\
+ว-17 & \pthree{} & จำกัดอัตราการเรียก & หลัง \en{MVP} \\
+ว-18 & \pthree{} & เวอร์ชันของสัญญา & เมื่อมี \en{client} ที่อัปไม่พร้อมกัน \\
+ว-19 & \pthree{} & เทสต์สัญญาอัตโนมัติ & เมื่อมีเวลา \\
+\end{longtable}
+
+\vfill
+\begin{center}
+\begin{tikzpicture}
+  \draw[rule, line width=0.6pt] (0,0) -- (\textwidth,0);
+\end{tikzpicture}
+\end{center}
+{\sansall\footnotesize\color{muted}
+เอกสารนี้เป็นวาระประชุม ไม่ใช่บันทึกการประชุม --- เมื่อประชุมเสร็จ
+ให้บันทึกมติลงแบบฟอร์มภาคผนวก ก แล้วเก็บไว้คู่กัน \\
+เหตุผลเบื้องหลังของทุกวาระ และที่มาของข้อเท็จจริงที่อ้างถึง
+อยู่ในเอกสารคู่กัน \code{docs/trpc-guide.tex} ภาคผนวก ง \par}
+
+\end{document}

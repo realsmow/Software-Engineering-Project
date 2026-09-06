@@ -1,0 +1,99 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="542" viewBox="0 0 1080 542">
+<rect x="0" y="0" width="1080" height="542" rx="14" fill="#FFFFFF"/>
+<rect x="44" y="30" width="5" height="40" rx="2.5" fill="#16726D"/>
+<text x="62" y="48" font-family="Laksaman, Noto Sans Thai, sans-serif" font-size="21" font-weight="700" fill="#13211F">บัญชีผู้ใช้และสิทธิ์</text>
+<text x="62" y="66" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11.5" fill="#16726D" letter-spacing="0.6">ACCOUNTS &amp; AUTHORITY</text>
+<text x="1036" y="48" font-family="Laksaman, Noto Sans Thai, sans-serif" font-size="12.5" fill="#7E8F8D" text-anchor="end">ผู้ใช้หนึ่งคนมีสิทธิ์ต่างระดับกันได้ในแต่ละหน่วยงาน</text>
+<text x="1036" y="66" font-family="Laksaman, Noto Sans Thai, sans-serif" font-size="11" fill="#7E8F8D" text-anchor="end">4 ตาราง &#183; ULMs Database Design v4</text>
+<path d="M474 341.0 C531.92 341.0 531.92 415.0 483 415.0" fill="none" stroke="#16726D" stroke-width="1.6" opacity="0.7"/><path d="M474 415.0 L483 410.5 L483 419.5 z" fill="#16726D" opacity="0.7"/><circle cx="474" cy="341.0" r="3.2" fill="#16726D" opacity="0.7"/>
+<path d="M606 224.0 C551 224.0 529 121.0 483 121.0" fill="none" stroke="#16726D" stroke-width="1.6" opacity="0.7"/><path d="M474 121.0 L483 116.5 L483 125.5 z" fill="#16726D" opacity="0.7"/><circle cx="606" cy="224.0" r="3.2" fill="#16726D" opacity="0.7"/>
+<path d="M606 276.0 C548.08 276.0 548.08 350.0 597 350.0" fill="none" stroke="#16726D" stroke-width="1.6" opacity="0.7"/><path d="M606 350.0 L597 345.5 L597 354.5 z" fill="#16726D" opacity="0.7"/><circle cx="606" cy="276.0" r="3.2" fill="#16726D" opacity="0.7"/>
+<rect x="46" y="100.0" width="426" height="264" rx="10" fill="#0A1F1D" opacity="0.05"/>
+<rect x="45" y="98.0" width="428" height="264" rx="10" fill="#0A1F1D" opacity="0.05"/>
+<rect x="44" y="96.0" width="430" height="264" rx="10" fill="#FFFFFF" stroke="#DCE7E5"/>
+<path d="M44 106.0 a10 10 0 0 1 10 -10 h410 a10 10 0 0 1 10 10 v40 h-430 z" fill="#16726D"/>
+<text x="60" y="117.0" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="14.5" font-weight="700" fill="#FFFFFF">AccountInfo</text>
+<text x="60" y="135.0" font-family="Laksaman, Noto Sans Thai, sans-serif" font-size="12" fill="#FFFFFF" opacity="0.85">ข้อมูลบัญชีผู้ใช้</text>
+<rect x="57" y="152.0" width="26" height="14" rx="4" fill="#9E5714"/><text x="70" y="162.5" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="9" font-weight="700" fill="#FFFFFF" text-anchor="middle">PK</text>
+<text x="92" y="163.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="600" fill="#13211F">AccountKey</text>
+<text x="460" y="163.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">INT</text>
+<rect x="45" y="172.0" width="428" height="26" fill="#F2F7F7"/>
+<text x="92" y="189.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="400" fill="#13211F">Email</text>
+<text x="460" y="189.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">VARCHAR</text>
+<line x1="57" y1="172.0" x2="461" y2="172.0" stroke="#DCE7E5" stroke-width="0.8"/>
+<text x="92" y="215.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="400" fill="#13211F">HashedPassword</text>
+<text x="460" y="215.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">VARCHAR</text>
+<line x1="57" y1="198.0" x2="461" y2="198.0" stroke="#DCE7E5" stroke-width="0.8"/>
+<rect x="45" y="224.0" width="428" height="26" fill="#F2F7F7"/>
+<text x="92" y="241.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="400" fill="#13211F">UserID</text>
+<text x="460" y="241.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">VARCHAR</text>
+<line x1="57" y1="224.0" x2="461" y2="224.0" stroke="#DCE7E5" stroke-width="0.8"/>
+<text x="92" y="267.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="400" fill="#13211F">UserFName</text>
+<text x="460" y="267.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">VARCHAR</text>
+<line x1="57" y1="250.0" x2="461" y2="250.0" stroke="#DCE7E5" stroke-width="0.8"/>
+<rect x="45" y="276.0" width="428" height="26" fill="#F2F7F7"/>
+<text x="92" y="293.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="400" fill="#13211F">UserLName</text>
+<text x="460" y="293.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">VARCHAR</text>
+<line x1="57" y1="276.0" x2="461" y2="276.0" stroke="#DCE7E5" stroke-width="0.8"/>
+<text x="92" y="319.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="400" fill="#13211F">UserCredit</text>
+<text x="460" y="319.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">INT</text>
+<line x1="57" y1="302.0" x2="461" y2="302.0" stroke="#DCE7E5" stroke-width="0.8"/>
+<rect x="45" y="328.0" width="428" height="26" fill="#F2F7F7"/>
+<rect x="57" y="334.0" width="26" height="14" rx="4" fill="none" stroke="#16726D" stroke-width="1.2"/><text x="70" y="344.5" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="9" font-weight="700" fill="#16726D" text-anchor="middle">FK</text>
+<text x="92" y="345.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="400" fill="#13211F">RoleKey</text>
+<text x="460" y="345.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">INT</text>
+<line x1="57" y1="328.0" x2="461" y2="328.0" stroke="#DCE7E5" stroke-width="0.8"/>
+<rect x="46" y="394.0" width="426" height="108" rx="10" fill="#0A1F1D" opacity="0.05"/>
+<rect x="45" y="392.0" width="428" height="108" rx="10" fill="#0A1F1D" opacity="0.05"/>
+<rect x="44" y="390.0" width="430" height="108" rx="10" fill="#FFFFFF" stroke="#DCE7E5"/>
+<path d="M44 400.0 a10 10 0 0 1 10 -10 h410 a10 10 0 0 1 10 10 v40 h-430 z" fill="#16726D"/>
+<text x="60" y="411.0" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="14.5" font-weight="700" fill="#FFFFFF">RoleInfo</text>
+<text x="60" y="429.0" font-family="Laksaman, Noto Sans Thai, sans-serif" font-size="12" fill="#FFFFFF" opacity="0.85">บทบาทระดับระบบ</text>
+<rect x="57" y="446.0" width="26" height="14" rx="4" fill="#9E5714"/><text x="70" y="456.5" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="9" font-weight="700" fill="#FFFFFF" text-anchor="middle">PK</text>
+<text x="92" y="457.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="600" fill="#13211F">RoleKey</text>
+<text x="460" y="457.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">INT</text>
+<rect x="45" y="466.0" width="428" height="26" fill="#F2F7F7"/>
+<text x="92" y="483.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="400" fill="#13211F">RoleName</text>
+<text x="460" y="483.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">VARCHAR</text>
+<line x1="57" y1="466.0" x2="461" y2="466.0" stroke="#DCE7E5" stroke-width="0.8"/>
+<rect x="608" y="139.0" width="426" height="160" rx="10" fill="#0A1F1D" opacity="0.05"/>
+<rect x="607" y="137.0" width="428" height="160" rx="10" fill="#0A1F1D" opacity="0.05"/>
+<rect x="606" y="135.0" width="430" height="160" rx="10" fill="#FFFFFF" stroke="#DCE7E5"/>
+<path d="M606 145.0 a10 10 0 0 1 10 -10 h410 a10 10 0 0 1 10 10 v40 h-430 z" fill="#16726D"/>
+<text x="622" y="156.0" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="14.5" font-weight="700" fill="#FFFFFF">Authority</text>
+<text x="622" y="174.0" font-family="Laksaman, Noto Sans Thai, sans-serif" font-size="12" fill="#FFFFFF" opacity="0.85">สิทธิ์ของผู้ใช้ในแต่ละกลุ่ม</text>
+<rect x="619" y="191.0" width="26" height="14" rx="4" fill="#9E5714"/><text x="632" y="201.5" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="9" font-weight="700" fill="#FFFFFF" text-anchor="middle">PK</text>
+<text x="654" y="202.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="600" fill="#13211F">AuthorityKey</text>
+<text x="1022" y="202.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">INT</text>
+<rect x="607" y="211.0" width="428" height="26" fill="#F2F7F7"/>
+<rect x="619" y="217.0" width="26" height="14" rx="4" fill="none" stroke="#16726D" stroke-width="1.2"/><text x="632" y="227.5" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="9" font-weight="700" fill="#16726D" text-anchor="middle">FK</text>
+<text x="654" y="228.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="400" fill="#13211F">AccountKey</text>
+<text x="1022" y="228.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">INT</text>
+<line x1="619" y1="211.0" x2="1023" y2="211.0" stroke="#DCE7E5" stroke-width="0.8"/>
+<rect x="619" y="243.0" width="26" height="14" rx="4" fill="none" stroke="#16726D" stroke-width="1.2"/><text x="632" y="253.5" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="9" font-weight="700" fill="#16726D" text-anchor="middle">FK</text>
+<text x="654" y="254.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="400" fill="#13211F">ManagementGroupKey</text>
+<text x="799.45" y="254.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="10.5" fill="#7E8F8D">&#8594; ManagementGroup</text>
+<text x="1022" y="254.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">INT</text>
+<line x1="619" y1="237.0" x2="1023" y2="237.0" stroke="#DCE7E5" stroke-width="0.8"/>
+<rect x="607" y="263.0" width="428" height="26" fill="#F2F7F7"/>
+<rect x="619" y="269.0" width="26" height="14" rx="4" fill="none" stroke="#16726D" stroke-width="1.2"/><text x="632" y="279.5" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="9" font-weight="700" fill="#16726D" text-anchor="middle">FK</text>
+<text x="654" y="280.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="400" fill="#13211F">AuthorityRoleKey</text>
+<text x="1022" y="280.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">INT</text>
+<line x1="619" y1="263.0" x2="1023" y2="263.0" stroke="#DCE7E5" stroke-width="0.8"/>
+<rect x="608" y="329.0" width="426" height="134" rx="10" fill="#0A1F1D" opacity="0.05"/>
+<rect x="607" y="327.0" width="428" height="134" rx="10" fill="#0A1F1D" opacity="0.05"/>
+<rect x="606" y="325.0" width="430" height="134" rx="10" fill="#FFFFFF" stroke="#DCE7E5"/>
+<path d="M606 335.0 a10 10 0 0 1 10 -10 h410 a10 10 0 0 1 10 10 v40 h-430 z" fill="#16726D"/>
+<text x="622" y="346.0" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="14.5" font-weight="700" fill="#FFFFFF">AuthorityRole</text>
+<text x="622" y="364.0" font-family="Laksaman, Noto Sans Thai, sans-serif" font-size="12" fill="#FFFFFF" opacity="0.85">ชื่อและระดับของสิทธิ์</text>
+<rect x="619" y="381.0" width="26" height="14" rx="4" fill="#9E5714"/><text x="632" y="391.5" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="9" font-weight="700" fill="#FFFFFF" text-anchor="middle">PK</text>
+<text x="654" y="392.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="600" fill="#13211F">AuthorityRoleKey</text>
+<text x="1022" y="392.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">INT</text>
+<rect x="607" y="401.0" width="428" height="26" fill="#F2F7F7"/>
+<text x="654" y="418.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="400" fill="#13211F">AuthorityName</text>
+<text x="1022" y="418.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">VARCHAR</text>
+<line x1="619" y1="401.0" x2="1023" y2="401.0" stroke="#DCE7E5" stroke-width="0.8"/>
+<text x="654" y="444.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="400" fill="#13211F">AuthorityLevel</text>
+<text x="1022" y="444.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">INT</text>
+<line x1="619" y1="427.0" x2="1023" y2="427.0" stroke="#DCE7E5" stroke-width="0.8"/>
+</svg>

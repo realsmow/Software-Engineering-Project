@@ -1,0 +1,156 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="672" viewBox="0 0 1080 672">
+<rect x="0" y="0" width="1080" height="672" rx="14" fill="#FFFFFF"/>
+<rect x="44" y="30" width="5" height="40" rx="2.5" fill="#5C7C4E"/>
+<text x="62" y="48" font-family="Laksaman, Noto Sans Thai, sans-serif" font-size="21" font-weight="700" fill="#13211F">การตรวจสภาพและรูปภาพ</text>
+<text x="62" y="66" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11.5" fill="#5C7C4E" letter-spacing="0.6">INSPECTION &amp; CONDITION</text>
+<text x="1036" y="48" font-family="Laksaman, Noto Sans Thai, sans-serif" font-size="12.5" fill="#7E8F8D" text-anchor="end">ทุกการตรวจสอบเพิ่มระเบียนใหม่ ไม่ทับของเดิม จึงย้อนดูประวัติได้</text>
+<text x="1036" y="66" font-family="Laksaman, Noto Sans Thai, sans-serif" font-size="11" fill="#7E8F8D" text-anchor="end">5 ตาราง &#183; ULMs Database Design v4</text>
+<path d="M474 263.0 C540.24 263.0 540.24 441.0 483 441.0" fill="none" stroke="#5C7C4E" stroke-width="1.6" opacity="0.7"/><path d="M474 441.0 L483 436.5 L483 445.5 z" fill="#5C7C4E" opacity="0.7"/><circle cx="474" cy="263.0" r="3.2" fill="#5C7C4E" opacity="0.7"/>
+<path d="M474 557.0 C529 557.0 551 536.0 597 536.0" fill="none" stroke="#5C7C4E" stroke-width="1.6" opacity="0.7"/><path d="M606 536.0 L597 531.5 L597 540.5 z" fill="#5C7C4E" opacity="0.7"/><circle cx="474" cy="557.0" r="3.2" fill="#5C7C4E" opacity="0.7"/>
+<path d="M606 272.0 C551 272.0 529 121.0 483 121.0" fill="none" stroke="#5C7C4E" stroke-width="1.6" opacity="0.7"/><path d="M474 121.0 L483 116.5 L483 125.5 z" fill="#5C7C4E" opacity="0.7"/><circle cx="606" cy="272.0" r="3.2" fill="#5C7C4E" opacity="0.7"/>
+<path d="M606 324.0 C548.08 324.0 548.08 398.0 597 398.0" fill="none" stroke="#5C7C4E" stroke-width="1.6" opacity="0.7"/><path d="M606 398.0 L597 393.5 L597 402.5 z" fill="#5C7C4E" opacity="0.7"/><circle cx="606" cy="324.0" r="3.2" fill="#5C7C4E" opacity="0.7"/>
+<rect x="46" y="100.0" width="426" height="290" rx="10" fill="#0A1F1D" opacity="0.05"/>
+<rect x="45" y="98.0" width="428" height="290" rx="10" fill="#0A1F1D" opacity="0.05"/>
+<rect x="44" y="96.0" width="430" height="290" rx="10" fill="#FFFFFF" stroke="#DCE7E5"/>
+<path d="M44 106.0 a10 10 0 0 1 10 -10 h410 a10 10 0 0 1 10 10 v40 h-430 z" fill="#5C7C4E"/>
+<text x="60" y="117.0" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="14.5" font-weight="700" fill="#FFFFFF">Inspection</text>
+<text x="60" y="135.0" font-family="Laksaman, Noto Sans Thai, sans-serif" font-size="12" fill="#FFFFFF" opacity="0.85">การตรวจสอบโดยเจ้าหน้าที่</text>
+<rect x="57" y="152.0" width="26" height="14" rx="4" fill="#9E5714"/><text x="70" y="162.5" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="9" font-weight="700" fill="#FFFFFF" text-anchor="middle">PK</text>
+<text x="92" y="163.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="600" fill="#13211F">InspectionKey</text>
+<text x="460" y="163.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">INT</text>
+<rect x="45" y="172.0" width="428" height="26" fill="#F2F7F7"/>
+<rect x="57" y="178.0" width="26" height="14" rx="4" fill="none" stroke="#5C7C4E" stroke-width="1.2"/><text x="70" y="188.5" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="9" font-weight="700" fill="#5C7C4E" text-anchor="middle">FK</text>
+<text x="92" y="189.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="400" fill="#13211F">UsageKey</text>
+<text x="162.2" y="189.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="10.5" fill="#7E8F8D">&#8594; UsageLog</text>
+<text x="460" y="189.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">INT</text>
+<line x1="57" y1="172.0" x2="461" y2="172.0" stroke="#DCE7E5" stroke-width="0.8"/>
+<rect x="57" y="204.0" width="26" height="14" rx="4" fill="none" stroke="#5C7C4E" stroke-width="1.2"/><text x="70" y="214.5" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="9" font-weight="700" fill="#5C7C4E" text-anchor="middle">FK</text>
+<text x="92" y="215.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="400" fill="#13211F">ResourceKey</text>
+<text x="184.77499999999998" y="215.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="10.5" fill="#7E8F8D">&#8594; ResourceInfo</text>
+<text x="460" y="215.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">INT</text>
+<line x1="57" y1="198.0" x2="461" y2="198.0" stroke="#DCE7E5" stroke-width="0.8"/>
+<rect x="45" y="224.0" width="428" height="26" fill="#F2F7F7"/>
+<rect x="57" y="230.0" width="26" height="14" rx="4" fill="none" stroke="#5C7C4E" stroke-width="1.2"/><text x="70" y="240.5" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="9" font-weight="700" fill="#5C7C4E" text-anchor="middle">FK</text>
+<text x="92" y="241.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="400" fill="#13211F">InspectorKey</text>
+<text x="192.3" y="241.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="10.5" fill="#7E8F8D">&#8594; AccountInfo</text>
+<text x="460" y="241.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">INT</text>
+<line x1="57" y1="224.0" x2="461" y2="224.0" stroke="#DCE7E5" stroke-width="0.8"/>
+<rect x="57" y="256.0" width="26" height="14" rx="4" fill="none" stroke="#5C7C4E" stroke-width="1.2"/><text x="70" y="266.5" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="9" font-weight="700" fill="#5C7C4E" text-anchor="middle">FK</text>
+<text x="92" y="267.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="400" fill="#13211F">ConditionKey</text>
+<text x="460" y="267.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">INT</text>
+<line x1="57" y1="250.0" x2="461" y2="250.0" stroke="#DCE7E5" stroke-width="0.8"/>
+<rect x="45" y="276.0" width="428" height="26" fill="#F2F7F7"/>
+<rect x="57" y="282.0" width="26" height="14" rx="4" fill="none" stroke="#5C7C4E" stroke-width="1.2"/><text x="70" y="292.5" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="9" font-weight="700" fill="#5C7C4E" text-anchor="middle">FK</text>
+<text x="92" y="293.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="400" fill="#13211F">AppealKey</text>
+<text x="169.725" y="293.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="10.5" fill="#7E8F8D">&#8594; AppealInfo</text>
+<text x="460" y="293.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">INT</text>
+<line x1="57" y1="276.0" x2="461" y2="276.0" stroke="#DCE7E5" stroke-width="0.8"/>
+<rect x="57" y="308.0" width="26" height="14" rx="4" fill="none" stroke="#5C7C4E" stroke-width="1.2"/><text x="70" y="318.5" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="9" font-weight="700" fill="#5C7C4E" text-anchor="middle">FK</text>
+<text x="92" y="319.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="400" fill="#13211F">PenaltyKey</text>
+<text x="177.25" y="319.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="10.5" fill="#7E8F8D">&#8594; PenaltyInfo</text>
+<text x="460" y="319.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">INT</text>
+<line x1="57" y1="302.0" x2="461" y2="302.0" stroke="#DCE7E5" stroke-width="0.8"/>
+<rect x="45" y="328.0" width="428" height="26" fill="#F2F7F7"/>
+<text x="92" y="345.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="400" fill="#13211F">ActionTime</text>
+<text x="460" y="345.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">DATETIME</text>
+<line x1="57" y1="328.0" x2="461" y2="328.0" stroke="#DCE7E5" stroke-width="0.8"/>
+<text x="92" y="371.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="400" fill="#13211F">Notes</text>
+<text x="460" y="371.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">TEXT</text>
+<line x1="57" y1="354.0" x2="461" y2="354.0" stroke="#DCE7E5" stroke-width="0.8"/>
+<rect x="46" y="420.0" width="426" height="212" rx="10" fill="#0A1F1D" opacity="0.05"/>
+<rect x="45" y="418.0" width="428" height="212" rx="10" fill="#0A1F1D" opacity="0.05"/>
+<rect x="44" y="416.0" width="430" height="212" rx="10" fill="#FFFFFF" stroke="#DCE7E5"/>
+<path d="M44 426.0 a10 10 0 0 1 10 -10 h410 a10 10 0 0 1 10 10 v40 h-430 z" fill="#5C7C4E"/>
+<text x="60" y="437.0" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="14.5" font-weight="700" fill="#FFFFFF">ConditionLog</text>
+<text x="60" y="455.0" font-family="Laksaman, Noto Sans Thai, sans-serif" font-size="12" fill="#FFFFFF" opacity="0.85">ประวัติสภาพของทรัพยากร</text>
+<rect x="57" y="472.0" width="26" height="14" rx="4" fill="#9E5714"/><text x="70" y="482.5" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="9" font-weight="700" fill="#FFFFFF" text-anchor="middle">PK</text>
+<text x="92" y="483.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="600" fill="#13211F">ConditionKey</text>
+<text x="460" y="483.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">INT</text>
+<rect x="45" y="492.0" width="428" height="26" fill="#F2F7F7"/>
+<rect x="57" y="498.0" width="26" height="14" rx="4" fill="none" stroke="#5C7C4E" stroke-width="1.2"/><text x="70" y="508.5" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="9" font-weight="700" fill="#5C7C4E" text-anchor="middle">FK</text>
+<text x="92" y="509.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="400" fill="#13211F">ResourceKey</text>
+<text x="184.77499999999998" y="509.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="10.5" fill="#7E8F8D">&#8594; ResourceInfo</text>
+<text x="460" y="509.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">INT</text>
+<line x1="57" y1="492.0" x2="461" y2="492.0" stroke="#DCE7E5" stroke-width="0.8"/>
+<rect x="57" y="524.0" width="26" height="14" rx="4" fill="none" stroke="#5C7C4E" stroke-width="1.2"/><text x="70" y="534.5" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="9" font-weight="700" fill="#5C7C4E" text-anchor="middle">FK</text>
+<text x="92" y="535.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="400" fill="#13211F">LoggedBy</text>
+<text x="162.2" y="535.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="10.5" fill="#7E8F8D">&#8594; AccountInfo</text>
+<text x="460" y="535.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">INT</text>
+<line x1="57" y1="518.0" x2="461" y2="518.0" stroke="#DCE7E5" stroke-width="0.8"/>
+<rect x="45" y="544.0" width="428" height="26" fill="#F2F7F7"/>
+<rect x="57" y="550.0" width="26" height="14" rx="4" fill="none" stroke="#5C7C4E" stroke-width="1.2"/><text x="70" y="560.5" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="9" font-weight="700" fill="#5C7C4E" text-anchor="middle">FK</text>
+<text x="92" y="561.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="400" fill="#13211F">Condition</text>
+<text x="460" y="561.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">INT</text>
+<line x1="57" y1="544.0" x2="461" y2="544.0" stroke="#DCE7E5" stroke-width="0.8"/>
+<text x="92" y="587.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="400" fill="#13211F">Notes</text>
+<text x="460" y="587.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">TEXT</text>
+<line x1="57" y1="570.0" x2="461" y2="570.0" stroke="#DCE7E5" stroke-width="0.8"/>
+<rect x="45" y="596.0" width="428" height="26" fill="#F2F7F7"/>
+<text x="92" y="613.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="400" fill="#13211F">LoggedAt</text>
+<text x="460" y="613.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">DATETIME</text>
+<line x1="57" y1="596.0" x2="461" y2="596.0" stroke="#DCE7E5" stroke-width="0.8"/>
+<rect x="608" y="109.0" width="426" height="238" rx="10" fill="#0A1F1D" opacity="0.05"/>
+<rect x="607" y="107.0" width="428" height="238" rx="10" fill="#0A1F1D" opacity="0.05"/>
+<rect x="606" y="105.0" width="430" height="238" rx="10" fill="#FFFFFF" stroke="#DCE7E5"/>
+<path d="M606 115.0 a10 10 0 0 1 10 -10 h410 a10 10 0 0 1 10 10 v40 h-430 z" fill="#5C7C4E"/>
+<text x="622" y="126.0" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="14.5" font-weight="700" fill="#FFFFFF">Image</text>
+<text x="622" y="144.0" font-family="Laksaman, Noto Sans Thai, sans-serif" font-size="12" fill="#FFFFFF" opacity="0.85">รูปภาพประกอบการตรวจสอบ</text>
+<rect x="619" y="161.0" width="26" height="14" rx="4" fill="#9E5714"/><text x="632" y="171.5" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="9" font-weight="700" fill="#FFFFFF" text-anchor="middle">PK</text>
+<text x="654" y="172.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="600" fill="#13211F">ImageKey</text>
+<text x="1022" y="172.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">INT</text>
+<rect x="607" y="181.0" width="428" height="26" fill="#F2F7F7"/>
+<rect x="619" y="187.0" width="26" height="14" rx="4" fill="none" stroke="#5C7C4E" stroke-width="1.2"/><text x="632" y="197.5" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="9" font-weight="700" fill="#5C7C4E" text-anchor="middle">FK</text>
+<text x="654" y="198.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="400" fill="#13211F">SubmittedBy</text>
+<text x="746.775" y="198.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="10.5" fill="#7E8F8D">&#8594; AccountInfo</text>
+<text x="1022" y="198.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">INT</text>
+<line x1="619" y1="181.0" x2="1023" y2="181.0" stroke="#DCE7E5" stroke-width="0.8"/>
+<rect x="619" y="213.0" width="26" height="14" rx="4" fill="none" stroke="#5C7C4E" stroke-width="1.2"/><text x="632" y="223.5" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="9" font-weight="700" fill="#5C7C4E" text-anchor="middle">FK</text>
+<text x="654" y="224.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="400" fill="#13211F">UsageKey</text>
+<text x="724.2" y="224.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="10.5" fill="#7E8F8D">&#8594; UsageLog</text>
+<text x="1022" y="224.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">INT</text>
+<line x1="619" y1="207.0" x2="1023" y2="207.0" stroke="#DCE7E5" stroke-width="0.8"/>
+<rect x="607" y="233.0" width="428" height="26" fill="#F2F7F7"/>
+<rect x="619" y="239.0" width="26" height="14" rx="4" fill="none" stroke="#5C7C4E" stroke-width="1.2"/><text x="632" y="249.5" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="9" font-weight="700" fill="#5C7C4E" text-anchor="middle">FK</text>
+<text x="654" y="250.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="400" fill="#13211F">ResourceKey</text>
+<text x="746.775" y="250.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="10.5" fill="#7E8F8D">&#8594; ResourceInfo</text>
+<text x="1022" y="250.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">INT</text>
+<line x1="619" y1="233.0" x2="1023" y2="233.0" stroke="#DCE7E5" stroke-width="0.8"/>
+<rect x="619" y="265.0" width="26" height="14" rx="4" fill="none" stroke="#5C7C4E" stroke-width="1.2"/><text x="632" y="275.5" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="9" font-weight="700" fill="#5C7C4E" text-anchor="middle">FK</text>
+<text x="654" y="276.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="400" fill="#13211F">InspectionKey</text>
+<text x="1022" y="276.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">INT</text>
+<line x1="619" y1="259.0" x2="1023" y2="259.0" stroke="#DCE7E5" stroke-width="0.8"/>
+<rect x="607" y="285.0" width="428" height="26" fill="#F2F7F7"/>
+<text x="654" y="302.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="400" fill="#13211F">ImageURL</text>
+<text x="1022" y="302.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">VARCHAR</text>
+<line x1="619" y1="285.0" x2="1023" y2="285.0" stroke="#DCE7E5" stroke-width="0.8"/>
+<rect x="619" y="317.0" width="26" height="14" rx="4" fill="none" stroke="#5C7C4E" stroke-width="1.2"/><text x="632" y="327.5" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="9" font-weight="700" fill="#5C7C4E" text-anchor="middle">FK</text>
+<text x="654" y="328.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="400" fill="#13211F">SubmissionTypeKey</text>
+<text x="1022" y="328.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">INT</text>
+<line x1="619" y1="311.0" x2="1023" y2="311.0" stroke="#DCE7E5" stroke-width="0.8"/>
+<rect x="608" y="377.0" width="426" height="108" rx="10" fill="#0A1F1D" opacity="0.05"/>
+<rect x="607" y="375.0" width="428" height="108" rx="10" fill="#0A1F1D" opacity="0.05"/>
+<rect x="606" y="373.0" width="430" height="108" rx="10" fill="#FFFFFF" stroke="#DCE7E5"/>
+<path d="M606 383.0 a10 10 0 0 1 10 -10 h410 a10 10 0 0 1 10 10 v40 h-430 z" fill="#5C7C4E"/>
+<text x="622" y="394.0" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="14.5" font-weight="700" fill="#FFFFFF">ImageSubmissionType</text>
+<text x="622" y="412.0" font-family="Laksaman, Noto Sans Thai, sans-serif" font-size="12" fill="#FFFFFF" opacity="0.85">ประเภทของการส่งภาพ</text>
+<rect x="619" y="429.0" width="26" height="14" rx="4" fill="#9E5714"/><text x="632" y="439.5" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="9" font-weight="700" fill="#FFFFFF" text-anchor="middle">PK</text>
+<text x="654" y="440.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="600" fill="#13211F">SubmissionTypeKey</text>
+<text x="1022" y="440.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">INT</text>
+<rect x="607" y="449.0" width="428" height="26" fill="#F2F7F7"/>
+<text x="654" y="466.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="400" fill="#13211F">SubmissionType</text>
+<text x="1022" y="466.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">VARCHAR</text>
+<line x1="619" y1="449.0" x2="1023" y2="449.0" stroke="#DCE7E5" stroke-width="0.8"/>
+<rect x="608" y="515.0" width="426" height="108" rx="10" fill="#0A1F1D" opacity="0.05"/>
+<rect x="607" y="513.0" width="428" height="108" rx="10" fill="#0A1F1D" opacity="0.05"/>
+<rect x="606" y="511.0" width="430" height="108" rx="10" fill="#FFFFFF" stroke="#DCE7E5"/>
+<path d="M606 521.0 a10 10 0 0 1 10 -10 h410 a10 10 0 0 1 10 10 v40 h-430 z" fill="#5C7C4E"/>
+<text x="622" y="532.0" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="14.5" font-weight="700" fill="#FFFFFF">ConditionType</text>
+<text x="622" y="550.0" font-family="Laksaman, Noto Sans Thai, sans-serif" font-size="12" fill="#FFFFFF" opacity="0.85">ประเภทสภาพ (ปกติ / มีรอย / ชำรุด)</text>
+<rect x="619" y="567.0" width="26" height="14" rx="4" fill="#9E5714"/><text x="632" y="577.5" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="9" font-weight="700" fill="#FFFFFF" text-anchor="middle">PK</text>
+<text x="654" y="578.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="600" fill="#13211F">ConditionTypeKey</text>
+<text x="1022" y="578.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">INT</text>
+<rect x="607" y="587.0" width="428" height="26" fill="#F2F7F7"/>
+<text x="654" y="604.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="400" fill="#13211F">ConditionName</text>
+<text x="1022" y="604.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">VARCHAR</text>
+<line x1="619" y1="587.0" x2="1023" y2="587.0" stroke="#DCE7E5" stroke-width="0.8"/>
+</svg>

@@ -1,0 +1,802 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" id="Definitions_renew" targetNamespace="http://ulms.cpe/bpmn" exporter="bpmn-js (https://demo.bpmn.io)" exporterVersion="18.25.1">
+  <bpmn:collaboration id="Collaboration_renew" name="กระบวนการยืมต่อ">
+    <bpmn:participant id="Participant_user" name="ผู้ยืม (User)" processRef="Process_user" />
+    <bpmn:participant id="Participant_system" name="ระบบ ULMs (System)" processRef="Process_system" />
+    <bpmn:participant id="Participant_staff" name="เจ้าหน้าที่ (Staff)" processRef="Process_staff" />
+    <bpmn:participant id="Participant_supervisor" name="อาจารย์ผู้ดูแล (Supervisor)" processRef="Process_supervisor" />
+    <bpmn:messageFlow id="MsgFlow_2" name="ใบตรวจสภาพอุปกรณ์" sourceRef="system_ask_staff" targetRef="staff_recv" />
+    <bpmn:messageFlow id="MsgFlow_3" name="ผลตรวจสภาพอุปกรณ์" sourceRef="staff_send" targetRef="system_wait_insp" />
+    <bpmn:messageFlow id="MsgFlow_4" name="คำขอยืมต่อรออนุมัติ" sourceRef="system_ask_sup" targetRef="supervisor_recv" />
+    <bpmn:messageFlow id="MsgFlow_5" name="ผลพิจารณา: อนุมัติ" sourceRef="supervisor_send_ok" targetRef="system_wait_dec" />
+    <bpmn:messageFlow id="MsgFlow_6" name="ผลพิจารณา: ไม่อนุมัติ" sourceRef="supervisor_send_no" targetRef="system_wait_dec" />
+    <bpmn:messageFlow id="MsgFlow_7" name="แจ้งผล: T3 ต่ออายุไม่ได้" sourceRef="system_notify_t3" targetRef="user_wait" />
+    <bpmn:messageFlow id="MsgFlow_8" name="แจ้งผล: ไม่อนุมัติ" sourceRef="system_notify_rej" targetRef="user_wait" />
+    <bpmn:messageFlow id="MsgFlow_9" name="แจ้งผล: ยืมต่อสำเร็จ" sourceRef="system_notify_user" targetRef="user_wait" />
+    <bpmn:messageFlow id="MsgFlow_1" name="คำขอยืมต่อ" sourceRef="user_select" targetRef="system_recv" />
+  </bpmn:collaboration>
+  <bpmn:process id="Process_user" isExecutable="false">
+    <bpmn:startEvent id="user_start" name="เริ่ม">
+      <bpmn:outgoing>Flow_user_1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:userTask id="user_select" name="เลือกรายการอุปกรณ์ ที่ต้องการยืมต่อ">
+      <bpmn:incoming>Flow_user_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_1rqklc1</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:sequenceFlow id="Flow_user_1" name="" sourceRef="user_start" targetRef="user_select" />
+    <bpmn:sequenceFlow id="Flow_1rqklc1" sourceRef="user_select" targetRef="user_gw_res" />
+    <bpmn:userTask id="user_resubmit" name="ส่งคำขอยืมใหม่ อีกครั้ง">
+      <bpmn:incoming>Flow_user_5</bpmn:incoming>
+      <bpmn:outgoing>Flow_user_6</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:endEvent id="user_end_new" name="เริ่มคำขอใหม่">
+      <bpmn:incoming>Flow_user_6</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_user_5" name="ใช่ (T3)" sourceRef="user_gw_res" targetRef="user_resubmit" />
+    <bpmn:sequenceFlow id="Flow_user_6" name="" sourceRef="user_resubmit" targetRef="user_end_new" />
+    <bpmn:sequenceFlow id="Flow_1ofkoa4" name="ไม่" sourceRef="user_gw_res" targetRef="user_wait" />
+    <bpmn:exclusiveGateway id="user_gw_res" name="ต้องส่งคำขอใหม่?">
+      <bpmn:incoming>Flow_1rqklc1</bpmn:incoming>
+      <bpmn:outgoing>Flow_user_5</bpmn:outgoing>
+      <bpmn:outgoing>Flow_1ofkoa4</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="Flow_1g4xxh7" sourceRef="user_wait" targetRef="user_end_done" />
+    <bpmn:endEvent id="user_end_done" name="จบการยืมต่อ">
+      <bpmn:incoming>Flow_1g4xxh7</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:intermediateCatchEvent id="user_wait" name="รับแจ้งผลการยืมต่อ">
+      <bpmn:incoming>Flow_1ofkoa4</bpmn:incoming>
+      <bpmn:outgoing>Flow_1g4xxh7</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MED_user_wait" />
+    </bpmn:intermediateCatchEvent>
+  </bpmn:process>
+  <bpmn:process id="Process_system" isExecutable="false">
+    <bpmn:startEvent id="system_recv" name="รับคำขอยืมต่อ">
+      <bpmn:outgoing>Flow_system_1</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MED_system_recv" />
+    </bpmn:startEvent>
+    <bpmn:exclusiveGateway id="system_gw_t12" name="เป็น T1 หรือ T2?">
+      <bpmn:incoming>Flow_system_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_system_2</bpmn:outgoing>
+      <bpmn:outgoing>Flow_system_3</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:exclusiveGateway id="system_gw_t1" name="เป็น T1?">
+      <bpmn:incoming>Flow_system_2</bpmn:incoming>
+      <bpmn:outgoing>Flow_system_4</bpmn:outgoing>
+      <bpmn:outgoing>Flow_system_5</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:exclusiveGateway id="system_gw_first" name="ต่ออายุครั้งที่ 1?">
+      <bpmn:incoming>Flow_system_4</bpmn:incoming>
+      <bpmn:outgoing>Flow_system_6</bpmn:outgoing>
+      <bpmn:outgoing>Flow_system_7</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sendTask id="system_ask_staff" name="แจ้งเจ้าหน้าที่ ตรวจสภาพอุปกรณ์">
+      <bpmn:incoming>Flow_system_6</bpmn:incoming>
+      <bpmn:outgoing>Flow_system_8</bpmn:outgoing>
+    </bpmn:sendTask>
+    <bpmn:exclusiveGateway id="system_gw_dmg" name="พบความเสียหาย?">
+      <bpmn:incoming>Flow_system_9</bpmn:incoming>
+      <bpmn:outgoing>Flow_system_10</bpmn:outgoing>
+      <bpmn:outgoing>Flow_system_11</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:intermediateCatchEvent id="system_wait_dec" name="รอผลพิจารณา">
+      <bpmn:incoming>Flow_system_13</bpmn:incoming>
+      <bpmn:outgoing>Flow_system_14</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MED_system_wait_dec" />
+    </bpmn:intermediateCatchEvent>
+    <bpmn:serviceTask id="system_discredit" name="คำนวณการหักเครดิต (Discredit)">
+      <bpmn:incoming>Flow_system_10</bpmn:incoming>
+      <bpmn:outgoing>Flow_system_12</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:exclusiveGateway id="system_gw_t0" name="เป็น T0?">
+      <bpmn:incoming>Flow_system_3</bpmn:incoming>
+      <bpmn:outgoing>Flow_system_18</bpmn:outgoing>
+      <bpmn:outgoing>Flow_system_19</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:endEvent id="system_end_t3" name="ปิดคำขอ (T3)">
+      <bpmn:incoming>Flow_system_20</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:exclusiveGateway id="system_merge_ok" name="">
+      <bpmn:incoming>Flow_system_7</bpmn:incoming>
+      <bpmn:incoming>Flow_system_11</bpmn:incoming>
+      <bpmn:incoming>Flow_system_12</bpmn:incoming>
+      <bpmn:incoming>Flow_system_15</bpmn:incoming>
+      <bpmn:incoming>Flow_system_18</bpmn:incoming>
+      <bpmn:outgoing>Flow_system_21</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:parallelGateway id="system_fork" name="">
+      <bpmn:incoming>Flow_system_21</bpmn:incoming>
+      <bpmn:outgoing>Flow_system_22</bpmn:outgoing>
+      <bpmn:outgoing>Flow_system_23</bpmn:outgoing>
+    </bpmn:parallelGateway>
+    <bpmn:sendTask id="system_notify_user" name="แจ้งเตือนผู้ยืม">
+      <bpmn:incoming>Flow_system_22</bpmn:incoming>
+      <bpmn:outgoing>Flow_system_24</bpmn:outgoing>
+    </bpmn:sendTask>
+    <bpmn:serviceTask id="system_update" name="อัปเดตข้อมูล อุปกรณ์และผู้ยืม">
+      <bpmn:incoming>Flow_system_23</bpmn:incoming>
+      <bpmn:outgoing>Flow_system_25</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:parallelGateway id="system_join" name="">
+      <bpmn:incoming>Flow_system_24</bpmn:incoming>
+      <bpmn:incoming>Flow_system_25</bpmn:incoming>
+      <bpmn:outgoing>Flow_system_26</bpmn:outgoing>
+    </bpmn:parallelGateway>
+    <bpmn:endEvent id="system_end_ok" name="ปิดรายการยืมต่อ">
+      <bpmn:incoming>Flow_system_26</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sendTask id="system_notify_rej" name="แจ้งผู้ยืม: ไม่อนุมัติ">
+      <bpmn:incoming>Flow_system_16</bpmn:incoming>
+      <bpmn:outgoing>Flow_system_17</bpmn:outgoing>
+    </bpmn:sendTask>
+    <bpmn:endEvent id="system_end_rej" name="ปิดคำขอ (ไม่อนุมัติ)">
+      <bpmn:incoming>Flow_system_17</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_system_1" name="" sourceRef="system_recv" targetRef="system_gw_t12" />
+    <bpmn:sequenceFlow id="Flow_system_2" name="ใช่ (T1/T2)" sourceRef="system_gw_t12" targetRef="system_gw_t1" />
+    <bpmn:sequenceFlow id="Flow_system_3" name="ไม่ (T0/T3)" sourceRef="system_gw_t12" targetRef="system_gw_t0" />
+    <bpmn:sequenceFlow id="Flow_system_4" name="ใช่ (T1)" sourceRef="system_gw_t1" targetRef="system_gw_first" />
+    <bpmn:sequenceFlow id="Flow_system_5" name="ไม่ (T2)" sourceRef="system_gw_t1" targetRef="system_ask_sup" />
+    <bpmn:sequenceFlow id="Flow_system_6" name="ไม่" sourceRef="system_gw_first" targetRef="system_ask_staff" />
+    <bpmn:sequenceFlow id="Flow_system_7" name="ใช่" sourceRef="system_gw_first" targetRef="system_merge_ok" />
+    <bpmn:sequenceFlow id="Flow_system_8" name="" sourceRef="system_ask_staff" targetRef="system_wait_insp" />
+    <bpmn:sequenceFlow id="Flow_system_9" name="" sourceRef="system_wait_insp" targetRef="system_gw_dmg" />
+    <bpmn:sequenceFlow id="Flow_system_10" name="พบ" sourceRef="system_gw_dmg" targetRef="system_discredit" />
+    <bpmn:sequenceFlow id="Flow_system_11" name="ไม่พบ" sourceRef="system_gw_dmg" targetRef="system_merge_ok" />
+    <bpmn:sequenceFlow id="Flow_system_12" name="" sourceRef="system_discredit" targetRef="system_merge_ok" />
+    <bpmn:sequenceFlow id="Flow_system_13" name="" sourceRef="system_ask_sup" targetRef="system_wait_dec" />
+    <bpmn:sequenceFlow id="Flow_system_14" name="" sourceRef="system_wait_dec" targetRef="system_gw_dec" />
+    <bpmn:sequenceFlow id="Flow_system_15" name="อนุมัติ" sourceRef="system_gw_dec" targetRef="system_merge_ok" />
+    <bpmn:sequenceFlow id="Flow_system_16" name="ไม่อนุมัติ" sourceRef="system_gw_dec" targetRef="system_notify_rej" />
+    <bpmn:sequenceFlow id="Flow_system_17" name="" sourceRef="system_notify_rej" targetRef="system_end_rej" />
+    <bpmn:sequenceFlow id="Flow_system_18" name="ใช่ (T0)" sourceRef="system_gw_t0" targetRef="system_merge_ok" />
+    <bpmn:sequenceFlow id="Flow_system_19" name="ไม่ (T3)" sourceRef="system_gw_t0" targetRef="system_notify_t3" />
+    <bpmn:sequenceFlow id="Flow_system_20" name="" sourceRef="system_notify_t3" targetRef="system_end_t3" />
+    <bpmn:sequenceFlow id="Flow_system_21" name="" sourceRef="system_merge_ok" targetRef="system_fork" />
+    <bpmn:sequenceFlow id="Flow_system_22" name="" sourceRef="system_fork" targetRef="system_notify_user" />
+    <bpmn:sequenceFlow id="Flow_system_23" name="" sourceRef="system_fork" targetRef="system_update" />
+    <bpmn:sequenceFlow id="Flow_system_24" name="" sourceRef="system_notify_user" targetRef="system_join" />
+    <bpmn:sequenceFlow id="Flow_system_25" name="" sourceRef="system_update" targetRef="system_join" />
+    <bpmn:sequenceFlow id="Flow_system_26" name="" sourceRef="system_join" targetRef="system_end_ok" />
+    <bpmn:exclusiveGateway id="system_gw_dec" name="ผลพิจารณา?">
+      <bpmn:incoming>Flow_system_14</bpmn:incoming>
+      <bpmn:outgoing>Flow_system_15</bpmn:outgoing>
+      <bpmn:outgoing>Flow_system_16</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sendTask id="system_notify_t3" name="แจ้งผู้ยืม: T3 ต่ออายุไม่ได้">
+      <bpmn:incoming>Flow_system_19</bpmn:incoming>
+      <bpmn:outgoing>Flow_system_20</bpmn:outgoing>
+    </bpmn:sendTask>
+    <bpmn:intermediateCatchEvent id="system_wait_insp" name="รอผลตรวจสภาพ">
+      <bpmn:incoming>Flow_system_8</bpmn:incoming>
+      <bpmn:outgoing>Flow_system_9</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MED_system_wait_insp" />
+    </bpmn:intermediateCatchEvent>
+    <bpmn:sendTask id="system_ask_sup" name="ส่งคำขอ ให้อาจารย์พิจารณา">
+      <bpmn:incoming>Flow_system_5</bpmn:incoming>
+      <bpmn:outgoing>Flow_system_13</bpmn:outgoing>
+    </bpmn:sendTask>
+    <bpmn:association id="Assoc_system_rule_tier" sourceRef="system_gw_t12" targetRef="system_rule_tier" />
+    <bpmn:textAnnotation id="system_rule_tier">
+      <bpmn:text>เงื่อนไขตามระดับอุปกรณ์ 
+T0: ต่ออายุได้ทันที 
+T1: ครั้งที่ 1 ได้ทันที ครั้งถัดไปต้องตรวจสภาพ T2: ต้องให้อาจารย์อนุมัติ
+T3: ต่ออายุไม่ได้ ต้องส่งคำขอใหม่</bpmn:text>
+    </bpmn:textAnnotation>
+  </bpmn:process>
+  <bpmn:process id="Process_staff" isExecutable="false">
+    <bpmn:exclusiveGateway id="staff_gw_dmg" name="พบความเสียหาย?">
+      <bpmn:incoming>Flow_staff_2</bpmn:incoming>
+      <bpmn:outgoing>Flow_staff_3</bpmn:outgoing>
+      <bpmn:outgoing>Flow_staff_4</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:userTask id="staff_assess" name="ประเมินระดับความเสียหาย (B0–B3) &#38; บันทึกผล">
+      <bpmn:incoming>Flow_staff_3</bpmn:incoming>
+      <bpmn:outgoing>Flow_staff_5</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="staff_merge" name="">
+      <bpmn:incoming>Flow_staff_4</bpmn:incoming>
+      <bpmn:incoming>Flow_staff_5</bpmn:incoming>
+      <bpmn:outgoing>Flow_staff_6</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="Flow_staff_1" name="" sourceRef="staff_recv" targetRef="staff_inspect" />
+    <bpmn:sequenceFlow id="Flow_staff_2" name="" sourceRef="staff_inspect" targetRef="staff_gw_dmg" />
+    <bpmn:sequenceFlow id="Flow_staff_3" name="พบ" sourceRef="staff_gw_dmg" targetRef="staff_assess" />
+    <bpmn:sequenceFlow id="Flow_staff_4" name="ไม่พบ" sourceRef="staff_gw_dmg" targetRef="staff_merge" />
+    <bpmn:sequenceFlow id="Flow_staff_5" name="" sourceRef="staff_assess" targetRef="staff_merge" />
+    <bpmn:sequenceFlow id="Flow_staff_6" name="" sourceRef="staff_merge" targetRef="staff_send" />
+    <bpmn:sequenceFlow id="Flow_staff_7" name="" sourceRef="staff_send" targetRef="staff_end" />
+    <bpmn:sendTask id="staff_send" name="ส่งผลตรวจสภาพ ให้ระบบ">
+      <bpmn:incoming>Flow_staff_6</bpmn:incoming>
+      <bpmn:outgoing>Flow_staff_7</bpmn:outgoing>
+    </bpmn:sendTask>
+    <bpmn:endEvent id="staff_end" name="จบงานตรวจสภาพ">
+      <bpmn:incoming>Flow_staff_7</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:manualTask id="staff_inspect" name="ตรวจสภาพอุปกรณ์">
+      <bpmn:incoming>Flow_staff_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_staff_2</bpmn:outgoing>
+    </bpmn:manualTask>
+    <bpmn:startEvent id="staff_recv" name="รับแจ้งให้ตรวจสภาพ">
+      <bpmn:outgoing>Flow_staff_1</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MED_staff_recv" />
+    </bpmn:startEvent>
+  </bpmn:process>
+  <bpmn:process id="Process_supervisor" isExecutable="false">
+    <bpmn:userTask id="supervisor_review" name="ตรวจสอบรายละเอียดคำขอ &#38; เหตุผลการใช้งาน">
+      <bpmn:incoming>Flow_supervisor_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_supervisor_2</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="supervisor_gw_dec" name="ผลพิจารณา?">
+      <bpmn:incoming>Flow_supervisor_2</bpmn:incoming>
+      <bpmn:outgoing>Flow_supervisor_3</bpmn:outgoing>
+      <bpmn:outgoing>Flow_supervisor_4</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sendTask id="supervisor_send_ok" name="แจ้งผลอนุมัติ">
+      <bpmn:incoming>Flow_supervisor_3</bpmn:incoming>
+      <bpmn:outgoing>Flow_supervisor_5</bpmn:outgoing>
+    </bpmn:sendTask>
+    <bpmn:endEvent id="supervisor_end_ok" name="จบการพิจารณา">
+      <bpmn:incoming>Flow_supervisor_5</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sendTask id="supervisor_send_no" name="แจ้งผลไม่อนุมัติ">
+      <bpmn:incoming>Flow_supervisor_4</bpmn:incoming>
+      <bpmn:outgoing>Flow_supervisor_6</bpmn:outgoing>
+    </bpmn:sendTask>
+    <bpmn:endEvent id="supervisor_end_no" name="จบการพิจารณา">
+      <bpmn:incoming>Flow_supervisor_6</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_supervisor_1" name="" sourceRef="supervisor_recv" targetRef="supervisor_review" />
+    <bpmn:sequenceFlow id="Flow_supervisor_2" name="" sourceRef="supervisor_review" targetRef="supervisor_gw_dec" />
+    <bpmn:sequenceFlow id="Flow_supervisor_3" name="อนุมัติ" sourceRef="supervisor_gw_dec" targetRef="supervisor_send_ok" />
+    <bpmn:sequenceFlow id="Flow_supervisor_4" name="ไม่อนุมัติ" sourceRef="supervisor_gw_dec" targetRef="supervisor_send_no" />
+    <bpmn:sequenceFlow id="Flow_supervisor_5" name="" sourceRef="supervisor_send_ok" targetRef="supervisor_end_ok" />
+    <bpmn:sequenceFlow id="Flow_supervisor_6" name="" sourceRef="supervisor_send_no" targetRef="supervisor_end_no" />
+    <bpmn:startEvent id="supervisor_recv" name="รับคำขออนุมัติ">
+      <bpmn:outgoing>Flow_supervisor_1</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MED_supervisor_recv" />
+    </bpmn:startEvent>
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_renew">
+    <bpmndi:BPMNPlane id="BPMNPlane_renew" bpmnElement="Collaboration_renew">
+      <bpmndi:BPMNShape id="Participant_user_di" bpmnElement="Participant_user" isHorizontal="true">
+        <dc:Bounds x="160" y="80" width="3250" height="294" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="user_start_di" bpmnElement="user_start">
+        <dc:Bounds x="224" y="146" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="234" y="185" width="16" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="user_select_di" bpmnElement="user_select">
+        <dc:Bounds x="342" y="120" width="170" height="90" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="user_resubmit_di" bpmnElement="user_resubmit">
+        <dc:Bounds x="881" y="224" width="170" height="90" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="user_end_new_di" bpmnElement="user_end_new">
+        <dc:Bounds x="1113" y="252" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1103" y="288" width="56" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="user_gw_res_di" bpmnElement="user_gw_res" isMarkerVisible="true">
+        <dc:Bounds x="775" y="140" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="762" y="123" width="78" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="user_end_done_di" bpmnElement="user_end_done">
+        <dc:Bounds x="3222" y="147" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="3212" y="183" width="56" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="user_wait_di" bpmnElement="user_wait">
+        <dc:Bounds x="2992" y="147" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2964" y="130" width="87" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_user_1_di" bpmnElement="Flow_user_1">
+        <di:waypoint x="260" y="164" />
+        <di:waypoint x="342" y="164" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1rqklc1_di" bpmnElement="Flow_1rqklc1">
+        <di:waypoint x="512" y="165" />
+        <di:waypoint x="775" y="165" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_user_5_di" bpmnElement="Flow_user_5">
+        <di:waypoint x="801" y="189" />
+        <di:waypoint x="801" y="270" />
+        <di:waypoint x="881" y="270" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="826" y="248" width="33" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_user_6_di" bpmnElement="Flow_user_6">
+        <di:waypoint x="1051" y="270" />
+        <di:waypoint x="1113" y="270" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1ofkoa4_di" bpmnElement="Flow_1ofkoa4">
+        <di:waypoint x="825" y="165" />
+        <di:waypoint x="2992" y="165" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="854" y="147" width="11" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1g4xxh7_di" bpmnElement="Flow_1g4xxh7">
+        <di:waypoint x="3028" y="165" />
+        <di:waypoint x="3222" y="165" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="Participant_system_di" bpmnElement="Participant_system" isHorizontal="true">
+        <dc:Bounds x="160" y="489" width="3250" height="669" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="system_recv_di" bpmnElement="system_recv">
+        <dc:Bounds x="410" y="556" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="system_gw_t12_di" bpmnElement="system_gw_t12" isMarkerVisible="true">
+        <dc:Bounds x="588" y="548" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="574" y="523" width="76" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="system_gw_t1_di" bpmnElement="system_gw_t1" isMarkerVisible="true">
+        <dc:Bounds x="692" y="548" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="699" y="523" width="39" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="system_gw_first_di" bpmnElement="system_gw_first" isMarkerVisible="true">
+        <dc:Bounds x="798" y="548" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="788" y="523" width="71" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="system_ask_staff_di" bpmnElement="system_ask_staff">
+        <dc:Bounds x="902" y="528" width="170" height="90" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="system_gw_dmg_di" bpmnElement="system_gw_dmg" isMarkerVisible="true">
+        <dc:Bounds x="2072" y="548" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2058" y="532" width="78" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="system_wait_dec_di" bpmnElement="system_wait_dec">
+        <dc:Bounds x="1690" y="680" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1676" y="663" width="63" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="system_discredit_di" bpmnElement="system_discredit">
+        <dc:Bounds x="2238" y="654" width="170" height="90" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="system_gw_t0_di" bpmnElement="system_gw_t0" isMarkerVisible="true">
+        <dc:Bounds x="692" y="798" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="699" y="773" width="39" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="system_end_t3_di" bpmnElement="system_end_t3">
+        <dc:Bounds x="2470" y="806" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="system_merge_ok_di" bpmnElement="system_merge_ok" isMarkerVisible="true">
+        <dc:Bounds x="2462" y="924" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="system_fork_di" bpmnElement="system_fork">
+        <dc:Bounds x="2568" y="924" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="system_notify_user_di" bpmnElement="system_notify_user">
+        <dc:Bounds x="2672" y="904" width="170" height="90" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="system_update_di" bpmnElement="system_update">
+        <dc:Bounds x="2672" y="1028" width="170" height="90" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="system_join_di" bpmnElement="system_join">
+        <dc:Bounds x="2898" y="924" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="system_end_ok_di" bpmnElement="system_end_ok">
+        <dc:Bounds x="3010" y="930" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="system_notify_rej_di" bpmnElement="system_notify_rej">
+        <dc:Bounds x="2012" y="1028" width="170" height="90" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="system_end_rej_di" bpmnElement="system_end_rej">
+        <dc:Bounds x="2304" y="1056" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2280" y="1096" width="85" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="system_gw_dec_di" bpmnElement="system_gw_dec" isMarkerVisible="true">
+        <dc:Bounds x="1805" y="674" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1788" y="653" width="58" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="system_notify_t3_di" bpmnElement="system_notify_t3">
+        <dc:Bounds x="2175" y="778" width="170" height="90" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="system_wait_insp_di" bpmnElement="system_wait_insp">
+        <dc:Bounds x="1902" y="556" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1883" y="532" width="74" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="system_ask_sup_di" bpmnElement="system_ask_sup">
+        <dc:Bounds x="885" y="654" width="170" height="90" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="system_rule_tier_di" bpmnElement="system_rule_tier">
+        <dc:Bounds x="322" y="636" width="250.4446321838694" height="86" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_system_1_di" bpmnElement="Flow_system_1">
+        <di:waypoint x="446" y="574" />
+        <di:waypoint x="588" y="574" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_system_2_di" bpmnElement="Flow_system_2">
+        <di:waypoint x="638" y="574" />
+        <di:waypoint x="692" y="574" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="604" y="546" width="123" height="22" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_system_3_di" bpmnElement="Flow_system_3">
+        <di:waypoint x="613" y="598" />
+        <di:waypoint x="613" y="824" />
+        <di:waypoint x="693" y="824" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="662" y="678" width="50" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_system_4_di" bpmnElement="Flow_system_4">
+        <di:waypoint x="742" y="574" />
+        <di:waypoint x="798" y="574" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="754" y="553" width="33" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_system_5_di" bpmnElement="Flow_system_5">
+        <di:waypoint x="718" y="597" />
+        <di:waypoint x="718" y="698" />
+        <di:waypoint x="885" y="698" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="755" y="678" width="34" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_system_6_di" bpmnElement="Flow_system_6">
+        <di:waypoint x="848" y="574" />
+        <di:waypoint x="902" y="574" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="864" y="553" width="11" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_system_7_di" bpmnElement="Flow_system_7">
+        <di:waypoint x="822" y="597" />
+        <di:waypoint x="822" y="880" />
+        <di:waypoint x="2487" y="890" />
+        <di:waypoint x="2487" y="924" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="858" y="862" width="10" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_system_8_di" bpmnElement="Flow_system_8">
+        <di:waypoint x="1072" y="574" />
+        <di:waypoint x="1902" y="574" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_system_9_di" bpmnElement="Flow_system_9">
+        <di:waypoint x="1938" y="574" />
+        <di:waypoint x="2073" y="574" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_system_10_di" bpmnElement="Flow_system_10">
+        <di:waypoint x="2122" y="573" />
+        <di:waypoint x="2140" y="573" />
+        <di:waypoint x="2200" y="690" />
+        <di:waypoint x="2238" y="692" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2162" y="593" width="15" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_system_11_di" bpmnElement="Flow_system_11">
+        <di:waypoint x="2097" y="600" />
+        <di:waypoint x="2097" y="960" />
+        <di:waypoint x="2473" y="960" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2107" y="613" width="25" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_system_12_di" bpmnElement="Flow_system_12">
+        <di:waypoint x="2408" y="699" />
+        <di:waypoint x="2420" y="699" />
+        <di:waypoint x="2420" y="948" />
+        <di:waypoint x="2463" y="948" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_system_13_di" bpmnElement="Flow_system_13">
+        <di:waypoint x="1055" y="698" />
+        <di:waypoint x="1690" y="698" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_system_14_di" bpmnElement="Flow_system_14">
+        <di:waypoint x="1726" y="698" />
+        <di:waypoint x="1806" y="698" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_system_15_di" bpmnElement="Flow_system_15">
+        <di:waypoint x="1855" y="699" />
+        <di:waypoint x="1890" y="699" />
+        <di:waypoint x="1990" y="920" />
+        <di:waypoint x="2460" y="920" />
+        <di:waypoint x="2475" y="936" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1858" y="678" width="27" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_system_16_di" bpmnElement="Flow_system_16">
+        <di:waypoint x="1830" y="724" />
+        <di:waypoint x="1830" y="1074" />
+        <di:waypoint x="2012" y="1074" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1789" y="943" width="37" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_system_17_di" bpmnElement="Flow_system_17">
+        <di:waypoint x="2182" y="1074" />
+        <di:waypoint x="2304" y="1074" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_system_18_di" bpmnElement="Flow_system_18">
+        <di:waypoint x="718" y="847" />
+        <di:waypoint x="718" y="1000" />
+        <di:waypoint x="2487" y="1000" />
+        <di:waypoint x="2487" y="974" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="755" y="975" width="33" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_system_19_di" bpmnElement="Flow_system_19">
+        <di:waypoint x="741" y="824" />
+        <di:waypoint x="2175" y="824" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="751" y="803" width="34" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_system_20_di" bpmnElement="Flow_system_20">
+        <di:waypoint x="2345" y="824" />
+        <di:waypoint x="2470" y="824" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_system_21_di" bpmnElement="Flow_system_21">
+        <di:waypoint x="2512" y="948" />
+        <di:waypoint x="2568" y="948" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_system_22_di" bpmnElement="Flow_system_22">
+        <di:waypoint x="2618" y="948" />
+        <di:waypoint x="2672" y="948" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_system_23_di" bpmnElement="Flow_system_23">
+        <di:waypoint x="2592" y="974" />
+        <di:waypoint x="2592" y="1074" />
+        <di:waypoint x="2672" y="1074" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_system_24_di" bpmnElement="Flow_system_24">
+        <di:waypoint x="2842" y="948" />
+        <di:waypoint x="2898" y="948" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_system_25_di" bpmnElement="Flow_system_25">
+        <di:waypoint x="2842" y="1073" />
+        <di:waypoint x="2923" y="1073" />
+        <di:waypoint x="2923" y="974" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_system_26_di" bpmnElement="Flow_system_26">
+        <di:waypoint x="2948" y="948" />
+        <di:waypoint x="3010" y="948" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Assoc_system_rule_tier_di" bpmnElement="Assoc_system_rule_tier">
+        <di:waypoint x="613" y="598" />
+        <di:waypoint x="427" y="636" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="Participant_staff_di" bpmnElement="Participant_staff" isHorizontal="true">
+        <dc:Bounds x="160" y="1273" width="3250" height="294" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="staff_gw_dmg_di" bpmnElement="staff_gw_dmg" isMarkerVisible="true">
+        <dc:Bounds x="1352" y="1332" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1338" y="1313" width="78" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="staff_assess_di" bpmnElement="staff_assess">
+        <dc:Bounds x="1458" y="1438" width="170" height="90" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="staff_merge_di" bpmnElement="staff_merge" isMarkerVisible="true">
+        <dc:Bounds x="1682" y="1332" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="staff_send_di" bpmnElement="staff_send">
+        <dc:Bounds x="1835" y="1312" width="170" height="90" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="staff_end_di" bpmnElement="staff_end">
+        <dc:Bounds x="2080" y="1340" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2059" y="1379" width="79" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="staff_inspect_di" bpmnElement="staff_inspect">
+        <dc:Bounds x="1155" y="1312" width="170" height="90" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="staff_recv_di" bpmnElement="staff_recv">
+        <dc:Bounds x="1054" y="1340" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1025" y="1379" width="89" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_staff_1_di" bpmnElement="Flow_staff_1">
+        <di:waypoint x="1090" y="1358" />
+        <di:waypoint x="1155" y="1358" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_staff_2_di" bpmnElement="Flow_staff_2">
+        <di:waypoint x="1325" y="1358" />
+        <di:waypoint x="1353" y="1358" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_staff_3_di" bpmnElement="Flow_staff_3">
+        <di:waypoint x="1378" y="1382" />
+        <di:waypoint x="1378" y="1482" />
+        <di:waypoint x="1458" y="1482" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1390" y="1434" width="48" height="22" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_staff_4_di" bpmnElement="Flow_staff_4">
+        <di:waypoint x="1402" y="1358" />
+        <di:waypoint x="1682" y="1358" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1458" y="1330" width="69" height="22" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_staff_5_di" bpmnElement="Flow_staff_5">
+        <di:waypoint x="1628" y="1483" />
+        <di:waypoint x="1707" y="1483" />
+        <di:waypoint x="1707" y="1382" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_staff_6_di" bpmnElement="Flow_staff_6">
+        <di:waypoint x="1731" y="1358" />
+        <di:waypoint x="1835" y="1358" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_staff_7_di" bpmnElement="Flow_staff_7">
+        <di:waypoint x="2005" y="1358" />
+        <di:waypoint x="2080" y="1358" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="Participant_supervisor_di" bpmnElement="Participant_supervisor" isHorizontal="true">
+        <dc:Bounds x="160" y="1682" width="3250" height="294" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="supervisor_review_di" bpmnElement="supervisor_review">
+        <dc:Bounds x="1128" y="1722" width="170" height="90" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="supervisor_gw_dec_di" bpmnElement="supervisor_gw_dec" isMarkerVisible="true">
+        <dc:Bounds x="1352" y="1742" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1348" y="1723" width="58" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="supervisor_send_ok_di" bpmnElement="supervisor_send_ok">
+        <dc:Bounds x="1458" y="1722" width="170" height="90" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="supervisor_end_ok_di" bpmnElement="supervisor_end_ok">
+        <dc:Bounds x="1690" y="1748" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="supervisor_send_no_di" bpmnElement="supervisor_send_no">
+        <dc:Bounds x="1458" y="1846" width="170" height="90" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="supervisor_end_no_di" bpmnElement="supervisor_end_no">
+        <dc:Bounds x="1690" y="1874" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="supervisor_recv_di" bpmnElement="supervisor_recv">
+        <dc:Bounds x="932" y="1748" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="919" y="1784" width="63" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_supervisor_1_di" bpmnElement="Flow_supervisor_1">
+        <di:waypoint x="968" y="1766" />
+        <di:waypoint x="1128" y="1766" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_supervisor_2_di" bpmnElement="Flow_supervisor_2">
+        <di:waypoint x="1298" y="1766" />
+        <di:waypoint x="1352" y="1766" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_supervisor_3_di" bpmnElement="Flow_supervisor_3">
+        <di:waypoint x="1402" y="1766" />
+        <di:waypoint x="1458" y="1766" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1386" y="1740" width="87" height="22" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_supervisor_4_di" bpmnElement="Flow_supervisor_4">
+        <di:waypoint x="1378" y="1792" />
+        <di:waypoint x="1378" y="1892" />
+        <di:waypoint x="1458" y="1892" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1401" y="1870" width="37" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_supervisor_5_di" bpmnElement="Flow_supervisor_5">
+        <di:waypoint x="1628" y="1766" />
+        <di:waypoint x="1690" y="1766" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_supervisor_6_di" bpmnElement="Flow_supervisor_6">
+        <di:waypoint x="1628" y="1892" />
+        <di:waypoint x="1690" y="1892" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MsgFlow_1_di" bpmnElement="MsgFlow_1">
+        <di:waypoint x="428" y="210" />
+        <di:waypoint x="428" y="400" />
+        <di:waypoint x="428" y="400" />
+        <di:waypoint x="428" y="556" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="364" y="403" width="51" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MsgFlow_2_di" bpmnElement="MsgFlow_2">
+        <di:waypoint x="1072" y="608" />
+        <di:waypoint x="1072" y="1340" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1084" y="1213" width="94" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MsgFlow_3_di" bpmnElement="MsgFlow_3">
+        <di:waypoint x="1920" y="1310" />
+        <di:waypoint x="1920" y="592" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1931" y="1233" width="98" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MsgFlow_4_di" bpmnElement="MsgFlow_4">
+        <di:waypoint x="950" y="744" />
+        <di:waypoint x="950" y="1748" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="965" y="1613" width="89" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MsgFlow_5_di" bpmnElement="MsgFlow_5">
+        <di:waypoint x="1520" y="1722" />
+        <di:waypoint x="1440" y="1560" />
+        <di:waypoint x="1440" y="1236" />
+        <di:waypoint x="1708" y="1236" />
+        <di:waypoint x="1708" y="716" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1523" y="1213" width="85" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MsgFlow_6_di" bpmnElement="MsgFlow_6">
+        <di:waypoint x="1628" y="1877" />
+        <di:waypoint x="1650" y="1870" />
+        <di:waypoint x="1640" y="1310" />
+        <di:waypoint x="1708" y="1310" />
+        <di:waypoint x="1708" y="716" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1602" y="1293" width="95" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MsgFlow_7_di" bpmnElement="MsgFlow_7">
+        <di:waypoint x="2210" y="778" />
+        <di:waypoint x="2210" y="426" />
+        <di:waypoint x="3010" y="426" />
+        <di:waypoint x="3010" y="183" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2208" y="403" width="104" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MsgFlow_8_di" bpmnElement="MsgFlow_8">
+        <di:waypoint x="2050" y="1028" />
+        <di:waypoint x="2040" y="452" />
+        <di:waypoint x="3010" y="452" />
+        <di:waypoint x="3010" y="183" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2312" y="463" width="75" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MsgFlow_9_di" bpmnElement="MsgFlow_9">
+        <di:waypoint x="2758" y="904" />
+        <di:waypoint x="2758" y="478" />
+        <di:waypoint x="3010" y="478" />
+        <di:waypoint x="3010" y="183" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2795" y="463" width="89" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

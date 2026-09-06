@@ -1,0 +1,15 @@
+% =============================================================================
+%  fig_borrow_flow.tex — figure float wrapping the borrow-rule flowchart.
+%  The diagram body lives in _borrow_flow_tikz.tex (shared with the standalone
+%  test wrapper). Scaled to fit the text height, leaving room for the caption.
+% =============================================================================
+\begin{figure}[p]
+  \centering
+  \resizebox{!}{0.86\textheight}{%
+    \input{sections/_borrow_flow_tikz}%
+  }
+  \caption{ผังงานกระบวนการยืม–คืนอุปกรณ์
+    รหัสสี: สีฟ้า = ขั้นตอนของผู้ยืม, สีเขียวอมฟ้า = ขั้นตอนของ
+    เจ้าหน้าที่ (Staff), สีเหลือง = จุดตัดสินใจ, สีส้ม = ระหว่างใช้งาน, สีชมพู = อัปเดตข้อมูลเมื่อจบรายการ}
+  \label{fig:borrowflow}
+\end{figure}

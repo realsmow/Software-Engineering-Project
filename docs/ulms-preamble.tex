@@ -1,0 +1,177 @@
+% =============================================================================
+%  ulms-preamble.tex — preamble ที่ใช้ร่วมกันทุกเอกสารของโครงการ ULMs
+%
+%  ใช้โดย:  main.tex (ข้อเสนอโครงการ) · progress.tex (รายงานความก้าวหน้า)
+%
+%  เอกสารที่เรียกใช้ต้องทำสองอย่างหลัง \input{ulms-preamble}:
+%    1) \hypersetup{pdftitle={...}}  — ชื่อเอกสารใน metadata ของ PDF
+%    2) \begin{document}
+%  (pdftitle ถูกย้ายออกจากไฟล์นี้ เพราะเป็นค่าเฉพาะของแต่ละเอกสาร)
+%
+%  แก้ที่นี่ที่เดียว = มีผลกับทุกเอกสาร ห้ามก๊อป preamble ไปวางซ้ำ
+% =============================================================================
+% =============================================================================
+%  main.tex  —  เอกสารข้อเสนอโครงการ (Academic Project Proposal)
+%  ระบบบริหารจัดการการยืม–คืนอุปกรณ์มหาวิทยาลัย (ULMs)
+%
+%  IMPORTANT: This document contains Thai text and MUST be compiled with
+%  XeLaTeX (not pdflatex). Thai needs a Unicode font + ICU line-breaking.
+%      Build:  latexmk main.tex        (uses .latexmkrc -> xelatex)
+%      or:     xelatex main.tex        (run twice for the table of contents)
+% =============================================================================
+
+\documentclass[11pt, a4paper]{article}
+
+% ---- Fonts & Thai support ----------------------------------------------------
+% fontspec lets XeLaTeX use any system font. Laksaman is a complete serif face
+% that covers BOTH Thai and Latin glyphs, so one \setmainfont handles the whole
+% (Thai + English) document without font switching.
+\usepackage{fontspec}
+
+% Thai has no spaces between words, so TeX cannot find line-break points on its
+% own. These two XeTeX primitives switch on ICU's dictionary-based Thai word
+% segmentation, which is what makes Thai paragraphs wrap correctly.
+\XeTeXlinebreaklocale "th"
+\XeTeXlinebreakskip = 0pt plus 0.1pt
+
+\setmainfont{Laksaman}
+
+% ---- Page geometry & paragraph style ----------------------------------------
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{parskip}          % block paragraphs (no indent, gap between) — common
+                              % and more readable for Thai documents
+\linespread{1.15}             % a little extra leading; Thai has tall tone marks
+
+% ---- Colours (monochrome / grayscale palette) ------------------------------
+\usepackage[table]{xcolor}    % 'table' option enables \rowcolor for table headers
+% Monochrome (grayscale) palette. Names kept as-is so every reference still
+% works; only the tones changed from the original green/blue accents.
+\definecolor{kugreen}{HTML}{1A1A1A}   % near-black — section headings & title
+\definecolor{kudark}{HTML}{333333}    % dark gray — subsection/subsubsection titles
+\definecolor{headbg}{HTML}{EAEAEA}    % light gray background for table header rows
+\definecolor{linkblue}{HTML}{404040}  % medium-dark gray — links / citations
+
+% ---- Section heading styling -------------------------------------------------
+% 'nobottomtitles*' stops a heading from being printed near the bottom of a
+% page: if less than \bottomtitlespace of room is left, the heading (and its
+% following text) moves to the next page. This is titlesec's built-in, robust
+% replacement for the earlier \needspace hack — the latter injected vertical
+% glue that clashed with longtable page-splitting ("Infinite glue shrinkage").
+\usepackage[nobottomtitles*]{titlesec}
+\titleformat{\section}
+  {\color{kugreen}\Large\bfseries}{\thesection}{0.6em}{}
+\titleformat{\subsection}
+  {\color{kudark}\large\bfseries}{\thesubsection}{0.5em}{}
+\titleformat{\subsubsection}
+  {\color{kudark}\normalsize\bfseries}{\thesubsubsection}{0.5em}{}
+\titlespacing*{\section}{0pt}{1.4\baselineskip}{0.5\baselineskip}
+
+% Minimum room a heading needs at the bottom of a page; if only ~1–3 lines are
+% left (less than this), the heading is bumped to the next page instead of being
+% stranded above its table/text.
+\renewcommand{\bottomtitlespace}{4\baselineskip}
+
+% ---- Hierarchical indentation by heading level ------------------------------
+% Each heading level shifts BOTH the heading and the body text under it further
+% to the right: section = 0, subsection (x.y) = 1 step, subsubsection (x.y.z) =
+% 2 steps. We do this by having the sectioning commands set \leftskip (a global
+% left margin that carries through every following line until the next heading
+% resets it). \par first, so the *previous* paragraph is not re-indented.
+% \leftskip indents plain paragraphs; \@totalleftmargin makes list environments
+% (itemize/enumerate) start from the same indent instead of the page margin.
+\makeatletter
+\newlength{\lvlindent}
+\setlength{\lvlindent}{1.8em}          % one indent step
+\let\ulmsSecIndent\section
+\renewcommand{\section}{\par\global\leftskip=0pt\global\@totalleftmargin=0pt\relax\ulmsSecIndent}
+\let\ulmsSubsecIndent\subsection
+\renewcommand{\subsection}{\par\global\leftskip=\lvlindent\global\@totalleftmargin=\lvlindent\relax\ulmsSubsecIndent}
+\let\ulmsSubsubsecIndent\subsubsection
+\renewcommand{\subsubsection}{\par\global\leftskip=2\lvlindent\global\@totalleftmargin=2\lvlindent\relax\ulmsSubsubsecIndent}
+\makeatother
+
+% Indent the headings themselves to match (titlesec ignores \leftskip for the
+% heading line, so its left margin is set here via the first \titlespacing arg).
+\titlespacing*{\subsection}   {\lvlindent} {1.0\baselineskip}{0.4\baselineskip}
+\titlespacing*{\subsubsection}{2\lvlindent}{0.8\baselineskip}{0.3\baselineskip}
+
+% ---- Lists (tighter, custom bullets) ----------------------------------------
+\usepackage{enumitem}
+\setlist[itemize]{leftmargin=1.6em, itemsep=2pt, topsep=3pt}
+\setlist[enumerate]{leftmargin=1.9em, itemsep=2pt, topsep=3pt}
+
+% ---- Tables ------------------------------------------------------------------
+\usepackage{array}
+\usepackage{booktabs}         % \toprule / \midrule / \bottomrule
+\usepackage{tabularx}         % auto-width columns that wrap long Thai text
+\usepackage{longtable}        % tables that can break across pages
+\usepackage{multirow}         % merged cells for the team-structure table
+
+% Left-aligned wrapping column types:
+%   L{width} — fixed-width ragged-right paragraph column
+%   Y        — flexible ragged-right X column (for tabularx)
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+\renewcommand{\arraystretch}{1.3}
+
+% Helpers for a styled header row inside tables.
+%   \hrow  — starts a header row and shades it (must be FIRST in the row;
+%            colortbl allows only one \rowcolor per row).
+%   \thead — bold header-cell text.
+\newcommand{\hrow}{\rowcolor{headbg}}
+\newcommand{\thead}[1]{\textbf{#1}}
+
+% \begin{keeptable} … \end{keeptable} — keeps a table and the bold label above
+% it on the SAME page (used by the data dictionary in §5). A tabularx cannot
+% split across pages, so LaTeX is free to break between the label and its
+% table, stranding the label alone at the bottom of a page; wrapping the pair
+% in a minipage makes them one unbreakable block.
+%   * \leftskip is zeroed inside: the minipage box is already placed at the
+%     current heading indent, so leaving it set would indent the content twice
+%     and push the table past the right margin.
+%   * \parskip is restored because minipage's \@parboxrestore zeroes it, which
+%     would glue the table straight onto the label line.
+% Tables inside must use \linewidth (= the minipage width), not \textwidth.
+\newenvironment{keeptable}
+  {\par\medskip\noindent
+   \begin{minipage}{\dimexpr\textwidth-\leftskip\relax}%
+   \leftskip=0pt\relax
+   \setlength{\parskip}{0.5\baselineskip plus 2pt}}
+  {\end{minipage}\par\medskip}
+
+% ---- Table of contents styling ----------------------------------------------
+% By default LaTeX gives dotted leaders to subsections but NOT to sections
+% (they print bold with just a right-aligned page number). tocloft lets us turn
+% on dots for the section level too, so every TOC line runs "….." to its page.
+\usepackage{tocloft}
+\renewcommand{\cftsecdotsep}{\cftdotsep}   % dotted leaders for section entries
+\renewcommand{\cftsecleader}{\cftdotfill{\cftsecdotsep}}
+\renewcommand{\cftsecpagefont}{\normalfont}  % keep page numbers un-bold
+
+% ---- Figures -----------------------------------------------------------------
+\usepackage{graphicx}
+\graphicspath{{figures/}}
+
+% Landscape (rotated) full-page floats — needed by the ER diagram in §5, which
+% is far wider than it is tall and would be unreadable scaled to \textwidth.
+\usepackage{rotating}
+
+% ---- Flowcharts / diagrams (TikZ) -------------------------------------------
+% Used for the borrow–return workflow diagram (§5). Libraries: geometric shapes
+% for decision diamonds, arrows.meta for arrowheads, positioning for relative
+% node placement, calc/fit/backgrounds for routing loops and grouping.
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric, arrows.meta, positioning, calc, fit, backgrounds}
+
+% ---- Links & bookmarks -------------------------------------------------------
+\usepackage{hyperref}
+\hypersetup{
+  colorlinks=true, linkcolor=black, citecolor=linkblue, urlcolor=linkblue,
+  pdflang={th},
+}
+
+% Thai labels for auto-generated headings.
+\renewcommand{\contentsname}{สารบัญ (Table of Contents)}
+\renewcommand{\tablename}{ตาราง}
+\renewcommand{\figurename}{รูปที่}
+
