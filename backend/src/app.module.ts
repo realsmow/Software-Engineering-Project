@@ -45,6 +45,7 @@ import { CreditService } from './credit/credit.service';
 import { LoanRouter } from './loan/loan.router';
 import { LoanService } from './loan/loan.service';
 import { LoanRequestService } from './loan/loan.request.service';
+import { LoanExtensionService } from './loan/loan.extension.service';
 
 import { ApprovalRouter } from './approval/approval.router';
 import { ApprovalService } from './approval/approval.service';
@@ -128,6 +129,7 @@ import {
     LoanRouter,
     LoanService,
     LoanRequestService,
+    LoanExtensionService,
 
     ApprovalRouter,
     ApprovalService,
