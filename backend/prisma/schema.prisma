@@ -477,11 +477,25 @@ model ExtensionRequest {
   RequestedAt      DateTime
   ResolvedAt       DateTime?
 
+  /// Why the borrower wants it longer, in their words, and — on a refusal —
+  /// the decider's answer appended to it.
+  ///
+  /// Added because the desk cannot judge an extension without one: §5.4 has
+  /// staff decide whether the reason justifies keeping a unit somebody else is
+  /// queuing for, and there was nowhere to put the sentence they judge.
+  Reason String?
+
   Usage           UsageLog     @relation("ExtensionRequestUsage", fields: [UsageKey], references: [UsageKey])
   RequestedByUser AccountInfo  @relation("ExtensionRequestedBy", fields: [RequestedBy], references: [AccountKey])
   ApprovedByUser  AccountInfo? @relation("ExtensionApprovedBy", fields: [ApprovedBy], references: [AccountKey])
 
   PendingOnUsageLogs UsageLog[] @relation("UsagePendingExtension")
+
+  /// The two queues read "pending, oldest first", scoped by the resource
+  /// behind the loan. Without this every poll of either desk is a table scan.
+  @@index([ApproveStatus, RequestedAt])
+  /// "How many extensions has this loan already had" runs on every request.
+  @@index([UsageKey])
 }
 
 // ----------------------------------------------------------------------

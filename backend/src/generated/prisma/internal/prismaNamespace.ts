@@ -2969,7 +2969,8 @@ export const ExtensionRequestScalarFieldEnum = {
   ApproveStatus: 'ApproveStatus',
   ApprovedBy: 'ApprovedBy',
   RequestedAt: 'RequestedAt',
-  ResolvedAt: 'ResolvedAt'
+  ResolvedAt: 'ResolvedAt',
+  Reason: 'Reason'
 } as const
 
 export type ExtensionRequestScalarFieldEnum = (typeof ExtensionRequestScalarFieldEnum)[keyof typeof ExtensionRequestScalarFieldEnum]

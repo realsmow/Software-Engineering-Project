@@ -53,6 +53,7 @@ export type ExtensionRequestMinAggregateOutputType = {
   ApprovedBy: number | null
   RequestedAt: Date | null
   ResolvedAt: Date | null
+  Reason: string | null
 }
 
 export type ExtensionRequestMaxAggregateOutputType = {
@@ -66,6 +67,7 @@ export type ExtensionRequestMaxAggregateOutputType = {
   ApprovedBy: number | null
   RequestedAt: Date | null
   ResolvedAt: Date | null
+  Reason: string | null
 }
 
 export type ExtensionRequestCountAggregateOutputType = {
@@ -79,6 +81,7 @@ export type ExtensionRequestCountAggregateOutputType = {
   ApprovedBy: number
   RequestedAt: number
   ResolvedAt: number
+  Reason: number
   _all: number
 }
 
@@ -110,6 +113,7 @@ export type ExtensionRequestMinAggregateInputType = {
   ApprovedBy?: true
   RequestedAt?: true
   ResolvedAt?: true
+  Reason?: true
 }
 
 export type ExtensionRequestMaxAggregateInputType = {
@@ -123,6 +127,7 @@ export type ExtensionRequestMaxAggregateInputType = {
   ApprovedBy?: true
   RequestedAt?: true
   ResolvedAt?: true
+  Reason?: true
 }
 
 export type ExtensionRequestCountAggregateInputType = {
@@ -136,6 +141,7 @@ export type ExtensionRequestCountAggregateInputType = {
   ApprovedBy?: true
   RequestedAt?: true
   ResolvedAt?: true
+  Reason?: true
   _all?: true
 }
 
@@ -236,6 +242,7 @@ export type ExtensionRequestGroupByOutputType = {
   ApprovedBy: number | null
   RequestedAt: Date
   ResolvedAt: Date | null
+  Reason: string | null
   _count: ExtensionRequestCountAggregateOutputType | null
   _avg: ExtensionRequestAvgAggregateOutputType | null
   _sum: ExtensionRequestSumAggregateOutputType | null
@@ -272,6 +279,7 @@ export type ExtensionRequestWhereInput = {
   ApprovedBy?: Prisma.IntNullableFilter<"ExtensionRequest"> | number | null
   RequestedAt?: Prisma.DateTimeFilter<"ExtensionRequest"> | Date | string
   ResolvedAt?: Prisma.DateTimeNullableFilter<"ExtensionRequest"> | Date | string | null
+  Reason?: Prisma.StringNullableFilter<"ExtensionRequest"> | string | null
   Usage?: Prisma.XOR<Prisma.UsageLogScalarRelationFilter, Prisma.UsageLogWhereInput>
   RequestedByUser?: Prisma.XOR<Prisma.AccountInfoScalarRelationFilter, Prisma.AccountInfoWhereInput>
   ApprovedByUser?: Prisma.XOR<Prisma.AccountInfoNullableScalarRelationFilter, Prisma.AccountInfoWhereInput> | null
@@ -289,6 +297,7 @@ export type ExtensionRequestOrderByWithRelationInput = {
   ApprovedBy?: Prisma.SortOrderInput | Prisma.SortOrder
   RequestedAt?: Prisma.SortOrder
   ResolvedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  Reason?: Prisma.SortOrderInput | Prisma.SortOrder
   Usage?: Prisma.UsageLogOrderByWithRelationInput
   RequestedByUser?: Prisma.AccountInfoOrderByWithRelationInput
   ApprovedByUser?: Prisma.AccountInfoOrderByWithRelationInput
@@ -309,6 +318,7 @@ export type ExtensionRequestWhereUniqueInput = Prisma.AtLeast<{
   ApprovedBy?: Prisma.IntNullableFilter<"ExtensionRequest"> | number | null
   RequestedAt?: Prisma.DateTimeFilter<"ExtensionRequest"> | Date | string
   ResolvedAt?: Prisma.DateTimeNullableFilter<"ExtensionRequest"> | Date | string | null
+  Reason?: Prisma.StringNullableFilter<"ExtensionRequest"> | string | null
   Usage?: Prisma.XOR<Prisma.UsageLogScalarRelationFilter, Prisma.UsageLogWhereInput>
   RequestedByUser?: Prisma.XOR<Prisma.AccountInfoScalarRelationFilter, Prisma.AccountInfoWhereInput>
   ApprovedByUser?: Prisma.XOR<Prisma.AccountInfoNullableScalarRelationFilter, Prisma.AccountInfoWhereInput> | null
@@ -326,6 +336,7 @@ export type ExtensionRequestOrderByWithAggregationInput = {
   ApprovedBy?: Prisma.SortOrderInput | Prisma.SortOrder
   RequestedAt?: Prisma.SortOrder
   ResolvedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  Reason?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.ExtensionRequestCountOrderByAggregateInput
   _avg?: Prisma.ExtensionRequestAvgOrderByAggregateInput
   _max?: Prisma.ExtensionRequestMaxOrderByAggregateInput
@@ -347,6 +358,7 @@ export type ExtensionRequestScalarWhereWithAggregatesInput = {
   ApprovedBy?: Prisma.IntNullableWithAggregatesFilter<"ExtensionRequest"> | number | null
   RequestedAt?: Prisma.DateTimeWithAggregatesFilter<"ExtensionRequest"> | Date | string
   ResolvedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"ExtensionRequest"> | Date | string | null
+  Reason?: Prisma.StringNullableWithAggregatesFilter<"ExtensionRequest"> | string | null
 }
 
 export type ExtensionRequestCreateInput = {
@@ -356,6 +368,7 @@ export type ExtensionRequestCreateInput = {
   ApproveStatus: $Enums.ApproveStatus
   RequestedAt: Date | string
   ResolvedAt?: Date | string | null
+  Reason?: string | null
   Usage: Prisma.UsageLogCreateNestedOneWithoutExtensionRequestsInput
   RequestedByUser: Prisma.AccountInfoCreateNestedOneWithoutExtensionsRequestedInput
   ApprovedByUser?: Prisma.AccountInfoCreateNestedOneWithoutExtensionsApprovedInput
@@ -373,6 +386,7 @@ export type ExtensionRequestUncheckedCreateInput = {
   ApprovedBy?: number | null
   RequestedAt: Date | string
   ResolvedAt?: Date | string | null
+  Reason?: string | null
   PendingOnUsageLogs?: Prisma.UsageLogUncheckedCreateNestedManyWithoutPendingExtensionRequestInput
 }
 
@@ -383,6 +397,7 @@ export type ExtensionRequestUpdateInput = {
   ApproveStatus?: Prisma.EnumApproveStatusFieldUpdateOperationsInput | $Enums.ApproveStatus
   RequestedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   ResolvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  Reason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   Usage?: Prisma.UsageLogUpdateOneRequiredWithoutExtensionRequestsNestedInput
   RequestedByUser?: Prisma.AccountInfoUpdateOneRequiredWithoutExtensionsRequestedNestedInput
   ApprovedByUser?: Prisma.AccountInfoUpdateOneWithoutExtensionsApprovedNestedInput
@@ -400,6 +415,7 @@ export type ExtensionRequestUncheckedUpdateInput = {
   ApprovedBy?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   RequestedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   ResolvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  Reason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   PendingOnUsageLogs?: Prisma.UsageLogUncheckedUpdateManyWithoutPendingExtensionRequestNestedInput
 }
 
@@ -414,6 +430,7 @@ export type ExtensionRequestCreateManyInput = {
   ApprovedBy?: number | null
   RequestedAt: Date | string
   ResolvedAt?: Date | string | null
+  Reason?: string | null
 }
 
 export type ExtensionRequestUpdateManyMutationInput = {
@@ -423,6 +440,7 @@ export type ExtensionRequestUpdateManyMutationInput = {
   ApproveStatus?: Prisma.EnumApproveStatusFieldUpdateOperationsInput | $Enums.ApproveStatus
   RequestedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   ResolvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  Reason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type ExtensionRequestUncheckedUpdateManyInput = {
@@ -436,6 +454,7 @@ export type ExtensionRequestUncheckedUpdateManyInput = {
   ApprovedBy?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   RequestedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   ResolvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  Reason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type ExtensionRequestListRelationFilter = {
@@ -464,6 +483,7 @@ export type ExtensionRequestCountOrderByAggregateInput = {
   ApprovedBy?: Prisma.SortOrder
   RequestedAt?: Prisma.SortOrder
   ResolvedAt?: Prisma.SortOrder
+  Reason?: Prisma.SortOrder
 }
 
 export type ExtensionRequestAvgOrderByAggregateInput = {
@@ -485,6 +505,7 @@ export type ExtensionRequestMaxOrderByAggregateInput = {
   ApprovedBy?: Prisma.SortOrder
   RequestedAt?: Prisma.SortOrder
   ResolvedAt?: Prisma.SortOrder
+  Reason?: Prisma.SortOrder
 }
 
 export type ExtensionRequestMinOrderByAggregateInput = {
@@ -498,6 +519,7 @@ export type ExtensionRequestMinOrderByAggregateInput = {
   ApprovedBy?: Prisma.SortOrder
   RequestedAt?: Prisma.SortOrder
   ResolvedAt?: Prisma.SortOrder
+  Reason?: Prisma.SortOrder
 }
 
 export type ExtensionRequestSumOrderByAggregateInput = {
@@ -657,6 +679,7 @@ export type ExtensionRequestCreateWithoutRequestedByUserInput = {
   ApproveStatus: $Enums.ApproveStatus
   RequestedAt: Date | string
   ResolvedAt?: Date | string | null
+  Reason?: string | null
   Usage: Prisma.UsageLogCreateNestedOneWithoutExtensionRequestsInput
   ApprovedByUser?: Prisma.AccountInfoCreateNestedOneWithoutExtensionsApprovedInput
   PendingOnUsageLogs?: Prisma.UsageLogCreateNestedManyWithoutPendingExtensionRequestInput
@@ -672,6 +695,7 @@ export type ExtensionRequestUncheckedCreateWithoutRequestedByUserInput = {
   ApprovedBy?: number | null
   RequestedAt: Date | string
   ResolvedAt?: Date | string | null
+  Reason?: string | null
   PendingOnUsageLogs?: Prisma.UsageLogUncheckedCreateNestedManyWithoutPendingExtensionRequestInput
 }
 
@@ -692,6 +716,7 @@ export type ExtensionRequestCreateWithoutApprovedByUserInput = {
   ApproveStatus: $Enums.ApproveStatus
   RequestedAt: Date | string
   ResolvedAt?: Date | string | null
+  Reason?: string | null
   Usage: Prisma.UsageLogCreateNestedOneWithoutExtensionRequestsInput
   RequestedByUser: Prisma.AccountInfoCreateNestedOneWithoutExtensionsRequestedInput
   PendingOnUsageLogs?: Prisma.UsageLogCreateNestedManyWithoutPendingExtensionRequestInput
@@ -707,6 +732,7 @@ export type ExtensionRequestUncheckedCreateWithoutApprovedByUserInput = {
   ApproveStatus: $Enums.ApproveStatus
   RequestedAt: Date | string
   ResolvedAt?: Date | string | null
+  Reason?: string | null
   PendingOnUsageLogs?: Prisma.UsageLogUncheckedCreateNestedManyWithoutPendingExtensionRequestInput
 }
 
@@ -750,6 +776,7 @@ export type ExtensionRequestScalarWhereInput = {
   ApprovedBy?: Prisma.IntNullableFilter<"ExtensionRequest"> | number | null
   RequestedAt?: Prisma.DateTimeFilter<"ExtensionRequest"> | Date | string
   ResolvedAt?: Prisma.DateTimeNullableFilter<"ExtensionRequest"> | Date | string | null
+  Reason?: Prisma.StringNullableFilter<"ExtensionRequest"> | string | null
 }
 
 export type ExtensionRequestUpsertWithWhereUniqueWithoutApprovedByUserInput = {
@@ -775,6 +802,7 @@ export type ExtensionRequestCreateWithoutPendingOnUsageLogsInput = {
   ApproveStatus: $Enums.ApproveStatus
   RequestedAt: Date | string
   ResolvedAt?: Date | string | null
+  Reason?: string | null
   Usage: Prisma.UsageLogCreateNestedOneWithoutExtensionRequestsInput
   RequestedByUser: Prisma.AccountInfoCreateNestedOneWithoutExtensionsRequestedInput
   ApprovedByUser?: Prisma.AccountInfoCreateNestedOneWithoutExtensionsApprovedInput
@@ -791,6 +819,7 @@ export type ExtensionRequestUncheckedCreateWithoutPendingOnUsageLogsInput = {
   ApprovedBy?: number | null
   RequestedAt: Date | string
   ResolvedAt?: Date | string | null
+  Reason?: string | null
 }
 
 export type ExtensionRequestCreateOrConnectWithoutPendingOnUsageLogsInput = {
@@ -805,6 +834,7 @@ export type ExtensionRequestCreateWithoutUsageInput = {
   ApproveStatus: $Enums.ApproveStatus
   RequestedAt: Date | string
   ResolvedAt?: Date | string | null
+  Reason?: string | null
   RequestedByUser: Prisma.AccountInfoCreateNestedOneWithoutExtensionsRequestedInput
   ApprovedByUser?: Prisma.AccountInfoCreateNestedOneWithoutExtensionsApprovedInput
   PendingOnUsageLogs?: Prisma.UsageLogCreateNestedManyWithoutPendingExtensionRequestInput
@@ -820,6 +850,7 @@ export type ExtensionRequestUncheckedCreateWithoutUsageInput = {
   ApprovedBy?: number | null
   RequestedAt: Date | string
   ResolvedAt?: Date | string | null
+  Reason?: string | null
   PendingOnUsageLogs?: Prisma.UsageLogUncheckedCreateNestedManyWithoutPendingExtensionRequestInput
 }
 
@@ -851,6 +882,7 @@ export type ExtensionRequestUpdateWithoutPendingOnUsageLogsInput = {
   ApproveStatus?: Prisma.EnumApproveStatusFieldUpdateOperationsInput | $Enums.ApproveStatus
   RequestedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   ResolvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  Reason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   Usage?: Prisma.UsageLogUpdateOneRequiredWithoutExtensionRequestsNestedInput
   RequestedByUser?: Prisma.AccountInfoUpdateOneRequiredWithoutExtensionsRequestedNestedInput
   ApprovedByUser?: Prisma.AccountInfoUpdateOneWithoutExtensionsApprovedNestedInput
@@ -867,6 +899,7 @@ export type ExtensionRequestUncheckedUpdateWithoutPendingOnUsageLogsInput = {
   ApprovedBy?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   RequestedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   ResolvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  Reason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type ExtensionRequestUpsertWithWhereUniqueWithoutUsageInput = {
@@ -895,6 +928,7 @@ export type ExtensionRequestCreateManyRequestedByUserInput = {
   ApprovedBy?: number | null
   RequestedAt: Date | string
   ResolvedAt?: Date | string | null
+  Reason?: string | null
 }
 
 export type ExtensionRequestCreateManyApprovedByUserInput = {
@@ -907,6 +941,7 @@ export type ExtensionRequestCreateManyApprovedByUserInput = {
   ApproveStatus: $Enums.ApproveStatus
   RequestedAt: Date | string
   ResolvedAt?: Date | string | null
+  Reason?: string | null
 }
 
 export type ExtensionRequestUpdateWithoutRequestedByUserInput = {
@@ -916,6 +951,7 @@ export type ExtensionRequestUpdateWithoutRequestedByUserInput = {
   ApproveStatus?: Prisma.EnumApproveStatusFieldUpdateOperationsInput | $Enums.ApproveStatus
   RequestedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   ResolvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  Reason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   Usage?: Prisma.UsageLogUpdateOneRequiredWithoutExtensionRequestsNestedInput
   ApprovedByUser?: Prisma.AccountInfoUpdateOneWithoutExtensionsApprovedNestedInput
   PendingOnUsageLogs?: Prisma.UsageLogUpdateManyWithoutPendingExtensionRequestNestedInput
@@ -931,6 +967,7 @@ export type ExtensionRequestUncheckedUpdateWithoutRequestedByUserInput = {
   ApprovedBy?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   RequestedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   ResolvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  Reason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   PendingOnUsageLogs?: Prisma.UsageLogUncheckedUpdateManyWithoutPendingExtensionRequestNestedInput
 }
 
@@ -944,6 +981,7 @@ export type ExtensionRequestUncheckedUpdateManyWithoutRequestedByUserInput = {
   ApprovedBy?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   RequestedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   ResolvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  Reason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type ExtensionRequestUpdateWithoutApprovedByUserInput = {
@@ -953,6 +991,7 @@ export type ExtensionRequestUpdateWithoutApprovedByUserInput = {
   ApproveStatus?: Prisma.EnumApproveStatusFieldUpdateOperationsInput | $Enums.ApproveStatus
   RequestedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   ResolvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  Reason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   Usage?: Prisma.UsageLogUpdateOneRequiredWithoutExtensionRequestsNestedInput
   RequestedByUser?: Prisma.AccountInfoUpdateOneRequiredWithoutExtensionsRequestedNestedInput
   PendingOnUsageLogs?: Prisma.UsageLogUpdateManyWithoutPendingExtensionRequestNestedInput
@@ -968,6 +1007,7 @@ export type ExtensionRequestUncheckedUpdateWithoutApprovedByUserInput = {
   ApproveStatus?: Prisma.EnumApproveStatusFieldUpdateOperationsInput | $Enums.ApproveStatus
   RequestedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   ResolvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  Reason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   PendingOnUsageLogs?: Prisma.UsageLogUncheckedUpdateManyWithoutPendingExtensionRequestNestedInput
 }
 
@@ -981,6 +1021,7 @@ export type ExtensionRequestUncheckedUpdateManyWithoutApprovedByUserInput = {
   ApproveStatus?: Prisma.EnumApproveStatusFieldUpdateOperationsInput | $Enums.ApproveStatus
   RequestedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   ResolvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  Reason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type ExtensionRequestCreateManyUsageInput = {
@@ -993,6 +1034,7 @@ export type ExtensionRequestCreateManyUsageInput = {
   ApprovedBy?: number | null
   RequestedAt: Date | string
   ResolvedAt?: Date | string | null
+  Reason?: string | null
 }
 
 export type ExtensionRequestUpdateWithoutUsageInput = {
@@ -1002,6 +1044,7 @@ export type ExtensionRequestUpdateWithoutUsageInput = {
   ApproveStatus?: Prisma.EnumApproveStatusFieldUpdateOperationsInput | $Enums.ApproveStatus
   RequestedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   ResolvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  Reason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   RequestedByUser?: Prisma.AccountInfoUpdateOneRequiredWithoutExtensionsRequestedNestedInput
   ApprovedByUser?: Prisma.AccountInfoUpdateOneWithoutExtensionsApprovedNestedInput
   PendingOnUsageLogs?: Prisma.UsageLogUpdateManyWithoutPendingExtensionRequestNestedInput
@@ -1017,6 +1060,7 @@ export type ExtensionRequestUncheckedUpdateWithoutUsageInput = {
   ApprovedBy?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   RequestedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   ResolvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  Reason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   PendingOnUsageLogs?: Prisma.UsageLogUncheckedUpdateManyWithoutPendingExtensionRequestNestedInput
 }
 
@@ -1030,6 +1074,7 @@ export type ExtensionRequestUncheckedUpdateManyWithoutUsageInput = {
   ApprovedBy?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   RequestedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   ResolvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  Reason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 
@@ -1074,6 +1119,7 @@ export type ExtensionRequestSelect<ExtArgs extends runtime.Types.Extensions.Inte
   ApprovedBy?: boolean
   RequestedAt?: boolean
   ResolvedAt?: boolean
+  Reason?: boolean
   Usage?: boolean | Prisma.UsageLogDefaultArgs<ExtArgs>
   RequestedByUser?: boolean | Prisma.AccountInfoDefaultArgs<ExtArgs>
   ApprovedByUser?: boolean | Prisma.ExtensionRequest$ApprovedByUserArgs<ExtArgs>
@@ -1092,6 +1138,7 @@ export type ExtensionRequestSelectCreateManyAndReturn<ExtArgs extends runtime.Ty
   ApprovedBy?: boolean
   RequestedAt?: boolean
   ResolvedAt?: boolean
+  Reason?: boolean
   Usage?: boolean | Prisma.UsageLogDefaultArgs<ExtArgs>
   RequestedByUser?: boolean | Prisma.AccountInfoDefaultArgs<ExtArgs>
   ApprovedByUser?: boolean | Prisma.ExtensionRequest$ApprovedByUserArgs<ExtArgs>
@@ -1108,6 +1155,7 @@ export type ExtensionRequestSelectUpdateManyAndReturn<ExtArgs extends runtime.Ty
   ApprovedBy?: boolean
   RequestedAt?: boolean
   ResolvedAt?: boolean
+  Reason?: boolean
   Usage?: boolean | Prisma.UsageLogDefaultArgs<ExtArgs>
   RequestedByUser?: boolean | Prisma.AccountInfoDefaultArgs<ExtArgs>
   ApprovedByUser?: boolean | Prisma.ExtensionRequest$ApprovedByUserArgs<ExtArgs>
@@ -1124,9 +1172,10 @@ export type ExtensionRequestSelectScalar = {
   ApprovedBy?: boolean
   RequestedAt?: boolean
   ResolvedAt?: boolean
+  Reason?: boolean
 }
 
-export type ExtensionRequestOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"ExtensionKey" | "UsageKey" | "RequestedBy" | "ExtendNo" | "PreviousDueTime" | "RequestedDueTime" | "ApproveStatus" | "ApprovedBy" | "RequestedAt" | "ResolvedAt", ExtArgs["result"]["extensionRequest"]>
+export type ExtensionRequestOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"ExtensionKey" | "UsageKey" | "RequestedBy" | "ExtendNo" | "PreviousDueTime" | "RequestedDueTime" | "ApproveStatus" | "ApprovedBy" | "RequestedAt" | "ResolvedAt" | "Reason", ExtArgs["result"]["extensionRequest"]>
 export type ExtensionRequestInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   Usage?: boolean | Prisma.UsageLogDefaultArgs<ExtArgs>
   RequestedByUser?: boolean | Prisma.AccountInfoDefaultArgs<ExtArgs>
@@ -1164,6 +1213,15 @@ export type $ExtensionRequestPayload<ExtArgs extends runtime.Types.Extensions.In
     ApprovedBy: number | null
     RequestedAt: Date
     ResolvedAt: Date | null
+    /**
+     * Why the borrower wants it longer, in their words, and — on a refusal —
+     * the decider's answer appended to it.
+     * 
+     * Added because the desk cannot judge an extension without one: §5.4 has
+     * staff decide whether the reason justifies keeping a unit somebody else is
+     * queuing for, and there was nowhere to put the sentence they judge.
+     */
+    Reason: string | null
   }, ExtArgs["result"]["extensionRequest"]>
   composites: {}
 }
@@ -1601,6 +1659,7 @@ export interface ExtensionRequestFieldRefs {
   readonly ApprovedBy: Prisma.FieldRef<"ExtensionRequest", 'Int'>
   readonly RequestedAt: Prisma.FieldRef<"ExtensionRequest", 'DateTime'>
   readonly ResolvedAt: Prisma.FieldRef<"ExtensionRequest", 'DateTime'>
+  readonly Reason: Prisma.FieldRef<"ExtensionRequest", 'String'>
 }
     
 

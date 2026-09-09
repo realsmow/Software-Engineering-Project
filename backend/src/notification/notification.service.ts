@@ -245,6 +245,71 @@ export class NotificationService {
   }
 
   /**
+   * "คำขอต่ออายุได้รับการอนุมัติ" — the loan now runs to a later date.
+   *
+   * Sent for the extensions a person granted *and* for the ones the system
+   * granted on the spot (§5.4's online renewal): the borrower asked from a
+   * screen that may already be closed, and the new due date is the thing they
+   * will be penalised against.
+   *
+   * Rides on `RequestApproved` rather than a type of its own — the enum mirrors
+   * the frontend's `NotificationType` union, and adding a value there is a
+   * frontend change. `dedupeKey` is namespaced to the extension, so an
+   * extension notice can never overwrite the notice for the request it grew
+   * out of.
+   */
+  extensionApproved(
+    tx: Prisma.TransactionClient,
+    params: {
+      accountKey: number;
+      extensionKey: number;
+      itemName: string;
+      dueAt: Date;
+      /** Nobody signed it — worth saying, so nobody waits for a reply. */
+      automatic: boolean;
+    },
+  ) {
+    return this.emit(tx, {
+      accountKey: params.accountKey,
+      type: 'RequestApproved',
+      title: params.automatic
+        ? 'ต่ออายุการยืมเรียบร้อยแล้ว'
+        : 'คำขอต่ออายุได้รับการอนุมัติ',
+      body: `${params.itemName} · กำหนดคืนใหม่ ${thaiDateTime(params.dueAt)}`,
+      linkTo: ROUTE_MY_LOANS,
+      dedupeKey: extensionKeyOf(params.extensionKey),
+    });
+  }
+
+  /**
+   * "คำขอต่ออายุไม่ได้รับอนุมัติ" — the original due date still stands.
+   *
+   * The due date is repeated in the body on purpose. A borrower who asked for
+   * more time and hears only "no" has to work out for themselves what they are
+   * now late against.
+   */
+  extensionRejected(
+    tx: Prisma.TransactionClient,
+    params: {
+      accountKey: number;
+      extensionKey: number;
+      itemName: string;
+      dueAt: Date;
+      reason?: string | null;
+    },
+  ) {
+    const why = params.reason ? ` · ${params.reason}` : '';
+    return this.emit(tx, {
+      accountKey: params.accountKey,
+      type: 'RequestRejected',
+      title: 'คำขอต่ออายุไม่ได้รับอนุมัติ',
+      body: `${params.itemName} · กำหนดคืนเดิม ${thaiDateTime(params.dueAt)}${why}`,
+      linkTo: ROUTE_MY_LOANS,
+      dedupeKey: extensionKeyOf(params.extensionKey),
+    });
+  }
+
+  /**
    * "อุปกรณ์พร้อมให้รับแล้ว" — staff have set a unit aside on the counter.
    *
    * Distinct from `requestApproved`: approval says the request is allowed,
@@ -470,4 +535,8 @@ function usageKeyOf(usageKey: number): string {
 
 function reservationKeyOf(reservationKey: number): string {
   return `reservation:${reservationKey}`;
+}
+
+function extensionKeyOf(extensionKey: number): string {
+  return `extension:${extensionKey}`;
 }

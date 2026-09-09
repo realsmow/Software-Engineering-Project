@@ -76,6 +76,20 @@ export const BUSINESS_ERROR_CODES = {
   EXTENSION_NOT_FOUND: 'NOT_FOUND',
   /** T2 extensions are the supervisor's call, not the counter's (§5.4) */
   EXTENSION_NEEDS_SUPERVISOR: 'FORBIDDEN',
+  /**
+   * One extension request may be open per loan.
+   *
+   * Not ALREADY_DECIDED: nothing has been decided, and the borrower's next move
+   * is to wait or to withdraw the one they have. `cause.extensionKey` names it
+   * so the screen can offer exactly that.
+   */
+  EXTENSION_ALREADY_PENDING: 'CONFLICT',
+  /**
+   * The requested new due date is not one this loan can be moved to — earlier
+   * than the current one, in the past, or past what the borrower's band allows.
+   * `cause.reason` says which.
+   */
+  INVALID_EXTENSION_WINDOW: 'BAD_REQUEST',
   /** Only T1 units may be swapped at pickup (§5.4) */
   UNIT_SWAP_NOT_ALLOWED: 'FORBIDDEN',
   /** Not yet two weeks overdue, so it is still late rather than lost (§5.7) */
@@ -109,6 +123,13 @@ export const BUSINESS_ERROR_CODES = {
   INSPECTION_NOT_FOUND: 'NOT_FOUND',
   /** This return has already been graded; corrections go through an appeal */
   ALREADY_INSPECTED: 'CONFLICT',
+  /**
+   * §5.9 / FR-RTN-04: for T2, whoever grades the return may not be the person
+   * who prepared the unit ("Staff A ≠ Staff B"). Sibling of
+   * CANNOT_APPROVE_OWN_REQUEST — the same "no marking your own work" rule, one
+   * desk over.
+   */
+  CANNOT_INSPECT_OWN_PREPARATION: 'FORBIDDEN',
 
   // --- borrowing requests (borrower slice) ---
   /**
