@@ -91,7 +91,11 @@
     "borrowWindow": "ยืมได้สูงสุด",
     "activePenalties": "บทลงโทษที่มีผล {{count}} รายการ (รวม -{{total}} เครดิต)",
     "penaltyNoReason": "ไม่ระบุเหตุผล",
-    "penaltyUntil": "ถึง {{date}}"
+    "penaltyUntil": "ถึง {{date}}",
+    "security": "ความปลอดภัยของบัญชี",
+    "signOutEverywhere": "ออกจากระบบทุกอุปกรณ์",
+    "signOutEverywhereHelp": "ยกเลิกการเข้าสู่ระบบทุกอุปกรณ์ที่ยังค้างอยู่ ใช้เมื่อลืมออกจากระบบบนเครื่องส่วนกลาง หรือสงสัยว่ามีคนรู้รหัสผ่าน",
+    "signOutEverywhereConfirm": "ออกจากระบบทุกอุปกรณ์? เครื่องนี้จะถูกออกจากระบบด้วย และต้องเข้าสู่ระบบใหม่"
   },
   "auth": {
     "universityAccount": "บัญชีของมหาวิทยาลัย",

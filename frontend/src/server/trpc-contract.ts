@@ -95,6 +95,8 @@ export const appRouter = t.router({
       .input(z.object({ username: z.string(), password: z.string() }))
       .mutation(() => as<{ user: ServerUser }>()),
     logout: proc.mutation(() => as<{ ok: true }>()),
+    /** Revokes every session the account holds, not just this browser's. */
+    logoutAll: proc.mutation(() => as<{ ok: true }>()),
   }),
 
   // ── item ──────────────────────────────────────────────
@@ -402,6 +404,9 @@ export const appRouter = t.router({
     getConfig: proc.query(() => as<TechnicalConfig>()),
     getSystemStatus: proc.query(() => as<SystemStatus>()),
     listCronJobs: proc.query(() => as<CronJob[]>()),
+    runCronJob: proc
+      .input(z.object({ job: z.string() }))
+      .mutation(() => as<{ ok: true }>()),
     getLendingSettings: proc.query(() => as<LendingSettings>()),
     updateLendingSettings: proc
       .input(
