@@ -70,7 +70,12 @@ const SUBJECT_SELECT = {
     },
   },
   Resource: { select: RESOURCE_SELECT },
-  CheckoutConditionLog: { select: { Condition: true, Notes: true } },
+  // LoggedBy is the preparer: allocate (and a later swapUnit) sets the checkout
+  // ConditionLog to the staff who set the unit aside. FR-RTN-04 reads it to keep
+  // the grader off their own preparation — no dedicated UsageLog column needed.
+  CheckoutConditionLog: {
+    select: { Condition: true, Notes: true, LoggedBy: true },
+  },
   Inspections: { take: 1, select: { InspectionKey: true } },
 } satisfies Prisma.UsageLogSelect;
 
@@ -257,6 +262,22 @@ export class InspectionService {
       throw new BusinessError('ALREADY_INSPECTED', {
         usageKey: input.usageKey,
         inspectionKey: usage.Inspections[0].InspectionKey,
+      });
+    }
+
+    // FR-RTN-04 (§5.9): for T2, the grader may not be the one who prepared the
+    // unit. The preparer is CheckoutConditionLog.LoggedBy — set by allocate, and
+    // by any later swapUnit, so it is the person who set aside the unit actually
+    // handed over. Only T2 needs a second pair of hands; T0/T1/T3 do not, so the
+    // check is scoped to it rather than applied to every return.
+    const tier = tryMapTier(usage.Resource.BorrowRuleInfo.RuleName);
+    if (
+      tier === 'T2' &&
+      usage.CheckoutConditionLog.LoggedBy === user.accountKey
+    ) {
+      throw new BusinessError('CANNOT_INSPECT_OWN_PREPARATION', {
+        usageKey: input.usageKey,
+        inspectorKey: user.accountKey,
       });
     }
 

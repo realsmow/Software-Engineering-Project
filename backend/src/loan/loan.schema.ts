@@ -11,6 +11,7 @@ import {
 import {
   approveStatus,
   conditionType,
+  creditTier,
   resourceTier,
   usageStatus,
 } from '../common/schemas/status.schema';
@@ -259,16 +260,29 @@ export type MarkLostInput = z.infer<typeof markLostInput>;
 // ---------------------------------------------------------------------------
 
 /**
- * The extension requests staff have to settle in person.
+ * Who has to say yes to one extension. Mirrors `ExtensionRoute` in
+ * common/approval/extension-policy.ts, which is the only table of it.
+ */
+export const extensionRoute = z.enum(['auto', 'staff', 'supervisor']);
+export type ExtensionRouteWire = z.infer<typeof extensionRoute>;
+
+export const extensionIdInput = z.object({ extensionKey: dbId });
+
+/**
+ * The extension requests a person has to settle.
  *
  * T1 alternates: one extension online, then the item must be brought in for a
  * condition check before the next one (§5.4). D2 borrowers lose the online
- * option entirely (§5.7). Both land here.
+ * option entirely (§5.7). T2 goes to a supervisor every time. Everything that
+ * is not `auto` lands here — `route` says at whose desk.
  */
 export const extensionReviewRow = z.object({
   extensionKey: z.number().int(),
   usageKey: z.number().int(),
   borrower: borrowerRef,
+  /** The band that decided the route, when the tier did not. */
+  creditTier,
+  route: extensionRoute,
   itemName: z.string().nullable(),
   serialNo: z.string().nullable(),
   tier: resourceTier.nullable(),
@@ -277,10 +291,23 @@ export const extensionReviewRow = z.object({
   previousDueAt: isoDateTime,
   requestedDueAt: isoDateTime,
   requestedAt: isoDateTime,
+  /** Why the borrower asked. Carried on the loan's own Reason column. */
+  reason: z.string().nullable(),
   status: approveStatus,
 });
 
 export const paginatedExtensionReviews = paginated(extensionReviewRow);
+
+/** Which desk's pile to read. Omit for "everything I may decide". */
+export const listExtensionReviewsInput = paginationInput
+  .omit({ sort: true, order: true })
+  .extend({
+    route: extensionRoute.exclude(['auto']).optional(),
+    tier: resourceTier.optional(),
+  });
+export type ListExtensionReviewsInput = z.infer<
+  typeof listExtensionReviewsInput
+>;
 
 export const decideExtensionInput = z.object({
   extensionKey: dbId,
@@ -290,6 +317,95 @@ export const decideExtensionInput = z.object({
   note: z.string().trim().max(500).optional(),
 });
 export type DecideExtensionInput = z.infer<typeof decideExtensionInput>;
+
+// ---------------------------------------------------------------------------
+// Extensions, from the borrower's side (§5.4 "ขอต่ออายุการยืม")
+// ---------------------------------------------------------------------------
+
+/**
+ * One extension request as the borrower sees it.
+ *
+ * Carries the quota alongside the request because the two are always read
+ * together: "ต่ออายุครั้งที่ 2 จาก 3" is one sentence on the card, and fetching
+ * the limit separately would let the two disagree across a refresh.
+ */
+export const extensionOutput = z.object({
+  extensionKey: z.number().int(),
+  usageKey: z.number().int(),
+  status: approveStatus,
+  route: extensionRoute,
+  /**
+   * True when the borrower must bring the item in before this is granted.
+   * `route !== 'auto'`, named for the screen that asks the question.
+   */
+  requiresInspection: z.boolean(),
+  /** Nobody signed it: the system granted it the moment it was asked for. */
+  autoApproved: z.boolean(),
+  /** Which extension of this loan it is, counting from 1. */
+  extendNo: z.number().int().nullable(),
+  previousDueAt: isoDateTime,
+  requestedDueAt: isoDateTime,
+  /** The loan's due date right now — already moved when this was auto-granted. */
+  dueAt: isoDateTime,
+  requestedAt: isoDateTime,
+  resolvedAt: isoDateTimeNullable,
+  itemName: z.string().nullable(),
+  serialNo: z.string().nullable(),
+  tier: resourceTier.nullable(),
+  /** Extensions already granted on this loan, this one included once granted. */
+  extensionsUsed: z.number().int().min(0),
+  /** BorrowConstraints.MaxExtendTime for (this unit's rule x the borrower's band). */
+  extensionsAllowed: z.number().int().min(0),
+});
+
+/**
+ * Ask to keep something longer.
+ *
+ * `requestedDueAt` is a full instant rather than a date because a T3 room is
+ * held by the hour. Equipment clients send the counter's closing time, which
+ * is what `toDueDate` produces.
+ */
+export const requestExtensionInput = usageIdInput.extend({
+  requestedDueAt: isoDateTime,
+  reason: z.string().trim().max(500).optional(),
+});
+export type RequestExtensionInput = z.infer<typeof requestExtensionInput>;
+
+/**
+ * What the borrower's screen needs before it offers the button.
+ *
+ * A dry run of `loan.requestExtension`: same checks, no writes. Without it the
+ * only way to find out whether an extension is possible is to ask for one and
+ * read the error, which is a poor thing to do to someone standing in a corridor.
+ */
+export const extensionOptionsOutput = z.object({
+  usageKey: z.number().int(),
+  /** False when `blockedBy` says why not. */
+  canRequest: z.boolean(),
+  /** The BusinessError code `requestExtension` would throw. Null when it would work. */
+  blockedBy: z.string().nullable(),
+  /** Which desk this one would go to, if it can be asked for at all. */
+  route: extensionRoute.nullable(),
+  requiresInspection: z.boolean(),
+  currentDueAt: isoDateTime,
+  /** The furthest date that would be accepted, from the borrower's band. */
+  maxRequestedDueAt: isoDateTime,
+  extensionsUsed: z.number().int().min(0),
+  extensionsAllowed: z.number().int().min(0),
+  /** An extension already waiting on somebody, if there is one. */
+  pendingExtensionKey: z.number().int().nullable(),
+});
+
+export const listMyExtensionsInput = paginationInput
+  .omit({ sort: true, order: true })
+  .extend({ status: approveStatus.optional() });
+export type ListMyExtensionsInput = z.infer<typeof listMyExtensionsInput>;
+
+export const paginatedExtensions = paginated(extensionOutput);
+
+/** Withdraw an extension request that nobody has decided yet. */
+export const cancelExtensionInput = extensionIdInput;
+export type CancelExtensionInput = z.infer<typeof cancelExtensionInput>;
 
 // ===========================================================================
 // Borrower slice — opening a request, tracking it, cancelling it

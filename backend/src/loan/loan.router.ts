@@ -9,29 +9,36 @@ import {
 import { AuthMiddleware, StaffMiddleware } from '../trpc/auth.middleware';
 import type { TrpcContext } from '../trpc/context';
 import {
-  paginationInput,
-  type PaginationInput,
-} from '../common/schemas/pagination.schema';
-import {
   allocateLoanInput,
+  cancelExtensionInput,
   confirmPickupInput,
   decideExtensionInput,
+  extensionOptionsOutput,
+  extensionOutput,
+  listExtensionReviewsInput,
+  listMyExtensionsInput,
   listStaffQueueInput,
   loanOutput,
   markLostInput,
   paginatedExtensionReviews,
+  paginatedExtensions,
   paginatedStaffQueue,
   recordReturnInput,
   recordReturnOutput,
+  requestExtensionInput,
   staffQueueCounts,
   swapUnitInput,
   usageIdInput,
   type AllocateLoanInput,
+  type CancelExtensionInput,
   type ConfirmPickupInput,
   type DecideExtensionInput,
+  type ListExtensionReviewsInput,
+  type ListMyExtensionsInput,
   type ListStaffQueueInput,
   type MarkLostInput,
   type RecordReturnInput,
+  type RequestExtensionInput,
   type SwapUnitInput,
   cancelRequestInput,
   createRequestInput,
@@ -46,19 +53,16 @@ import {
 } from './loan.schema';
 import { LoanService } from './loan.service';
 import { LoanRequestService } from './loan.request.service';
+import { LoanExtensionService } from './loan.extension.service';
 
 /**
- * The loan domain - both halves (ว-05).
+ * The loan domain (ว-05), both halves.
  *
- * Middleware is per-procedure, not on the class, because the two halves have
- * different audiences: the borrower slice (`create`, `list`, `getById`,
- * `cancel`) runs on AuthMiddleware and checks row ownership itself, while the
- * staff slice (`staffQueue`, `allocate`, `confirmPickup`, `recordReturn`, …)
- * runs on StaffMiddleware and is scoped to the caller's department.
- *
- * The names were chosen not to collide across that boundary (`list` vs
- * `staffQueue`, `getById` vs `getForStaff`) so no borrower-looking name ever
- * reaches a staff-only view.
+ * The borrower's procedures act on the caller's own rows and check ownership
+ * themselves (AuthMiddleware); the staff ones act on a department's rows and go
+ * through StaffScopeService (StaffMiddleware). The two halves share this router
+ * because they are the same loan seen from two sides, and the names are chosen
+ * not to collide: `list` vs `staffQueue`, `getById` vs `getForStaff`.
  *
  * Two of these are on the polling list: `staffQueue` and `queueCounts` are
  * refetched every 30 seconds, so both are paginated and neither loads an image
@@ -69,6 +73,7 @@ export class LoanRouter {
   constructor(
     private readonly loanService: LoanService,
     private readonly requests: LoanRequestService,
+    private readonly extensions: LoanExtensionService,
   ) {}
 
   // ═══ Borrower slice — opening a request, tracking it, calling it off ══════
@@ -117,6 +122,58 @@ export class LoanRouter {
   @Mutation({ input: cancelRequestInput, output: requestOutput })
   cancel(@Input() input: CancelRequestInput, @Ctx() ctx: TrpcContext) {
     return this.requests.cancel(ctx.user!, input);
+  }
+
+  // ── Keeping it longer (§5.4 "ขอต่ออายุการยืม") ──────────────────────────
+
+  /**
+   * What the borrower may ask for, before they ask.
+   *
+   * A dry run of `requestExtension`: same checks, no writes, and every refusal
+   * comes back as `blockedBy` rather than an error, because "this one cannot be
+   * extended" is the ordinary answer for most loans.
+   */
+  @UseMiddlewares(AuthMiddleware)
+  @Query({ input: usageIdInput, output: extensionOptionsOutput })
+  extensionOptions(
+    @Input() input: { usageKey: number },
+    @Ctx() ctx: TrpcContext,
+  ) {
+    return this.extensions.getOptions(ctx.user!, input.usageKey);
+  }
+
+  /**
+   * Ask to keep something longer.
+   *
+   * Granted on the spot when the borrower's band and the item's tier allow an
+   * online renewal (§5.4) — the response already carries the new due date.
+   * Otherwise it is queued for whichever desk `route` names, and the item has
+   * to be brought in.
+   */
+  @UseMiddlewares(AuthMiddleware)
+  @Mutation({ input: requestExtensionInput, output: extensionOutput })
+  requestExtension(
+    @Input() input: RequestExtensionInput,
+    @Ctx() ctx: TrpcContext,
+  ) {
+    return this.extensions.request(ctx.user!, input);
+  }
+
+  /** The caller's own extension requests, newest first. */
+  @UseMiddlewares(AuthMiddleware)
+  @Query({ input: listMyExtensionsInput, output: paginatedExtensions })
+  myExtensions(@Input() input: ListMyExtensionsInput, @Ctx() ctx: TrpcContext) {
+    return this.extensions.listMine(ctx.user!, input);
+  }
+
+  /** Withdraw one nobody has answered yet. Costs no quota. */
+  @UseMiddlewares(AuthMiddleware)
+  @Mutation({ input: cancelExtensionInput, output: extensionOutput })
+  cancelExtension(
+    @Input() input: CancelExtensionInput,
+    @Ctx() ctx: TrpcContext,
+  ) {
+    return this.extensions.cancel(ctx.user!, input);
   }
 
   // ═══ Staff slice — the handover desk ═════════════════════════════════════
@@ -184,19 +241,33 @@ export class LoanRouter {
 
   // ── Extensions settled at the counter ───────────────────────────────────
 
-  /** T1 extensions that need the item inspected. T2 is the supervisor's queue. */
+  /**
+   * Extensions that need the item on the counter.
+   *
+   * Shows only what the caller may actually decide: T2 belongs to a supervisor
+   * and never appears in a staff member's pile (`approval.extensionQueue` is
+   * the same list from that desk). A supervisor standing at the counter sees
+   * both, because the route is a floor rather than a job description.
+   */
   @UseMiddlewares(StaffMiddleware)
-  @Query({ input: paginationInput, output: paginatedExtensionReviews })
-  extensionReviews(@Input() input: PaginationInput, @Ctx() ctx: TrpcContext) {
-    return this.loanService.listExtensionReviews(ctx.user!, input);
+  @Query({
+    input: listExtensionReviewsInput,
+    output: paginatedExtensionReviews,
+  })
+  extensionReviews(
+    @Input() input: ListExtensionReviewsInput,
+    @Ctx() ctx: TrpcContext,
+  ) {
+    return this.extensions.listReviews(ctx.user!, input);
   }
 
+  /** Grant or refuse one, recording the condition the item was found in. */
   @UseMiddlewares(StaffMiddleware)
-  @Mutation({ input: decideExtensionInput, output: loanOutput })
+  @Mutation({ input: decideExtensionInput, output: extensionOutput })
   decideExtension(
     @Input() input: DecideExtensionInput,
     @Ctx() ctx: TrpcContext,
   ) {
-    return this.loanService.decideExtension(ctx.user!, input);
+    return this.extensions.decide(ctx.user!, input);
   }
 }

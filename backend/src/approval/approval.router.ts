@@ -17,7 +17,16 @@ import {
   type DecideApprovalInput,
   type ListApprovalQueueInput,
 } from './approval.schema';
+import {
+  decideExtensionInput,
+  extensionOutput,
+  listExtensionReviewsInput,
+  paginatedExtensionReviews,
+  type DecideExtensionInput,
+  type ListExtensionReviewsInput,
+} from '../loan/loan.schema';
 import { ApprovalService } from './approval.service';
+import { LoanExtensionService } from '../loan/loan.extension.service';
 
 /**
  * The approval desk (CONTRACT.md `approval.*`, proposal §5.4).
@@ -32,7 +41,10 @@ import { ApprovalService } from './approval.service';
 @Router({ alias: 'approval' })
 @UseMiddlewares(StaffMiddleware)
 export class ApprovalRouter {
-  constructor(private readonly approvals: ApprovalService) {}
+  constructor(
+    private readonly approvals: ApprovalService,
+    private readonly extensions: LoanExtensionService,
+  ) {}
 
   /**
    * Everything waiting on the caller, oldest first.
@@ -60,5 +72,38 @@ export class ApprovalRouter {
   @Mutation({ input: decideApprovalInput, output: decideApprovalOutput })
   decide(@Input() input: DecideApprovalInput, @Ctx() ctx: TrpcContext) {
     return this.approvals.decide(ctx.user!, input);
+  }
+
+  // ── Extensions (§5.4) ────────────────────────────────────────────────────
+  //
+  // The same two procedures as `loan.extensionReviews` / `loan.decideExtension`,
+  // pointed at the same service, and deliberately not a second implementation:
+  // one extension is granted once, by whichever desk it was routed to. They are
+  // exposed here as well because a supervisor works from the approval screen and
+  // should not have to open the counter's to clear T2 — `route` is what
+  // separates the two piles, and `canDecide` enforces it either way.
+
+  /** Extension requests waiting on the caller. Default: T2 and anything else routed up. */
+  @Query({
+    input: listExtensionReviewsInput,
+    output: paginatedExtensionReviews,
+  })
+  extensionQueue(
+    @Input() input: ListExtensionReviewsInput,
+    @Ctx() ctx: TrpcContext,
+  ) {
+    return this.extensions.listReviews(ctx.user!, {
+      ...input,
+      route: input.route ?? 'supervisor',
+    });
+  }
+
+  /** Grant or refuse one extension. */
+  @Mutation({ input: decideExtensionInput, output: extensionOutput })
+  decideExtension(
+    @Input() input: DecideExtensionInput,
+    @Ctx() ctx: TrpcContext,
+  ) {
+    return this.extensions.decide(ctx.user!, input);
   }
 }

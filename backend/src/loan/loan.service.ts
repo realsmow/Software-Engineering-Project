@@ -25,7 +25,6 @@ import { toBorrowerRef } from './loan.schema';
 import type {
   AllocateLoanInput,
   ConfirmPickupInput,
-  DecideExtensionInput,
   ListStaffQueueInput,
   MarkLostInput,
   RecordReturnInput,
@@ -473,8 +472,14 @@ export class LoanService {
     const penaltyKey = await this.prisma.$transaction(async (tx) => {
       await tx.usageLog.update({
         where: { UsageKey: input.usageKey },
-        data: { CurrentStatus: 'Returned', CheckInTime: now },
+        data: {
+          CurrentStatus: 'Returned',
+          CheckInTime: now,
+          PendingExtension: null,
+        },
       });
+
+      await this.closePendingExtension(tx, usage, now);
 
       // Back on the shelf, but still not available: UNAVAILABLE_USAGE_STATES
       // includes `Returned`, so nothing can be lent out again before it is
@@ -586,8 +591,11 @@ export class LoanService {
           CurrentStatus: 'Inspected',
           CheckInTime: now,
           CheckInCondition: condition.ConditionKey,
+          PendingExtension: null,
         },
       });
+
+      await this.closePendingExtension(tx, usage, now);
 
       await tx.resourceInfo.update({
         where: { ResourceKey: usage.Resource.ResourceKey },
@@ -658,157 +666,27 @@ export class LoanService {
     });
   }
 
-  // =========================================================================
-  // Extensions settled at the counter
-  // =========================================================================
-
-  async listExtensionReviews(
-    user: TrpcUser,
-    input: { page: number; pageSize: number },
-  ) {
-    const resourceWhere = await this.scope.resourceScope(user);
-
-    const where: Prisma.ExtensionRequestWhereInput = {
-      ApproveStatus: 'Pending',
-      Usage: { Resource: resourceWhere },
-      // T2 extensions belong to the supervisor queue (§5.4). Filtering them out
-      // here rather than refusing later keeps staff from seeing work that is
-      // not theirs to do.
-      NOT: {
-        Usage: {
-          Resource: {
-            BorrowRuleInfo: { RuleName: { equals: 'T2', mode: 'insensitive' } },
-          },
-        },
-      },
-    };
-
-    const [rows, total] = await this.prisma.$transaction([
-      this.prisma.extensionRequest.findMany({
-        where,
-        orderBy: { RequestedAt: 'asc' },
-        ...toSkipTake(input),
-        select: {
-          ExtensionKey: true,
-          UsageKey: true,
-          ExtendNo: true,
-          PreviousDueTime: true,
-          RequestedDueTime: true,
-          RequestedAt: true,
-          ApproveStatus: true,
-          RequestedByUser: { select: BORROWER_SELECT },
-          Usage: { select: { Resource: { select: RESOURCE_SELECT } } },
-        },
-      }),
-      this.prisma.extensionRequest.count({ where }),
-    ]);
-
-    const items = rows.map((row) => ({
-      extensionKey: row.ExtensionKey,
-      usageKey: row.UsageKey,
-      borrower: toBorrowerRef(row.RequestedByUser),
-      itemName: this.nameOf(row.Usage.Resource),
-      serialNo: row.Usage.Resource.Item?.ItemID ?? null,
-      tier: tryMapTier(row.Usage.Resource.BorrowRuleInfo.RuleName),
-      extendNo: row.ExtendNo,
-      previousDueAt: toIso(row.PreviousDueTime),
-      requestedDueAt: toIso(row.RequestedDueTime),
-      requestedAt: toIso(row.RequestedAt),
-      status: row.ApproveStatus,
-    }));
-
-    return toPage(items, total, input);
-  }
-
   /**
-   * Settles an extension the borrower had to bring the item in for (§5.9
-   * "ต่ออายุแบบตรวจสภาพ").
+   * Closes an extension request the loan will never need answered.
    *
-   * Approving writes the condition found on the counter — that check is the
-   * whole reason this extension is not an online one — and moves the due date.
+   * A loan that has come back or been written off cannot be extended, and a
+   * request left `Pending` on it would sit in the extension queue for a due
+   * date that no longer means anything. `Canceled` rather than `Rejected`:
+   * nobody refused it, the question stopped applying.
    */
-  async decideExtension(user: TrpcUser, input: DecideExtensionInput) {
-    const request = await this.prisma.extensionRequest.findUnique({
-      where: { ExtensionKey: input.extensionKey },
-      select: {
-        ExtensionKey: true,
-        UsageKey: true,
-        ApproveStatus: true,
-        RequestedDueTime: true,
-        ResolvedAt: true,
-        Usage: {
-          select: { UsageKey: true, Resource: { select: RESOURCE_SELECT } },
-        },
+  private async closePendingExtension(
+    tx: Prisma.TransactionClient,
+    usage: UsageRow,
+    now: Date,
+  ): Promise<void> {
+    if (usage.PendingExtension === null) return;
+    await tx.extensionRequest.updateMany({
+      where: {
+        ExtensionKey: usage.PendingExtension,
+        ApproveStatus: 'Pending',
       },
+      data: { ApproveStatus: 'Canceled', ResolvedAt: now },
     });
-
-    if (!request) {
-      throw new BusinessError('EXTENSION_NOT_FOUND', {
-        extensionKey: input.extensionKey,
-      });
-    }
-    await this.scope.assertResourceInScope(
-      user,
-      request.Usage.Resource.ResourceKey,
-    );
-
-    if (request.ApproveStatus !== 'Pending') {
-      throw new BusinessError('ALREADY_DECIDED', {
-        extensionKey: input.extensionKey,
-        decidedAt: toIsoNullable(request.ResolvedAt),
-        status: request.ApproveStatus,
-      });
-    }
-
-    const tier = tryMapTier(request.Usage.Resource.BorrowRuleInfo.RuleName);
-    if (tier === 'T2') {
-      throw new BusinessError('EXTENSION_NEEDS_SUPERVISOR', {
-        extensionKey: input.extensionKey,
-        tier,
-      });
-    }
-
-    const now = new Date();
-    const approved = input.decision === 'approve';
-
-    await this.prisma.$transaction(async (tx) => {
-      const condition = await tx.conditionLog.create({
-        data: {
-          ResourceKey: request.Usage.Resource.ResourceKey,
-          LoggedBy: user.accountKey,
-          Condition: input.condition,
-          Notes: input.note ?? null,
-          LoggedAt: now,
-        },
-        select: { ConditionKey: true },
-      });
-
-      await tx.resourceInfo.update({
-        where: { ResourceKey: request.Usage.Resource.ResourceKey },
-        data: { ConditionKey: condition.ConditionKey },
-      });
-
-      await tx.extensionRequest.update({
-        where: { ExtensionKey: input.extensionKey },
-        data: {
-          ApproveStatus: approved ? 'Approved' : 'Rejected',
-          ApprovedBy: user.accountKey,
-          ResolvedAt: now,
-        },
-      });
-
-      await tx.usageLog.update({
-        where: { UsageKey: request.UsageKey },
-        data: {
-          // Clear the pointer either way: the request is settled, so nothing is
-          // pending on this loan any more.
-          PendingExtension: null,
-          ...(approved ? { DueTime: request.RequestedDueTime } : {}),
-        },
-      });
-    });
-
-    return this.toLoan(await this.readUsage(request.UsageKey), now);
   }
 
   // =========================================================================
