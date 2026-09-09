@@ -123,6 +123,13 @@ export const BUSINESS_ERROR_CODES = {
   INSPECTION_NOT_FOUND: 'NOT_FOUND',
   /** This return has already been graded; corrections go through an appeal */
   ALREADY_INSPECTED: 'CONFLICT',
+  /**
+   * §5.9 / FR-RTN-04: for T2, whoever grades the return may not be the person
+   * who prepared the unit ("Staff A ≠ Staff B"). Sibling of
+   * CANNOT_APPROVE_OWN_REQUEST — the same "no marking your own work" rule, one
+   * desk over.
+   */
+  CANNOT_INSPECT_OWN_PREPARATION: 'FORBIDDEN',
 
   // --- borrowing requests (borrower slice) ---
   /**
