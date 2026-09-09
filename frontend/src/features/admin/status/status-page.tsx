@@ -1,9 +1,12 @@
 import { cap } from "@/lib/utils";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { PageHeader } from "@/components/shared/page-header";
 import { Badge, type BadgeTone } from "@/components/ui/badge";
 import { fmtDateTime } from "@/features/borrower/format";
-import { useCronJobs, useSystemStatus } from "./use-system-status";
+import { Button } from "@/components/ui/button";
+import { getErrorMessage } from "@/lib/error-messages";
+import { useCronJobs, useRunCronJob, useSystemStatus } from "./use-system-status";
 import type { CronJob, ServiceState } from "./status.types";
 
 const STATE_TONE: Record<ServiceState, BadgeTone> = {
@@ -96,6 +99,7 @@ export default function AdminStatusPage() {
                     <Th>{t("admin.status.colSchedule")}</Th>
                     <Th>{t("admin.status.colLastRun")}</Th>
                     <Th>{t("common.status")}</Th>
+                    <Th />
                   </tr>
                 </thead>
                 <tbody>
@@ -114,6 +118,19 @@ export default function AdminStatusPage() {
 
 function JobRow({ job }: { job: CronJob }) {
   const { t } = useTranslation();
+  const run = useRunCronJob();
+  const [error, setError] = useState<string | null>(null);
+
+  async function trigger() {
+    setError(null);
+    try {
+      await run.mutateAsync(job.id);
+    } catch (e) {
+      // The three unbuilt jobs land here, saying which table they need.
+      setError(getErrorMessage(e));
+    }
+  }
+
   return (
     <tr className="border-b border-border last:border-b-0">
       <td className="px-3.5 py-2">
@@ -140,6 +157,25 @@ function JobRow({ job }: { job: CronJob }) {
             {t(`admin.status.result${cap(job.lastResult)}`)}
           </Badge>
         )}
+      </td>
+      <td className="px-3.5 py-2 text-right">
+        {/* Offered on every job, including the three that cannot run: pressing
+            one is how an administrator finds out what it is waiting on, and
+            hiding the button would leave that unanswerable. */}
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          disabled={run.isPending}
+          onClick={() => void trigger()}
+        >
+          {run.isPending ? t("common.loading") : t("admin.status.runNow")}
+        </Button>
+        {error ? (
+          <div className="mt-1 max-w-[16rem] text-[11px] leading-relaxed text-[var(--s-warn-t)]">
+            {error}
+          </div>
+        ) : null}
       </td>
     </tr>
   );

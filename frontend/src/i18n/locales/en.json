@@ -91,7 +91,11 @@
     "borrowWindow": "Max loan period",
     "activePenalties": "{{count}} active penalties (-{{total}} credit total)",
     "penaltyNoReason": "No reason given",
-    "penaltyUntil": "until {{date}}"
+    "penaltyUntil": "until {{date}}",
+    "security": "Account security",
+    "signOutEverywhere": "Sign out everywhere",
+    "signOutEverywhereHelp": "Ends every session this account has open. Use it if you left yourself signed in on a shared machine, or think someone knows your password.",
+    "signOutEverywhereConfirm": "Sign out of every device? This device is included, so you will need to sign in again."
   },
   "auth": {
     "universityAccount": "University account",
