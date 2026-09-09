@@ -19,9 +19,6 @@ export const CACHE = {
   MASTER_DATA_MS: 60 * 60 * 1000, // 1 ชม. สำหรับ tier/category/damage-level
   USER_PROFILE_MS: 5 * 60 * 1000, // 5 นาที
   DEFAULT_STALE_MS: 30 * 1000, // 30 วิ (default)
-  // Live stock on the equipment detail page. The backend sizes
-  // `item.getAvailability` for a 10-15s poll (item.router.ts).
-  AVAILABILITY_POLL_MS: 15 * 1000,
 } as const;
 
 // ==================== Business Rules ====================
@@ -84,11 +81,19 @@ export const CREDIT_BAND_POLICY: Record<
 };
 
 // ==================== Damage Level Config ====================
+/**
+ * Credit multiplier per damage grade (proposal §5.7), mirroring
+ * DAMAGE_CREDIT_WEIGHT on the server.
+ *
+ * Weights only. The descriptions used to live here as Thai string literals,
+ * which meant B0-B3 rendered Thai even with the interface in English; they are
+ * i18n keys now (`damage.B0` .. `damage.B3`).
+ */
 export const DAMAGE_LEVELS = {
-  B0: { label: "ตามการใช้งานปรกติ", weight: 0 },
-  B1: { label: "เกินการใช้งานปรกติ ระดับเล็กน้อย", weight: 1 },
-  B2: { label: "เกินการใช้งานปรกติ ระดับปานกลาง", weight: 3 },
-  B3: { label: "เกินการใช้งานปรกติ ระดับรุนแรง", weight: 5 },
+  B0: { weight: 0 },
+  B1: { weight: 1 },
+  B2: { weight: 3 },
+  B3: { weight: 5 },
 } as const;
 
 // ==================== Routes ====================
@@ -128,7 +133,6 @@ export const ROUTES = {
   ADMIN_STATUS: "/admin/status",
   ADMIN_AUDIT: "/admin/audit",
   ADMIN_CONFIG: "/admin/config",
-  ADMIN_SETTINGS: "/admin/settings",
   ADMIN_REPORTS: "/admin/reports",
 } as const;
 
@@ -176,7 +180,6 @@ export const ROLE_ROUTES = {
     ROUTES.ADMIN_STATUS,
     ROUTES.ADMIN_AUDIT,
     ROUTES.ADMIN_CONFIG,
-    ROUTES.ADMIN_SETTINGS,
     ROUTES.ADMIN_REPORTS,
   ],
 } as const;

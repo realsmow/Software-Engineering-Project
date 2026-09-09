@@ -241,9 +241,12 @@ function AvatarUpload({ initials }: { initials: string }) {
         <button
           type="button"
           onClick={onRemove}
-          className="flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
+          // min-h-9 and horizontal padding give this a finger-sized hit area.
+          // As bare 12px text it measured 18px tall - readable, but a target
+          // most people miss on a phone.
+          className="-mx-2 inline-flex min-h-9 items-center gap-1 rounded px-2 text-xs text-muted-foreground transition-colors hover:text-foreground"
         >
-          <X size={12} />
+          <X size={13} />
           {t("profile.avatarRemove")}
         </button>
       )}

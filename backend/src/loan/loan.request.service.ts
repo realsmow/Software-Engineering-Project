@@ -1,3 +1,4 @@
+import { toBorrowerRef } from './loan.schema';
 import { Injectable } from '@nestjs/common';
 import type { Prisma } from '../generated/prisma/client';
 import { PrismaService } from '../prisma.service';
@@ -14,6 +15,7 @@ import {
   withBuffer,
 } from '../common/booking/booking-window';
 import { BusinessError } from '../common/errors/business-error';
+import { activeBanWhere } from '../common/schemas/penalty.schema';
 import { addDays, daysBetween, toIso } from '../common/schemas/datetime.schema';
 import { toPage, toSkipTake } from '../common/schemas/pagination.schema';
 import { tryMapTier, type CreditTier } from '../common/schemas/status.schema';
@@ -137,6 +139,8 @@ export class LoanRequestService {
     const endTime = new Date(input.endTime);
     this.assertWindowShape(startTime, endTime);
 
+    await this.assertNotBanned(user);
+
     const band = await this.creditTiers.resolveTier(user.creditScore);
     if (isBlockedByCredit(band.creditTier)) {
       // §CREDIT_BAND_POLICY: D3 may not open a request until what they are
@@ -174,7 +178,7 @@ export class LoanRequestService {
         rejected.push({
           resourceKey: line.resourceKey,
           code: error.message,
-          detail: (error.cause as Record<string, unknown> | undefined) ?? null,
+          detail: error.details,
         });
       }
     }
@@ -416,6 +420,31 @@ export class LoanRequestService {
   // Internals
   // =========================================================================
 
+  /**
+   * Refuses a request from an account with a borrowing ban in force.
+   *
+   * Without this the ban was decoration: `admin.setUserBan` wrote the penalty
+   * row, the account showed as "suspended" on every staff screen, and the
+   * person carried on opening requests exactly as before. Checked here rather
+   * than per line, because a ban is about the borrower and not about any
+   * particular item - a banned account gets one clear refusal, not one per
+   * basket line.
+   */
+  private async assertNotBanned(user: TrpcUser): Promise<void> {
+    const ban = await this.prisma.penaltyInfo.findFirst({
+      where: { AccountKey: user.accountKey, ...activeBanWhere() },
+      select: { PenaltyKey: true, Reason: true, ExpirationTime: true },
+      orderBy: { ExpirationTime: 'desc' },
+    });
+    if (!ban) return;
+
+    throw new BusinessError('BORROWING_SUSPENDED', {
+      penaltyKey: ban.PenaltyKey,
+      reason: ban.Reason,
+      expiresAt: ban.ExpirationTime.toISOString(),
+    });
+  }
+
   private assertWindowShape(startTime: Date, endTime: Date): void {
     if (endTime <= startTime) {
       throw new BusinessError('INVALID_BORROW_WINDOW', {
@@ -530,13 +559,7 @@ export class LoanRequestService {
         route,
         status: row.ApproveStatus,
         approvedBy: row.ApprovedByUser
-          ? {
-              accountKey: row.ApprovedByUser.AccountKey,
-              userId: row.ApprovedByUser.UserID,
-              fullName:
-                `${row.ApprovedByUser.UserFName} ${row.ApprovedByUser.UserLName}`.trim(),
-              creditScore: row.ApprovedByUser.UserCredit,
-            }
+          ? toBorrowerRef(row.ApprovedByUser)
           : null,
         autoApproved: row.AutoApproved,
         approvedAt: row.ApprovedAt ? toIso(row.ApprovedAt) : null,

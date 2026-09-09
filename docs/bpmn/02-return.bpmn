@@ -1,0 +1,371 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" id="Definitions_return" targetNamespace="http://ulms.cpe/bpmn" exporter="bpmn-js (https://demo.bpmn.io)" exporterVersion="18.25.1">
+  <bpmn:collaboration id="Collaboration_return" name="กระบวนการคืนอุปกรณ์">
+    <bpmn:participant id="Participant_user" name="ผู้ยืม (User)" processRef="Process_user" />
+    <bpmn:participant id="Participant_system" name="ระบบ ULMs (System)" processRef="Process_system" />
+    <bpmn:participant id="Participant_staff" name="เจ้าหน้าที่ (Staff)" processRef="Process_staff" />
+    <bpmn:messageFlow id="MsgFlow_1" name="อุปกรณ์ที่นำมาคืน" sourceRef="user_bring" targetRef="staff_recv" />
+    <bpmn:messageFlow id="MsgFlow_2" name="ผลการตรวจรับคืน" sourceRef="staff_send" targetRef="system_recv" />
+    <bpmn:messageFlow id="MsgFlow_3" name="ผลการคืนและเครดิตที่ถูกหัก" sourceRef="system_notify" targetRef="user_wait" />
+  </bpmn:collaboration>
+  <bpmn:process id="Process_user" isExecutable="false">
+    <bpmn:startEvent id="user_start" name="เริ่ม">
+      <bpmn:outgoing>Flow_user_1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:manualTask id="user_bring" name="นำอุปกรณ์มาคืน ณ จุดบริการ">
+      <bpmn:incoming>Flow_user_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_user_2</bpmn:outgoing>
+    </bpmn:manualTask>
+    <bpmn:intermediateCatchEvent id="user_wait" name="รับแจ้งผลการคืน">
+      <bpmn:incoming>Flow_user_2</bpmn:incoming>
+      <bpmn:outgoing>Flow_user_3</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MED_user_wait" />
+    </bpmn:intermediateCatchEvent>
+    <bpmn:endEvent id="user_end" name="จบการคืน">
+      <bpmn:incoming>Flow_user_3</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_user_1" name="" sourceRef="user_start" targetRef="user_bring" />
+    <bpmn:sequenceFlow id="Flow_user_2" name="" sourceRef="user_bring" targetRef="user_wait" />
+    <bpmn:sequenceFlow id="Flow_user_3" name="" sourceRef="user_wait" targetRef="user_end" />
+  </bpmn:process>
+  <bpmn:process id="Process_system" isExecutable="false">
+    <bpmn:startEvent id="system_recv" name="รับผลการตรวจรับคืน">
+      <bpmn:outgoing>Flow_system_1</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MED_system_recv" />
+    </bpmn:startEvent>
+    <bpmn:exclusiveGateway id="system_gw_dmg" name="มีความเสียหาย?">
+      <bpmn:incoming>Flow_system_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_system_2</bpmn:outgoing>
+      <bpmn:outgoing>Flow_system_3</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:serviceTask id="system_discredit" name="คำนวณการหักเครดิต (Discredit)">
+      <bpmn:incoming>Flow_system_2</bpmn:incoming>
+      <bpmn:outgoing>Flow_system_4</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:exclusiveGateway id="system_merge" name="">
+      <bpmn:incoming>Flow_system_3</bpmn:incoming>
+      <bpmn:incoming>Flow_system_4</bpmn:incoming>
+      <bpmn:outgoing>Flow_system_5</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:parallelGateway id="system_fork" name="">
+      <bpmn:incoming>Flow_system_5</bpmn:incoming>
+      <bpmn:outgoing>Flow_system_6</bpmn:outgoing>
+      <bpmn:outgoing>Flow_system_7</bpmn:outgoing>
+    </bpmn:parallelGateway>
+    <bpmn:sendTask id="system_notify" name="แจ้งเตือนผู้ยืม">
+      <bpmn:incoming>Flow_system_6</bpmn:incoming>
+      <bpmn:outgoing>Flow_system_8</bpmn:outgoing>
+    </bpmn:sendTask>
+    <bpmn:serviceTask id="system_update" name="อัปเดตข้อมูล อุปกรณ์และผู้ยืม">
+      <bpmn:incoming>Flow_system_7</bpmn:incoming>
+      <bpmn:outgoing>Flow_system_9</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:parallelGateway id="system_join" name="">
+      <bpmn:incoming>Flow_system_8</bpmn:incoming>
+      <bpmn:incoming>Flow_system_9</bpmn:incoming>
+      <bpmn:outgoing>Flow_system_10</bpmn:outgoing>
+    </bpmn:parallelGateway>
+    <bpmn:endEvent id="system_end" name="ปิดรายการคืน">
+      <bpmn:incoming>Flow_system_10</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_system_1" name="" sourceRef="system_recv" targetRef="system_gw_dmg" />
+    <bpmn:sequenceFlow id="Flow_system_2" name="พบความเสียหาย" sourceRef="system_gw_dmg" targetRef="system_discredit" />
+    <bpmn:sequenceFlow id="Flow_system_3" name="ไม่พบ" sourceRef="system_gw_dmg" targetRef="system_merge" />
+    <bpmn:sequenceFlow id="Flow_system_4" name="" sourceRef="system_discredit" targetRef="system_merge" />
+    <bpmn:sequenceFlow id="Flow_system_5" name="" sourceRef="system_merge" targetRef="system_fork" />
+    <bpmn:sequenceFlow id="Flow_system_6" name="" sourceRef="system_fork" targetRef="system_notify" />
+    <bpmn:sequenceFlow id="Flow_system_7" name="" sourceRef="system_fork" targetRef="system_update" />
+    <bpmn:sequenceFlow id="Flow_system_8" name="" sourceRef="system_notify" targetRef="system_join" />
+    <bpmn:sequenceFlow id="Flow_system_9" name="" sourceRef="system_update" targetRef="system_join" />
+    <bpmn:sequenceFlow id="Flow_system_10" name="" sourceRef="system_join" targetRef="system_end" />
+  </bpmn:process>
+  <bpmn:process id="Process_staff" isExecutable="false">
+    <bpmn:exclusiveGateway id="staff_gw_dmg" name="พบความเสียหาย?">
+      <bpmn:incoming>Flow_1prki4r</bpmn:incoming>
+      <bpmn:outgoing>Flow_staff_6</bpmn:outgoing>
+      <bpmn:outgoing>Flow_staff_7</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:userTask id="staff_assess" name="ประเมินระดับความเสียหาย (B0–B3) &#38; บันทึกผล">
+      <bpmn:incoming>Flow_staff_6</bpmn:incoming>
+      <bpmn:outgoing>Flow_staff_8</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="staff_merge" name="">
+      <bpmn:incoming>Flow_staff_7</bpmn:incoming>
+      <bpmn:incoming>Flow_staff_8</bpmn:incoming>
+      <bpmn:outgoing>Flow_staff_9</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sendTask id="staff_send" name="ส่งผลการตรวจรับ ให้ระบบ">
+      <bpmn:incoming>Flow_staff_9</bpmn:incoming>
+      <bpmn:outgoing>Flow_staff_10</bpmn:outgoing>
+    </bpmn:sendTask>
+    <bpmn:endEvent id="staff_end" name="จบงานรับคืน">
+      <bpmn:incoming>Flow_staff_10</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_staff_6" name="ใช่" sourceRef="staff_gw_dmg" targetRef="staff_assess" />
+    <bpmn:sequenceFlow id="Flow_staff_7" name="ไม่" sourceRef="staff_gw_dmg" targetRef="staff_merge" />
+    <bpmn:sequenceFlow id="Flow_staff_8" name="" sourceRef="staff_assess" targetRef="staff_merge" />
+    <bpmn:sequenceFlow id="Flow_staff_9" name="" sourceRef="staff_merge" targetRef="staff_send" />
+    <bpmn:sequenceFlow id="Flow_staff_10" name="" sourceRef="staff_send" targetRef="staff_end" />
+    <bpmn:sequenceFlow id="Flow_1hw6724" sourceRef="staff_recv" targetRef="staff_inspect" />
+    <bpmn:sequenceFlow id="Flow_1prki4r" sourceRef="staff_confirm" targetRef="staff_gw_dmg" />
+    <bpmn:userTask id="staff_confirm" name="กดยืนยัน การส่งคืนในแอป">
+      <bpmn:incoming>Flow_0s78dkb</bpmn:incoming>
+      <bpmn:outgoing>Flow_1prki4r</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="staff_photo" name="ถ่ายรูปอุปกรณ์ตอนคืน + อัปโหลดเข้าระบบ">
+      <bpmn:incoming>Flow_0g87u9r</bpmn:incoming>
+      <bpmn:outgoing>Flow_0s78dkb</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="staff_compare" name="เปรียบเทียบสภาพอุปกรณ์ก่อนและหลังคืน">
+      <bpmn:incoming>Flow_1qdc1fh</bpmn:incoming>
+      <bpmn:outgoing>Flow_0g87u9r</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:manualTask id="staff_inspect" name="ตรวจรับอุปกรณ์ &#38; จำนวน">
+      <bpmn:incoming>Flow_1hw6724</bpmn:incoming>
+      <bpmn:outgoing>Flow_1qdc1fh</bpmn:outgoing>
+    </bpmn:manualTask>
+    <bpmn:sequenceFlow id="Flow_0s78dkb" sourceRef="staff_photo" targetRef="staff_confirm" />
+    <bpmn:sequenceFlow id="Flow_0g87u9r" sourceRef="staff_compare" targetRef="staff_photo" />
+    <bpmn:sequenceFlow id="Flow_1qdc1fh" sourceRef="staff_inspect" targetRef="staff_compare" />
+    <bpmn:startEvent id="staff_recv" name="รับคืนอุปกรณ์">
+      <bpmn:outgoing>Flow_1hw6724</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MED_staff_recv" />
+    </bpmn:startEvent>
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_return">
+    <bpmndi:BPMNPlane id="BPMNPlane_return" bpmnElement="Collaboration_return">
+      <bpmndi:BPMNShape id="Participant_user_di" bpmnElement="Participant_user" isHorizontal="true">
+        <dc:Bounds x="160" y="80" width="3000" height="169" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="user_start_di" bpmnElement="user_start">
+        <dc:Bounds x="224" y="146" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="user_bring_di" bpmnElement="user_bring">
+        <dc:Bounds x="322" y="120" width="170" height="90" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="user_wait_di" bpmnElement="user_wait">
+        <dc:Bounds x="2984" y="146" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2965" y="131" width="74" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="user_end_di" bpmnElement="user_end">
+        <dc:Bounds x="3090" y="146" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="3087" y="185" width="43" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_user_1_di" bpmnElement="Flow_user_1">
+        <di:waypoint x="260" y="164" />
+        <di:waypoint x="322" y="164" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_user_2_di" bpmnElement="Flow_user_2">
+        <di:waypoint x="492" y="164" />
+        <di:waypoint x="2984" y="164" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_user_3_di" bpmnElement="Flow_user_3">
+        <di:waypoint x="3020" y="164" />
+        <di:waypoint x="3090" y="164" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="Participant_system_di" bpmnElement="Participant_system" isHorizontal="true">
+        <dc:Bounds x="160" y="364" width="3000" height="294" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="system_recv_di" bpmnElement="system_recv">
+        <dc:Bounds x="2114" y="430" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2087" y="413" width="94" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="system_gw_dmg_di" bpmnElement="system_gw_dmg" isMarkerVisible="true">
+        <dc:Bounds x="2212" y="424" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2202" y="403" width="70" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="system_discredit_di" bpmnElement="system_discredit">
+        <dc:Bounds x="2318" y="528" width="170" height="90" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="system_merge_di" bpmnElement="system_merge" isMarkerVisible="true">
+        <dc:Bounds x="2542" y="424" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="system_fork_di" bpmnElement="system_fork">
+        <dc:Bounds x="2648" y="424" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="system_notify_di" bpmnElement="system_notify">
+        <dc:Bounds x="2752" y="404" width="170" height="90" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="system_update_di" bpmnElement="system_update">
+        <dc:Bounds x="2752" y="528" width="170" height="90" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="system_join_di" bpmnElement="system_join">
+        <dc:Bounds x="2978" y="424" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="system_end_di" bpmnElement="system_end">
+        <dc:Bounds x="3090" y="430" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_system_1_di" bpmnElement="Flow_system_1">
+        <di:waypoint x="2150" y="448" />
+        <di:waypoint x="2212" y="448" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_system_2_di" bpmnElement="Flow_system_2">
+        <di:waypoint x="2238" y="474" />
+        <di:waypoint x="2238" y="574" />
+        <di:waypoint x="2318" y="574" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2224" y="583" width="72" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_system_3_di" bpmnElement="Flow_system_3">
+        <di:waypoint x="2262" y="448" />
+        <di:waypoint x="2542" y="448" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2318" y="422" width="69" height="22" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_system_4_di" bpmnElement="Flow_system_4">
+        <di:waypoint x="2488" y="573" />
+        <di:waypoint x="2567" y="573" />
+        <di:waypoint x="2567" y="474" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_system_5_di" bpmnElement="Flow_system_5">
+        <di:waypoint x="2592" y="448" />
+        <di:waypoint x="2648" y="448" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_system_6_di" bpmnElement="Flow_system_6">
+        <di:waypoint x="2698" y="449" />
+        <di:waypoint x="2752" y="449" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_system_7_di" bpmnElement="Flow_system_7">
+        <di:waypoint x="2673" y="474" />
+        <di:waypoint x="2673" y="574" />
+        <di:waypoint x="2752" y="574" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_system_8_di" bpmnElement="Flow_system_8">
+        <di:waypoint x="2922" y="448" />
+        <di:waypoint x="2978" y="448" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_system_9_di" bpmnElement="Flow_system_9">
+        <di:waypoint x="2922" y="573" />
+        <di:waypoint x="3003" y="573" />
+        <di:waypoint x="3003" y="474" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_system_10_di" bpmnElement="Flow_system_10">
+        <di:waypoint x="3028" y="448" />
+        <di:waypoint x="3090" y="448" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="Participant_staff_di" bpmnElement="Participant_staff" isHorizontal="true">
+        <dc:Bounds x="160" y="773" width="3000" height="294" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="staff_gw_dmg_di" bpmnElement="staff_gw_dmg" isMarkerVisible="true">
+        <dc:Bounds x="1448" y="832" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1431" y="813" width="78" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="staff_assess_di" bpmnElement="staff_assess">
+        <dc:Bounds x="1552" y="938" width="170" height="90" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="staff_merge_di" bpmnElement="staff_merge" isMarkerVisible="true">
+        <dc:Bounds x="1778" y="832" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="staff_send_di" bpmnElement="staff_send">
+        <dc:Bounds x="1882" y="812" width="170" height="90" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="staff_end_di" bpmnElement="staff_end">
+        <dc:Bounds x="2114" y="840" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="staff_confirm_di" bpmnElement="staff_confirm">
+        <dc:Bounds x="1195" y="812" width="170" height="90" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="staff_photo_di" bpmnElement="staff_photo">
+        <dc:Bounds x="965" y="812" width="170" height="90" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="staff_compare_di" bpmnElement="staff_compare">
+        <dc:Bounds x="745" y="812" width="170" height="90" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="staff_inspect_di" bpmnElement="staff_inspect">
+        <dc:Bounds x="505" y="812" width="170" height="90" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="staff_recv_di" bpmnElement="staff_recv">
+        <dc:Bounds x="390" y="839" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="378" y="878" width="61" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_staff_6_di" bpmnElement="Flow_staff_6">
+        <di:waypoint x="1472" y="882" />
+        <di:waypoint x="1472" y="982" />
+        <di:waypoint x="1552" y="982" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1484" y="934" width="51" height="22" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_staff_7_di" bpmnElement="Flow_staff_7">
+        <di:waypoint x="1498" y="858" />
+        <di:waypoint x="1778" y="858" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1562" y="830" width="51" height="22" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_staff_8_di" bpmnElement="Flow_staff_8">
+        <di:waypoint x="1722" y="983" />
+        <di:waypoint x="1803" y="983" />
+        <di:waypoint x="1803" y="882" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_staff_9_di" bpmnElement="Flow_staff_9">
+        <di:waypoint x="1828" y="858" />
+        <di:waypoint x="1882" y="858" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_staff_10_di" bpmnElement="Flow_staff_10">
+        <di:waypoint x="2052" y="858" />
+        <di:waypoint x="2114" y="858" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1hw6724_di" bpmnElement="Flow_1hw6724">
+        <di:waypoint x="426" y="857" />
+        <di:waypoint x="505" y="857" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1prki4r_di" bpmnElement="Flow_1prki4r">
+        <di:waypoint x="1365" y="857" />
+        <di:waypoint x="1448" y="857" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0s78dkb_di" bpmnElement="Flow_0s78dkb">
+        <di:waypoint x="1135" y="857" />
+        <di:waypoint x="1195" y="857" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0g87u9r_di" bpmnElement="Flow_0g87u9r">
+        <di:waypoint x="915" y="857" />
+        <di:waypoint x="965" y="857" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1qdc1fh_di" bpmnElement="Flow_1qdc1fh">
+        <di:waypoint x="675" y="857" />
+        <di:waypoint x="745" y="857" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MsgFlow_1_di" bpmnElement="MsgFlow_1">
+        <di:waypoint x="408" y="210" />
+        <di:waypoint x="408" y="839" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="421" y="308" width="78" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MsgFlow_2_di" bpmnElement="MsgFlow_2">
+        <di:waypoint x="1968" y="812" />
+        <di:waypoint x="1968" y="710" />
+        <di:waypoint x="2132" y="710" />
+        <di:waypoint x="2132" y="466" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2010" y="693" width="80" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MsgFlow_3_di" bpmnElement="MsgFlow_3">
+        <di:waypoint x="2838" y="404" />
+        <di:waypoint x="2838" y="275" />
+        <di:waypoint x="3002" y="275" />
+        <di:waypoint x="3002" y="182" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2869" y="283" width="122" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

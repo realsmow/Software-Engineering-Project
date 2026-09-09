@@ -1,0 +1,16 @@
+% =============================================================================
+%  fig_usecase.tex — figure float wrapping the UML use-case diagram.
+%  The diagram body lives in _usecase_tikz.tex (shared with the standalone
+%  test wrapper). Scaled to the text width; the diagram's aspect ratio leaves
+%  room for the caption on a dedicated float page.
+% =============================================================================
+\begin{figure}[p]
+  \centering
+  \resizebox{\textwidth}{!}{%
+    \input{sections/_usecase_tikz}%
+  }
+  \caption{แผนภาพยูสเคสของระบบ ULMs แสดงผู้กระทำ (Actor) ทั้งสี่บทบาทและยูสเคสที่เกี่ยวข้อง
+    ความสัมพันธ์แบบ \emph{«include»} คือยูสเคสที่ถูกเรียกใช้เสมอ (เช่น การส่งคำขอยืมต้องตรวจสิทธิ์และเครดิตทุกครั้ง)
+    และแบบ \emph{«extend»} คือยูสเคสที่ทำงานเพิ่มในบางเงื่อนไข (เช่น อาจารย์อนุมัติคำขอ T2 หรือการรายงานความเสียหายเมื่อพบระหว่างตรวจสอบหลังคืน)}
+  \label{fig:usecase}
+\end{figure}

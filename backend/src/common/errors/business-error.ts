@@ -142,6 +142,14 @@ export const BUSINESS_ERROR_CODES = {
    * built around it. This code is the backend half of that decision; the
    * contract table has been corrected to match.
    */
+  /**
+   * An administrative borrowing ban is in force (admin.setUserBan).
+   *
+   * Separate from CREDIT_TOO_LOW: that one is the credit system doing its job,
+   * this one is a person having decided. `cause` carries the reason the staff
+   * member gave and when it lifts, so the borrower is told both.
+   */
+  BORROWING_SUSPENDED: 'FORBIDDEN',
   CREDIT_TOO_LOW: 'FORBIDDEN',
   /** The requested window is backwards, in the past, or longer than the tier allows */
   INVALID_BORROW_WINDOW: 'BAD_REQUEST',
@@ -194,6 +202,19 @@ export type BusinessErrorCode = keyof typeof BUSINESS_ERROR_CODES;
 export class BusinessError extends TRPCError {
   readonly businessCode: BusinessErrorCode;
 
+  /**
+   * The context object this error was constructed with, unwrapped.
+   *
+   * `cause` is NOT this object: TRPCError's constructor wraps any non-Error
+   * cause in an internal `UnknownCauseError`, so `error.cause as
+   * Record<string, unknown>` is a cast that compiles and then lies. It shipped
+   * an `UnknownCauseError` into `loan.create`'s `rejected[].detail`, where the
+   * output schema rejected it and turned one refused basket line into a 500.
+   *
+   * Reading `details` is therefore the only supported way to get it back.
+   */
+  readonly details: Record<string, unknown> | null;
+
   constructor(code: BusinessErrorCode, details?: Record<string, unknown>) {
     super({
       code: BUSINESS_ERROR_CODES[code],
@@ -201,6 +222,7 @@ export class BusinessError extends TRPCError {
       cause: details,
     });
     this.businessCode = code;
+    this.details = details ?? null;
   }
 }
 

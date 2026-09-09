@@ -40,8 +40,21 @@ function requireRole(...allowed: TrpcUser['role'][]) {
   return RoleMiddleware;
 }
 
-/** Staff: prepares equipment, records checkout/return, assesses damage */
-export const StaffMiddleware = requireRole('staff', 'admin');
+/**
+ * The staff floor: prepares equipment, records checkout/return, assesses
+ * damage, and clears the part of the approval queue that is not a supervisor's.
+ *
+ * `supervisor` is included because the roles are a ladder, not a partition
+ * (SRS ว-03: a supervisor can do everything staff can, plus decide). Leaving
+ * it out locked teachers out of `approval.*` entirely - the very desk the
+ * approval router's own docstring says they clear T2 from - and out of the
+ * department-management pages the supervisor navigation already links to.
+ *
+ * Where a supervisor must be told apart from staff, that is a per-row question
+ * (approval-policy.ts routes T2 to them; CANNOT_APPROVE_OWN_REQUEST stops
+ * self-approval), not something a role gate can answer.
+ */
+export const StaffMiddleware = requireRole('staff', 'supervisor', 'admin');
 
 /** Supervisor: approves/rejects requests, decides appeals */
 export const SupervisorMiddleware = requireRole('supervisor', 'admin');

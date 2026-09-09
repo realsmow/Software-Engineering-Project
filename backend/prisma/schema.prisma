@@ -647,3 +647,29 @@ model RepairLog {
   ConditionBefore ConditionLog  @relation("RepairConditionBefore", fields: [ConditionBeforeRepair], references: [ConditionKey])
   ConditionAfter  ConditionLog? @relation("RepairConditionAfter", fields: [ConditionAfterRepair], references: [ConditionKey])
 }
+
+// ----------------------------------------------------------------------
+// Scheduled jobs
+// ----------------------------------------------------------------------
+
+/// One run of one scheduled job (SRS 5.3).
+///
+/// Without this table a manual run has nowhere to record its outcome, which is
+/// why `admin.runCronJob` refused before it existed: a job you can trigger but
+/// cannot observe is not operable. The status page reads the newest row per
+/// job to show when it last ran and whether it worked.
+model CronRunLog {
+  RunKey     Int       @id @default(autoincrement())
+  /// Matches the CronJobId union in admin.schema.ts.
+  Job        String
+  StartedAt  DateTime  @default(now())
+  FinishedAt DateTime?
+  /// success | failed | pending
+  Result     String
+  /// How many rows the run actually changed. Zero is a normal, useful answer.
+  Affected   Int       @default(0)
+  /// Error message on failure, or a short note on success.
+  Detail     String?
+
+  @@index([Job, StartedAt])
+}

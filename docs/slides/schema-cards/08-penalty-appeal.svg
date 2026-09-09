@@ -1,0 +1,136 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="646" viewBox="0 0 1080 646">
+<rect x="0" y="0" width="1080" height="646" rx="14" fill="#FFFFFF"/>
+<rect x="44" y="30" width="5" height="40" rx="2.5" fill="#AD4E0C"/>
+<text x="62" y="48" font-family="Laksaman, Noto Sans Thai, sans-serif" font-size="21" font-weight="700" fill="#13211F">บทลงโทษและการอุทธรณ์</text>
+<text x="62" y="66" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11.5" fill="#AD4E0C" letter-spacing="0.6">PENALTY &amp; APPEAL</text>
+<text x="1036" y="48" font-family="Laksaman, Noto Sans Thai, sans-serif" font-size="12.5" fill="#7E8F8D" text-anchor="end">อุทธรณ์สำเร็จจะออกบทลงโทษใหม่ โดยเก็บของเดิมไว้เป็นหลักฐาน</text>
+<text x="1036" y="66" font-family="Laksaman, Noto Sans Thai, sans-serif" font-size="11" fill="#7E8F8D" text-anchor="end">4 ตาราง &#183; ULMs Database Design v4</text>
+<path d="M474 211.0 C529 211.0 551 480.0 597 480.0" fill="none" stroke="#AD4E0C" stroke-width="1.6" opacity="0.7"/><path d="M606 480.0 L597 475.5 L597 484.5 z" fill="#AD4E0C" opacity="0.7"/><circle cx="474" cy="211.0" r="3.2" fill="#AD4E0C" opacity="0.7"/>
+<path d="M606 224.0 C551 224.0 529 337.0 483 337.0" fill="none" stroke="#AD4E0C" stroke-width="1.6" opacity="0.7"/><path d="M474 337.0 L483 332.5 L483 341.5 z" fill="#AD4E0C" opacity="0.7"/><circle cx="606" cy="224.0" r="3.2" fill="#AD4E0C" opacity="0.7"/>
+<path d="M606 250.0 C551 250.0 529 337.0 483 337.0" fill="none" stroke="#AD4E0C" stroke-width="1.6" opacity="0.7"/><path d="M474 337.0 L483 332.5 L483 341.5 z" fill="#AD4E0C" opacity="0.7"/><circle cx="606" cy="250.0" r="3.2" fill="#AD4E0C" opacity="0.7"/>
+<rect x="46" y="100.0" width="426" height="186" rx="10" fill="#0A1F1D" opacity="0.05"/>
+<rect x="45" y="98.0" width="428" height="186" rx="10" fill="#0A1F1D" opacity="0.05"/>
+<rect x="44" y="96.0" width="430" height="186" rx="10" fill="#FFFFFF" stroke="#DCE7E5"/>
+<path d="M44 106.0 a10 10 0 0 1 10 -10 h410 a10 10 0 0 1 10 10 v40 h-430 z" fill="#AD4E0C"/>
+<text x="60" y="117.0" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="14.5" font-weight="700" fill="#FFFFFF">PenaltyRule</text>
+<text x="60" y="135.0" font-family="Laksaman, Noto Sans Thai, sans-serif" font-size="12" fill="#FFFFFF" opacity="0.85">กฎการหักคะแนนเครดิต</text>
+<rect x="57" y="152.0" width="26" height="14" rx="4" fill="#9E5714"/><text x="70" y="162.5" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="9" font-weight="700" fill="#FFFFFF" text-anchor="middle">PK</text>
+<text x="92" y="163.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="600" fill="#13211F">PenaltyRuleKey</text>
+<text x="460" y="163.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">INT</text>
+<rect x="45" y="172.0" width="428" height="26" fill="#F2F7F7"/>
+<rect x="57" y="178.0" width="26" height="14" rx="4" fill="none" stroke="#AD4E0C" stroke-width="1.2"/><text x="70" y="188.5" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="9" font-weight="700" fill="#AD4E0C" text-anchor="middle">FK</text>
+<text x="92" y="189.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="400" fill="#13211F">BorrowRuleKey</text>
+<text x="199.825" y="189.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="10.5" fill="#7E8F8D">&#8594; BorrowRule</text>
+<text x="460" y="189.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">INT</text>
+<line x1="57" y1="172.0" x2="461" y2="172.0" stroke="#DCE7E5" stroke-width="0.8"/>
+<rect x="57" y="204.0" width="26" height="14" rx="4" fill="none" stroke="#AD4E0C" stroke-width="1.2"/><text x="70" y="214.5" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="9" font-weight="700" fill="#AD4E0C" text-anchor="middle">FK</text>
+<text x="92" y="215.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="400" fill="#13211F">PenaltyType</text>
+<text x="460" y="215.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">INT</text>
+<line x1="57" y1="198.0" x2="461" y2="198.0" stroke="#DCE7E5" stroke-width="0.8"/>
+<rect x="45" y="224.0" width="428" height="26" fill="#F2F7F7"/>
+<text x="92" y="241.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="400" fill="#13211F">PenaltyAmount</text>
+<text x="460" y="241.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">INT</text>
+<line x1="57" y1="224.0" x2="461" y2="224.0" stroke="#DCE7E5" stroke-width="0.8"/>
+<text x="92" y="267.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="400" fill="#13211F">PenaltyLength</text>
+<text x="460" y="267.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">INT</text>
+<line x1="57" y1="250.0" x2="461" y2="250.0" stroke="#DCE7E5" stroke-width="0.8"/>
+<rect x="46" y="316.0" width="426" height="290" rx="10" fill="#0A1F1D" opacity="0.05"/>
+<rect x="45" y="314.0" width="428" height="290" rx="10" fill="#0A1F1D" opacity="0.05"/>
+<rect x="44" y="312.0" width="430" height="290" rx="10" fill="#FFFFFF" stroke="#DCE7E5"/>
+<path d="M44 322.0 a10 10 0 0 1 10 -10 h410 a10 10 0 0 1 10 10 v40 h-430 z" fill="#AD4E0C"/>
+<text x="60" y="333.0" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="14.5" font-weight="700" fill="#FFFFFF">PenaltyInfo</text>
+<text x="60" y="351.0" font-family="Laksaman, Noto Sans Thai, sans-serif" font-size="12" fill="#FFFFFF" opacity="0.85">การหักคะแนนที่เกิดขึ้นจริง</text>
+<rect x="57" y="368.0" width="26" height="14" rx="4" fill="#9E5714"/><text x="70" y="378.5" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="9" font-weight="700" fill="#FFFFFF" text-anchor="middle">PK</text>
+<text x="92" y="379.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="600" fill="#13211F">PenaltyKey</text>
+<text x="460" y="379.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">INT</text>
+<rect x="45" y="388.0" width="428" height="26" fill="#F2F7F7"/>
+<rect x="57" y="394.0" width="26" height="14" rx="4" fill="none" stroke="#AD4E0C" stroke-width="1.2"/><text x="70" y="404.5" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="9" font-weight="700" fill="#AD4E0C" text-anchor="middle">FK</text>
+<text x="92" y="405.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="400" fill="#13211F">AccountKey</text>
+<text x="177.25" y="405.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="10.5" fill="#7E8F8D">&#8594; AccountInfo</text>
+<text x="460" y="405.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">INT</text>
+<line x1="57" y1="388.0" x2="461" y2="388.0" stroke="#DCE7E5" stroke-width="0.8"/>
+<rect x="57" y="420.0" width="26" height="14" rx="4" fill="none" stroke="#AD4E0C" stroke-width="1.2"/><text x="70" y="430.5" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="9" font-weight="700" fill="#AD4E0C" text-anchor="middle">FK</text>
+<text x="92" y="431.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="400" fill="#13211F">UsageKey</text>
+<text x="162.2" y="431.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="10.5" fill="#7E8F8D">&#8594; UsageLog</text>
+<text x="460" y="431.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">INT</text>
+<line x1="57" y1="414.0" x2="461" y2="414.0" stroke="#DCE7E5" stroke-width="0.8"/>
+<rect x="45" y="440.0" width="428" height="26" fill="#F2F7F7"/>
+<text x="92" y="457.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="400" fill="#13211F">Reason</text>
+<text x="460" y="457.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">VARCHAR</text>
+<line x1="57" y1="440.0" x2="461" y2="440.0" stroke="#DCE7E5" stroke-width="0.8"/>
+<text x="92" y="483.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="400" fill="#13211F">CreditDeducted</text>
+<text x="460" y="483.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">INT</text>
+<line x1="57" y1="466.0" x2="461" y2="466.0" stroke="#DCE7E5" stroke-width="0.8"/>
+<rect x="45" y="492.0" width="428" height="26" fill="#F2F7F7"/>
+<text x="92" y="509.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="400" fill="#13211F">ActionTime</text>
+<text x="460" y="509.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">DATETIME</text>
+<line x1="57" y1="492.0" x2="461" y2="492.0" stroke="#DCE7E5" stroke-width="0.8"/>
+<text x="92" y="535.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="400" fill="#13211F">ExpirationTime</text>
+<text x="460" y="535.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">DATETIME</text>
+<line x1="57" y1="518.0" x2="461" y2="518.0" stroke="#DCE7E5" stroke-width="0.8"/>
+<rect x="45" y="544.0" width="428" height="26" fill="#F2F7F7"/>
+<text x="92" y="561.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="400" fill="#13211F">Appealed</text>
+<text x="460" y="561.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">BOOL</text>
+<line x1="57" y1="544.0" x2="461" y2="544.0" stroke="#DCE7E5" stroke-width="0.8"/>
+<text x="92" y="587.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="400" fill="#13211F">InEffect</text>
+<text x="460" y="587.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">BOOL</text>
+<line x1="57" y1="570.0" x2="461" y2="570.0" stroke="#DCE7E5" stroke-width="0.8"/>
+<rect x="608" y="139.0" width="426" height="290" rx="10" fill="#0A1F1D" opacity="0.05"/>
+<rect x="607" y="137.0" width="428" height="290" rx="10" fill="#0A1F1D" opacity="0.05"/>
+<rect x="606" y="135.0" width="430" height="290" rx="10" fill="#FFFFFF" stroke="#DCE7E5"/>
+<path d="M606 145.0 a10 10 0 0 1 10 -10 h410 a10 10 0 0 1 10 10 v40 h-430 z" fill="#AD4E0C"/>
+<text x="622" y="156.0" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="14.5" font-weight="700" fill="#FFFFFF">AppealInfo</text>
+<text x="622" y="174.0" font-family="Laksaman, Noto Sans Thai, sans-serif" font-size="12" fill="#FFFFFF" opacity="0.85">การขออุทธรณ์ผลการประเมิน</text>
+<rect x="619" y="191.0" width="26" height="14" rx="4" fill="#9E5714"/><text x="632" y="201.5" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="9" font-weight="700" fill="#FFFFFF" text-anchor="middle">PK</text>
+<text x="654" y="202.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="600" fill="#13211F">AppealKey</text>
+<text x="1022" y="202.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">INT</text>
+<rect x="607" y="211.0" width="428" height="26" fill="#F2F7F7"/>
+<rect x="619" y="217.0" width="26" height="14" rx="4" fill="none" stroke="#AD4E0C" stroke-width="1.2"/><text x="632" y="227.5" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="9" font-weight="700" fill="#AD4E0C" text-anchor="middle">FK</text>
+<text x="654" y="228.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="400" fill="#13211F">OriginalPenalty</text>
+<text x="1022" y="228.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">INT</text>
+<line x1="619" y1="211.0" x2="1023" y2="211.0" stroke="#DCE7E5" stroke-width="0.8"/>
+<rect x="619" y="243.0" width="26" height="14" rx="4" fill="none" stroke="#AD4E0C" stroke-width="1.2"/><text x="632" y="253.5" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="9" font-weight="700" fill="#AD4E0C" text-anchor="middle">FK</text>
+<text x="654" y="254.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="400" fill="#13211F">NewPenalty</text>
+<text x="1022" y="254.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">INT</text>
+<line x1="619" y1="237.0" x2="1023" y2="237.0" stroke="#DCE7E5" stroke-width="0.8"/>
+<rect x="607" y="263.0" width="428" height="26" fill="#F2F7F7"/>
+<rect x="619" y="269.0" width="26" height="14" rx="4" fill="none" stroke="#AD4E0C" stroke-width="1.2"/><text x="632" y="279.5" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="9" font-weight="700" fill="#AD4E0C" text-anchor="middle">FK</text>
+<text x="654" y="280.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="400" fill="#13211F">FiledBy</text>
+<text x="716.675" y="280.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="10.5" fill="#7E8F8D">&#8594; AccountInfo</text>
+<text x="1022" y="280.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">INT</text>
+<line x1="619" y1="263.0" x2="1023" y2="263.0" stroke="#DCE7E5" stroke-width="0.8"/>
+<rect x="619" y="295.0" width="26" height="14" rx="4" fill="none" stroke="#AD4E0C" stroke-width="1.2"/><text x="632" y="305.5" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="9" font-weight="700" fill="#AD4E0C" text-anchor="middle">FK</text>
+<text x="654" y="306.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="400" fill="#13211F">ResolvedBy</text>
+<text x="739.25" y="306.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="10.5" fill="#7E8F8D">&#8594; AccountInfo</text>
+<text x="1022" y="306.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">INT</text>
+<line x1="619" y1="289.0" x2="1023" y2="289.0" stroke="#DCE7E5" stroke-width="0.8"/>
+<rect x="607" y="315.0" width="428" height="26" fill="#F2F7F7"/>
+<text x="654" y="332.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="400" fill="#13211F">AppealReason</text>
+<text x="1022" y="332.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">TEXT</text>
+<line x1="619" y1="315.0" x2="1023" y2="315.0" stroke="#DCE7E5" stroke-width="0.8"/>
+<rect x="619" y="347.0" width="26" height="14" rx="4" fill="none" stroke="#AD4E0C" stroke-width="1.2"/><text x="632" y="357.5" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="9" font-weight="700" fill="#AD4E0C" text-anchor="middle">FK</text>
+<text x="654" y="358.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="400" fill="#13211F">ApproveStatus</text>
+<text x="761.825" y="358.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="10.5" fill="#7E8F8D">&#8594; ApproveStatus</text>
+<text x="1022" y="358.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">INT</text>
+<line x1="619" y1="341.0" x2="1023" y2="341.0" stroke="#DCE7E5" stroke-width="0.8"/>
+<rect x="607" y="367.0" width="428" height="26" fill="#F2F7F7"/>
+<text x="654" y="384.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="400" fill="#13211F">ActionTime</text>
+<text x="1022" y="384.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">DATETIME</text>
+<line x1="619" y1="367.0" x2="1023" y2="367.0" stroke="#DCE7E5" stroke-width="0.8"/>
+<text x="654" y="410.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="400" fill="#13211F">ResolvedAt</text>
+<text x="1022" y="410.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">DATETIME</text>
+<line x1="619" y1="393.0" x2="1023" y2="393.0" stroke="#DCE7E5" stroke-width="0.8"/>
+<rect x="608" y="459.0" width="426" height="108" rx="10" fill="#0A1F1D" opacity="0.05"/>
+<rect x="607" y="457.0" width="428" height="108" rx="10" fill="#0A1F1D" opacity="0.05"/>
+<rect x="606" y="455.0" width="430" height="108" rx="10" fill="#FFFFFF" stroke="#DCE7E5"/>
+<path d="M606 465.0 a10 10 0 0 1 10 -10 h410 a10 10 0 0 1 10 10 v40 h-430 z" fill="#AD4E0C"/>
+<text x="622" y="476.0" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="14.5" font-weight="700" fill="#FFFFFF">PenaltyType</text>
+<text x="622" y="494.0" font-family="Laksaman, Noto Sans Thai, sans-serif" font-size="12" fill="#FFFFFF" opacity="0.85">ประเภทสาเหตุการลงโทษ</text>
+<rect x="619" y="511.0" width="26" height="14" rx="4" fill="#9E5714"/><text x="632" y="521.5" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="9" font-weight="700" fill="#FFFFFF" text-anchor="middle">PK</text>
+<text x="654" y="522.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="600" fill="#13211F">PenaltyTypeKey</text>
+<text x="1022" y="522.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">INT</text>
+<rect x="607" y="531.0" width="428" height="26" fill="#F2F7F7"/>
+<text x="654" y="548.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="400" fill="#13211F">PenaltyType</text>
+<text x="1022" y="548.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">VARCHAR</text>
+<line x1="619" y1="531.0" x2="1023" y2="531.0" stroke="#DCE7E5" stroke-width="0.8"/>
+</svg>

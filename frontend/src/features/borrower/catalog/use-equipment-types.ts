@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { CACHE } from "@/constants";
+import { POLLING } from "@/constants";
 import { queryKeys } from "@/lib/query-client";
 import { useTRPCClient } from "@/lib/trpc";
 import { fetchAllPages } from "@/lib/paging";
@@ -55,7 +55,7 @@ export function useEquipmentType(id: string | undefined) {
       if (numericId === null) return null;
 
       try {
-        // `item.getById` answers itemDetail — the summary *and* every unit —
+        // `item.getById` answers itemDetail - the summary *and* every unit -
         // so the units table below costs no second request.
         return toCatalogItemDetail(await trpc.item.getById.query({ id: numericId }));
       } catch {
@@ -75,7 +75,7 @@ export function useEquipmentType(id: string | undefined) {
  * free changes every time somebody walks up to the counter. Refetching the
  * whole detail on a timer would re-render the page to change one number.
  *
- * `item.getAvailability` is built for this — three numbers, no unit list.
+ * `item.getAvailability` is built for this: three numbers, no unit list.
  */
 export function useEquipmentAvailability(id: string | undefined) {
   const trpc = useTRPCClient();
@@ -88,7 +88,7 @@ export function useEquipmentAvailability(id: string | undefined) {
       return trpc.item.getAvailability.query({ id: numericId });
     },
     enabled: Boolean(id),
-    refetchInterval: CACHE.AVAILABILITY_POLL_MS,
+    refetchInterval: POLLING.AVAILABILITY,
     // A stale count is worse than a brief flicker: it decides whether the
     // "add to request" button is enabled.
     staleTime: 0,
@@ -100,7 +100,7 @@ export function useEquipmentAvailability(id: string | undefined) {
  * picker.
  *
  * The catalogue list (`item.list`) carries no units, so a T2 line has to ask
- * for them by id. The detail page does not use this — it already has them.
+ * for them by id. The detail page does not use this - it already has them.
  */
 export function useEquipmentUnits(id: string | undefined) {
   const trpc = useTRPCClient();
