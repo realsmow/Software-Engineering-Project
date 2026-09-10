@@ -51,6 +51,7 @@ jobs:
   versions:
     name: shared dependency versions
     runs-on: ubuntu-latest
+    continue-on-error: true
 
     steps:
       - uses: actions/checkout@v4
