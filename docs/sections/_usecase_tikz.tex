@@ -1,0 +1,131 @@
+% =============================================================================
+%  _usecase_tikz.tex — UML Use Case diagram (TikZ body only)
+%  Recreated from resource/ULMs_Software_Project_Presentation_V.pdf (slide 1).
+%  Requires (loaded in the preamble of whichever document \inputs this):
+%     fontspec (Laksaman), xcolor, tikz + libraries
+%       shapes.geometric, arrows.meta, positioning, calc, fit, backgrounds
+%  Grayscale palette so it stays on-theme with the monochrome document; the
+%  four actors are separated by layout (left = Staff/Supervisor, right =
+%  User/Admin) rather than by colour.
+% =============================================================================
+
+% ---- monochrome palette (redefined here so the file is portable) ------------
+\definecolor{ucFill}{HTML}{ECECEC}   % use-case ellipse fill (light gray)
+\definecolor{ucEdge}{HTML}{4A4A4A}   % borders / association lines
+\definecolor{ucRel} {HTML}{2E2E2E}   % «include» / «extend» dashed relations
+
+% A simple stick-figure actor, placed via \pic at a coordinate.
+\tikzset{
+  actor/.pic={
+    \draw[line width=0.5pt]
+      (0,0.42) circle (0.17)          % head
+      (0,0.25) -- (0,-0.28)           % torso
+      (-0.28,0.02) -- (0.28,0.02)     % arms
+      (0,-0.28) -- (-0.22,-0.62)      % left leg
+      (0,-0.28) -- (0.22,-0.62);      % right leg
+  }
+}
+
+\begin{tikzpicture}[
+    x=1cm, y=1cm,
+    every node/.style = {font=\scriptsize},
+    uc/.style       = {ellipse, draw=ucEdge, line width=0.4pt, fill=ucFill,
+                       align=center, text width=2.35cm, minimum width=2.6cm,
+                       minimum height=0.9cm, inner sep=1.5pt},
+    assoc/.style    = {draw=ucEdge!75, line width=0.3pt},
+    rel/.style      = {draw=ucRel, dash pattern=on 2.2pt off 1.6pt,
+                       -{Stealth[length=1.8mm]}, line width=0.4pt},
+    rlbl/.style     = {font=\tiny\itshape, fill=white, inner sep=0.7pt, text=ucRel},
+    boundary/.style = {draw=ucEdge, line width=0.7pt, rounded corners=4pt},
+    actorlbl/.style = {font=\scriptsize, align=center, text width=2.1cm}
+  ]
+
+  % ---------------- system boundary ----------------------------------------
+  \draw[boundary] (1.5,-1.95) rectangle (15.2,22.2);
+  \node[font=\small\bfseries, align=center] at (8.35,21.55)
+    {ระบบบริหารจัดการการยืม–คืนอุปกรณ์ (ULMs)};
+
+  % ---------------- use cases: Staff (left column) -------------------------
+  \node[uc] (s1) at (3.2,20.0) {จัดเตรียม / เลือก Serial};
+  \node[uc] (s2) at (3.2,18.5) {บันทึกการส่งมอบ};
+  \node[uc] (s3) at (3.2,17.0) {ตรวจสภาพเพื่อต่ออายุ};
+  \node[uc] (s4) at (3.2,15.5) {จัดการข้อมูลอุปกรณ์};
+  \node[uc] (s5) at (3.2,14.0) {ตรวจสอบหลังคืน};
+  \node[uc] (s6) at (6.9,14.0) {รายงานความเสียหาย};
+
+  % ---------------- use cases: Supervisor / อาจารย์ (left, lower) ----------
+  \node[uc] (v1) at (3.2,10.8) {อนุมัติ / ปฏิเสธคำขอ T2};
+  \node[uc] (v2) at (3.2,9.3)  {อนุมัติต่ออายุ T2};
+  \node[uc] (v3) at (3.2,7.8)  {ตัดสินอุทธรณ์};
+  \node[uc] (v4) at (3.2,6.3)  {แก้ไขผลประเมิน};
+  \node[uc] (v5) at (3.2,4.8)  {อนุมัติปลดระวาง};
+
+  % ---------------- use cases: User / ผู้ยืม (centre column) ---------------
+  \node[uc] (u1) at (11.0,13.5) {ค้นหา / กรองอุปกรณ์};
+  \node[uc] (u2) at (11.0,12.0) {ส่งคำขอยืม};
+  \node[uc] (u3) at (11.0,10.5) {ติดตามสถานะคำขอ};
+  \node[uc] (u4) at (11.0,9.0)  {ขอต่ออายุการยืม};
+  \node[uc] (u5) at (11.0,7.5)  {รับอุปกรณ์};
+  \node[uc] (u6) at (11.0,6.0)  {ยื่นอุทธรณ์ผลประเมิน};
+  \node[uc] (u7) at (11.0,4.5)  {คืนอุปกรณ์};
+  \node[uc] (u8) at (11.0,3.0)  {ดูเครดิต / ประวัติ};
+
+  % ---------------- «include» targets (shared) ----------------------------
+  \node[uc] (i1) at (6.9,12.6) {ตรวจสิทธิ์ + เครดิต};
+  \node[uc] (i2) at (6.9,5.2)  {อัปโหลดรูปหลักฐาน};
+
+  % ---------------- use cases: Admin / ผู้ดูแลระบบ (right, lower) ----------
+  \node[uc] (a1) at (13.0,1.6)  {จัดการบัญชีผู้ใช้};
+  \node[uc] (a2) at (13.0,0.1)  {ตั้งค่าระบบ / เครดิต};
+  \node[uc] (a3) at (13.0,-1.4) {ดู Dashboard / สถิติ};
+
+  % ---------------- actors --------------------------------------------------
+  \coordinate (aStaff) at (-0.2,17.0);
+  \pic at (aStaff) {actor};
+  \node[actorlbl, below=0.55cm of aStaff] {เจ้าหน้าที่\\(Staff)};
+
+  \coordinate (aSup) at (-0.2,7.8);
+  \pic at (aSup) {actor};
+  \node[actorlbl, below=0.55cm of aSup] {อาจารย์\\(Supervisor)};
+
+  \coordinate (aUser) at (17.6,10.5);
+  \pic at (aUser) {actor};
+  \node[actorlbl, below=0.55cm of aUser] {ผู้ยืม\\(User)};
+
+  \coordinate (aAdmin) at (17.6,0.1);
+  \pic at (aAdmin) {actor};
+  \node[actorlbl, below=0.55cm of aAdmin] {ผู้ดูแลระบบ\\(Admin)};
+
+  % ---------------- associations: Staff ------------------------------------
+  \foreach \n in {s1,s2,s3,s4,s5,s6}
+    \draw[assoc] (aStaff) -- (\n.west);
+
+  % ---------------- associations: Supervisor -------------------------------
+  \foreach \n in {v1,v2,v3,v4,v5}
+    \draw[assoc] (aSup) -- (\n.west);
+
+  % ---------------- associations: User -------------------------------------
+  \foreach \n in {u1,u2,u3,u4,u5,u6,u7,u8}
+    \draw[assoc] (aUser) -- (\n.east);
+
+  % ---------------- associations: Admin ------------------------------------
+  \foreach \n in {a1,a2,a3}
+    \draw[assoc] (aAdmin) -- (\n.east);
+
+  % ---------------- «include» relations ------------------------------------
+  % Labels placed near the source use case (pos=0.25) so the three arrows that
+  % converge on อัปโหลดรูปหลักฐาน don't stack their labels on top of each other.
+  \draw[rel] (u2.west) -- (i1.east)       node[rlbl, pos=0.45, above]{«include»};
+  \draw[rel] (u5.west) -- (i2.north east) node[rlbl, pos=0.25, above]{«include»};
+  \draw[rel] (u6.west) -- (i2.east)       node[rlbl, pos=0.25, above]{«include»};
+  \draw[rel] (u7.west) -- (i2.south east) node[rlbl, pos=0.25, below]{«include»};
+
+  % ---------------- «extend» relations -------------------------------------
+  % Staff: รายงานความเสียหาย extends ตรวจสอบหลังคืน
+  \draw[rel] (s6.west) -- (s5.east) node[rlbl, midway, above]{«extend»};
+  % Supervisor approvals extend the User use cases they gate
+  \draw[rel] (v1.east) -- (u2.west) node[rlbl, pos=0.6, above]{«extend»};
+  \draw[rel] (v2.east) -- (u4.west) node[rlbl, pos=0.6, above]{«extend»};
+  \draw[rel] (v3.east) -- (u6.west) node[rlbl, pos=0.6, below]{«extend»};
+
+\end{tikzpicture}

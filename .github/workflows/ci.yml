@@ -51,14 +51,16 @@ jobs:
   versions:
     name: shared dependency versions
     runs-on: ubuntu-latest
-    continue-on-error: true
 
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          # One source of truth for the toolchain: .nvmrc. Hardcoding '22' here
+          # is how CI and developers drifted apart - npm 11 writes a lockfile
+          # npm 10 refuses to install, and the break only shows up in CI.
+          node-version-file: .nvmrc
 
       # No `npm ci` here. Steps 1 and 2 of the script only read package.json,
       # and step 3 (npm ls) skips itself when node_modules is absent. Installing
@@ -105,8 +107,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          # Matches the version the team runs locally (22.x).
-          node-version: '22'
+          node-version-file: .nvmrc
           # Caches ~/.npm between runs, keyed by the lockfile. Saves roughly a
           # minute per run once warm.
           cache: npm
@@ -166,7 +167,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version-file: .nvmrc
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 

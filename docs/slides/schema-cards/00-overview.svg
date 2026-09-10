@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1130" height="720" viewBox="0 0 1130 720">
+<rect x="0" y="0" width="1130" height="720" rx="14" fill="#FFFFFF"/>
+<text x="44" y="50" font-family="Laksaman, Noto Sans Thai, sans-serif" font-size="23" font-weight="700" fill="#13211F">ภาพรวมฐานข้อมูล ULMs — 33 ตาราง 9 กลุ่ม</text>
+<text x="44" y="72" font-family="Laksaman, Noto Sans Thai, sans-serif" font-size="12.5" fill="#7E8F8D">แบ่งกลุ่มตามฟีเจอร์ที่ตารางรับผิดชอบ (Database Design v4)</text>
+<rect x="45" y="99" width="328" height="176" rx="10" fill="#0A1F1D" opacity="0.06"/>
+<rect x="44" y="96" width="330" height="176" rx="10" fill="#FFFFFF" stroke="#DCE7E5"/>
+<rect x="44" y="96" width="330" height="4" rx="2" fill="#16726D"/>
+<text x="62" y="128" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" font-weight="700" fill="#16726D">01</text>
+<text x="62" y="150" font-family="Laksaman, Noto Sans Thai, sans-serif" font-size="15.5" font-weight="700" fill="#13211F">บัญชีผู้ใช้และสิทธิ์</text>
+<text x="62" y="174" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11.5" fill="#3C4B49">&#183; AccountInfo</text>
+<text x="62" y="192" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11.5" fill="#3C4B49">&#183; RoleInfo</text>
+<text x="62" y="210" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11.5" fill="#3C4B49">&#183; Authority</text>
+<text x="62" y="228" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11.5" fill="#3C4B49">&#183; AuthorityRole</text>
+<rect x="401" y="99" width="328" height="176" rx="10" fill="#0A1F1D" opacity="0.06"/>
+<rect x="400" y="96" width="330" height="176" rx="10" fill="#FFFFFF" stroke="#DCE7E5"/>
+<rect x="400" y="96" width="330" height="4" rx="2" fill="#1D5052"/>
+<text x="418" y="128" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" font-weight="700" fill="#1D5052">02</text>
+<text x="418" y="150" font-family="Laksaman, Noto Sans Thai, sans-serif" font-size="15.5" font-weight="700" fill="#13211F">หน่วยงานผู้ให้ยืม</text>
+<text x="418" y="174" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11.5" fill="#3C4B49">&#183; FacultyInfo</text>
+<text x="418" y="192" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11.5" fill="#3C4B49">&#183; ClubInfo</text>
+<text x="418" y="210" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11.5" fill="#3C4B49">&#183; ManagementGroup</text>
+<text x="418" y="228" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11.5" fill="#3C4B49">&#183; GroupType</text>
+<rect x="757" y="99" width="328" height="176" rx="10" fill="#0A1F1D" opacity="0.06"/>
+<rect x="756" y="96" width="330" height="176" rx="10" fill="#FFFFFF" stroke="#DCE7E5"/>
+<rect x="756" y="96" width="330" height="4" rx="2" fill="#077A5F"/>
+<text x="774" y="128" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" font-weight="700" fill="#077A5F">03</text>
+<text x="774" y="150" font-family="Laksaman, Noto Sans Thai, sans-serif" font-size="15.5" font-weight="700" fill="#13211F">ทรัพยากร: อุปกรณ์และห้อง</text>
+<text x="774" y="174" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11.5" fill="#3C4B49">&#183; ItemInfo</text>
+<text x="774" y="192" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11.5" fill="#3C4B49">&#183; ItemIndiv</text>
+<text x="774" y="210" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11.5" fill="#3C4B49">&#183; ResourceStatus</text>
+<text x="774" y="228" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11.5" fill="#3C4B49">&#183; ResourceInfo</text>
+<text x="774" y="246" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11.5" fill="#3C4B49">&#183; RoomInfo</text>
+<rect x="45" y="301" width="328" height="176" rx="10" fill="#0A1F1D" opacity="0.06"/>
+<rect x="44" y="298" width="330" height="176" rx="10" fill="#FFFFFF" stroke="#DCE7E5"/>
+<rect x="44" y="298" width="330" height="4" rx="2" fill="#2A7A3E"/>
+<text x="62" y="330" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" font-weight="700" fill="#2A7A3E">04</text>
+<text x="62" y="352" font-family="Laksaman, Noto Sans Thai, sans-serif" font-size="15.5" font-weight="700" fill="#13211F">กฎการยืมและเครดิต</text>
+<text x="62" y="376" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11.5" fill="#3C4B49">&#183; BorrowRule</text>
+<text x="62" y="394" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11.5" fill="#3C4B49">&#183; BorrowConstraints</text>
+<text x="62" y="412" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11.5" fill="#3C4B49">&#183; CreditTier</text>
+<text x="62" y="430" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11.5" fill="#3C4B49">&#183; Eligibility</text>
+<rect x="401" y="301" width="328" height="176" rx="10" fill="#0A1F1D" opacity="0.06"/>
+<rect x="400" y="298" width="330" height="176" rx="10" fill="#FFFFFF" stroke="#DCE7E5"/>
+<rect x="400" y="298" width="330" height="4" rx="2" fill="#35827C"/>
+<text x="418" y="330" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" font-weight="700" fill="#35827C">05</text>
+<text x="418" y="352" font-family="Laksaman, Noto Sans Thai, sans-serif" font-size="15.5" font-weight="700" fill="#13211F">การจองและการอนุมัติ</text>
+<text x="418" y="376" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11.5" fill="#3C4B49">&#183; Reservations</text>
+<text x="418" y="394" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11.5" fill="#3C4B49">&#183; ApproveStatus</text>
+<rect x="757" y="301" width="328" height="176" rx="10" fill="#0A1F1D" opacity="0.06"/>
+<rect x="756" y="298" width="330" height="176" rx="10" fill="#FFFFFF" stroke="#DCE7E5"/>
+<rect x="756" y="298" width="330" height="4" rx="2" fill="#0B6B6E"/>
+<text x="774" y="330" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" font-weight="700" fill="#0B6B6E">06</text>
+<text x="774" y="352" font-family="Laksaman, Noto Sans Thai, sans-serif" font-size="15.5" font-weight="700" fill="#13211F">การยืม–คืนและต่อเวลา</text>
+<text x="774" y="376" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11.5" fill="#3C4B49">&#183; UsageLog</text>
+<text x="774" y="394" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11.5" fill="#3C4B49">&#183; ExtensionRequest</text>
+<rect x="45" y="503" width="328" height="176" rx="10" fill="#0A1F1D" opacity="0.06"/>
+<rect x="44" y="500" width="330" height="176" rx="10" fill="#FFFFFF" stroke="#DCE7E5"/>
+<rect x="44" y="500" width="330" height="4" rx="2" fill="#5C7C4E"/>
+<text x="62" y="532" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" font-weight="700" fill="#5C7C4E">07</text>
+<text x="62" y="554" font-family="Laksaman, Noto Sans Thai, sans-serif" font-size="15.5" font-weight="700" fill="#13211F">การตรวจสภาพและรูปภาพ</text>
+<text x="62" y="578" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11.5" fill="#3C4B49">&#183; Inspection</text>
+<text x="62" y="596" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11.5" fill="#3C4B49">&#183; ConditionLog</text>
+<text x="62" y="614" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11.5" fill="#3C4B49">&#183; Image</text>
+<text x="62" y="632" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11.5" fill="#3C4B49">&#183; ImageSubmissionType</text>
+<text x="62" y="650" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11.5" fill="#3C4B49">&#183; ConditionType</text>
+<rect x="401" y="503" width="328" height="176" rx="10" fill="#0A1F1D" opacity="0.06"/>
+<rect x="400" y="500" width="330" height="176" rx="10" fill="#FFFFFF" stroke="#DCE7E5"/>
+<rect x="400" y="500" width="330" height="4" rx="2" fill="#AD4E0C"/>
+<text x="418" y="532" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" font-weight="700" fill="#AD4E0C">08</text>
+<text x="418" y="554" font-family="Laksaman, Noto Sans Thai, sans-serif" font-size="15.5" font-weight="700" fill="#13211F">บทลงโทษและการอุทธรณ์</text>
+<text x="418" y="578" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11.5" fill="#3C4B49">&#183; PenaltyRule</text>
+<text x="418" y="596" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11.5" fill="#3C4B49">&#183; PenaltyInfo</text>
+<text x="418" y="614" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11.5" fill="#3C4B49">&#183; AppealInfo</text>
+<text x="418" y="632" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11.5" fill="#3C4B49">&#183; PenaltyType</text>
+<rect x="757" y="503" width="328" height="176" rx="10" fill="#0A1F1D" opacity="0.06"/>
+<rect x="756" y="500" width="330" height="176" rx="10" fill="#FFFFFF" stroke="#DCE7E5"/>
+<rect x="756" y="500" width="330" height="4" rx="2" fill="#4A5D54"/>
+<text x="774" y="532" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" font-weight="700" fill="#4A5D54">09</text>
+<text x="774" y="554" font-family="Laksaman, Noto Sans Thai, sans-serif" font-size="15.5" font-weight="700" fill="#13211F">งานสนับสนุน: ซ่อมบำรุงและแจ้งเตือน</text>
+<text x="774" y="578" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11.5" fill="#3C4B49">&#183; RepairLog</text>
+<text x="774" y="596" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11.5" fill="#3C4B49">&#183; Notification</text>
+<text x="774" y="614" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11.5" fill="#3C4B49">&#183; NotificationType</text>
+</svg>

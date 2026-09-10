@@ -28,6 +28,7 @@ import {
   resetPasswordInput,
   resetPasswordOutput,
   runCronJobInput,
+  type RunCronJobInput,
   setUserActiveInput,
   setUserBanInput,
   systemStatusOutput,
@@ -89,6 +90,21 @@ export class AdminRouter {
   @Query({ input: listUsersInput, output: paginatedAdminUsers })
   listUsers(@Input() input: ListUsersInput) {
     return this.adminService.listUsers(input);
+  }
+
+  /**
+   * The same list, scoped to the caller's own departments.
+   *
+   * Staff and supervisors need to find a borrower before they can ban one, but
+   * `listUsers` above is unscoped and admin-only (SDS §7.3 scopes them to the
+   * groups they hold Authority in). Without this the ban screens were
+   * unusable: a staff member could suspend an account they had no way to look
+   * up. An admin calling it gets the unscoped list, same as `listUsers`.
+   */
+  @UseMiddlewares(StaffMiddleware)
+  @Query({ input: listUsersInput, output: paginatedAdminUsers })
+  listUsersInScope(@Input() input: ListUsersInput, @Ctx() ctx: TrpcContext) {
+    return this.adminService.listUsersInScope(ctx.user!, input);
   }
 
   @UseMiddlewares(AdminMiddleware)
@@ -199,8 +215,8 @@ export class AdminRouter {
   /** Not implemented - there are no jobs to run yet. */
   @UseMiddlewares(AdminMiddleware)
   @Mutation({ input: runCronJobInput, output: okOutput })
-  runCronJob() {
-    return this.adminService.runCronJob();
+  runCronJob(@Input() input: RunCronJobInput, @Ctx() ctx: TrpcContext) {
+    return this.adminService.runCronJob(input, AdminRouter.actorFrom(ctx));
   }
 
   // ── Audit (IT admin) ────────────────────────────────────────────────────

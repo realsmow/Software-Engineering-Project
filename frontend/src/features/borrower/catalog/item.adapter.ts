@@ -1,5 +1,4 @@
-import type { CatalogItem } from "../mock-data";
-import type { StockStatus } from "../mock-data";
+import type { CatalogItem, StockStatus, UnitRow, UnitState } from "../mock-data";
 import type { Tier } from "@/types/domain";
 
 /**
@@ -16,7 +15,12 @@ export interface ServerItem {
   name: string;
   description: string | null;
   imageUrl: string | null;
-  tier: Tier;
+  /**
+   * Null for a type with no units yet, or whose units sit on a BorrowRule
+   * outside T0-T3. A tier belongs to a unit, not to the type - see
+   * backend/src/common/schemas/status.schema.ts.
+   */
+  tier: Tier | null;
   creditWeight: number;
   totalUnits: number;
   availableUnits: number;
@@ -24,7 +28,7 @@ export interface ServerItem {
   nextAvailableAt: string | null;
   prepDays: number;
   allowBorrow: boolean;
-  owner: { id: number; name: string | null; type: string };
+  owner: { id: number; name: string | null; type: string } | null;
 }
 
 export function toCatalogItem(s: ServerItem): CatalogItem {
@@ -48,10 +52,70 @@ export function toCatalogItem(s: ServerItem): CatalogItem {
     // type, so a list row has no single code to show. item.listUnits has them
     // for the detail page.
     code: "",
-    // Falls back to the group type ("Faculty" / "Club") because seeded groups
-    // have no name yet; the dept facet still groups, just coarsely.
-    departmentId: s.owner.name ?? s.owner.type,
+    // Falls back to the group type ("Faculty" / "Club") when a group has no
+    // name; the dept facet still groups, just coarsely. `owner` itself is
+    // nullable - an item with no management group groups under "".
+    departmentId: s.owner ? (s.owner.name ?? s.owner.type) : "",
     stockStatus: s.stockStatus,
     description: s.description ?? undefined,
   };
+}
+
+/**
+ * One physical unit, as `itemUnit` in backend/src/item/item.schema.ts.
+ *
+ * `status` and `condition` mirror the Prisma enums the backend re-declares in
+ * common/schemas/status.schema.ts, so they are spelled the DB's way here and
+ * translated below - not renamed on the way in.
+ */
+export interface ServerItemUnit {
+  id: number;
+  /** ItemIndiv.ItemID - the asset tag printed on the unit. */
+  assetTag: string;
+  imageUrl: string | null;
+  status: "InStorage" | "Lended" | "Missing";
+  allowBorrow: boolean;
+  condition: "Normal" | "MinorDamage" | "MajorDamage" | "Broken" | "Missing" | null;
+  /** Due date of the loan holding this unit, when it is out. */
+  dueAt: string | null;
+}
+
+/** `item.getById` answers `itemDetail` - the summary plus every unit. */
+export interface ServerItemDetail extends ServerItem {
+  units: ServerItemUnit[];
+}
+
+/** What the detail page renders: the catalogue row plus its real units. */
+export interface CatalogItemDetail extends CatalogItem {
+  units: UnitRow[];
+}
+
+/**
+ * Five server states collapsed onto the three the UI has.
+ *
+ * The borrower is only ever asking "can I take this one today", so everything
+ * that answers no falls into `out` (a borrower has it) or `fix` (it is here
+ * and not lendable). `Missing` has no third bucket to go to and lands in
+ * `fix`, which is the less wrong of the two: nobody is holding it on a loan.
+ */
+export function toUnitRow(u: ServerItemUnit): UnitRow {
+  return { serial: u.assetTag, state: toUnitState(u) };
+}
+
+function toUnitState(u: ServerItemUnit): UnitState {
+  if (u.status === "Lended") return "out";
+  if (
+    !u.allowBorrow ||
+    u.status === "Missing" ||
+    u.condition === "MajorDamage" ||
+    u.condition === "Broken" ||
+    u.condition === "Missing"
+  ) {
+    return "fix";
+  }
+  return "free";
+}
+
+export function toCatalogItemDetail(s: ServerItemDetail): CatalogItemDetail {
+  return { ...toCatalogItem(s), units: s.units.map(toUnitRow) };
 }

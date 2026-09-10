@@ -1,0 +1,103 @@
+% =============================================================================
+%  _borrow_flow_tikz.tex — the borrow-rule flowchart (TikZ body only)
+%  Recreated from resource/Flowchart Whiteboard ... Neon Style-1.pdf
+%  Requires (loaded in the preamble of whichever document \inputs this):
+%     fontspec (Laksaman), xcolor, tikz + libraries
+%       shapes.geometric, arrows.meta, positioning, calc, fit, backgrounds
+%  Colours are (re)defined here so the file is portable between the proposal
+%  and the standalone test wrapper.
+% =============================================================================
+
+% ---- light, restrained palette (a calmer take on the neon reference) --------
+\definecolor{flStart}{HTML}{CDEFD6}   % green   — start / terminal
+\definecolor{flProc} {HTML}{E4EEFB}   % blue    — borrower steps
+\definecolor{flStaff}{HTML}{D3EFEA}   % teal    — staff (ผู้ให้ยืม) steps
+\definecolor{flDec}  {HTML}{FBF0CC}   % yellow  — decisions
+\definecolor{flUse}  {HTML}{FBDFC2}   % orange  — in-use
+\definecolor{flEnd}  {HTML}{F6D3E7}   % pink    — final update
+\definecolor{flStop} {HTML}{F8CFCF}   % red     — try again
+\definecolor{flEdge} {HTML}{5A5A5A}   % node borders / arrows
+
+\begin{tikzpicture}[
+    node distance = 6.5mm and 10mm,
+    every node/.style = {font=\footnotesize},
+    box/.style       = {rectangle, rounded corners=2pt, draw=flEdge, line width=0.4pt,
+                        align=center, text width=3.2cm, inner sep=3.5pt, minimum height=8mm},
+    startstop/.style = {box, fill=flStart, text width=2.7cm},
+    proc/.style      = {box, fill=flProc},
+    staff/.style     = {box, fill=flStaff},
+    inuse/.style     = {box, fill=flUse, text width=2.7cm},
+    endnode/.style   = {box, fill=flEnd, text width=2.9cm},
+    stopnode/.style  = {box, fill=flStop, text width=1.9cm, minimum height=7mm},
+    decision/.style  = {diamond, aspect=2.1, draw=flEdge, line width=0.4pt, fill=flDec,
+                        align=center, inner sep=0pt, text width=2.3cm},
+    note/.style      = {rectangle, rounded corners=2pt, draw=flEdge!60, dash pattern=on 2pt off 1.5pt,
+                        fill=white, align=left, text width=4.5cm, inner sep=4pt, font=\scriptsize},
+    arr/.style       = {-{Stealth[length=2mm]}, draw=flEdge, line width=0.5pt},
+    lbl/.style       = {font=\scriptsize, fill=white, inner sep=1pt}
+  ]
+
+  % ---------------- main spine (ผู้ยืม / Borrower) --------------------------
+  \node[startstop]                     (start)  {เลือกของที่จะยืม};
+  \node[proc, below=of start]          (tier)   {จำแนกระดับอุปกรณ์\\T0 \textperiodcentered\ T1 \textperiodcentered\ T2 \textperiodcentered\ T3};
+  \node[proc, below=of tier]           (req)    {ส่งคำขอยืม\\(ระบุจำนวน / หมายเลข / ช่วงเวลา ตามระดับ)};
+  \node[decision, below=8mm of req]    (auth)   {การอนุมัติ\\ผ่านหรือไม่?};
+  \node[staff, below=8mm of auth]      (prep)   {เจ้าหน้าที่จัดเตรียม / เลือกอุปกรณ์\\(T1: ชิ้นพร้อมใช้ \textperiodcentered\ T2: ตามหมายเลข)};
+  \node[proc, below=of prep]           (pin)    {ถ่ายรูปตอนรับ + อัปโหลดเข้าระบบ};
+  \node[inuse, below=of pin]           (use)    {กำลังใช้งาน\\(IN USE)};
+  \node[decision, below=7mm of use]    (renew)  {ต้องการ\\ต่ออายุ?};
+  \node[decision, right=14mm of renew, text width=2.2cm] (ronline) {เหลือสิทธิ์\\ต่อออนไลน์?};
+  \node[proc,  above=16mm of ronline, text width=2.8cm] (rsys) {ต่อผ่านระบบ (ออนไลน์) 1 ครั้ง};
+  \node[staff, below=7mm of ronline, text width=2.8cm] (rchk) {นำอุปกรณ์มาให้เจ้าหน้าที่ตรวจสภาพ};
+  \node[proc, below=7mm of renew]      (pout)   {ถ่ายรูปตอนคืน + อัปโหลดเข้าระบบ};
+  \node[decision, below=7mm of pout]   (insp)   {ตรวจสอบหลังคืน\\พบความเสียหาย?};
+  \node[endnode, below=8mm of insp]    (upd)    {อัปเดตข้อมูล\\ของที่ยืมและผู้ยืม \; (จบ)};
+
+  % ---------------- side branches ------------------------------------------
+  \node[stopnode, left=14mm of auth]   (retry)  {Try Again};
+  \node[staff, right=12mm of insp, text width=3.0cm] (dmg) {รายงานความเสียหาย\\$\rightarrow$ หักเครดิต (discredit)};
+
+  % tier-specific approval note
+  \node[note, right=8mm of auth] (authnote)
+    {\textbf{การอนุมัติตามระดับ}\\[1pt]
+     T0–T1: ระบบตรวจสิทธิ์ + เครดิต + ของคงเหลือ\\
+     T2: อาจารย์ (Supervisor) อนุมัติ\\
+     T3: ตรวจช่วงเวลาว่าง (IsFree)};
+
+  % ---------------- arrows: main spine -------------------------------------
+  \draw[arr] (start) -- (tier);
+  \draw[arr] (tier)  -- (req);
+  \draw[arr] (req)   -- (auth);
+  \draw[arr] (auth)  -- node[lbl, right]{Accept} (prep);
+  \draw[arr] (prep)  -- (pin);
+  \draw[arr] (pin)   -- (use);
+  \draw[arr] (use)   -- (renew);
+  \draw[arr] (renew) -- node[lbl, right]{ไม่} (pout);
+  \draw[arr] (pout)  -- (insp);
+  \draw[arr] (insp)  -- node[lbl, right]{ไม่พบ} (upd);
+
+  % reject -> try again -> back to request
+  \draw[arr] (auth) -- node[lbl, above]{Reject} (retry);
+  \draw[arr] (retry.north) |- (req.west);
+
+  % renewal cycle: 1 online renewal, then a staff condition check, alternating
+  % (a passed check re-earns the next online renewal — see caption). Both
+  % outcomes MERGE onto a right-hand rail and return to IN USE via a single
+  % arrow, so no return line crosses the online / staff-check nodes.
+  \draw[arr] (renew.east)    -- node[lbl, above]{ใช่} (ronline.west);
+  \draw[arr] (ronline.north) -- node[lbl, right]{มี} (rsys.south);
+  \draw[arr] (ronline.south) -- node[lbl, right]{ไม่มี} (rchk.north);
+  \coordinate (rrx) at ($(rsys.east)+(0.8,0)$);
+  \draw (rsys.east) -- (rsys.east -| rrx);
+  \draw (rchk.east) -- (rchk.east -| rrx);
+  \draw (rsys.east -| rrx) -- (rchk.east -| rrx);
+  \draw[arr] (use.east -| rrx) -- (use.east);
+
+  % damage found -> staff report -> converge to update
+  \draw[arr] (insp) -- node[lbl, above]{พบ} (dmg);
+  \draw[arr] (dmg.south) |- (upd.east);
+
+  % dashed link to the approval note
+  \draw[flEdge!60, dash pattern=on 2pt off 1.5pt] (auth.east) -- (authnote.west);
+
+\end{tikzpicture}

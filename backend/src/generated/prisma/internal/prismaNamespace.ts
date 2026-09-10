@@ -425,7 +425,8 @@ export const ModelName = {
   AppealInfo: 'AppealInfo',
   Images: 'Images',
   Notification: 'Notification',
-  RepairLog: 'RepairLog'
+  RepairLog: 'RepairLog',
+  CronRunLog: 'CronRunLog'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -441,7 +442,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "accountInfo" | "sessionInfo" | "auditLog" | "roleInfo" | "facultyInfo" | "branchInfo" | "managementGroup" | "authority" | "authorityRole" | "clubInfo" | "itemInfo" | "itemIndiv" | "roomInfo" | "resourceInfo" | "conditionLog" | "borrowRule" | "borrowConstraints" | "penaltyRule" | "eligibility" | "creditTier" | "reservations" | "usageLog" | "extensionRequest" | "inspection" | "penaltyInfo" | "appealInfo" | "images" | "notification" | "repairLog"
+    modelProps: "accountInfo" | "sessionInfo" | "auditLog" | "roleInfo" | "facultyInfo" | "branchInfo" | "managementGroup" | "authority" | "authorityRole" | "clubInfo" | "itemInfo" | "itemIndiv" | "roomInfo" | "resourceInfo" | "conditionLog" | "borrowRule" | "borrowConstraints" | "penaltyRule" | "eligibility" | "creditTier" | "reservations" | "usageLog" | "extensionRequest" | "inspection" | "penaltyInfo" | "appealInfo" | "images" | "notification" | "repairLog" | "cronRunLog"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -2591,6 +2592,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    CronRunLog: {
+      payload: Prisma.$CronRunLogPayload<ExtArgs>
+      fields: Prisma.CronRunLogFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.CronRunLogFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CronRunLogPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.CronRunLogFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CronRunLogPayload>
+        }
+        findFirst: {
+          args: Prisma.CronRunLogFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CronRunLogPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.CronRunLogFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CronRunLogPayload>
+        }
+        findMany: {
+          args: Prisma.CronRunLogFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CronRunLogPayload>[]
+        }
+        create: {
+          args: Prisma.CronRunLogCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CronRunLogPayload>
+        }
+        createMany: {
+          args: Prisma.CronRunLogCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.CronRunLogCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CronRunLogPayload>[]
+        }
+        delete: {
+          args: Prisma.CronRunLogDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CronRunLogPayload>
+        }
+        update: {
+          args: Prisma.CronRunLogUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CronRunLogPayload>
+        }
+        deleteMany: {
+          args: Prisma.CronRunLogDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.CronRunLogUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.CronRunLogUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CronRunLogPayload>[]
+        }
+        upsert: {
+          args: Prisma.CronRunLogUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CronRunLogPayload>
+        }
+        aggregate: {
+          args: Prisma.CronRunLogAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateCronRunLog>
+        }
+        groupBy: {
+          args: Prisma.CronRunLogGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CronRunLogGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.CronRunLogCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CronRunLogCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -2857,6 +2932,8 @@ export const ReservationsScalarFieldEnum = {
   EndTime: 'EndTime',
   ApproveStatus: 'ApproveStatus',
   ApprovedBy: 'ApprovedBy',
+  AutoApproved: 'AutoApproved',
+  ApprovedAt: 'ApprovedAt',
   ReservationExpiration: 'ReservationExpiration',
   ActionTime: 'ActionTime',
   ResolvedAt: 'ResolvedAt'
@@ -2892,7 +2969,8 @@ export const ExtensionRequestScalarFieldEnum = {
   ApproveStatus: 'ApproveStatus',
   ApprovedBy: 'ApprovedBy',
   RequestedAt: 'RequestedAt',
-  ResolvedAt: 'ResolvedAt'
+  ResolvedAt: 'ResolvedAt',
+  Reason: 'Reason'
 } as const
 
 export type ExtensionRequestScalarFieldEnum = (typeof ExtensionRequestScalarFieldEnum)[keyof typeof ExtensionRequestScalarFieldEnum]
@@ -2961,9 +3039,12 @@ export const NotificationScalarFieldEnum = {
   NotificationKey: 'NotificationKey',
   AccountKey: 'AccountKey',
   NotificationType: 'NotificationType',
-  NotificationContent: 'NotificationContent',
-  SentTime: 'SentTime',
-  IsRead: 'IsRead'
+  Title: 'Title',
+  Body: 'Body',
+  LinkTo: 'LinkTo',
+  CreatedAt: 'CreatedAt',
+  ReadAt: 'ReadAt',
+  DedupeKey: 'DedupeKey'
 } as const
 
 export type NotificationScalarFieldEnum = (typeof NotificationScalarFieldEnum)[keyof typeof NotificationScalarFieldEnum]
@@ -2981,6 +3062,19 @@ export const RepairLogScalarFieldEnum = {
 } as const
 
 export type RepairLogScalarFieldEnum = (typeof RepairLogScalarFieldEnum)[keyof typeof RepairLogScalarFieldEnum]
+
+
+export const CronRunLogScalarFieldEnum = {
+  RunKey: 'RunKey',
+  Job: 'Job',
+  StartedAt: 'StartedAt',
+  FinishedAt: 'FinishedAt',
+  Result: 'Result',
+  Affected: 'Affected',
+  Detail: 'Detail'
+} as const
+
+export type CronRunLogScalarFieldEnum = (typeof CronRunLogScalarFieldEnum)[keyof typeof CronRunLogScalarFieldEnum]
 
 
 export const SortOrder = {
@@ -3381,6 +3475,7 @@ export type GlobalOmitConfig = {
   images?: Prisma.ImagesOmit
   notification?: Prisma.NotificationOmit
   repairLog?: Prisma.RepairLogOmit
+  cronRunLog?: Prisma.CronRunLogOmit
 }
 
 /* Types for Logging */

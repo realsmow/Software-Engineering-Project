@@ -194,6 +194,55 @@ async function main() {
     borrower.AccountKey,
   );
 
+  // --- the borrower's Authority, and the Eligibility rules that match it -----
+  //
+  // Without both halves `loan.create` refuses every request with NOT_ELIGIBLE:
+  // an Eligibility row says "members of group G holding role R may borrow this
+  // unit", and it only means anything if somebody actually holds (G, R).
+  //
+  // Eligibility hangs off ResourceKey, one row per unit - there is no
+  // type-level rule (docs/staff.md ส่วนที่ 3 ข้อ 6), so anything registered
+  // after this runs needs `item.setEligibility` or another `npm run db:seed`.
+  await prisma.authority.upsert({
+    where: {
+      AccountKey_ManageGroupKey: {
+        AccountKey: borrower.AccountKey,
+        ManageGroupKey: manageGroupKey,
+      },
+    },
+    update: {},
+    create: {
+      AccountKey: borrower.AccountKey,
+      ManageGroupKey: manageGroupKey,
+      AuthorityRoleKey: borrowerAuthorityRole.AuthorityRoleKey,
+    },
+  });
+
+  const resources = await prisma.resourceInfo.findMany({
+    where: { ManagedBy: manageGroupKey },
+    select: { ResourceKey: true },
+  });
+  for (const resource of resources) {
+    await prisma.eligibility.upsert({
+      where: {
+        GroupKey_ResourceKey_RoleKey: {
+          GroupKey: manageGroupKey,
+          ResourceKey: resource.ResourceKey,
+          RoleKey: borrowerAuthorityRole.AuthorityRoleKey,
+        },
+      },
+      update: {},
+      create: {
+        GroupKey: manageGroupKey,
+        ResourceKey: resource.ResourceKey,
+        RoleKey: borrowerAuthorityRole.AuthorityRoleKey,
+      },
+    });
+  }
+  console.log(
+    `Eligibility : ${resources.length} ชิ้น → role "Student" ในกลุ่ม ${manageGroupKey}`,
+  );
+
   console.log('\nseed เสร็จแล้ว — ใช้ค่าเหล่านี้กับ smoke test:');
   console.log(`  STAFF_ACCOUNT_KEY=${staff.AccountKey}`);
   console.log(`  MANAGE_GROUP_KEY=${manageGroupKey}`);

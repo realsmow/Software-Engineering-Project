@@ -10,6 +10,7 @@ import { AppService } from './app.service';
 import { PrismaModule } from './prisma.module';
 import { ConfigModule } from '@nestjs/config';
 import { TRPCModule } from 'nestjs-trpc';
+import { ScheduleModule } from '@nestjs/schedule';
 
 import { AppContext } from './trpc/context';
 import { formatTrpcError } from './trpc/error-formatter';
@@ -24,6 +25,7 @@ import {
 import { CreditTierService } from './common/credit/credit-tier.service';
 import { AuditService } from './common/audit/audit.service';
 import { StaffScopeService } from './common/authority/staff-scope.service';
+import { EligibilityService } from './common/authority/eligibility.service';
 import { PenaltyService } from './common/penalty/penalty.service';
 
 import { AuthRouter } from './auth/auth.router';
@@ -43,10 +45,22 @@ import { CreditService } from './credit/credit.service';
 
 import { LoanRouter } from './loan/loan.router';
 import { LoanService } from './loan/loan.service';
+import { LoanRequestService } from './loan/loan.request.service';
+import { LoanExtensionService } from './loan/loan.extension.service';
+
+import { ApprovalRouter } from './approval/approval.router';
+import { ApprovalService } from './approval/approval.service';
 
 import { InspectionRouter } from './inspection/inspection.router';
 import { InspectionService } from './inspection/inspection.service';
 
+import { NotificationRouter } from './notification/notification.router';
+import { NotificationService } from './notification/notification.service';
+
+import { CronService } from './cron/cron.service';
+import { CronScheduler } from './cron/cron.scheduler';
+import { ReportRouter } from './report/report.router';
+import { ReportService } from './report/report.service';
 import { ImageRouter } from './image/image.router';
 import { ImageService } from './image/image.service';
 import { ImageController } from './image/image.controller';
@@ -60,6 +74,9 @@ import {
     ConfigModule.forRoot({
       isGlobal: true,
     }),
+    // Registered only outside tests. A suite that boots the module must not
+    // acquire timers that write to its database behind the assertions.
+    ...(process.env.NODE_ENV === 'test' ? [] : [ScheduleModule.forRoot()]),
     PrismaModule,
     TRPCModule.forRoot({
       // Builds ctx.user per request - see trpc/context.ts
@@ -94,6 +111,7 @@ import {
     CreditTierService,
     AuditService,
     StaffScopeService,
+    EligibilityService,
     PenaltyService,
     ImageService,
 
@@ -118,9 +136,26 @@ import {
 
     LoanRouter,
     LoanService,
+    LoanRequestService,
+    LoanExtensionService,
+
+    ApprovalRouter,
+    ApprovalService,
 
     InspectionRouter,
     InspectionService,
+
+    NotificationRouter,
+    NotificationService,
+
+    CronService,
+    // The clock itself is skipped in tests, along with ScheduleModule above;
+    // CronService stays available so runCronJob and the specs can drive the
+    // jobs directly.
+    ...(process.env.NODE_ENV === 'test' ? [] : [CronScheduler]),
+
+    ReportRouter,
+    ReportService,
 
     ImageRouter,
   ],

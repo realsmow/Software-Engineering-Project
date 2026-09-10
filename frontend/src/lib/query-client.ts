@@ -39,6 +39,7 @@ export const queryKeys = {
     ["equipment-types", filters] as const,
   equipmentType: (id: string) => ["equipment-types", id] as const,
   equipmentAvailability: (id: string) => ["equipment-types", id, "availability"] as const,
+  equipmentUnits: (id: string) => ["equipment-types", id, "units"] as const,
 
   // Facility (T3)
   facilities: ["facilities"] as const,
@@ -57,8 +58,12 @@ export const queryKeys = {
   myCredit: ["credit", "me"] as const,
   myDemerits: ["demerits", "me"] as const,
 
-  // Notifications
+  // Notifications. The bell keeps two: a page of rows for the dropdown, and
+  // the badge count on its own. Both sit under the same prefix so one
+  // invalidate(["notifications"]) refreshes the pair.
   notifications: ["notifications"] as const,
+  notificationList: ["notifications", "list"] as const,
+  notificationUnread: ["notifications", "unread"] as const,
 
   // Staff
   staffQueue: ["staff", "queue"] as const,

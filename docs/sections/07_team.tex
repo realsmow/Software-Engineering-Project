@@ -1,0 +1,42 @@
+% Fresh page so this colour-headed longtable (with \multirow) does not split
+% across a page boundary — see the note in 06_plan.tex.
+\section{ทีมงานและหน้าที่ความรับผิดชอบ (Team \& Responsibilities)}
+
+\renewcommand{\arraystretch}{1.25}
+\begin{longtable}{@{} L{3.2cm} L{3.0cm} c L{5.0cm} @{}}
+\toprule
+\hrow \thead{กลุ่มงาน} & \thead{ตำแหน่ง} & \thead{จำนวน} & \thead{หน้าที่และผลผลิตหลัก} \\
+\midrule
+\endfirsthead
+\toprule
+\hrow \thead{กลุ่มงาน} & \thead{ตำแหน่ง} & \thead{จำนวน} & \thead{หน้าที่และผลผลิตหลัก} \\
+\midrule
+\endhead
+
+% --- Group 1 ---
+\multirow{2}{=}{1. Project Management \& System Analyst}
+  & Project Manager (PM) & 1 & บริหารโครงการโดยรวม แบ่งงาน ติดตาม ควบคุมคุณภาพ \\
+  & System Analyst       & 1 & ออกแบบระบบภาพรวม เชื่อมต่อเข้ากับการใช้งานจริง \\
+\cmidrule(l){2-4}
+
+% --- Group 2 ---
+\multirow{3}{=}{2. Front-End Development}
+  & Front-End Leader    & 1 & ดูแลและพัฒนาส่วนติดต่อผู้ใช้ ประสานกับ UI/UX \\
+  & UI/UX Designer      & 1 & ออกแบบส่วนติดต่อผู้ใช้ให้ใช้งานง่าย \\
+  & Front-End Developer & 3 & พัฒนาหน้าจอและเชื่อมต่อ API ตามที่ออกแบบ \\
+\cmidrule(l){2-4}
+
+% --- Group 3 ---
+\multirow{3}{=}{3. Back-End Development}
+  & Back-End Team Leader & 1 & ดูแลและพัฒนาส่วนหลังบ้านและ API Server \\
+  & API designer         & 1 & ออกแบบโครงสร้าง API \\
+  & Back-End Developer   & 2 & พัฒนา API จัดการข้อมูลและตรรกะ \\
+\cmidrule(l){2-4}
+
+% --- Group 4 ---
+\multirow{3}{=}{4. Quality Assurance}
+  & QA Team Leader   & 1 & วางแผนและออกแบบการทดสอบ กำหนดเกณฑ์ผ่าน \\
+  & Quality Control  & 1 & ทดสอบระบบและตรวจสอบคุณภาพก่อนส่งมอบ \\
+  & Security Tester  & 1 & ทดสอบความปลอดภัยระบบ \\
+\bottomrule
+\end{longtable}

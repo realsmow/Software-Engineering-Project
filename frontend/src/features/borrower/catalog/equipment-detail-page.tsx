@@ -1,7 +1,7 @@
-import { useMemo, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
-import { addDays } from "date-fns";
+import { addDays, differenceInCalendarDays, parseISO } from "date-fns";
 import { ArrowLeft, Package, Plus } from "lucide-react";
 import { TierDot, tierNoteKey } from "@/components/shared/tier-badge";
 import { Badge, type BadgeTone } from "@/components/ui/badge";
@@ -20,14 +20,13 @@ import { cn } from "@/lib/utils";
 import {
   EQUIPMENT_CATEGORIES,
   catalogDeptName,
-  unitsOf,
-  type CatalogItem,
   type StockStatus,
   type UnitState,
 } from "../mock-data";
 import { fmtDateTime, fmtDayMonth } from "../format";
 import { remainingUnits, useRequestDraft } from "../request/request-draft.store";
-import { useEquipmentType } from "./use-equipment-types";
+import { useEquipmentAvailability, useEquipmentType } from "./use-equipment-types";
+import { useMyCredit } from "@/features/account/use-my-credit";
 
 const STOCK_TONE: Record<StockStatus, BadgeTone> = {
   ok: "ok",
@@ -53,6 +52,9 @@ export default function EquipmentDetailPage() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const { data: item, isLoading } = useEquipmentType(id);
+  // Refreshed on a timer while this page is open; the detail itself is not.
+  const { data: live } = useEquipmentAvailability(id);
+  const { data: credit } = useMyCredit();
   const creditBand = useAuthStore((s) => s.user?.creditBand) ?? "D0";
 
   // Draft lines live in the shared store, so the count survives navigation
@@ -61,8 +63,7 @@ export default function EquipmentDetailPage() {
   const addItem = useRequestDraft((s) => s.addItem);
   const qty = draftLines.find((l) => l.itemId === id)?.qty ?? 0;
 
-  const units = useMemo(() => (item ? unitsOf(item) : []), [item]);
-  const days = useMemo(() => (item ? buildDays(item) : []), [item]);
+  const units = item?.units ?? [];
 
   const backToCatalog = () => navigate(ROUTES.CATALOG);
 
@@ -88,10 +89,19 @@ export default function EquipmentDetailPage() {
     );
   }
 
+  // Live stock when the poll has answered, the cached detail until then.
+  const availableUnits = live?.availableUnits ?? item.availableUnits;
+  const totalUnits = live?.totalUnits ?? item.totalUnits;
+  const nextAvailableAt = live ? (live.nextAvailableAt ?? undefined) : item.nextAvailableAt;
+
   // Out of stock, or the draft already holds every free unit.
-  const atCap = remainingUnits(draftLines, item) === 0;
+  const atCap = remainingUnits(draftLines, { ...item, availableUnits }) === 0;
+  const days = buildDays(availableUnits, nextAvailableAt);
   const category = EQUIPMENT_CATEGORIES.find((c) => c.id === item.categoryId);
-  const loanDays = CREDIT_BANDS.find((b) => b.band === creditBand)?.loanDays ?? 14;
+  // The real window comes from BorrowConstraints via `credit.me`; CREDIT_BANDS
+  // is the static fallback for the moment before that query resolves.
+  const loanDays =
+    credit?.maxBorrowDays ?? CREDIT_BANDS.find((b) => b.band === creditBand)?.loanDays ?? 14;
   // T3 is booked by slot; everything else is capped by the borrower's credit band.
   const period =
     item.tier === "T3"
@@ -141,7 +151,7 @@ export default function EquipmentDetailPage() {
         <Panel className="lg:hidden">
           <div className="divide-y divide-border px-3.5 py-1">
             <SpecRow label={t("borrower.catalog.colAvail")} mono>
-              {item.availableUnits} / {item.totalUnits}
+              {availableUnits} / {totalUnits}
             </SpecRow>
             <SpecRow label={t("borrower.detail.deptL")}>
               {catalogDeptName(item.departmentId)}
@@ -153,7 +163,7 @@ export default function EquipmentDetailPage() {
               type="button"
               className="h-11 w-full"
               disabled={atCap}
-              onClick={() => addItem(item.id)}
+              onClick={() => addItem(item.id, availableUnits)}
             >
               <Plus size={15} strokeWidth={2.2} />
               {t("borrower.detail.addToRequest")}
@@ -179,7 +189,7 @@ export default function EquipmentDetailPage() {
               {catalogDeptName(item.departmentId)}
             </SpecRow>
             <SpecRow label={t("borrower.detail.totalL")} mono>
-              {item.totalUnits}
+              {totalUnits}
             </SpecRow>
             <SpecRow label={t("borrower.detail.periodL")}>{period}</SpecRow>
             <SpecRow label={t("borrower.detail.weightL")} mono>
@@ -251,13 +261,13 @@ export default function EquipmentDetailPage() {
             <div className="flex items-baseline justify-between gap-2.5">
               <span className="text-t3">{t("borrower.catalog.colAvail")}</span>
               <b className="font-mono text-[15px] tabular-nums text-foreground">
-                {item.availableUnits} / {item.totalUnits}
+                {availableUnits} / {totalUnits}
               </b>
             </div>
             <div className="flex items-baseline justify-between gap-2.5">
               <span className="text-t3">{t("borrower.catalog.colNext")}</span>
               <b className="font-mono text-xs text-foreground">
-                {fmtDateTime(item.nextAvailableAt)}
+                {fmtDateTime(nextAvailableAt)}
               </b>
             </div>
           </div>
@@ -266,7 +276,7 @@ export default function EquipmentDetailPage() {
               type="button"
               className="h-10"
               disabled={atCap}
-              onClick={() => addItem(item.id)}
+              onClick={() => addItem(item.id, availableUnits)}
             >
               <Plus size={15} strokeWidth={2.2} />
               {t("borrower.detail.addToRequest")}
@@ -335,18 +345,32 @@ const UNIT_CONDITION_KEY: Record<UnitState, string> = {
 };
 
 /**
- * Placeholder booking calendar: a fully checked-out item is blocked for the
- * next nine days, anything else carries a light recurring load. Deterministic
- * so the strip doesn't flicker between renders.
+ * The next fortnight, marked from what the server actually knows.
  *
- * TODO: replace with GET /equipment-types/:id/availability.
+ * This used to invent a booking pattern (`i % 5 === 2 || i % 7 === 6`), which
+ * drew a convincing calendar out of nothing. There is no per-day availability
+ * on the server and no table to build one from, so the strip now says only
+ * what `item.getAvailability` can support:
+ *
+ *   - stock free today  -> nothing is blocked;
+ *   - none free, and a unit is due back on date X -> blocked until X;
+ *   - none free and nothing due back -> blocked throughout.
+ *
+ * Coarse, but every square is true. A day-by-day view needs the reservation
+ * calendar, which is not built yet.
  */
-function buildDays(item: CatalogItem): { date: Date; busy: boolean }[] {
+function buildDays(
+  availableUnits: number,
+  nextAvailableAt: string | undefined,
+): { date: Date; busy: boolean }[] {
   const today = new Date();
-  return Array.from({ length: AVAIL_DAYS }, (_, i) => ({
-    date: addDays(today, i),
-    busy: item.availableUnits === 0 ? i < 9 : i % 5 === 2 || i % 7 === 6,
-  }));
+  const freeFrom =
+    availableUnits > 0 ? today : nextAvailableAt ? parseISO(nextAvailableAt) : null;
+
+  return Array.from({ length: AVAIL_DAYS }, (_, i) => {
+    const date = addDays(today, i);
+    return { date, busy: freeFrom === null || differenceInCalendarDays(date, freeFrom) < 0 };
+  });
 }
 
 function cap(s: string): string {

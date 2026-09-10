@@ -533,7 +533,13 @@ body.dark .login-left {
   right: 4px;
   top: 50%;
   transform: translateY(-50%);
-  padding: 4px 8px;
+  /* 8px block padding takes the hit area from 26px to a thumb-sized 36px.
+     The label itself does not move: the field is taller than the button, so
+     the extra padding grows into space that was already there. */
+  padding: 8px;
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
   background: transparent;
   border: 0;
   color: var(--s-t3);
@@ -566,14 +572,30 @@ body.dark .login-left {
   color: var(--s-t2);
   cursor: pointer;
   user-select: none;
+  /* The whole label is the target, not just the 13px box. Vertical padding
+     brings it to 36px; the negative inline margin keeps the text visually
+     flush with the rest of the form. */
+  min-height: 36px;
+  padding: 0 6px;
+  margin-inline-start: -6px;
 }
 .field-checkbox input {
   margin: 0;
+  /* A 13px checkbox is a miss on a phone even inside a padded label. */
+  width: 16px;
+  height: 16px;
 }
 .field-link {
   font-size: 12px;
   color: var(--accent);
   font-weight: 500;
+  /* Matches the checkbox opposite it on the same row, so both are tappable
+     and the row stays balanced. */
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 0 6px;
+  margin-inline-end: -6px;
 }
 .submit-btn {
   width: 100%;

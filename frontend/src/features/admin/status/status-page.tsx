@@ -1,274 +1,232 @@
+import { cap } from "@/lib/utils";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Activity, Database, Gauge, RefreshCw, TriangleAlert } from "lucide-react";
-import {
-  Area,
-  AreaChart,
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Legend,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
 import { PageHeader } from "@/components/shared/page-header";
-import { Button } from "@/components/ui/button";
-import { MetricCard } from "@/components/ui/metric-card";
-import { DataTable, type Column } from "@/components/ui/data-table";
 import { Badge, type BadgeTone } from "@/components/ui/badge";
-import { ChartCard } from "@/components/ui/chart-card";
-import { Segmented } from "@/components/ui/segmented";
-import { ChartTooltip, CHART_COLOR, axisProps, gridProps } from "@/components/ui/chart-kit";
-import {
-  CRON_HISTORY,
-  CRON_JOBS,
-  HEALTH_TIMELINE,
-  SERVICES,
-  type CronJob,
-  type CronResult,
-  type ServiceHealth,
-  type ServiceState,
-} from "../mock-data";
-import { fmtDateTime, fmtDayShort, fmtHour } from "../format";
+import { fmtDateTime } from "@/features/borrower/format";
+import { Button } from "@/components/ui/button";
+import { getErrorMessage } from "@/lib/error-messages";
+import { useCronJobs, useRunCronJob, useSystemStatus } from "./use-system-status";
+import type { CronJob, ServiceState } from "./status.types";
 
-const SERVICE_TONE: Record<ServiceState, BadgeTone> = {
+const STATE_TONE: Record<ServiceState, BadgeTone> = {
   operational: "ok",
   degraded: "warn",
   down: "alert",
 };
-const CRON_TONE: Record<CronResult, BadgeTone> = {
-  success: "ok",
-  failed: "alert",
-  pending: "neutral",
-};
 
-type HealthMetric = "latency" | "error";
-
+/**
+ * System status.
+ *
+ * Shows only what the server actually measures. The previous version listed
+ * seven services - S3, MongoDB, SMTP, a web client - with invented latencies
+ * and one permanently "degraded", none of which anything checks:
+ * `admin.getSystemStatus` probes the database and nothing else. A fabricated
+ * outage on a status page is worse than a blank one, because somebody goes and
+ * investigates it.
+ *
+ * The two charts went the same way. They drew a health timeline and a cron
+ * history from arrays of made-up points; the server keeps no history to draw.
+ */
 export default function AdminStatusPage() {
   const { t } = useTranslation();
-  const [healthMetric, setHealthMetric] = useState<HealthMetric>("latency");
-
-  const serviceColumns: Column<ServiceHealth>[] = [
-    {
-      key: "service",
-      header: t("admin.status.colService"),
-      render: (s) => (
-        <span className="u-cell">
-          <span className={`hl-dot ${s.state === "operational" ? "ok" : s.state === "degraded" ? "warn" : "alert"}`} />
-          <span className="t-strong">{s.name}</span>
-        </span>
-      ),
-    },
-    {
-      key: "state",
-      header: t("admin.status.colState"),
-      render: (s) => <Badge tone={SERVICE_TONE[s.state]}>{t(`admin.status.${s.state}`)}</Badge>,
-    },
-    {
-      key: "latency",
-      header: t("admin.status.colLatency"),
-      align: "right",
-      render: (s) => <span className="mono">{s.latencyMs} ms</span>,
-    },
-    {
-      key: "checked",
-      header: t("admin.status.colChecked"),
-      align: "right",
-      render: (s) => <span className="mono t-muted">{fmtDateTime(s.checkedAt)}</span>,
-    },
-  ];
-
-  const cronColumns: Column<CronJob>[] = [
-    {
-      key: "job",
-      header: t("admin.status.colJob"),
-      render: (c) => <span className="t-strong">{c.name}</span>,
-    },
-    {
-      key: "schedule",
-      header: t("admin.status.colSchedule"),
-      render: (c) => <span className="mono t-muted">{c.schedule}</span>,
-    },
-    {
-      key: "lastRun",
-      header: t("admin.status.colLastRun"),
-      render: (c) => <span className="mono t-muted">{fmtDateTime(c.lastRunAt)}</span>,
-    },
-    {
-      key: "result",
-      header: t("admin.status.colResult"),
-      render: (c) => (
-        <Badge tone={CRON_TONE[c.result]} dot>
-          {t(`admin.status.${c.result}`)}
-        </Badge>
-      ),
-    },
-    {
-      key: "actions",
-      header: "",
-      align: "right",
-      render: () => (
-        <Button type="button" variant="outline" size="sm">
-          {t("admin.status.runNow")}
-        </Button>
-      ),
-    },
-  ];
+  const { data: status, isLoading, isError } = useSystemStatus();
+  const { data: jobs } = useCronJobs();
 
   return (
     <div>
       <PageHeader
-        title={t("admin.status.title")}
+        title={t("nav.systemStatus")}
+        subtitle={t("admin.status.subtitle")}
         actions={
-          <Button type="button" variant="outline">
-            <RefreshCw size={15} strokeWidth={2} />
-            {t("common.refresh")}
-          </Button>
+          status ? (
+            <span className="font-mono text-xs text-t4">
+              {t("admin.status.checkedAt", { when: fmtDateTime(status.checkedAt) })}
+            </span>
+          ) : null
         }
       />
 
-      <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <MetricCard
-          icon={<Gauge size={16} strokeWidth={2} />}
-          label={t("admin.status.uptime")}
-          value="99.97"
-          unit="%"
-          delta={t("admin.status.last30d")}
-          trend="flat"
-        />
-        <MetricCard
-          icon={<Activity size={16} strokeWidth={2} />}
-          label={t("admin.status.apiLatency")}
-          value="42"
-          unit="ms"
-          delta="p95 · 118 ms"
-          trend="flat"
-        />
-        <MetricCard
-          icon={<Database size={16} strokeWidth={2} />}
-          label={t("admin.status.dbConnections")}
-          value="24"
-          unit="/ 100"
-        />
-        <MetricCard
-          icon={<TriangleAlert size={16} strokeWidth={2} />}
-          label={t("admin.status.errorRate")}
-          value="0.12"
-          unit="%"
-          delta={t("admin.status.last24h")}
-          trend="flat"
-        />
-      </div>
-
-      <div className="mb-4">
-        <ChartCard
-          title={t("admin.charts.systemHealth")}
-          height={260}
-          actions={
-            <Segmented<HealthMetric>
-              value={healthMetric}
-              onChange={setHealthMetric}
-              options={[
-                { value: "latency", label: t("admin.charts.latency") },
-                { value: "error", label: t("admin.charts.errorRate") },
-              ]}
-            />
-          }
-        >
-          <AreaChart data={HEALTH_TIMELINE} margin={{ top: 6, right: 8, left: -8, bottom: 0 }}>
-            <defs>
-              <linearGradient id="healthFill" x1="0" y1="0" x2="0" y2="1">
-                <stop
-                  offset="0%"
-                  stopColor={healthMetric === "latency" ? CHART_COLOR.info : CHART_COLOR.alert}
-                  stopOpacity={0.28}
-                />
-                <stop
-                  offset="100%"
-                  stopColor={healthMetric === "latency" ? CHART_COLOR.info : CHART_COLOR.alert}
-                  stopOpacity={0.02}
-                />
-              </linearGradient>
-            </defs>
-            <CartesianGrid {...gridProps} />
-            <XAxis dataKey="hour" tickFormatter={(h) => fmtHour(h as number)} {...axisProps} />
-            <YAxis {...axisProps} width={44} />
-            <Tooltip
-              content={
-                <ChartTooltip
-                  unit={healthMetric === "latency" ? " ms" : " %"}
-                  labelFormatter={(l) => fmtHour(l as number)}
-                />
+      {isLoading ? (
+        <div className="py-16 text-center text-sm text-t3">{t("common.loading")}</div>
+      ) : isError || !status ? (
+        <div className="rounded-lg border border-[var(--s-warn-b)] bg-[var(--s-warn-bg)] px-4 py-3 text-[13px] text-[var(--s-warn-t)]">
+          {t("admin.status.unreachable")}
+        </div>
+      ) : (
+        <>
+          <div className="mb-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+            <Tile
+              label={t("admin.status.database")}
+              value={t(`admin.status.state${cap(status.database.state)}`)}
+              tone={STATE_TONE[status.database.state]}
+              detail={
+                status.database.latencyMs === null
+                  ? t("admin.status.noLatency")
+                  : t("admin.status.latency", { ms: status.database.latencyMs })
               }
             />
-            <Area
-              type="monotone"
-              dataKey={healthMetric === "latency" ? "latencyMs" : "errorRate"}
-              name={healthMetric === "latency" ? t("admin.charts.latency") : t("admin.charts.errorRate")}
-              stroke={healthMetric === "latency" ? CHART_COLOR.info : CHART_COLOR.alert}
-              strokeWidth={2}
-              fill="url(#healthFill)"
-              dot={false}
-              activeDot={{ r: 4 }}
+            <Tile
+              label={t("admin.status.uptime")}
+              value={t(uptimeLabel(status.uptimeSeconds).key, {
+                count: uptimeLabel(status.uptimeSeconds).count,
+              })}
             />
-          </AreaChart>
-        </ChartCard>
-      </div>
+            <Tile label={t("admin.status.nodeVersion")} value={status.nodeVersion} />
+            <Tile
+              label={t("admin.status.activeLoans")}
+              value={String(status.counts.activeLoans)}
+              detail={t("admin.status.pending", { count: status.counts.pendingReservations })}
+            />
+          </div>
 
-      <div className="mb-4">
-        <DataTable
-          title={t("admin.status.services")}
-          columns={serviceColumns}
-          rows={SERVICES}
-          rowKey={(s) => s.id}
-          pageSize={20}
-        />
-      </div>
+          <div className="mb-4 grid gap-2 sm:grid-cols-2">
+            <Tile label={t("admin.status.accounts")} value={String(status.counts.accounts)} />
+            <Tile label={t("admin.status.resources")} value={String(status.counts.resources)} />
+          </div>
 
-      <div className="mb-4">
-        <DataTable
-          title={t("admin.status.cronJobs")}
-          headerActions={
-            <Badge tone="neutral" mono>
-              {CRON_JOBS.filter((c) => c.result === "success").length}/{CRON_JOBS.length}
-            </Badge>
-          }
-          columns={cronColumns}
-          rows={CRON_JOBS}
-          rowKey={(c) => c.id}
-          pageSize={20}
-        />
-      </div>
-
-      <ChartCard title={t("admin.charts.cronRuns")} height={240}>
-        <BarChart data={CRON_HISTORY} margin={{ top: 6, right: 8, left: -8, bottom: 0 }}>
-          <CartesianGrid {...gridProps} />
-          <XAxis dataKey="date" tickFormatter={(d) => fmtDayShort(d as string)} {...axisProps} />
-          <YAxis {...axisProps} width={44} allowDecimals={false} />
-          <Tooltip
-            content={<ChartTooltip labelFormatter={(l) => fmtDayShort(l as string)} />}
-            cursor={{ fill: "var(--s-inset)", opacity: 0.5 }}
-          />
-          <Legend />
-          <Bar
-            dataKey="success"
-            stackId="cron"
-            name={t("admin.charts.success")}
-            fill={CHART_COLOR.ok}
-            radius={[0, 0, 0, 0]}
-            maxBarSize={34}
-          />
-          <Bar
-            dataKey="failed"
-            stackId="cron"
-            name={t("admin.charts.failed")}
-            fill={CHART_COLOR.alert}
-            radius={[3, 3, 0, 0]}
-            maxBarSize={34}
-          />
-        </BarChart>
-      </ChartCard>
+          <section className="overflow-hidden rounded-lg border border-border bg-card">
+            <div className="border-b border-border px-3.5 py-2.5 text-sm font-semibold text-foreground">
+              {t("admin.status.scheduledJobs")}
+            </div>
+            {!jobs ? (
+              <div className="px-3.5 py-6 text-center text-sm text-t3">{t("common.loading")}</div>
+            ) : (
+              <table className="w-full border-collapse text-[13px]">
+                <thead>
+                  <tr className="bg-secondary">
+                    <Th>{t("admin.status.colJob")}</Th>
+                    <Th>{t("admin.status.colSchedule")}</Th>
+                    <Th>{t("admin.status.colLastRun")}</Th>
+                    <Th>{t("common.status")}</Th>
+                    <Th />
+                  </tr>
+                </thead>
+                <tbody>
+                  {jobs.map((job) => (
+                    <JobRow key={job.id} job={job} />
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </section>
+        </>
+      )}
     </div>
   );
+}
+
+function JobRow({ job }: { job: CronJob }) {
+  const { t } = useTranslation();
+  const run = useRunCronJob();
+  const [error, setError] = useState<string | null>(null);
+
+  async function trigger() {
+    setError(null);
+    try {
+      await run.mutateAsync(job.id);
+    } catch (e) {
+      // The three unbuilt jobs land here, saying which table they need.
+      setError(getErrorMessage(e));
+    }
+  }
+
+  return (
+    <tr className="border-b border-border last:border-b-0">
+      <td className="px-3.5 py-2">
+        <div className="text-foreground">{job.name}</div>
+        <div className="mt-0.5 font-mono text-[11px] text-t4">{job.id}</div>
+      </td>
+      <td className="whitespace-nowrap px-3.5 py-2 font-mono text-xs text-t2">{job.schedule}</td>
+      <td className="whitespace-nowrap px-3.5 py-2 font-mono text-xs text-t2">
+        {job.lastRunAt ? fmtDateTime(job.lastRunAt) : "-"}
+        {job.durationMs !== null ? (
+          <span className="ml-1.5 text-t4">{t("admin.status.ms", { ms: job.durationMs })}</span>
+        ) : null}
+      </td>
+      <td className="px-3.5 py-2">
+        {/* "Not built yet" and "built but never fired" both show a null
+            lastRunAt. Without this they read identically, and somebody goes
+            looking for a scheduler fault that is really a missing feature. */}
+        {!job.implemented ? (
+          <Badge tone="neutral">{t("admin.status.notImplemented")}</Badge>
+        ) : job.lastResult === null ? (
+          <Badge tone="neutral">{t("admin.status.neverRun")}</Badge>
+        ) : (
+          <Badge tone={job.lastResult === "success" ? "ok" : job.lastResult === "failed" ? "alert" : "warn"}>
+            {t(`admin.status.result${cap(job.lastResult)}`)}
+          </Badge>
+        )}
+      </td>
+      <td className="px-3.5 py-2 text-right">
+        {/* Offered on every job, including the three that cannot run: pressing
+            one is how an administrator finds out what it is waiting on, and
+            hiding the button would leave that unanswerable. */}
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          disabled={run.isPending}
+          onClick={() => void trigger()}
+        >
+          {run.isPending ? t("common.loading") : t("admin.status.runNow")}
+        </Button>
+        {error ? (
+          <div className="mt-1 max-w-[16rem] text-[11px] leading-relaxed text-[var(--s-warn-t)]">
+            {error}
+          </div>
+        ) : null}
+      </td>
+    </tr>
+  );
+}
+
+function Tile({
+  label,
+  value,
+  detail,
+  tone,
+}: {
+  label: string;
+  value: string;
+  detail?: string;
+  tone?: BadgeTone;
+}) {
+  return (
+    <div className="rounded-lg border border-border bg-card px-3 py-2.5">
+      <div className="text-xs text-t3">{label}</div>
+      <div className="mt-1 flex items-baseline gap-2">
+        {tone ? (
+          <Badge tone={tone}>{value}</Badge>
+        ) : (
+          <span className="font-mono text-lg font-semibold tabular-nums text-foreground">
+            {value}
+          </span>
+        )}
+      </div>
+      {detail ? <div className="mt-0.5 text-[11px] text-t4">{detail}</div> : null}
+    </div>
+  );
+}
+
+function Th({ children }: { children?: React.ReactNode }) {
+  return (
+    <th className="border-b border-border px-3.5 py-2 text-left text-[11px] font-semibold uppercase tracking-[0.03em] text-t3">
+      {children}
+    </th>
+  );
+}
+
+/**
+ * Uptime as the largest sensible unit; seconds are noise after a few minutes.
+ *
+ * Returns the key and count rather than a string so the caller does the
+ * translating - passing `t` around means re-declaring its type, and a
+ * hand-written signature for it does not match i18next's.
+ */
+function uptimeLabel(seconds: number): { key: string; count: number } {
+  if (seconds < 60) return { key: "admin.status.uptimeSeconds", count: seconds };
+  if (seconds < 3600) return { key: "admin.status.uptimeMinutes", count: Math.floor(seconds / 60) };
+  if (seconds < 86400) return { key: "admin.status.uptimeHours", count: Math.floor(seconds / 3600) };
+  return { key: "admin.status.uptimeDays", count: Math.floor(seconds / 86400) };
 }

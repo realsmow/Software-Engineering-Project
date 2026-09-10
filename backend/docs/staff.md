@@ -124,8 +124,31 @@ npm run smoke:staff    # เดินครบ flow แล้วพิมพ์�
 | `loan.confirmPickup` | mutation | `{ usageKey, note? }` | `loanOutput` | staff | ✅ `Prepared` → `Lended` |
 | `loan.recordReturn` | mutation | `{ usageKey, note? }` | `{ loan, latePenalty }` | staff | ✅ `Lended` → `Returned` + **หักเครดิตคืนช้าทันที** |
 | `loan.markLost` | mutation | `{ usageKey, reason?, reportedByBorrower }` | `loanOutput` | staff | ✅ ต้องเกิน 14 วัน (`NOT_YET_LOST`) เว้นแต่ผู้ยืมมารายงานเอง |
-| `loan.extensionReviews` | query | `paginationInput` | `paginated(extensionReviewRow)` | staff | ✅ กรอง T2 ออก (เป็นคิวของอาจารย์) |
-| `loan.decideExtension` | mutation | `{ extensionKey, decision, condition, note? }` | `loanOutput` | staff | ✅ §5.9 "ต่ออายุแบบตรวจสภาพ" · error: `ALREADY_DECIDED`, `EXTENSION_NEEDS_SUPERVISOR` |
+| `loan.extensionReviews` | query | `paginationInput + { route?, tier? }` | `paginated(extensionReviewRow)` | staff | ✅ เห็นเฉพาะแถวที่ตัวเองตัดสินได้ (`canDecide`) · T2 ไปคิวอาจารย์ |
+| `loan.decideExtension` | mutation | `{ extensionKey, decision, condition, note? }` | `extensionOutput` | staff | ✅ §5.9 "ต่ออายุแบบตรวจสภาพ" · เลื่อน `DueTime` **และ** `Reservations.EndTime` · error: `ALREADY_DECIDED`, `EXTENSION_NEEDS_SUPERVISOR`, `CANNOT_APPROVE_OWN_REQUEST`, `WINDOW_NOT_AVAILABLE` |
+
+### `loan` — ฝั่งผู้ยืม: ขอต่ออายุการยืม (§5.4)
+
+ทั้งสี่ตัวใช้ `AuthMiddleware` และตรวจ "เป็นของผู้เรียกเอง" เอง ไม่ใช่ขอบเขตภาควิชา
+— usageKey ของคนอื่นตอบ `LOAN_NOT_FOUND` เหมือนกับ key ที่ไม่มีอยู่จริง
+
+| procedure | ชนิด | input | output | role | สถานะ |
+|---|---|---|---|---|---|
+| `loan.extensionOptions` | query | `{ usageKey }` | `extensionOptionsOutput` | ผู้ใช้ที่ล็อกอิน | ✅ ซ้อมของ `requestExtension` ไม่เขียนอะไร · เหตุผลที่ต่อไม่ได้กลับมาเป็น `blockedBy` ไม่ใช่ error |
+| `loan.requestExtension` | mutation | `{ usageKey, requestedDueAt, reason? }` | `extensionOutput` | ผู้ใช้ที่ล็อกอิน | ✅ ต่อออนไลน์อนุมัติทันทีในคำสั่งเดียว · error: `WRONG_LOAN_STATE`, `EXTENSION_ALREADY_PENDING`, `CREDIT_TOO_LOW`, `EXTENSION_QUOTA_EXCEEDED`, `INVALID_EXTENSION_WINDOW`, `WINDOW_NOT_AVAILABLE`, `NOT_ELIGIBLE` |
+| `loan.myExtensions` | query | `paginationInput + { status? }` | `paginated(extensionOutput)` | ผู้ใช้ที่ล็อกอิน | ✅ ของตัวเอง ใหม่สุดขึ้นก่อน |
+| `loan.cancelExtension` | mutation | `{ extensionKey }` | `extensionOutput` | ผู้ใช้ที่ล็อกอิน | ✅ เฉพาะตอนยัง `Pending` · ถอนแล้วไม่กินโควตา |
+
+เส้นทางของคำขอต่ออายุอยู่ที่ `common/approval/extension-policy.ts` (มี unit test แยก):
+T2 → อาจารย์ · เครดิต D2/D3 → เจ้าหน้าที่ (§5.7 ตัดสิทธิ์ต่อออนไลน์) ·
+T1 สลับครั้งเว้นครั้ง (§5.4) · T0 → อัตโนมัติ · T3 และ tier ที่อ่านไม่ออก → เจ้าหน้าที่
+
+### `approval` — ฝั่งอาจารย์: อนุมัติคำขอต่ออายุ
+
+| procedure | ชนิด | input | output | role | สถานะ |
+|---|---|---|---|---|---|
+| `approval.extensionQueue` | query | `paginationInput + { route?, tier? }` | `paginated(extensionReviewRow)` | staff (กรองด้วย `canDecide`) | ✅ default `route = supervisor` |
+| `approval.decideExtension` | mutation | `{ extensionKey, decision, condition, note? }` | `extensionOutput` | staff (กรองด้วย `canDecide`) | ✅ **ตัวเดียวกับ `loan.decideExtension`** ชี้ไปที่ `LoanExtensionService.decide` ไม่ได้เขียนซ้ำ |
 
 ### `inspection` — โต๊ะตรวจสภาพ (§5.7, §5.9)
 
@@ -179,7 +202,10 @@ mutation รับได้ทั้งสองแบบและ normalize ใ
 | `WRONG_LOAN_STATE` | `CONFLICT` | `{ usageKey, actual, expected }` |
 | `UNIT_DOES_NOT_MATCH_REQUEST` | `BAD_REQUEST` | `{ resourceKey, expectedItemKey, actualItemKey }` |
 | `EXTENSION_NOT_FOUND` | `NOT_FOUND` | `{ extensionKey }` |
-| `EXTENSION_NEEDS_SUPERVISOR` | `FORBIDDEN` | `{ extensionKey, tier }` |
+| `EXTENSION_NEEDS_SUPERVISOR` | `FORBIDDEN` | `{ extensionKey, route, tier }` |
+| `EXTENSION_ALREADY_PENDING` | `CONFLICT` | `{ usageKey, extensionKey }` |
+| `EXTENSION_QUOTA_EXCEEDED` | `FORBIDDEN` | `{ usageKey, used, allowed, creditTier }` |
+| `INVALID_EXTENSION_WINDOW` | `BAD_REQUEST` | `{ reason, ... }` — `NOT_LATER_THAN_CURRENT_DUE` / `IN_THE_PAST` / `EXCEEDS_MAX_BORROW_DAYS` |
 | `UNIT_SWAP_NOT_ALLOWED` | `FORBIDDEN` | `{ usageKey, tier }` |
 | `NOT_YET_LOST` | `CONFLICT` | `{ usageKey, overdueDays, requiredDays }` |
 | `INSPECTION_NOT_FOUND` | `NOT_FOUND` | `{ inspectionKey }` |
@@ -211,7 +237,7 @@ compile ไม่ผ่าน (ตามข้อตกลง ว-06)
 | 6 | `Eligibility.ItemKey` (หรือย้ายไปผูกกับ `ItemInfo`) | กฎสิทธิ์ระดับประเภท | `Eligibility` ผูกกับ `ResourceKey` รายชิ้น · `item.setEligibility` จึงเขียนกระจายลงทุกชิ้น และ **ชิ้นที่ลงทะเบียนทีหลังจะไม่ได้กฎอัตโนมัติ** ต้องกด `setEligibility` ซ้ำ |
 | 7 | ค่า `Lost` ใน enum `CurrentStatus` | สถานะของหายที่อ่านออกตรง ๆ | `loan.markLost` เข้ารหัสเป็น `CurrentStatus = Inspected` + `CheckInCondition = Missing` + `ResourceStatus = Missing` — ใครจะกลับรายการตอนของโผล่มา ต้องหาคู่นี้ |
 | 8 | ตาราง `DecommissionRequest` + `AuditLog` | `inspection.proposeDecommission` และการอนุมัติปลดระวางของอาจารย์ | โยน `NOT_IMPLEMENTED` พร้อมรายชื่อคอลัมน์ใน `cause.missing` |
-| 9 | คอลัมน์บน `ExtensionRequest` ที่บอกว่า "ต่อแบบออนไลน์" หรือ "ต่อแบบตรวจสภาพ" | บังคับกติกาสลับของ T1 (§5.4) | มีแค่ `ExtendNo` · ระบบยังตรวจไม่ได้ว่าครั้งนี้ถึงคิวต้องเอาของมาให้ตรวจหรือยัง — ตอนนี้ขึ้นกับว่าใครสร้าง `ExtensionRequest` ขึ้นมา |
+| 9 | ~~คอลัมน์บน `ExtensionRequest` ที่บอกว่า "ต่อแบบออนไลน์" หรือ "ต่อแบบตรวจสภาพ"~~ **ปิดแล้ว** | บังคับกติกาสลับของ T1 (§5.4) | ไม่ต้องมีคอลัมน์: `loan.requestExtension` เป็นทางเดียวที่สร้างแถวนี้ และคำนวณเส้นทางจาก `ExtendNo` (= จำนวนครั้งที่อนุมัติแล้ว + 1) ผ่าน `extension-policy.ts` · คำตอบจึงเหมือนเดิมทุกครั้งที่ถาม โดยไม่มีคอลัมน์ให้หลุดจากความจริง · เพิ่ม `ExtensionRequest.Reason` แทน เพราะโต๊ะตัดสินต้องเห็นเหตุผลที่ผู้ยืมเขียน |
 | 10 | `Reservations.ApprovedBy` ยังไม่มี relation | ตรวจว่า "ผู้อนุมัติต้องไม่ใช่ผู้ขอ" (§5.9) | เป็น `Int?` ลอย ๆ ใครจะทำโดเมน supervisor ต้องเพิ่ม relation ก่อน |
 | 11 | คอลัมน์ available-from | §5.5 "วันที่พร้อมให้ยืม" | ยังไม่มีที่เก็บ · เป็นงาน cron ข้อ 5 ที่ยังไม่มีคนทำ |
 
@@ -319,7 +345,8 @@ src/
 │   └── item.router.ts                      17 procedure
 ├── loan/                                   ★ ใหม่ทั้งโฟลเดอร์ (ครึ่งของ staff)
 │   ├── loan.schema.ts
-│   ├── loan.service.ts                     คิวงาน จัดเตรียม ส่งมอบ รับคืน ของหาย ต่ออายุ
+│   ├── loan.service.ts                     คิวงาน จัดเตรียม ส่งมอบ รับคืน ของหาย
+│   ├── loan.extension.service.ts           ต่ออายุ: ผู้ยืมขอ + เจ้าหน้าที่/อาจารย์อนุมัติ
 │   └── loan.router.ts                      10 procedure
 ├── inspection/                             ★ ใหม่ทั้งโฟลเดอร์
 │   ├── inspection.schema.ts

@@ -54,6 +54,11 @@ export const BUSINESS_ERROR_CODES = {
   SERIAL_ALREADY_IN_USE: 'CONFLICT',
   /** T1/T2 units must carry a serial; T0 must not pretend to have one */
   SERIAL_REQUIRED_FOR_TIER: 'BAD_REQUEST',
+  /**
+   * T2 binds one real serial to one unit, so a batch cannot be registered from
+   * a single serial — the suffixed serials would match nothing on the shelf
+   */
+  BULK_NOT_ALLOWED_FOR_TIER: 'BAD_REQUEST',
   /** BorrowRule has no row named T0..T3 — seed data problem, not user error */
   TIER_NOT_CONFIGURED: 'PRECONDITION_FAILED',
   /** Cannot take a unit out of the pool while somebody is holding it */
@@ -71,6 +76,20 @@ export const BUSINESS_ERROR_CODES = {
   EXTENSION_NOT_FOUND: 'NOT_FOUND',
   /** T2 extensions are the supervisor's call, not the counter's (§5.4) */
   EXTENSION_NEEDS_SUPERVISOR: 'FORBIDDEN',
+  /**
+   * One extension request may be open per loan.
+   *
+   * Not ALREADY_DECIDED: nothing has been decided, and the borrower's next move
+   * is to wait or to withdraw the one they have. `cause.extensionKey` names it
+   * so the screen can offer exactly that.
+   */
+  EXTENSION_ALREADY_PENDING: 'CONFLICT',
+  /**
+   * The requested new due date is not one this loan can be moved to — earlier
+   * than the current one, in the past, or past what the borrower's band allows.
+   * `cause.reason` says which.
+   */
+  INVALID_EXTENSION_WINDOW: 'BAD_REQUEST',
   /** Only T1 units may be swapped at pickup (§5.4) */
   UNIT_SWAP_NOT_ALLOWED: 'FORBIDDEN',
   /** Not yet two weeks overdue, so it is still late rather than lost (§5.7) */
@@ -91,10 +110,66 @@ export const BUSINESS_ERROR_CODES = {
   /** Catch-all for a write refused before it happened — see cause */
   UPLOAD_REJECTED: 'BAD_REQUEST',
 
+  // --- notifications (the topbar bell) ---
+  /**
+   * No such notification for this account.
+   *
+   * Deliberately the same answer for "does not exist" and "belongs to someone
+   * else", so the bell cannot be used to enumerate notification ids.
+   */
+  NOTIFICATION_NOT_FOUND: 'NOT_FOUND',
+
   // --- inspection (staff domain) ---
   INSPECTION_NOT_FOUND: 'NOT_FOUND',
   /** This return has already been graded; corrections go through an appeal */
   ALREADY_INSPECTED: 'CONFLICT',
+  /**
+   * §5.9 / FR-RTN-04: for T2, whoever grades the return may not be the person
+   * who prepared the unit ("Staff A ≠ Staff B"). Sibling of
+   * CANNOT_APPROVE_OWN_REQUEST — the same "no marking your own work" rule, one
+   * desk over.
+   */
+  CANNOT_INSPECT_OWN_PREPARATION: 'FORBIDDEN',
+
+  // --- borrowing requests (borrower slice) ---
+  /**
+   * Credit too low to open a request at all.
+   *
+   * CONTRACT.md says no such rule exists - credit only shortens the borrow
+   * window. The team decided otherwise: `CREDIT_BAND_POLICY` in
+   * frontend/src/constants/index.ts marks D3 `blocked: true` ("D3 cannot open
+   * a new request until outstanding items are cleared"), and the screens are
+   * built around it. This code is the backend half of that decision; the
+   * contract table has been corrected to match.
+   */
+  /**
+   * An administrative borrowing ban is in force (admin.setUserBan).
+   *
+   * Separate from CREDIT_TOO_LOW: that one is the credit system doing its job,
+   * this one is a person having decided. `cause` carries the reason the staff
+   * member gave and when it lifts, so the borrower is told both.
+   */
+  BORROWING_SUSPENDED: 'FORBIDDEN',
+  CREDIT_TOO_LOW: 'FORBIDDEN',
+  /** The requested window is backwards, in the past, or longer than the tier allows */
+  INVALID_BORROW_WINDOW: 'BAD_REQUEST',
+  /** Somebody else's request already holds this unit for part of the window */
+  WINDOW_NOT_AVAILABLE: 'CONFLICT',
+  /**
+   * Serializable kept refusing the write because other people are booking the
+   * same unit right now. `cause.attempts` says how many times it was retried.
+   */
+  TRANSACTION_CONFLICT: 'CONFLICT',
+  /** Cancelling something that is already approved-and-prepared, or already over */
+  CANNOT_CANCEL: 'CONFLICT',
+
+  // --- approval queue (supervisor slice) ---
+  /** A request cleared by the system needs no decision */
+  ALREADY_AUTO_APPROVED: 'CONFLICT',
+  /** §5.9: the approver may not be the person who asked */
+  CANNOT_APPROVE_OWN_REQUEST: 'FORBIDDEN',
+  /** This request is above the caller's pay grade - T2 belongs to a supervisor */
+  APPROVAL_NEEDS_SUPERVISOR: 'FORBIDDEN',
 
   // --- borrowing (declared here so other domains reuse the same table) ---
   NOT_ELIGIBLE: 'FORBIDDEN',
@@ -127,6 +202,19 @@ export type BusinessErrorCode = keyof typeof BUSINESS_ERROR_CODES;
 export class BusinessError extends TRPCError {
   readonly businessCode: BusinessErrorCode;
 
+  /**
+   * The context object this error was constructed with, unwrapped.
+   *
+   * `cause` is NOT this object: TRPCError's constructor wraps any non-Error
+   * cause in an internal `UnknownCauseError`, so `error.cause as
+   * Record<string, unknown>` is a cast that compiles and then lies. It shipped
+   * an `UnknownCauseError` into `loan.create`'s `rejected[].detail`, where the
+   * output schema rejected it and turned one refused basket line into a 500.
+   *
+   * Reading `details` is therefore the only supported way to get it back.
+   */
+  readonly details: Record<string, unknown> | null;
+
   constructor(code: BusinessErrorCode, details?: Record<string, unknown>) {
     super({
       code: BUSINESS_ERROR_CODES[code],
@@ -134,6 +222,7 @@ export class BusinessError extends TRPCError {
       cause: details,
     });
     this.businessCode = code;
+    this.details = details ?? null;
   }
 }
 

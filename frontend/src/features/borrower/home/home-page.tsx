@@ -10,7 +10,15 @@ import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 import { BUSINESS, ROUTES } from "@/constants";
 import { useAuthStore } from "@/features/auth/auth.store";
-import { MOCK_NOTIFICATIONS, NOTIFICATION_META } from "@/features/notifications/mock-notifications";
+import { NOTIFICATION_META } from "@/features/notifications/notification.meta";
+import {
+  useMarkRead,
+  useNotifications,
+  useUnreadCount,
+} from "@/features/notifications/use-notifications";
+// Explicitly the domain type: a bare `Notification` resolves to the DOM's own
+// Notification interface, which type-checks and then fails at every field.
+import type { Notification } from "@/types/domain";
 import { cn } from "@/lib/utils";
 import { STATUS_TAB, type MyRequest, type MyRequestStatus } from "../mock-data";
 import { extensionState } from "../loans/extension-rules";
@@ -361,7 +369,20 @@ function NoticesPanel() {
   const navigate = useNavigate();
   const [open, setOpen] = useState(true);
 
-  const unread = MOCK_NOTIFICATIONS.filter((n) => !n.read).length;
+  // Shares both queries with the topbar bell: same query keys, so opening this
+  // page costs nothing extra and marking something read here updates the bell
+  // in the same render.
+  const unreadQuery = useUnreadCount();
+  const listQuery = useNotifications(open);
+  const markRead = useMarkRead();
+
+  const unread = unreadQuery.data?.unread ?? 0;
+  const notices = listQuery.data?.items ?? [];
+
+  function openNotice(n: Notification) {
+    if (!n.readAt) markRead.mutate(n.id);
+    if (n.linkTo) navigate(n.linkTo);
+  }
 
   return (
     <section className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
@@ -393,22 +414,29 @@ function NoticesPanel() {
 
       {open ? (
         <div className="flex flex-col">
-          {MOCK_NOTIFICATIONS.length === 0 ? (
+          {listQuery.isPending ? (
+            <p className="px-3.5 py-8 text-center text-[13px] text-t3">
+              {t("notifications.loading")}
+            </p>
+          ) : listQuery.isError ? (
+            <p className="px-3.5 py-8 text-center text-[13px] text-t3">
+              {t("notifications.error")}
+            </p>
+          ) : notices.length === 0 ? (
             <p className="px-3.5 py-8 text-center text-[13px] text-t3">
               {t("borrower.home.noNotices")}
             </p>
           ) : (
-            MOCK_NOTIFICATIONS.map((n) => {
-              const meta = NOTIFICATION_META[n.kind];
+            notices.map((n) => {
+              const meta = NOTIFICATION_META[n.type];
               return (
                 <button
                   key={n.id}
                   type="button"
-                  disabled={!n.route}
-                  onClick={() => n.route && navigate(n.route)}
+                  onClick={() => openNotice(n)}
                   className={cn(
                     "flex gap-2.5 border-b border-border px-3.5 py-2.5 text-left last:border-b-0",
-                    n.route ? "hover:bg-secondary" : "cursor-default",
+                    "hover:bg-secondary",
                   )}
                 >
                   <span className="mt-0.5 shrink-0 text-t3">
@@ -419,13 +447,13 @@ function NoticesPanel() {
                       <span className="text-[13px] font-medium leading-snug text-foreground">
                         {n.title}
                       </span>
-                      {!n.read ? (
+                      {!n.readAt ? (
                         <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-accent" aria-hidden />
                       ) : null}
                     </span>
-                    <span className="mt-0.5 block text-xs leading-relaxed text-t3">{n.detail}</span>
+                    <span className="mt-0.5 block text-xs leading-relaxed text-t3">{n.body}</span>
                     <span className="mt-1 block font-mono text-[11px] text-t4">
-                      {fmtDay(n.at)}
+                      {fmtDay(n.createdAt)}
                     </span>
                   </span>
                 </button>

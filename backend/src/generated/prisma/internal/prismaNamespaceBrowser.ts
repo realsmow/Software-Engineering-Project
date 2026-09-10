@@ -79,7 +79,8 @@ export const ModelName = {
   AppealInfo: 'AppealInfo',
   Images: 'Images',
   Notification: 'Notification',
-  RepairLog: 'RepairLog'
+  RepairLog: 'RepairLog',
+  CronRunLog: 'CronRunLog'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -325,6 +326,8 @@ export const ReservationsScalarFieldEnum = {
   EndTime: 'EndTime',
   ApproveStatus: 'ApproveStatus',
   ApprovedBy: 'ApprovedBy',
+  AutoApproved: 'AutoApproved',
+  ApprovedAt: 'ApprovedAt',
   ReservationExpiration: 'ReservationExpiration',
   ActionTime: 'ActionTime',
   ResolvedAt: 'ResolvedAt'
@@ -360,7 +363,8 @@ export const ExtensionRequestScalarFieldEnum = {
   ApproveStatus: 'ApproveStatus',
   ApprovedBy: 'ApprovedBy',
   RequestedAt: 'RequestedAt',
-  ResolvedAt: 'ResolvedAt'
+  ResolvedAt: 'ResolvedAt',
+  Reason: 'Reason'
 } as const
 
 export type ExtensionRequestScalarFieldEnum = (typeof ExtensionRequestScalarFieldEnum)[keyof typeof ExtensionRequestScalarFieldEnum]
@@ -429,9 +433,12 @@ export const NotificationScalarFieldEnum = {
   NotificationKey: 'NotificationKey',
   AccountKey: 'AccountKey',
   NotificationType: 'NotificationType',
-  NotificationContent: 'NotificationContent',
-  SentTime: 'SentTime',
-  IsRead: 'IsRead'
+  Title: 'Title',
+  Body: 'Body',
+  LinkTo: 'LinkTo',
+  CreatedAt: 'CreatedAt',
+  ReadAt: 'ReadAt',
+  DedupeKey: 'DedupeKey'
 } as const
 
 export type NotificationScalarFieldEnum = (typeof NotificationScalarFieldEnum)[keyof typeof NotificationScalarFieldEnum]
@@ -449,6 +456,19 @@ export const RepairLogScalarFieldEnum = {
 } as const
 
 export type RepairLogScalarFieldEnum = (typeof RepairLogScalarFieldEnum)[keyof typeof RepairLogScalarFieldEnum]
+
+
+export const CronRunLogScalarFieldEnum = {
+  RunKey: 'RunKey',
+  Job: 'Job',
+  StartedAt: 'StartedAt',
+  FinishedAt: 'FinishedAt',
+  Result: 'Result',
+  Affected: 'Affected',
+  Detail: 'Detail'
+} as const
+
+export type CronRunLogScalarFieldEnum = (typeof CronRunLogScalarFieldEnum)[keyof typeof CronRunLogScalarFieldEnum]
 
 
 export const SortOrder = {

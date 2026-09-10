@@ -19,18 +19,47 @@
 import { initTRPC } from "@trpc/server";
 import { z } from "zod";
 import type { ServerUser } from "@/features/auth/user.adapter";
-import type { ServerItem } from "@/features/borrower/catalog/item.adapter";
+import type {
+  ServerItem,
+  ServerItemDetail,
+  ServerItemUnit,
+} from "@/features/borrower/catalog/item.adapter";
+import type { ServerCredit } from "@/features/account/credit.adapter";
+import type { ServerRequest } from "@/features/borrower/loans/request.adapter";
+import type { LendingSettings } from "@/features/staff/settings/settings.types";
+import type {
+  InspectionQueueRow,
+  InspectionResult,
+  InspectionSubject,
+} from "@/features/staff/inspection/inspection.types";
+import type {
+  ManagedItemDetail,
+  ManagedItemType,
+  ManagedUnit,
+} from "@/features/staff/inventory/inventory.types";
+import type {
+  LoanOutput,
+  Paginated as ServerPaginated,
+  RecordReturnOutput,
+  StaffQueueCounts,
+  StaffQueueRow,
+} from "@/features/staff/queue/queue.types";
+import type {
+  ApprovalCounts,
+  ApprovalQueueRow,
+  DecideApprovalOutput,
+} from "@/features/supervisor/approvals/approval.types";
 import type { ServerAdminUser } from "@/features/admin/users/admin-user.adapter";
 import type { ServerAuditEvent } from "@/features/admin/audit/audit-event.adapter";
+import type { CronJob, SystemStatus } from "@/features/admin/status/status.types";
+import type { ReportSummary } from "@/features/admin/reports/report.types";
+import type { TechnicalConfig } from "@/features/admin/config/config.types";
 import type {
   EquipmentType,
   EquipmentUnit,
-  LoanRequest,
-  Loan,
   Appeal,
   DamageReport,
   Notification,
-  CreditBand,
 } from "@/types/domain";
 
 const t = initTRPC.create();
@@ -66,6 +95,8 @@ export const appRouter = t.router({
       .input(z.object({ username: z.string(), password: z.string() }))
       .mutation(() => as<{ user: ServerUser }>()),
     logout: proc.mutation(() => as<{ ok: true }>()),
+    /** Revokes every session the account holds, not just this browser's. */
+    logoutAll: proc.mutation(() => as<{ ok: true }>()),
   }),
 
   // ── item ──────────────────────────────────────────────
@@ -83,12 +114,50 @@ export const appRouter = t.router({
         }),
       )
       .query(() => as<Paginated<ServerItem>>()),
-    getById: proc.input(numericIdInput).query(() => as<ServerItem>()),
-    getAvailability: proc
-      .input(numericIdInput)
-      .query(() => as<{ availableUnits: number; nextAvailableAt?: string }>()),
+    // getById answers `itemDetail` - the summary plus every unit, so the detail
+    // page needs one round trip, not two.
+    getById: proc.input(numericIdInput).query(() => as<ServerItemDetail>()),
+    // Polled every 15s by the detail page. Deliberately small: three numbers,
+    // no units and no history.
+    getAvailability: proc.input(numericIdInput).query(() =>
+      as<{
+        availableUnits: number;
+        totalUnits: number;
+        nextAvailableAt: string | null;
+      }>(),
+    ),
     listCategories: proc.query(() => as<{ id: string; name: string }[]>()),
-    listUnits: proc.input(numericIdInput).query(() => as<EquipmentUnit[]>()),
+
+    // Staff half. Scoped per row on the server to the caller's Authority, so
+    // none of these take a department.
+    listManaged: proc
+      .input(pageInput.extend({ tier: z.string().optional(), availableOnly: z.boolean().optional() }))
+      .query(() => as<ServerPaginated<ManagedItemType>>()),
+    getManagedById: proc
+      .input(z.object({ itemKey: z.number() }))
+      .query(() => as<ManagedItemDetail>()),
+    listManagedUnits: proc
+      .input(z.object({ itemKey: z.number() }).passthrough())
+      .query(() => as<ManagedUnit[]>()),
+    setUnitLendable: proc
+      .input(
+        z.object({
+          resourceKey: z.number(),
+          lendable: z.boolean(),
+          reason: z.string().optional(),
+        }),
+      )
+      .mutation(() => as<ManagedUnit>()),
+    setUnitCondition: proc
+      .input(
+        z.object({
+          resourceKey: z.number(),
+          condition: z.string(),
+          note: z.string().optional(),
+        }),
+      )
+      .mutation(() => as<ManagedUnit>()),
+    listUnits: proc.input(numericIdInput).query(() => as<ServerItemUnit[]>()),
     create: proc.input(z.object({}).passthrough()).mutation(() => as<EquipmentType>()),
     update: proc
       .input(z.object({ id: z.string() }).passthrough())
@@ -99,23 +168,105 @@ export const appRouter = t.router({
   }),
 
   // ── loan ──────────────────────────────────────────────
+  //
+  // Two audiences in one router, gated per procedure on the server: the
+  // borrower slice acts on the caller's own rows, the staff slice is scoped to
+  // the caller's department. The names do not collide across that line
+  // (`list` vs `staffQueue`, `getById` vs `getForStaff`).
   loan: t.router({
+    // Borrower slice, typed against backend/src/loan/loan.schema.ts.
     list: proc
-      .input(pageInput.extend({ status: z.string().optional() }))
-      .query(() => as<Paginated<Loan>>()),
-    getById: proc.input(idInput).query(() => as<Loan>()),
-    create: proc.input(z.object({}).passthrough()).mutation(() => as<LoanRequest>()),
-    cancel: proc.input(idInput).mutation(() => as<{ ok: true }>()),
+      .input(pageInput.extend({ tab: z.string().optional() }))
+      .query(() => as<ServerPaginated<ServerRequest>>()),
+    getById: proc
+      .input(z.object({ reservationKey: z.number() }))
+      .query(() => as<ServerRequest>()),
+    create: proc
+      .input(
+        z.object({
+          startTime: z.string(),
+          endTime: z.string(),
+          lines: z.array(z.object({ resourceKey: z.number(), reason: z.string().optional() })),
+        }),
+      )
+      .mutation(() =>
+        as<{
+          created: ServerRequest[];
+          rejected: { resourceKey: number; code: string; detail: Record<string, unknown> | null }[];
+        }>(),
+      ),
+    cancel: proc
+      .input(z.object({ reservationKey: z.number(), reason: z.string().optional() }))
+      .mutation(() => as<ServerRequest>()),
+
+    // Staff counter. Typed against backend/src/loan/loan.schema.ts.
+    staffQueue: proc
+      .input(
+        pageInput.extend({
+          bucket: z.enum(["toPrepare", "toHandover", "onLoan", "overdue"]),
+          tier: z.string().optional(),
+        }),
+      )
+      .query(() => as<ServerPaginated<StaffQueueRow>>()),
+    queueCounts: proc.query(() => as<StaffQueueCounts>()),
+    getForStaff: proc
+      .input(z.object({ usageKey: z.number() }))
+      .query(() => as<LoanOutput>()),
     allocate: proc
-      .input(z.object({ requestId: z.string() }).passthrough())
-      .mutation(() => as<LoanRequest>()),
+      .input(
+        z.object({
+          reservationKey: z.number(),
+          resourceKey: z.number().optional(),
+          condition: z.string().optional(),
+          note: z.string().optional(),
+        }),
+      )
+      .mutation(() => as<LoanOutput>()),
+    swapUnit: proc
+      .input(z.object({ usageKey: z.number(), resourceKey: z.number() }).passthrough())
+      .mutation(() => as<LoanOutput>()),
     confirmPickup: proc
-      .input(z.object({ loanId: z.string() }).passthrough())
-      .mutation(() => as<Loan>()),
-    return: proc
-      .input(z.object({ loanId: z.string() }).passthrough())
-      .mutation(() => as<Loan>()),
-    requestExtension: proc.input(idInput).mutation(() => as<Loan>()),
+      .input(z.object({ usageKey: z.number(), note: z.string().optional() }))
+      .mutation(() => as<LoanOutput>()),
+    recordReturn: proc
+      .input(z.object({ usageKey: z.number(), note: z.string().optional() }))
+      .mutation(() => as<RecordReturnOutput>()),
+    markLost: proc
+      .input(
+        z.object({
+          usageKey: z.number(),
+          reason: z.string().optional(),
+          reportedByBorrower: z.boolean().optional(),
+        }),
+      )
+      .mutation(() => as<LoanOutput>()),
+    extensionReviews: proc.input(pageInput).query(() => as<Paginated<unknown>>()),
+    decideExtension: proc
+      .input(z.object({ extensionKey: z.number() }).passthrough())
+      .mutation(() => as<LoanOutput>()),
+  }),
+
+  // ── approval ──────────────────────────────────────────
+  // The desk both staff and supervisors decide from, split by `route`.
+  approval: t.router({
+    queue: proc
+      .input(
+        pageInput.extend({
+          route: z.enum(["staff", "supervisor"]).optional(),
+          tier: z.string().optional(),
+        }),
+      )
+      .query(() => as<ServerPaginated<ApprovalQueueRow>>()),
+    counts: proc.query(() => as<ApprovalCounts>()),
+    decide: proc
+      .input(
+        z.object({
+          reservationKey: z.number(),
+          decision: z.enum(["approve", "reject"]),
+          reason: z.string().optional(),
+        }),
+      )
+      .mutation(() => as<DecideApprovalOutput>()),
   }),
 
   // ── reservation ───────────────────────────────────────
@@ -126,15 +277,6 @@ export const appRouter = t.router({
       .query(() => as<{ start: string; end: string; taken: boolean }[]>()),
     create: proc.input(z.object({}).passthrough()).mutation(() => as<{ id: string }>()),
     cancel: proc.input(idInput).mutation(() => as<{ ok: true }>()),
-  }),
-
-  // ── approval ──────────────────────────────────────────
-  approval: t.router({
-    list: proc.input(pageInput).query(() => as<Paginated<LoanRequest>>()),
-    getById: proc.input(idInput).query(() => as<LoanRequest>()),
-    decide: proc
-      .input(z.object({ id: z.string(), decision: z.enum(["approved", "rejected"]), note: z.string().optional() }))
-      .mutation(() => as<{ ok: true }>()),
   }),
 
   // ── appeal ────────────────────────────────────────────
@@ -151,33 +293,70 @@ export const appRouter = t.router({
 
   // ── credit ────────────────────────────────────────────
   credit: t.router({
-    me: proc.query(() => as<{ score: number; band: CreditBand; demerits: unknown[] }>()),
-    getById: proc
-      .input(idInput)
-      .query(() => as<{ score: number; band: CreditBand; demerits: unknown[] }>()),
+    // NOTE: credit returns ServerCredit; features/account/credit.adapter.ts
+    // converts. `auth.me` already carries score and tier for the shell - this
+    // adds the borrow window and the penalties actually in force.
+    me: proc.query(() => as<ServerCredit>()),
+    getById: proc.input(numericIdInput).query(() => as<ServerCredit>()),
   }),
 
   // ── inspection ────────────────────────────────────────
+  // Typed against backend/src/inspection/inspection.schema.ts. Grading is
+  // one-way; `create` is refused on a loan that already has an inspection.
   inspection: t.router({
-    list: proc.input(pageInput).query(() => as<Paginated<unknown>>()),
-    getById: proc.input(idInput).query(() => as<unknown>()),
-    create: proc.input(z.object({}).passthrough()).mutation(() => as<DamageReport>()),
-    confirm: proc.input(idInput).mutation(() => as<{ ok: true }>()),
+    list: proc
+      .input(pageInput.extend({ tier: z.string().optional() }))
+      .query(() => as<ServerPaginated<InspectionQueueRow>>()),
+    getById: proc
+      .input(z.object({ usageKey: z.number() }))
+      .query(() => as<InspectionSubject>()),
+    create: proc
+      .input(
+        z.object({
+          usageKey: z.number(),
+          level: z.enum(["B0", "B1", "B2", "B3"]),
+          note: z.string().optional(),
+          imageUrls: z.array(z.string()).optional(),
+        }),
+      )
+      .mutation(() => as<InspectionResult>()),
+    listForResource: proc
+      .input(z.object({ resourceKey: z.number(), limit: z.number().optional() }))
+      .query(() => as<unknown[]>()),
+    recordRoomCheck: proc
+      .input(z.object({ resourceKey: z.number() }).passthrough())
+      .mutation(() => as<unknown>()),
+    listRepairs: proc.input(pageInput).query(() => as<Paginated<unknown>>()),
+    startRepair: proc.input(z.object({ resourceKey: z.number() }).passthrough()).mutation(() => as<unknown>()),
+    finishRepair: proc.input(z.object({ repairKey: z.number() }).passthrough()).mutation(() => as<unknown>()),
+    proposeDecommission: proc
+      .input(z.object({ resourceKey: z.number() }).passthrough())
+      .mutation(() => as<unknown>()),
   }),
 
   // ── notification ──────────────────────────────────────
+  // Live on the server (backend/src/notification/). Unlike the placeholder
+  // domains above, `Notification` here is the real thing: the backend's
+  // `notificationOutput` mirrors types/domain.ts field for field, so no
+  // adapter is needed and this describes what actually comes back.
   notification: t.router({
-    list: proc.input(pageInput.partial()).query(() => as<Paginated<Notification>>()),
+    list: proc
+      .input(pageInput.extend({ unreadOnly: z.boolean().default(false) }))
+      .query(() => as<Paginated<Notification>>()),
+    /** Badge only, so the bell can poll without fetching a page of rows. */
+    unreadCount: proc.query(() => as<{ unread: number }>()),
     markRead: proc.input(idInput).mutation(() => as<{ ok: true }>()),
     markAllRead: proc.mutation(() => as<{ ok: true }>()),
   }),
 
   // ── report ────────────────────────────────────────────
+  // One procedure. Department totals and a most-borrowed list, counted from
+  // UsageLog/ResourceInfo/ItemInfo; scoped by Authority like every other
+  // staff-facing read.
   report: t.router({
-    dashboard: proc.query(() => as<Record<string, number>>()),
-    analytics: proc.input(z.object({ period: z.string().optional() })).query(() => as<unknown>()),
-    export: proc.input(z.object({}).passthrough()).mutation(() => as<{ url: string }>()),
-    consolidated: proc.input(z.object({ period: z.string().optional() })).query(() => as<unknown>()),
+    summary: proc
+      .input(z.object({ topLimit: z.number().optional() }))
+      .query(() => as<ReportSummary>()),
   }),
 
   // ── admin ─────────────────────────────────────────────
@@ -191,6 +370,11 @@ export const appRouter = t.router({
       .input(pageInput.extend({ role: z.string().optional(), status: z.string().optional() }))
       .query(() => as<Paginated<ServerAdminUser>>()),
     getUserById: proc.input(numericIdInput).query(() => as<ServerAdminUser>()),
+    // The same list scoped to the caller's departments. StaffMiddleware, not
+    // admin: staff must be able to find someone before they can ban them.
+    listUsersInScope: proc
+      .input(pageInput.extend({ role: z.string().optional(), status: z.string().optional() }))
+      .query(() => as<Paginated<ServerAdminUser>>()),
     createUser: proc
       .input(
         z.object({
@@ -209,6 +393,47 @@ export const appRouter = t.router({
     setUserActive: proc
       .input(z.object({ id: z.number(), active: z.boolean() }))
       .mutation(() => as<{ ok: true }>()),
+    // Lending rules. StaffMiddleware on the server, not admin: a department
+    // sets the rules for its own equipment (SRS FR-AUTH-05), so staff and
+    // teachers reach these two as well.
+    // System status. Only the database is probed server-side; there is no
+    // multi-service health check behind this.
+    // Read-only: every value is an env var or a compiled-in constant, so
+    // updateConfig still refuses rather than accepting an edit that would do
+    // nothing until a redeploy.
+    getConfig: proc.query(() => as<TechnicalConfig>()),
+    getSystemStatus: proc.query(() => as<SystemStatus>()),
+    listCronJobs: proc.query(() => as<CronJob[]>()),
+    runCronJob: proc
+      .input(z.object({ job: z.string() }))
+      .mutation(() => as<{ ok: true }>()),
+    getLendingSettings: proc.query(() => as<LendingSettings>()),
+    updateLendingSettings: proc
+      .input(
+        z.object({
+          borrowRuleKey: z.number(),
+          constraints: z
+            .array(
+              z.object({
+                creditTierKey: z.number(),
+                maxBorrowDays: z.number(),
+                maxExtendTimes: z.number(),
+                minimumAuthorityLevel: z.number().nullable().optional(),
+              }),
+            )
+            .optional(),
+          penalties: z
+            .array(
+              z.object({
+                reason: z.string(),
+                amount: z.number(),
+                lengthDays: z.number(),
+              }),
+            )
+            .optional(),
+        }),
+      )
+      .mutation(() => as<LendingSettings>()),
     setUserBan: proc
       .input(
         z.object({

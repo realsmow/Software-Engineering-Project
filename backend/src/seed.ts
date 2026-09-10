@@ -28,6 +28,10 @@ const TIERS = [
 
 const ROLES = ['Student', 'Staff', 'Supervisor', 'Admin'];
 
+/** The four BorrowRule rows the catalogue keys its tier off (§5.4). */
+const TIER_RULES = ['T0', 'T1', 'T2', 'T3'] as const;
+type TierRule = (typeof TIER_RULES)[number];
+
 const USERS = [
   {
     userId: 'test_borrower',
@@ -128,9 +132,20 @@ async function main() {
     roleKeys.set(name, row.RoleKey);
   }
 
-  const rule =
-    (await prisma.borrowRule.findFirst({ where: { RuleName: 'default' } })) ??
-    (await prisma.borrowRule.create({ data: { RuleName: 'default' } }));
+  // A tier *is* a BorrowRule row, and status.schema.ts reads the tier off
+  // RuleName. A single rule called 'default' therefore maps to no tier at all,
+  // and every item in the catalogue comes back with `tier: null` - which takes
+  // the tier dot, the tier facet and the whole T2 serial flow down with it.
+  const ruleKeys = {} as Record<(typeof TIER_RULES)[number], number>;
+  for (const name of TIER_RULES) {
+    const existing = await prisma.borrowRule.findFirst({
+      where: { RuleName: name },
+    });
+    const row =
+      existing ??
+      (await prisma.borrowRule.create({ data: { RuleName: name } }));
+    ruleKeys[name] = row.BorrowRuleKey;
+  }
 
   for (const t of TIERS) {
     const existing = await prisma.creditTier.findFirst({
@@ -142,28 +157,34 @@ async function main() {
         data: { CreditTierName: t.name, CreditMin: t.min, CreditMax: t.max },
       }));
 
-    await prisma.borrowConstraints.upsert({
-      where: {
-        BorrowRuleKey_CreditTierKey: {
-          BorrowRuleKey: rule.BorrowRuleKey,
-          CreditTierKey: tier.CreditTierKey,
+    // One row per (rule x credit tier) so any item can price a due date for
+    // any borrower. A missing pair makes `credit.me` fall over on that tier.
+    for (const ruleKey of Object.values(ruleKeys)) {
+      await prisma.borrowConstraints.upsert({
+        where: {
+          BorrowRuleKey_CreditTierKey: {
+            BorrowRuleKey: ruleKey,
+            CreditTierKey: tier.CreditTierKey,
+          },
         },
-      },
-      update: {
-        MaxBorrowDate: t.maxBorrowDays,
-        MaxExtendTime: t.maxExtendTimes,
-      },
-      create: {
-        BorrowRuleKey: rule.BorrowRuleKey,
-        CreditTierKey: tier.CreditTierKey,
-        MaxBorrowDate: t.maxBorrowDays,
-        MaxExtendTime: t.maxExtendTimes,
-      },
-    });
+        update: {
+          MaxBorrowDate: t.maxBorrowDays,
+          MaxExtendTime: t.maxExtendTimes,
+        },
+        create: {
+          BorrowRuleKey: ruleKey,
+          CreditTierKey: tier.CreditTierKey,
+          MaxBorrowDate: t.maxBorrowDays,
+          MaxExtendTime: t.maxExtendTimes,
+        },
+      });
+    }
   }
 
   const units = await seedUnits(faculty.FacultyKey);
-  await seedCatalogue(rule.BorrowRuleKey, units);
+  await seedCatalogue(ruleKeys, units);
+  await removeStrayBorrowRules(Object.values(ruleKeys));
+  await removeNamelessGroups();
 
   for (const u of USERS) {
     const hashed = await hashPassword(u.pass);
@@ -202,6 +223,205 @@ async function main() {
     }
     console.log(`  seeded ${u.userId} (${u.role})`);
   }
+
+  await seedAccess(units);
+}
+
+/**
+ * Drops BorrowRule rows that are not one of the four tiers and that nothing
+ * points at.
+ *
+ * An earlier version of this seed created a single rule called 'default'. It
+ * owns no equipment now, but it still carries BorrowConstraints, so it shows
+ * up on the lending-settings screen as a fifth rule a staff member can edit -
+ * and editing it changes nothing at all, because `tryMapTier` maps the name to
+ * no tier and no resource uses it.
+ *
+ * Only rules with zero resources are removed: a rule somebody's equipment is
+ * actually on is never this function's to delete, whatever it is called.
+ */
+async function removeStrayBorrowRules(keepKeys: number[]): Promise<void> {
+  const stray = await prisma.borrowRule.findMany({
+    where: {
+      BorrowRuleKey: { notIn: keepKeys },
+      Resources: { none: {} },
+    },
+    select: { BorrowRuleKey: true, RuleName: true },
+  });
+  if (stray.length === 0) return;
+
+  const keys = stray.map((r) => r.BorrowRuleKey);
+  // Both children first: BorrowConstraints and PenaltyRule each hold a foreign
+  // key to the rule, and Postgres refuses the parent delete while either
+  // remains.
+  await prisma.borrowConstraints.deleteMany({
+    where: { BorrowRuleKey: { in: keys } },
+  });
+  await prisma.penaltyRule.deleteMany({
+    where: { BorrowRuleKey: { in: keys } },
+  });
+  await prisma.borrowRule.deleteMany({
+    where: { BorrowRuleKey: { in: keys } },
+  });
+  console.log(
+    `  removed ${stray.length} unused borrow rule(s): ${stray.map((r) => r.RuleName).join(', ')}`,
+  );
+}
+
+/**
+ * Drops ManagementGroup rows that nothing names and nothing uses.
+ *
+ * A group holds no name of its own: the name lives in BranchInfo (a
+ * department, pinned to one faculty) or ClubInfo (a club, deliberately pinned
+ * to none, so it can span faculties). Those rows are written *after* the group
+ * and not in the same transaction - interrupt a seed between the two
+ * statements and a nameless group is left behind. One is in this database now,
+ * owning nothing and holding nobody, showing in reports as "(unnamed group)".
+ *
+ * The predicate is deliberately narrow: no name, no equipment, no members. A
+ * club is always named by a ClubInfo row, so clubs are never matched; and a
+ * group holding one unit or one Authority is somebody's, whatever it is
+ * called, and is left alone.
+ */
+async function removeNamelessGroups(): Promise<void> {
+  const stray = await prisma.managementGroup.findMany({
+    where: {
+      Branch: { is: null },
+      Club: { is: null },
+      Resources: { none: {} },
+      Authorities: { none: {} },
+    },
+    select: { ManageGroupKey: true },
+  });
+  if (stray.length === 0) return;
+
+  const keys = stray.map((g) => g.ManageGroupKey);
+  // Eligibility is the only other table pointing at a group. It cannot have
+  // rows here (the group owns no resources), but delete first so the parent
+  // is never blocked by one.
+  await prisma.eligibility.deleteMany({ where: { GroupKey: { in: keys } } });
+  await prisma.managementGroup.deleteMany({
+    where: { ManageGroupKey: { in: keys } },
+  });
+  console.log(
+    `  removed ${stray.length} nameless management group(s): ${keys.join(', ')}`,
+  );
+}
+
+/**
+ * Who may borrow what.
+ *
+ * Without this the seeded catalogue is visible and completely un-borrowable:
+ * `loan.create` refuses every line with NOT_ELIGIBLE / NO_RULES_CONFIGURED,
+ * which takes the approval desk and the staff counter down with it, because
+ * neither has anything to show until a request exists.
+ *
+ * It takes two halves that only mean something together. An Eligibility row
+ * says "members of group G holding role R may borrow this unit"; an Authority
+ * row is what actually puts somebody in (G, R). Seeding either one alone
+ * changes nothing.
+ *
+ * Eligibility hangs off ResourceKey, one row per unit - there is no
+ * type-level rule (docs/staff.md) - so a unit registered after this runs needs
+ * `item.setEligibility` or another seed.
+ */
+async function seedAccess(units: Record<UnitCode, number>): Promise<void> {
+  // Level 0: a plain student clears no authority floor above zero, which is
+  // what T0/T1 ask for. Staff get a level that can also prepare and inspect.
+  const studentRole =
+    (await prisma.authorityRole.findFirst({
+      where: { AuthorityName: 'Student' },
+    })) ??
+    (await prisma.authorityRole.create({
+      data: { AuthorityName: 'Student', AuthorityLevel: 0 },
+    }));
+  const labStaffRole =
+    (await prisma.authorityRole.findFirst({
+      where: { AuthorityName: 'Lab staff' },
+    })) ??
+    (await prisma.authorityRole.create({
+      data: { AuthorityName: 'Lab staff', AuthorityLevel: 2 },
+    }));
+
+  const groupKeys = Object.values(units);
+  const accounts = await prisma.accountInfo.findMany({
+    where: { UserID: { in: USERS.map((u) => u.userId) } },
+    select: {
+      AccountKey: true,
+      UserID: true,
+      Role: { select: { RoleName: true } },
+    },
+  });
+
+  for (const account of accounts) {
+    // Everyone is a student of both departments so cross-department borrowing
+    // is demonstrable; staff and above additionally administer them.
+    const isStaffSide = account.Role.RoleName !== 'Student';
+    for (const groupKey of groupKeys) {
+      await prisma.authority.upsert({
+        where: {
+          AccountKey_ManageGroupKey: {
+            AccountKey: account.AccountKey,
+            ManageGroupKey: groupKey,
+          },
+        },
+        update: {},
+        create: {
+          AccountKey: account.AccountKey,
+          ManageGroupKey: groupKey,
+          AuthorityRoleKey: isStaffSide
+            ? labStaffRole.AuthorityRoleKey
+            : studentRole.AuthorityRoleKey,
+        },
+      });
+    }
+  }
+
+  // Both roles, one Eligibility row each.
+  //
+  // FR-AUTH-04 says staff and supervisors can do everything a borrower can, so
+  // a staff member has to be able to borrow a multimeter like anyone else. But
+  // administering a department must not by itself grant that (see the note on
+  // EligibilityService): the check matches an exact (group, role) pair, so the
+  // permission has to be written down as its own rule rather than inferred
+  // from the Authority row that lets them manage the shelf.
+  //
+  // Authority is unique per (account, group), so one account cannot hold both
+  // roles - which is why this opens the unit to both roles instead of trying
+  // to give staff a second, student-shaped Authority row.
+  let opened = 0;
+  for (const groupKey of groupKeys) {
+    const resources = await prisma.resourceInfo.findMany({
+      where: { ManagedBy: groupKey },
+      select: { ResourceKey: true },
+    });
+    for (const resource of resources) {
+      for (const roleKey of [
+        studentRole.AuthorityRoleKey,
+        labStaffRole.AuthorityRoleKey,
+      ]) {
+        await prisma.eligibility.upsert({
+          where: {
+            GroupKey_ResourceKey_RoleKey: {
+              GroupKey: groupKey,
+              ResourceKey: resource.ResourceKey,
+              RoleKey: roleKey,
+            },
+          },
+          update: {},
+          create: {
+            GroupKey: groupKey,
+            ResourceKey: resource.ResourceKey,
+            RoleKey: roleKey,
+          },
+        });
+      }
+      opened++;
+    }
+  }
+  console.log(
+    `  access: ${accounts.length} accounts x ${groupKeys.length} groups, ${opened} units opened to students and staff`,
+  );
 }
 
 /**
@@ -228,6 +448,7 @@ const CATALOG = [
     weight: 1,
     units: 4,
     prefix: 'ME-CAL',
+    tier: 'T0' as TierRule,
     unit: 'cpe' as UnitCode,
   },
   {
@@ -236,6 +457,7 @@ const CATALOG = [
     weight: 1,
     units: 6,
     prefix: 'EE-JMP',
+    tier: 'T0' as TierRule,
     unit: 'ee' as UnitCode,
   },
   {
@@ -244,6 +466,7 @@ const CATALOG = [
     weight: 3,
     units: 2,
     prefix: 'EE-OSC',
+    tier: 'T2' as TierRule,
     unit: 'ee' as UnitCode,
   },
   {
@@ -252,6 +475,7 @@ const CATALOG = [
     weight: 3,
     units: 3,
     prefix: 'MM-CAM',
+    tier: 'T1' as TierRule,
     unit: 'cpe' as UnitCode,
   },
 ];
@@ -298,7 +522,7 @@ async function seedUnits(
 }
 
 async function seedCatalogue(
-  borrowRuleKey: number,
+  ruleKeys: Record<TierRule, number>,
   units: Record<UnitCode, number>,
 ) {
   for (const c of CATALOG) {
@@ -320,7 +544,7 @@ async function seedCatalogue(
       const resource = await prisma.resourceInfo.create({
         data: {
           ManagedBy: units[c.unit],
-          BorrowRule: borrowRuleKey,
+          BorrowRule: ruleKeys[c.tier],
           ResourceStatus: 'InStorage',
           ResourceType: 'Item',
           BufferTime: 0,
@@ -335,7 +559,29 @@ async function seedCatalogue(
         },
       });
     }
-    console.log(`  catalogue ${c.name} (${c.units} units, ${c.unit})`);
+    // Top-up alone cannot fix a type whose units were created under a
+    // different rule - re-running would leave them on the old tier forever.
+    // Converge them instead, so the seed describes the end state rather than
+    // only the gap.
+    const moved = await prisma.resourceInfo.updateMany({
+      where: {
+        ResourceKey: {
+          in: (
+            await prisma.itemIndiv.findMany({
+              where: { ItemKey: type.ItemKey },
+              select: { ResourceKey: true },
+            })
+          ).map((r) => r.ResourceKey),
+        },
+        BorrowRule: { not: ruleKeys[c.tier] },
+      },
+      data: { BorrowRule: ruleKeys[c.tier] },
+    });
+
+    console.log(
+      `  catalogue ${c.name} (${c.units} units, ${c.unit}, ${c.tier}` +
+        `${moved.count ? `, retiered ${moved.count}` : ''})`,
+    );
   }
 }
 

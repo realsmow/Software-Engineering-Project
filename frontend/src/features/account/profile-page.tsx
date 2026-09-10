@@ -5,7 +5,13 @@ import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CREDIT_BANDS } from "@/constants";
+import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { ROUTES } from "@/constants";
+import { getErrorMessage } from "@/lib/error-messages";
 import { useAuthStore } from "@/features/auth/auth.store";
+import { useLogoutAll } from "@/features/auth/use-logout-all";
+import { useMyCredit } from "./use-my-credit";
 import { validateUploadFile, uploadAcceptAttr } from "@/lib/upload-validation";
 import type { Role } from "@/types/domain";
 
@@ -33,13 +39,16 @@ const DEPT_LABEL: Record<string, string> = {
 export default function ProfilePage() {
   const { t } = useTranslation();
   const user = useAuthStore((s) => s.user);
+  // Score and band come from `auth.me` via the store; this adds the borrow
+  // window and the penalties actually in force behind them.
+  const { data: credit } = useMyCredit();
 
   if (!user) return null;
 
   const role = user.role;
   const isKuEmail = /@ku\.(ac\.)?th$/i.test(user.email);
-  const band =
-    CREDIT_BANDS.find((b) => b.band === user.creditBand) ?? CREDIT_BANDS[0];
+  const creditBand = credit?.band ?? user.creditBand;
+  const band = CREDIT_BANDS.find((b) => b.band === creditBand) ?? CREDIT_BANDS[0];
   const initials = user.name.trim().slice(0, 2);
 
   return (
@@ -113,11 +122,102 @@ export default function ProfilePage() {
                   <span className="text-sm text-muted-foreground">{band.label}</span>
                 </div>
               </div>
+              {/* The real window, from BorrowConstraints - not the static
+                  CREDIT_BANDS row, which is only a fallback. */}
+              {credit ? (
+                <div>
+                  <div className="text-xs text-muted-foreground">{t("profile.borrowWindow")}</div>
+                  <div className="mt-1 font-mono text-sm font-semibold tabular-nums text-foreground">
+                    {t("borrower.detail.days", { count: credit.maxBorrowDays })}
+                  </div>
+                </div>
+              ) : null}
             </CardContent>
+
+            {/* Only when there are any - an empty list is the normal case and
+                does not need a heading of its own. */}
+            {credit && credit.penalties.length > 0 ? (
+              <CardContent className="border-t border-border py-4">
+                <div className="mb-2 text-xs text-muted-foreground">
+                  {t("profile.activePenalties", {
+                    count: credit.penalties.length,
+                    total: credit.totalDeducted,
+                  })}
+                </div>
+                <ul className="flex flex-col gap-1.5">
+                  {credit.penalties.map((p) => (
+                    <li key={p.id} className="flex items-baseline justify-between gap-3 text-sm">
+                      <span className="min-w-0 truncate text-foreground">
+                        {p.reason ?? t("profile.penaltyNoReason")}
+                      </span>
+                      <span className="shrink-0 font-mono text-xs tabular-nums text-muted-foreground">
+                        -{p.creditDeducted} · {t("profile.penaltyUntil", {
+                          date: new Date(p.expiresAt).toLocaleDateString(),
+                        })}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            ) : null}
           </Card>
         )}
+
+        {/* Sessions. Placed last because it is the thing you come here to do
+            deliberately, not something to read in passing. */}
+        <Card className="lg:col-span-3">
+          <CardHeader>
+            <CardTitle>{t("profile.security")}</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-wrap items-center justify-between gap-4 py-5">
+            <p className="max-w-prose text-sm leading-relaxed text-muted-foreground">
+              {t("profile.signOutEverywhereHelp")}
+            </p>
+            <SignOutEverywhere />
+          </CardContent>
+        </Card>
       </div>
 
+    </div>
+  );
+}
+
+/**
+ * Ends every session the account holds.
+ *
+ * Asks first: the person doing this is on one of the devices it will sign out,
+ * so it always costs them their current session too. That is the intended
+ * behaviour - a stolen session is not revoked by leaving one alive - but it
+ * should not happen on a stray tap.
+ */
+function SignOutEverywhere() {
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+  const logoutAll = useLogoutAll();
+  const [error, setError] = useState<string | null>(null);
+
+  async function run() {
+    if (!window.confirm(t("profile.signOutEverywhereConfirm"))) return;
+    setError(null);
+    try {
+      await logoutAll.mutateAsync();
+      navigate(ROUTES.LOGIN, { replace: true });
+    } catch (e) {
+      setError(getErrorMessage(e));
+    }
+  }
+
+  return (
+    <div className="flex flex-col items-end gap-1">
+      <Button
+        type="button"
+        variant="outline"
+        disabled={logoutAll.isPending}
+        onClick={() => void run()}
+      >
+        {logoutAll.isPending ? t("common.loading") : t("profile.signOutEverywhere")}
+      </Button>
+      {error ? <p className="text-xs text-[var(--s-warn-t)]">{error}</p> : null}
     </div>
   );
 }
@@ -200,9 +300,12 @@ function AvatarUpload({ initials }: { initials: string }) {
         <button
           type="button"
           onClick={onRemove}
-          className="flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
+          // min-h-9 and horizontal padding give this a finger-sized hit area.
+          // As bare 12px text it measured 18px tall - readable, but a target
+          // most people miss on a phone.
+          className="-mx-2 inline-flex min-h-9 items-center gap-1 rounded px-2 text-xs text-muted-foreground transition-colors hover:text-foreground"
         >
-          <X size={12} />
+          <X size={13} />
           {t("profile.avatarRemove")}
         </button>
       )}

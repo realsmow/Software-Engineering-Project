@@ -13,7 +13,9 @@ import { BUSINESS, CREDIT_BANDS, CREDIT_BAND_POLICY, ROUTES } from "@/constants"
 import { useAuthStore } from "@/features/auth/auth.store";
 import { useSubmittedRequests } from "../loans/submitted-requests.store";
 import { cn } from "@/lib/utils";
-import { CATALOG_ITEMS, unitsOf, type CatalogItem, type UnitState } from "../mock-data";
+import type { CatalogItem, UnitState } from "../mock-data";
+import { useEquipmentTypes, useEquipmentUnits } from "../catalog/use-equipment-types";
+import { useMyCredit } from "@/features/account/use-my-credit";
 import {
   expandToUnits,
   isoOffset,
@@ -63,24 +65,33 @@ export default function RequestPage() {
   const clear = useRequestDraft((s) => s.clear);
   const addEquipmentRequest = useSubmittedRequests((s) => s.addEquipmentRequest);
 
-  const band = user?.creditBand ?? "D0";
-  const score = user?.creditScore ?? 100;
-  const maxDays = CREDIT_BANDS.find((b) => b.band === band)?.loanDays ?? 14;
+  // The draft stores item ids only, so the catalogue is what turns a line into
+  // something renderable. Same query as the catalogue page, so switching
+  // between them costs nothing.
+  const { data: catalog, isLoading: catalogLoading } = useEquipmentTypes();
+  const { data: credit } = useMyCredit();
+
+  const band = credit?.band ?? user?.creditBand ?? "D0";
+  const score = credit?.score ?? user?.creditScore ?? 100;
+  // BorrowConstraints.MaxBorrowDate for this borrower's tier. CREDIT_BANDS is
+  // the static fallback while the query is in flight.
+  const maxDays =
+    credit?.maxBorrowDays ?? CREDIT_BANDS.find((b) => b.band === band)?.loanDays ?? 14;
   const policy = CREDIT_BAND_POLICY[band];
 
   const rows = useMemo<CartRow[]>(
     () =>
       lines.flatMap((l) => {
-        const item = CATALOG_ITEMS.find((i) => i.id === l.itemId);
+        const item = catalog?.find((i) => i.id === l.itemId);
         return item ? [{ ...l, item }] : [];
       }),
-    [lines],
+    [lines, catalog],
   );
 
   const t2Rows = rows.filter((r) => r.item.tier === "T2");
   // The cart groups by type, but the request that goes out is per unit - each
   // one is approved, handed over, and returned on its own.
-  const units = useMemo(() => expandToUnits(lines), [lines]);
+  const units = useMemo(() => expandToUnits(rows), [rows]);
   const totalUnits = units.length;
   const hasT2 = t2Rows.length > 0;
   const hasT1 = rows.some((r) => r.item.tier === "T1");
@@ -105,6 +116,9 @@ export default function RequestPage() {
   );
 
   const short = rows.filter((r) => r.qty > r.item.availableUnits);
+  // No tier means no rule for who approves it. Blocking here is the fail-safe
+  // reading: the alternative is sending a request nothing can classify.
+  const unclassified = rows.filter((r) => r.item.tier === null);
   const checks = [
     {
       id: "eligible",
@@ -128,6 +142,16 @@ export default function RequestPage() {
             : overDays
               ? t("borrower.request.pcCreditOver", { days, max: maxDays })
               : t("borrower.request.pcCreditOk", { score, band, days, max: maxDays }),
+    },
+    {
+      id: "tier",
+      ok: unclassified.length === 0,
+      label: t("borrower.request.pcTier"),
+      detail: unclassified.length
+        ? t("borrower.request.pcTierBad", {
+            items: unclassified.map((r) => r.item.name).join(" · "),
+          })
+        : t("borrower.request.pcTierOk"),
     },
     {
       id: "stock",
@@ -177,7 +201,11 @@ export default function RequestPage() {
         <div className="flex min-w-0 flex-col gap-4">
           <StepsBar />
 
-          {rows.length === 0 ? (
+          {catalogLoading && lines.length > 0 ? (
+            <Panel>
+              <div className="px-3.5 py-9 text-center text-sm text-t3">{t("common.loading")}</div>
+            </Panel>
+          ) : rows.length === 0 ? (
             <EmptyState onBrowse={() => navigate(ROUTES.CATALOG)} />
           ) : (
             <Panel title={t("borrower.request.selectedItems")}>
@@ -384,7 +412,7 @@ function LineTable({
   onRemove,
 }: {
   rows: CartRow[];
-  onQty: (itemId: string, qty: number) => void;
+  onQty: (itemId: string, qty: number, stock: number) => void;
   onRemove: (itemId: string) => void;
 }) {
   const { t } = useTranslation();
@@ -409,7 +437,7 @@ function LineTable({
                 <td className="whitespace-nowrap px-3.5 py-2.5 text-t2">
                   <span className="inline-flex items-center gap-2">
                     <TierDot tier={r.item.tier} />
-                    {r.item.tier}
+                    {r.item.tier ?? t("borrower.catalog.tierUnknown")}
                   </span>
                 </td>
                 <td className="px-3.5 py-2.5">
@@ -433,7 +461,7 @@ function LineTable({
             <div className="mt-3 flex items-center justify-between gap-3">
               <span className="inline-flex items-center gap-2 text-xs text-t2">
                 <TierDot tier={r.item.tier} />
-                {r.item.tier}
+                {r.item.tier ?? t("borrower.catalog.tierUnknown")}
               </span>
               <QtyStepper row={r} onQty={onQty} />
             </div>
@@ -469,7 +497,7 @@ function QtyStepper({
   onQty,
 }: {
   row: CartRow;
-  onQty: (itemId: string, qty: number) => void;
+  onQty: (itemId: string, qty: number, stock: number) => void;
 }) {
   const { t } = useTranslation();
   const stepBtn =
@@ -481,7 +509,7 @@ function QtyStepper({
         className={stepBtn}
         disabled={row.qty <= 1}
         aria-label={t("borrower.request.decrease")}
-        onClick={() => onQty(row.itemId, row.qty - 1)}
+        onClick={() => onQty(row.itemId, row.qty - 1, row.item.availableUnits)}
       >
         <Minus size={13} strokeWidth={2.4} />
       </button>
@@ -492,7 +520,7 @@ function QtyStepper({
         type="button"
         className={stepBtn}
         aria-label={t("borrower.request.increase")}
-        onClick={() => onQty(row.itemId, row.qty + 1)}
+        onClick={() => onQty(row.itemId, row.qty + 1, row.item.availableUnits)}
       >
         <Plus size={13} strokeWidth={2.4} />
       </button>
@@ -509,7 +537,9 @@ function SerialPicker({
   onToggle: (itemId: string, serial: string) => void;
 }) {
   const { t } = useTranslation();
-  const units = unitsOf(row.item);
+  // Serials are not on the catalogue row - `item.list` returns types, not
+  // units - so each T2 line asks for its own.
+  const { data: units = [], isLoading } = useEquipmentUnits(row.itemId);
   const full = row.serials.length >= row.qty;
 
   return (
@@ -527,6 +557,13 @@ function SerialPicker({
       </div>
 
       <div className="max-h-[184px] overflow-y-auto rounded border border-border">
+        {isLoading ? (
+          <div className="px-3 py-4 text-center text-xs text-t3">{t("common.loading")}</div>
+        ) : units.length === 0 ? (
+          <div className="px-3 py-4 text-center text-xs text-t3">
+            {t("borrower.request.serialNone")}
+          </div>
+        ) : null}
         {units.map((u) => {
           const checked = row.serials.includes(u.serial);
           // Only free units can be issued; a full line locks the rest.

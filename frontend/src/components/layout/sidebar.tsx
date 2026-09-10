@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
 import { KULogo } from "./ku-logo";
 import { NavIcon } from "./nav-icon";
+import { useNavCounts } from "./use-nav-counts";
 import { getNavForRole } from "@/constants/navigation";
 import { ROUTES } from "@/constants";
 import { useTRPCClient } from "@/lib/trpc";
@@ -24,6 +25,8 @@ export function Sidebar() {
 
   const role = user?.role ?? "borrower";
   const { persona, sections } = getNavForRole(role);
+  // Live badge numbers, keyed by NavItem.key. See use-nav-counts.ts.
+  const navCounts = useNavCounts();
 
   /**
    * Show the signed-in account, not the role's stock persona.
@@ -72,6 +75,8 @@ export function Sidebar() {
                 ? location.pathname === item.route
                 : false;
               const label = t(item.labelKey);
+              // Live count wins; the config carries none any more.
+              const count = navCounts[item.key] ?? item.count;
               return (
                 <button
                   key={item.key}
@@ -83,7 +88,7 @@ export function Sidebar() {
                 >
                   <NavIcon name={item.icon} />
                   <span className="side-item-label">{label}</span>
-                  {item.count != null && <span className="count tnum">{item.count}</span>}
+                  {count != null && <span className="count tnum">{count}</span>}
                 </button>
               );
             })}

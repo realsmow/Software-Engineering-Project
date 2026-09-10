@@ -2,9 +2,13 @@ import { Injectable } from '@nestjs/common';
 import type { Prisma } from '../generated/prisma/client';
 import { PrismaService } from '../prisma.service';
 import { StaffScopeService } from '../common/authority/staff-scope.service';
-import { PenaltyService } from '../common/penalty/penalty.service';
+import {
+  PenaltyService,
+  type PenaltyQuote,
+} from '../common/penalty/penalty.service';
 import { BusinessError } from '../common/errors/business-error';
 import {
+  addDays,
   daysBetween,
   toIso,
   toIsoNullable,
@@ -12,11 +16,15 @@ import {
 import { toPage, toSkipTake } from '../common/schemas/pagination.schema';
 import { tryMapTier, type ResourceTier } from '../common/schemas/status.schema';
 import { UNAVAILABLE_USAGE_STATES } from '../common/usage/usage-states';
+import {
+  NotificationService,
+  resourceName,
+} from '../notification/notification.service';
 import type { TrpcUser } from '../trpc/context';
+import { toBorrowerRef } from './loan.schema';
 import type {
   AllocateLoanInput,
   ConfirmPickupInput,
-  DecideExtensionInput,
   ListStaffQueueInput,
   MarkLostInput,
   RecordReturnInput,
@@ -98,6 +106,7 @@ export class LoanService {
     private readonly prisma: PrismaService,
     private readonly scope: StaffScopeService,
     private readonly penalties: PenaltyService,
+    private readonly notifications: NotificationService,
   ) {}
 
   // =========================================================================
@@ -316,6 +325,16 @@ export class LoanService {
         });
       }
 
+      // "มารับของได้แล้ว". Named after the unit actually set aside rather than
+      // the one requested, because a T1 swap above may have changed it and the
+      // borrower reads this to find the right box on the counter.
+      await this.notifications.pickupReady(tx, {
+        accountKey: reservation.ReservedBy,
+        usageKey: usage.UsageKey,
+        itemName: resourceName(target),
+        collectFrom: reservation.StartTime,
+      });
+
       return usage.UsageKey;
     });
 
@@ -453,8 +472,14 @@ export class LoanService {
     const penaltyKey = await this.prisma.$transaction(async (tx) => {
       await tx.usageLog.update({
         where: { UsageKey: input.usageKey },
-        data: { CurrentStatus: 'Returned', CheckInTime: now },
+        data: {
+          CurrentStatus: 'Returned',
+          CheckInTime: now,
+          PendingExtension: null,
+        },
       });
+
+      await this.closePendingExtension(tx, usage, now);
 
       // Back on the shelf, but still not available: UNAVAILABLE_USAGE_STATES
       // includes `Returned`, so nothing can be lent out again before it is
@@ -476,13 +501,23 @@ export class LoanService {
         });
       }
 
-      return this.penalties.apply(tx, quote, {
+      const penaltyKey = await this.penalties.apply(tx, quote, {
         accountKey: usage.Account.AccountKey,
         usageKey: usage.UsageKey,
         // The proposal starts the penalty's clock at the return, not at the
         // deadline: "จะเริ่มนับอายุของบทลงโทษเมื่อนำอุปกรณ์มาคืนแล้ว".
         effectiveFrom: now,
       });
+
+      await this.notifyDeduction(tx, {
+        penaltyKey,
+        accountKey: usage.Account.AccountKey,
+        quote,
+        effectiveFrom: now,
+        itemName: resourceName(usage.Resource),
+      });
+
+      return penaltyKey;
     });
 
     const loan = this.toLoan(await this.readUsage(input.usageKey), now);
@@ -556,8 +591,11 @@ export class LoanService {
           CurrentStatus: 'Inspected',
           CheckInTime: now,
           CheckInCondition: condition.ConditionKey,
+          PendingExtension: null,
         },
       });
+
+      await this.closePendingExtension(tx, usage, now);
 
       await tx.resourceInfo.update({
         where: { ResourceKey: usage.Resource.ResourceKey },
@@ -568,168 +606,87 @@ export class LoanService {
         },
       });
 
-      await this.penalties.apply(tx, quote, {
+      const penaltyKey = await this.penalties.apply(tx, quote, {
         accountKey: usage.Account.AccountKey,
         usageKey: usage.UsageKey,
         effectiveFrom: now,
         note: input.reportedByBorrower ? 'reported by borrower' : undefined,
+      });
+
+      await this.notifyDeduction(tx, {
+        penaltyKey,
+        accountKey: usage.Account.AccountKey,
+        quote,
+        effectiveFrom: now,
+        itemName: resourceName(usage.Resource),
       });
     });
 
     return this.toLoan(await this.readUsage(input.usageKey), now);
   }
 
-  // =========================================================================
-  // Extensions settled at the counter
-  // =========================================================================
+  /**
+   * Tells the borrower their credit went down — the caution in §5.7.
+   *
+   * Inside the caller's transaction, so the warning and the deduction stand or
+   * fall together. A borrower told they lost points that were never taken has
+   * no way to discover the mistake, and neither has the counter.
+   *
+   * A null `penaltyKey` means the quote came to zero — returned on time, or
+   * fair wear — and there is nothing to announce.
+   */
+  private async notifyDeduction(
+    tx: Prisma.TransactionClient,
+    params: {
+      penaltyKey: number | null;
+      accountKey: number;
+      quote: PenaltyQuote;
+      effectiveFrom: Date;
+      itemName: string;
+    },
+  ): Promise<void> {
+    if (params.penaltyKey === null) return;
 
-  async listExtensionReviews(
-    user: TrpcUser,
-    input: { page: number; pageSize: number },
-  ) {
-    const resourceWhere = await this.scope.resourceScope(user);
+    // Read the score back instead of computing it. PenaltyService decrements,
+    // and a second penalty applied in the same transaction would make
+    // "the score I read earlier, minus this amount" quietly wrong.
+    const account = await tx.accountInfo.findUniqueOrThrow({
+      where: { AccountKey: params.accountKey },
+      select: { UserCredit: true },
+    });
 
-    const where: Prisma.ExtensionRequestWhereInput = {
-      ApproveStatus: 'Pending',
-      Usage: { Resource: resourceWhere },
-      // T2 extensions belong to the supervisor queue (§5.4). Filtering them out
-      // here rather than refusing later keeps staff from seeing work that is
-      // not theirs to do.
-      NOT: {
-        Usage: {
-          Resource: {
-            BorrowRuleInfo: { RuleName: { equals: 'T2', mode: 'insensitive' } },
-          },
-        },
-      },
-    };
-
-    const [rows, total] = await this.prisma.$transaction([
-      this.prisma.extensionRequest.findMany({
-        where,
-        orderBy: { RequestedAt: 'asc' },
-        ...toSkipTake(input),
-        select: {
-          ExtensionKey: true,
-          UsageKey: true,
-          ExtendNo: true,
-          PreviousDueTime: true,
-          RequestedDueTime: true,
-          RequestedAt: true,
-          ApproveStatus: true,
-          RequestedByUser: { select: BORROWER_SELECT },
-          Usage: { select: { Resource: { select: RESOURCE_SELECT } } },
-        },
-      }),
-      this.prisma.extensionRequest.count({ where }),
-    ]);
-
-    const items = rows.map((row) => ({
-      extensionKey: row.ExtensionKey,
-      usageKey: row.UsageKey,
-      borrower: this.toBorrower(row.RequestedByUser),
-      itemName: this.nameOf(row.Usage.Resource),
-      serialNo: row.Usage.Resource.Item?.ItemID ?? null,
-      tier: tryMapTier(row.Usage.Resource.BorrowRuleInfo.RuleName),
-      extendNo: row.ExtendNo,
-      previousDueAt: toIso(row.PreviousDueTime),
-      requestedDueAt: toIso(row.RequestedDueTime),
-      requestedAt: toIso(row.RequestedAt),
-      status: row.ApproveStatus,
-    }));
-
-    return toPage(items, total, input);
+    await this.notifications.creditDeducted(tx, {
+      accountKey: params.accountKey,
+      penaltyKey: params.penaltyKey,
+      amount: params.quote.amount,
+      reason: params.quote.reason,
+      newScore: account.UserCredit,
+      expiresAt: addDays(params.effectiveFrom, params.quote.lengthDays),
+      itemName: params.itemName,
+    });
   }
 
   /**
-   * Settles an extension the borrower had to bring the item in for (§5.9
-   * "ต่ออายุแบบตรวจสภาพ").
+   * Closes an extension request the loan will never need answered.
    *
-   * Approving writes the condition found on the counter — that check is the
-   * whole reason this extension is not an online one — and moves the due date.
+   * A loan that has come back or been written off cannot be extended, and a
+   * request left `Pending` on it would sit in the extension queue for a due
+   * date that no longer means anything. `Canceled` rather than `Rejected`:
+   * nobody refused it, the question stopped applying.
    */
-  async decideExtension(user: TrpcUser, input: DecideExtensionInput) {
-    const request = await this.prisma.extensionRequest.findUnique({
-      where: { ExtensionKey: input.extensionKey },
-      select: {
-        ExtensionKey: true,
-        UsageKey: true,
-        ApproveStatus: true,
-        RequestedDueTime: true,
-        ResolvedAt: true,
-        Usage: {
-          select: { UsageKey: true, Resource: { select: RESOURCE_SELECT } },
-        },
+  private async closePendingExtension(
+    tx: Prisma.TransactionClient,
+    usage: UsageRow,
+    now: Date,
+  ): Promise<void> {
+    if (usage.PendingExtension === null) return;
+    await tx.extensionRequest.updateMany({
+      where: {
+        ExtensionKey: usage.PendingExtension,
+        ApproveStatus: 'Pending',
       },
+      data: { ApproveStatus: 'Canceled', ResolvedAt: now },
     });
-
-    if (!request) {
-      throw new BusinessError('EXTENSION_NOT_FOUND', {
-        extensionKey: input.extensionKey,
-      });
-    }
-    await this.scope.assertResourceInScope(
-      user,
-      request.Usage.Resource.ResourceKey,
-    );
-
-    if (request.ApproveStatus !== 'Pending') {
-      throw new BusinessError('ALREADY_DECIDED', {
-        extensionKey: input.extensionKey,
-        decidedAt: toIsoNullable(request.ResolvedAt),
-        status: request.ApproveStatus,
-      });
-    }
-
-    const tier = tryMapTier(request.Usage.Resource.BorrowRuleInfo.RuleName);
-    if (tier === 'T2') {
-      throw new BusinessError('EXTENSION_NEEDS_SUPERVISOR', {
-        extensionKey: input.extensionKey,
-        tier,
-      });
-    }
-
-    const now = new Date();
-    const approved = input.decision === 'approve';
-
-    await this.prisma.$transaction(async (tx) => {
-      const condition = await tx.conditionLog.create({
-        data: {
-          ResourceKey: request.Usage.Resource.ResourceKey,
-          LoggedBy: user.accountKey,
-          Condition: input.condition,
-          Notes: input.note ?? null,
-          LoggedAt: now,
-        },
-        select: { ConditionKey: true },
-      });
-
-      await tx.resourceInfo.update({
-        where: { ResourceKey: request.Usage.Resource.ResourceKey },
-        data: { ConditionKey: condition.ConditionKey },
-      });
-
-      await tx.extensionRequest.update({
-        where: { ExtensionKey: input.extensionKey },
-        data: {
-          ApproveStatus: approved ? 'Approved' : 'Rejected',
-          ApprovedBy: user.accountKey,
-          ResolvedAt: now,
-        },
-      });
-
-      await tx.usageLog.update({
-        where: { UsageKey: request.UsageKey },
-        data: {
-          // Clear the pointer either way: the request is settled, so nothing is
-          // pending on this loan any more.
-          PendingExtension: null,
-          ...(approved ? { DueTime: request.RequestedDueTime } : {}),
-        },
-      });
-    });
-
-    return this.toLoan(await this.readUsage(request.UsageKey), now);
   }
 
   // =========================================================================
@@ -795,7 +752,7 @@ export class LoanService {
       usageKey: null,
       reservationKey: row.ReservationKey,
       status: null,
-      borrower: this.toBorrower(row.ReservedByUser),
+      borrower: toBorrowerRef(row.ReservedByUser),
       itemName: this.nameOf(row.Resource),
       // The reservation already points at a unit, but staff have not confirmed
       // it yet — the serial is shown as a suggestion by `item.listManagedUnits`, not
@@ -948,22 +905,6 @@ export class LoanService {
     return resource.Item?.Item.ItemName ?? resource.Room?.RoomName ?? null;
   }
 
-  private toBorrower(row: {
-    AccountKey: number;
-    UserID: string;
-    UserFName: string;
-    UserLName: string;
-    UserCredit: number;
-  }) {
-    return {
-      accountKey: row.AccountKey,
-      studentId: row.UserID,
-      firstName: row.UserFName,
-      lastName: row.UserLName,
-      creditScore: row.UserCredit,
-    };
-  }
-
   private toQueueRow(usage: UsageRow, now: Date) {
     const overdueDays = daysBetween(usage.DueTime, now);
 
@@ -971,7 +912,7 @@ export class LoanService {
       usageKey: usage.UsageKey,
       reservationKey: usage.ReservationKey,
       status: usage.CurrentStatus,
-      borrower: this.toBorrower(usage.Account),
+      borrower: toBorrowerRef(usage.Account),
       itemName: this.nameOf(usage.Resource),
       serialNo: usage.Resource.Item?.ItemID ?? null,
       resourceKey: usage.Resource.ResourceKey,
@@ -989,7 +930,7 @@ export class LoanService {
       usageKey: usage.UsageKey,
       reservationKey: usage.ReservationKey,
       status: usage.CurrentStatus,
-      borrower: this.toBorrower(usage.Account),
+      borrower: toBorrowerRef(usage.Account),
       itemName: this.nameOf(usage.Resource),
       serialNo: usage.Resource.Item?.ItemID ?? null,
       resourceKey: usage.Resource.ResourceKey,

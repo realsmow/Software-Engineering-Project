@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { dbId } from '../common/schemas/id.schema';
 import {
   paginated,
   paginationInput,
@@ -10,6 +11,7 @@ import {
 import {
   approveStatus,
   conditionType,
+  creditTier,
   resourceTier,
   usageStatus,
 } from '../common/schemas/status.schema';
@@ -26,9 +28,9 @@ import {
  * refuses from any other state, so a double-clicked button cannot skip one.
  */
 
-export const usageIdInput = z.object({ usageKey: z.number().int().positive() });
+export const usageIdInput = z.object({ usageKey: dbId });
 export const reservationIdInput = z.object({
-  reservationKey: z.number().int().positive(),
+  reservationKey: dbId,
 });
 
 // ---------------------------------------------------------------------------
@@ -69,6 +71,34 @@ export const borrowerRef = z.object({
   lastName: z.string(),
   creditScore: z.number().int(),
 });
+
+/** The columns `toBorrowerRef` needs. Select at least these. */
+export interface BorrowerRow {
+  AccountKey: number;
+  UserID: string;
+  UserFName: string;
+  UserLName: string;
+  UserCredit: number;
+}
+
+/**
+ * The one mapping from an AccountInfo row to `borrowerRef`.
+ *
+ * Shared rather than reimplemented per service, and kept beside the schema it
+ * has to satisfy, because it already drifted once: approval.service.ts had its
+ * own copy returning `userId`/`fullName` where the schema declares
+ * `studentId`/`firstName`/`lastName`, so `approval.queue` failed output
+ * validation on every non-empty queue and the approval desk could never load.
+ */
+export function toBorrowerRef(row: BorrowerRow) {
+  return {
+    accountKey: row.AccountKey,
+    studentId: row.UserID,
+    firstName: row.UserFName,
+    lastName: row.UserLName,
+    creditScore: row.UserCredit,
+  };
+}
 
 export const staffQueueRow = z.object({
   /**
@@ -152,7 +182,7 @@ export const loanOutput = z.object({
  * wrong with the unit before it leaves must not become the borrower's problem.
  */
 export const allocateLoanInput = reservationIdInput.extend({
-  resourceKey: z.number().int().positive().optional(),
+  resourceKey: dbId.optional(),
   condition: conditionType.default('Normal'),
   note: z.string().trim().max(500).optional(),
 });
@@ -160,7 +190,7 @@ export type AllocateLoanInput = z.infer<typeof allocateLoanInput>;
 
 /** Swap the reserved unit for another of the same type. T1 only (§5.4). */
 export const swapUnitInput = usageIdInput.extend({
-  resourceKey: z.number().int().positive(),
+  resourceKey: dbId,
   reason: z.string().trim().max(500).optional(),
 });
 export type SwapUnitInput = z.infer<typeof swapUnitInput>;
@@ -230,16 +260,29 @@ export type MarkLostInput = z.infer<typeof markLostInput>;
 // ---------------------------------------------------------------------------
 
 /**
- * The extension requests staff have to settle in person.
+ * Who has to say yes to one extension. Mirrors `ExtensionRoute` in
+ * common/approval/extension-policy.ts, which is the only table of it.
+ */
+export const extensionRoute = z.enum(['auto', 'staff', 'supervisor']);
+export type ExtensionRouteWire = z.infer<typeof extensionRoute>;
+
+export const extensionIdInput = z.object({ extensionKey: dbId });
+
+/**
+ * The extension requests a person has to settle.
  *
  * T1 alternates: one extension online, then the item must be brought in for a
  * condition check before the next one (§5.4). D2 borrowers lose the online
- * option entirely (§5.7). Both land here.
+ * option entirely (§5.7). T2 goes to a supervisor every time. Everything that
+ * is not `auto` lands here — `route` says at whose desk.
  */
 export const extensionReviewRow = z.object({
   extensionKey: z.number().int(),
   usageKey: z.number().int(),
   borrower: borrowerRef,
+  /** The band that decided the route, when the tier did not. */
+  creditTier,
+  route: extensionRoute,
   itemName: z.string().nullable(),
   serialNo: z.string().nullable(),
   tier: resourceTier.nullable(),
@@ -248,16 +291,252 @@ export const extensionReviewRow = z.object({
   previousDueAt: isoDateTime,
   requestedDueAt: isoDateTime,
   requestedAt: isoDateTime,
+  /** Why the borrower asked. Carried on the loan's own Reason column. */
+  reason: z.string().nullable(),
   status: approveStatus,
 });
 
 export const paginatedExtensionReviews = paginated(extensionReviewRow);
 
+/** Which desk's pile to read. Omit for "everything I may decide". */
+export const listExtensionReviewsInput = paginationInput
+  .omit({ sort: true, order: true })
+  .extend({
+    route: extensionRoute.exclude(['auto']).optional(),
+    tier: resourceTier.optional(),
+  });
+export type ListExtensionReviewsInput = z.infer<
+  typeof listExtensionReviewsInput
+>;
+
 export const decideExtensionInput = z.object({
-  extensionKey: z.number().int().positive(),
+  extensionKey: dbId,
   decision: z.enum(['approve', 'reject']),
   /** Condition found on the counter. Required to approve — that is the point. */
   condition: conditionType.default('Normal'),
   note: z.string().trim().max(500).optional(),
 });
 export type DecideExtensionInput = z.infer<typeof decideExtensionInput>;
+
+// ---------------------------------------------------------------------------
+// Extensions, from the borrower's side (§5.4 "ขอต่ออายุการยืม")
+// ---------------------------------------------------------------------------
+
+/**
+ * One extension request as the borrower sees it.
+ *
+ * Carries the quota alongside the request because the two are always read
+ * together: "ต่ออายุครั้งที่ 2 จาก 3" is one sentence on the card, and fetching
+ * the limit separately would let the two disagree across a refresh.
+ */
+export const extensionOutput = z.object({
+  extensionKey: z.number().int(),
+  usageKey: z.number().int(),
+  status: approveStatus,
+  route: extensionRoute,
+  /**
+   * True when the borrower must bring the item in before this is granted.
+   * `route !== 'auto'`, named for the screen that asks the question.
+   */
+  requiresInspection: z.boolean(),
+  /** Nobody signed it: the system granted it the moment it was asked for. */
+  autoApproved: z.boolean(),
+  /** Which extension of this loan it is, counting from 1. */
+  extendNo: z.number().int().nullable(),
+  previousDueAt: isoDateTime,
+  requestedDueAt: isoDateTime,
+  /** The loan's due date right now — already moved when this was auto-granted. */
+  dueAt: isoDateTime,
+  requestedAt: isoDateTime,
+  resolvedAt: isoDateTimeNullable,
+  itemName: z.string().nullable(),
+  serialNo: z.string().nullable(),
+  tier: resourceTier.nullable(),
+  /** Extensions already granted on this loan, this one included once granted. */
+  extensionsUsed: z.number().int().min(0),
+  /** BorrowConstraints.MaxExtendTime for (this unit's rule x the borrower's band). */
+  extensionsAllowed: z.number().int().min(0),
+});
+
+/**
+ * Ask to keep something longer.
+ *
+ * `requestedDueAt` is a full instant rather than a date because a T3 room is
+ * held by the hour. Equipment clients send the counter's closing time, which
+ * is what `toDueDate` produces.
+ */
+export const requestExtensionInput = usageIdInput.extend({
+  requestedDueAt: isoDateTime,
+  reason: z.string().trim().max(500).optional(),
+});
+export type RequestExtensionInput = z.infer<typeof requestExtensionInput>;
+
+/**
+ * What the borrower's screen needs before it offers the button.
+ *
+ * A dry run of `loan.requestExtension`: same checks, no writes. Without it the
+ * only way to find out whether an extension is possible is to ask for one and
+ * read the error, which is a poor thing to do to someone standing in a corridor.
+ */
+export const extensionOptionsOutput = z.object({
+  usageKey: z.number().int(),
+  /** False when `blockedBy` says why not. */
+  canRequest: z.boolean(),
+  /** The BusinessError code `requestExtension` would throw. Null when it would work. */
+  blockedBy: z.string().nullable(),
+  /** Which desk this one would go to, if it can be asked for at all. */
+  route: extensionRoute.nullable(),
+  requiresInspection: z.boolean(),
+  currentDueAt: isoDateTime,
+  /** The furthest date that would be accepted, from the borrower's band. */
+  maxRequestedDueAt: isoDateTime,
+  extensionsUsed: z.number().int().min(0),
+  extensionsAllowed: z.number().int().min(0),
+  /** An extension already waiting on somebody, if there is one. */
+  pendingExtensionKey: z.number().int().nullable(),
+});
+
+export const listMyExtensionsInput = paginationInput
+  .omit({ sort: true, order: true })
+  .extend({ status: approveStatus.optional() });
+export type ListMyExtensionsInput = z.infer<typeof listMyExtensionsInput>;
+
+export const paginatedExtensions = paginated(extensionOutput);
+
+/** Withdraw an extension request that nobody has decided yet. */
+export const cancelExtensionInput = extensionIdInput;
+export type CancelExtensionInput = z.infer<typeof cancelExtensionInput>;
+
+// ===========================================================================
+// Borrower slice — opening a request, tracking it, cancelling it
+//
+// A request is one `Reservations` row. A basket of five items is five rows
+// that move independently: the frontend already models it that way ("submitting
+// a basket of five items produces five independent requests that move at their
+// own speed", frontend/src/features/borrower/mock-data.ts), and the schema has
+// no table to group them under.
+// ===========================================================================
+
+/** Where a request has got to, as one string the borrower's card can show. */
+export const requestStatus = z.enum([
+  'pending', // waiting on a person
+  'approved', // cleared, nothing set aside yet
+  'preparing', // staff have a unit on the bench
+  'ready', // on the shelf with the borrower's name on it
+  'inUse', // collected
+  'returned', // back, not yet graded
+  'done', // graded, finished
+  'rejected',
+  'cancelled',
+]);
+export type RequestStatus = z.infer<typeof requestStatus>;
+
+/** Who still has to say yes. `auto` means nobody did — the system cleared it. */
+export const approvalRoute = z.enum(['auto', 'staff', 'supervisor']);
+
+export const requestIdInput = z.object({
+  reservationKey: z.number().int().positive(),
+});
+
+/**
+ * One line of a basket.
+ *
+ * `resourceKey` names a physical unit rather than a type because
+ * `Reservations.ResourceKey` is not nullable — something has to be reserved.
+ * For T0/T1 the client sends whichever unit the catalogue showed as free and
+ * staff may swap it at the counter (`loan.swapUnit`); for T2 the unit is the
+ * point, and the supervisor approves that serial.
+ */
+export const createRequestLine = z.object({
+  resourceKey: z.number().int().positive(),
+  reason: z.string().max(500).optional(),
+});
+
+/**
+ * Open one or more requests over the same window.
+ *
+ * The window is per basket, not per line, matching the request screen: one
+ * pickup date and one return date across everything in it.
+ *
+ * `startTime`/`endTime` are full instants rather than dates because T3 rooms
+ * are booked by the hour. Equipment clients send the agreed counter times.
+ */
+export const createRequestInput = z.object({
+  startTime: isoDateTime,
+  endTime: isoDateTime,
+  lines: z.array(createRequestLine).min(1).max(10),
+});
+export type CreateRequestInput = z.infer<typeof createRequestInput>;
+
+/** The thing being asked for, thin enough for a list card. */
+export const requestResourceRef = z.object({
+  resourceKey: z.number().int(),
+  name: z.string().nullable(),
+  /** Asset tag for equipment, null for a room. */
+  serialNo: z.string().nullable(),
+  kind: z.enum(['equipment', 'room']),
+  tier: resourceTier.nullable(),
+  creditWeight: z.number(),
+});
+
+/** Who signed off, when, and whether a person was involved at all. */
+export const approvalTrail = z.object({
+  route: approvalRoute,
+  status: approveStatus,
+  /** Null while pending, and null when the system cleared it — see `autoApproved`. */
+  approvedBy: borrowerRef.nullable(),
+  autoApproved: z.boolean(),
+  approvedAt: isoDateTimeNullable,
+  resolvedAt: isoDateTimeNullable,
+});
+
+export const requestOutput = z.object({
+  reservationKey: z.number().int(),
+  status: requestStatus,
+  resource: requestResourceRef,
+  startTime: isoDateTime,
+  endTime: isoDateTime,
+  reason: z.string().nullable(),
+  requestedAt: isoDateTime,
+  /** When an approved request stops being held for the borrower (§5.9). */
+  expiresAt: isoDateTimeNullable,
+  approval: approvalTrail,
+  /** Set once staff have prepared a unit; null while the request is only a request. */
+  usageKey: z.number().int().nullable(),
+  /** True while the borrower can still call `loan.cancel` on it. */
+  cancellable: z.boolean(),
+});
+
+export const listMyRequestsInput = paginationInput
+  .omit({ sort: true, order: true })
+  .extend({
+    /** The three tabs on "คำขอของฉัน". Omit for everything. */
+    tab: z.enum(['active', 'using', 'history']).optional(),
+  });
+export type ListMyRequestsInput = z.infer<typeof listMyRequestsInput>;
+
+export const paginatedRequests = paginated(requestOutput);
+
+/**
+ * What opening a basket produced.
+ *
+ * Every line gets a row even when it was refused, so the client can show which
+ * ones went through and why the rest did not, instead of failing the whole
+ * basket because one item was out.
+ */
+export const createRequestOutput = z.object({
+  created: z.array(requestOutput),
+  rejected: z.array(
+    z.object({
+      resourceKey: z.number().int(),
+      /** The BusinessError code this line would have thrown on its own. */
+      code: z.string(),
+      detail: z.record(z.string(), z.unknown()).nullable(),
+    }),
+  ),
+});
+
+export const cancelRequestInput = requestIdInput.extend({
+  reason: z.string().max(500).optional(),
+});
+export type CancelRequestInput = z.infer<typeof cancelRequestInput>;

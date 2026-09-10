@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { dbId } from '../common/schemas/id.schema';
 import {
   paginated,
   paginationInput,
@@ -7,7 +8,7 @@ import { activePenalty } from '../common/schemas/penalty.schema';
 import { creditTier, userRole } from '../common/schemas/status.schema';
 
 /** Every admin procedure that addresses one account takes this. */
-export const accountIdInput = z.object({ id: z.number().int().positive() });
+export const accountIdInput = z.object({ id: dbId });
 
 /**
  * Account status.
@@ -203,15 +204,39 @@ export const lendingSettingsOutput = z.object({
  * Partial update of one borrow rule. Rows listed are upserted; rows left out
  * are untouched, so a client can send just the one line the user edited.
  */
+/**
+ * Ceilings on the lending rules.
+ *
+ * Every one of these was unbounded, which let a mistyped figure become policy
+ * silently: a 999999999-day borrow window and a penalty larger than the whole
+ * credit scale were both accepted and stored. These are not the real limits a
+ * department would choose, they are the point past which the number is
+ * certainly a typo rather than a decision.
+ *
+ * The audit-range input in this same file already caps at 3650 days, so a
+ * decade is the established outer bound for a duration here.
+ */
+const MAX_BORROW_DAYS = 365;
+const MAX_EXTEND_TIMES = 50;
+/** Credit runs 0-100 (CreditTier.CreditMin/CreditMax), so a bigger deduction is meaningless. */
+const MAX_PENALTY_AMOUNT = 100;
+const MAX_PENALTY_DAYS = 3650;
+
 export const updateLendingSettingsInput = z.object({
-  borrowRuleKey: z.number().int().positive(),
+  borrowRuleKey: dbId,
   constraints: z
     .array(
       z.object({
-        creditTierKey: z.number().int().positive(),
-        maxBorrowDays: z.number().int().positive(),
-        maxExtendTimes: z.number().int().min(0),
-        minimumAuthorityLevel: z.number().int().nullable().optional(),
+        creditTierKey: dbId,
+        maxBorrowDays: z.number().int().positive().max(MAX_BORROW_DAYS),
+        maxExtendTimes: z.number().int().min(0).max(MAX_EXTEND_TIMES),
+        minimumAuthorityLevel: z
+          .number()
+          .int()
+          .min(0)
+          .max(100)
+          .nullable()
+          .optional(),
       }),
     )
     .optional(),
@@ -219,8 +244,8 @@ export const updateLendingSettingsInput = z.object({
     .array(
       z.object({
         reason: penaltyReason,
-        amount: z.number().int().min(0),
-        lengthDays: z.number().int().min(0),
+        amount: z.number().int().min(0).max(MAX_PENALTY_AMOUNT),
+        lengthDays: z.number().int().min(0).max(MAX_PENALTY_DAYS),
       }),
     )
     .optional(),
@@ -279,6 +304,7 @@ export const cronJobOutput = z.object({
 });
 
 export const runCronJobInput = z.object({ job: cronJobId });
+export type RunCronJobInput = z.infer<typeof runCronJobInput>;
 
 // ---------------------------------------------------------------------------
 // Technical config (IT admin)
@@ -309,6 +335,19 @@ export const technicalConfigOutput = z.object({
     notificationsSeconds: z.number().int().positive(),
     staffQueueSeconds: z.number().int().positive(),
     supervisorQueueSeconds: z.number().int().positive(),
+  }),
+  /**
+   * How this instance is actually secured, read from the live process.
+   *
+   * The most useful group on the page: it answers "is the deployment
+   * configured the way we think it is" - a cookie missing `secure`, or a
+   * forgotten localhost origin in CORS, is invisible everywhere else.
+   */
+  security: z.object({
+    cookieSecure: z.boolean(),
+    cookieSameSite: z.string(),
+    allowedOrigins: z.array(z.string()),
+    nodeEnv: z.string(),
   }),
 });
 
@@ -346,7 +385,7 @@ export const listAuditInput = paginationInput.extend({
   action: auditAction.optional(),
 });
 export const paginatedAuditEvents = paginated(auditEventOutput);
-export const auditEventIdInput = z.object({ id: z.number().int().positive() });
+export const auditEventIdInput = z.object({ id: dbId });
 
 // ---------------------------------------------------------------------------
 // Inferred types, so services state their inputs without repeating the shapes

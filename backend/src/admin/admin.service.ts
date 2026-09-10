@@ -1,9 +1,13 @@
 import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import type { Prisma } from '../generated/prisma/client';
 import { PrismaService } from '../prisma.service';
+import type { TrpcUser } from '../trpc/context';
 import { SessionService } from '../auth/session.service';
 import { AuditService, type AuditActor } from '../common/audit/audit.service';
 import { CreditTierService } from '../common/credit/credit-tier.service';
+import { StaffScopeService } from '../common/authority/staff-scope.service';
+import { CronService } from '../cron/cron.service';
 import { BusinessError, notImplemented } from '../common/errors/business-error';
 import {
   generateTemporaryPassword,
@@ -15,6 +19,8 @@ import {
   type AdminAccountRow,
 } from '../common/mappers/admin-user.mapper';
 import { activePenaltyWhere } from '../common/schemas/penalty.schema';
+import { MAX_UPLOAD_BYTES } from '../common/schemas/image.schema';
+import { ALLOWED_ORIGINS } from '../bootstrap';
 import {
   toOrderBy,
   toPage,
@@ -29,6 +35,7 @@ import type {
   ListUsersInput,
   ResetPasswordInput,
   SetUserActiveInput,
+  RunCronJobInput,
   SetUserBanInput,
   UpdateLendingSettingsInput,
   UpdateUserInput,
@@ -125,8 +132,42 @@ const CRON_REGISTRY = [
   { id: 'expireStaleRequests', name: 'คำขอหมดอายุ', schedule: 'ทุกชั่วโมง' },
 ] as const;
 
+/**
+ * The jobs that do real work today. The other three need a table that does not
+ * exist (see CronService for what each is missing).
+ */
+const IMPLEMENTED_JOBS: readonly string[] = [
+  'markOverdue',
+  'markLost',
+  'expireDemerits',
+  'dueSoonReminder',
+  'expireStaleRequests',
+];
+
 /** Above this, the database is answering but not healthily. */
 const DB_DEGRADED_MS = 250;
+
+/**
+ * Fallbacks matching the services that own these settings, so the reported
+ * value equals the effective one when the variable is unset.
+ * SessionService uses 12 hours; ImageService writes under ./media.
+ */
+const DEFAULT_SESSION_TTL_HOURS = 12;
+const DEFAULT_MEDIA_ROOT = './media';
+
+/**
+ * The polling intervals the contract fixes (SRS). Reported, not enforced: the
+ * client sets its own timers, so these are the agreed figures rather than a
+ * setting this server applies.
+ */
+const POLLING_CONTRACT = {
+  availabilitySeconds: 15,
+  facilitySlotsSeconds: 15,
+  requestStatusSeconds: 30,
+  notificationsSeconds: 60,
+  staffQueueSeconds: 30,
+  supervisorQueueSeconds: 60,
+} as const;
 
 @Injectable()
 export class AdminService {
@@ -135,16 +176,42 @@ export class AdminService {
     private readonly creditTiers: CreditTierService,
     private readonly sessions: SessionService,
     private readonly audit: AuditService,
+    private readonly staffScope: StaffScopeService,
+    private readonly config: ConfigService,
+    private readonly cron: CronService,
   ) {}
 
   // =========================================================================
   // Accounts
   // =========================================================================
 
-  async listUsers(input: ListUsersInput) {
+  /**
+   * The same list, narrowed to the caller's own departments.
+   *
+   * Staff need to find a borrower to ban or look up, but SDS §7.3 scopes them
+   * to the groups they hold an Authority in - `admin.listUsers` is unscoped
+   * and admin-only for that reason. Without this, the ban screens sat behind a
+   * list staff could not open: they could suspend an account they had no way
+   * to search for.
+   *
+   * Scope is membership of the same ManagementGroup, which is the only link
+   * between an account and a department the schema has.
+   */
+  async listUsersInScope(user: TrpcUser, input: ListUsersInput) {
+    const groupKeys = await this.staffScope.resolveGroupKeys(user);
+    return this.listUsers(
+      input,
+      // null means admin - unscoped, same as the admin-facing procedure.
+      groupKeys === null
+        ? undefined
+        : { Authorities: { some: { ManageGroupKey: { in: groupKeys } } } },
+    );
+  }
+
+  async listUsers(input: ListUsersInput, scope?: Prisma.AccountInfoWhereInput) {
     // Typed, not a loose object: Prisma's where-input is the one place a
     // typo silently becomes "match everything" rather than an error.
-    const where: Prisma.AccountInfoWhereInput = {};
+    const where: Prisma.AccountInfoWhereInput = { ...scope };
 
     if (input.role) {
       // RoleInfo is seed data with free-text names, so the set of keys behind
@@ -594,44 +661,118 @@ export class AdminService {
     };
   }
 
-  listCronJobs() {
-    return CRON_REGISTRY.map((job) => ({
-      id: job.id,
-      name: job.name,
-      schedule: job.schedule,
-      // Nothing schedules these yet. Reporting `implemented: false` instead of
-      // a null last-run keeps "not built" distinguishable from "built but
-      // never fired", which the status page has to show differently.
-      implemented: false,
-      lastRunAt: null,
-      lastResult: null,
-      durationMs: null,
-    }));
+  /**
+   * The jobs, with what actually happened last time.
+   *
+   * `implemented` still distinguishes the five that do work from the three
+   * that cannot yet - a job with no last run and a job that does not exist
+   * look identical otherwise, and an administrator reading "never run" would
+   * go hunting a scheduler fault that is really a missing table.
+   */
+  async listCronJobs() {
+    const last = await this.cron.lastRuns();
+
+    return CRON_REGISTRY.map((job) => {
+      const run = last.get(job.id);
+      return {
+        id: job.id,
+        name: job.name,
+        schedule: job.schedule,
+        implemented: IMPLEMENTED_JOBS.includes(job.id),
+        lastRunAt: run ? run.at.toISOString() : null,
+        lastResult: run
+          ? (run.result as 'success' | 'failed' | 'pending')
+          : null,
+        durationMs: run?.durationMs ?? null,
+      };
+    });
   }
 
-  runCronJob(): never {
-    return notImplemented(
-      [
-        'CronRunLog table (job, startedAt, finishedAt, result, detail)',
-        '@nestjs/schedule',
-      ],
-      'None of the 8 jobs exist yet, and a manual run with nowhere to record the outcome is not observable. Build the jobs first.',
+  /**
+   * Runs one job now.
+   *
+   * The three unbuilt jobs still throw NOT_IMPLEMENTED from CronService, with
+   * the missing pieces named, so pressing the button on one explains itself
+   * rather than failing silently.
+   */
+  async runCronJob(input: RunCronJobInput, actor: AuditActor) {
+    const outcome = await this.cron.run(input.job);
+    await this.audit.record(
+      actor,
+      'update',
+      `cron/${input.job}`,
+      `Ran manually: ${outcome.detail}`,
     );
+    return OK;
   }
 
   // =========================================================================
   // Technical config
   // =========================================================================
 
-  getConfig(): never {
-    return notImplemented(
-      ['SystemConfig table (key, value Json, updatedBy, updatedAt)'],
-      'Auth/storage/email/polling settings are currently environment variables, which are read-only at runtime and per-instance. Editing them from the UI needs a table.',
-    );
+  /**
+   * What this server is actually running with, read from the live process.
+   *
+   * Read-only, and that is the point rather than a limitation. Every value
+   * below comes from an environment variable or a compiled-in constant, so it
+   * is per-instance and fixed for the lifetime of the process; there is no
+   * SystemConfig table and adding one would be the wrong answer for most of
+   * these. An SMTP host or a storage root changed in a web form would not take
+   * effect until a redeploy, and a UI that accepts an edit which silently does
+   * nothing is worse than one that refuses it.
+   *
+   * So `updateConfig` still refuses. This procedure exists to let an
+   * administrator confirm what is deployed - which is the question they
+   * actually arrive with - rather than to pretend the values are editable.
+   */
+  getConfig() {
+    const env = (key: string) => this.config.get<string>(key);
+    const isProduction = env('NODE_ENV') === 'production';
+    const mediaRoot = env('MEDIA_ROOT') ?? DEFAULT_MEDIA_ROOT;
+
+    return {
+      auth: {
+        // No OIDC integration exists yet; see docs/adr-001-authentication.md.
+        googleOauthEnabled: false,
+        localFallbackEnabled: true,
+        // Not enforced by a list: `auth.login` accepts any account row, and
+        // the KU-email path is a frontend affordance. Reported empty rather
+        // than inventing a restriction the server does not apply.
+        allowedEmailDomains: [],
+        sessionTimeoutMinutes:
+          Number(env('SESSION_TTL_HOURS') ?? DEFAULT_SESSION_TTL_HOURS) * 60,
+      },
+      storage: {
+        provider: 'local-disk',
+        bucket: mediaRoot,
+        maxUploadMb: Math.round(MAX_UPLOAD_BYTES / (1024 * 1024)),
+        presignedUploads: true,
+      },
+      email: {
+        // Nothing sends mail yet. Empty strings say so; a plausible-looking
+        // default here would read as a configured mail server.
+        smtpHost: '',
+        fromAddress: 'noreply@ku.th',
+        dueReminderEnabled: false,
+      },
+      // The polling intervals the contract fixes (SRS §"ช่วงเวลา polling").
+      // The server does not enforce them - the client sets its own timers - so
+      // these are reported as the agreed figures, not as a live setting.
+      polling: POLLING_CONTRACT,
+      security: {
+        cookieSecure: env('COOKIE_SECURE') === 'true' || isProduction,
+        cookieSameSite: env('COOKIE_SAMESITE') ?? 'lax',
+        allowedOrigins: ALLOWED_ORIGINS,
+        nodeEnv: env('NODE_ENV') ?? 'development',
+      },
+    };
   }
 
   updateConfig(): never {
-    return this.getConfig();
+    return notImplemented(
+      ['SystemConfig table (key, value Json, updatedBy, updatedAt)'],
+      'These settings are environment variables and compiled-in constants, fixed per instance for the life of the process. Accepting an edit here would change nothing until a redeploy.',
+    );
   }
 
   // =========================================================================

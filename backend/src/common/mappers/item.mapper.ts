@@ -92,8 +92,26 @@ function typeTier(units: ItemUnitRow[]) {
   return null;
 }
 
+/**
+ * The columns the availability maths reads, and nothing else.
+ *
+ * Declared separately from ItemUnitRow so `item.getAvailability` — the 10-15s
+ * poll, which selects the fewest columns it can get away with — shares these
+ * two functions instead of keeping its own copy. Two copies of "when does this
+ * come back" is exactly how the list page and the polled badge start
+ * disagreeing.
+ */
+export interface AvailabilityUnitRow {
+  Resource: {
+    ResourceStatus: 'InStorage' | 'Lended' | 'Missing';
+    AllowBorrow: boolean;
+    BufferTime: number;
+    UsageLogs: { DueTime: Date }[];
+  };
+}
+
 /** Free to borrow right now: in storage, and the resource is open for borrowing. */
-function isAvailable(unit: ItemUnitRow): boolean {
+export function isUnitAvailable(unit: AvailabilityUnitRow): boolean {
   return (
     unit.Resource.ResourceStatus === 'InStorage' && unit.Resource.AllowBorrow
   );
@@ -106,28 +124,41 @@ function isBorrowable(unit: ItemUnitRow): boolean {
   );
 }
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+
 /**
- * Earliest moment a unit comes back, or null when one is already free.
+ * Earliest moment a unit is ready to lend again, or null when one is free now.
+ *
+ * Proposal 5.5 defines available-from as the earliest return date *plus* the
+ * prep days staff need before that unit can go out again (ResourceInfo
+ * .BufferTime). The buffer is per unit, so the minimum has to be taken over
+ * the adjusted dates, never over the raw due dates: a unit due back tomorrow
+ * that needs five prep days is ready later than one due back Friday that needs
+ * none, and taking the minimum first would report tomorrow.
  *
  * Returning null while stock exists is deliberate: "available now" and "back
  * on Friday" are different answers, and a date shown next to a positive
  * availability count reads as though the item were unavailable.
  */
-function nextAvailableAt(units: ItemUnitRow[]): string | null {
-  if (units.some(isAvailable)) return null;
+export function nextAvailableAt(units: AvailabilityUnitRow[]): string | null {
+  if (units.some(isUnitAvailable)) return null;
 
-  const dueTimes = units
-    .map((unit) => unit.Resource.UsageLogs[0]?.DueTime)
-    .filter((due): due is Date => due != null)
-    .map((due) => due.getTime());
+  const readyAt = units
+    .map((unit) => {
+      const due = unit.Resource.UsageLogs[0]?.DueTime;
+      return due == null
+        ? null
+        : due.getTime() + unit.Resource.BufferTime * DAY_MS;
+    })
+    .filter((at): at is number => at !== null);
 
-  if (dueTimes.length === 0) return null;
-  return new Date(Math.min(...dueTimes)).toISOString();
+  if (readyAt.length === 0) return null;
+  return new Date(Math.min(...readyAt)).toISOString();
 }
 
 export function toItemSummary(row: ItemTypeRow): ItemSummary {
   const units = row.Items;
-  const availableUnits = units.filter(isAvailable).length;
+  const availableUnits = units.filter(isUnitAvailable).length;
   const borrowableUnits = units.filter(isBorrowable).length;
   const first = units[0];
 

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { dbId } from '../common/schemas/id.schema';
 import { activePenalty } from '../common/schemas/penalty.schema';
 import { creditTier } from '../common/schemas/status.schema';
 
@@ -28,6 +29,6 @@ export const creditOutput = z.object({
   totalDeducted: z.number().int().min(0),
 });
 
-export const creditIdInput = z.object({ id: z.number().int().positive() });
+export const creditIdInput = z.object({ id: dbId });
 
 export type CreditOutput = z.infer<typeof creditOutput>;

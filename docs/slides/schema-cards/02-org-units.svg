@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="464" viewBox="0 0 1080 464">
+<rect x="0" y="0" width="1080" height="464" rx="14" fill="#FFFFFF"/>
+<rect x="44" y="30" width="5" height="40" rx="2.5" fill="#1D5052"/>
+<text x="62" y="48" font-family="Laksaman, Noto Sans Thai, sans-serif" font-size="21" font-weight="700" fill="#13211F">หน่วยงานผู้ให้ยืม</text>
+<text x="62" y="66" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11.5" fill="#1D5052" letter-spacing="0.6">LENDING ORGANIZATIONS</text>
+<text x="1036" y="48" font-family="Laksaman, Noto Sans Thai, sans-serif" font-size="12.5" fill="#7E8F8D" text-anchor="end">คณะและชมรมใช้กลไกสิทธิ์ชุดเดียวกันผ่าน ManagementGroup</text>
+<text x="1036" y="66" font-family="Laksaman, Noto Sans Thai, sans-serif" font-size="11" fill="#7E8F8D" text-anchor="end">4 ตาราง &#183; ULMs Database Design v4</text>
+<path d="M474 237.0 C529 237.0 551 160.0 597 160.0" fill="none" stroke="#1D5052" stroke-width="1.6" opacity="0.7"/><path d="M606 160.0 L597 155.5 L597 164.5 z" fill="#1D5052" opacity="0.7"/><circle cx="474" cy="237.0" r="3.2" fill="#1D5052" opacity="0.7"/>
+<path d="M474 401.0 C529 401.0 551 160.0 597 160.0" fill="none" stroke="#1D5052" stroke-width="1.6" opacity="0.7"/><path d="M606 160.0 L597 155.5 L597 164.5 z" fill="#1D5052" opacity="0.7"/><circle cx="474" cy="401.0" r="3.2" fill="#1D5052" opacity="0.7"/>
+<path d="M606 224.0 C548.08 224.0 548.08 298.0 597 298.0" fill="none" stroke="#1D5052" stroke-width="1.6" opacity="0.7"/><path d="M606 298.0 L597 293.5 L597 302.5 z" fill="#1D5052" opacity="0.7"/><circle cx="606" cy="224.0" r="3.2" fill="#1D5052" opacity="0.7"/>
+<rect x="46" y="100.0" width="426" height="160" rx="10" fill="#0A1F1D" opacity="0.05"/>
+<rect x="45" y="98.0" width="428" height="160" rx="10" fill="#0A1F1D" opacity="0.05"/>
+<rect x="44" y="96.0" width="430" height="160" rx="10" fill="#FFFFFF" stroke="#DCE7E5"/>
+<path d="M44 106.0 a10 10 0 0 1 10 -10 h410 a10 10 0 0 1 10 10 v40 h-430 z" fill="#1D5052"/>
+<text x="60" y="117.0" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="14.5" font-weight="700" fill="#FFFFFF">FacultyInfo</text>
+<text x="60" y="135.0" font-family="Laksaman, Noto Sans Thai, sans-serif" font-size="12" fill="#FFFFFF" opacity="0.85">ข้อมูลคณะ แยกตามสาขา</text>
+<rect x="57" y="152.0" width="26" height="14" rx="4" fill="#9E5714"/><text x="70" y="162.5" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="9" font-weight="700" fill="#FFFFFF" text-anchor="middle">PK</text>
+<text x="92" y="163.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="600" fill="#13211F">FacultyKey</text>
+<text x="460" y="163.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">INT</text>
+<rect x="45" y="172.0" width="428" height="26" fill="#F2F7F7"/>
+<text x="92" y="189.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="400" fill="#13211F">FacultyName</text>
+<text x="460" y="189.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">VARCHAR</text>
+<line x1="57" y1="172.0" x2="461" y2="172.0" stroke="#DCE7E5" stroke-width="0.8"/>
+<text x="92" y="215.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="400" fill="#13211F">FacultyBranch</text>
+<text x="460" y="215.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">VARCHAR</text>
+<line x1="57" y1="198.0" x2="461" y2="198.0" stroke="#DCE7E5" stroke-width="0.8"/>
+<rect x="45" y="224.0" width="428" height="26" fill="#F2F7F7"/>
+<rect x="57" y="230.0" width="26" height="14" rx="4" fill="none" stroke="#1D5052" stroke-width="1.2"/><text x="70" y="240.5" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="9" font-weight="700" fill="#1D5052" text-anchor="middle">FK</text>
+<text x="92" y="241.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="400" fill="#13211F">ManagementGroup</text>
+<text x="460" y="241.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">INT</text>
+<line x1="57" y1="224.0" x2="461" y2="224.0" stroke="#DCE7E5" stroke-width="0.8"/>
+<rect x="46" y="290.0" width="426" height="134" rx="10" fill="#0A1F1D" opacity="0.05"/>
+<rect x="45" y="288.0" width="428" height="134" rx="10" fill="#0A1F1D" opacity="0.05"/>
+<rect x="44" y="286.0" width="430" height="134" rx="10" fill="#FFFFFF" stroke="#DCE7E5"/>
+<path d="M44 296.0 a10 10 0 0 1 10 -10 h410 a10 10 0 0 1 10 10 v40 h-430 z" fill="#1D5052"/>
+<text x="60" y="307.0" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="14.5" font-weight="700" fill="#FFFFFF">ClubInfo</text>
+<text x="60" y="325.0" font-family="Laksaman, Noto Sans Thai, sans-serif" font-size="12" fill="#FFFFFF" opacity="0.85">ข้อมูลชมรม</text>
+<rect x="57" y="342.0" width="26" height="14" rx="4" fill="#9E5714"/><text x="70" y="352.5" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="9" font-weight="700" fill="#FFFFFF" text-anchor="middle">PK</text>
+<text x="92" y="353.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="600" fill="#13211F">ClubKey</text>
+<text x="460" y="353.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">INT</text>
+<rect x="45" y="362.0" width="428" height="26" fill="#F2F7F7"/>
+<text x="92" y="379.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="400" fill="#13211F">ClubName</text>
+<text x="460" y="379.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">VARCHAR</text>
+<line x1="57" y1="362.0" x2="461" y2="362.0" stroke="#DCE7E5" stroke-width="0.8"/>
+<rect x="57" y="394.0" width="26" height="14" rx="4" fill="none" stroke="#1D5052" stroke-width="1.2"/><text x="70" y="404.5" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="9" font-weight="700" fill="#1D5052" text-anchor="middle">FK</text>
+<text x="92" y="405.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="400" fill="#13211F">ManagementGroupKey</text>
+<text x="460" y="405.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">INT</text>
+<line x1="57" y1="388.0" x2="461" y2="388.0" stroke="#DCE7E5" stroke-width="0.8"/>
+<rect x="608" y="139.0" width="426" height="108" rx="10" fill="#0A1F1D" opacity="0.05"/>
+<rect x="607" y="137.0" width="428" height="108" rx="10" fill="#0A1F1D" opacity="0.05"/>
+<rect x="606" y="135.0" width="430" height="108" rx="10" fill="#FFFFFF" stroke="#DCE7E5"/>
+<path d="M606 145.0 a10 10 0 0 1 10 -10 h410 a10 10 0 0 1 10 10 v40 h-430 z" fill="#1D5052"/>
+<text x="622" y="156.0" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="14.5" font-weight="700" fill="#FFFFFF">ManagementGroup</text>
+<text x="622" y="174.0" font-family="Laksaman, Noto Sans Thai, sans-serif" font-size="12" fill="#FFFFFF" opacity="0.85">กลุ่มผู้มีอำนาจให้ยืม</text>
+<rect x="619" y="191.0" width="26" height="14" rx="4" fill="#9E5714"/><text x="632" y="201.5" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="9" font-weight="700" fill="#FFFFFF" text-anchor="middle">PK</text>
+<text x="654" y="202.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="600" fill="#13211F">ManageGroupKey</text>
+<text x="1022" y="202.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">INT</text>
+<rect x="607" y="211.0" width="428" height="26" fill="#F2F7F7"/>
+<rect x="619" y="217.0" width="26" height="14" rx="4" fill="none" stroke="#1D5052" stroke-width="1.2"/><text x="632" y="227.5" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="9" font-weight="700" fill="#1D5052" text-anchor="middle">FK</text>
+<text x="654" y="228.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="400" fill="#13211F">GroupType</text>
+<text x="1022" y="228.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">INT</text>
+<line x1="619" y1="211.0" x2="1023" y2="211.0" stroke="#DCE7E5" stroke-width="0.8"/>
+<rect x="608" y="277.0" width="426" height="108" rx="10" fill="#0A1F1D" opacity="0.05"/>
+<rect x="607" y="275.0" width="428" height="108" rx="10" fill="#0A1F1D" opacity="0.05"/>
+<rect x="606" y="273.0" width="430" height="108" rx="10" fill="#FFFFFF" stroke="#DCE7E5"/>
+<path d="M606 283.0 a10 10 0 0 1 10 -10 h410 a10 10 0 0 1 10 10 v40 h-430 z" fill="#1D5052"/>
+<text x="622" y="294.0" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="14.5" font-weight="700" fill="#FFFFFF">GroupType</text>
+<text x="622" y="312.0" font-family="Laksaman, Noto Sans Thai, sans-serif" font-size="12" fill="#FFFFFF" opacity="0.85">ประเภทกลุ่ม (คณะ / ชมรม)</text>
+<rect x="619" y="329.0" width="26" height="14" rx="4" fill="#9E5714"/><text x="632" y="339.5" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="9" font-weight="700" fill="#FFFFFF" text-anchor="middle">PK</text>
+<text x="654" y="340.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="600" fill="#13211F">GroupTypeKey</text>
+<text x="1022" y="340.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">INT</text>
+<rect x="607" y="349.0" width="428" height="26" fill="#F2F7F7"/>
+<text x="654" y="366.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="12.5" font-weight="400" fill="#13211F">GroupTypeName</text>
+<text x="1022" y="366.2" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="11" fill="#7E8F8D" text-anchor="end">VARCHAR</text>
+<line x1="619" y1="349.0" x2="1023" y2="349.0" stroke="#DCE7E5" stroke-width="0.8"/>
+</svg>
