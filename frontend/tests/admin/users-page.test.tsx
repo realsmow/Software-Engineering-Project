@@ -1,112 +1,47 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import React from 'react';
-import { MemoryRouter } from 'react-router-dom';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { MemoryRouter } from 'react-router-dom';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import i18n from '../../src/i18n';
 import UsersPage from '../../src/features/admin/users/users-page';
-import * as useAdminUsersModule from '../../src/features/admin/users/use-admin-users';
 import type { AdminUser } from '../../src/features/admin/mock-data';
+import * as adminUsersHooks from '../../src/features/admin/users/use-admin-users';
 
-// Mock data fixtures
-const MOCK_USERS: AdminUser[] = [
+/** UI-model fixtures: API numeric IDs are intentionally adapted to strings. */
+const USERS: AdminUser[] = [
   {
-    id: '1',
-    govId: 'ADM00001',
-    name: 'Somchai Admin',
-    email: 'somchai.a@ku.th',
-    role: 'admin',
-    status: 'active',
-    auth: 'ku',
-    departmentId: 'cpe',
-    lastActiveAt: '2026-09-01T10:00:00Z',
-    createdAt: '2026-01-10T08:00:00Z',
+    id: '1', govId: 'ADM00001', name: 'Somchai Admin', email: 'somchai.a@ku.th',
+    role: 'admin', status: 'active', auth: 'ku', departmentId: 'cpe',
+    lastActiveAt: '2026-09-01T10:00:00Z', createdAt: '2026-01-10T08:00:00Z',
   },
   {
-    id: '2',
-    govId: 'STF00002',
-    name: 'Somsri Staff',
-    email: 'somsri.s@ku.th',
-    role: 'staff',
-    status: 'active',
-    auth: 'local',
-    departmentId: 'cpe',
-    lastActiveAt: '2026-09-02T11:00:00Z',
-    createdAt: '2026-02-15T08:00:00Z',
+    id: '2', govId: 'STF00002', name: 'Somsri Staff', email: 'somsri.s@ku.th',
+    role: 'staff', status: 'active', auth: 'local', departmentId: 'cpe',
+    lastActiveAt: '2026-09-02T11:00:00Z', createdAt: '2026-02-15T08:00:00Z',
   },
   {
-    id: '3',
-    govId: '65019999',
-    name: 'Somsak Student',
-    email: 'somsak.j@ku.th',
-    role: 'borrower',
-    status: 'suspended',
-    auth: 'ku',
-    departmentId: 'cpe',
-    lastActiveAt: '2026-08-30T09:00:00Z',
-    createdAt: '2026-03-20T08:00:00Z',
+    id: '3', govId: '65019999', name: 'Somsak Student', email: 'somsak.j@ku.th',
+    role: 'borrower', status: 'suspended', auth: 'ku', departmentId: 'cpe',
+    lastActiveAt: '2026-08-30T09:00:00Z', createdAt: '2026-03-20T08:00:00Z',
   },
   {
-    id: '4',
-    govId: '65018888',
-    name: 'Wichai Disabled',
-    email: 'wichai.d@ku.th',
-    role: 'borrower',
-    status: 'disabled',
-    auth: 'ku',
-    departmentId: 'me',
-    lastActiveAt: '2026-07-25T14:00:00Z',
-    createdAt: '2026-04-10T08:00:00Z',
+    id: '4', govId: '65018888', name: 'Wichai Disabled', email: 'wichai.d@ku.th',
+    role: 'borrower', status: 'disabled', auth: 'ku', departmentId: 'me',
+    lastActiveAt: '2026-07-25T14:00:00Z', createdAt: '2026-04-10T08:00:00Z',
   },
 ];
 
-describe('Module 2: Admin Users Page [FE]', () => {
+describe('Admin users page', () => {
   let queryClient: QueryClient;
-  const mockCreateUserMutate = vi.fn();
-  const mockChangeRoleMutate = vi.fn();
-  const mockResetPasswordMutate = vi.fn();
-  const mockSetUserBanMutate = vi.fn();
+  const createMutate = vi.fn();
+  const changeRoleMutate = vi.fn();
+  const resetPasswordMutate = vi.fn();
+  const setUserBanMutate = vi.fn();
+  const setUserActiveMutate = vi.fn();
 
-  beforeEach(() => {
-    queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false } },
-    });
-    vi.clearAllMocks();
+  const t = (key: string) => i18n.t(key);
 
-    vi.spyOn(useAdminUsersModule, 'useAdminUsers').mockReturnValue({
-      data: MOCK_USERS,
-      isLoading: false,
-      isError: false,
-      error: null,
-      refetch: vi.fn(),
-    } as any);
-
-    vi.spyOn(useAdminUsersModule, 'useCreateUser').mockReturnValue({
-      mutate: mockCreateUserMutate,
-      isPending: false,
-    } as any);
-
-    vi.spyOn(useAdminUsersModule, 'useChangeRole').mockReturnValue({
-      mutate: mockChangeRoleMutate,
-      isPending: false,
-    } as any);
-
-    vi.spyOn(useAdminUsersModule, 'useResetPassword').mockReturnValue({
-      mutate: mockResetPasswordMutate,
-      isPending: false,
-    } as any);
-
-    vi.spyOn(useAdminUsersModule, 'useSetUserBan').mockReturnValue({
-      mutate: mockSetUserBanMutate,
-      isPending: false,
-    } as any);
-
-    vi.spyOn(useAdminUsersModule, 'useSetUserActive').mockReturnValue({
-      mutate: vi.fn(),
-      isPending: false,
-    } as any);
-  });
-
-  const renderComponent = () =>
+  const renderPage = () =>
     render(
       <QueryClientProvider client={queryClient}>
         <MemoryRouter>
@@ -115,130 +50,192 @@ describe('Module 2: Admin Users Page [FE]', () => {
       </QueryClientProvider>,
     );
 
-  // ── TP-ADM-FE-01: Stat Chips Summary & Status Quick-Filtering ───────────────
-  it('TP-ADM-FE-01: renders stat chips and filters rows when status chip is clicked', async () => {
-    renderComponent();
+  const openUser = (name: string) => {
+    fireEvent.click(screen.getByText(name).closest('tr')!);
+  };
 
-    // Verify stat chip counts: Total 4, Active 2, Suspended 1, Disabled 1
-    expect(screen.getByText('4')).toBeInTheDocument(); // Total count
-    expect(screen.getByText('2')).toBeInTheDocument(); // Active count
-    expect(screen.getAllByText('1').length).toBeGreaterThanOrEqual(2); // Suspended and Disabled counts
-
-    // Click on Suspended chip to filter
-    const suspendedChip = screen.getAllByText('ระงับ')[0].closest('button');
-    expect(suspendedChip).toBeDefined();
-    fireEvent.click(suspendedChip!);
-
-    // Should only display the suspended user (Somsak Student)
-    expect(screen.getByText('Somsak Student')).toBeInTheDocument();
-    expect(screen.queryByText('Somchai Admin')).not.toBeInTheDocument();
+  beforeEach(() => {
+    queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    vi.clearAllMocks();
+    vi.spyOn(adminUsersHooks, 'useAdminUsers').mockReturnValue({
+      data: USERS, isLoading: false, isError: false, error: null, refetch: vi.fn(),
+    } as never);
+    vi.spyOn(adminUsersHooks, 'useCreateUser').mockReturnValue({
+      mutate: createMutate, isPending: false,
+    } as never);
+    vi.spyOn(adminUsersHooks, 'useChangeRole').mockReturnValue({
+      mutate: changeRoleMutate, isPending: false,
+    } as never);
+    vi.spyOn(adminUsersHooks, 'useResetPassword').mockReturnValue({
+      mutate: resetPasswordMutate, isPending: false,
+    } as never);
+    vi.spyOn(adminUsersHooks, 'useSetUserBan').mockReturnValue({
+      mutate: setUserBanMutate, isPending: false,
+    } as never);
+    vi.spyOn(adminUsersHooks, 'useSetUserActive').mockReturnValue({
+      mutate: setUserActiveMutate, isPending: false,
+    } as never);
   });
 
-  // ── TP-ADM-FE-02: Client-Side Search Query Filtering ─────────────────────────
-  it('TP-ADM-FE-02: filters user table rows dynamically based on search query', async () => {
-    renderComponent();
+  it('shows contract-derived account statuses and filters by suspension', () => {
+    renderPage();
 
-    const searchInput = screen.getByPlaceholderText(/ค้นหา/i) || screen.getByRole('textbox');
-    fireEvent.change(searchInput, { target: { value: 'Somsri' } });
+    expect(screen.getByText('4')).toBeInTheDocument();
+    expect(screen.getByText('2')).toBeInTheDocument();
+    const suspendedChip = screen.getAllByText(t('admin.users.statusSuspended'))[0].closest('button');
+    expect(suspendedChip).not.toBeNull();
+
+    fireEvent.click(suspendedChip!);
+
+    expect(screen.getByText('Somsak Student')).toBeInTheDocument();
+    expect(screen.queryByText('Somchai Admin')).not.toBeInTheDocument();
+    expect(screen.queryByText('Wichai Disabled')).not.toBeInTheDocument();
+  });
+
+  it('filters users by a case-insensitive name, email, or institutional ID query', () => {
+    renderPage();
+    const search = screen.getByRole('textbox', { name: t('common.search') });
+
+    fireEvent.change(search, { target: { value: 'stf00002' } });
 
     expect(screen.getByText('Somsri Staff')).toBeInTheDocument();
     expect(screen.queryByText('Somchai Admin')).not.toBeInTheDocument();
-    expect(screen.queryByText('Somsak Student')).not.toBeInTheDocument();
   });
 
-  // ── TP-ADM-FE-03: Multi-Dropdown Filters (Role/Status/Faculty/Dept) ───────────
-  it('TP-ADM-FE-03: filters table rows by Role and Faculty dropdown selections', async () => {
-    renderComponent();
+  it('sends the form-derived, contract-shaped create payload', async () => {
+    renderPage();
+    fireEvent.click(screen.getByRole('button', { name: t('admin.users.createUser') }));
 
-    // Table displays all initial mock rows
-    expect(screen.getByText('Somchai Admin')).toBeInTheDocument();
-    expect(screen.getByText('Somsak Student')).toBeInTheDocument();
-
-    // Verify filter dropdown controls exist
-    const selects = screen.getAllByRole('combobox');
-    expect(selects.length).toBeGreaterThanOrEqual(1);
-  });
-
-  // ── TP-ADM-FE-04: Create User Modal Validation & Field Controls ──────────────
-  it('TP-ADM-FE-04: opens Create User modal, validates required fields, and submits', async () => {
-    renderComponent();
-
-    const addBtn = screen.getByRole('button', { name: /สร้างบัญชี/i });
-    fireEvent.click(addBtn);
-
-    // Modal opens with form elements
-    const nameInput = screen.getByPlaceholderText(/ชื่อ–นามสกุล/i);
-    const emailInput = screen.getByPlaceholderText(/name@ku\.th/i);
-
-    fireEvent.change(nameInput, { target: { value: 'New Test User' } });
-    fireEvent.change(emailInput, { target: { value: 'new.test@ku.th' } });
-
-    const buttons = screen.getAllByRole('button', { name: /สร้างบัญชี/i });
-    const submitBtn = buttons[buttons.length - 1];
-    fireEvent.click(submitBtn);
+    const dialog = screen.getByRole('dialog');
+    fireEvent.change(screen.getByPlaceholderText(t('admin.users.namePlaceholder')), {
+      target: { value: 'New Test User' },
+    });
+    fireEvent.change(screen.getByPlaceholderText('name@ku.th'), {
+      target: { value: 'new.test@ku.th' },
+    });
+    fireEvent.click(within(dialog).getByRole('button', { name: t('admin.users.createSubmit') }));
 
     await waitFor(() => {
-      expect(mockCreateUserMutate).toHaveBeenCalled();
+      expect(createMutate).toHaveBeenCalledWith(
+        {
+          email: 'new.test@ku.th',
+          studentId: 'new.test',
+          firstName: 'New',
+          lastName: 'Test User',
+          role: 'borrower',
+        },
+        expect.any(Object),
+      );
     });
   });
 
-  // ── TP-ADM-FE-05: Role & Status Badge Visual Rendering Rules ─────────────────
-  it('TP-ADM-FE-05: renders role and status badges with appropriate semantic tones', () => {
-    renderComponent();
+  it('requests a borrowing ban for the selected active account', () => {
+    renderPage();
+    openUser('Somsri Staff');
 
-    const activeBadges = screen.getAllByText(/ใช้งาน/i);
-    expect(activeBadges.length).toBeGreaterThan(0);
+    fireEvent.click(screen.getByRole('button', { name: t('admin.users.suspend') }));
 
-    const suspendedBadges = screen.getAllByText(/^ระงับ$/i);
-    expect(suspendedBadges.length).toBeGreaterThan(0);
+    expect(setUserBanMutate).toHaveBeenCalledWith(
+      { id: '2', banned: true },
+      expect.any(Object),
+    );
   });
 
-  // ── TP-ADM-FE-06: Filtered Account List CSV Export ───────────────────────────
-  it('TP-ADM-FE-06: triggers CSV download when export button is clicked', () => {
-    renderComponent();
+  it('requests account deactivation separately from a borrowing ban', () => {
+    renderPage();
+    openUser('Somsri Staff');
 
-    const exportBtn = screen.getByRole('button', { name: /ส่งออก/i });
-    expect(exportBtn).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: t('admin.users.deactivate') }));
 
-    // Mock URL.createObjectURL
-    const createObjectURLMock = vi.fn().mockReturnValue('blob:mock-url');
-    window.URL.createObjectURL = createObjectURLMock;
-
-    fireEvent.click(exportBtn);
-    expect(createObjectURLMock).toHaveBeenCalled();
+    expect(setUserActiveMutate).toHaveBeenCalledWith(
+      { id: '2', active: false },
+      expect.any(Object),
+    );
   });
 
-  // ── TP-ADM-FE-07: Loading State Display ──────────────────────────────────────
-  it('TP-ADM-FE-07: shows loading indicator when data is being fetched', () => {
-    vi.spyOn(useAdminUsersModule, 'useAdminUsers').mockReturnValue({
-      data: undefined,
-      isLoading: true,
-      isError: false,
-      error: null,
-      refetch: vi.fn(),
-    } as any);
+  it('requests a role change using the selected account ID and enum value', () => {
+    renderPage();
+    openUser('Somsri Staff');
 
-    renderComponent();
+    const roleSelect = screen.getAllByRole('combobox').at(-1)!;
+    fireEvent.click(roleSelect);
+    fireEvent.click(screen.getByRole('option', { name: t('nav.borrower') }));
 
-    // Table body should not render user data during loading
+    expect(changeRoleMutate).toHaveBeenCalledWith(
+      { id: '2', role: 'borrower' },
+      expect.any(Object),
+    );
+  });
+
+  it('shows a one-time password returned by a reset mutation', async () => {
+    resetPasswordMutate.mockImplementation((_input, options) => {
+      options.onSuccess({ ok: true, temporaryPassword: 'temporary-123' });
+    });
+    renderPage();
+    openUser('Somsri Staff');
+
+    fireEvent.click(screen.getByRole('button', { name: t('admin.users.resetPassword') }));
+
+    await waitFor(() => {
+      expect(screen.getByText(new RegExp(`temporary-123`))).toBeInTheDocument();
+    });
+    expect(resetPasswordMutate).toHaveBeenCalledWith({ id: '2' }, expect.any(Object));
+  });
+
+  it('keeps the panel open and surfaces a mutation error instead of claiming success', async () => {
+    resetPasswordMutate.mockImplementation((_input, options) => {
+      options.onError(new Error('Password reset is unavailable'));
+    });
+    renderPage();
+    openUser('Somsri Staff');
+
+    fireEvent.click(screen.getByRole('button', { name: t('admin.users.resetPassword') }));
+
+    await waitFor(() => {
+      expect(screen.getByText('Password reset is unavailable')).toBeInTheDocument();
+    });
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+  });
+
+  it('offers activation, not suspension, for a disabled account', () => {
+    renderPage();
+    openUser('Wichai Disabled');
+
+    expect(screen.getByRole('button', { name: t('admin.users.activate') })).not.toHaveProperty('disabled', true);
+    expect(screen.queryByRole('button', { name: t('admin.users.suspend') })).not.toBeInTheDocument();
+  });
+
+  it('exports only the currently filtered account rows', () => {
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => undefined);
+    renderPage();
+    fireEvent.change(screen.getByRole('textbox', { name: t('common.search') }), {
+      target: { value: 'Somsri' },
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: t('common.export') }));
+
+    expect(window.URL.createObjectURL).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'text/csv;charset=utf-8;' }),
+    );
+  });
+
+  it('renders an empty table without stale account rows while loading or after a query failure', () => {
+    vi.spyOn(adminUsersHooks, 'useAdminUsers').mockReturnValue({
+      data: undefined, isLoading: true, isError: false, error: null, refetch: vi.fn(),
+    } as never);
+    const { rerender } = renderPage();
     expect(screen.queryByText('Somchai Admin')).not.toBeInTheDocument();
-    expect(screen.queryByText('Somsri Staff')).not.toBeInTheDocument();
-  });
 
-  // ── TP-ADM-FE-08: Error State Display ────────────────────────────────────────
-  it('TP-ADM-FE-08: renders error feedback when data fetch fails', () => {
-    vi.spyOn(useAdminUsersModule, 'useAdminUsers').mockReturnValue({
-      data: undefined,
-      isLoading: false,
-      isError: true,
-      error: new Error('Network error'),
-      refetch: vi.fn(),
-    } as any);
-
-    renderComponent();
-
-    // Table should not render user data when in error state
+    vi.spyOn(adminUsersHooks, 'useAdminUsers').mockReturnValue({
+      data: undefined, isLoading: false, isError: true, error: new Error('Network error'), refetch: vi.fn(),
+    } as never);
+    rerender(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter>
+          <UsersPage />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
     expect(screen.queryByText('Somchai Admin')).not.toBeInTheDocument();
-    expect(screen.queryByText('Somsri Staff')).not.toBeInTheDocument();
   });
 });
