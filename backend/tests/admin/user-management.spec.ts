@@ -35,6 +35,9 @@ describe('AdminService user management', () => {
   const createdRoleKeys = new Set<number>();
   const createdUserKeys = new Set<number>();
   const createdTierKeys = new Set<number>();
+  const coverageGroupKeys = new Set<number>();
+  const coverageFacultyKeys = new Set<number>();
+  const coverageAuthorityRoleKeys = new Set<number>();
   let sequence = 0;
   const unique = (prefix: string) => `${prefix}.${Date.now()}.${++sequence}`;
 
@@ -65,6 +68,72 @@ describe('AdminService user management', () => {
     createdUserKeys.add(result.user.id);
     expect(createUserOutput.safeParse(result).success).toBe(true);
     return { input, result };
+  }
+
+  async function attachCoverageGroup(accountKey: number) {
+    const faculty = await prisma.facultyInfo.create({
+      data: { FacultyName: unique('user-management-faculty') },
+    });
+    coverageFacultyKeys.add(faculty.FacultyKey);
+
+    const group = await prisma.managementGroup.create({
+      data: { GroupType: 'Faculty' },
+    });
+    coverageGroupKeys.add(group.ManageGroupKey);
+
+    await prisma.branchInfo.create({
+      data: {
+        BranchName: 'User-management coverage fixture',
+        FacultyKey: faculty.FacultyKey,
+        ManageGroupKey: group.ManageGroupKey,
+      },
+    });
+
+    const authorityRole = await prisma.authorityRole.create({
+      data: { AuthorityName: unique('user-management-authority'), AuthorityLevel: 2 },
+    });
+    coverageAuthorityRoleKeys.add(authorityRole.AuthorityRoleKey);
+
+    await prisma.authority.create({
+      data: {
+        AccountKey: accountKey,
+        ManageGroupKey: group.ManageGroupKey,
+        AuthorityRoleKey: authorityRole.AuthorityRoleKey,
+      },
+    });
+
+    return group.ManageGroupKey;
+  }
+
+  async function removeCoverageGroups() {
+    const groupKeys = [...coverageGroupKeys];
+    const facultyKeys = [...coverageFacultyKeys];
+    const authorityRoleKeys = [...coverageAuthorityRoleKeys];
+    coverageGroupKeys.clear();
+    coverageFacultyKeys.clear();
+    coverageAuthorityRoleKeys.clear();
+
+    if (groupKeys.length > 0) {
+      await prisma.authority.deleteMany({
+        where: { ManageGroupKey: { in: groupKeys } },
+      });
+      await prisma.branchInfo.deleteMany({
+        where: { ManageGroupKey: { in: groupKeys } },
+      });
+      await prisma.managementGroup.deleteMany({
+        where: { ManageGroupKey: { in: groupKeys } },
+      });
+    }
+    if (authorityRoleKeys.length > 0) {
+      await prisma.authorityRole.deleteMany({
+        where: { AuthorityRoleKey: { in: authorityRoleKeys } },
+      });
+    }
+    if (facultyKeys.length > 0) {
+      await prisma.facultyInfo.deleteMany({
+        where: { FacultyKey: { in: facultyKeys } },
+      });
+    }
   }
 
   async function removeCreatedUsers() {
@@ -144,11 +213,13 @@ describe('AdminService user management', () => {
   }, 30_000);
 
   afterEach(async () => {
+    await removeCoverageGroups();
     await removeCreatedUsers();
   });
 
   afterAll(async () => {
     try {
+      await removeCoverageGroups();
       await removeCreatedUsers();
       const actorKeys = [seededAdminKey, seededStaffKey].filter(
         Number.isInteger,
@@ -297,6 +368,41 @@ describe('AdminService user management', () => {
     expect(updated.role).toBe('staff');
   });
 
+  it('refuses a role demotion that would orphan the user-management department', async () => {
+    const groupKey = await attachCoverageGroup(seededStaffKey);
+
+    const error = (await adminService
+      .changeRole({ id: seededStaffKey, role: 'borrower' }, adminActor)
+      .catch((value: unknown) => value)) as BusinessError;
+
+    expect(error).toBeInstanceOf(BusinessError);
+    expect(error.businessCode).toBe('ROLE_CHANGE_WOULD_ORPHAN_GROUP');
+    expect(error.details).toMatchObject({
+      accountKey: seededStaffKey,
+      from: 'staff',
+      to: 'borrower',
+      groups: [
+        expect.objectContaining({
+          manageGroupKey: groupKey,
+          groupName: 'User-management coverage fixture',
+          losing: 'staff',
+          openWork: {
+            pendingRequests: 0,
+            pendingExtensions: 0,
+            openLoans: 0,
+            openRepairs: 0,
+          },
+        }),
+      ],
+    });
+    expect(
+      (await prisma.accountInfo.findUnique({
+        where: { AccountKey: seededStaffKey },
+        select: { RoleKey: true },
+      }))?.RoleKey,
+    ).toBe(staffRoleKey);
+  });
+
   it('prevents an administrator from demoting themself', async () => {
     await expect(
       adminService.changeRole(
@@ -388,6 +494,28 @@ describe('AdminService user management', () => {
     await expect(
       adminService.setUserActive({ id: seededAdminKey, active: false }, adminActor),
     ).rejects.toMatchObject({ businessCode: 'CANNOT_MODIFY_SELF' });
+  });
+
+  it('refuses disabling the last staff member of the user-management department', async () => {
+    const groupKey = await attachCoverageGroup(seededStaffKey);
+
+    const error = (await adminService
+      .setUserActive({ id: seededStaffKey, active: false }, adminActor)
+      .catch((value: unknown) => value)) as BusinessError;
+
+    expect(error).toBeInstanceOf(BusinessError);
+    expect(error.businessCode).toBe('DISABLE_WOULD_ORPHAN_GROUP');
+    expect(error.details).toMatchObject({
+      accountKey: seededStaffKey,
+      from: 'staff',
+      groups: [expect.objectContaining({ manageGroupKey: groupKey, losing: 'staff' })],
+    });
+    expect(
+      (await prisma.accountInfo.findUnique({
+        where: { AccountKey: seededStaffKey },
+        select: { IsActive: true },
+      }))?.IsActive,
+    ).toBe(true);
   });
 
   it('disables and re-enables another account without treating it as a borrowing ban', async () => {

@@ -7,8 +7,10 @@ import UsersPage from '../../src/features/admin/users/users-page';
 import { DEPARTMENTS, type AdminUser } from '../../src/features/admin/mock-data';
 import * as adminUsersHooks from '../../src/features/admin/users/use-admin-users';
 
+const useAuditEventsMock = vi.hoisted(() => vi.fn());
+
 vi.mock('../../src/features/admin/audit/use-audit-events', () => ({
-  useAuditEvents: () => ({ data: [] }),
+  useAuditEvents: useAuditEventsMock,
 }));
 
 /** UI-model fixtures: API numeric IDs are intentionally adapted to strings. */
@@ -61,6 +63,7 @@ describe('Admin users page', () => {
   beforeEach(() => {
     queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     vi.clearAllMocks();
+    useAuditEventsMock.mockReturnValue({ data: [] });
     vi.spyOn(adminUsersHooks, 'useAdminUsers').mockReturnValue({
       data: USERS, isLoading: false, isError: false, error: null, refetch: vi.fn(),
     } as never);
@@ -129,6 +132,39 @@ describe('Admin users page', () => {
       }),
     );
     expect(screen.getByText('Somsak Student')).toBeInTheDocument();
+  });
+
+  it('renders the most-active-users chart from the live audit event list', () => {
+    useAuditEventsMock.mockReturnValue({
+      data: [
+        {
+          id: 'audit-1',
+          at: '2026-09-01T10:00:00Z',
+          actorName: 'Somsri Staff',
+          actorRole: 'staff',
+          action: 'login',
+          target: 'account/2',
+          ip: '-',
+          userAgent: '-',
+          detail: 'Signed in',
+        },
+        {
+          id: 'audit-2',
+          at: '2026-09-01T11:00:00Z',
+          actorName: 'Somsri Staff',
+          actorRole: 'staff',
+          action: 'update',
+          target: 'account/3',
+          ip: '-',
+          userAgent: '-',
+          detail: 'Updated account',
+        },
+      ],
+    });
+    renderPage();
+
+    expect(screen.getByText(t('admin.charts.topUsers'))).toBeInTheDocument();
+    expect(screen.getByText('Somsri Staff')).toBeInTheDocument();
   });
 
   it('keeps required create fields disabled and supports department and auth selections', () => {
@@ -274,6 +310,86 @@ describe('Admin users page', () => {
       expect(screen.getByText('CANNOT_MODIFY_SELF')).toBeInTheDocument();
     });
     expect(screen.getByRole('dialog')).toBeInTheDocument();
+  });
+
+  it('explains which department blocks a role demotion and includes queued work', async () => {
+    changeRoleMutate.mockImplementation((_input, options) => {
+      options.onError({
+        data: {
+          businessCode: 'ROLE_CHANGE_WOULD_ORPHAN_GROUP',
+          details: {
+            groups: [
+              {
+                manageGroupKey: 4,
+                groupName: 'Computer Engineering',
+                losing: 'staff',
+                openWork: {
+                  pendingRequests: 3,
+                  pendingExtensions: 1,
+                  openLoans: 5,
+                  openRepairs: 2,
+                },
+              },
+            ],
+          },
+        },
+      });
+    });
+    renderPage();
+    openUser('Somsri Staff');
+
+    const roleSelect = screen.getAllByRole('combobox').at(-1)!;
+    fireEvent.click(roleSelect);
+    fireEvent.click(screen.getByRole('option', { name: t('nav.borrower') }));
+
+    await waitFor(() => {
+      expect(
+        screen.getByText(
+          `${i18n.t('admin.users.roleChangeBlocked', { groups: 'Computer Engineering' })} ${i18n.t(
+            'admin.users.roleChangeBlockedWork',
+            { requests: 3, extensions: 1, loans: 5, repairs: 2 },
+          )}`,
+        ),
+      ).toBeInTheDocument();
+    });
+  });
+
+  it('explains which department blocks account deactivation without showing role-change text', async () => {
+    setUserActiveMutate.mockImplementation((_input, options) => {
+      options.onError({
+        data: {
+          businessCode: 'DISABLE_WOULD_ORPHAN_GROUP',
+          details: {
+            groups: [
+              {
+                manageGroupKey: 9,
+                groupName: 'Electrical Engineering',
+                losing: 'staff',
+                openWork: {
+                  pendingRequests: 0,
+                  pendingExtensions: 0,
+                  openLoans: 0,
+                  openRepairs: 0,
+                },
+              },
+            ],
+          },
+        },
+      });
+    });
+    renderPage();
+    openUser('Somsri Staff');
+
+    fireEvent.click(screen.getByRole('button', { name: t('admin.users.deactivate') }));
+
+    await waitFor(() => {
+      expect(
+        screen.getByText(
+          i18n.t('admin.users.disableBlocked', { groups: 'Electrical Engineering' }),
+        ),
+      ).toBeInTheDocument();
+    });
+    expect(screen.queryByText(t('admin.users.roleChangeBlocked'))).not.toBeInTheDocument();
   });
 
   it('offers activation, not suspension, for a disabled account', () => {
