@@ -5,7 +5,7 @@ import { Camera, Check, TriangleAlert } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { Badge, type BadgeTone } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ROUTES, UPLOAD } from "@/constants";
+import { BUSINESS, ROUTES, UPLOAD } from "@/constants";
 import { cn } from "@/lib/utils";
 import { uploadAcceptAttr, validateUploadFile } from "@/lib/upload-validation";
 import { TIME_SLOTS, type MyRequest } from "../mock-data";
@@ -128,7 +128,9 @@ function BookingCard({ row }: { row: MyRequest }) {
         <Field label={t("borrower.roomUse.dateCol")}>{fmtDayMonth(row.startDate)}</Field>
         <Field label={t("borrower.roomUse.timeCol")}>{timeLabel}</Field>
         <Field label={t("borrower.roomUse.totalCol")}>
-          {t("borrower.roomUse.hours", { count: slots.length })}
+          {t("borrower.roomUse.hours", {
+            count: (slots.length * BUSINESS.ROOM_SLOT_MINUTES) / 60,
+          })}
         </Field>
       </div>
 
