@@ -92,22 +92,27 @@ export default function AdminStatusPage() {
             {!jobs ? (
               <div className="px-3.5 py-6 text-center text-sm text-t3">{t("common.loading")}</div>
             ) : (
-              <table className="w-full border-collapse text-[13px]">
-                <thead>
-                  <tr className="bg-secondary">
-                    <Th>{t("admin.status.colJob")}</Th>
-                    <Th>{t("admin.status.colSchedule")}</Th>
-                    <Th>{t("admin.status.colLastRun")}</Th>
-                    <Th>{t("common.status")}</Th>
-                    <Th />
-                  </tr>
-                </thead>
-                <tbody>
-                  {jobs.map((job) => (
-                    <JobRow key={job.id} job={job} />
-                  ))}
-                </tbody>
-              </table>
+              // The section clips, so the table needs its own scroller: five
+              // columns ending in a status badge and the Run now button do not
+              // fit a phone, and without this they are cut off unreachably.
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[36rem] border-collapse text-[13px]">
+                  <thead>
+                    <tr className="bg-secondary">
+                      <Th>{t("admin.status.colJob")}</Th>
+                      <Th>{t("admin.status.colSchedule")}</Th>
+                      <Th>{t("admin.status.colLastRun")}</Th>
+                      <Th>{t("common.status")}</Th>
+                      <Th />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {jobs.map((job) => (
+                      <JobRow key={job.id} job={job} />
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
           </section>
         </>

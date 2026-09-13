@@ -110,10 +110,13 @@ export default {
         lg: "8px",
       },
       fontFamily: {
-        // Prompt is the ULMs UI font (reference HTML); JetBrains Mono for numerics.
+        // Prompt is the ULMs UI font (reference HTML); Roboto Mono for numerics -
+        // chosen because its zero is a plain oval. Fonts that slash or dot the
+        // zero (JetBrains Mono, Source Code Pro) put a stroke through the middle
+        // that reads as an 8 at the 12-13px these values are shown at.
         sans: ["Prompt", "Inter", "system-ui", "sans-serif"],
         prompt: ["Prompt", "Inter", "system-ui", "sans-serif"],
-        mono: ["JetBrains Mono", "ui-monospace", "monospace"],
+        mono: ["Roboto Mono", "ui-monospace", "monospace"],
       },
       fontSize: {
         // จาก type scale ใน mockup

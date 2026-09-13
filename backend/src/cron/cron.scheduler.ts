@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { CronService } from './cron.service';
+import { APP_TIME_ZONE } from '../common/schemas/datetime.schema';
 
 /**
  * The clock. Separated from CronService so the jobs can be tested, and run by
@@ -16,32 +17,43 @@ import { CronService } from './cron.service';
  * entirely in AppModule rather than guarded inside each handler, so a test
  * suite never has a timer pointing at its database.
  */
+
+/**
+ * Passed to every decorator below.
+ *
+ * Named once rather than repeated: the failure mode this guards against is a
+ * sixth job being added without it, which nothing would report - the job would
+ * register, fire, and log successfully, seven hours from where it was meant to.
+ * cron.scheduler.spec.ts asserts that every scheduled method carries it.
+ */
+const SCHEDULE = { timeZone: APP_TIME_ZONE } as const;
+
 @Injectable()
 export class CronScheduler {
   constructor(private readonly jobs: CronService) {}
 
-  @Cron('1 0 * * *')
+  @Cron('1 0 * * *', SCHEDULE)
   markOverdue() {
     return this.jobs.runScheduled('markOverdue');
   }
 
-  @Cron('15 0 * * *')
+  @Cron('15 0 * * *', SCHEDULE)
   markLost() {
     return this.jobs.runScheduled('markLost');
   }
 
-  @Cron('0 1 * * *')
+  @Cron('0 1 * * *', SCHEDULE)
   expireDemerits() {
     return this.jobs.runScheduled('expireDemerits');
   }
 
-  @Cron('0 8 * * *')
+  @Cron('0 8 * * *', SCHEDULE)
   dueSoonReminder() {
     return this.jobs.runScheduled('dueSoonReminder');
   }
 
   /** Hourly: a unit nobody collected is a unit nobody else can borrow. */
-  @Cron('0 * * * *')
+  @Cron('0 * * * *', SCHEDULE)
   expireStaleRequests() {
     return this.jobs.runScheduled('expireStaleRequests');
   }

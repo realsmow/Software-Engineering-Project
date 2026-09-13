@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600;700&family=Roboto+Mono:wght@400;500;600&display=swap");
 
 @tailwind base;
 @tailwind components;
@@ -12,7 +12,7 @@
 @layer base {
   :root {
     --font-ui: "Prompt", system-ui, -apple-system, sans-serif;
-    --font-mono: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+    --font-mono: "Roboto Mono", ui-monospace, Menlo, Consolas, monospace;
 
     --accent: #0e7a46;
     --accent-h: #0a5c36;
@@ -198,6 +198,10 @@
     font-weight: 400;
     font-size: 14px;
     line-height: 1.55;
+    /* Tabular figures only. Do not add "zero" here: that asks the font for a
+       slashed zero, and a stroke through the middle is exactly what made 0 read
+       as an 8 at 12-13px. Roboto Mono's zero is a plain oval on purpose. */
+    font-feature-settings: "tnum" 1;
     -webkit-font-smoothing: antialiased;
   }
 
@@ -655,6 +659,18 @@ body.dark .login-left {
   font-size: 11px;
   color: var(--s-t4);
   font-family: var(--font-mono);
+}
+/* The help entry in the footer is a button, because it opens a dialog rather
+   than navigating. Stripped back to match the plain anchors beside it. */
+.login-footer-link {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 .chip-btn {
   display: inline-flex;

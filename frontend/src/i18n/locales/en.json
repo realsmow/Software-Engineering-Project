@@ -109,8 +109,6 @@
     "username": "Username",
     "usernamePlaceholder": "Username assigned by your administrator",
     "rememberMe": "Remember me",
-    "forgotPassword": "Forgot password?",
-    "contactAdmin": "Contact admin",
     "showPassword": "Show",
     "hidePassword": "Hide",
     "signInWithKuMail": "Sign in with KU email",
@@ -120,8 +118,13 @@
     "heroDesc": "For students, faculty, and department staff to borrow and return equipment, lab instruments, and to book laboratory spaces across the faculty.",
     "termsOfUse": "Terms of use",
     "privacyPolicy": "Privacy policy",
-    "contactSupport": "Contact support",
-    "invalidCredentials": "Incorrect username or password"
+    "invalidCredentials": "Incorrect username or password",
+    "signinHelp": "Need help signing in?",
+    "signinHelpTitle": "Getting back into your account",
+    "signinHelpIntro": "There is no self-service password reset. This system does not send email, so a person has to reset it for you.",
+    "signinHelpKu": "Ask the staff of the department that issued your account to reset your password.",
+    "signinHelpLocal": "Your department admin created this account and can reset it.",
+    "signinHelpTemp": "You will be given a temporary password, shown once. Change it from your profile after you sign in."
   },
   "nav": {
     "borrower": "Borrower",
@@ -232,7 +235,10 @@
       "statDisabled": "Disabled",
       "suspend": "Suspend",
       "liftSuspension": "Lift suspension",
-      "tempPassword": "Temporary password"
+      "tempPassword": "Temporary password",
+      "roleChangeBlocked": "Cannot change this role: {{groups}} would be left with no one who can run it. Give someone else authority there first.",
+      "roleChangeBlockedWork": "Waiting there now: {{requests}} request(s), {{extensions}} extension(s), {{loans}} loan(s), {{repairs}} repair(s).",
+      "disableBlocked": "Cannot disable this account: {{groups}} would be left with no one who can run it. Give someone else authority there first."
     },
     "status": {
       "title": "System status",
@@ -405,30 +411,6 @@
       "mostBorrowed": "Most borrowed",
       "noBorrowing": "Nothing has been borrowed in this scope yet"
     },
-    "charts": {
-      "systemHealth": "System health (last 24h)",
-      "latency": "Latency",
-      "errorRate": "Error rate",
-      "cronRuns": "Cron runs (last 7 days)",
-      "success": "Success",
-      "failed": "Failed",
-      "avgDuration": "Avg duration",
-      "byHour": "By hour",
-      "byType": "By type",
-      "byRole": "By role",
-      "peak": "Peak {{hour}}",
-      "auditActivity": "Audit activity",
-      "activityByRole": "Activity by role (last 7 days)",
-      "topUsers": "Most active users",
-      "actions": "Actions",
-      "events": "Events",
-      "loansByDept": "Loans by department",
-      "loanTrend": "Loan trend (semester)",
-      "loans": "Loans",
-      "returns": "Returns",
-      "overdue": "Overdue",
-      "utilByDept": "Utilization by department"
-    },
     "overview": {
       "subtitle": "System state and the record of what changed. Every figure here is read from the server.",
       "records": "Records held",
@@ -440,6 +422,16 @@
       "openAudit": "View all",
       "noActivity": "Nothing has been recorded yet",
       "noChanges": "No configuration or account changes recorded yet. Sign-ins are in the full log."
+    },
+    "charts": {
+      "auditActivity": "Audit activity",
+      "peak": "Peak {{hour}}",
+      "byHour": "By hour",
+      "byType": "By type",
+      "byRole": "By role",
+      "topUsers": "Most active users",
+      "actions": "Actions",
+      "events": "Events"
     }
   },
   "borrower": {

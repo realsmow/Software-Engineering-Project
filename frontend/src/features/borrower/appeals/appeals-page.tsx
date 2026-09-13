@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
+import { fmtDayMonth } from "@/lib/datetime";
 import { useSearchParams } from "react-router-dom";
-import { format, parseISO } from "date-fns";
-import { th } from "date-fns/locale";
 import { Camera, Check, TriangleAlert } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { Badge, type BadgeTone } from "@/components/ui/badge";
@@ -382,5 +381,5 @@ function cutOf(row: MyRequest): number {
 }
 
 function fmtDay(iso: string): string {
-  return format(parseISO(iso), "d MMM", { locale: th });
+  return fmtDayMonth(iso);
 }

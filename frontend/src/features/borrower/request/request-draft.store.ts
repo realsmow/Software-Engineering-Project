@@ -1,6 +1,6 @@
 import type { Tier } from "@/types/domain";
 import { create } from "zustand";
-import { addDays, format } from "date-fns";
+import { toLocalDayKey, todayLocalDayKey } from "@/lib/datetime";
 
 /**
  * The borrower's in-progress loan request ("cart").
@@ -98,12 +98,19 @@ export function remainingUnits(
   return Math.max(0, item.availableUnits - qty);
 }
 
+/**
+ * Today, and today plus N, as the counter reckons them.
+ *
+ * `format(new Date(), "yyyy-MM-dd")` answers in the *browser's* timezone. A
+ * borrower on a laptop still set to somewhere west of Bangkok would be offered
+ * yesterday as the earliest pickup date, and the server would reject it.
+ */
 export function todayIso(): string {
-  return format(new Date(), "yyyy-MM-dd");
+  return todayLocalDayKey();
 }
 
 export function isoOffset(days: number): string {
-  return format(addDays(new Date(), days), "yyyy-MM-dd");
+  return toLocalDayKey(new Date(Date.now() + days * 86_400_000));
 }
 
 export const useRequestDraft = create<RequestDraftState>((set) => ({

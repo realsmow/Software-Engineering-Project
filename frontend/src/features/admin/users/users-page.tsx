@@ -21,7 +21,6 @@ import { ChartTooltip, CHART_SERIES, axisProps, gridProps } from "@/components/u
 import type { Role } from "@/types/domain";
 import {
   FACULTIES,
-  TOP_ACTIVE_USERS,
   departmentsByFaculty,
   deptName,
   initials,
@@ -30,6 +29,8 @@ import {
   type AuthMethod,
 } from "../mock-data";
 import { fmtDate, fmtDateTime } from "../format";
+import { useAuditEvents } from "../audit/use-audit-events";
+import { topActors } from "../audit/audit-stats";
 import {
   useAdminUsers,
   useChangeRole,
@@ -50,6 +51,47 @@ import {
 function mutationMessage(error: unknown): string {
   const code = error instanceof Error ? error.message : String(error);
   return code.split("\n")[0];
+}
+
+/** One department the refused role change would have left uncovered. */
+interface OrphanedGroup {
+  manageGroupKey: number;
+  groupName: string | null;
+  losing: "staff" | "supervisor";
+  openWork: {
+    pendingRequests: number;
+    pendingExtensions: number;
+    openLoans: number;
+    openRepairs: number;
+  };
+}
+
+/**
+ * Pulls the groups out of a ROLE_CHANGE_WOULD_ORPHAN_GROUP refusal.
+ *
+ * The backend refuses a demotion that would leave a ManagementGroup with
+ * nobody able to run it, and puts the affected groups plus the work still open
+ * in them on the wire (formatTrpcError copies BusinessError.details into
+ * `data.details`). Reading it is the difference between "the move was refused"
+ * and "these departments are about to have nobody, and this much is queued in
+ * them" - only the second tells the admin what to fix.
+ */
+/**
+ * Demoting someone and disabling them strand a department the same way, so the
+ * server raises two codes with one payload shape. The code is carried out with
+ * the groups because only it knows which sentence to open with.
+ */
+type OrphanCode = "ROLE_CHANGE_WOULD_ORPHAN_GROUP" | "DISABLE_WOULD_ORPHAN_GROUP";
+
+function orphanedGroups(error: unknown): { code: OrphanCode; groups: OrphanedGroup[] } | null {
+  if (!error || typeof error !== "object") return null;
+  const data = (error as { data?: { businessCode?: string; details?: unknown } }).data;
+  const code = data?.businessCode;
+  if (code !== "ROLE_CHANGE_WOULD_ORPHAN_GROUP" && code !== "DISABLE_WOULD_ORPHAN_GROUP") {
+    return null;
+  }
+  const groups = (data?.details as { groups?: unknown } | undefined)?.groups;
+  return Array.isArray(groups) ? { code, groups: groups as OrphanedGroup[] } : null;
 }
 
 /**
@@ -168,6 +210,12 @@ export default function AdminUsersPage() {
   // Transient "…sent" confirmation shown in the detail slide-over.
   const [notice, setNotice] = useState<string | null>(null);
 
+  // Who is actually doing things, counted from the audit trail. This used to
+  // be a hand-written TOP_ACTIVE_USERS array, so the bars were invented while
+  // the table beside them was real.
+  const { data: auditEvents = [] } = useAuditEvents();
+  const busiest = useMemo(() => topActors(auditEvents), [auditEvents]);
+
   // Status counts for the quick-filter stat strip (whole dataset, not filtered).
   const counts = useMemo(() => {
     const c = { all: users.length, active: 0, suspended: 0, disabled: 0 };
@@ -203,7 +251,7 @@ export default function AdminUsersPage() {
       { id, active },
       {
         onSuccess: () => setSelected(null),
-        onError: (e) => setNotice(mutationMessage(e)),
+        onError: (e) => setNotice(coverageMessage(e)),
       },
     );
   };
@@ -216,12 +264,50 @@ export default function AdminUsersPage() {
       },
     );
   };
+  /**
+   * A refusal that would strand a department is the one error on this page
+   * that has to say more than "no": the admin needs the department names to
+   * know who to give authority to before retrying, so those are read off the
+   * payload rather than leaving the bare business code on screen. Raised by
+   * both the role change and the disable button.
+   */
+  const coverageMessage = (error: unknown): string => {
+    const payload = orphanedGroups(error);
+    if (payload === null) return mutationMessage(error);
+    const { code, groups } = payload;
+
+    const names = groups
+      .map((group) => group.groupName ?? `#${group.manageGroupKey}`)
+      .join(", ");
+    const work = groups.reduce(
+      (total, group) => ({
+        requests: total.requests + group.openWork.pendingRequests,
+        extensions: total.extensions + group.openWork.pendingExtensions,
+        loans: total.loans + group.openWork.openLoans,
+        repairs: total.repairs + group.openWork.openRepairs,
+      }),
+      { requests: 0, extensions: 0, loans: 0, repairs: 0 },
+    );
+    const blocked = t(
+      code === "DISABLE_WOULD_ORPHAN_GROUP"
+        ? "admin.users.disableBlocked"
+        : "admin.users.roleChangeBlocked",
+      { groups: names },
+    );
+
+    // A department with nothing queued is still being left uncovered, but the
+    // second sentence would read as four zeros, so it is only added when there
+    // is something actually waiting.
+    const hasWork = Object.values(work).some((count) => count > 0);
+    return hasWork ? `${blocked} ${t("admin.users.roleChangeBlockedWork", work)}` : blocked;
+  };
+
   const setRole = (id: string, role: Role) => {
     changeRole.mutate(
       { id, role },
       {
         onSuccess: () => setSelected((prev) => (prev && prev.id === id ? { ...prev, role } : prev)),
-        onError: (e) => setNotice(mutationMessage(e)),
+        onError: (e) => setNotice(coverageMessage(e)),
       },
     );
   };
@@ -433,40 +519,41 @@ export default function AdminUsersPage() {
         rangeLabel={(s, e, total) => t("table.range", { start: s, end: e, total })}
       />
 
-      <div className="mt-4">
-        <ChartCard title={t("admin.charts.topUsers")} height={260}>
-          <BarChart
-            data={TOP_ACTIVE_USERS}
-            layout="vertical"
-            margin={{ top: 6, right: 16, left: 8, bottom: 0 }}
-          >
-            <CartesianGrid {...gridProps} horizontal={false} vertical />
-            <XAxis type="number" {...axisProps} allowDecimals={false} />
-            <YAxis
-              type="category"
-              dataKey="name"
-              width={150}
-              {...axisProps}
-              tick={{ fill: "var(--s-t3)", fontSize: 11 }}
-            />
-            <Tooltip content={<ChartTooltip unit={` ${t("admin.charts.actions")}`} />} cursor={{ fill: "var(--s-inset)", opacity: 0.5 }} />
-            {/*
-              One series, one colour. These bars used to cycle through the
-              categorical palette by role, which made a single "actions" metric
-              read as six unrelated things - and the role is already spelled out
-              in the axis label beside each bar, so the colour carried nothing
-              the reader did not already have.
-            */}
-            <Bar
-              dataKey="actions"
-              name={t("admin.charts.actions")}
-              radius={[0, 3, 3, 0]}
-              maxBarSize={22}
-              fill={CHART_SERIES[0]}
-            />
-          </BarChart>
-        </ChartCard>
-      </div>
+      {busiest.length > 0 && (
+        <div className="mt-4">
+          <ChartCard title={t("admin.charts.topUsers")} height={260}>
+            <BarChart
+              data={busiest}
+              layout="vertical"
+              margin={{ top: 6, right: 16, left: 8, bottom: 0 }}
+            >
+              <CartesianGrid {...gridProps} horizontal={false} vertical />
+              <XAxis type="number" {...axisProps} allowDecimals={false} />
+              <YAxis
+                type="category"
+                dataKey="name"
+                width={150}
+                {...axisProps}
+                tick={{ fill: "var(--s-t3)", fontSize: 11 }}
+              />
+              <Tooltip content={<ChartTooltip unit={` ${t("admin.charts.actions")}`} />} cursor={{ fill: "var(--s-inset)", opacity: 0.5 }} />
+              {/*
+                One series, one colour. These bars used to cycle through the
+                categorical palette by role, which made a single "actions" metric
+                read as six unrelated things - and the name is already spelled out
+                in the axis label beside each bar.
+              */}
+              <Bar
+                dataKey="actions"
+                name={t("admin.charts.actions")}
+                radius={[0, 3, 3, 0]}
+                maxBarSize={22}
+                fill={CHART_SERIES[0]}
+              />
+            </BarChart>
+          </ChartCard>
+        </div>
+      )}
 
       {/* Detail slide-over */}
       <SlideOver

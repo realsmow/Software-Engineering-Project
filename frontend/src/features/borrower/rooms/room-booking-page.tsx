@@ -1,13 +1,12 @@
 import { useMemo, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
-import { format } from "date-fns";
-import { th } from "date-fns/locale";
 import { Building2, Check, TriangleAlert } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { BUSINESS, ROUTES } from "@/constants";
+import { fmtDate, todayLocalDayKey } from "@/lib/datetime";
 import { cn } from "@/lib/utils";
 import {
   ROOM_TYPES,
@@ -407,12 +406,12 @@ function SumRow({
   );
 }
 
+/** Today at the counter. A browser west of Bangkok would otherwise offer yesterday. */
 function todayIso(): string {
-  return format(new Date(), "yyyy-MM-dd");
+  return todayLocalDayKey();
 }
 
-/** "12 ส.ค. 2569" - the booking date, spelled out for the summary. */
+/** "12 ส.ค. 2569" / "12 Aug 2026" - the booking date, spelled out for the summary. */
 function fmtToday(): string {
-  const now = new Date();
-  return `${format(now, "d MMM", { locale: th })} ${now.getFullYear() + 543}`;
+  return fmtDate(new Date());
 }

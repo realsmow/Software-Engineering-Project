@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState, type ChangeEvent, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
-import { parseISO } from "date-fns";
 import { Camera, Check, TriangleAlert } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { Badge, type BadgeTone } from "@/components/ui/badge";
@@ -126,7 +125,7 @@ function BookingCard({ row }: { row: MyRequest }) {
       </header>
 
       <div className="grid gap-3 border-b border-border px-4 py-3 [grid-template-columns:repeat(auto-fit,minmax(150px,1fr))]">
-        <Field label={t("borrower.roomUse.dateCol")}>{fmtDayMonth(parseISO(row.startDate))}</Field>
+        <Field label={t("borrower.roomUse.dateCol")}>{fmtDayMonth(row.startDate)}</Field>
         <Field label={t("borrower.roomUse.timeCol")}>{timeLabel}</Field>
         <Field label={t("borrower.roomUse.totalCol")}>
           {t("borrower.roomUse.hours", { count: slots.length })}

@@ -28,15 +28,16 @@ import { ChartCard } from "@/components/ui/chart-card";
 import { Segmented } from "@/components/ui/segmented";
 import { ChartTooltip, CHART_COLOR, CHART_SERIES, axisProps, gridProps } from "@/components/ui/chart-kit";
 import {
-  ACTIVITY_BY_ROLE,
-  AUDIT_BY_ACTION,
-  AUDIT_BY_HOUR,
   type AuditAction,
   type AuditEvent,
 } from "../mock-data";
 import { useAuditEvents } from "./use-audit-events";
+import { activityByRole, eventsByAction, eventsByHour, ROLE_KEYS } from "./audit-stats";
 import { fmtDateTime, fmtDayShort, fmtHour } from "../format";
+import { fmtTime } from "@/lib/datetime";
 import type { Role } from "@/types/domain";
+
+type AuditView = "hour" | "type" | "role";
 
 const ACTIONS: AuditAction[] = ["login", "create", "update", "delete", "role", "config"];
 
@@ -56,9 +57,7 @@ const ROLE_TONE: Record<Role, BadgeTone> = {
   admin: "ok",
 };
 
-type AuditView = "hour" | "type" | "role";
 type TimeRange = "all" | "24h" | "7d";
-const ROLE_KEYS: Role[] = ["borrower", "staff", "supervisor", "admin"];
 const RANGE_MS: Record<Exclude<TimeRange, "all">, number> = {
   "24h": 24 * 60 * 60 * 1000,
   "7d": 7 * 24 * 60 * 60 * 1000,
@@ -70,13 +69,24 @@ export default function AdminAuditPage() {
   const [action, setAction] = useState<AuditAction | "all">("all");
   const [range, setRange] = useState<TimeRange>("all");
   const [selected, setSelected] = useState<AuditEvent | null>(null);
-  const [view, setView] = useState<AuditView>("hour");
   // Bumped by the Refresh button; also the reference "now" for relative ranges.
   const [refreshedAt, setRefreshedAt] = useState(() => Date.now());
 
+  const [view, setView] = useState<AuditView>("hour");
+
   const { data: events = [], refetch } = useAuditEvents();
 
-  const peakEvents = useMemo(() => Math.max(...AUDIT_BY_HOUR.map((h) => h.events)), []);
+  // Counted from the whole fetched window, not from `rows`: the filter
+  // controls below narrow the table, and a chart that silently followed them
+  // would contradict the heading above it.
+  const byHour = useMemo(() => eventsByHour(events), [events]);
+  const byAction = useMemo(() => eventsByAction(events), [events]);
+  const byRole = useMemo(() => activityByRole(events), [events]);
+  const peakEvents = useMemo(
+    () => byHour.reduce((max, h) => Math.max(max, h.events), 0),
+    [byHour],
+  );
+
 
   const rows = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -95,7 +105,7 @@ export default function AdminAuditPage() {
   }, [events, query, action, range, refreshedAt]);
 
   const lastUpdated = useMemo(
-    () => new Date(refreshedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+    () => fmtTime(new Date(refreshedAt)),
     [refreshedAt],
   );
 
@@ -166,7 +176,13 @@ export default function AdminAuditPage() {
       <div className="mb-4">
         <ChartCard
           title={t("admin.charts.auditActivity")}
-          subtitle={view === "hour" ? t("admin.charts.peak", { hour: fmtHour(AUDIT_BY_HOUR.find((h) => h.events === peakEvents)!.hour) }) : undefined}
+          subtitle={
+            peakEvents > 0
+              ? t("admin.charts.peak", {
+                  hour: fmtHour(byHour.find((h) => h.events === peakEvents)!.hour),
+                })
+              : undefined
+          }
           height={260}
           actions={
             <Segmented<AuditView>
@@ -181,7 +197,7 @@ export default function AdminAuditPage() {
           }
         >
           {view === "hour" ? (
-            <BarChart data={AUDIT_BY_HOUR} margin={{ top: 6, right: 8, left: -8, bottom: 0 }}>
+            <BarChart data={byHour} margin={{ top: 6, right: 8, left: -8, bottom: 0 }}>
               <CartesianGrid {...gridProps} />
               <XAxis dataKey="hour" tickFormatter={(h) => fmtHour(h as number)} interval={1} {...axisProps} />
               <YAxis {...axisProps} width={40} allowDecimals={false} />
@@ -190,13 +206,16 @@ export default function AdminAuditPage() {
                 cursor={{ fill: "var(--s-inset)", opacity: 0.5 }}
               />
               <Bar dataKey="events" name={t("admin.charts.events")} radius={[3, 3, 0, 0]} maxBarSize={22}>
-                {AUDIT_BY_HOUR.map((h) => (
-                  <Cell key={h.hour} fill={h.events === peakEvents ? CHART_COLOR.highlight : CHART_COLOR.accent} />
+                {byHour.map((h) => (
+                  <Cell
+                    key={h.hour}
+                    fill={h.events === peakEvents && peakEvents > 0 ? CHART_COLOR.highlight : CHART_COLOR.accent}
+                  />
                 ))}
               </Bar>
             </BarChart>
           ) : view === "type" ? (
-            <BarChart data={AUDIT_BY_ACTION} margin={{ top: 6, right: 8, left: -8, bottom: 0 }}>
+            <BarChart data={byAction} margin={{ top: 6, right: 8, left: -8, bottom: 0 }}>
               <CartesianGrid {...gridProps} />
               <XAxis
                 dataKey="action"
@@ -209,13 +228,13 @@ export default function AdminAuditPage() {
                 cursor={{ fill: "var(--s-inset)", opacity: 0.5 }}
               />
               <Bar dataKey="count" name={t("admin.charts.events")} radius={[3, 3, 0, 0]} maxBarSize={48}>
-                {AUDIT_BY_ACTION.map((_, i) => (
-                  <Cell key={i} fill={CHART_SERIES[i % CHART_SERIES.length]} />
+                {byAction.map((a) => (
+                  <Cell key={a.action} fill={CHART_SERIES[ACTIONS.indexOf(a.action) % CHART_SERIES.length]} />
                 ))}
               </Bar>
             </BarChart>
           ) : (
-            <BarChart data={ACTIVITY_BY_ROLE} margin={{ top: 6, right: 8, left: -8, bottom: 0 }}>
+            <BarChart data={byRole} margin={{ top: 6, right: 8, left: -8, bottom: 0 }}>
               <CartesianGrid {...gridProps} />
               <XAxis dataKey="date" tickFormatter={(d) => fmtDayShort(d as string)} {...axisProps} />
               <YAxis {...axisProps} width={44} allowDecimals={false} />
