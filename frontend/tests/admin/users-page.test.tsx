@@ -7,6 +7,10 @@ import UsersPage from '../../src/features/admin/users/users-page';
 import { DEPARTMENTS, type AdminUser } from '../../src/features/admin/mock-data';
 import * as adminUsersHooks from '../../src/features/admin/users/use-admin-users';
 
+vi.mock('../../src/features/admin/audit/use-audit-events', () => ({
+  useAuditEvents: () => ({ data: [] }),
+}));
+
 /** UI-model fixtures: API numeric IDs are intentionally adapted to strings. */
 const USERS: AdminUser[] = [
   {
