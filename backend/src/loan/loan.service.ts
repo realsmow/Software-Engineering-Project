@@ -455,6 +455,8 @@ export class LoanService {
    * so settling it now means a busy counter can take the item, free the
    * borrower, and grade the damage later without the penalty drifting by a day
    * in the meantime.
+   *
+   * Unless the nightly job got there first - see `alreadyCharged` below.
    */
   async recordReturn(user: TrpcUser, input: RecordReturnInput) {
     const usage = await this.readUsage(input.usageKey);
@@ -468,6 +470,30 @@ export class LoanService {
       this.creditWeightOf(usage.Resource),
       overdueDays,
     );
+
+    /**
+     * Lateness this loan has already been billed for.
+     *
+     * The `markOverdue` job charges loans that are past due while they are
+     * still out, so by the time an item reaches the counter the borrower may
+     * already have paid for it. CronService carries the matching guard - it
+     * skips any loan holding a ReturnLate penalty - and states that the guard
+     * has to exist on both sides. It did not: without this check a borrower
+     * who was charged last night is charged again the moment staff take the
+     * item back, twice for one late return.
+     *
+     * The existing row is returned to the desk rather than suppressed, so the
+     * receipt still shows what the lateness cost. Its figure is the one from
+     * the night it was charged, which is the smaller of the two - deliberately,
+     * per the same note in CronService.
+     */
+    const alreadyCharged = await this.prisma.penaltyInfo.findFirst({
+      where: {
+        UsageKey: input.usageKey,
+        Reason: { startsWith: 'ReturnLate' },
+      },
+      select: { PenaltyKey: true },
+    });
 
     const penaltyKey = await this.prisma.$transaction(async (tx) => {
       await tx.usageLog.update({
@@ -501,6 +527,8 @@ export class LoanService {
         });
       }
 
+      if (alreadyCharged) return null;
+
       const penaltyKey = await this.penalties.apply(tx, quote, {
         accountKey: usage.Account.AccountKey,
         usageKey: usage.UsageKey,
@@ -522,12 +550,15 @@ export class LoanService {
 
     const loan = this.toLoan(await this.readUsage(input.usageKey), now);
 
-    if (penaltyKey === null) {
+    // Whichever side charged it - this return, or the job that ran overnight.
+    const chargedKey = penaltyKey ?? alreadyCharged?.PenaltyKey ?? null;
+
+    if (chargedKey === null) {
       return { loan, latePenalty: null };
     }
 
     const penalty = await this.prisma.penaltyInfo.findUniqueOrThrow({
-      where: { PenaltyKey: penaltyKey },
+      where: { PenaltyKey: chargedKey },
       select: { PenaltyKey: true, CreditDeducted: true, ExpirationTime: true },
     });
 

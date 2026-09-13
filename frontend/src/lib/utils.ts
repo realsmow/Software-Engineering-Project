@@ -1,7 +1,5 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
-import { format, formatDistanceToNow } from "date-fns";
-import { th } from "date-fns/locale";
 
 /**
  * className merger สำหรับ shadcn components + Tailwind
@@ -9,28 +7,6 @@ import { th } from "date-fns/locale";
  */
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
-}
-
-/**
- * แปลงวันที่เป็นข้อความไทย
- * เช่น "15 มี.ค. 2568 เวลา 14:30"
- */
-export function formatThaiDate(date: string | Date, includeTime = true): string {
-  const d = typeof date === "string" ? new Date(date) : date;
-  const buddhistYear = d.getFullYear() + 543;
-  const dateStr = format(d, "d MMM", { locale: th });
-  const timeStr = includeTime ? format(d, "HH:mm") : "";
-  return includeTime
-    ? `${dateStr} ${buddhistYear} เวลา ${timeStr}`
-    : `${dateStr} ${buddhistYear}`;
-}
-
-/**
- * เวลาแบบสัมพัทธ์ เช่น "2 ชั่วโมงที่แล้ว", "อีก 3 วัน"
- */
-export function formatRelativeThai(date: string | Date): string {
-  const d = typeof date === "string" ? new Date(date) : date;
-  return formatDistanceToNow(d, { locale: th, addSuffix: true });
 }
 
 /**

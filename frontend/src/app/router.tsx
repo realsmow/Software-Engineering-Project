@@ -78,6 +78,7 @@ const AdminStatusPage = lazy(() => import("@/features/admin/status/status-page")
 const AdminAuditPage = lazy(() => import("@/features/admin/audit/audit-page"));
 const AdminConfigPage = lazy(() => import("@/features/admin/config/config-page"));
 const AdminReportsPage = lazy(() => import("@/features/admin/reports/reports-page"));
+const Rule86Page = lazy(() => import("@/features/easter-egg/rule86-page"));
 
 /** Layout: guarantees auth, then renders AppShell (which hosts <Outlet/>). */
 function ProtectedShell() {
@@ -118,6 +119,7 @@ export function AppRouter() {
           <Route path={ROUTES.MY_LOANS} element={<MyLoansPage />} />
           <Route path={ROUTES.APPEALS} element={<AppealsPage />} />
           <Route path={ROUTES.PROFILE} element={<ProfilePage />} />
+          <Route path={ROUTES.RULE86} element={<Rule86Page />} />
 
           {/* Staff operations - staff + admin */}
           <Route element={<RoleGuard allowedRoles={["staff", "admin"]} />}>

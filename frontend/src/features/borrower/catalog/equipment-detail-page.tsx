@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
-import { addDays, differenceInCalendarDays, parseISO } from "date-fns";
+import { localInstant, toLocalDayKey, todayLocalDayKey } from "@/lib/datetime";
 import { ArrowLeft, Package, Plus } from "lucide-react";
 import { TierDot, tierNoteKey } from "@/components/shared/tier-badge";
 import { Badge, type BadgeTone } from "@/components/ui/badge";
@@ -208,8 +208,8 @@ export default function EquipmentDetailPage() {
             <div className="grid grid-cols-7 gap-1.5 md:grid-cols-[repeat(14,minmax(0,1fr))]">
               {days.map((d) => (
                 <div
-                  key={d.date.toISOString()}
-                  title={fmtDayMonth(d.date)}
+                  key={d.day}
+                  title={fmtDayMonth(d.day)}
                   className={cn(
                     "flex h-[34px] items-center justify-center rounded-sm border font-mono text-[11px] tabular-nums",
                     d.busy
@@ -217,7 +217,7 @@ export default function EquipmentDetailPage() {
                       : "border-accent bg-[var(--accent-soft)] text-accent",
                   )}
                 >
-                  {d.date.getDate()}
+                  {Number(d.day.slice(8, 10))}
                 </div>
               ))}
             </div>
@@ -362,14 +362,21 @@ const UNIT_CONDITION_KEY: Record<UnitState, string> = {
 function buildDays(
   availableUnits: number,
   nextAvailableAt: string | undefined,
-): { date: Date; busy: boolean }[] {
-  const today = new Date();
-  const freeFrom =
-    availableUnits > 0 ? today : nextAvailableAt ? parseISO(nextAvailableAt) : null;
+): { day: string; busy: boolean }[] {
+  // Walked in Bangkok days, not the browser's. Stepping from `new Date()` in
+  // local time starts the strip on the wrong square for anyone whose machine
+  // is not on Bangkok time, and the squares are labelled with a day number.
+  const todayKey = todayLocalDayKey();
+  const freeFromKey =
+    availableUnits > 0 ? todayKey : nextAvailableAt ? toLocalDayKey(nextAvailableAt) : null;
+
+  // Stepped from midday so a whole-day hop can never land on a boundary.
+  const noon = localInstant(todayKey, 12).getTime();
 
   return Array.from({ length: AVAIL_DAYS }, (_, i) => {
-    const date = addDays(today, i);
-    return { date, busy: freeFrom === null || differenceInCalendarDays(date, freeFrom) < 0 };
+    const day = toLocalDayKey(new Date(noon + i * 86_400_000));
+    // Both sides are `YYYY-MM-DD`, which sorts lexicographically as a date.
+    return { day, busy: freeFromKey === null || day < freeFromKey };
   });
 }
 

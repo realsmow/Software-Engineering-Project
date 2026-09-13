@@ -1,3 +1,4 @@
+import { toLocalDayKey } from "@/lib/datetime";
 import type { Tier } from "@/types/domain";
 import type { MyRequest, MyRequestStatus } from "../mock-data";
 
@@ -72,7 +73,10 @@ export function toBorrowerRequest(s: ServerRequest): BorrowerRequest {
     name: s.resource.name ?? "",
     serial: s.resource.serialNo ?? "-",
     status: s.status,
-    startDate: s.startTime.slice(0, 10),
-    endDate: s.endTime.slice(0, 10),
+    // The Bangkok day, not the UTC one. `slice(0, 10)` on the ISO string names
+    // the UTC day, which is the day before for anything the borrower holds in
+    // the first seven hours of a Bangkok morning.
+    startDate: toLocalDayKey(s.startTime),
+    endDate: toLocalDayKey(s.endTime),
   };
 }

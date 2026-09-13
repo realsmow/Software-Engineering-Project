@@ -33,7 +33,11 @@ export const BUSINESS = {
   // คนอื่นจองช่วงเวลานั้นซ้ำไม่ได้ จึงจองค้างไว้หลายห้องพร้อมกันไม่ได้
   MAX_T3_ACTIVE_BOOKINGS: 1,
   RESERVATION_MAX_DAYS: 90, // จองล่วงหน้าสูงสุด 3 เดือน
-  RETURN_CUTOFF_HOUR: 17, // 17:00 หลังจากนี้นับช้า 1 วัน
+  // 17:00 หลังจากนี้นับช้า 1 วัน - เวลาไทย (Asia/Bangkok), ไม่ใช่ UTC.
+  // Matches DUE_HOUR_LOCAL in the backend's common/schemas/datetime.schema.ts,
+  // which stores the same instant as 10:00Z. Apply it with
+  // `localInstant()` from lib/datetime.ts, never with `Date.UTC`.
+  RETURN_CUTOFF_HOUR: 17,
 } as const;
 
 // ==================== File Upload (client-side guard) ====================
@@ -102,6 +106,8 @@ export const ROUTES = {
   HOME: "/",
   // Account (any authenticated role)
   PROFILE: "/profile",
+  // Unlisted. Reached only through the command palette; absent from navigation.
+  RULE86: "/rule86",
   // Borrower
   CATALOG: "/catalog",
   EQUIPMENT_DETAIL: "/catalog/:id",

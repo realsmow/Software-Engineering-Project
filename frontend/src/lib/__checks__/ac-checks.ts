@@ -11,6 +11,8 @@ import {
   maxReturnDateBeforeReservation,
 } from "@/lib/business-rules";
 import { isIsoDate, isIsoDateTime } from "@/lib/validation";
+import { localInstant, toLocalDayKey } from "@/lib/datetime";
+import { BUSINESS } from "@/constants";
 import { getErrorMessage, extractErrorCode, getErrorPayload } from "@/lib/error-messages";
 import { validateUploadFile } from "@/lib/upload-validation";
 import { fetchAllPages } from "@/lib/paging";
@@ -25,12 +27,33 @@ function eq<T>(name: string, got: T, want: T) {
   check(`${name} (got ${JSON.stringify(got)}, want ${JSON.stringify(want)})`, got === want);
 }
 
-// ── §2.5 Return cutoff 17:00 ────────────────────────────────────────────────
-eq("2.5 check-in 17:00 exactly → 0 late", returnLatePenaltyDays("2026-08-11", "2026-08-11T17:00:00.000Z"), 0);
-eq("2.5 check-in 17:01 → 1 late", returnLatePenaltyDays("2026-08-11", "2026-08-11T17:01:00.000Z"), 1);
-eq("2.5 check-in before cutoff → 0", returnLatePenaltyDays("2026-08-11", "2026-08-11T09:00:00.000Z"), 0);
-eq("2.5 next day 17:00 → 1", returnLatePenaltyDays("2026-08-11", "2026-08-12T17:00:00.000Z"), 1);
-eq("2.5 next day 17:00:01 → 2", returnLatePenaltyDays("2026-08-11", "2026-08-12T17:00:01.000Z"), 2);
+// ── §2.5 Return cutoff 17:00 Bangkok ────────────────────────────────────────
+// The cutoff is 17:00 *at the counter*, which is 10:00Z - the same instant the
+// backend writes into UsageLog.DueTime (DUE_TIME_OF_DAY_UTC). These cases used
+// to be written with 17:00Z, i.e. midnight in Bangkok, so they asserted that a
+// borrower had seven hours longer than the server was going to give them.
+eq("2.5 check-in 17:00 Bangkok exactly → 0 late", returnLatePenaltyDays("2026-08-11", "2026-08-11T10:00:00.000Z"), 0);
+eq("2.5 check-in 17:01 Bangkok → 1 late", returnLatePenaltyDays("2026-08-11", "2026-08-11T10:01:00.000Z"), 1);
+eq("2.5 check-in 16:00 Bangkok → 0", returnLatePenaltyDays("2026-08-11", "2026-08-11T09:00:00.000Z"), 0);
+eq("2.5 next day 17:00 Bangkok → 1", returnLatePenaltyDays("2026-08-11", "2026-08-12T10:00:00.000Z"), 1);
+eq("2.5 next day 17:00:01 Bangkok → 2", returnLatePenaltyDays("2026-08-11", "2026-08-12T10:00:01.000Z"), 2);
+// The regression itself: 22:00 Bangkok on the due day is late, not on time.
+// Read as UTC it was 15:00, comfortably "before 17:00", and the screen said so
+// while the server docked a day's credit.
+eq("2.5 22:00 Bangkok on the due day is 1 late", returnLatePenaltyDays("2026-08-11", "2026-08-11T15:00:00.000Z"), 1);
+
+// ── ว-08 the client deadline is the instant the server stores ───────────────
+// One assertion tying the two halves together. DUE_TIME_OF_DAY_UTC is derived
+// in backend/src/common/schemas/datetime.schema.ts from the same 17:00.
+eq(
+  "ว-08 cutoff instant matches the server's DueTime",
+  localInstant("2026-08-11", BUSINESS.RETURN_CUTOFF_HOUR).toISOString(),
+  "2026-08-11T10:00:00.000Z",
+);
+eq("ว-08 a picked day is midnight in Bangkok, not UTC", localInstant("2026-08-11").toISOString(), "2026-08-10T17:00:00.000Z");
+// The classic `<input type="date">` trap, stated as a check so it stays fixed.
+check("ว-08 naive parse of a picked day is NOT the counter's midnight", new Date("2026-08-11").toISOString() !== localInstant("2026-08-11").toISOString());
+eq("ว-08 an evening instant keeps the Bangkok day", toLocalDayKey("2026-08-11T17:30:00.000Z"), "2026-08-12");
 
 // ── §2.6 T3 concurrent slots (max 2, cancelled/expired not counted) ─────────
 const res = [

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { SignInHelp } from "./signin-help";
 import { useNavigate } from "react-router-dom";
 import { Moon, Sun } from "lucide-react";
 import { KULogo } from "@/components/layout/ku-logo";
@@ -126,7 +127,7 @@ export function LoginPage() {
           <div className="login-footer">
             <a href="#">{t("auth.termsOfUse")}</a>
             <a href="#">{t("auth.privacyPolicy")}</a>
-            <a href="#">{t("auth.contactSupport")}</a>
+            <SignInHelp className="login-footer-link" />
           </div>
         </div>
       </div>

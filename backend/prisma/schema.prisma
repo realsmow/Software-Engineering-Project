@@ -144,10 +144,10 @@ model SessionInfo {
   AccountKey Int
   /// SHA-256 of the session id carried in the cookie. Unique so a lookup is one index hit.
   TokenHash  String    @unique
-  IssuedAt   DateTime  @default(now())
-  ExpiresAt  DateTime
+  IssuedAt   DateTime  @default(now()) @db.Timestamptz(3)
+  ExpiresAt  DateTime  @db.Timestamptz(3)
   /// Set when signed out or revoked by an admin. Null means still usable.
-  RevokedAt  DateTime?
+  RevokedAt  DateTime? @db.Timestamptz(3)
 
   Account AccountInfo @relation(fields: [AccountKey], references: [AccountKey], onDelete: Cascade)
 
@@ -167,7 +167,7 @@ model SessionInfo {
 /// promoted or renamed; the log must say what was true when it happened.
 model AuditLog {
   AuditKey  Int      @id @default(autoincrement())
-  At        DateTime @default(now())
+  At        DateTime @default(now()) @db.Timestamptz(3)
   /// Null when the account has since been deleted. ActorName/ActorRole survive.
   ActorKey  Int?
   ActorName String
@@ -322,7 +322,7 @@ model ConditionLog {
   LoggedBy     Int
   Condition    ConditionType
   Notes        String?
-  LoggedAt     DateTime?
+  LoggedAt     DateTime?     @db.Timestamptz(3)
 
   Resource     ResourceInfo @relation("ConditionLogResource", fields: [ResourceKey], references: [ResourceKey])
   LoggedByUser AccountInfo  @relation("ConditionLogLoggedBy", fields: [LoggedBy], references: [AccountKey])
@@ -401,8 +401,8 @@ model Reservations {
   ResourceKey           Int
   ReservedBy            Int
   Reason                String?
-  StartTime             DateTime
-  EndTime               DateTime
+  StartTime             DateTime      @db.Timestamptz(3)
+  EndTime               DateTime      @db.Timestamptz(3)
   ApproveStatus         ApproveStatus
   /// Who cleared the request. Null while pending, and null for the ones the
   /// system cleared on its own - `AutoApproved` tells those two apart.
@@ -413,10 +413,10 @@ model Reservations {
   /// When it was decided. `ResolvedAt` is set on every terminal outcome
   /// including a cancellation, so it cannot answer "approved how long ago",
   /// which is what the "not collected within a day" job (§5.9) needs.
-  ApprovedAt            DateTime?
-  ReservationExpiration DateTime
-  ActionTime            DateTime
-  ResolvedAt            DateTime?
+  ApprovedAt            DateTime?     @db.Timestamptz(3)
+  ReservationExpiration DateTime      @db.Timestamptz(3)
+  ActionTime            DateTime      @db.Timestamptz(3)
+  ResolvedAt            DateTime?     @db.Timestamptz(3)
 
   Resource       ResourceInfo @relation(fields: [ResourceKey], references: [ResourceKey])
   ReservedByUser AccountInfo  @relation("ReservationsReservedBy", fields: [ReservedBy], references: [AccountKey])
@@ -445,10 +445,10 @@ model UsageLog {
   AccountKey        Int
   ResourceKey       Int
   CurrentStatus     CurrentStatus
-  DueTime           DateTime
+  DueTime           DateTime      @db.Timestamptz(3)
   PendingExtension  Int?
-  CheckoutTime      DateTime
-  CheckInTime       DateTime?
+  CheckoutTime      DateTime      @db.Timestamptz(3)
+  CheckInTime       DateTime?     @db.Timestamptz(3)
   CheckoutCondition Int
   CheckInCondition  Int?
 
@@ -470,12 +470,12 @@ model ExtensionRequest {
   UsageKey         Int
   RequestedBy      Int
   ExtendNo         Int? // Count of which extension request number this is
-  PreviousDueTime  DateTime
-  RequestedDueTime DateTime
+  PreviousDueTime  DateTime      @db.Timestamptz(3)
+  RequestedDueTime DateTime      @db.Timestamptz(3)
   ApproveStatus    ApproveStatus
   ApprovedBy       Int?
-  RequestedAt      DateTime
-  ResolvedAt       DateTime?
+  RequestedAt      DateTime      @db.Timestamptz(3)
+  ResolvedAt       DateTime?     @db.Timestamptz(3)
 
   /// Why the borrower wants it longer, in their words, and — on a refusal —
   /// the decider's answer appended to it.
@@ -510,7 +510,7 @@ model Inspection {
   ConditionKey  Int
   AppealKey     Int?
   PenaltyKey    Int?
-  ActionTime    DateTime?
+  ActionTime    DateTime? @db.Timestamptz(3)
   Notes         String?
 
   Usage     UsageLog     @relation(fields: [UsageKey], references: [UsageKey])
@@ -533,8 +533,8 @@ model PenaltyInfo {
   UsageKey       Int?
   Reason         String?
   CreditDeducted Int?
-  ActionTime     DateTime?
-  ExpirationTime DateTime
+  ActionTime     DateTime? @db.Timestamptz(3)
+  ExpirationTime DateTime  @db.Timestamptz(3)
   Appealed       Boolean?
   InEffect       Boolean?
 
@@ -558,8 +558,8 @@ model AppealInfo {
   ResolvedBy      Int?
   AppealReason    String?
   ApproveStatus   ApproveStatus
-  ActionTime      DateTime?
-  ResolvedAt      DateTime?
+  ActionTime      DateTime?     @db.Timestamptz(3)
+  ResolvedAt      DateTime?     @db.Timestamptz(3)
 
   OriginalPenaltyInfo PenaltyInfo  @relation("AppealOriginalPenalty", fields: [OriginalPenalty], references: [PenaltyKey])
   NewPenaltyInfo      PenaltyInfo? @relation("AppealNewPenalty", fields: [NewPenalty], references: [PenaltyKey])
@@ -581,7 +581,7 @@ model Images {
   InspectionKey  Int?
   ImageURL       String
   SubmissionType SubmissionType
-  ActionTime     DateTime?
+  ActionTime     DateTime?      @db.Timestamptz(3)
 
   SubmittedByUser AccountInfo  @relation("ImagesSubmittedBy", fields: [SubmittedBy], references: [AccountKey])
   Usage           UsageLog     @relation(fields: [UsageKey], references: [UsageKey])
@@ -609,9 +609,9 @@ model Notification {
   // Frontend route the entry opens, e.g. `/my/loans`. Null for informational
   // items with nowhere to drill into.
   LinkTo           String?
-  CreatedAt        DateTime         @default(now())
+  CreatedAt        DateTime         @default(now()) @db.Timestamptz(3)
   // Null while unread. The unread badge counts these.
-  ReadAt           DateTime?
+  ReadAt           DateTime?        @db.Timestamptz(3)
   // Identifies the thing this notification is *about* (a usage key, a
   // reservation key). It exists so a reminder sweep that runs every minute
   // writes one row instead of one per run — see NotificationService.
@@ -636,8 +636,8 @@ model RepairLog {
   ReservationKey        Int?
   RepairedBy            Int
   ResourceKey           Int
-  BeginRepairDate       DateTime
-  EndRepairDate         DateTime?
+  BeginRepairDate       DateTime  @db.Timestamptz(3)
+  EndRepairDate         DateTime? @db.Timestamptz(3)
   ConditionBeforeRepair Int
   ConditionAfterRepair  Int?
 
@@ -662,8 +662,8 @@ model CronRunLog {
   RunKey     Int       @id @default(autoincrement())
   /// Matches the CronJobId union in admin.schema.ts.
   Job        String
-  StartedAt  DateTime  @default(now())
-  FinishedAt DateTime?
+  StartedAt  DateTime  @default(now()) @db.Timestamptz(3)
+  FinishedAt DateTime? @db.Timestamptz(3)
   /// success | failed | pending
   Result     String
   /// How many rows the run actually changed. Zero is a normal, useful answer.

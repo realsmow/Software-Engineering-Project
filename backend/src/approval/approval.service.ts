@@ -15,7 +15,12 @@ import {
   withBuffer,
 } from '../common/booking/booking-window';
 import { BusinessError } from '../common/errors/business-error';
-import { addDays, daysBetween, toIso } from '../common/schemas/datetime.schema';
+import {
+  addDays,
+  daysBetween,
+  startOfLocalDay,
+  toIso,
+} from '../common/schemas/datetime.schema';
 import { toPage, toSkipTake } from '../common/schemas/pagination.schema';
 import { tryMapTier, type CreditTier } from '../common/schemas/status.schema';
 import { LoanRequestService } from '../loan/loan.request.service';
@@ -138,8 +143,10 @@ export class ApprovalService {
   async counts(user: TrpcUser) {
     const scope = await this.scope.resourceScope(user);
     const now = new Date();
-    const startOfToday = new Date(now);
-    startOfToday.setUTCHours(0, 0, 0, 0);
+    // "Today" is the counter's day, not UTC's. See startOfLocalDay: the UTC
+    // boundary sits at 07:00 Bangkok, which would drop every approval made
+    // before the desk opens and, after 17:00, count two days as one.
+    const startOfToday = startOfLocalDay(now);
 
     const [pending, autoApprovedToday] = await this.prisma.$transaction([
       this.prisma.reservations.findMany({

@@ -7,6 +7,7 @@ import {
   DialogContent,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { ROUTES } from "@/constants";
 import { getNavForRole } from "@/constants/navigation";
 import { NavIcon } from "./nav-icon";
 import { useAuthStore } from "@/features/auth/auth.store";
@@ -19,6 +20,20 @@ interface PageEntry {
   section: string;
   route: string;
 }
+
+/**
+ * Typing this exactly surfaces one unlisted destination. It is matched on the
+ * raw query rather than added to `pages`, so it never appears in the default
+ * listing or in any partial search - only an exact spelling finds it.
+ */
+const SECRET_QUERY = "rule86";
+const SECRET_ENTRY: PageEntry = {
+  key: "rule86",
+  label: "rule86",
+  icon: "award",
+  section: "\u2014",
+  route: ROUTES.RULE86,
+};
 
 /**
  * ⌘K command palette (pages only). Flattens the current role's navigation
@@ -56,6 +71,7 @@ export function CommandMenu({ triggerClassName }: { triggerClassName?: string })
 
   const results = useMemo(() => {
     const q = query.trim().toLowerCase();
+    if (q === SECRET_QUERY) return [SECRET_ENTRY];
     if (!q) return pages;
     return pages.filter(
       (p) => p.label.toLowerCase().includes(q) || p.section.toLowerCase().includes(q),
