@@ -44,6 +44,13 @@ export const BUSINESS_ERROR_CODES = {
    * admin is told what to reassign rather than just refused.
    */
   ROLE_CHANGE_WOULD_ORPHAN_GROUP: 'CONFLICT',
+  /**
+   * Same hazard as above reached through a different button: a disabled
+   * account cannot sign in, so disabling the last staff or supervisor of a
+   * department empties it exactly the way demoting them would. `cause.groups`
+   * has the same shape.
+   */
+  DISABLE_WOULD_ORPHAN_GROUP: 'CONFLICT',
   /** No CreditTier row covers this score - CreditMin/CreditMax leave a gap */
   CREDIT_TIER_NOT_CONFIGURED: 'PRECONDITION_FAILED',
 

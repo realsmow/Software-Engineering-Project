@@ -1,6 +1,5 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
-import { fmtDate, fmtDateTime, fmtRelative } from "@/lib/datetime";
 
 /**
  * className merger สำหรับ shadcn components + Tailwind
@@ -8,29 +7,6 @@ import { fmtDate, fmtDateTime, fmtRelative } from "@/lib/datetime";
  */
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
-}
-
-/**
- * แปลงวันที่เป็นข้อความ เช่น "15 มี.ค. 2568 14:30"
- *
- * Delegates to `lib/datetime.ts`. It used to add `+ 543` by hand and render in
- * the browser's timezone, which gave a Buddhist year even on the English UI
- * and the wrong hour anywhere outside Bangkok. The era now comes from the
- * active locale and the hour from Asia/Bangkok.
- */
-export function formatThaiDate(date: string | Date, includeTime = true): string {
-  return includeTime ? fmtDateTime(date) : fmtDate(date);
-}
-
-/**
- * เวลาแบบสัมพัทธ์ เช่น "2 ชั่วโมงที่แล้ว", "อีก 3 วัน"
- *
- * A difference between two instants, so it needs no timezone - but it does
- * need the active language, which `Intl.RelativeTimeFormat` takes and the
- * hard-coded `date-fns` Thai locale did not.
- */
-export function formatRelativeThai(date: string | Date): string {
-  return fmtRelative(date);
 }
 
 /**

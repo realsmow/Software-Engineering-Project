@@ -92,6 +92,11 @@ const ERROR_MESSAGES: Record<string, string> = {
   ROLE_CHANGE_WOULD_ORPHAN_GROUP:
     "เปลี่ยนบทบาทไม่ได้ เพราะหน่วยงานที่ผู้ใช้นี้ดูแลจะไม่เหลือผู้ดูแล กรุณามอบสิทธิ์ให้ผู้อื่นในหน่วยงานนั้นก่อน",
 
+  // Same hazard through the disable button; the admin user screen likewise
+  // replaces this with a version naming the departments.
+  DISABLE_WOULD_ORPHAN_GROUP:
+    "ปิดการใช้งานบัญชีนี้ไม่ได้ เพราะหน่วยงานที่ผู้ใช้นี้ดูแลจะไม่เหลือผู้ดูแล กรุณามอบสิทธิ์ให้ผู้อื่นในหน่วยงานนั้นก่อน",
+
   // Departmental scope (staff)
   OUT_OF_MANAGEMENT_SCOPE: "อุปกรณ์ชิ้นนี้อยู่นอกหน่วยงานที่คุณดูแล",
   ITEM_NOT_FOUND: "ไม่พบอุปกรณ์นี้",

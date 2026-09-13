@@ -509,7 +509,16 @@ export class AdminService {
       });
     }
 
-    await this.assertAccountExists(input.id);
+    // Disabling is a demotion in everything but name: the account stops being
+    // able to sign in, so it stops covering its departments. Modelled as a move
+    // to borrower, which is the rank that covers nothing. Re-enabling only adds
+    // cover, so it needs no check.
+    if (!input.active) {
+      const current = await this.readAccountRole(input.id);
+      await this.assertGroupsStayCovered(input.id, current, 'borrower', 'disable');
+    } else {
+      await this.assertAccountExists(input.id);
+    }
 
     await this.prisma.accountInfo.update({
       where: { AccountKey: input.id },
@@ -901,6 +910,7 @@ export class AdminService {
     accountKey: number,
     from: UserRole,
     to: UserRole,
+    intent: 'role' | 'disable' = 'role',
   ): Promise<void> {
     // A promotion, or the same role again, can only add cover.
     if (ROLE_RANK[to] >= ROLE_RANK[from]) return;
@@ -975,6 +985,13 @@ export class AdminService {
       })),
     );
 
+    if (intent === 'disable') {
+      throw new BusinessError('DISABLE_WOULD_ORPHAN_GROUP', {
+        accountKey,
+        from,
+        groups,
+      });
+    }
     throw new BusinessError('ROLE_CHANGE_WOULD_ORPHAN_GROUP', {
       accountKey,
       from,

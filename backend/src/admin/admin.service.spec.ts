@@ -1,5 +1,5 @@
 import { AdminService } from './admin.service';
-import { changeRoleInput } from './admin.schema';
+import { changeRoleInput, setUserActiveInput } from './admin.schema';
 import { BusinessError } from '../common/errors/business-error';
 import type { PrismaService } from '../prisma.service';
 import type { AuditActor, AuditService } from '../common/audit/audit.service';
@@ -127,7 +127,7 @@ function serviceWith(options: {
         maxExtendTimes: 2,
       }),
     } as unknown as CreditTierService,
-    {} as SessionService,
+    { revokeAllForAccount: jest.fn().mockResolvedValue(undefined) } as unknown as SessionService,
     { record } as unknown as AuditService,
     {} as StaffScopeService,
     {} as ConfigService,
@@ -348,5 +348,90 @@ describe('changeRole - moves the guard leaves alone', () => {
     await expect(
       service.changeRole(input(7, 'borrower'), ACTOR),
     ).rejects.toMatchObject({ message: 'USER_NOT_FOUND' });
+  });
+});
+
+/**
+ * Disabling reaches the same hazard through a different button: a disabled
+ * account cannot sign in, so taking the last staff member of a department out
+ * of service empties it exactly the way demoting them would. Re-enabling only
+ * ever adds cover, so it is deliberately unchecked.
+ */
+describe('setUserActive - departmental cover', () => {
+  const disable = (id: number, active: boolean) => setUserActiveInput.parse({ id, active });
+
+  it('refuses disabling the last staff member of a department', async () => {
+    const { service, updateAccount } = serviceWith({
+      currentRoleName: 'Staff',
+      held: [branch(4, 'ภาควิชาวิศวกรรมคอมพิวเตอร์')],
+      peers: [],
+    });
+
+    await expect(service.setUserActive(disable(7, false), ACTOR)).rejects.toThrow(BusinessError);
+    // Refused before the column is written, not rolled back after.
+    expect(updateAccount).not.toHaveBeenCalled();
+  });
+
+  it('raises the disable code, not the role-change one', async () => {
+    const { service } = serviceWith({
+      currentRoleName: 'Staff',
+      held: [branch(4, 'ภาควิชาวิศวกรรมคอมพิวเตอร์')],
+      peers: [],
+      openWork: [2, 0, 1, 0],
+    });
+
+    const error = await service
+      .setUserActive(disable(7, false), ACTOR)
+      .catch((e: unknown) => e as BusinessError);
+
+    expect(error).toBeInstanceOf(BusinessError);
+    expect((error as BusinessError).businessCode).toBe('DISABLE_WOULD_ORPHAN_GROUP');
+    const details = (error as BusinessError).details as {
+      groups: { groupName: string; losing: string; openWork: Record<string, number> }[];
+    };
+    expect(details.groups).toHaveLength(1);
+    expect(details.groups[0].groupName).toBe('ภาควิชาวิศวกรรมคอมพิวเตอร์');
+    expect(details.groups[0].losing).toBe('staff');
+    expect(details.groups[0].openWork.pendingRequests).toBe(2);
+  });
+
+  it('allows the disable when a colleague still covers the group', async () => {
+    const { service, updateAccount } = serviceWith({
+      currentRoleName: 'Staff',
+      held: [branch(4, 'ภาควิชาวิศวกรรมคอมพิวเตอร์')],
+      peers: [{ ManageGroupKey: 4, RoleName: 'Staff' }],
+    });
+
+    await expect(service.setUserActive(disable(7, false), ACTOR)).resolves.toBeDefined();
+    expect(updateAccount).toHaveBeenCalled();
+  });
+
+  it('skips the check when re-enabling', async () => {
+    const { service, findAuthorities, updateAccount } = serviceWith({
+      currentRoleName: 'Staff',
+      held: [branch(4, 'ภาควิชาวิศวกรรมคอมพิวเตอร์')],
+      peers: [],
+    });
+
+    await expect(service.setUserActive(disable(7, true), ACTOR)).resolves.toBeDefined();
+    expect(findAuthorities).not.toHaveBeenCalled();
+    expect(updateAccount).toHaveBeenCalled();
+  });
+
+  it('allows disabling somebody attached to no department', async () => {
+    const { service, updateAccount } = serviceWith({ currentRoleName: 'Staff', held: [] });
+
+    await expect(service.setUserActive(disable(7, false), ACTOR)).resolves.toBeDefined();
+    expect(updateAccount).toHaveBeenCalled();
+  });
+
+  it('still refuses self-disable before touching the database', async () => {
+    const { service, findAuthorities, updateAccount } = serviceWith({ currentRoleName: 'Admin' });
+
+    await expect(
+      service.setUserActive(disable(ACTOR.accountKey, false), ACTOR),
+    ).rejects.toThrow(BusinessError);
+    expect(findAuthorities).not.toHaveBeenCalled();
+    expect(updateAccount).not.toHaveBeenCalled();
   });
 });
