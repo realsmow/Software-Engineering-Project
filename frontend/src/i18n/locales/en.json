@@ -631,7 +631,9 @@
       "periodTitle": "Requested period",
       "periodHelp": "Credit level {{band}} allows up to {{days}} days per loan · book at most {{horizon}} days ahead",
       "pickupDate": "Pickup date",
+      "pickupTime": "Equipment pickup time",
       "returnDate": "Return date",
+      "returnTime": "Equipment return time",
       "calWarn": "Credit level {{band}} allows up to {{days}} days per loan · the return date was not set, pick one inside the allowed range",
       "serialTitle": "Choose unit serials (T2)",
       "serialHelp": "T2 equipment is issued by serial and needs supervisor approval.",
@@ -648,6 +650,8 @@
       "sumTotals": "{{lines}} line(s), {{units}} unit(s)",
       "sumPerUnit": "Each unit gets its own request number and moves on its own - approved, collected, and returned separately.",
       "sumPeriod": "Period",
+      "sumPickupTime": "Pickup time",
+      "sumReturnTime": "Return time",
       "noEnd": "return date not set",
       "periodDays": "{{start}}–{{end}} ({{days}} days)",
       "pcTitle": "Pre-submit checks",
@@ -669,10 +673,7 @@
       "apvLowCredit": "Your credit level is {{band}}. Under the rules, both T1 and T2 items need supervisor approval regardless of the item.",
       "submit": "Submit request",
       "saveDraft": "Save draft",
-      "autoApproveNote": "T0–T1 items are approved automatically on submission and can be collected the same day.",
-      "pcTier": "Borrowing tier",
-      "pcTierOk": "Every item has a borrowing tier",
-      "pcTierBad": "Unclassified: {{items}} — ask staff to set a tier"
+      "autoApproveNote": "T0–T1 items are approved automatically on submission and can be collected the same day."
     },
     "pickup": {
       "subtitle": "Collect the equipment staff have prepared for you",
@@ -832,6 +833,7 @@
       "draftStatus": "Draft",
       "draftNote": "This draft has not been submitted. Open it, finish it, and send whenever you like.",
       "draftSummary": "{{lines}} line(s), {{units}} unit(s)",
+      "requestWindow": "Pickup {{pickupDate}} {{pickupTime}} · return {{returnDate}} {{returnTime}}",
       "draftNoEnd": "return date not set",
       "draftEdit": "Edit draft",
       "draftDrop": "Discard draft"

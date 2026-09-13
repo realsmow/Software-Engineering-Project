@@ -599,6 +599,9 @@ export interface MyRequest {
   status: MyRequestStatus;
   startDate: string;
   endDate: string;
+  /** Requested counter times for equipment. Rooms use `slots` instead. */
+  pickupTime?: string;
+  returnTime?: string;
   /** Equipment on loan: when it is due back, and how far off that is. */
   dueAt?: string;
   daysLeft?: number;
