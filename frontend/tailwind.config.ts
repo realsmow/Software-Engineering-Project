@@ -110,10 +110,11 @@ export default {
         lg: "8px",
       },
       fontFamily: {
-        // Prompt is the ULMs UI font (reference HTML); JetBrains Mono for numerics.
+        // Prompt is the ULMs UI font (reference HTML); Source Code Pro for numerics -
+        // picked over JetBrains Mono because its 0 is distinguishable from 8 and O.
         sans: ["Prompt", "Inter", "system-ui", "sans-serif"],
         prompt: ["Prompt", "Inter", "system-ui", "sans-serif"],
-        mono: ["JetBrains Mono", "ui-monospace", "monospace"],
+        mono: ["Source Code Pro", "JetBrains Mono", "ui-monospace", "monospace"],
       },
       fontSize: {
         // จาก type scale ใน mockup

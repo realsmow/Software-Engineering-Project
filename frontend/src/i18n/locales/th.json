@@ -232,7 +232,9 @@
       "statDisabled": "ปิดใช้งาน",
       "suspend": "ระงับการยืม",
       "liftSuspension": "ยกเลิกการระงับ",
-      "tempPassword": "รหัสผ่านชั่วคราว"
+      "tempPassword": "รหัสผ่านชั่วคราว",
+      "roleChangeBlocked": "เปลี่ยนบทบาทไม่ได้ เพราะ {{groups}} จะไม่เหลือผู้ดูแล กรุณามอบสิทธิ์ให้ผู้อื่นในหน่วยงานนั้นก่อน",
+      "roleChangeBlockedWork": "งานค้างอยู่ตอนนี้: คำขอ {{requests}} รายการ, ขอต่ออายุ {{extensions}} รายการ, การยืม {{loans}} รายการ, การซ่อม {{repairs}} รายการ"
     },
     "status": {
       "title": "สถานะระบบ",

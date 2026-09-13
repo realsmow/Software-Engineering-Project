@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { addDays, differenceInCalendarDays, format, parseISO } from "date-fns";
+import { toLocalDayKey, todayLocalDayKey } from "@/lib/datetime";
 import { BUSINESS } from "@/constants";
 import { type MyRequest, type MyRequestStatus, type Room } from "../mock-data";
 import type { RequestUnit } from "../request/request-draft.store";
@@ -158,7 +159,7 @@ export const useSubmittedRequests = create<SubmittedRequestsState>((set, get) =>
       const days = requestedDays(row);
       get().patch(row.id, {
         status: "inUse",
-        dueAt: format(addDays(new Date(), days), "yyyy-MM-dd"),
+        dueAt: toLocalDayKey(new Date(Date.now() + days * 86_400_000)),
         daysLeft: days,
       });
     }
@@ -200,8 +201,9 @@ export const useSubmittedRequests = create<SubmittedRequestsState>((set, get) =>
   clear: () => set({ requests: [], overrides: {}, roomUse: {} }),
 }));
 
+/** Today at the counter, not in whatever timezone the browser is set to. */
 export function todayIso(): string {
-  return format(new Date(), "yyyy-MM-dd");
+  return todayLocalDayKey();
 }
 
 /** How long the borrower asked to keep it, clamped to the lending rules. */

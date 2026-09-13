@@ -1,4 +1,5 @@
 import { BUSINESS, CREDIT_BANDS } from "@/constants";
+import { localInstant, toLocalDayKey } from "@/lib/datetime";
 import type { CreditBand } from "@/types/domain";
 
 /**
@@ -39,7 +40,10 @@ export function maxReturnDateBeforeReservation(
 ): string {
   const start = new Date(nextReservationStart);
   const ceiling = new Date(start.getTime() - bufferDays * DAY_MS);
-  return ceiling.toISOString().slice(0, 10);
+  // The Bangkok day, not `toISOString().slice(0, 10)`. A booking that opens
+  // early in the Bangkok morning is still on the previous UTC day, and slicing
+  // would name a ceiling one day earlier than the borrower may actually use.
+  return toLocalDayKey(ceiling);
 }
 
 export interface LoanPeriodInput {
@@ -109,17 +113,26 @@ export function validateLoanPeriod(input: LoanPeriodInput): LoanPeriodResult {
 
 /**
  * Return-cutoff penalty (AC §2.5). The due day's deadline is `cutoffHour`:00
- * (17:00 by default). A check-in at exactly 17:00 is on time (0 days); 17:00:01
- * or later counts as 1 late day, and each further calendar day adds one more.
- * Both instants are compared in UTC - callers pass UTC times per ว-08.
+ * **at the counter** (17:00 Bangkok by default). A check-in at exactly 17:00 is
+ * on time (0 days); 17:00:01 or later counts as 1 late day, and each further
+ * calendar day adds one more.
+ *
+ * `cutoffHour` is a Bangkok hour, so the deadline is built with `localInstant`
+ * rather than `Date.UTC`. It used to be built with `Date.UTC`, which put the
+ * deadline at 17:00 **UTC** - midnight Bangkok, seven hours after the counter
+ * had closed and seven hours after the due instant the server actually stores
+ * (`DueTime`, written as 10:00Z = 17:00 Bangkok). The screen therefore told a
+ * borrower returning at 22:00 Bangkok that they were on time, and the server
+ * then docked them a day's credit for it. That is the worst shape this class
+ * of bug takes: the two halves disagree only in the evening, so it looks fine
+ * in every daytime test.
  */
 export function returnLatePenaltyDays(
   dueDate: string, // YYYY-MM-DD
   checkInAt: string, // ISO 8601 UTC
   cutoffHour: number = BUSINESS.RETURN_CUTOFF_HOUR,
 ): number {
-  const [y, m, d] = dueDate.split("-").map(Number);
-  const deadline = Date.UTC(y, m - 1, d, cutoffHour, 0, 0, 0);
+  const deadline = localInstant(dueDate, cutoffHour).getTime();
   const checkIn = new Date(checkInAt).getTime();
   if (checkIn <= deadline) return 0;
   return Math.ceil((checkIn - deadline) / DAY_MS);

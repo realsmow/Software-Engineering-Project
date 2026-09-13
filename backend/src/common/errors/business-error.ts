@@ -31,6 +31,19 @@ export const BUSINESS_ERROR_CODES = {
   ROLE_NOT_CONFIGURED: 'PRECONDITION_FAILED',
   /** An admin may not strip their own admin role or ban themselves */
   CANNOT_MODIFY_SELF: 'FORBIDDEN',
+  /**
+   * The demotion would leave a department with nobody able to act in it.
+   *
+   * A role change does not touch Authority rows, so the demoted account still
+   * looks attached to its ManagementGroup while failing StaffMiddleware. If it
+   * was the last holder, that group's approvals, handovers, inspections and
+   * repairs have no owner and nothing in the system says so.
+   *
+   * `cause.groups` names each affected group, the cover level it loses
+   * ('staff' or 'supervisor'), and how much open work is sitting in it, so the
+   * admin is told what to reassign rather than just refused.
+   */
+  ROLE_CHANGE_WOULD_ORPHAN_GROUP: 'CONFLICT',
   /** No CreditTier row covers this score - CreditMin/CreditMax leave a gap */
   CREDIT_TIER_NOT_CONFIGURED: 'PRECONDITION_FAILED',
 

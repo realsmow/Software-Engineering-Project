@@ -26,7 +26,12 @@ import {
   toPage,
   toSkipTake,
 } from '../common/schemas/pagination.schema';
-import { tryMapUserRole, type UserRole } from '../common/schemas/status.schema';
+import {
+  mapUserRole,
+  tryMapUserRole,
+  type UserRole,
+} from '../common/schemas/status.schema';
+import { UNAVAILABLE_USAGE_STATES } from '../common/usage/usage-states';
 import { OK } from '../common/schemas/ok.schema';
 import type {
   ChangeRoleInput,
@@ -93,6 +98,33 @@ const PENALTY_SELECT = {
   Appealed: true,
 } satisfies Prisma.PenaltyInfoSelect;
 
+/**
+ * How far up the staff ladder each role sits.
+ *
+ * The ladder is auth.middleware.ts's, not a new idea: StaffMiddleware admits
+ * staff/supervisor/admin and SupervisorMiddleware admits supervisor/admin, so
+ * a higher rank can do everything a lower one can. Only the direction matters
+ * here - a change that does not lower the rank cannot take cover away from a
+ * department.
+ */
+const ROLE_RANK: Record<UserRole, number> = {
+  borrower: 0,
+  staff: 1,
+  supervisor: 2,
+  admin: 3,
+};
+
+/**
+ * The cover levels a department can be left without, strongest first.
+ *
+ * Two, because those are the two gates that exist: supervisor-routed work (T2
+ * approvals and T2 extensions, see common/approval/approval-policy.ts) needs a
+ * supervisor, and everything else at the counter needs staff. `admin` is not a
+ * level: an admin is unscoped, so losing one does not empty a group.
+ */
+const COVER_LEVELS = ['supervisor', 'staff'] as const;
+type CoverLevel = (typeof COVER_LEVELS)[number];
+
 const USER_SORT_COLUMNS = {
   id: 'AccountKey',
   studentId: 'UserID',
@@ -105,9 +137,13 @@ const USER_SORT_COLUMNS = {
 /**
  * The daily/hourly jobs from "รายการเรียกใช้งานจาก Backend" group 3.
  *
- * A static registry, not a table: nothing schedules these yet, and the status
- * page still needs to show which jobs are meant to exist. `implemented: false`
- * on every row is the honest answer until a scheduler lands.
+ * A static registry, not a table: the list of jobs that are meant to exist is
+ * a property of the code, not of the data, and the status page has to name the
+ * three that are still unbuilt as well as the five on the clock.
+ *
+ * `schedule` is the human-readable time shown to the administrator. The times
+ * it states are Asia/Bangkok, which is what CronScheduler pins its @Cron
+ * decorators to - if one moves, the other has to move with it.
  */
 const CRON_REGISTRY = [
   { id: 'markOverdue', name: 'Mark overdue', schedule: '00:01 ทุกวัน' },
@@ -331,6 +367,20 @@ export class AdminService {
     return this.getUserById(input.id);
   }
 
+  /**
+   * Move an account between roles, refusing the moves that strand a department.
+   *
+   * A role change writes one column and touches nothing else - in particular it
+   * does not remove the account's Authority rows. So a demoted staff member
+   * still reads as attached to their ManagementGroup while failing
+   * StaffMiddleware on every procedure that group needs: nobody notices until
+   * a borrower is standing at a counter that has no one behind it.
+   *
+   * Hence the check below. It is deliberately narrow - it refuses only the
+   * moves that leave a group with no one at a level it used to have, not every
+   * demotion - because a demotion where a colleague still covers the group is
+   * ordinary administration and blocking it would make the screen useless.
+   */
   async changeRole(input: ChangeRoleInput, actor: AuditActor) {
     // An admin demoting themselves locks everyone out of the admin pages if
     // they were the last one. Blocking self-demotion is cheaper than a
@@ -340,7 +390,8 @@ export class AdminService {
       throw new BusinessError('CANNOT_MODIFY_SELF', { action: 'changeRole' });
     }
 
-    await this.assertAccountExists(input.id);
+    const current = await this.readAccountRole(input.id);
+    await this.assertGroupsStayCovered(input.id, current, input.role);
 
     await this.prisma.accountInfo.update({
       where: { AccountKey: input.id },
@@ -812,6 +863,156 @@ export class AdminService {
       select: { AccountKey: true },
     });
     if (!found) throw new BusinessError('USER_NOT_FOUND', { id: accountKey });
+  }
+
+  /** The account's role today. Doubles as the existence check. */
+  private async readAccountRole(accountKey: number): Promise<UserRole> {
+    const found = await this.prisma.accountInfo.findUnique({
+      where: { AccountKey: accountKey },
+      select: { Role: { select: { RoleName: true } } },
+    });
+    if (!found) throw new BusinessError('USER_NOT_FOUND', { id: accountKey });
+    // mapUserRole, not tryMapUserRole: an account whose RoleName maps to
+    // nothing cannot be listed either (the admin mapper throws on it), so
+    // silently treating it as a borrower here would guess at the very fact the
+    // guard is about to reason from.
+    return mapUserRole(found.Role.RoleName);
+  }
+
+  /**
+   * Refuses a role change that would leave one of the account's departments
+   * with nobody at a level it currently has.
+   *
+   * Scope is the Authority table, the same link StaffScopeService uses: an
+   * account covers exactly the ManagementGroups it holds an Authority row in.
+   * Cover is counted from *other* holders of that group who are still enabled -
+   * a disabled account cannot sign in, so it is not cover, and the demotion
+   * being requested has not happened yet so this account cannot cover itself.
+   *
+   * Admins outside the group are not counted. They are unscoped and can indeed
+   * act anywhere (StaffScopeService returns null for them), but that is the
+   * lever for repairing a department that has lost its staff, not its day-to-day
+   * cover; counting them would mean this guard never fires, since a system
+   * without an admin cannot reach this procedure at all. An admin who *does*
+   * hold an Authority row in the group is counted, because attaching themselves
+   * to it is exactly the statement that they cover it.
+   */
+  private async assertGroupsStayCovered(
+    accountKey: number,
+    from: UserRole,
+    to: UserRole,
+  ): Promise<void> {
+    // A promotion, or the same role again, can only add cover.
+    if (ROLE_RANK[to] >= ROLE_RANK[from]) return;
+
+    const held = await this.prisma.authority.findMany({
+      where: { AccountKey: accountKey },
+      select: {
+        ManageGroupKey: true,
+        ManageGroup: {
+          select: {
+            GroupType: true,
+            Branch: { select: { BranchName: true } },
+            Club: { select: { ClubName: true } },
+          },
+        },
+      },
+    });
+    // No Authority row means no department depends on this account.
+    if (held.length === 0) return;
+
+    const peers = await this.prisma.authority.findMany({
+      where: {
+        ManageGroupKey: { in: held.map((row) => row.ManageGroupKey) },
+        AccountKey: { not: accountKey },
+        Account: { IsActive: true },
+      },
+      select: {
+        ManageGroupKey: true,
+        Account: { select: { Role: { select: { RoleName: true } } } },
+      },
+    });
+
+    // The strongest role anyone else still brings to each group.
+    const bestPeerRank = new Map<number, number>();
+    for (const peer of peers) {
+      // tryMapUserRole here, unlike readAccountRole: a hand-added RoleName is
+      // not proof that somebody can cover the group, so it counts as nothing
+      // rather than stopping the check.
+      const role = tryMapUserRole(peer.Account.Role.RoleName);
+      if (role === null) continue;
+      const rank = ROLE_RANK[role];
+      if (rank > (bestPeerRank.get(peer.ManageGroupKey) ?? -1)) {
+        bestPeerRank.set(peer.ManageGroupKey, rank);
+      }
+    }
+
+    const orphaned = held.flatMap((row) => {
+      const peerRank = bestPeerRank.get(row.ManageGroupKey) ?? -1;
+      // The strongest level this account covered that the move takes away and
+      // nobody left in the group can supply.
+      const losing = COVER_LEVELS.find(
+        (level) =>
+          ROLE_RANK[from] >= ROLE_RANK[level] &&
+          ROLE_RANK[to] < ROLE_RANK[level] &&
+          peerRank < ROLE_RANK[level],
+      );
+      return losing === undefined ? [] : [{ row, losing }];
+    });
+
+    if (orphaned.length === 0) return;
+
+    const groups = await Promise.all(
+      orphaned.map(async ({ row, losing }) => ({
+        manageGroupKey: row.ManageGroupKey,
+        groupName:
+          row.ManageGroup.Branch?.BranchName ??
+          row.ManageGroup.Club?.ClubName ??
+          null,
+        groupType: row.ManageGroup.GroupType,
+        losing: losing satisfies CoverLevel,
+        openWork: await this.countOpenWork(row.ManageGroupKey),
+      })),
+    );
+
+    throw new BusinessError('ROLE_CHANGE_WOULD_ORPHAN_GROUP', {
+      accountKey,
+      from,
+      to,
+      groups,
+    });
+  }
+
+  /**
+   * What is actually sitting in a group right now, so the refusal names
+   * consequences rather than only a rule.
+   *
+   * Every count is keyed on ResourceInfo.ManagedBy, the one column that says
+   * which department owns a unit - the work items themselves record who did
+   * something, never which group owns the job.
+   */
+  private async countOpenWork(manageGroupKey: number) {
+    const owned = { Resource: { ManagedBy: manageGroupKey } };
+
+    const [pendingRequests, pendingExtensions, openLoans, openRepairs] =
+      await this.prisma.$transaction([
+        this.prisma.reservations.count({
+          where: { ApproveStatus: 'Pending', ...owned },
+        }),
+        this.prisma.extensionRequest.count({
+          where: { ApproveStatus: 'Pending', Usage: owned },
+        }),
+        // Anything not yet graded: Prepared and Lended are still out, Returned
+        // is back on the shelf but still waiting for an inspection.
+        this.prisma.usageLog.count({
+          where: { CurrentStatus: { in: UNAVAILABLE_USAGE_STATES }, ...owned },
+        }),
+        this.prisma.repairLog.count({
+          where: { EndRepairDate: null, ...owned },
+        }),
+      ]);
+
+    return { pendingRequests, pendingExtensions, openLoans, openRepairs };
   }
 
   /**

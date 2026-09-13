@@ -1,8 +1,7 @@
 import { useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
+import { fmtDayMonth, fmtDayNum } from "@/lib/datetime";
 import { useNavigate } from "react-router-dom";
-import { format, parseISO } from "date-fns";
-import { th } from "date-fns/locale";
 import { Download, FileText } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { TierDot } from "@/components/shared/tier-badge";
@@ -531,11 +530,11 @@ function dueDateOf(row: MyRequest): string {
 /** "12–16 ส.ค." - collapses to one date when start and end match. */
 function fmtRange(start: string, end: string): string {
   if (start === end) return fmtDay(start);
-  return `${format(parseISO(start), "d", { locale: th })}–${fmtDay(end)}`;
+  return `${fmtDayNum(start)}–${fmtDay(end)}`;
 }
 
 function fmtDay(iso: string): string {
-  return format(parseISO(iso), "d MMM", { locale: th });
+  return fmtDayMonth(iso);
 }
 
 function exportCsv(requests: MyRequest[]): void {

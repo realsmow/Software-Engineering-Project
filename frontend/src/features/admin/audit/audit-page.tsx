@@ -36,6 +36,7 @@ import {
 } from "../mock-data";
 import { useAuditEvents } from "./use-audit-events";
 import { fmtDateTime, fmtDayShort, fmtHour } from "../format";
+import { fmtTime } from "@/lib/datetime";
 import type { Role } from "@/types/domain";
 
 const ACTIONS: AuditAction[] = ["login", "create", "update", "delete", "role", "config"];
@@ -95,7 +96,7 @@ export default function AdminAuditPage() {
   }, [events, query, action, range, refreshedAt]);
 
   const lastUpdated = useMemo(
-    () => new Date(refreshedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+    () => fmtTime(new Date(refreshedAt)),
     [refreshedAt],
   );
 

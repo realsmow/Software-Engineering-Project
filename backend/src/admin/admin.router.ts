@@ -205,14 +205,22 @@ export class AdminRouter {
     return this.adminService.getSystemStatus();
   }
 
-  /** The 8 planned jobs. All report `implemented: false` until a scheduler exists. */
+  /**
+   * The 8 jobs, with the newest CronRunLog row for each.
+   *
+   * Five report `implemented: true` and are on the clock in CronScheduler; the
+   * other three report false and name what they are missing when run.
+   */
   @UseMiddlewares(AdminMiddleware)
   @Query({ output: z.array(cronJobOutput) })
   listCronJobs() {
     return this.adminService.listCronJobs();
   }
 
-  /** Not implemented - there are no jobs to run yet. */
+  /**
+   * Runs one job now, off the schedule. The three unbuilt ones still refuse
+   * with NOT_IMPLEMENTED, and the attempt is recorded either way.
+   */
   @UseMiddlewares(AdminMiddleware)
   @Mutation({ input: runCronJobInput, output: okOutput })
   runCronJob(@Input() input: RunCronJobInput, @Ctx() ctx: TrpcContext) {

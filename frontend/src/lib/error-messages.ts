@@ -87,6 +87,10 @@ const ERROR_MESSAGES: Record<string, string> = {
   EMAIL_ALREADY_IN_USE: "อีเมลนี้ถูกใช้กับบัญชีอื่นแล้ว",
   USER_ID_ALREADY_IN_USE: "รหัสผู้ใช้นี้ถูกใช้กับบัญชีอื่นแล้ว",
   CANNOT_MODIFY_SELF: "คุณแก้ไขบทบาทหรือระงับบัญชีของตัวเองไม่ได้",
+  // The generic wording. The admin user screen replaces it with a version that
+  // names the departments, which ride in the error payload as `details.groups`.
+  ROLE_CHANGE_WOULD_ORPHAN_GROUP:
+    "เปลี่ยนบทบาทไม่ได้ เพราะหน่วยงานที่ผู้ใช้นี้ดูแลจะไม่เหลือผู้ดูแล กรุณามอบสิทธิ์ให้ผู้อื่นในหน่วยงานนั้นก่อน",
 
   // Departmental scope (staff)
   OUT_OF_MANAGEMENT_SCOPE: "อุปกรณ์ชิ้นนี้อยู่นอกหน่วยงานที่คุณดูแล",

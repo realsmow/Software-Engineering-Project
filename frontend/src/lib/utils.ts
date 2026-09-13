@@ -1,7 +1,6 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
-import { format, formatDistanceToNow } from "date-fns";
-import { th } from "date-fns/locale";
+import { fmtDate, fmtDateTime, fmtRelative } from "@/lib/datetime";
 
 /**
  * className merger สำหรับ shadcn components + Tailwind
@@ -12,25 +11,26 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 /**
- * แปลงวันที่เป็นข้อความไทย
- * เช่น "15 มี.ค. 2568 เวลา 14:30"
+ * แปลงวันที่เป็นข้อความ เช่น "15 มี.ค. 2568 14:30"
+ *
+ * Delegates to `lib/datetime.ts`. It used to add `+ 543` by hand and render in
+ * the browser's timezone, which gave a Buddhist year even on the English UI
+ * and the wrong hour anywhere outside Bangkok. The era now comes from the
+ * active locale and the hour from Asia/Bangkok.
  */
 export function formatThaiDate(date: string | Date, includeTime = true): string {
-  const d = typeof date === "string" ? new Date(date) : date;
-  const buddhistYear = d.getFullYear() + 543;
-  const dateStr = format(d, "d MMM", { locale: th });
-  const timeStr = includeTime ? format(d, "HH:mm") : "";
-  return includeTime
-    ? `${dateStr} ${buddhistYear} เวลา ${timeStr}`
-    : `${dateStr} ${buddhistYear}`;
+  return includeTime ? fmtDateTime(date) : fmtDate(date);
 }
 
 /**
  * เวลาแบบสัมพัทธ์ เช่น "2 ชั่วโมงที่แล้ว", "อีก 3 วัน"
+ *
+ * A difference between two instants, so it needs no timezone - but it does
+ * need the active language, which `Intl.RelativeTimeFormat` takes and the
+ * hard-coded `date-fns` Thai locale did not.
  */
 export function formatRelativeThai(date: string | Date): string {
-  const d = typeof date === "string" ? new Date(date) : date;
-  return formatDistanceToNow(d, { locale: th, addSuffix: true });
+  return fmtRelative(date);
 }
 
 /**

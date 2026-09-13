@@ -1,8 +1,8 @@
 import { useMemo, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
+import { fmtDayMonth } from "@/lib/datetime";
 import { useNavigate } from "react-router-dom";
-import { differenceInCalendarDays, format, parseISO } from "date-fns";
-import { th } from "date-fns/locale";
+import { differenceInCalendarDays, parseISO } from "date-fns";
 import { Check, Minus, Package, Plus, ShoppingCart, TriangleAlert } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { TierDot } from "@/components/shared/tier-badge";
@@ -694,7 +694,7 @@ function Thumb() {
 
 /** "12 ส.ค." - compact date for the summary rail. */
 function fmtShort(iso: string): string {
-  return format(parseISO(iso), "d MMM", { locale: th });
+  return fmtDayMonth(iso);
 }
 
 function cap(s: string): string {

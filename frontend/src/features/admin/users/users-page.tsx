@@ -52,6 +52,37 @@ function mutationMessage(error: unknown): string {
   return code.split("\n")[0];
 }
 
+/** One department the refused role change would have left uncovered. */
+interface OrphanedGroup {
+  manageGroupKey: number;
+  groupName: string | null;
+  losing: "staff" | "supervisor";
+  openWork: {
+    pendingRequests: number;
+    pendingExtensions: number;
+    openLoans: number;
+    openRepairs: number;
+  };
+}
+
+/**
+ * Pulls the groups out of a ROLE_CHANGE_WOULD_ORPHAN_GROUP refusal.
+ *
+ * The backend refuses a demotion that would leave a ManagementGroup with
+ * nobody able to run it, and puts the affected groups plus the work still open
+ * in them on the wire (formatTrpcError copies BusinessError.details into
+ * `data.details`). Reading it is the difference between "the move was refused"
+ * and "these departments are about to have nobody, and this much is queued in
+ * them" - only the second tells the admin what to fix.
+ */
+function orphanedGroups(error: unknown): OrphanedGroup[] {
+  if (!error || typeof error !== "object") return [];
+  const data = (error as { data?: { businessCode?: string; details?: unknown } }).data;
+  if (data?.businessCode !== "ROLE_CHANGE_WOULD_ORPHAN_GROUP") return [];
+  const groups = (data.details as { groups?: unknown } | undefined)?.groups;
+  return Array.isArray(groups) ? (groups as OrphanedGroup[]) : [];
+}
+
 /**
  * Role is deliberately colourless.
  *
@@ -216,12 +247,43 @@ export default function AdminUsersPage() {
       },
     );
   };
+  /**
+   * A refused role change is the one error on this page that has to say more
+   * than "no": the admin needs the department names to know who to give
+   * authority to before retrying, so those are read off the payload rather
+   * than leaving the bare business code on screen.
+   */
+  const roleChangeMessage = (error: unknown): string => {
+    const groups = orphanedGroups(error);
+    if (groups.length === 0) return mutationMessage(error);
+
+    const names = groups
+      .map((group) => group.groupName ?? `#${group.manageGroupKey}`)
+      .join(", ");
+    const work = groups.reduce(
+      (total, group) => ({
+        requests: total.requests + group.openWork.pendingRequests,
+        extensions: total.extensions + group.openWork.pendingExtensions,
+        loans: total.loans + group.openWork.openLoans,
+        repairs: total.repairs + group.openWork.openRepairs,
+      }),
+      { requests: 0, extensions: 0, loans: 0, repairs: 0 },
+    );
+    const blocked = t("admin.users.roleChangeBlocked", { groups: names });
+
+    // A department with nothing queued is still being left uncovered, but the
+    // second sentence would read as four zeros, so it is only added when there
+    // is something actually waiting.
+    const hasWork = Object.values(work).some((count) => count > 0);
+    return hasWork ? `${blocked} ${t("admin.users.roleChangeBlockedWork", work)}` : blocked;
+  };
+
   const setRole = (id: string, role: Role) => {
     changeRole.mutate(
       { id, role },
       {
         onSuccess: () => setSelected((prev) => (prev && prev.id === id ? { ...prev, role } : prev)),
-        onError: (e) => setNotice(mutationMessage(e)),
+        onError: (e) => setNotice(roleChangeMessage(e)),
       },
     );
   };

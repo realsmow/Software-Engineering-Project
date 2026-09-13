@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600;700&family=Source+Code+Pro:wght@400;500;600&display=swap");
 
 @tailwind base;
 @tailwind components;
@@ -12,7 +12,7 @@
 @layer base {
   :root {
     --font-ui: "Prompt", system-ui, -apple-system, sans-serif;
-    --font-mono: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+    --font-mono: "Source Code Pro", "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
 
     --accent: #0e7a46;
     --accent-h: #0a5c36;
@@ -198,6 +198,7 @@
     font-weight: 400;
     font-size: 14px;
     line-height: 1.55;
+    font-feature-settings: "tnum" 1, "zero" 1;
     -webkit-font-smoothing: antialiased;
   }
 

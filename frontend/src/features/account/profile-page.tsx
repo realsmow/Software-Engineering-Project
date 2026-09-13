@@ -8,6 +8,7 @@ import { CREDIT_BANDS } from "@/constants";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ROUTES } from "@/constants";
+import { fmtDate } from "@/lib/datetime";
 import { getErrorMessage } from "@/lib/error-messages";
 import { useAuthStore } from "@/features/auth/auth.store";
 import { useLogoutAll } from "@/features/auth/use-logout-all";
@@ -152,7 +153,7 @@ export default function ProfilePage() {
                       </span>
                       <span className="shrink-0 font-mono text-xs tabular-nums text-muted-foreground">
                         -{p.creditDeducted} · {t("profile.penaltyUntil", {
-                          date: new Date(p.expiresAt).toLocaleDateString(),
+                          date: fmtDate(p.expiresAt),
                         })}
                       </span>
                     </li>

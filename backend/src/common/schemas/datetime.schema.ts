@@ -30,18 +30,49 @@ export const isoDate = z
   .regex(/^\d{4}-\d{2}-\d{2}$/, 'expected YYYY-MM-DD');
 
 /**
- * The hour a loan falls due, in UTC.
+ * The zone every *calendar day* in this system is measured in.
  *
- * 10:00 UTC is 17:00 in Thailand, the end of the counter's working day
- * (proposal §5.9: "ตั้งค่าช่วงเวลารับอุปกรณ์ เช่น 08.00–17.00 น. หากคืนช้ากว่านั้น
- * ถือเป็นการคืนช้า 1 วัน"). The overdue job and the countdown on screen must
- * read this same constant, or the system will dock credit from someone whose
- * screen still says they have hours left.
+ * Instants are UTC everywhere - in the database, on the wire, in every
+ * comparison below. But "today", "the day it is due" and "17:00" are not
+ * instants, they are questions about a calendar, and this system has exactly
+ * one calendar: the counter's, in Bangkok. Asking them in UTC moves every
+ * boundary seven hours and quietly redefines which day a borrower is in.
+ */
+export const APP_TIME_ZONE = 'Asia/Bangkok';
+
+/**
+ * Asia/Bangkok's offset from UTC, in milliseconds.
+ *
+ * A constant rather than an Intl lookup because Thailand has been a fixed
+ * UTC+07:00 since 1920 and has never observed daylight saving. If that ever
+ * changes, this is the one line to replace with a real zone conversion -
+ * everything else in this file is derived from it.
+ */
+const APP_UTC_OFFSET_MS = 7 * 60 * 60 * 1000;
+
+/**
+ * The hour a loan falls due, in the counter's local time.
+ *
+ * 17:00 is the end of the counter's working day (proposal §5.9: "ตั้งค่า
+ * ช่วงเวลารับอุปกรณ์ เช่น 08.00–17.00 น. หากคืนช้ากว่านั้น ถือเป็นการคืนช้า
+ * 1 วัน"). The overdue job and the countdown on screen must read this same
+ * constant, or the system will dock credit from someone whose screen still
+ * says they have hours left.
  *
  * It is a constant rather than a per-department setting because the schema has
  * nowhere to store one — see docs/staff.md.
  */
-export const DUE_TIME_OF_DAY_UTC = '10:00:00';
+export const DUE_HOUR_LOCAL = 17;
+
+/**
+ * The same hour expressed in UTC, which is what actually goes in the column.
+ *
+ * Derived rather than written down twice: the pair used to be maintained by
+ * hand on two sides of the stack and drifted apart by seven hours.
+ */
+export const DUE_TIME_OF_DAY_UTC = `${String(
+  DUE_HOUR_LOCAL - APP_UTC_OFFSET_MS / 3_600_000,
+).padStart(2, '0')}:00:00`;
 
 /** Prisma `Date` -> contract string. Every mapper ends with one of these two. */
 export function toIso(value: Date): string {
@@ -72,4 +103,27 @@ export function addDays(from: Date, days: number): Date {
 export function daysBetween(from: Date, to: Date): number {
   const ms = to.getTime() - from.getTime();
   return ms <= 0 ? 0 : Math.ceil(ms / 86_400_000);
+}
+
+/**
+ * The instant the borrower's day starts - midnight in Bangkok, not in UTC.
+ *
+ * `setUTCHours(0, 0, 0, 0)` is the tempting version and it is wrong here by
+ * seven hours: it puts the boundary at 07:00 Bangkok, so anything staff did
+ * between midnight and breakfast counts against yesterday, and at 03:00 the
+ * window it opens spans two Bangkok days at once.
+ */
+export function startOfLocalDay(at: Date): Date {
+  const local = at.getTime() + APP_UTC_OFFSET_MS;
+  return new Date(local - (local % 86_400_000) - APP_UTC_OFFSET_MS);
+}
+
+/**
+ * `YYYY-MM-DD` - the calendar day `at` falls on in Bangkok, not in UTC.
+ *
+ * `toDueDate` is its inverse: `toDueDate(toLocalDayKey(d))` is closing time on
+ * the day `d` falls on at the counter.
+ */
+export function toLocalDayKey(at: Date): string {
+  return new Date(at.getTime() + APP_UTC_OFFSET_MS).toISOString().slice(0, 10);
 }

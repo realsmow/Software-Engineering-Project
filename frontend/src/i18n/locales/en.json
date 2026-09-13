@@ -232,7 +232,9 @@
       "statDisabled": "Disabled",
       "suspend": "Suspend",
       "liftSuspension": "Lift suspension",
-      "tempPassword": "Temporary password"
+      "tempPassword": "Temporary password",
+      "roleChangeBlocked": "Cannot change this role: {{groups}} would be left with no one who can run it. Give someone else authority there first.",
+      "roleChangeBlockedWork": "Waiting there now: {{requests}} request(s), {{extensions}} extension(s), {{loans}} loan(s), {{repairs}} repair(s)."
     },
     "status": {
       "title": "System status",
