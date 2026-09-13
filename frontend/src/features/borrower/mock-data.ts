@@ -11,7 +11,7 @@ import type { DamageLevel, EquipmentType, Tier } from "@/types/domain";
 
 /**
  * Catalog row = the domain EquipmentType plus the columns the catalog table
- * shows. `code` (asset tag) and `departmentId` are not on EquipmentType yet;
+ * shows. `code` (asset tag) and `owner` are not on EquipmentType yet;
  * they live here as a view type so the shared domain contract stays untouched
  * until the backend schema is final.
  */
@@ -25,7 +25,12 @@ export interface CatalogItem extends Omit<EquipmentType, "tier"> {
   tier: Tier | null;
   /** Asset tag printed on the item, e.g. "EE-MM-001". */
   code: string;
-  departmentId: string;
+  /** Stable ManagementGroup identity supplied by the catalogue backend. */
+  owner: {
+    id: string;
+    name: string | null;
+    type: "Faculty" | "Club";
+  } | null;
   stockStatus: StockStatus;
   /**
    * Free-text blurb shown on the detail page: what it is, key specs, and any
@@ -236,7 +241,11 @@ function item(
     code,
     name,
     description,
-    departmentId,
+    owner: {
+      id: departmentId,
+      name: catalogDeptName(departmentId),
+      type: "Faculty",
+    },
     categoryId,
     tier,
     creditWeight: TIER_CONFIG[tier].creditWeight,

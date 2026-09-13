@@ -22,20 +22,14 @@ import {
 import { DataTable, type Column } from "@/components/ui/data-table";
 import { ROUTES } from "@/constants";
 import { cn } from "@/lib/utils";
-import {
-  CATALOG_DEPARTMENTS,
-  EQUIPMENT_CATEGORIES,
-  STOCK_STATUSES,
-  catalogDeptName,
-  type CatalogItem,
-} from "../mock-data";
+import { STOCK_STATUSES, type CatalogItem } from "../mock-data";
 import { fmtDateTime } from "../format";
 import { FacetFilters, type FilterGroup } from "../facet-filters";
 import { remainingUnits, useRequestDraft } from "../request/request-draft.store";
 import { useEquipmentTypes } from "./use-equipment-types";
 
-/** Facet groups, in rail order. Keys namespace the option keys ("dept:ee"). */
-const GROUP_KEYS = ["dept", "cat", "tier", "st"] as const;
+/** Facet groups, in rail order. Keys namespace the option keys ("owner:12"). */
+const GROUP_KEYS = ["owner", "tier", "st"] as const;
 type GroupKey = (typeof GROUP_KEYS)[number];
 
 type SortKey = "avail" | "name" | "popular";
@@ -69,25 +63,37 @@ export default function CatalogPage() {
     const countBy = (group: GroupKey, id: string) =>
       items.filter((it) => facetOf(it, group) === id).length;
 
+    const owners = new Map<string, NonNullable<CatalogItem["owner"]>>();
+    let hasUnowned = false;
+    for (const item of items) {
+      if (item.owner) owners.set(item.owner.id, item.owner);
+      else hasUnowned = true;
+    }
+    const ownerOptions = [...owners.values()]
+      .sort((a, b) => (a.name ?? a.type).localeCompare(b.name ?? b.type, "th"))
+      .map((owner) => {
+        const name = owner.name ?? t(`borrower.catalog.owner${owner.type}`);
+        return {
+          key: `owner:${owner.id}`,
+          label: name,
+          chipLabel: `${t("borrower.catalog.fDept")}: ${name}`,
+          count: countBy("owner", owner.id),
+        };
+      });
+    if (hasUnowned) {
+      ownerOptions.push({
+        key: "owner:unowned",
+        label: t("borrower.catalog.ownerUnknown"),
+        chipLabel: `${t("borrower.catalog.fDept")}: ${t("borrower.catalog.ownerUnknown")}`,
+        count: countBy("owner", "unowned"),
+      });
+    }
+
     return [
       {
-        key: "dept",
+        key: "owner",
         label: t("borrower.catalog.fDept"),
-        options: CATALOG_DEPARTMENTS.map((d) => ({
-          key: `dept:${d.id}`,
-          label: d.name,
-          chipLabel: `${t("borrower.catalog.fDept")}: ${d.name}`,
-          count: countBy("dept", d.id),
-        })),
-      },
-      {
-        key: "cat",
-        label: t("borrower.catalog.fCategory"),
-        options: EQUIPMENT_CATEGORIES.map((c) => ({
-          key: `cat:${c.id}`,
-          label: t(`borrower.catalog.${c.labelKey}`),
-          count: countBy("cat", c.id),
-        })),
+        options: ownerOptions,
       },
       {
         key: "tier",
@@ -184,7 +190,14 @@ export default function CatalogPage() {
       key: "dept",
       header: t("borrower.catalog.colDept"),
       className: "whitespace-nowrap",
-      render: (e) => <span className="text-t2">{catalogDeptName(e.departmentId)}</span>,
+      render: (e) => (
+        <span className="text-t2">
+          {e.owner?.name ??
+            (e.owner
+              ? t(`borrower.catalog.owner${e.owner.type}`)
+              : t("borrower.catalog.ownerUnknown"))}
+        </span>
+      ),
     },
     {
       key: "tier",
@@ -512,7 +525,11 @@ function ItemCard({
         <div className="min-w-0">
           <div className="text-sm font-semibold leading-snug text-foreground">{item.name}</div>
           <div className="mt-1 font-mono text-[11px] text-t4">
-            {item.code} · {catalogDeptName(item.departmentId)}
+            {item.code} ·{" "}
+            {item.owner?.name ??
+              (item.owner
+                ? t(`borrower.catalog.owner${item.owner.type}`)
+                : t("borrower.catalog.ownerUnknown"))}
           </div>
         </div>
       </div>
@@ -650,8 +667,7 @@ function Thumb({ size = 44 }: { size?: number }) {
 }
 
 function facetOf(item: CatalogItem, group: GroupKey): string {
-  if (group === "dept") return item.departmentId;
-  if (group === "cat") return item.categoryId;
+  if (group === "owner") return item.owner?.id ?? "unowned";
   if (group === "tier") return item.tier ?? "";
   return item.stockStatus;
 }

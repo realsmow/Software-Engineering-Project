@@ -28,7 +28,7 @@ export interface ServerItem {
   nextAvailableAt: string | null;
   prepDays: number;
   allowBorrow: boolean;
-  owner: { id: number; name: string | null; type: string } | null;
+  owner: { id: number; name: string | null; type: "Faculty" | "Club" } | null;
 }
 
 export function toCatalogItem(s: ServerItem): CatalogItem {
@@ -52,10 +52,11 @@ export function toCatalogItem(s: ServerItem): CatalogItem {
     // type, so a list row has no single code to show. item.listUnits has them
     // for the detail page.
     code: "",
-    // Falls back to the group type ("Faculty" / "Club") when a group has no
-    // name; the dept facet still groups, just coarsely. `owner` itself is
-    // nullable - an item with no management group groups under "".
-    departmentId: s.owner ? (s.owner.name ?? s.owner.type) : "",
+    // Keep the stable ManagementGroup key separate from its display name so
+    // faculty branches and clubs can share one accurate owner filter.
+    owner: s.owner
+      ? { id: String(s.owner.id), name: s.owner.name, type: s.owner.type }
+      : null,
     stockStatus: s.stockStatus,
     description: s.description ?? undefined,
   };
