@@ -179,6 +179,10 @@ jobs:
         run: npm run typecheck
         working-directory: frontend
 
+      - name: test
+        run: npm test
+        working-directory: frontend
+
       # Keep this even though typecheck already ran. `vite build` catches
       # things tsc cannot see - module-format problems, missing assets, broken
       # dynamic imports. It is the only step that produces what users get.

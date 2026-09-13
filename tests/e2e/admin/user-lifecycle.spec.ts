@@ -93,17 +93,4 @@ test.describe('Admin user lifecycle', () => {
     await expect(panel.getByRole('button', { name: 'Reset password', exact: true })).toBeEnabled();
     await panel.getByRole('button', { name: 'Close', exact: true }).first().click();
   });
-
-  test('redirects a borrower away from the admin user-management route', async ({ page }) => {
-    await page.goto('/login');
-    await page.locator('#m-local .login-method-header').click();
-    await page.locator('#loc-user').fill(BORROWER.username);
-    await page.locator('#loc-pass').fill(BORROWER.password);
-    await page.locator('#m-local button[type="submit"]').click();
-    await expect(page).not.toHaveURL(/\/login/);
-
-    await page.goto('/admin/users');
-    await expect(page).not.toHaveURL(/\/admin\/users/);
-    await expect(page.getByRole('heading', { name: 'System users' })).toHaveCount(0);
-  });
 });

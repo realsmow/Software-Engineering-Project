@@ -4,7 +4,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import i18n from '../../src/i18n';
 import UsersPage from '../../src/features/admin/users/users-page';
-import type { AdminUser } from '../../src/features/admin/mock-data';
+import { DEPARTMENTS, type AdminUser } from '../../src/features/admin/mock-data';
 import * as adminUsersHooks from '../../src/features/admin/users/use-admin-users';
 
 /** UI-model fixtures: API numeric IDs are intentionally adapted to strings. */
@@ -102,6 +102,66 @@ describe('Admin users page', () => {
     expect(screen.queryByText('Somchai Admin')).not.toBeInTheDocument();
   });
 
+  it('filters rows using the role and account-status dropdowns', () => {
+    renderPage();
+
+    fireEvent.click(screen.getByRole('combobox', { name: t('admin.users.filterRole') }));
+    fireEvent.click(screen.getByRole('option', { name: t('nav.staff') }));
+
+    expect(screen.getByText('Somsri Staff')).toBeInTheDocument();
+    expect(screen.queryByText('Somchai Admin')).not.toBeInTheDocument();
+    expect(screen.queryByText('Somsak Student')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('combobox', { name: t('admin.users.filterStatus') }));
+    fireEvent.click(screen.getByRole('option', { name: t('admin.users.statusSuspended') }));
+
+    expect(screen.queryByText('Somsri Staff')).not.toBeInTheDocument();
+    expect(screen.queryByText('Somchai Admin')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('combobox', { name: t('admin.users.filterRole') }));
+    fireEvent.click(
+      screen.getByRole('option', {
+        name: `${t('admin.users.filterRole')}: ${t('table.filterAll')}`,
+      }),
+    );
+    expect(screen.getByText('Somsak Student')).toBeInTheDocument();
+  });
+
+  it('keeps required create fields disabled and supports department and auth selections', () => {
+    renderPage();
+    fireEvent.click(screen.getByRole('button', { name: t('admin.users.createUser') }));
+
+    const dialog = screen.getByRole('dialog');
+    const submit = within(dialog).getByRole('button', { name: t('admin.users.createSubmit') });
+    const [roleSelect, facultySelect, departmentSelect, authSelect] = within(dialog).getAllByRole('combobox');
+
+    expect(submit).toBeDisabled();
+    expect(facultySelect).toBeDisabled();
+    expect(roleSelect).toHaveTextContent(t('nav.borrower'));
+
+    fireEvent.click(departmentSelect);
+    fireEvent.click(
+      screen.getByRole('option', {
+        name: DEPARTMENTS.find((department) => department.id === 'ee')!.name,
+      }),
+    );
+    expect(departmentSelect).toHaveTextContent(DEPARTMENTS.find((department) => department.id === 'ee')!.name);
+
+    fireEvent.click(authSelect);
+    fireEvent.click(screen.getByRole('option', { name: t('admin.users.authKu') }));
+    expect(authSelect).toHaveTextContent(t('admin.users.authKu'));
+
+    fireEvent.change(screen.getByPlaceholderText(t('admin.users.namePlaceholder')), {
+      target: { value: 'New Test User' },
+    });
+    expect(submit).toBeDisabled();
+    fireEvent.change(screen.getByPlaceholderText('name@ku.th'), {
+      target: { value: 'new.test@ku.th' },
+    });
+    expect(submit).toBeEnabled();
+    expect(createMutate).not.toHaveBeenCalled();
+  });
+
   it('sends the form-derived, contract-shaped create payload', async () => {
     renderPage();
     fireEvent.click(screen.getByRole('button', { name: t('admin.users.createUser') }));
@@ -193,6 +253,21 @@ describe('Admin users page', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Password reset is unavailable')).toBeInTheDocument();
+    });
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+  });
+
+  it('surfaces a self-modification error when suspending the current account', async () => {
+    setUserBanMutate.mockImplementation((_input, options) => {
+      options.onError(new Error('CANNOT_MODIFY_SELF'));
+    });
+    renderPage();
+    openUser('Somsri Staff');
+
+    fireEvent.click(screen.getByRole('button', { name: t('admin.users.suspend') }));
+
+    await waitFor(() => {
+      expect(screen.getByText('CANNOT_MODIFY_SELF')).toBeInTheDocument();
     });
     expect(screen.getByRole('dialog')).toBeInTheDocument();
   });

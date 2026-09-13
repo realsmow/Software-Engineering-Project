@@ -34,6 +34,7 @@ describe('AdminService user management', () => {
 
   const createdRoleKeys = new Set<number>();
   const createdUserKeys = new Set<number>();
+  const createdTierKeys = new Set<number>();
   let sequence = 0;
   const unique = (prefix: string) => `${prefix}.${Date.now()}.${++sequence}`;
 
@@ -91,6 +92,27 @@ describe('AdminService user management', () => {
 
     adminRoleKey = await roleKey('Admin');
     staffRoleKey = await roleKey('Staff');
+
+    const existingBorrowerRole = await prisma.roleInfo.findFirst({
+      where: { RoleName: { in: ['Student', 'Borrower'] } },
+    });
+    if (!existingBorrowerRole) {
+      await roleKey('Student');
+    }
+
+    const existingTier = await prisma.creditTier.findFirst({
+      where: {
+        CreditMin: { lte: 100 },
+        CreditMax: { gte: 100 },
+      },
+    });
+    if (!existingTier) {
+      const tier = await prisma.creditTier.create({
+        data: { CreditTierName: 'D0', CreditMin: 0, CreditMax: 100 },
+      });
+      createdTierKeys.add(tier.CreditTierKey);
+    }
+
     const [admin, staff] = await Promise.all([
       prisma.accountInfo.create({
         data: {
@@ -145,6 +167,11 @@ describe('AdminService user management', () => {
       if (createdRoleKeys.size > 0) {
         await prisma.roleInfo.deleteMany({
           where: { RoleKey: { in: [...createdRoleKeys] } },
+        });
+      }
+      if (createdTierKeys.size > 0) {
+        await prisma.creditTier.deleteMany({
+          where: { CreditTierKey: { in: [...createdTierKeys] } },
         });
       }
     } finally {
