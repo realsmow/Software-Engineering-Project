@@ -7,7 +7,7 @@ import StaffInventoryPage from "../../src/features/staff/inventory/inventory-pag
 import { useRequestDraft } from "../../src/features/borrower/request/request-draft.store";
 import * as catalogHooks from "../../src/features/borrower/catalog/use-equipment-types";
 import * as inventoryHooks from "../../src/features/staff/inventory/use-inventory";
-import type { CatalogItem } from "../../src/features/borrower/mock-data";
+import { CATALOG_ITEMS } from "../../src/features/borrower/mock-data";
 import type {
   ManagedItemDetail,
   ManagedItemType,
@@ -25,77 +25,38 @@ vi.mock("../../src/features/staff/inventory/use-inventory", () => ({
   useSetUnitLendable: vi.fn(),
 }));
 
-const CATALOG: CatalogItem[] = [
-  {
-    id: "7",
-    name: "Oscilloscope",
-    categoryId: "",
-    tier: "T2",
-    code: "",
-    departmentId: "ee",
-    stockStatus: "ok",
-    creditWeight: 10,
-    prepDays: 2,
-    totalUnits: 2,
-    availableUnits: 1,
-    allowBorrow: true,
-  },
-  {
-    id: "8",
-    name: "Signal generator",
-    categoryId: "",
-    tier: "T1",
-    code: "",
-    departmentId: "ee",
-    stockStatus: "queue",
-    creditWeight: 5,
-    prepDays: 1,
-    totalUnits: 3,
-    availableUnits: 0,
-    nextAvailableAt: "2026-09-20T00:00:00.000Z",
-    allowBorrow: true,
-  },
-];
+const CATALOG = CATALOG_ITEMS.slice(0, 2);
+const [AVAILABLE_ITEM, QUEUED_ITEM] = CATALOG;
+
+const MANAGED_ITEMS: ManagedItemType[] = CATALOG_ITEMS.slice(0, 2).map((item, index) => ({
+  id: 7 + index,
+  name: item.name,
+  description: item.description ?? null,
+  imageUrl: null,
+  creditWeight: item.creditWeight,
+  tiers: item.tier ? [item.tier] : [],
+  totalUnits: item.totalUnits,
+  availableUnits: item.availableUnits,
+}));
+const MANAGED_AVAILABLE_ITEM = MANAGED_ITEMS[0];
+const MANAGED_FILTER_ITEM = MANAGED_ITEMS[1];
 
 const UNIT: ManagedUnit = {
   resourceKey: 501,
   indivKey: 101,
-  itemKey: 7,
+  itemKey: MANAGED_ITEMS[0].id,
   serialNo: "OSC-001",
   imageUrl: null,
-  tier: "T2",
+  tier: MANAGED_ITEMS[0].tiers[0] ?? null,
   status: "InStorage",
   lendable: true,
-  prepDays: 2,
+  prepDays: CATALOG[0].prepDays,
   condition: null,
   conditionNote: null,
   conditionLoggedAt: null,
   managementGroup: { manageGroupKey: 8, name: "Engineering", type: "Faculty" },
   currentDueAt: null,
 };
-
-const MANAGED_ITEMS: ManagedItemType[] = [
-  {
-    id: 7,
-    name: "Oscilloscope",
-    description: "Four-channel scope",
-    imageUrl: null,
-    creditWeight: 10,
-    tiers: ["T2"],
-    totalUnits: 2,
-    availableUnits: 1,
-  },
-  {
-    id: 8,
-    name: "Signal generator",
-    description: null,
-    imageUrl: null,
-    creditWeight: 5,
-    tiers: ["T1"],
-    totalUnits: 3,
-    availableUnits: 0,
-  },
-];
 
 const DETAIL: ManagedItemDetail = { ...MANAGED_ITEMS[0], units: [UNIT] };
 
@@ -117,19 +78,19 @@ describe("Module 5 borrower catalogue", () => {
       </MemoryRouter>
     );
 
-    expect(screen.getAllByText("Oscilloscope").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Signal generator").length).toBeGreaterThan(0);
+    expect(screen.getAllByText(AVAILABLE_ITEM.name).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(QUEUED_ITEM.name).length).toBeGreaterThan(0);
 
     fireEvent.change(screen.getAllByRole("searchbox")[0], {
-      target: { value: "oscillo" },
+      target: { value: AVAILABLE_ITEM.name },
     });
 
-    expect(screen.getAllByText("Oscilloscope").length).toBeGreaterThan(0);
-    expect(screen.queryByText("Signal generator")).not.toBeInTheDocument();
+    expect(screen.getAllByText(AVAILABLE_ITEM.name).length).toBeGreaterThan(0);
+    expect(screen.queryByText(QUEUED_ITEM.name)).not.toBeInTheDocument();
 
     fireEvent.click(screen.getAllByRole("button", { name: "Add" })[0]);
     expect(useRequestDraft.getState().lines).toEqual([
-      { itemId: "7", qty: 1, serials: [] },
+      { itemId: AVAILABLE_ITEM.id, qty: 1, serials: [] },
     ]);
   });
 
@@ -163,7 +124,7 @@ describe("Module 5 borrower catalogue", () => {
       </MemoryRouter>
     );
 
-    expect(screen.queryByText("Oscilloscope")).not.toBeInTheDocument();
+    expect(screen.queryByText(AVAILABLE_ITEM.name)).not.toBeInTheDocument();
   });
 });
 
@@ -191,13 +152,13 @@ describe("Module 5 staff inventory", () => {
     render(<StaffInventoryPage />);
 
     expect(screen.getByText("Item types")).toBeInTheDocument();
-    expect(screen.getByText("2")).toBeInTheDocument();
-    expect(screen.getByText("5")).toBeInTheDocument();
-    expect(screen.getByText("1")).toBeInTheDocument();
+    expect(screen.getByText(String(MANAGED_ITEMS.length))).toBeInTheDocument();
+    expect(screen.getByText(String(MANAGED_ITEMS.reduce((total, item) => total + item.totalUnits, 0)))).toBeInTheDocument();
+    expect(screen.getByText(String(MANAGED_ITEMS.reduce((total, item) => total + item.availableUnits, 0)))).toBeInTheDocument();
 
-    fireEvent.change(screen.getByRole("searchbox"), { target: { value: "signal" } });
-    expect(screen.getByText("Signal generator")).toBeInTheDocument();
-    expect(screen.queryByText("Oscilloscope")).not.toBeInTheDocument();
+    fireEvent.change(screen.getByRole("searchbox"), { target: { value: MANAGED_FILTER_ITEM.name ?? "" } });
+    expect(screen.getByText(MANAGED_FILTER_ITEM.name ?? "")).toBeInTheDocument();
+    expect(screen.queryByText(MANAGED_AVAILABLE_ITEM.name ?? "")).not.toBeInTheDocument();
   });
 
   it("loads unit detail on expand and sends a withdrawal reason", async () => {
