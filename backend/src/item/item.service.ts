@@ -67,6 +67,7 @@ export class ItemService {
         Items: {
           select: {
             IndivKey: true,
+            ResourceKey: true,
             ItemID: true,
             ImageURL: true,
             Resource: {
@@ -112,6 +113,7 @@ export class ItemService {
           orderBy: { ItemID: 'asc' },
           select: {
             IndivKey: true,
+            ResourceKey: true,
             ItemID: true,
             ImageURL: true,
             Resource: {

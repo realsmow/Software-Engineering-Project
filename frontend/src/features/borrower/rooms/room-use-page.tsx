@@ -5,6 +5,7 @@ import { Camera, Check, TriangleAlert } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { Badge, type BadgeTone } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Modal } from "@/components/ui/modal";
 import { BUSINESS, ROUTES, UPLOAD } from "@/constants";
 import { cn } from "@/lib/utils";
 import { uploadAcceptAttr, validateUploadFile } from "@/lib/upload-validation";
@@ -94,6 +95,7 @@ function BookingCard({ row }: { row: MyRequest }) {
   const setStatus = useSubmittedRequests((s) => s.setStatus);
   const cancel = useSubmittedRequests((s) => s.cancel);
   const shots = useSubmittedRequests((s) => s.roomUse[row.id]);
+  const [confirmingCancel, setConfirmingCancel] = useState(false);
 
   const phase = PHASE_OF[row.status] ?? "before";
   const hasBefore = Boolean(shots?.before);
@@ -163,7 +165,7 @@ function BookingCard({ row }: { row: MyRequest }) {
             type="button"
             variant="outline"
             className="h-[42px] w-full border-[var(--s-alert-b)] text-[var(--s-alert-t)] hover:bg-[var(--s-alert-bg)]"
-            onClick={() => cancel(row.id)}
+            onClick={() => setConfirmingCancel(true)}
           >
             {t("borrower.roomUse.cancel")}
           </Button>
@@ -186,7 +188,7 @@ function BookingCard({ row }: { row: MyRequest }) {
               type="button"
               variant="outline"
               className="h-[42px] border-[var(--s-alert-b)] px-5 text-[var(--s-alert-t)] hover:bg-[var(--s-alert-bg)]"
-              onClick={() => cancel(row.id)}
+              onClick={() => setConfirmingCancel(true)}
             >
               {t("borrower.roomUse.cancel")}
             </Button>
@@ -216,6 +218,34 @@ function BookingCard({ row }: { row: MyRequest }) {
           </p>
         </div>
       ) : null}
+
+      <Modal
+        open={confirmingCancel}
+        onClose={() => setConfirmingCancel(false)}
+        title={t("borrower.roomUse.cancelConfirmTitle")}
+        subtitle={`${row.id} · ${row.name}`}
+        footer={
+          <>
+            <Button type="button" variant="ghost" onClick={() => setConfirmingCancel(false)}>
+              {t("borrower.roomUse.cancelConfirmNo")}
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={() => {
+                cancel(row.id);
+                setConfirmingCancel(false);
+              }}
+            >
+              {t("borrower.roomUse.cancelConfirmYes")}
+            </Button>
+          </>
+        }
+      >
+        <p className="text-sm leading-relaxed text-t2">
+          {t("borrower.roomUse.cancelConfirmBody")}
+        </p>
+      </Modal>
     </section>
   );
 }

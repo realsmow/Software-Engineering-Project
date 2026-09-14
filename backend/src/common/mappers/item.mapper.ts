@@ -43,6 +43,7 @@ interface ResourceRow {
 
 export interface ItemUnitRow {
   IndivKey: number;
+  ResourceKey: number;
   ItemID: string;
   ImageURL: string | null;
   Resource: ResourceRow;
@@ -192,6 +193,7 @@ export function toItemDetail(row: ItemTypeRow): ItemDetail {
     ...toItemSummary(row),
     units: row.Items.map((unit) => ({
       id: unit.IndivKey,
+      resourceKey: unit.ResourceKey,
       assetTag: unit.ItemID,
       imageUrl: unit.ImageURL,
       status: unit.Resource.ResourceStatus,

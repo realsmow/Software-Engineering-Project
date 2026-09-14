@@ -7,7 +7,9 @@ import { PageHeader } from "@/components/shared/page-header";
 import { TierDot } from "@/components/shared/tier-badge";
 import { Badge, type BadgeTone } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Modal } from "@/components/ui/modal";
 import { ROUTES } from "@/constants";
+import { getErrorMessage } from "@/lib/error-messages";
 import { cn } from "@/lib/utils";
 import {
   REQUEST_TABS,
@@ -22,6 +24,7 @@ import { useAuthStore } from "@/features/auth/auth.store";
 import { useRequestDraft } from "../request/request-draft.store";
 import { extensionState } from "./extension-rules";
 import { useMyRequests, requestsInTab, type DraftSummary } from "./use-my-requests";
+import { useCancelRequest } from "./use-my-requests-api";
 import { useSubmittedRequests } from "./submitted-requests.store";
 
 const STATUS_TONE: Record<MyRequestStatus, BadgeTone> = {
@@ -65,14 +68,44 @@ export default function MyLoansPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [tab, setTab] = useState<RequestTab>("active");
+  const [cancelError, setCancelError] = useState<string | null>(null);
+  const [cancelTarget, setCancelTarget] = useState<MyRequest | null>(null);
 
   const { requests, draft, countByTab } = useMyRequests();
-  const cancelRequest = useSubmittedRequests((s) => s.cancel);
+  const cancelLocalRequest = useSubmittedRequests((s) => s.cancel);
+  const cancelRequest = useCancelRequest();
   const clearDraft = useRequestDraft((s) => s.clear);
 
   const rows = requestsInTab(requests, tab);
   const showDraft = tab === "active" && draft !== null;
   const empty = rows.length === 0 && !showDraft;
+
+  function closeCancelModal() {
+    if (cancelRequest.isPending) return;
+    setCancelTarget(null);
+    setCancelError(null);
+  }
+
+  async function confirmCancellation() {
+    if (!cancelTarget) return;
+
+    setCancelError(null);
+
+    // Room bookings are still session-only. Requests returned by loan.list
+    // carry ReservationKey and must be cancelled server-side.
+    if (cancelTarget.reservationKey === undefined) {
+      cancelLocalRequest(cancelTarget.id);
+      setCancelTarget(null);
+      return;
+    }
+
+    try {
+      await cancelRequest.mutateAsync({ reservationKey: cancelTarget.reservationKey });
+      setCancelTarget(null);
+    } catch (error) {
+      setCancelError(getErrorMessage(error));
+    }
+  }
 
   return (
     <div>
@@ -123,17 +156,77 @@ export default function MyLoansPage() {
           ) : null}
 
           {rows.map((row) => (
-            <RequestCard key={row.id} row={row} onCancel={() => cancelRequest(row.id)} />
+            <RequestCard
+              key={row.id}
+              row={row}
+              cancelling={
+                cancelRequest.isPending &&
+                cancelRequest.variables?.reservationKey === row.reservationKey
+              }
+              onCancel={() => {
+                setCancelError(null);
+                setCancelTarget(row);
+              }}
+            />
           ))}
 
           {empty ? <EmptyState /> : null}
         </div>
       </section>
+
+      <Modal
+        open={cancelTarget !== null}
+        onClose={closeCancelModal}
+        title={t("borrower.myRequests.cancelConfirmTitle")}
+        subtitle={cancelTarget ? `${cancelTarget.id} · ${cancelTarget.name}` : undefined}
+        footer={
+          <>
+            <Button
+              type="button"
+              variant="ghost"
+              disabled={cancelRequest.isPending}
+              onClick={closeCancelModal}
+            >
+              {t("borrower.myRequests.cancelConfirmNo")}
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              disabled={cancelRequest.isPending}
+              onClick={() => void confirmCancellation()}
+            >
+              {cancelRequest.isPending
+                ? t("common.loading")
+                : t("borrower.myRequests.cancelConfirmYes")}
+            </Button>
+          </>
+        }
+      >
+        <p className="text-sm leading-relaxed text-t2">
+          {t("borrower.myRequests.cancelConfirmBody")}
+        </p>
+        {cancelError ? (
+          <div
+            role="alert"
+            className="mt-3 rounded border border-[var(--s-alert-b)] bg-[var(--s-alert-bg)] px-3 py-2 text-xs leading-relaxed text-[var(--s-alert-t)]"
+          >
+            {cancelError}
+          </div>
+        ) : null}
+      </Modal>
     </div>
   );
 }
 
-function RequestCard({ row, onCancel }: { row: MyRequest; onCancel: () => void }) {
+function RequestCard({
+  row,
+  cancelling,
+  onCancel,
+}: {
+  row: MyRequest;
+  cancelling: boolean;
+  onCancel: () => void;
+}) {
   const { t } = useTranslation();
   const steps = stepsOf(row.kind);
   const at = stepAt(row.status, row.kind);
@@ -153,9 +246,11 @@ function RequestCard({ row, onCancel }: { row: MyRequest; onCancel: () => void }
   // stays cancellable after approval too, right up until check-in: dropping it
   // hands the hours back to whoever wants them next, which is the whole point.
   const canCancel =
-    row.status === "pending" ||
-    row.status === "approved" ||
-    (row.kind === "room" && row.status === "ready");
+    row.reservationKey !== undefined
+      ? row.cancellable === true
+      : row.status === "pending" ||
+        row.status === "approved" ||
+        (row.kind === "room" && row.status === "ready");
 
   return (
     <article className="rounded-md border border-border p-3.5 sm:px-4">
@@ -188,7 +283,7 @@ function RequestCard({ row, onCancel }: { row: MyRequest; onCancel: () => void }
         </p>
       ) : null}
 
-      <Actions row={row} canCancel={canCancel} onCancel={onCancel} />
+      <Actions row={row} canCancel={canCancel} cancelling={cancelling} onCancel={onCancel} />
     </article>
   );
 }
@@ -303,10 +398,12 @@ function ProgressTrack({
 function Actions({
   row,
   canCancel,
+  cancelling,
   onCancel,
 }: {
   row: MyRequest;
   canCancel: boolean;
+  cancelling: boolean;
   onCancel: () => void;
 }) {
   const { t } = useTranslation();
@@ -422,9 +519,12 @@ function Actions({
         variant="outline"
         size="sm"
         className="border-[var(--s-alert-b)] text-[var(--s-alert-t)] hover:bg-[var(--s-alert-bg)]"
+        disabled={cancelling}
         onClick={onCancel}
       >
-        {t(row.kind === "room" ? "borrower.roomUse.cancel" : "borrower.myRequests.cancel")}
+        {cancelling
+          ? t("common.loading")
+          : t(row.kind === "room" ? "borrower.roomUse.cancel" : "borrower.myRequests.cancel")}
       </Button>,
     );
   }

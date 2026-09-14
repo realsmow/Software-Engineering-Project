@@ -366,6 +366,8 @@ export const itemSummary = z.object({
 
 export const itemUnit = z.object({
   id: z.number().int(),
+  /** ResourceInfo.ResourceKey - pass this to loan.create. */
+  resourceKey: z.number().int(),
   /** ItemIndiv.ItemID — the asset tag printed on the unit */
   assetTag: z.string(),
   imageUrl: z.string().nullable(),

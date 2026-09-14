@@ -1,4 +1,3 @@
-import type { Tier } from "@/types/domain";
 import { create } from "zustand";
 import { toLocalDayKey, todayLocalDayKey } from "@/lib/datetime";
 
@@ -42,6 +41,8 @@ interface RequestDraftState {
   addItem: (itemId: string, stock: number) => void;
   setQty: (itemId: string, qty: number, stock: number) => void;
   removeItem: (itemId: string) => void;
+  /** Replaces the basket after a partially accepted backend submission. */
+  replaceLines: (lines: DraftLine[]) => void;
   /** Check/uncheck one serial on a line. */
   toggleSerial: (itemId: string, serial: string) => void;
   setStartDate: (iso: string) => void;
@@ -49,49 +50,6 @@ interface RequestDraftState {
   setEndDate: (iso: string | null) => void;
   setReturnTime: (time: RequestTime) => void;
   clear: () => void;
-}
-
-/**
- * One entry per physical unit. The draft groups by equipment type so the cart
- * stays editable, but on submission each unit becomes its own request with its
- * own number, approved and handed over and returned on its own - which is also
- * why T2 units carry their own serial.
- */
-export interface RequestUnit {
-  itemId: string;
-  /** 1-based position within its line. */
-  index: number;
-  /** Serial reserved for this unit (T2 only; undefined until picked). */
-  serial?: string;
-  /**
-   * Name and tier copied in here rather than looked up later.
-   *
-   * The draft holds catalogue ids, and the catalogue is now a server query -
-   * so anything downstream that wanted the name would have to be async, or
-   * hold a second copy of the catalogue. Copying two fields at expand time is
-   * cheaper than either, and a submitted request should keep the name it was
-   * submitted under even if the item is renamed afterwards.
-   */
-  name: string;
-  /** Null when the server could not classify the item - see CatalogItem.tier. */
-  tier: Tier | null;
-}
-
-/** A draft line joined with the catalogue row it points at. */
-export interface DraftLineWithItem extends DraftLine {
-  item: { name: string; tier: Tier | null };
-}
-
-export function expandToUnits(rows: DraftLineWithItem[]): RequestUnit[] {
-  return rows.flatMap((r) =>
-    Array.from({ length: r.qty }, (_, i) => ({
-      itemId: r.itemId,
-      index: i + 1,
-      serial: r.serials[i],
-      name: r.item.name,
-      tier: r.item.tier,
-    })),
-  );
 }
 
 /**
@@ -154,6 +112,7 @@ export const useRequestDraft = create<RequestDraftState>((set) => ({
     })),
 
   removeItem: (itemId) => set((s) => ({ lines: s.lines.filter((l) => l.itemId !== itemId) })),
+  replaceLines: (lines) => set({ lines }),
 
   toggleSerial: (itemId, serial) =>
     set((s) => ({

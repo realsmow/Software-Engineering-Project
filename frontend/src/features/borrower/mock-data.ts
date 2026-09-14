@@ -263,6 +263,8 @@ function item(
 export type UnitState = "free" | "fix" | "out";
 
 export interface UnitRow {
+  /** ResourceInfo key when this row came from the backend. */
+  resourceKey?: number;
   /** Serial printed on the unit, e.g. "EE-OSC-014-01". */
   serial: string;
   state: UnitState;
@@ -591,6 +593,12 @@ export interface InspectionResult {
 export interface MyRequest {
   /** The reservation number, e.g. "REQ-2569-00431". One per item - see above. */
   id: string;
+  /** Backend Reservations.ReservationKey; absent on session-only room bookings. */
+  reservationKey?: number;
+  /** Backend's authoritative answer for whether loan.cancel is still allowed. */
+  cancellable?: boolean;
+  /** Present after staff allocate the request; absent on local room bookings. */
+  usageKey?: number | null;
   kind: RequestKind;
   tier: Tier;
   name: string;

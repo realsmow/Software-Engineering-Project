@@ -3,20 +3,12 @@ import { addDays, differenceInCalendarDays, format, parseISO } from "date-fns";
 import { toLocalDayKey, todayLocalDayKey } from "@/lib/datetime";
 import { BUSINESS } from "@/constants";
 import { type MyRequest, type MyRequestStatus, type Room } from "../mock-data";
-import type { RequestTime, RequestUnit } from "../request/request-draft.store";
 
 /**
  * Requests submitted during this session.
  *
- * The my-requests page reads mock history from `MY_REQUESTS`; anything the
- * borrower sends from the request or booking pages lands here and is merged on
- * top, so pressing "ส่งคำขอ" visibly produces rows instead of vanishing.
- *
- * One item is one request, matching `Reservations` in the backend schema - a
- * basket of five produces five numbered requests, not one with five lines.
- *
- * NOTE: memory only - a refresh drops these, same as the draft store. The
- * backend owns them for real (POST /loan-requests → GET /loan-requests?me=1).
+ * Equipment requests now live in the backend. This session-only store remains
+ * for room bookings (whose API is not wired yet) and local UI-only overrides.
  */
 /** Room condition photos taken by the borrower, as object URLs. */
 export interface RoomUseShots {
@@ -42,16 +34,6 @@ interface SubmittedRequestsState {
   /** Room bookings only, keyed by reservation number. */
   roomUse: Record<string, RoomUseShots>;
 
-  /** Issues one numbered request per unit. */
-  addEquipmentRequest: (input: {
-    units: RequestUnit[];
-    startDate: string;
-    pickupTime: RequestTime;
-    endDate: string;
-    returnTime: RequestTime;
-    /** T2 (or low credit) items wait for a supervisor; the rest auto-approve. */
-    needsSupervisor: boolean;
-  }) => void;
   addRoomBooking: (input: { room: Room; date: string; slots: number[] }) => void;
   /** Rewrites fields of one request, whichever source it came from. */
   patch: (requestId: string, changes: Partial<MyRequest>) => void;
@@ -77,7 +59,6 @@ interface SubmittedRequestsState {
  * Reference numbers restart at these each session because nothing persists.
  * The server issues the real ones.
  */
-const EQUIPMENT_SEQ_START = 501;
 const ROOM_SEQ_START = 41;
 
 function refOf(prefix: string, seq: number): string {
@@ -88,45 +69,6 @@ export const useSubmittedRequests = create<SubmittedRequestsState>((set, get) =>
   requests: [],
   overrides: {},
   roomUse: {},
-
-  addEquipmentRequest: ({
-    units,
-    startDate,
-    pickupTime,
-    endDate,
-    returnTime,
-    needsSupervisor,
-  }) => {
-    if (units.length === 0) return;
-    // Each unit gets the next number in sequence - nothing ties them together.
-    let seq = EQUIPMENT_SEQ_START + countRequests(get().requests, "REQ");
-
-    // Name and tier travel on the unit (see RequestUnit) - the catalogue is a
-    // server query and this store cannot await one.
-    const created = units.map<MyRequest>((unit) => {
-      // Only the items that actually need sign-off wait; the others move on.
-      // An unclassified item cannot auto-approve: without a tier there is no
-      // rule saying who may sign it off, so it waits for a human.
-      const status: MyRequestStatus =
-        unit.tier === null || (needsSupervisor && unit.tier === "T2")
-          ? "pending"
-          : "approved";
-      return {
-        id: refOf("REQ", seq++),
-        kind: "equipment",
-        tier: unit.tier ?? "T2",
-        name: unit.name,
-        serial: unit.serial ?? "-",
-        status,
-        startDate,
-        pickupTime,
-        endDate,
-        returnTime,
-      };
-    });
-
-    set((s) => ({ requests: [...created, ...s.requests] }));
-  },
 
   addRoomBooking: ({ room, date, slots }) => {
     const id = refOf("BKG", ROOM_SEQ_START + countRequests(get().requests, "BKG"));
