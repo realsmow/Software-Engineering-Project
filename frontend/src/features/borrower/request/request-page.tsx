@@ -17,11 +17,13 @@ import type { CatalogItem, UnitState } from "../mock-data";
 import { useEquipmentTypes, useEquipmentUnits } from "../catalog/use-equipment-types";
 import { useMyCredit } from "@/features/account/use-my-credit";
 import {
+  REQUEST_TIMES,
   expandToUnits,
   isoOffset,
   todayIso,
   useRequestDraft,
   type DraftLine,
+  type RequestTime,
 } from "./request-draft.store";
 
 /** A draft line joined with the catalog row it points at. */
@@ -56,12 +58,16 @@ export default function RequestPage() {
 
   const lines = useRequestDraft((s) => s.lines);
   const startDate = useRequestDraft((s) => s.startDate);
+  const pickupTime = useRequestDraft((s) => s.pickupTime);
   const endDate = useRequestDraft((s) => s.endDate);
+  const returnTime = useRequestDraft((s) => s.returnTime);
   const setQty = useRequestDraft((s) => s.setQty);
   const removeItem = useRequestDraft((s) => s.removeItem);
   const toggleSerial = useRequestDraft((s) => s.toggleSerial);
   const setStartDate = useRequestDraft((s) => s.setStartDate);
+  const setPickupTime = useRequestDraft((s) => s.setPickupTime);
   const setEndDate = useRequestDraft((s) => s.setEndDate);
+  const setReturnTime = useRequestDraft((s) => s.setReturnTime);
   const clear = useRequestDraft((s) => s.clear);
   const addEquipmentRequest = useSubmittedRequests((s) => s.addEquipmentRequest);
 
@@ -116,9 +122,6 @@ export default function RequestPage() {
   );
 
   const short = rows.filter((r) => r.qty > r.item.availableUnits);
-  // No tier means no rule for who approves it. Blocking here is the fail-safe
-  // reading: the alternative is sending a request nothing can classify.
-  const unclassified = rows.filter((r) => r.item.tier === null);
   const checks = [
     {
       id: "eligible",
@@ -142,16 +145,6 @@ export default function RequestPage() {
             : overDays
               ? t("borrower.request.pcCreditOver", { days, max: maxDays })
               : t("borrower.request.pcCreditOk", { score, band, days, max: maxDays }),
-    },
-    {
-      id: "tier",
-      ok: unclassified.length === 0,
-      label: t("borrower.request.pcTier"),
-      detail: unclassified.length
-        ? t("borrower.request.pcTierBad", {
-            items: unclassified.map((r) => r.item.name).join(" · "),
-          })
-        : t("borrower.request.pcTierOk"),
     },
     {
       id: "stock",
@@ -182,7 +175,14 @@ export default function RequestPage() {
     if (!canSubmit || endDate === null) return;
     // TODO: POST /loan-requests with these units. Until then the request is
     // pushed to the session store so it shows up under "my requests".
-    addEquipmentRequest({ units, startDate, endDate, needsSupervisor });
+    addEquipmentRequest({
+      units,
+      startDate,
+      pickupTime,
+      endDate,
+      returnTime,
+      needsSupervisor,
+    });
     clear();
     navigate(ROUTES.MY_LOANS);
   }
@@ -223,21 +223,35 @@ export default function RequestPage() {
                 })}
               </p>
 
-              <div className="grid max-w-[540px] gap-3 sm:grid-cols-2">
-                <DateField
-                  label={t("borrower.request.pickupDate")}
-                  value={startDate}
-                  min={todayIso()}
-                  max={isoOffset(BUSINESS.RESERVATION_MAX_DAYS)}
-                  onChange={handleStart}
-                />
-                <DateField
-                  label={t("borrower.request.returnDate")}
-                  value={endDate ?? ""}
-                  min={startDate}
-                  max={endMax}
-                  onChange={(iso) => setEndDate(iso || null)}
-                />
+              <div className="max-w-[620px] space-y-3">
+                <div className="grid items-end gap-3 sm:grid-cols-[minmax(180px,1fr)_auto]">
+                  <DateField
+                    label={t("borrower.request.pickupDate")}
+                    value={startDate}
+                    min={todayIso()}
+                    max={isoOffset(BUSINESS.RESERVATION_MAX_DAYS)}
+                    onChange={handleStart}
+                  />
+                  <RequestTimeField
+                    label={t("borrower.request.pickupTime")}
+                    value={pickupTime}
+                    onChange={setPickupTime}
+                  />
+                </div>
+                <div className="grid items-end gap-3 sm:grid-cols-[minmax(180px,1fr)_auto]">
+                  <DateField
+                    label={t("borrower.request.returnDate")}
+                    value={endDate ?? ""}
+                    min={startDate}
+                    max={endMax}
+                    onChange={(iso) => setEndDate(iso || null)}
+                  />
+                  <RequestTimeField
+                    label={t("borrower.request.returnTime")}
+                    value={returnTime}
+                    onChange={setReturnTime}
+                  />
+                </div>
               </div>
 
               {overDays ? (
@@ -287,6 +301,12 @@ export default function RequestPage() {
                       days,
                     })
                   : t("borrower.request.noEnd")}
+              </SumRow>
+              <SumRow label={t("borrower.request.sumPickupTime")}>
+                <span className="font-mono">{pickupTime}</span>
+              </SumRow>
+              <SumRow label={t("borrower.request.sumReturnTime")}>
+                <span className="font-mono">{returnTime}</span>
               </SumRow>
             </div>
 
@@ -399,6 +419,43 @@ function StepsBar() {
         );
       })}
     </div>
+  );
+}
+
+function RequestTimeField({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: RequestTime;
+  onChange: (time: RequestTime) => void;
+}) {
+  return (
+    <fieldset>
+      <legend className="mb-1.5 text-xs font-medium text-t2">{label}</legend>
+      <div className="flex flex-wrap gap-2">
+        {REQUEST_TIMES.map((time) => {
+          const selected = value === time;
+          return (
+            <button
+              key={time}
+              type="button"
+              aria-pressed={selected}
+              onClick={() => onChange(time)}
+              className={cn(
+                "h-9 min-w-24 rounded-md border px-4 font-mono text-sm font-medium transition-colors",
+                selected
+                  ? "border-accent bg-accent text-white"
+                  : "border-border bg-card text-foreground hover:border-line-strong hover:bg-muted",
+              )}
+            >
+              {time}
+            </button>
+          );
+        })}
+      </div>
+    </fieldset>
   );
 }
 

@@ -172,7 +172,7 @@ function RequestCard({ row, onCancel }: { row: MyRequest; onCancel: () => void }
 
       <h3 className="mt-2 text-[15px] font-semibold leading-snug text-foreground">{row.name}</h3>
       <div className="mt-1 font-mono text-xs text-t3">
-        {row.serial} · {fmtRange(row.startDate, dueDateOf(row))}
+        {row.serial} · {requestWindow(row, t)}
       </div>
 
       {/* Due dates are counted in days, which a room booked by the hour has
@@ -465,7 +465,12 @@ function DraftCard({
       <div className="mt-1 font-mono text-xs text-t3">
         {t("borrower.myRequests.draftSummary", { lines: draft.lines, units: draft.units })} ·{" "}
         {draft.endDate
-          ? fmtRange(draft.startDate, draft.endDate)
+          ? t("borrower.myRequests.requestWindow", {
+              pickupDate: fmtDay(draft.startDate),
+              pickupTime: draft.pickupTime,
+              returnDate: fmtDay(draft.endDate),
+              returnTime: draft.returnTime,
+            })
           : t("borrower.myRequests.draftNoEnd")}
       </div>
 
@@ -535,6 +540,18 @@ function fmtRange(start: string, end: string): string {
 
 function fmtDay(iso: string): string {
   return fmtDayMonth(iso);
+}
+
+function requestWindow(row: MyRequest, t: (key: string, values?: Record<string, unknown>) => string): string {
+  if (row.kind !== "equipment" || !row.pickupTime || !row.returnTime) {
+    return fmtRange(row.startDate, dueDateOf(row));
+  }
+  return t("borrower.myRequests.requestWindow", {
+    pickupDate: fmtDay(row.startDate),
+    pickupTime: row.pickupTime,
+    returnDate: fmtDay(dueDateOf(row)),
+    returnTime: row.returnTime,
+  });
 }
 
 function exportCsv(requests: MyRequest[]): void {

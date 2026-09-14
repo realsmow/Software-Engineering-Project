@@ -71,14 +71,7 @@ export default function HomePage() {
       <div className="flex min-w-0 flex-[3_1_520px] flex-col gap-4">
         <Greeting name={name} next={loans[0]} chips={chips} />
 
-        <Panel
-          title={t("borrower.home.currentLoans")}
-          action={
-            <Button type="button" size="sm" onClick={() => navigate(ROUTES.CATALOG)}>
-              {t("borrower.home.borrowMore")}
-            </Button>
-          }
-        >
+        <Panel title={t("borrower.home.currentLoans")}>
           <LoansTable rows={loans} />
           <p className="border-t border-border bg-secondary px-3.5 py-2.5 text-xs leading-relaxed text-t3">
             {t("borrower.home.extendHint", { days: BUSINESS.EXTENSION_DAYS })}

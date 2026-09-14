@@ -3,7 +3,7 @@ import { addDays, differenceInCalendarDays, format, parseISO } from "date-fns";
 import { toLocalDayKey, todayLocalDayKey } from "@/lib/datetime";
 import { BUSINESS } from "@/constants";
 import { type MyRequest, type MyRequestStatus, type Room } from "../mock-data";
-import type { RequestUnit } from "../request/request-draft.store";
+import type { RequestTime, RequestUnit } from "../request/request-draft.store";
 
 /**
  * Requests submitted during this session.
@@ -46,7 +46,9 @@ interface SubmittedRequestsState {
   addEquipmentRequest: (input: {
     units: RequestUnit[];
     startDate: string;
+    pickupTime: RequestTime;
     endDate: string;
+    returnTime: RequestTime;
     /** T2 (or low credit) items wait for a supervisor; the rest auto-approve. */
     needsSupervisor: boolean;
   }) => void;
@@ -87,7 +89,14 @@ export const useSubmittedRequests = create<SubmittedRequestsState>((set, get) =>
   overrides: {},
   roomUse: {},
 
-  addEquipmentRequest: ({ units, startDate, endDate, needsSupervisor }) => {
+  addEquipmentRequest: ({
+    units,
+    startDate,
+    pickupTime,
+    endDate,
+    returnTime,
+    needsSupervisor,
+  }) => {
     if (units.length === 0) return;
     // Each unit gets the next number in sequence - nothing ties them together.
     let seq = EQUIPMENT_SEQ_START + countRequests(get().requests, "REQ");
@@ -110,7 +119,9 @@ export const useSubmittedRequests = create<SubmittedRequestsState>((set, get) =>
         serial: unit.serial ?? "-",
         status,
         startDate,
+        pickupTime,
         endDate,
+        returnTime,
       };
     });
 

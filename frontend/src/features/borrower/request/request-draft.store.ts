@@ -20,12 +20,19 @@ export interface DraftLine {
   serials: string[];
 }
 
+export const REQUEST_TIMES = ["08:00", "13:00", "16:00"] as const;
+export type RequestTime = (typeof REQUEST_TIMES)[number];
+
 interface RequestDraftState {
   lines: DraftLine[];
   /** Pickup date, ISO yyyy-MM-dd. Defaults to today. */
   startDate: string;
+  /** Time at which the borrower plans to collect the equipment. */
+  pickupTime: RequestTime;
   /** Return date, ISO yyyy-MM-dd. Null until the borrower picks one. */
   endDate: string | null;
+  /** Time at which the borrower plans to return the equipment. */
+  returnTime: RequestTime;
 
   /**
    * `stock` comes from the caller because the catalogue is a server query now:
@@ -38,7 +45,9 @@ interface RequestDraftState {
   /** Check/uncheck one serial on a line. */
   toggleSerial: (itemId: string, serial: string) => void;
   setStartDate: (iso: string) => void;
+  setPickupTime: (time: RequestTime) => void;
   setEndDate: (iso: string | null) => void;
+  setReturnTime: (time: RequestTime) => void;
   clear: () => void;
 }
 
@@ -116,7 +125,9 @@ export function isoOffset(days: number): string {
 export const useRequestDraft = create<RequestDraftState>((set) => ({
   lines: [],
   startDate: todayIso(),
+  pickupTime: "08:00",
   endDate: null,
+  returnTime: "16:00",
 
   addItem: (itemId, stock) =>
     set((s) => {
@@ -158,7 +169,15 @@ export const useRequestDraft = create<RequestDraftState>((set) => ({
     })),
 
   setStartDate: (iso) => set({ startDate: iso }),
+  setPickupTime: (time) => set({ pickupTime: time }),
   setEndDate: (iso) => set({ endDate: iso }),
+  setReturnTime: (time) => set({ returnTime: time }),
 
-  clear: () => set({ lines: [], startDate: todayIso(), endDate: null }),
+  clear: () => set({
+    lines: [],
+    startDate: todayIso(),
+    pickupTime: "08:00",
+    endDate: null,
+    returnTime: "16:00",
+  }),
 }));
