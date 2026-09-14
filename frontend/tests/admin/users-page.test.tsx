@@ -4,7 +4,10 @@ import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import i18n from '../../src/i18n';
 import UsersPage from '../../src/features/admin/users/users-page';
-import { DEPARTMENTS, type AdminUser } from '../../src/features/admin/mock-data';
+import {
+  ADMIN_USERS,
+  DEPARTMENTS,
+} from '../../src/features/admin/mock-data';
 import * as adminUsersHooks from '../../src/features/admin/users/use-admin-users';
 
 const useAuditEventsMock = vi.hoisted(() => vi.fn());
@@ -13,27 +16,21 @@ vi.mock('../../src/features/admin/audit/use-audit-events', () => ({
   useAuditEvents: useAuditEventsMock,
 }));
 
-/** UI-model fixtures: API numeric IDs are intentionally adapted to strings. */
-const USERS: AdminUser[] = [
+const ADMIN_USER = ADMIN_USERS.find((user) => user.role === 'admin')!;
+const STAFF_USER = ADMIN_USERS.find((user) => user.role === 'staff' && user.status === 'active')!;
+const SUSPENDED_USER = ADMIN_USERS.find((user) => user.status === 'suspended')!;
+const DISABLED_USER = ADMIN_USERS.find((user) => user.status === 'disabled')!;
+const USERS = [ADMIN_USER, STAFF_USER, SUSPENDED_USER, DISABLED_USER];
+const AUDIT_EVENTS = [
   {
-    id: '1', govId: 'ADM00001', name: 'Somchai Admin', email: 'somchai.a@ku.th',
-    role: 'admin', status: 'active', auth: 'ku', departmentId: 'cpe',
-    lastActiveAt: '2026-09-01T10:00:00Z', createdAt: '2026-01-10T08:00:00Z',
+    id: 'audit-1', at: '2026-09-01T10:00:00Z', actorName: STAFF_USER.name,
+    actorRole: 'staff' as const, action: 'login' as const, target: `account/${STAFF_USER.id}`,
+    ip: '-', userAgent: '-', detail: 'Signed in',
   },
   {
-    id: '2', govId: 'STF00002', name: 'Somsri Staff', email: 'somsri.s@ku.th',
-    role: 'staff', status: 'active', auth: 'local', departmentId: 'cpe',
-    lastActiveAt: '2026-09-02T11:00:00Z', createdAt: '2026-02-15T08:00:00Z',
-  },
-  {
-    id: '3', govId: '65019999', name: 'Somsak Student', email: 'somsak.j@ku.th',
-    role: 'borrower', status: 'suspended', auth: 'ku', departmentId: 'cpe',
-    lastActiveAt: '2026-08-30T09:00:00Z', createdAt: '2026-03-20T08:00:00Z',
-  },
-  {
-    id: '4', govId: '65018888', name: 'Wichai Disabled', email: 'wichai.d@ku.th',
-    role: 'borrower', status: 'disabled', auth: 'ku', departmentId: 'me',
-    lastActiveAt: '2026-07-25T14:00:00Z', createdAt: '2026-04-10T08:00:00Z',
+    id: 'audit-2', at: '2026-09-01T11:00:00Z', actorName: STAFF_USER.name,
+    actorRole: 'staff' as const, action: 'update' as const, target: `account/${SUSPENDED_USER.id}`,
+    ip: '-', userAgent: '-', detail: 'Updated account',
   },
 ];
 
@@ -94,19 +91,19 @@ describe('Admin users page', () => {
 
     fireEvent.click(suspendedChip!);
 
-    expect(screen.getByText('Somsak Student')).toBeInTheDocument();
-    expect(screen.queryByText('Somchai Admin')).not.toBeInTheDocument();
-    expect(screen.queryByText('Wichai Disabled')).not.toBeInTheDocument();
+    expect(screen.getByText(SUSPENDED_USER.name)).toBeInTheDocument();
+    expect(screen.queryByText(ADMIN_USER.name)).not.toBeInTheDocument();
+    expect(screen.queryByText(DISABLED_USER.name)).not.toBeInTheDocument();
   });
 
   it('filters users by a case-insensitive name, email, or institutional ID query', () => {
     renderPage();
     const search = screen.getByRole('textbox', { name: t('common.search') });
 
-    fireEvent.change(search, { target: { value: 'stf00002' } });
+    fireEvent.change(search, { target: { value: STAFF_USER.govId.toLowerCase() } });
 
-    expect(screen.getByText('Somsri Staff')).toBeInTheDocument();
-    expect(screen.queryByText('Somchai Admin')).not.toBeInTheDocument();
+    expect(screen.getByText(STAFF_USER.name)).toBeInTheDocument();
+    expect(screen.queryByText(ADMIN_USER.name)).not.toBeInTheDocument();
   });
 
   it('filters rows using the role and account-status dropdowns', () => {
@@ -115,15 +112,15 @@ describe('Admin users page', () => {
     fireEvent.click(screen.getByRole('combobox', { name: t('admin.users.filterRole') }));
     fireEvent.click(screen.getByRole('option', { name: t('nav.staff') }));
 
-    expect(screen.getByText('Somsri Staff')).toBeInTheDocument();
-    expect(screen.queryByText('Somchai Admin')).not.toBeInTheDocument();
-    expect(screen.queryByText('Somsak Student')).not.toBeInTheDocument();
+    expect(screen.getByText(STAFF_USER.name)).toBeInTheDocument();
+    expect(screen.queryByText(ADMIN_USER.name)).not.toBeInTheDocument();
+    expect(screen.queryByText(SUSPENDED_USER.name)).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('combobox', { name: t('admin.users.filterStatus') }));
     fireEvent.click(screen.getByRole('option', { name: t('admin.users.statusSuspended') }));
 
-    expect(screen.queryByText('Somsri Staff')).not.toBeInTheDocument();
-    expect(screen.queryByText('Somchai Admin')).not.toBeInTheDocument();
+    expect(screen.queryByText(STAFF_USER.name)).not.toBeInTheDocument();
+    expect(screen.queryByText(ADMIN_USER.name)).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('combobox', { name: t('admin.users.filterRole') }));
     fireEvent.click(
@@ -131,40 +128,17 @@ describe('Admin users page', () => {
         name: `${t('admin.users.filterRole')}: ${t('table.filterAll')}`,
       }),
     );
-    expect(screen.getByText('Somsak Student')).toBeInTheDocument();
+    expect(screen.getByText(SUSPENDED_USER.name)).toBeInTheDocument();
   });
 
   it('renders the most-active-users chart from the live audit event list', () => {
     useAuditEventsMock.mockReturnValue({
-      data: [
-        {
-          id: 'audit-1',
-          at: '2026-09-01T10:00:00Z',
-          actorName: 'Somsri Staff',
-          actorRole: 'staff',
-          action: 'login',
-          target: 'account/2',
-          ip: '-',
-          userAgent: '-',
-          detail: 'Signed in',
-        },
-        {
-          id: 'audit-2',
-          at: '2026-09-01T11:00:00Z',
-          actorName: 'Somsri Staff',
-          actorRole: 'staff',
-          action: 'update',
-          target: 'account/3',
-          ip: '-',
-          userAgent: '-',
-          detail: 'Updated account',
-        },
-      ],
+      data: AUDIT_EVENTS,
     });
     renderPage();
 
     expect(screen.getByText(t('admin.charts.topUsers'))).toBeInTheDocument();
-    expect(screen.getByText('Somsri Staff')).toBeInTheDocument();
+    expect(screen.getByText(STAFF_USER.name)).toBeInTheDocument();
   });
 
   it('keeps required create fields disabled and supports department and auth selections', () => {
@@ -231,38 +205,38 @@ describe('Admin users page', () => {
 
   it('requests a borrowing ban for the selected active account', () => {
     renderPage();
-    openUser('Somsri Staff');
+    openUser(STAFF_USER.name);
 
     fireEvent.click(screen.getByRole('button', { name: t('admin.users.suspend') }));
 
     expect(setUserBanMutate).toHaveBeenCalledWith(
-      { id: '2', banned: true },
+      { id: STAFF_USER.id, banned: true },
       expect.any(Object),
     );
   });
 
   it('requests account deactivation separately from a borrowing ban', () => {
     renderPage();
-    openUser('Somsri Staff');
+    openUser(STAFF_USER.name);
 
     fireEvent.click(screen.getByRole('button', { name: t('admin.users.deactivate') }));
 
     expect(setUserActiveMutate).toHaveBeenCalledWith(
-      { id: '2', active: false },
+      { id: STAFF_USER.id, active: false },
       expect.any(Object),
     );
   });
 
   it('requests a role change using the selected account ID and enum value', () => {
     renderPage();
-    openUser('Somsri Staff');
+    openUser(STAFF_USER.name);
 
     const roleSelect = screen.getAllByRole('combobox').at(-1)!;
     fireEvent.click(roleSelect);
     fireEvent.click(screen.getByRole('option', { name: t('nav.borrower') }));
 
     expect(changeRoleMutate).toHaveBeenCalledWith(
-      { id: '2', role: 'borrower' },
+      { id: STAFF_USER.id, role: 'borrower' },
       expect.any(Object),
     );
   });
@@ -272,14 +246,14 @@ describe('Admin users page', () => {
       options.onSuccess({ ok: true, temporaryPassword: 'temporary-123' });
     });
     renderPage();
-    openUser('Somsri Staff');
+    openUser(STAFF_USER.name);
 
     fireEvent.click(screen.getByRole('button', { name: t('admin.users.resetPassword') }));
 
     await waitFor(() => {
       expect(screen.getByText(new RegExp(`temporary-123`))).toBeInTheDocument();
     });
-    expect(resetPasswordMutate).toHaveBeenCalledWith({ id: '2' }, expect.any(Object));
+    expect(resetPasswordMutate).toHaveBeenCalledWith({ id: STAFF_USER.id }, expect.any(Object));
   });
 
   it('keeps the panel open and surfaces a mutation error instead of claiming success', async () => {
@@ -287,7 +261,7 @@ describe('Admin users page', () => {
       options.onError(new Error('Password reset is unavailable'));
     });
     renderPage();
-    openUser('Somsri Staff');
+    openUser(STAFF_USER.name);
 
     fireEvent.click(screen.getByRole('button', { name: t('admin.users.resetPassword') }));
 
@@ -302,7 +276,7 @@ describe('Admin users page', () => {
       options.onError(new Error('CANNOT_MODIFY_SELF'));
     });
     renderPage();
-    openUser('Somsri Staff');
+    openUser(STAFF_USER.name);
 
     fireEvent.click(screen.getByRole('button', { name: t('admin.users.suspend') }));
 
@@ -336,7 +310,7 @@ describe('Admin users page', () => {
       });
     });
     renderPage();
-    openUser('Somsri Staff');
+    openUser(STAFF_USER.name);
 
     const roleSelect = screen.getAllByRole('combobox').at(-1)!;
     fireEvent.click(roleSelect);
@@ -378,7 +352,7 @@ describe('Admin users page', () => {
       });
     });
     renderPage();
-    openUser('Somsri Staff');
+    openUser(STAFF_USER.name);
 
     fireEvent.click(screen.getByRole('button', { name: t('admin.users.deactivate') }));
 
@@ -394,7 +368,7 @@ describe('Admin users page', () => {
 
   it('offers activation, not suspension, for a disabled account', () => {
     renderPage();
-    openUser('Wichai Disabled');
+    openUser(DISABLED_USER.name);
 
     expect(screen.getByRole('button', { name: t('admin.users.activate') })).not.toHaveProperty('disabled', true);
     expect(screen.queryByRole('button', { name: t('admin.users.suspend') })).not.toBeInTheDocument();
@@ -404,7 +378,7 @@ describe('Admin users page', () => {
     vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => undefined);
     renderPage();
     fireEvent.change(screen.getByRole('textbox', { name: t('common.search') }), {
-      target: { value: 'Somsri' },
+      target: { value: STAFF_USER.name },
     });
 
     fireEvent.click(screen.getByRole('button', { name: t('common.export') }));
@@ -419,7 +393,7 @@ describe('Admin users page', () => {
       data: undefined, isLoading: true, isError: false, error: null, refetch: vi.fn(),
     } as never);
     const { rerender } = renderPage();
-    expect(screen.queryByText('Somchai Admin')).not.toBeInTheDocument();
+    expect(screen.queryByText(ADMIN_USER.name)).not.toBeInTheDocument();
 
     vi.spyOn(adminUsersHooks, 'useAdminUsers').mockReturnValue({
       data: undefined, isLoading: false, isError: true, error: new Error('Network error'), refetch: vi.fn(),
@@ -431,6 +405,6 @@ describe('Admin users page', () => {
         </MemoryRouter>
       </QueryClientProvider>,
     );
-    expect(screen.queryByText('Somchai Admin')).not.toBeInTheDocument();
+    expect(screen.queryByText(ADMIN_USER.name)).not.toBeInTheDocument();
   });
 });

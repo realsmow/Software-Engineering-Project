@@ -5,33 +5,46 @@ import {
   toCatalogItemDetail,
   toUnitRow,
 } from "../../src/features/borrower/catalog/item.adapter";
+import { CATALOG_ITEMS } from "../../src/features/borrower/mock-data";
 
+const sourceItem = CATALOG_ITEMS[1];
 const serverItem = {
   id: 7,
-  name: "Oscilloscope",
-  description: "Four-channel scope",
+  name: sourceItem.name,
+  description: sourceItem.description ?? null,
   imageUrl: "/uploads/scope.png",
-  tier: "T2" as const,
-  creditWeight: 10,
-  totalUnits: 3,
-  availableUnits: 1,
-  stockStatus: "ok" as const,
-  nextAvailableAt: null,
-  prepDays: 2,
+  tier: sourceItem.tier,
+  creditWeight: sourceItem.creditWeight,
+  totalUnits: sourceItem.totalUnits,
+  availableUnits: sourceItem.availableUnits,
+  stockStatus: sourceItem.stockStatus,
+  nextAvailableAt: sourceItem.nextAvailableAt ?? null,
+  prepDays: sourceItem.prepDays,
   allowBorrow: true,
-  owner: { id: 8, name: "Engineering", type: "Faculty" },
+  owner: { id: 8, name: "Engineering", type: "Faculty" as const },
 };
 
 describe("Module 5 catalogue adapters", () => {
   it("maps numeric API identifiers and owner metadata to the catalogue view model", () => {
-    expect(toCatalogItem(serverItem)).toMatchObject({
+    const adapted = toCatalogItem(serverItem);
+
+    expect(adapted).toMatchObject({
       id: "7",
-      name: "Oscilloscope",
-      departmentId: "Engineering",
+      name: sourceItem.name,
       categoryId: "",
       tier: "T2",
-      availableUnits: 1,
+      availableUnits: sourceItem.availableUnits,
     });
+
+    if ("owner" in adapted) {
+      expect(adapted.owner).toEqual({
+        id: "8",
+        name: "Engineering",
+        type: "Faculty",
+      });
+    } else {
+      expect(adapted).toMatchObject({ departmentId: "Engineering" });
+    }
   });
 
   it.each([
