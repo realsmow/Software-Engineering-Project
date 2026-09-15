@@ -1,8 +1,12 @@
 import { create } from "zustand";
-import { addDays, differenceInCalendarDays, format, parseISO } from "date-fns";
-import { toLocalDayKey, todayLocalDayKey } from "@/lib/datetime";
+import { addDays, format, parseISO } from "date-fns";
+import { todayLocalDayKey } from "@/lib/datetime";
 import { BUSINESS } from "@/constants";
 import { type MyRequest, type MyRequestStatus, type Room } from "../mock-data";
+import {
+  releaseBorrowerImage,
+  type PreparedBorrowerImage,
+} from "../uploads/prepared-image";
 
 /**
  * Requests submitted during this session.
@@ -10,10 +14,10 @@ import { type MyRequest, type MyRequestStatus, type Room } from "../mock-data";
  * Equipment requests now live in the backend. This session-only store remains
  * for room bookings (whose API is not wired yet) and local UI-only overrides.
  */
-/** Room condition photos taken by the borrower, as object URLs. */
+/** Room condition photos selected by the borrower and ready for a signed upload. */
 export interface RoomUseShots {
-  before?: string;
-  after?: string;
+  before?: PreparedBorrowerImage;
+  after?: PreparedBorrowerImage;
 }
 
 interface SubmittedRequestsState {
@@ -39,8 +43,6 @@ interface SubmittedRequestsState {
   patch: (requestId: string, changes: Partial<MyRequest>) => void;
   /** Moves a request - check-in and check-out on the room-use page. */
   setStatus: (requestId: string, status: MyRequestStatus) => void;
-  /** Collects items at the counter: the loan starts, so the clock starts too. */
-  pickUp: (rows: readonly MyRequest[]) => void;
   /** Pushes the due date out by one online extension. Callers gate on `extensionState`. */
   extendLoan: (row: MyRequest) => void;
   /** Asks staff or a supervisor for more time, when the borrower cannot grant it. */
@@ -50,7 +52,11 @@ interface SubmittedRequestsState {
   /** Sends an appeal against an inspection verdict to a supervisor. */
   sendAppeal: (requestId: string) => void;
   /** Stores (or clears, with `undefined`) one of the two room photos. */
-  setRoomPhoto: (requestId: string, which: keyof RoomUseShots, url?: string) => void;
+  setRoomPhoto: (
+    requestId: string,
+    which: keyof RoomUseShots,
+    image?: PreparedBorrowerImage,
+  ) => void;
   cancel: (requestId: string) => void;
   clear: () => void;
 }
@@ -100,24 +106,6 @@ export const useSubmittedRequests = create<SubmittedRequestsState>((set, get) =>
 
   setStatus: (requestId, status) => get().patch(requestId, { status }),
 
-  pickUp: (rows) => {
-    for (const row of rows) {
-      // The clock starts at the counter, not on the date originally asked for.
-      // What the borrower reserved is a *length* of loan; collecting a day late
-      // should not eat a day of it, and collecting after the requested window
-      // has passed should not hand over something already overdue.
-      //
-      // Stored rather than derived at render: the seeded rows carry due dates
-      // written by hand, and deriving would silently overdue all of them.
-      const days = requestedDays(row);
-      get().patch(row.id, {
-        status: "inUse",
-        dueAt: toLocalDayKey(new Date(Date.now() + days * 86_400_000)),
-        daysLeft: days,
-      });
-    }
-  },
-
   extendLoan: (row) => {
     const days = BUSINESS.EXTENSION_DAYS;
     // Measured from the current due date, not from today: extending early
@@ -141,28 +129,42 @@ export const useSubmittedRequests = create<SubmittedRequestsState>((set, get) =>
   // there is no withdrawing an appeal once a supervisor is looking at it.
   sendAppeal: (requestId) => get().patch(requestId, { appealSent: true }),
 
-  setRoomPhoto: (requestId, which, url) =>
+  setRoomPhoto: (requestId, which, image) => {
+    const previous = get().roomUse[requestId]?.[which];
+    if (previous !== image) releaseBorrowerImage(previous);
+
     set((s) => ({
       roomUse: {
         ...s.roomUse,
-        [requestId]: { ...s.roomUse[requestId], [which]: url },
+        [requestId]: { ...s.roomUse[requestId], [which]: image },
       },
-    })),
+    }));
+  },
 
-  cancel: (requestId) => get().setStatus(requestId, "cancelled"),
+  cancel: (requestId) => {
+    releaseRoomShots(get().roomUse[requestId]);
+    set((s) => {
+      const roomUse = { ...s.roomUse };
+      delete roomUse[requestId];
+      return { roomUse };
+    });
+    get().setStatus(requestId, "cancelled");
+  },
 
-  clear: () => set({ requests: [], overrides: {}, roomUse: {} }),
+  clear: () => {
+    for (const shots of Object.values(get().roomUse)) releaseRoomShots(shots);
+    set({ requests: [], overrides: {}, roomUse: {} });
+  },
 }));
+
+function releaseRoomShots(shots: RoomUseShots | undefined): void {
+  releaseBorrowerImage(shots?.before);
+  releaseBorrowerImage(shots?.after);
+}
 
 /** Today at the counter, not in whatever timezone the browser is set to. */
 export function todayIso(): string {
   return todayLocalDayKey();
-}
-
-/** How long the borrower asked to keep it, clamped to the lending rules. */
-function requestedDays(row: MyRequest): number {
-  const asked = differenceInCalendarDays(parseISO(row.endDate), parseISO(row.startDate));
-  return Math.min(Math.max(asked, BUSINESS.MIN_LOAN_DAYS), BUSINESS.MAX_LOAN_DAYS);
 }
 
 /** How many numbers have already been issued under a prefix this session. */
