@@ -71,6 +71,8 @@ export function toCatalogItem(s: ServerItem): CatalogItem {
  */
 export interface ServerItemUnit {
   id: number;
+  /** ResourceInfo.ResourceKey - the identifier accepted by loan.create. */
+  resourceKey: number;
   /** ItemIndiv.ItemID - the asset tag printed on the unit. */
   assetTag: string;
   imageUrl: string | null;
@@ -100,10 +102,10 @@ export interface CatalogItemDetail extends CatalogItem {
  * `fix`, which is the less wrong of the two: nobody is holding it on a loan.
  */
 export function toUnitRow(u: ServerItemUnit): UnitRow {
-  return { serial: u.assetTag, state: toUnitState(u) };
+  return { resourceKey: u.resourceKey, serial: u.assetTag, state: toUnitState(u) };
 }
 
-function toUnitState(u: ServerItemUnit): UnitState {
+export function toUnitState(u: ServerItemUnit): UnitState {
   if (u.status === "Lended") return "out";
   if (
     !u.allowBorrow ||

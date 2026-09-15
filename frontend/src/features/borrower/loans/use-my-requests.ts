@@ -57,8 +57,8 @@ export function useMyRequests() {
   const returnTime = useRequestDraft((s) => s.returnTime);
 
   const requests = useMemo<MyRequest[]>(() => {
-    // Equipment requests come from the server once that submit path is wired.
-    // Until then, session submissions and room bookings are merged in here too.
+    // Equipment requests come from the server; room bookings remain in the
+    // session store until their API is wired.
     return [...submitted, ...(server ?? [])].map((r) => {
       // Local extension/inspection state layered on top of the server row.
       // Keyed by the reservation number, which is what `id` now holds.
