@@ -234,10 +234,10 @@ tier และ `item.createUnit` จะโยน `TIER_NOT_CONFIGURED`
 | # | ต้องเพิ่ม | ปลดล็อกอะไร | ตอนนี้เป็นยังไง |
 |---|---|---|---|
 | 10 | ตาราง `Category` + `ItemInfo.CategoryKey` | `item.listCategories` · ตัวกรองหมวดหมู่ในหน้า catalogue | ❌ ไม่มีอะไรจัดกลุ่มอุปกรณ์เลย (frontend mock มี instrument / tool / board) |
-| 11 | `RoomInfo.Capacity` (จำนวนที่นั่ง) | คอลัมน์ความจุ + ตัวกรอง S/M/L ในหน้าห้อง | ❌ ไม่มี |
+| 11 | ~~`RoomInfo.Capacity` (จำนวนที่นั่ง)~~ | คอลัมน์ความจุ + ตัวกรอง S/M/L ในหน้าห้อง | ✅ **เพิ่มแล้ว** — migration `20260916000000_room_capacity` · nullable (ห้องเดิมยังไม่มีใครวัด) + CHECK ว่าต้อง > 0 · `item.createRoom` / `updateRoom` รับค่านี้ · ตัวกรอง S/M/L ยังไม่ได้ทำ |
 | 12 | `RoomInfo.RoomType` (lab / meet / lect / shop) | ตัวกรองประเภทห้อง | ❌ ไม่มี |
 | 13 | `RoomInfo.BuildingKey` หรือตาราง `Building` | ตัวกรองอาคาร | ⚠️ มีแต่ `RoomLocation` ที่เป็น free text — ค้นด้วย `q` ได้ แต่กรองเป็นกลุ่มไม่ได้ |
-| 14 | ระบบสล็อตเวลาของห้อง | `freeSlots` / `totalSlots` ที่หน้า room list แสดง · `reservation.getSlots` | ❌ ต้องออกแบบร่วมกับโดเมน `reservation` ทั้งก้อน ไม่ใช่แค่คอลัมน์ |
+| 14 | ~~ระบบสล็อตเวลาของห้อง~~ | `freeSlots` / `totalSlots` ที่หน้า room list แสดง · `reservation.getSlots` | ✅ **ทำแล้วโดยไม่เพิ่มตาราง** — `item.roomAvailability({ roomKey, date })` คำนวณสล็อตครึ่งชั่วโมงจาก `Reservations` โดยตรง (ดู `common/booking/room-slots.ts`) · จองด้วย `loan.createRoomBooking({ roomKey, date, slots })` · `freeSlots`/`totalSlots` ที่หน้า room list ยังไม่ได้ต่อ เพราะต้องนับทีละห้องต่อวัน |
 | 15 | `ItemInfo.AvailableUnits` (คอลัมน์คำนวณไว้ล่วงหน้า) | เรียงตาม "ของว่าง" ในระดับ SQL | ⚠️ ดูหัวข้อถัดไป — งาน cron `computeAvailability` ที่วางแผนไว้แล้วคือคำตอบพอดี |
 
 ### เรื่องที่ต้องรู้: `item.list` ไม่ได้แบ่งหน้าใน SQL

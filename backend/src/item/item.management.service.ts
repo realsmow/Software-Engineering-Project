@@ -94,6 +94,7 @@ const ROOM_SELECT = {
   RoomLocation: true,
   ImageURL: true,
   CreditWeight: true,
+  Capacity: true,
   Resource: {
     select: {
       ResourceKey: true,
@@ -594,6 +595,7 @@ export class ItemManagementService {
           RoomLocation: input.location ?? null,
           ImageURL: this.images.toStoredUrl(input.imageUrl) ?? null,
           CreditWeight: input.creditWeight,
+          Capacity: input.capacity ?? null,
         },
       });
 
@@ -632,6 +634,10 @@ export class ItemManagementService {
         ...(input.creditWeight !== undefined
           ? { CreditWeight: input.creditWeight }
           : {}),
+        // `null` is a value here, not an absence: it is how staff take a wrong
+        // capacity back out. Hence `!== undefined` rather than a truthiness
+        // check, which would silently drop the clear.
+        ...(input.capacity !== undefined ? { Capacity: input.capacity } : {}),
       },
     });
 
@@ -1032,6 +1038,7 @@ export class ItemManagementService {
       location: row.RoomLocation,
       imageUrl: this.images.toPublicUrl(row.ImageURL),
       creditWeight: row.CreditWeight,
+      capacity: row.Capacity,
       tier: tryMapTier(row.Resource.BorrowRuleInfo.RuleName),
       status: row.Resource.ResourceStatus,
       lendable: row.Resource.AllowBorrow,

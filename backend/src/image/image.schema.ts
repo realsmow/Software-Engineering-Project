@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { isoDateTime } from '../common/schemas/datetime.schema';
+import { dbId } from '../common/schemas/id.schema';
 import {
   MAX_UPLOAD_BYTES,
   imageUrl,
@@ -72,3 +73,68 @@ export const requestUploadOutput = z.object({
   /** Echoed back so the client can re-check before sending. */
   maxBytes: z.number().int().positive(),
 });
+
+// ---------------------------------------------------------------------------
+// Check-in / check-out photos (§5.9)
+//
+// The other half of the image story, and the one that does not go through a
+// ticket. The frontend uploads the file itself and sends back the URL; the
+// backend's job here is only to record which loan, which stage and who.
+//
+// That split is the team's decision (2026-09-16): `image.requestUpload` above
+// stays for the staff screens already built on it, and everything added from
+// here stores a URL the client has already put somewhere. The value is still
+// validated by `imageUrl` — "the frontend uploads it" changes who writes the
+// bytes, not whether an arbitrary string may land in an `<img src>`.
+// ---------------------------------------------------------------------------
+
+/**
+ * Which side of the loan a photo belongs to.
+ *
+ * `SubmissionType` in the database has a third value, `InspectionPicture`,
+ * which staff write through `inspection.create` and which no borrower may
+ * claim. Keeping it out of this enum is what stops a borrower filing their own
+ * photo as the inspector's evidence.
+ */
+export const usagePhotoStage = z.enum(['before', 'after']);
+export type UsagePhotoStage = z.infer<typeof usagePhotoStage>;
+
+/** Enough for a unit photographed from every side, few enough to stay a record. */
+export const MAX_PHOTOS_PER_STAGE = 10;
+
+/**
+ * Attach photos to a loan (CONTRACT.md §3, step 3).
+ *
+ * A list rather than one URL per call: the borrower photographs the thing from
+ * several angles in one go, and one mutation per photo would let a half-filed
+ * set survive a dropped connection.
+ */
+export const attachUsagePhotosInput = z.object({
+  usageKey: dbId,
+  stage: usagePhotoStage,
+  imageUrls: z.array(imageUrl).min(1).max(MAX_PHOTOS_PER_STAGE),
+});
+export type AttachUsagePhotosInput = z.infer<typeof attachUsagePhotosInput>;
+
+export const usagePhotoOutput = z.object({
+  imageKey: z.number().int(),
+  /** Relative `/media/...` or an absolute URL — see common/schemas/image.schema.ts. */
+  imageUrl: z.string(),
+  /** `inspection` appears on reads only; nothing here can write it. */
+  stage: z.enum(['before', 'after', 'inspection']),
+  submittedBy: z.number().int(),
+  submittedAt: isoDateTime.nullable(),
+});
+
+export const usagePhotosInput = z.object({ usageKey: dbId });
+
+/** Both sides of one loan, which is how the return screen shows them. */
+export const usagePhotosOutput = z.object({
+  before: z.array(usagePhotoOutput),
+  after: z.array(usagePhotoOutput),
+  inspection: z.array(usagePhotoOutput),
+});
+
+/** Remove one photo the caller filed by mistake. */
+export const detachUsagePhotoInput = z.object({ imageKey: dbId });
+export type DetachUsagePhotoInput = z.infer<typeof detachUsagePhotoInput>;

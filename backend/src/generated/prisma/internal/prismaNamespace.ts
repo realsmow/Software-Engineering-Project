@@ -2840,7 +2840,8 @@ export const RoomInfoScalarFieldEnum = {
   RoomDesc: 'RoomDesc',
   RoomLocation: 'RoomLocation',
   ImageURL: 'ImageURL',
-  CreditWeight: 'CreditWeight'
+  CreditWeight: 'CreditWeight',
+  Capacity: 'Capacity'
 } as const
 
 export type RoomInfoScalarFieldEnum = (typeof RoomInfoScalarFieldEnum)[keyof typeof RoomInfoScalarFieldEnum]
