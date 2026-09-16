@@ -93,4 +93,53 @@ describe('LoginPage accordion', () => {
     );
     await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/admin'));
   });
+
+  it('submits Local credentials, stores the user, and redirects to the role home', async () => {
+    mockLoginMutate.mockResolvedValueOnce({
+      user: {
+        id: 43,
+        studentId: 'STF00043',
+        firstName: 'Staff',
+        lastName: 'User',
+        email: 'staff@ku.th',
+        role: 'staff',
+        facultyName: null,
+        creditScore: 100,
+        creditTier: 'D0',
+        maxBorrowDays: 14,
+        maxExtendTimes: 3,
+      },
+    });
+
+    render(
+      <MemoryRouter initialEntries={['/login']}>
+        <LoginPage />
+        <LocationProbe />
+      </MemoryRouter>,
+    );
+
+    const localHeader = screen
+      .getAllByRole('button', { name: /KU|บัญชีภายในระบบ/ })
+      .find((header) => header.textContent?.includes('บัญชีภายในระบบ'))!;
+    fireEvent.click(localHeader);
+
+    fireEvent.change(screen.getByLabelText('ชื่อผู้ใช้'), {
+      target: { value: 'test_staff' },
+    });
+    fireEvent.change(screen.getByLabelText('รหัสผ่าน'), {
+      target: { value: 'staff1234' },
+    });
+    fireEvent.submit(screen.getByLabelText('ชื่อผู้ใช้').closest('form')!);
+
+    await waitFor(() => {
+      expect(mockLoginMutate).toHaveBeenCalledWith({
+        username: 'test_staff',
+        password: 'staff1234',
+      });
+    });
+    expect(mockSetUser).toHaveBeenCalledWith(
+      expect.objectContaining({ role: 'staff', email: 'staff@ku.th' }),
+    );
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/staff'));
+  });
 });
