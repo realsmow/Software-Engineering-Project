@@ -34,6 +34,14 @@ vi.mock('../../src/app/router', async () => {
           element: React.createElement('div', { 'data-testid': 'login-route' }, 'Login'),
         }),
         React.createElement(Route, {
+          path: '/admin/users',
+          element: React.createElement(
+            ProtectedRoute,
+            { allowedRoles: ['admin'] },
+            React.createElement('div', { 'data-testid': 'admin-users-route' }, 'Admin users'),
+          ),
+        }),
+        React.createElement(Route, {
           path: '*',
           element: React.createElement(
             ProtectedRoute,
@@ -111,5 +119,32 @@ describe('App auth bootstrap', () => {
     await waitFor(() => expect(screen.getByTestId('login-route')).toBeInTheDocument());
 
     expect(window.location.pathname).toBe('/login');
+  });
+
+  it('redirects a borrower away from the admin users route to the borrower home', async () => {
+    window.history.pushState({}, '', '/admin/users');
+    useAuthStore.getState().logout();
+    useAuthStore.getState().setLoading(true);
+    mockMeQuery.mockClear();
+    mockMeQuery.mockResolvedValueOnce({
+      id: 44,
+      studentId: 'STU00044',
+      firstName: 'Borrower',
+      lastName: 'User',
+      email: 'borrower@ku.th',
+      role: 'borrower',
+      facultyName: null,
+      creditScore: 92,
+      creditTier: 'D0',
+      maxBorrowDays: 14,
+      maxExtendTimes: 3,
+    });
+
+    render(<App />);
+
+    await waitFor(() => expect(mockMeQuery).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(window.location.pathname).toBe('/'));
+
+    expect(screen.queryByTestId('admin-users-route')).not.toBeInTheDocument();
   });
 });
