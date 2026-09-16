@@ -44,6 +44,19 @@ export type AppealStatus = z.infer<typeof appealStatus>;
 /** The penalty being argued about, as much of it as the appeal screens show. */
 export const appealedPenalty = z.object({
   penaltyKey: z.number().int(),
+  /**
+   * The loan the penalty came from — the handle for its evidence.
+   *
+   * FR-APL-03 puts the before/after photos, the staff report and the
+   * borrower's account on one screen, and every procedure that can supply the
+   * first two (`image.usagePhotos`, `inspection.getById`) is keyed by
+   * `usageKey`. Without it here an appeal is a dead end: the supervisor has
+   * the argument and no way to reach what it argues about.
+   *
+   * Null for a penalty with no loan behind it — an administrative borrowing
+   * ban is issued against the account, not against something borrowed.
+   */
+  usageKey: z.number().int().nullable(),
   reason: z.string().nullable(),
   creditDeducted: z.number().int().nullable(),
   issuedAt: isoDateTimeNullable,

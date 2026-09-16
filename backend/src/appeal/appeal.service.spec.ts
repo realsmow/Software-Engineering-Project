@@ -370,3 +370,49 @@ describe('AppealService.create', () => {
     );
   });
 });
+
+describe('AppealService — reaching the evidence', () => {
+  /**
+   * FR-APL-03 puts the before/after photos, the staff report and the
+   * borrower's account on one screen. Every procedure that can supply the
+   * first two (`image.usagePhotos`, `inspection.getById`) is keyed by
+   * `usageKey`, and nothing else maps an appeal to one — so an appeal that
+   * does not carry it is a dead end, and the supervisor rules on the
+   * borrower's text alone.
+   */
+  it('carries the loan key the evidence procedures are keyed by', async () => {
+    const prisma = {
+      appealInfo: {
+        findUnique: jest.fn().mockResolvedValue(appealRow()),
+      },
+    };
+    const { service } = build(prisma);
+
+    const appeal = await service.getById(SUPERVISOR, 9);
+
+    expect(appeal.penalty.usageKey).toBe(PENALTY.UsageKey);
+  });
+
+  it('reports no loan for a penalty that has none', async () => {
+    // An administrative borrowing ban is issued against the account, not
+    // against something borrowed, so there is nothing to show photos of.
+    const row = appealRow();
+    const prisma = {
+      appealInfo: {
+        findUnique: jest.fn().mockResolvedValue({
+          ...row,
+          OriginalPenaltyInfo: {
+            ...row.OriginalPenaltyInfo,
+            UsageKey: null,
+            Usage: null,
+          },
+        }),
+      },
+    };
+    const { service } = build(prisma);
+
+    const appeal = await service.getById(SUPERVISOR, 9);
+
+    expect(appeal.penalty.usageKey).toBeNull();
+  });
+});

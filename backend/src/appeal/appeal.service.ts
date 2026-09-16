@@ -34,6 +34,9 @@ const BORROWER_SELECT = {
 
 const PENALTY_SELECT = {
   PenaltyKey: true,
+  // Carried so `toPenaltyOutput` can hand the frontend the key its evidence
+  // procedures take — see the note on `appealedPenalty.usageKey`.
+  UsageKey: true,
   Reason: true,
   CreditDeducted: true,
   ActionTime: true,
@@ -82,6 +85,7 @@ function toAppealStatus(status: AppealRow['ApproveStatus']): AppealStatus {
 function toPenaltyOutput(row: PenaltyRow) {
   return {
     penaltyKey: row.PenaltyKey,
+    usageKey: row.UsageKey,
     reason: row.Reason,
     creditDeducted: row.CreditDeducted,
     issuedAt: toIsoNullable(row.ActionTime),
@@ -189,7 +193,6 @@ export class AppealService {
       select: {
         ...PENALTY_SELECT,
         AccountKey: true,
-        UsageKey: true,
         OriginalAppeal: { select: { AppealKey: true } },
       },
     });
@@ -371,7 +374,6 @@ export class AppealService {
           select: {
             ...PENALTY_SELECT,
             AccountKey: true,
-            UsageKey: true,
             Usage: {
               select: {
                 ResourceKey: true,
