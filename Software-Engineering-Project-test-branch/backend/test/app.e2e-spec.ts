@@ -31,6 +31,21 @@ describe('AppController (e2e)', () => {
     expect(response.body.data.businessCode).toBe('NOT_AUTHENTICATED');
   });
 
+  it('rejects a borrower calling a staff-only route with ROLE_NOT_ALLOWED', async () => {
+    const client = request.agent(app.getHttpServer());
+
+    await client
+      .post('/trpc/auth.login')
+      .send({ json: { username: 'test_borrower', password: 'borrower1234' } })
+      .expect(200);
+
+    const response = await client
+      .get('/trpc/admin.getLendingSettings')
+      .expect(403);
+
+    expect(response.body.data.businessCode).toBe('ROLE_NOT_ALLOWED');
+  });
+
   afterEach(async () => {
     await app.close();
   });
