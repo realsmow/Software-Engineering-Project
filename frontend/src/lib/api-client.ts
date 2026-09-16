@@ -96,14 +96,35 @@ export const apiClient = {
    * Upload file ผ่าน pre-signed URL
    * flow: ขอ URL จาก backend → PUT ไปที่ URL ตรงๆ
    */
-  uploadFile: async (uploadUrl: string, file: File): Promise<void> => {
+  uploadFile: async (
+    uploadUrl: string,
+    file: File,
+    uploadHeaders: Record<string, string> = {},
+  ): Promise<void> => {
+    // The signer may require provider-specific headers (for example metadata
+    // headers). Preserve them exactly and only supply Content-Type when the
+    // backend did not already sign one.
+    const headers = new Headers(uploadHeaders);
+    if (!headers.has("Content-Type")) headers.set("Content-Type", file.type);
+
     const response = await fetch(uploadUrl, {
       method: "PUT",
       body: file,
-      headers: { "Content-Type": file.type },
+      headers,
     });
     if (!response.ok) {
-      throw new Error(`อัปโหลดไฟล์ล้มเหลว (${response.status})`);
+      let body: { code?: string; message?: string; cause?: Record<string, unknown> } = {};
+      try {
+        body = (await response.json()) as typeof body;
+      } catch {
+        // A proxy or storage provider may return no JSON. Preserve the HTTP
+        // status and fall back to the generic upload code in that case.
+      }
+      throw new ApiClientError(response.status, {
+        code: body.code ?? "UPLOAD_REJECTED",
+        message: body.message ?? `อัปโหลดไฟล์ล้มเหลว (${response.status})`,
+        details: body.cause,
+      });
     }
   },
 };

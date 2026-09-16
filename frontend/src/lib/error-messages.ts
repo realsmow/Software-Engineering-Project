@@ -122,6 +122,7 @@ const ERROR_MESSAGES: Record<string, string> = {
   UPLOAD_TOO_LARGE: "ไฟล์ใหญ่เกินกว่าที่กำหนด",
   UPLOAD_EMPTY: "ไฟล์ว่างเปล่า",
   UPLOAD_ALREADY_STORED: "ไฟล์นี้ถูกอัปโหลดไปแล้ว",
+  UPLOAD_NOT_STORED: "ยังไม่พบไฟล์ที่อัปโหลด กรุณาลองส่งรูปอีกครั้ง",
   UPLOAD_NOT_AN_IMAGE: "ไฟล์นี้ไม่ใช่รูปภาพ",
   UPLOAD_REJECTED: "อัปโหลดไม่สำเร็จ กรุณาลองใหม่",
 

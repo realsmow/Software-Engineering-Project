@@ -7,11 +7,19 @@ import { PageHeader } from "@/components/shared/page-header";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 import { BUSINESS, ROUTES, UPLOAD } from "@/constants";
+import { getErrorMessage } from "@/lib/error-messages";
 import { cn } from "@/lib/utils";
 import { uploadAcceptAttr, validateUploadFile } from "@/lib/upload-validation";
 import type { MyRequest } from "../mock-data";
 import { useMyRequests } from "../loans/use-my-requests";
 import { useSubmittedRequests } from "../loans/submitted-requests.store";
+import {
+  prepareBorrowerImage,
+  releaseBorrowerImage,
+  releaseBorrowerImages,
+  type PreparedBorrowerImage,
+} from "../uploads/prepared-image";
+import { useFinalizePickup, usePickupImageUpload } from "./use-pickup-image-upload";
 
 /**
  * Pick up equipment - the counter step between "staff have it ready" and
@@ -30,18 +38,32 @@ export default function PickupPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { requests } = useMyRequests();
-  const pickUp = useSubmittedRequests((s) => s.pickUp);
+  const uploadPickupImage = usePickupImageUpload();
+  const finalizePickup = useFinalizePickup();
 
   const rows = requests.filter((r) => r.kind === "equipment" && r.status === "ready");
 
   /** Rows the borrower has un-ticked. Absent means selected - everything waiting is taken by default. */
   const [dropped, setDropped] = useState<Set<string>>(new Set());
-  /** Condition photo per request id, as an object URL. */
-  const [shots, setShots] = useState<Record<string, string>>({});
+  /** Validated File + preview and upload state per request id. */
+  const [shots, setShots] = useState<Record<string, PreparedBorrowerImage>>({});
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const shotsRef = useRef(shots);
+  shotsRef.current = shots;
+
+  useEffect(() => {
+    return () => releaseBorrowerImages(Object.values(shotsRef.current));
+  }, []);
 
   const selected = rows.filter((r) => !dropped.has(r.id));
   const missingShots = selected.filter((r) => !shots[r.id]);
-  const canConfirm = selected.length > 0 && missingShots.length === 0;
+  const missingUsage = selected.some((r) => r.usageKey == null);
+  const canConfirm =
+    selected.length > 0 &&
+    missingShots.length === 0 &&
+    !missingUsage &&
+    !uploadPickupImage.isPending &&
+    !finalizePickup.isPending;
 
   function toggle(id: string) {
     setDropped((prev) => {
@@ -51,12 +73,52 @@ export default function PickupPage() {
     });
   }
 
-  function confirm() {
+  function replaceShot(id: string, image: PreparedBorrowerImage) {
+    releaseBorrowerImage(shotsRef.current[id]);
+    const next = { ...shotsRef.current, [id]: image };
+    shotsRef.current = next;
+    setShots(next);
+    setUploadError(null);
+  }
+
+  function patchShot(id: string, changes: Partial<PreparedBorrowerImage>) {
+    const current = shotsRef.current[id];
+    if (!current) return;
+    const next = { ...shotsRef.current, [id]: { ...current, ...changes } };
+    shotsRef.current = next;
+    setShots(next);
+  }
+
+  async function confirm() {
     if (!canConfirm) return;
-    // TODO: POST /loans/pickup with { ids, photos }. Until then the collection
-    // is recorded in the session store so the cards move to "on loan".
-    pickUp(selected);
-    navigate(ROUTES.MY_LOANS);
+    setUploadError(null);
+
+    for (const row of selected) {
+      const usageKey = row.usageKey;
+      const image = shotsRef.current[row.id];
+      if (usageKey == null || !image) return;
+      if (image.status === "uploaded") continue;
+
+      patchShot(row.id, { status: "uploading", error: undefined });
+      try {
+        const uploaded = await uploadPickupImage.mutateAsync({ usageKey, image });
+        patchShot(row.id, uploaded.image);
+      } catch (error) {
+        const message = getErrorMessage(error);
+        patchShot(row.id, { status: "error", error: message });
+        setUploadError(message);
+        return;
+      }
+    }
+
+    try {
+      await finalizePickup.mutateAsync(
+        selected.flatMap((row) => (row.usageKey == null ? [] : [row.usageKey])),
+      );
+      navigate(ROUTES.MY_LOANS);
+    } catch (error) {
+      setUploadError(getErrorMessage(error));
+    }
   }
 
   if (rows.length === 0) {
@@ -122,8 +184,13 @@ export default function PickupPage() {
                   <PhotoBox
                     key={row.id}
                     row={row}
-                    url={shots[row.id]}
-                    onPicked={(url) => setShots((prev) => ({ ...prev, [row.id]: url }))}
+                    image={shots[row.id]}
+                    disabled={
+                      uploadPickupImage.isPending ||
+                      finalizePickup.isPending ||
+                      shots[row.id]?.status === "uploaded"
+                    }
+                    onPicked={(image) => replaceShot(row.id, image)}
                   />
                 ))}
               </div>
@@ -155,10 +222,28 @@ export default function PickupPage() {
                 <Warning>
                   {t("borrower.pickup.blockShots", { count: missingShots.length })}
                 </Warning>
+              ) : missingUsage ? (
+                <Warning>{t("borrower.pickup.blockUsage")}</Warning>
+              ) : uploadError ? (
+                <div
+                  role="alert"
+                  className="mb-2 rounded border border-[var(--s-alert-b)] bg-[var(--s-alert-bg)] px-3 py-2.5 text-xs leading-relaxed text-[var(--s-alert-t)]"
+                >
+                  {uploadError}
+                </div>
               ) : null}
 
-              <Button type="button" className="h-10 w-full" disabled={!canConfirm} onClick={confirm}>
-                {t("borrower.pickup.confirm")}
+              <Button
+                type="button"
+                className="h-10 w-full"
+                disabled={!canConfirm}
+                onClick={() => void confirm()}
+              >
+                {finalizePickup.isPending
+                  ? t("borrower.pickup.finalizing")
+                  : uploadPickupImage.isPending
+                  ? t("borrower.pickup.uploading")
+                  : t("borrower.pickup.confirm")}
               </Button>
             </div>
 
@@ -281,24 +366,17 @@ function PickRow({
  */
 function PhotoBox({
   row,
-  url,
+  image,
+  disabled,
   onPicked,
 }: {
   row: MyRequest;
-  url?: string;
-  onPicked: (url: string) => void;
+  image?: PreparedBorrowerImage;
+  disabled: boolean;
+  onPicked: (image: PreparedBorrowerImage) => void;
 }) {
   const { t } = useTranslation();
   const [error, setError] = useState<string | null>(null);
-
-  // The object URL belongs to this page, so this page has to release it: one
-  // on replacement, and whatever is left when the box unmounts.
-  const ownedRef = useRef<string | null>(null);
-  useEffect(() => {
-    return () => {
-      if (ownedRef.current) URL.revokeObjectURL(ownedRef.current);
-    };
-  }, []);
 
   function onPick(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -317,15 +395,10 @@ function PhotoBox({
     }
 
     setError(null);
-    if (ownedRef.current) URL.revokeObjectURL(ownedRef.current);
-    // TODO: upload via api-client.uploadFile and keep the returned key; the
-    // object URL is a stand-in that dies with the tab.
-    const next = URL.createObjectURL(file);
-    ownedRef.current = next;
-    onPicked(next);
+    onPicked(prepareBorrowerImage(file));
   }
 
-  const taken = Boolean(url);
+  const taken = Boolean(image);
 
   return (
     <div>
@@ -340,17 +413,19 @@ function PhotoBox({
           taken
             ? "border-[var(--s-ok-t)] bg-[var(--s-ok-bg)] text-[var(--s-ok-t)]"
             : "border-line-strong bg-surface-inset text-t4",
+          disabled && "cursor-default opacity-80",
         )}
       >
         <input
           type="file"
           accept={uploadAcceptAttr()}
+          disabled={disabled}
           onChange={onPick}
           className="sr-only"
         />
-        {url ? (
+        {image ? (
           <>
-            <img src={url} alt="" className="h-full w-full object-cover" />
+            <img src={image.previewUrl} alt="" className="h-full w-full object-cover" />
             <span className="absolute bottom-1.5 right-1.5 inline-flex items-center gap-1 rounded bg-[var(--s-ok-t)] px-1.5 py-0.5 text-[11px] font-semibold text-white">
               <Check size={11} strokeWidth={3} />
               {t("borrower.pickup.taken")}

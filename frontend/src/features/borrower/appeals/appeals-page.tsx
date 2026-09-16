@@ -12,6 +12,11 @@ import { uploadAcceptAttr, validateUploadFile } from "@/lib/upload-validation";
 import { creditCutOf, type MyRequest } from "../mock-data";
 import { useMyRequests } from "../loans/use-my-requests";
 import { useSubmittedRequests } from "../loans/submitted-requests.store";
+import {
+  prepareBorrowerImage,
+  releaseBorrowerImage,
+  type PreparedBorrowerImage,
+} from "../uploads/prepared-image";
 
 /**
  * Appeal a damage verdict.
@@ -33,7 +38,13 @@ export default function AppealsPage() {
   // Deep link from "my requests": the row the borrower pressed appeal on.
   const [params, setParams] = useSearchParams();
   const [reason, setReason] = useState("");
-  const [photo, setPhoto] = useState<string | null>(null);
+  const [photo, setPhoto] = useState<PreparedBorrowerImage | null>(null);
+  const photoRef = useRef(photo);
+  photoRef.current = photo;
+
+  useEffect(() => {
+    return () => releaseBorrowerImage(photoRef.current);
+  }, []);
 
   const appealable = useMemo(
     () => requests.filter((r) => r.inspection && r.inspection.damage !== "B0"),
@@ -44,7 +55,24 @@ export default function AppealsPage() {
   const picked = appealable.find((r) => r.id === wanted && isOpen(r)) ?? null;
 
   function pick(id: string) {
+    if (id !== picked?.id) {
+      setReason("");
+      clearPhoto();
+    }
     setParams(id ? { request: id } : {}, { replace: true });
+  }
+
+  function replacePhoto(next: PreparedBorrowerImage) {
+    releaseBorrowerImage(photoRef.current);
+    photoRef.current = next;
+    setPhoto(next);
+  }
+
+  function clearPhoto() {
+    const previous = photoRef.current;
+    photoRef.current = null;
+    setPhoto(null);
+    releaseBorrowerImage(previous);
   }
 
   const why = reason.trim();
@@ -60,7 +88,7 @@ export default function AppealsPage() {
     if (picked === null || blockKey !== null) return;
     sendAppeal(picked.id);
     setReason("");
-    setPhoto(null);
+    clearPhoto();
     setParams({}, { replace: true });
   }
 
@@ -114,7 +142,7 @@ export default function AppealsPage() {
                   <p className="mt-1 text-xs leading-relaxed text-t4">
                     {t("borrower.appeals.shotHelp")}
                   </p>
-                  <PhotoBox url={photo} onPicked={setPhoto} />
+                  <PhotoBox image={photo} onPicked={replacePhoto} />
                 </div>
               </Panel>
             ) : (
@@ -247,18 +275,15 @@ function VerdictCard({
  * collection and from return; forcing both slots when either one alone can
  * make the point just blocks the appeal on paperwork.
  */
-function PhotoBox({ url, onPicked }: { url: string | null; onPicked: (url: string) => void }) {
+function PhotoBox({
+  image,
+  onPicked,
+}: {
+  image: PreparedBorrowerImage | null;
+  onPicked: (image: PreparedBorrowerImage) => void;
+}) {
   const { t } = useTranslation();
   const [error, setError] = useState<string | null>(null);
-
-  // The object URL belongs to this page, so this page releases it: one on
-  // replacement, and whatever is left at unmount.
-  const ownedRef = useRef<string | null>(null);
-  useEffect(() => {
-    return () => {
-      if (ownedRef.current) URL.revokeObjectURL(ownedRef.current);
-    };
-  }, []);
 
   function onPick(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -277,11 +302,7 @@ function PhotoBox({ url, onPicked }: { url: string | null; onPicked: (url: strin
     }
 
     setError(null);
-    if (ownedRef.current) URL.revokeObjectURL(ownedRef.current);
-    // TODO: upload via api-client.uploadFile and send the returned key.
-    const next = URL.createObjectURL(file);
-    ownedRef.current = next;
-    onPicked(next);
+    onPicked(prepareBorrowerImage(file));
   }
 
   return (
@@ -289,15 +310,15 @@ function PhotoBox({ url, onPicked }: { url: string | null; onPicked: (url: strin
       <label
         className={cn(
           "relative flex h-[118px] max-w-[280px] cursor-pointer items-center justify-center overflow-hidden rounded border border-dashed",
-          url
+          image
             ? "border-[var(--s-ok-t)] bg-[var(--s-ok-bg)] text-[var(--s-ok-t)]"
             : "border-line-strong bg-surface-inset text-t4",
         )}
       >
         <input type="file" accept={uploadAcceptAttr()} onChange={onPick} className="sr-only" />
-        {url ? (
+        {image ? (
           <>
-            <img src={url} alt="" className="h-full w-full object-cover" />
+            <img src={image.previewUrl} alt="" className="h-full w-full object-cover" />
             <span className="absolute bottom-1.5 right-1.5 inline-flex items-center gap-1 rounded bg-[var(--s-ok-t)] px-1.5 py-0.5 text-[11px] font-semibold text-white">
               <Check size={11} strokeWidth={3} />
               {t("borrower.appeals.shotDone")}
