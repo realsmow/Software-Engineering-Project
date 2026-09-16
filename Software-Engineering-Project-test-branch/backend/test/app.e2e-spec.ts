@@ -23,6 +23,14 @@ describe('AppController (e2e)', () => {
       .expect('Hello World!');
   });
 
+  it('rejects an unauthenticated request to auth.me with NOT_AUTHENTICATED', async () => {
+    const response = await request(app.getHttpServer())
+      .get('/trpc/auth.me')
+      .expect(401);
+
+    expect(response.body.data.businessCode).toBe('NOT_AUTHENTICATED');
+  });
+
   afterEach(async () => {
     await app.close();
   });
