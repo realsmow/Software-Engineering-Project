@@ -142,4 +142,30 @@ describe('LoginPage accordion', () => {
     );
     await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/staff'));
   });
+
+  it('shows a unified Thai credential error without field errors', async () => {
+    mockLoginMutate.mockRejectedValueOnce(new Error('INVALID_CREDENTIALS'));
+
+    render(
+      <MemoryRouter initialEntries={['/login']}>
+        <LoginPage />
+      </MemoryRouter>,
+    );
+
+    fireEvent.change(screen.getByLabelText('อีเมล KU'), {
+      target: { value: 'admin@ku.th' },
+    });
+    fireEvent.change(screen.getByLabelText('รหัสผ่าน'), {
+      target: { value: 'wrong-password' },
+    });
+    fireEvent.submit(screen.getByLabelText('อีเมล KU').closest('form')!);
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toHaveTextContent(
+        'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง',
+      );
+    });
+    expect(screen.queryByText('กรุณากรอกอีเมล KU')).not.toBeInTheDocument();
+    expect(screen.queryByText('กรุณากรอกรหัสผ่าน')).not.toBeInTheDocument();
+  });
 });
