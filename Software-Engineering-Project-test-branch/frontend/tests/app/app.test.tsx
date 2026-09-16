@@ -97,4 +97,19 @@ describe('App auth bootstrap', () => {
     expect(useAuthStore.getState().user).toBeNull();
     expect(useAuthStore.getState().isLoading).toBe(false);
   });
+
+  it('redirects direct access to a protected page to login without a session', async () => {
+    window.history.pushState({}, '', '/admin');
+    useAuthStore.getState().logout();
+    useAuthStore.getState().setLoading(true);
+    mockMeQuery.mockClear();
+    mockMeQuery.mockRejectedValueOnce(new Error('UNAUTHORIZED'));
+
+    render(<App />);
+
+    await waitFor(() => expect(mockMeQuery).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(screen.getByTestId('login-route')).toBeInTheDocument());
+
+    expect(window.location.pathname).toBe('/login');
+  });
 });
