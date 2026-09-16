@@ -1,0 +1,738 @@
+import { useMemo, useState, type ReactNode } from "react";
+import { useTranslation } from "react-i18next";
+import { Check, Download, Plus, Search } from "lucide-react";
+import { Bar, BarChart, CartesianGrid, Tooltip, XAxis, YAxis } from "recharts";
+import { PageHeader } from "@/components/shared/page-header";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { DataTable, type Column } from "@/components/ui/data-table";
+import { Badge, type BadgeTone } from "@/components/ui/badge";
+import { Modal, SlideOver } from "@/components/ui/modal";
+import { ChartCard } from "@/components/ui/chart-card";
+import { ChartTooltip, CHART_SERIES, axisProps, gridProps } from "@/components/ui/chart-kit";
+import type { Role } from "@/types/domain";
+import {
+  FACULTIES,
+  TOP_ACTIVE_USERS,
+  departmentsByFaculty,
+  deptName,
+  initials,
+  type AccountStatus,
+  type AdminUser,
+  type AuthMethod,
+} from "../mock-data";
+import { fmtDate, fmtDateTime } from "../format";
+import {
+  useAdminUsers,
+  useChangeRole,
+  useCreateUser,
+  useResetPassword,
+  useSetUserActive,
+  useSetUserBan,
+} from "./use-admin-users";
+
+/**
+ * Turns a failed mutation into something readable.
+ *
+ * The backend puts a business code in `message` (CANNOT_MODIFY_SELF,
+ * EMAIL_ALREADY_IN_USE, ...) rather than prose, because wording is the
+ * client's job. Anything unrecognised is shown as-is, which is better than
+ * swallowing it.
+ */
+function mutationMessage(error: unknown): string {
+  const code = error instanceof Error ? error.message : String(error);
+  return code.split("\n")[0];
+}
+
+/**
+ * Role is deliberately colourless.
+ *
+ * Role and status sit in the same table row, and they used to draw from the
+ * same tone palette: `admin` was green and so was `active`, `supervisor` was
+ * amber and so was `invited`. One colour then meant two unrelated things in a
+ * single row, which is exactly the case where colour stops being a signal.
+ *
+ * Status is the column an operator scans for problems, so it keeps the colour.
+ * Role is a category, not a severity, and the label already names it.
+ */
+const ROLE_TONE: Record<Role, BadgeTone> = {
+  borrower: "neutral",
+  staff: "neutral",
+  supervisor: "neutral",
+  admin: "neutral",
+};
+
+/**
+ * `invited` is blue, not amber. Amber reads as "needs attention", but an
+ * invited account is simply waiting on the person, not on staff. Reserving
+ * warm colours for states that need action keeps the amber and red meaningful.
+ */
+const STATUS_TONE: Record<AccountStatus, BadgeTone> = {
+  active: "ok",
+  suspended: "alert",
+  disabled: "neutral",
+};
+const ROLES: Role[] = ["borrower", "staff", "supervisor", "admin"];
+const STATUSES: AccountStatus[] = ["active", "suspended", "disabled"];
+
+interface NewUserForm {
+  name: string;
+  email: string;
+  role: Role;
+  facultyId: string;
+  departmentId: string;
+  auth: AuthMethod;
+}
+
+const EMPTY_FORM: NewUserForm = {
+  name: "",
+  email: "",
+  role: "borrower",
+  facultyId: "eng",
+  departmentId: "cpe",
+  auth: "local",
+};
+
+/**
+ * Clickable summary chip that doubles as a status quick-filter. `active` draws
+ * the accent ring; the coloured dot echoes the matching status badge tone.
+ */
+function StatChip({
+  label,
+  value,
+  tone,
+  active,
+  onClick,
+}: {
+  label: string;
+  value: number;
+  tone?: "ok" | "alert" | "info";
+  active: boolean;
+  onClick: () => void;
+}) {
+  const dotColor = tone
+    ? { ok: "var(--s-ok-t)", alert: "var(--s-alert-t)", info: "var(--s-info-t)" }[tone]
+    // --muted-foreground holds raw HSL components ("148 8% 45%") for Tailwind,
+    // so using it bare here produced invalid CSS and an invisible dot. The
+    // --s-* tokens are complete colours, which is what a raw background needs.
+    : "var(--s-t3)";
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-left transition-colors ${
+        active
+          ? "border-primary bg-secondary"
+          : "border-border bg-card hover:border-primary/40 hover:bg-secondary/60"
+      }`}
+    >
+      <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: dotColor }} />
+      <span className="text-lg font-semibold tabular-nums text-foreground">{value}</span>
+      <span className="text-xs text-muted-foreground">{label}</span>
+    </button>
+  );
+}
+
+function UserKvRow({ label, mono, children }: { label: string; mono?: boolean; children: ReactNode }) {
+  return (
+    <div className="flex items-start justify-between gap-4 py-2.5">
+      <div className="text-xs font-medium text-muted-foreground">{label}</div>
+      <div className={`text-right text-sm text-foreground${mono ? " font-mono" : ""}`}>{children}</div>
+    </div>
+  );
+}
+
+export default function AdminUsersPage() {
+  const { t } = useTranslation();
+  const { data: users = [], isLoading } = useAdminUsers();
+  const setActive = useSetUserActive();
+  const setBan = useSetUserBan();
+  const changeRole = useChangeRole();
+  const resetPassword = useResetPassword();
+  const createUser = useCreateUser();
+  const [search, setSearch] = useState("");
+  const [roleFilter, setRoleFilter] = useState<Role | "all">("all");
+  const [statusFilter, setStatusFilter] = useState<AccountStatus | "all">("all");
+  const [selected, setSelected] = useState<AdminUser | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [form, setForm] = useState<NewUserForm>(EMPTY_FORM);
+  // Transient "…sent" confirmation shown in the detail slide-over.
+  const [notice, setNotice] = useState<string | null>(null);
+
+  // Status counts for the quick-filter stat strip (whole dataset, not filtered).
+  const counts = useMemo(() => {
+    const c = { all: users.length, active: 0, suspended: 0, disabled: 0 };
+    for (const u of users) c[u.status]++;
+    return c;
+  }, [users]);
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return users.filter((u) => {
+      if (roleFilter !== "all" && u.role !== roleFilter) return false;
+      if (statusFilter !== "all" && u.status !== statusFilter) return false;
+      if (!q) return true;
+      return (
+        u.name.toLowerCase().includes(q) ||
+        u.email.toLowerCase().includes(q) ||
+        u.govId.toLowerCase().includes(q)
+      );
+    });
+  }, [users, search, roleFilter, statusFilter]);
+
+  const roleLabel = (r: Role) => t(`nav.${r}`);
+  const statusLabel = (s: AccountStatus) =>
+    t(`admin.users.status${s.charAt(0).toUpperCase() + s.slice(1)}`);
+
+  /**
+   * Status is not set directly. It is derived server-side from IsActive and
+   * the account's penalty rows, so the UI asks for the underlying change and
+   * lets the refetch report what the status became.
+   */
+  const disable = (id: string, active: boolean) => {
+    setActive.mutate(
+      { id, active },
+      {
+        onSuccess: () => setSelected(null),
+        onError: (e) => setNotice(mutationMessage(e)),
+      },
+    );
+  };
+  const ban = (id: string, banned: boolean) => {
+    setBan.mutate(
+      { id, banned },
+      {
+        onSuccess: () => setSelected(null),
+        onError: (e) => setNotice(mutationMessage(e)),
+      },
+    );
+  };
+  const setRole = (id: string, role: Role) => {
+    changeRole.mutate(
+      { id, role },
+      {
+        onSuccess: () => setSelected((prev) => (prev && prev.id === id ? { ...prev, role } : prev)),
+        onError: (e) => setNotice(mutationMessage(e)),
+      },
+    );
+  };
+
+  const submitCreate = () => {
+    const name = form.name.trim();
+    if (!name || !form.email.trim()) return;
+
+    // The server wants first and last name separately; the form asks for one
+    // field, so everything after the first space is the surname.
+    const [firstName, ...rest] = name.split(/\s+/);
+
+    createUser.mutate(
+      {
+        email: form.email.trim(),
+        // The form has no user-ID field; the email local part is a sane
+        // default and admin.updateUser can correct it afterwards.
+        studentId: form.email.trim().split("@")[0],
+        firstName,
+        lastName: rest.join(" ") || "-",
+        role: form.role,
+      },
+      {
+        onSuccess: (result) => {
+          setCreateOpen(false);
+          setForm(EMPTY_FORM);
+          // Shown once and never retrievable again, so it must not be missed.
+          if (result.temporaryPassword) {
+            setNotice(`${t("admin.users.tempPassword")}: ${result.temporaryPassword}`);
+          }
+        },
+        onError: (e) => setNotice(mutationMessage(e)),
+      },
+    );
+  };
+
+  const exportCsv = () => {
+    const header = ["id", "name", "email", "govId", "role", "department", "auth", "status"];
+    const lines = filtered.map((u) =>
+      [u.id, u.name, u.email, u.govId, u.role, deptName(u.departmentId), u.auth, u.status]
+        .map((v) => `"${String(v).replace(/"/g, '""')}"`)
+        .join(","),
+    );
+    const csv = [header.join(","), ...lines].join("\n");
+    const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "ulms-users.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const columns: Column<AdminUser>[] = [
+    {
+      key: "user",
+      header: t("admin.users.colUser"),
+      render: (u) => (
+        <div className="u-cell">
+          <div className={`u-avatar${u.role === "borrower" ? " gray" : ""}`}>{initials(u.name)}</div>
+          <div className="u-meta">
+            <div className="u-name">{u.name}</div>
+            <div className="u-sub">{u.email}</div>
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: "role",
+      header: t("admin.users.colRole"),
+      render: (u) => <Badge tone={ROLE_TONE[u.role]}>{roleLabel(u.role)}</Badge>,
+    },
+    {
+      key: "dept",
+      header: t("admin.users.colDept"),
+      render: (u) => <span className="t-strong">{deptName(u.departmentId)}</span>,
+    },
+    {
+      key: "auth",
+      header: t("admin.users.colAuth"),
+      render: (u) => (
+        <span className="t-muted">
+          {u.auth === "ku" ? t("admin.users.authKu") : t("admin.users.authLocal")}
+        </span>
+      ),
+    },
+    {
+      key: "status",
+      header: t("admin.users.colStatus"),
+      render: (u) => (
+        <Badge tone={STATUS_TONE[u.status]} dot>
+          {statusLabel(u.status)}
+        </Badge>
+      ),
+    },
+    {
+      key: "lastActive",
+      header: t("admin.users.colLastActive"),
+      align: "right",
+      render: (u) => <span className="mono t-muted">{fmtDateTime(u.lastActiveAt)}</span>,
+    },
+  ];
+
+  return (
+    <div>
+      <PageHeader
+        title={t("admin.users.title")}
+        actions={
+          <Button type="button" onClick={() => setCreateOpen(true)}>
+            <Plus size={15} strokeWidth={2} />
+            {t("admin.users.createUser")}
+          </Button>
+        }
+      />
+
+      <div className="mb-4 flex flex-wrap gap-2">
+        <StatChip
+          label={t("admin.users.statTotal")}
+          value={counts.all}
+          active={statusFilter === "all"}
+          onClick={() => setStatusFilter("all")}
+        />
+        <StatChip
+          label={t("admin.users.statActive")}
+          value={counts.active}
+          tone="ok"
+          active={statusFilter === "active"}
+          onClick={() => setStatusFilter((s) => (s === "active" ? "all" : "active"))}
+        />
+        <StatChip
+          label={t("admin.users.statSuspended")}
+          value={counts.suspended}
+          tone="alert"
+          active={statusFilter === "suspended"}
+          onClick={() => setStatusFilter((s) => (s === "suspended" ? "all" : "suspended"))}
+        />
+        <StatChip
+          label={t("admin.users.statDisabled")}
+          value={counts.disabled}
+          tone="info"
+          active={statusFilter === "disabled"}
+          onClick={() => setStatusFilter((s) => (s === "disabled" ? "all" : "disabled"))}
+        />
+      </div>
+
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        <div className="relative max-w-xs flex-1">
+          <Search
+            size={15}
+            strokeWidth={2}
+            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+          />
+          <Input
+            className="pl-9"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder={t("table.searchPlaceholder")}
+            aria-label={t("common.search")}
+          />
+        </div>
+        <Select value={roleFilter} onValueChange={(v) => setRoleFilter(v as Role | "all")}>
+          <SelectTrigger className="w-48" aria-label={t("admin.users.filterRole")}>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">
+              {t("admin.users.filterRole")}: {t("table.filterAll")}
+            </SelectItem>
+            {ROLES.map((r) => (
+              <SelectItem key={r} value={r}>
+                {roleLabel(r)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as AccountStatus | "all")}>
+          <SelectTrigger className="w-48" aria-label={t("admin.users.filterStatus")}>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">
+              {t("admin.users.filterStatus")}: {t("table.filterAll")}
+            </SelectItem>
+            {STATUSES.map((s) => (
+              <SelectItem key={s} value={s}>
+                {statusLabel(s)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <div className="ml-auto" />
+        <Button type="button" variant="outline" onClick={exportCsv}>
+          <Download size={15} strokeWidth={2} />
+          {t("common.export")}
+        </Button>
+      </div>
+
+      <DataTable
+        columns={columns}
+        rows={isLoading ? [] : filtered}
+        rowKey={(u) => u.id}
+        onRowClick={(u) => {
+          setNotice(null);
+          setSelected(u);
+        }}
+        pageSize={10}
+        emptyTitle={t("table.empty")}
+        emptyDescription={t("table.emptyDesc")}
+        rangeLabel={(s, e, total) => t("table.range", { start: s, end: e, total })}
+      />
+
+      <div className="mt-4">
+        <ChartCard title={t("admin.charts.topUsers")} height={260}>
+          <BarChart
+            data={TOP_ACTIVE_USERS}
+            layout="vertical"
+            margin={{ top: 6, right: 16, left: 8, bottom: 0 }}
+          >
+            <CartesianGrid {...gridProps} horizontal={false} vertical />
+            <XAxis type="number" {...axisProps} allowDecimals={false} />
+            <YAxis
+              type="category"
+              dataKey="name"
+              width={150}
+              {...axisProps}
+              tick={{ fill: "var(--s-t3)", fontSize: 11 }}
+            />
+            <Tooltip content={<ChartTooltip unit={` ${t("admin.charts.actions")}`} />} cursor={{ fill: "var(--s-inset)", opacity: 0.5 }} />
+            {/*
+              One series, one colour. These bars used to cycle through the
+              categorical palette by role, which made a single "actions" metric
+              read as six unrelated things - and the role is already spelled out
+              in the axis label beside each bar, so the colour carried nothing
+              the reader did not already have.
+            */}
+            <Bar
+              dataKey="actions"
+              name={t("admin.charts.actions")}
+              radius={[0, 3, 3, 0]}
+              maxBarSize={22}
+              fill={CHART_SERIES[0]}
+            />
+          </BarChart>
+        </ChartCard>
+      </div>
+
+      {/* Detail slide-over */}
+      <SlideOver
+        open={selected !== null}
+        onClose={() => setSelected(null)}
+        title={selected?.name ?? ""}
+        subtitle={selected ? t("admin.users.detailTitle") : undefined}
+        footer={
+          selected ? (
+            <>
+              {/*
+                Suspend and disable are genuinely different and the buttons say
+                so: a suspended account can still sign in and read its own
+                history, a disabled one cannot authenticate at all.
+              */}
+              {selected.status === "active" && (
+                <>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => ban(selected.id, true)}
+                    disabled={setBan.isPending}
+                  >
+                    {t("admin.users.suspend")}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    onClick={() => disable(selected.id, false)}
+                    disabled={setActive.isPending}
+                  >
+                    {t("admin.users.deactivate")}
+                  </Button>
+                </>
+              )}
+              {selected.status === "suspended" && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => ban(selected.id, false)}
+                  disabled={setBan.isPending}
+                >
+                  {t("admin.users.liftSuspension")}
+                </Button>
+              )}
+              {selected.status === "disabled" && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => disable(selected.id, true)}
+                  disabled={setActive.isPending}
+                >
+                  {t("admin.users.activate")}
+                </Button>
+              )}
+              <Button type="button" onClick={() => setSelected(null)}>
+                {t("common.close")}
+              </Button>
+            </>
+          ) : undefined
+        }
+      >
+        {selected ? (
+          <div>
+            <div className="mb-4 flex items-center gap-3">
+              <div
+                className={`u-avatar${selected.role === "borrower" ? " gray" : ""}`}
+                style={{ width: 42, height: 42, fontSize: 14 }}
+              >
+                {initials(selected.name)}
+              </div>
+              <div className="flex flex-col">
+                <div className="text-[15px] font-semibold text-foreground">{selected.name}</div>
+                <div className="text-xs text-muted-foreground">{selected.email}</div>
+              </div>
+              <div className="ml-auto">
+                <Badge tone={STATUS_TONE[selected.status]} dot>
+                  {statusLabel(selected.status)}
+                </Badge>
+              </div>
+            </div>
+
+            <div className="flex flex-col divide-y divide-border">
+              <UserKvRow label={t("admin.users.userId")} mono>{selected.id}</UserKvRow>
+              <UserKvRow label={t("admin.users.studentId")} mono>{selected.govId}</UserKvRow>
+              <UserKvRow label={t("common.department")}>{deptName(selected.departmentId)}</UserKvRow>
+              <UserKvRow label={t("admin.users.colAuth")}>
+                {selected.auth === "ku" ? t("admin.users.authKu") : t("admin.users.authLocal")}
+              </UserKvRow>
+              <UserKvRow label={t("common.createdAt")} mono>{fmtDate(selected.createdAt)}</UserKvRow>
+              <UserKvRow label={t("admin.users.colLastActive")} mono>
+                {fmtDateTime(selected.lastActiveAt)}
+              </UserKvRow>
+            </div>
+
+            <div className="mt-5 flex flex-col gap-1.5">
+              <Label>{t("admin.users.changeRole")}</Label>
+              <Select value={selected.role} onValueChange={(v) => setRole(selected.id, v as Role)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {ROLES.map((r) => (
+                    <SelectItem key={r} value={r}>
+                      {roleLabel(r)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <Button
+              type="button"
+              variant="outline"
+              className="mt-3 w-full"
+              disabled={!selected || resetPassword.isPending}
+              onClick={() =>
+                selected &&
+                resetPassword.mutate(
+                  { id: selected.id },
+                  {
+                    onSuccess: (result) =>
+                      // Shown once. There is no way to retrieve it again, so
+                      // it goes on screen rather than into a "sent" message
+                      // for a mail system that does not exist yet.
+                      setNotice(
+                        result.temporaryPassword
+                          ? `${t("admin.users.tempPassword")}: ${result.temporaryPassword}`
+                          : t("admin.users.resetSent"),
+                      ),
+                    onError: (e) => setNotice(mutationMessage(e)),
+                  },
+                )
+              }
+            >
+              {t("admin.users.resetPassword")}
+            </Button>
+
+            {notice && (
+              <div className="mt-3 flex items-center gap-2 rounded-md border border-[var(--s-ok-b)] bg-[var(--s-ok-bg)] px-3 py-2 text-sm text-[var(--s-ok-t)]">
+                <Check size={15} strokeWidth={2.5} />
+                {notice}
+              </div>
+            )}
+          </div>
+        ) : null}
+      </SlideOver>
+
+      {/* Create modal */}
+      <Modal
+        open={createOpen}
+        onClose={() => setCreateOpen(false)}
+        title={t("admin.users.createUserTitle")}
+        subtitle={t("admin.users.createUserSub")}
+        footer={
+          <>
+            <Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>
+              {t("common.cancel")}
+            </Button>
+            <Button
+              type="button"
+              disabled={!form.name.trim() || !form.email.trim()}
+              onClick={submitCreate}
+            >
+              {t("admin.users.createSubmit")}
+            </Button>
+          </>
+        }
+      >
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-1.5">
+            <Label>
+              {t("admin.users.fullName")}
+              <span className="text-[var(--s-alert-t)]">*</span>
+            </Label>
+            <Input
+              value={form.name}
+              onChange={(e) => setForm({ ...form, name: e.target.value })}
+              placeholder={t("admin.users.namePlaceholder")}
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label>
+              {t("common.email")}
+              <span className="text-[var(--s-alert-t)]">*</span>
+            </Label>
+            <Input
+              type="email"
+              value={form.email}
+              onChange={(e) => setForm({ ...form, email: e.target.value })}
+              placeholder="name@ku.th"
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label>{t("common.role")}</Label>
+            <Select value={form.role} onValueChange={(v) => setForm({ ...form, role: v as Role })}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {ROLES.map((r) => (
+                  <SelectItem key={r} value={r}>
+                    {roleLabel(r)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="flex flex-col gap-1.5">
+              <Label>{t("admin.users.faculty")}</Label>
+              <Select
+                value={form.facultyId}
+                disabled={FACULTIES.length <= 1}
+                onValueChange={(facultyId) => {
+                  // Reset department to the first one within the chosen faculty.
+                  const first = departmentsByFaculty(facultyId)[0]?.id ?? "";
+                  setForm({ ...form, facultyId, departmentId: first });
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {FACULTIES.map((f) => (
+                    <SelectItem key={f.id} value={f.id}>
+                      {f.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label>{t("common.department")}</Label>
+              <Select
+                value={form.departmentId}
+                onValueChange={(v) => setForm({ ...form, departmentId: v })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {departmentsByFaculty(form.facultyId).map((d) => (
+                    <SelectItem key={d.id} value={d.id}>
+                      {d.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label>{t("admin.users.authMethod")}</Label>
+            <Select value={form.auth} onValueChange={(v) => setForm({ ...form, auth: v as AuthMethod })}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="local">{t("admin.users.authLocal")}</SelectItem>
+                <SelectItem value="ku">{t("admin.users.authKu")}</SelectItem>
+              </SelectContent>
+            </Select>
+            <div className="text-xs text-muted-foreground">{t("admin.users.createUserSub")}</div>
+          </div>
+        </div>
+      </Modal>
+    </div>
+  );
+}
