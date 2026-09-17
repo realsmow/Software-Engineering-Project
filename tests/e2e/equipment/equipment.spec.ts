@@ -84,4 +84,23 @@ test.describe("Module 5 equipment browser flows", () => {
     await expect(page.getByText("Availability, next 14 days")).toBeVisible();
     expect((await availability).ok()).toBeTruthy();
   });
+
+  test("opens a T3 facility and shows its capacity and same-day slot calendar", async ({
+    page,
+  }) => {
+    await page.goto("/rooms");
+
+    await expect(page.getByRole("heading", { name: "Room list" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Book this room" }).first()).toBeVisible();
+    await page.getByRole("button", { name: "Book this room" }).first().click();
+
+    await expect(
+      page.getByRole("heading", { name: "New room booking" }),
+    ).toBeVisible();
+    await expect(page.getByText(/Fixed facilities \(T3\) are booked same-day only/)).toBeVisible();
+    await expect(page.getByText(/40 seats/)).toBeVisible();
+    await expect(page.getByRole("button", { name: "07:00" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "17:30" })).toBeVisible();
+    await expect(page.getByText(/lunch break - not bookable/)).toBeVisible();
+  });
 });
