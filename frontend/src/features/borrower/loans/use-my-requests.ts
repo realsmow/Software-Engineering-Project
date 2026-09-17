@@ -37,6 +37,15 @@ export interface DraftSummary {
  * describes what was asked for, not the loan that follows. Those fields are
  * still local until a borrower-side view of UsageLog exists.
  */
+/**
+ * A listed row, plus the loan key when the server knows one.
+ *
+ * Room bookings still come from the local store and have no usageKey; a server
+ * row only gains one once staff set a unit aside. `loan.extensionOptions` keys
+ * on it, so it has to survive the merge rather than being narrowed away.
+ */
+export type LoanRow = MyRequest & { usageKey?: number | null };
+
 export function useMyRequests() {
   // Only the draft needs it: a saved line is an id, and the card title is the
   // item's name. Submitted requests already carry their own name.
@@ -48,7 +57,7 @@ export function useMyRequests() {
   const startDate = useRequestDraft((s) => s.startDate);
   const endDate = useRequestDraft((s) => s.endDate);
 
-  const requests = useMemo<MyRequest[]>(() => {
+  const requests = useMemo<LoanRow[]>(() => {
     // Equipment comes from the server. Room bookings do not: there is no
     // reservation router yet, so a booking only exists in this session's store
     // and dropping it here would make it vanish from the page that just

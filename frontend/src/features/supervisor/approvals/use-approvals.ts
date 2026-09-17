@@ -7,6 +7,8 @@ import type {
   ApprovalQueueRow,
   DecidableRoute,
   DecideApprovalOutput,
+  ConditionType,
+  ExtensionReviewRow,
 } from "./approval.types";
 
 /**
@@ -74,5 +76,56 @@ export function useDecideApproval() {
       reason?: string;
     }): Promise<DecideApprovalOutput> => trpc.approval.decide.mutate(input),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: APPROVALS_KEY }),
+  });
+}
+
+/**
+ * Extension requests waiting on this desk.
+ *
+ * Scoped server-side the same way the main queue is, so no route filter is
+ * passed: a supervisor sees what was routed up to them.
+ */
+export function useExtensionQueue(q: string) {
+  const trpc = useTRPCClient();
+  const search = q.trim();
+
+  return useQuery({
+    queryKey: [...APPROVALS_KEY, "extensions", search],
+    queryFn: async (): Promise<ExtensionReviewRow[]> =>
+      fetchAllPages((page, pageSize) =>
+        trpc.approval.extensionQueue.query({
+          page,
+          pageSize,
+          ...(search ? { q: search } : {}),
+        }),
+      ),
+    refetchInterval: POLLING.SUPERVISOR_QUEUE,
+    staleTime: 0,
+  });
+}
+
+/**
+ * Grant or refuse one extension.
+ *
+ * `condition` is what the item was found in when it was carried to the desk.
+ * It is the reason this decision belongs to a person rather than the system,
+ * so it is always sent rather than left to the server's default.
+ */
+export function useDecideExtension() {
+  const trpc = useTRPCClient();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (input: {
+      extensionKey: number;
+      decision: "approve" | "reject";
+      condition?: ConditionType;
+      note?: string;
+    }) => trpc.approval.decideExtension.mutate(input),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: APPROVALS_KEY });
+      // The borrower's own view of this loan just changed too.
+      void queryClient.invalidateQueries({ queryKey: ["borrower"] });
+    },
   });
 }
