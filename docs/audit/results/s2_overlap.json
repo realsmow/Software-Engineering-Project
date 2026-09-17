@@ -1,0 +1,680 @@
+{
+  "scenario": "s2_overlap",
+  "run_id": "09151258",
+  "recorded_at": "2026-09-15T12:58:56+07:00",
+  "notes": {
+    "item_key": 6,
+    "unit": 19,
+    "A": {
+      "reservationKey": 6,
+      "status": "approved",
+      "resource": {
+        "resourceKey": 19,
+        "name": "AUDIT-S2 ของชิ้นเดียว T1 09151258",
+        "serialNo": "S2-09151258",
+        "kind": "equipment",
+        "tier": "T1",
+        "creditWeight": 5
+      },
+      "startTime": "2026-09-18T01:00:00.000Z",
+      "endTime": "2026-09-20T10:00:00.000Z",
+      "reason": null,
+      "requestedAt": "2026-09-15T05:58:56.923Z",
+      "expiresAt": "2026-09-16T05:58:56.923Z",
+      "approval": {
+        "route": "auto",
+        "status": "Approved",
+        "approvedBy": null,
+        "autoApproved": true,
+        "approvedAt": "2026-09-15T05:58:56.923Z",
+        "resolvedAt": null
+      },
+      "usageKey": null,
+      "cancellable": true
+    },
+    "counter_table": [
+      {
+        "step": "after A (future window)",
+        "borrower_getAvailability": 1,
+        "borrower_item_list": 1,
+        "staff_listManaged": 1,
+        "total": 1
+      }
+    ],
+    "outcome": {
+      "B same window": "WINDOW_NOT_AVAILABLE",
+      "C overlaps last day": "WINDOW_NOT_AVAILABLE",
+      "D starts day after A ends": "approved",
+      "E a week later": "approved"
+    }
+  },
+  "calls": [
+    {
+      "step": "setup: createType AUDIT-S2 ของชิ้นเดียว T1 09151258",
+      "actor": "staff",
+      "procedure": "item.createType",
+      "input": {
+        "name": "AUDIT-S2 ของชิ้นเดียว T1 09151258",
+        "creditWeight": 5
+      },
+      "status": 200,
+      "ok": true,
+      "data": {
+        "id": 6,
+        "name": "AUDIT-S2 ของชิ้นเดียว T1 09151258",
+        "description": null,
+        "imageUrl": null,
+        "creditWeight": 5,
+        "tiers": [],
+        "totalUnits": 0,
+        "availableUnits": 0,
+        "units": []
+      },
+      "error": null
+    },
+    {
+      "step": "setup: groups",
+      "actor": "staff",
+      "procedure": "item.listManagementGroups",
+      "input": null,
+      "status": 200,
+      "ok": true,
+      "data": [
+        {
+          "id": 1,
+          "name": "ภาควิชาวิศวกรรมคอมพิวเตอร์",
+          "type": "Faculty"
+        },
+        {
+          "id": 2,
+          "name": "ภาควิชาวิศวกรรมไฟฟ้า",
+          "type": "Faculty"
+        }
+      ],
+      "error": null
+    },
+    {
+      "step": "setup: createUnit AUDIT-S2 ของชิ้นเดียว T1 09151258 x1",
+      "actor": "staff",
+      "procedure": "item.createUnit",
+      "input": {
+        "itemKey": 6,
+        "manageGroupKey": 1,
+        "tier": "T1",
+        "quantity": 1,
+        "serialNo": "S2-09151258"
+      },
+      "status": 200,
+      "ok": true,
+      "data": [
+        {
+          "resourceKey": 19,
+          "indivKey": 19,
+          "itemKey": 6,
+          "serialNo": "S2-09151258",
+          "imageUrl": null,
+          "tier": "T1",
+          "status": "InStorage",
+          "lendable": true,
+          "prepDays": 0,
+          "condition": null,
+          "conditionNote": null,
+          "conditionLoggedAt": null,
+          "managementGroup": {
+            "id": 1,
+            "name": "ภาควิชาวิศวกรรมคอมพิวเตอร์",
+            "type": "Faculty"
+          },
+          "currentDueAt": null
+        }
+      ],
+      "error": null
+    },
+    {
+      "step": "setup: groups",
+      "actor": "staff",
+      "procedure": "item.listManagementGroups",
+      "input": null,
+      "status": 200,
+      "ok": true,
+      "data": [
+        {
+          "id": 1,
+          "name": "ภาควิชาวิศวกรรมคอมพิวเตอร์",
+          "type": "Faculty"
+        },
+        {
+          "id": 2,
+          "name": "ภาควิชาวิศวกรรมไฟฟ้า",
+          "type": "Faculty"
+        }
+      ],
+      "error": null
+    },
+    {
+      "step": "setup: authority roles",
+      "actor": "staff",
+      "procedure": "item.listAuthorityRoles",
+      "input": null,
+      "status": 200,
+      "ok": true,
+      "data": [
+        {
+          "authorityRoleKey": 1,
+          "name": "Student",
+          "level": 0
+        },
+        {
+          "authorityRoleKey": 2,
+          "name": "Lab staff",
+          "level": 2
+        }
+      ],
+      "error": null
+    },
+    {
+      "step": "setup: setEligibility AUDIT-S2 ของชิ้นเดียว T1 09151258",
+      "actor": "staff",
+      "procedure": "item.setEligibility",
+      "input": {
+        "itemKey": 6,
+        "rules": [
+          {
+            "groupKey": 1,
+            "authorityRoleKey": 1
+          },
+          {
+            "groupKey": 1,
+            "authorityRoleKey": 2
+          },
+          {
+            "groupKey": 2,
+            "authorityRoleKey": 1
+          },
+          {
+            "groupKey": 2,
+            "authorityRoleKey": 2
+          }
+        ]
+      },
+      "status": 200,
+      "ok": true,
+      "data": [
+        {
+          "groupKey": 1,
+          "groupName": "ภาควิชาวิศวกรรมคอมพิวเตอร์",
+          "authorityRoleKey": 1,
+          "authorityRoleName": "Student",
+          "appliesToUnits": 1
+        },
+        {
+          "groupKey": 1,
+          "groupName": "ภาควิชาวิศวกรรมคอมพิวเตอร์",
+          "authorityRoleKey": 2,
+          "authorityRoleName": "Lab staff",
+          "appliesToUnits": 1
+        },
+        {
+          "groupKey": 2,
+          "groupName": "ภาควิชาวิศวกรรมไฟฟ้า",
+          "authorityRoleKey": 1,
+          "authorityRoleName": "Student",
+          "appliesToUnits": 1
+        },
+        {
+          "groupKey": 2,
+          "groupName": "ภาควิชาวิศวกรรมไฟฟ้า",
+          "authorityRoleKey": 2,
+          "authorityRoleName": "Lab staff",
+          "appliesToUnits": 1
+        }
+      ],
+      "error": null
+    },
+    {
+      "step": "A: borrower day+3..day+5",
+      "actor": "borrower",
+      "procedure": "loan.create",
+      "input": {
+        "startTime": "2026-09-18T01:00:00Z",
+        "endTime": "2026-09-20T10:00:00Z",
+        "lines": [
+          {
+            "resourceKey": 19
+          }
+        ]
+      },
+      "status": 200,
+      "ok": true,
+      "data": {
+        "created": [
+          {
+            "reservationKey": 6,
+            "status": "approved",
+            "resource": {
+              "resourceKey": 19,
+              "name": "AUDIT-S2 ของชิ้นเดียว T1 09151258",
+              "serialNo": "S2-09151258",
+              "kind": "equipment",
+              "tier": "T1",
+              "creditWeight": 5
+            },
+            "startTime": "2026-09-18T01:00:00.000Z",
+            "endTime": "2026-09-20T10:00:00.000Z",
+            "reason": null,
+            "requestedAt": "2026-09-15T05:58:56.923Z",
+            "expiresAt": "2026-09-16T05:58:56.923Z",
+            "approval": {
+              "route": "auto",
+              "status": "Approved",
+              "approvedBy": null,
+              "autoApproved": true,
+              "approvedAt": "2026-09-15T05:58:56.923Z",
+              "resolvedAt": null
+            },
+            "usageKey": null,
+            "cancellable": true
+          }
+        ],
+        "rejected": []
+      },
+      "error": null
+    },
+    {
+      "step": "after A (future window): getAvailability",
+      "actor": "borrower",
+      "procedure": "item.getAvailability",
+      "input": {
+        "id": 6
+      },
+      "status": 200,
+      "ok": true,
+      "data": {
+        "availableUnits": 1,
+        "totalUnits": 1,
+        "nextAvailableAt": null
+      },
+      "error": null
+    },
+    {
+      "step": "after A (future window): item.list",
+      "actor": "borrower",
+      "procedure": "item.list",
+      "input": {
+        "limit": 50
+      },
+      "status": 200,
+      "ok": true,
+      "data": {
+        "items": [
+          {
+            "id": 2,
+            "name": "สายจัมเปอร์ชุดใหญ่",
+            "description": "สายจัมเปอร์ผู้-เมีย 120 เส้น",
+            "imageUrl": null,
+            "tier": "T0",
+            "creditWeight": 1,
+            "totalUnits": 6,
+            "availableUnits": 6,
+            "stockStatus": "ok",
+            "nextAvailableAt": null,
+            "prepDays": 0,
+            "allowBorrow": true,
+            "owner": {
+              "id": 2,
+              "name": "ภาควิชาวิศวกรรมไฟฟ้า",
+              "type": "Faculty"
+            }
+          },
+          {
+            "id": 1,
+            "name": "เวอร์เนียคาลิปเปอร์ดิจิทัล",
+            "description": "ความละเอียด 0.01 มม. พร้อมกล่องเก็บ",
+            "imageUrl": null,
+            "tier": "T0",
+            "creditWeight": 1,
+            "totalUnits": 4,
+            "availableUnits": 4,
+            "stockStatus": "ok",
+            "nextAvailableAt": null,
+            "prepDays": 0,
+            "allowBorrow": true,
+            "owner": {
+              "id": 1,
+              "name": "ภาควิชาวิศวกรรมคอมพิวเตอร์",
+              "type": "Faculty"
+            }
+          },
+          {
+            "id": 4,
+            "name": "กล้องถ่ายภาพ DSLR",
+            "description": "ตัวกล้องพร้อมเลนส์คิท และแบตสำรอง",
+            "imageUrl": null,
+            "tier": "T1",
+            "creditWeight": 3,
+            "totalUnits": 3,
+            "availableUnits": 3,
+            "stockStatus": "ok",
+            "nextAvailableAt": null,
+            "prepDays": 0,
+            "allowBorrow": true,
+            "owner": {
+              "id": 1,
+              "name": "ภาควิชาวิศวกรรมคอมพิวเตอร์",
+              "type": "Faculty"
+            }
+          },
+          {
+            "id": 5,
+            "name": "AUDIT-S1 กล้อง T1 09151258",
+            "description": null,
+            "imageUrl": null,
+            "tier": "T1",
+            "creditWeight": 5,
+            "totalUnits": 3,
+            "availableUnits": 3,
+            "stockStatus": "ok",
+            "nextAvailableAt": null,
+            "prepDays": 0,
+            "allowBorrow": true,
+            "owner": {
+              "id": 1,
+              "name": "ภาควิชาวิศวกรรมคอมพิวเตอร์",
+              "type": "Faculty"
+            }
+          },
+          {
+            "id": 3,
+            "name": "ออสซิลโลสโคป 100MHz",
+            "description": "สองช่องสัญญาณ พร้อมโพรบ",
+            "imageUrl": null,
+            "tier": "T2",
+            "creditWeight": 3,
+            "totalUnits": 2,
+            "availableUnits": 2,
+            "stockStatus": "ok",
+            "nextAvailableAt": null,
+            "prepDays": 0,
+            "allowBorrow": true,
+            "owner": {
+              "id": 2,
+              "name": "ภาควิชาวิศวกรรมไฟฟ้า",
+              "type": "Faculty"
+            }
+          },
+          {
+            "id": 6,
+            "name": "AUDIT-S2 ของชิ้นเดียว T1 09151258",
+            "description": null,
+            "imageUrl": null,
+            "tier": "T1",
+            "creditWeight": 5,
+            "totalUnits": 1,
+            "availableUnits": 1,
+            "stockStatus": "ok",
+            "nextAvailableAt": null,
+            "prepDays": 0,
+            "allowBorrow": true,
+            "owner": {
+              "id": 1,
+              "name": "ภาควิชาวิศวกรรมคอมพิวเตอร์",
+              "type": "Faculty"
+            }
+          }
+        ],
+        "total": 6,
+        "page": 1,
+        "pageSize": 20
+      },
+      "error": null
+    },
+    {
+      "step": "after A (future window): item.listManaged",
+      "actor": "staff",
+      "procedure": "item.listManaged",
+      "input": {
+        "limit": 50
+      },
+      "status": 200,
+      "ok": true,
+      "data": {
+        "items": [
+          {
+            "id": 1,
+            "name": "เวอร์เนียคาลิปเปอร์ดิจิทัล",
+            "description": "ความละเอียด 0.01 มม. พร้อมกล่องเก็บ",
+            "imageUrl": null,
+            "creditWeight": 1,
+            "tiers": [
+              "T0"
+            ],
+            "totalUnits": 4,
+            "availableUnits": 3
+          },
+          {
+            "id": 2,
+            "name": "สายจัมเปอร์ชุดใหญ่",
+            "description": "สายจัมเปอร์ผู้-เมีย 120 เส้น",
+            "imageUrl": null,
+            "creditWeight": 1,
+            "tiers": [
+              "T0"
+            ],
+            "totalUnits": 6,
+            "availableUnits": 6
+          },
+          {
+            "id": 3,
+            "name": "ออสซิลโลสโคป 100MHz",
+            "description": "สองช่องสัญญาณ พร้อมโพรบ",
+            "imageUrl": null,
+            "creditWeight": 3,
+            "tiers": [
+              "T2"
+            ],
+            "totalUnits": 2,
+            "availableUnits": 2
+          },
+          {
+            "id": 4,
+            "name": "กล้องถ่ายภาพ DSLR",
+            "description": "ตัวกล้องพร้อมเลนส์คิท และแบตสำรอง",
+            "imageUrl": null,
+            "creditWeight": 3,
+            "tiers": [
+              "T1"
+            ],
+            "totalUnits": 3,
+            "availableUnits": 2
+          },
+          {
+            "id": 5,
+            "name": "AUDIT-S1 กล้อง T1 09151258",
+            "description": null,
+            "imageUrl": null,
+            "creditWeight": 5,
+            "tiers": [
+              "T1"
+            ],
+            "totalUnits": 3,
+            "availableUnits": 3
+          },
+          {
+            "id": 6,
+            "name": "AUDIT-S2 ของชิ้นเดียว T1 09151258",
+            "description": null,
+            "imageUrl": null,
+            "creditWeight": 5,
+            "tiers": [
+              "T1"
+            ],
+            "totalUnits": 1,
+            "availableUnits": 1
+          }
+        ],
+        "total": 6,
+        "page": 1,
+        "pageSize": 20
+      },
+      "error": null
+    },
+    {
+      "step": "B same window",
+      "actor": "staff",
+      "procedure": "loan.create",
+      "input": {
+        "startTime": "2026-09-18T01:00:00Z",
+        "endTime": "2026-09-20T10:00:00Z",
+        "lines": [
+          {
+            "resourceKey": 19
+          }
+        ]
+      },
+      "status": 200,
+      "ok": true,
+      "data": {
+        "created": [],
+        "rejected": [
+          {
+            "resourceKey": 19,
+            "code": "WINDOW_NOT_AVAILABLE",
+            "detail": {
+              "resourceKey": 19,
+              "nextAvailableAt": "2026-09-20T10:00:00.000Z"
+            }
+          }
+        ]
+      },
+      "error": null
+    },
+    {
+      "step": "C overlaps last day",
+      "actor": "staff",
+      "procedure": "loan.create",
+      "input": {
+        "startTime": "2026-09-20T01:00:00Z",
+        "endTime": "2026-09-22T10:00:00Z",
+        "lines": [
+          {
+            "resourceKey": 19
+          }
+        ]
+      },
+      "status": 200,
+      "ok": true,
+      "data": {
+        "created": [],
+        "rejected": [
+          {
+            "resourceKey": 19,
+            "code": "WINDOW_NOT_AVAILABLE",
+            "detail": {
+              "resourceKey": 19,
+              "nextAvailableAt": "2026-09-20T10:00:00.000Z"
+            }
+          }
+        ]
+      },
+      "error": null
+    },
+    {
+      "step": "D starts day after A ends",
+      "actor": "staff",
+      "procedure": "loan.create",
+      "input": {
+        "startTime": "2026-09-21T01:00:00Z",
+        "endTime": "2026-09-23T10:00:00Z",
+        "lines": [
+          {
+            "resourceKey": 19
+          }
+        ]
+      },
+      "status": 200,
+      "ok": true,
+      "data": {
+        "created": [
+          {
+            "reservationKey": 7,
+            "status": "approved",
+            "resource": {
+              "resourceKey": 19,
+              "name": "AUDIT-S2 ของชิ้นเดียว T1 09151258",
+              "serialNo": "S2-09151258",
+              "kind": "equipment",
+              "tier": "T1",
+              "creditWeight": 5
+            },
+            "startTime": "2026-09-21T01:00:00.000Z",
+            "endTime": "2026-09-23T10:00:00.000Z",
+            "reason": null,
+            "requestedAt": "2026-09-15T05:58:56.954Z",
+            "expiresAt": "2026-09-16T05:58:56.954Z",
+            "approval": {
+              "route": "auto",
+              "status": "Approved",
+              "approvedBy": null,
+              "autoApproved": true,
+              "approvedAt": "2026-09-15T05:58:56.954Z",
+              "resolvedAt": null
+            },
+            "usageKey": null,
+            "cancellable": true
+          }
+        ],
+        "rejected": []
+      },
+      "error": null
+    },
+    {
+      "step": "E a week later",
+      "actor": "staff",
+      "procedure": "loan.create",
+      "input": {
+        "startTime": "2026-09-27T01:00:00Z",
+        "endTime": "2026-09-29T10:00:00Z",
+        "lines": [
+          {
+            "resourceKey": 19
+          }
+        ]
+      },
+      "status": 200,
+      "ok": true,
+      "data": {
+        "created": [
+          {
+            "reservationKey": 8,
+            "status": "approved",
+            "resource": {
+              "resourceKey": 19,
+              "name": "AUDIT-S2 ของชิ้นเดียว T1 09151258",
+              "serialNo": "S2-09151258",
+              "kind": "equipment",
+              "tier": "T1",
+              "creditWeight": 5
+            },
+            "startTime": "2026-09-27T01:00:00.000Z",
+            "endTime": "2026-09-29T10:00:00.000Z",
+            "reason": null,
+            "requestedAt": "2026-09-15T05:58:56.963Z",
+            "expiresAt": "2026-09-16T05:58:56.963Z",
+            "approval": {
+              "route": "auto",
+              "status": "Approved",
+              "approvedBy": null,
+              "autoApproved": true,
+              "approvedAt": "2026-09-15T05:58:56.963Z",
+              "resolvedAt": null
+            },
+            "usageKey": null,
+            "cancellable": true
+          }
+        ],
+        "rejected": []
+      },
+      "error": null
+    }
+  ]
+}
