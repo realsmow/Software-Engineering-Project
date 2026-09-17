@@ -1,13 +1,21 @@
-import { useState } from "react";
+import { useState, type ChangeEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { PageHeader } from "@/components/shared/page-header";
 import { TierDot } from "@/components/shared/tier-badge";
+import { ImageThumb } from "@/components/shared/image-thumb";
 import { Badge, type BadgeTone } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { getErrorMessage } from "@/lib/error-messages";
+import { uploadAcceptAttr, validateUploadFile } from "@/lib/upload-validation";
 import { fmtDateTime } from "@/features/borrower/format";
-import { useManagedItem, useManagedItems, useSetUnitLendable } from "./use-inventory";
+import {
+  useManagedItem,
+  useManagedItems,
+  useSetUnitLendable,
+  useUpdateItemType,
+} from "./use-inventory";
+import { useUploadImage } from "./use-item-image";
 import type { ManagedItemType, ManagedUnit } from "./inventory.types";
 
 /**
@@ -103,7 +111,9 @@ function TypeCard({
         onClick={onToggle}
         className="flex w-full flex-wrap items-center justify-between gap-3 px-3.5 py-3 text-left transition-colors hover:bg-muted"
       >
-        <div className="min-w-0">
+        <div className="flex min-w-0 items-center gap-3">
+          <ImageThumb src={item.imageUrl} size={40} />
+          <div className="min-w-0">
           <div className="truncate text-sm font-medium text-foreground">{item.name ?? "-"}</div>
           <div className="mt-0.5 flex flex-wrap items-center gap-1.5 font-mono text-[11px] text-t4">
             {/* Usually one tier. Two means two units of the same type sit on
@@ -120,6 +130,7 @@ function TypeCard({
             )}
             <span>· {t("staff.inventory.weight", { weight: item.creditWeight })}</span>
           </div>
+          </div>
         </div>
 
         <div className="flex items-center gap-3">
@@ -132,8 +143,83 @@ function TypeCard({
         </div>
       </button>
 
-      {open ? <Units itemKey={item.id} /> : null}
+      {open ? (
+        <>
+          <PhotoRow item={item} />
+          <Units itemKey={item.id} />
+        </>
+      ) : null}
     </section>
+  );
+}
+
+/**
+ * Attach a picture to a catalogue type.
+ *
+ * The file is validated here before a ticket is asked for, so an oversized or
+ * wrong-type file never costs a round trip. The ticket is requested at submit
+ * time because it expires in ten minutes.
+ */
+function PhotoRow({ item }: { item: ManagedItemType }) {
+  const { t } = useTranslation();
+  const upload = useUploadImage();
+  const updateType = useUpdateItemType();
+  const [note, setNote] = useState<{ tone: "ok" | "bad"; text: string } | null>(null);
+  const busy = upload.isPending || updateType.isPending;
+
+  async function pick(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    // Let the same file be chosen again after a failure.
+    event.target.value = "";
+    if (!file) return;
+
+    const check = validateUploadFile(file);
+    if (!check.ok) {
+      setNote({ tone: "bad", text: getErrorMessage({ businessCode: check.code }) });
+      return;
+    }
+
+    setNote(null);
+    try {
+      const ticket = await upload.mutateAsync({ file, purpose: "itemType" });
+      await updateType.mutateAsync({ itemKey: item.id, imageUrl: ticket.imageUrl });
+      setNote({ tone: "ok", text: t("staff.inventory.photoSaved") });
+    } catch (error) {
+      setNote({ tone: "bad", text: getErrorMessage(error) });
+    }
+  }
+
+  return (
+    <div className="flex flex-wrap items-center gap-3 border-t border-border px-3.5 py-3">
+      <ImageThumb src={item.imageUrl} alt={item.name ?? ""} size={56} />
+      <div className="min-w-0 flex-1">
+        <div className="text-xs font-medium text-foreground">{t("staff.inventory.photo")}</div>
+        <div className="mt-0.5 text-[11px] text-t4">
+          {busy
+            ? t("staff.inventory.photoUploading")
+            : item.imageUrl
+              ? t("staff.inventory.photoHint")
+              : `${t("staff.inventory.noPhoto")} · ${t("staff.inventory.photoHint")}`}
+        </div>
+        {note ? (
+          <div
+            className={`mt-1 text-[11px] ${note.tone === "ok" ? "text-[var(--s-ok-t)]" : "text-[var(--s-warn-t)]"}`}
+          >
+            {note.text}
+          </div>
+        ) : null}
+      </div>
+      <label className="shrink-0">
+        <span className="sr-only">{t("staff.inventory.choosePhoto")}</span>
+        <input
+          type="file"
+          accept={uploadAcceptAttr()}
+          disabled={busy}
+          onChange={pick}
+          className="block w-44 text-[11px] text-t3 file:mr-2 file:rounded file:border file:border-border file:bg-secondary file:px-2 file:py-1 file:text-[11px] file:text-foreground"
+        />
+      </label>
+    </div>
   );
 }
 

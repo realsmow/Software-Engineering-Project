@@ -66,4 +66,16 @@ describe('matchesMagicBytes', () => {
       false,
     );
   });
+
+  it('accepts a frontend-shipped path under /images/', () => {
+    expect(imageUrl.safeParse('/images/items/scope.png').success).toBe(true);
+  });
+
+  it('still refuses traversal out of the frontend image folder', () => {
+    expect(imageUrl.safeParse('/images/../../etc/passwd').success).toBe(false);
+  });
+
+  it('refuses a bare relative path that is under neither mount', () => {
+    expect(imageUrl.safeParse('/items/scope.png').success).toBe(false);
+  });
 });

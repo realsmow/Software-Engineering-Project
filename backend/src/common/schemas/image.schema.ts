@@ -19,11 +19,24 @@ import { z } from 'zod';
 /** Public path prefix for stored files. Must match the static mount in main.ts. */
 export const MEDIA_PREFIX = '/media/';
 
+/**
+ * Public path prefix for images shipped with the frontend build.
+ *
+ * Curated artwork - catalogue photos, room shots - lives in the frontend's
+ * `public/images/` and is served by whatever serves the app, so it needs no
+ * upload and no storage on this side. Kept separate from MEDIA_PREFIX because
+ * that one is owned by `image.requestUpload` and the files behind it are
+ * written at runtime; one prefix cannot be served by two different origins.
+ */
+export const STATIC_IMAGE_PREFIX = '/images/';
+
+const SAFE_PATH_PREFIXES = [MEDIA_PREFIX, STATIC_IMAGE_PREFIX];
+
 /** Max length of the column value. Long enough for a UUID key or a real URL. */
 const MAX_URL_LENGTH = 500;
 
 function isSafeImageUrl(value: string): boolean {
-  if (value.startsWith(MEDIA_PREFIX)) {
+  if (SAFE_PATH_PREFIXES.some((prefix) => value.startsWith(prefix))) {
     // No traversal: the path is ours, so it may not climb out of the mount.
     return !value.includes('..');
   }
@@ -48,7 +61,7 @@ export const imageUrl = z
   .min(1)
   .max(MAX_URL_LENGTH)
   .refine(isSafeImageUrl, {
-    message: `must be an http(s) URL or a path under ${MEDIA_PREFIX}`,
+    message: `must be an http(s) URL or a path under ${SAFE_PATH_PREFIXES.join(' or ')}`,
   });
 
 /** The MIME types the system accepts — matches the frontend's UPLOAD.ALLOWED_MIME. */

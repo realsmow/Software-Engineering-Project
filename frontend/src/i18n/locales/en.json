@@ -988,7 +988,13 @@
       "outOnLoanHint": "A unit held by a borrower must be returned before it can be withdrawn",
       "noUnits": "No units registered for this type yet",
       "emptyTitle": "No equipment in your scope",
-      "emptyDesc": "Equipment appears here once it is registered to a department you have authority over."
+      "emptyDesc": "Equipment appears here once it is registered to a department you have authority over.",
+      "photo": "Photo",
+      "choosePhoto": "Choose photo",
+      "photoHint": "JPG or PNG, up to 5 MB",
+      "photoUploading": "Uploading",
+      "photoSaved": "Photo updated",
+      "noPhoto": "No photo yet"
     },
     "users": {
       "subtitle": "People in the departments you have authority over",

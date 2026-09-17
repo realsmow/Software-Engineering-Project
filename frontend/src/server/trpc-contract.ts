@@ -136,6 +136,17 @@ export const appRouter = t.router({
 
     // Staff half. Scoped per row on the server to the caller's Authority, so
     // none of these take a department.
+    updateType: proc
+      .input(
+        z.object({
+          itemKey: z.number(),
+          name: z.string().optional(),
+          description: z.string().optional(),
+          imageUrl: z.string().optional(),
+          creditWeight: z.number().optional(),
+        }),
+      )
+      .mutation(() => as<ManagedItemDetail>()),
     listManaged: proc
       .input(pageInput.extend({ tier: z.string().optional(), availableOnly: z.boolean().optional() }))
       .query(() => as<ServerPaginated<ManagedItemType>>()),
@@ -325,6 +336,30 @@ export const appRouter = t.router({
         }),
       )
       .mutation(() => as<ServerExtension>()),
+  }),
+
+  // ── image ─────────────────────────────────────────────
+  // Two steps: ask for a ticket, then PUT the bytes to `uploadUrl`. The file
+  // never travels through tRPC. `imageUrl` is what gets stored; `previewUrl`
+  // is the absolute form for an <img> straight after uploading.
+  image: t.router({
+    requestUpload: proc
+      .input(
+        z.object({
+          purpose: z.enum(["itemType", "itemUnit", "room", "inspection"]),
+          contentType: z.string(),
+          sizeBytes: z.number(),
+        }),
+      )
+      .mutation(() =>
+        as<{
+          uploadUrl: string;
+          imageUrl: string;
+          previewUrl: string;
+          expiresAt: string;
+          maxBytes: number;
+        }>(),
+      ),
   }),
 
   // ── approval ──────────────────────────────────────────
