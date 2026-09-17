@@ -13,6 +13,8 @@ import {
   detachUsagePhotoInput,
   requestUploadInput,
   requestUploadOutput,
+  requestUsagePhotoUploadInput,
+  type RequestUsagePhotoUploadInput,
   usagePhotosInput,
   usagePhotosOutput,
   type AttachUsagePhotosInput,
@@ -61,6 +63,27 @@ export class ImageRouter {
   // and UsageImageService.loadUsage is where it is answered.
 
   /** File the photos the frontend has already uploaded, at one stage. */
+  /**
+   * The borrower's way to get an upload URL, for their own loan only.
+   *
+   * Separate from `requestUpload` rather than dropping that one to
+   * AuthMiddleware and branching on `purpose`: the staff path keeps its gate
+   * untouched, and there is no branch here for a bug to get wrong. The loan is
+   * checked for ownership before a ticket exists, and `purpose` is not a
+   * parameter, so this cannot be aimed at the catalogue or a room.
+   */
+  @UseMiddlewares(AuthMiddleware)
+  @Mutation({
+    input: requestUsagePhotoUploadInput,
+    output: requestUploadOutput,
+  })
+  requestUsagePhotoUpload(
+    @Input() input: RequestUsagePhotoUploadInput,
+    @Ctx() ctx: TrpcContext,
+  ) {
+    return this.usageImages.requestUploadTicket(ctx.user!, input);
+  }
+
   @UseMiddlewares(AuthMiddleware)
   @Mutation({ input: attachUsagePhotosInput, output: usagePhotosOutput })
   attachUsagePhotos(
