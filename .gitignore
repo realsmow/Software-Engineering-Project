@@ -23,3 +23,6 @@ build/
 .env
 .env.local
 .env.*.local
+
+# A checkout of this repo nested inside itself
+Software-Engineering-Project*/
