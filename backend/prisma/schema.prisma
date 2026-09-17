@@ -286,6 +286,12 @@ model RoomInfo {
   RoomLocation String?
   ImageURL     String?
   CreditWeight Float
+  /// How many people the room seats. Nullable because the rooms already in the
+  /// table were created before anyone recorded it, and a guessed number would
+  /// be indistinguishable from a measured one; the room list shows "-" until
+  /// staff fill it in. Never zero or negative - the check constraint in the
+  /// migration holds that, since Prisma cannot express it.
+  Capacity     Int?
 
   Resource ResourceInfo @relation(fields: [ResourceKey], references: [ResourceKey])
 }

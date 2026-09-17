@@ -368,6 +368,67 @@ export class NotificationService {
     });
   }
 
+  /**
+   * "ผลการอุทธรณ์: ได้รับการอนุมัติ" — the penalty has been lifted (§5.8).
+   *
+   * The restored figure is the body's whole point. An appeal that reduced the
+   * penalty rather than cancelling it gives back the difference, and a
+   * borrower told only "อนุมัติแล้ว" would expect the full amount back and
+   * find a smaller number on their profile.
+   */
+  appealApproved(
+    tx: Prisma.TransactionClient,
+    params: {
+      accountKey: number;
+      appealKey: number;
+      creditRestored: number;
+      /** Omitted when the penalty was not about a particular item (a ban). */
+      itemName?: string;
+      note?: string | null;
+    },
+  ) {
+    const about = params.itemName ? `${params.itemName} · ` : '';
+    return this.emit(tx, {
+      accountKey: params.accountKey,
+      type: 'AppealResult',
+      title: 'คำขออุทธรณ์ได้รับการอนุมัติ',
+      body:
+        `${about}คืนเครดิต ${params.creditRestored} คะแนน` +
+        (params.note ? ` · ${params.note}` : ''),
+      linkTo: ROUTE_PROFILE,
+      dedupeKey: appealKeyOf(params.appealKey),
+    });
+  }
+
+  /**
+   * "ผลการอุทธรณ์: ไม่ได้รับการอนุมัติ" — the penalty stands.
+   *
+   * Shares `AppealResult` and the same dedupe key as the approval above, which
+   * is what makes the pair safe: one appeal produces one notification, whatever
+   * the answer turned out to be.
+   */
+  appealRejected(
+    tx: Prisma.TransactionClient,
+    params: {
+      accountKey: number;
+      appealKey: number;
+      itemName?: string;
+      reason?: string | null;
+    },
+  ) {
+    const about = params.itemName ? `${params.itemName} · ` : '';
+    return this.emit(tx, {
+      accountKey: params.accountKey,
+      type: 'AppealResult',
+      title: 'คำขออุทธรณ์ไม่ได้รับการอนุมัติ',
+      body: params.reason
+        ? `${about}${params.reason}`
+        : `${about}บทลงโทษเดิมยังมีผลอยู่`,
+      linkTo: ROUTE_PROFILE,
+      dedupeKey: appealKeyOf(params.appealKey),
+    });
+  }
+
   // =========================================================================
   // The due-date sweep
   // =========================================================================
@@ -539,4 +600,8 @@ function reservationKeyOf(reservationKey: number): string {
 
 function extensionKeyOf(extensionKey: number): string {
   return `extension:${extensionKey}`;
+}
+
+function appealKeyOf(appealKey: number): string {
+  return `appeal:${appealKey}`;
 }

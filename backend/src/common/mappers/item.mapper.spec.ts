@@ -236,6 +236,7 @@ describe('toRoomSummary', () => {
     RoomLocation: 'อาคาร 9 ชั้น 2',
     ImageURL: null,
     CreditWeight: 0,
+    Capacity: 24,
     Resource: unit({}).Resource,
   };
 
