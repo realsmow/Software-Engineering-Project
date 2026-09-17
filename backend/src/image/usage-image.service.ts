@@ -2,12 +2,14 @@ import { Injectable } from '@nestjs/common';
 import type { SubmissionType } from '../generated/prisma/enums';
 import { PrismaService } from '../prisma.service';
 import { StaffScopeService } from '../common/authority/staff-scope.service';
+import { ImageService } from './image.service';
 import { BusinessError } from '../common/errors/business-error';
 import { toIsoNullable } from '../common/schemas/datetime.schema';
 import type { TrpcUser } from '../trpc/context';
 import {
   MAX_PHOTOS_PER_STAGE,
   type AttachUsagePhotosInput,
+  type RequestUsagePhotoUploadInput,
   type UsagePhotoStage,
 } from './image.schema';
 
@@ -68,7 +70,33 @@ export class UsageImageService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly scope: StaffScopeService,
+    private readonly images: ImageService,
   ) {}
+
+  /**
+   * A ticket for one photo of one loan.
+   *
+   * `loadUsage` runs first, so a borrower who does not own the loan is refused
+   * before any ticket exists - and refused with LOAN_NOT_FOUND, so the key
+   * space cannot be probed. `purpose` is fixed here rather than taken from the
+   * caller: the whole reason this is separate from `image.requestUpload` is
+   * that a borrower must not be able to aim a ticket at the catalogue.
+   */
+  async requestUploadTicket(
+    user: TrpcUser,
+    input: RequestUsagePhotoUploadInput,
+  ) {
+    await this.loadUsage(user, input.usageKey);
+
+    return this.images.issueTicket(
+      {
+        purpose: 'inspection',
+        contentType: input.contentType,
+        sizeBytes: input.sizeBytes,
+      },
+      user.accountKey,
+    );
+  }
 
   /**
    * Record photos against a loan.

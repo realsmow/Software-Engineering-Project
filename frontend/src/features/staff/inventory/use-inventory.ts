@@ -73,3 +73,26 @@ export function useSetUnitLendable() {
 // found on the shelf, with no loan and therefore nobody to charge, which is a
 // different action from withdrawing a unit and needs its own control rather
 // than a second button squeezed into this row.
+
+/**
+ * Edit one catalogue type.
+ *
+ * Only the changed fields are sent; every one is optional server-side. Used so
+ * far to attach a photo, which is the one property of a type the counter can
+ * set without a full editing screen.
+ */
+export function useUpdateItemType() {
+  const trpc = useTRPCClient();
+  const refresh = useRefreshInventory();
+
+  return useMutation({
+    mutationFn: (input: {
+      itemKey: number;
+      name?: string;
+      description?: string;
+      imageUrl?: string;
+      creditWeight?: number;
+    }) => trpc.item.updateType.mutate(input),
+    onSuccess: refresh,
+  });
+}

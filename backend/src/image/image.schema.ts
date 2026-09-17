@@ -116,6 +116,23 @@ export const attachUsagePhotosInput = z.object({
 });
 export type AttachUsagePhotosInput = z.infer<typeof attachUsagePhotosInput>;
 
+/**
+ * A borrower asking for somewhere to put a photo of their own loan.
+ *
+ * Deliberately not `requestUploadInput` with the gate relaxed: `purpose` is
+ * absent, so the caller cannot aim a ticket at the catalogue or a room. The
+ * server fixes it, and the loan is checked for ownership first - a borrower may
+ * upload against their own loan and nothing else.
+ */
+export const requestUsagePhotoUploadInput = z.object({
+  usageKey: dbId,
+  contentType: uploadContentType,
+  sizeBytes: z.number().int().positive().max(MAX_UPLOAD_BYTES),
+});
+export type RequestUsagePhotoUploadInput = z.infer<
+  typeof requestUsagePhotoUploadInput
+>;
+
 export const usagePhotoOutput = z.object({
   imageKey: z.number().int(),
   /** Relative `/media/...` or an absolute URL — see common/schemas/image.schema.ts. */

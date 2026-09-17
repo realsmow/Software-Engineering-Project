@@ -7,6 +7,7 @@ import StaffInventoryPage from "../../src/features/staff/inventory/inventory-pag
 import { useRequestDraft } from "../../src/features/borrower/request/request-draft.store";
 import * as catalogHooks from "../../src/features/borrower/catalog/use-equipment-types";
 import * as inventoryHooks from "../../src/features/staff/inventory/use-inventory";
+import * as itemImageHooks from "../../src/features/staff/inventory/use-item-image";
 import { CATALOG_ITEMS } from "../../src/features/borrower/mock-data";
 import type {
   ManagedItemDetail,
@@ -23,6 +24,13 @@ vi.mock("../../src/features/staff/inventory/use-inventory", () => ({
   useManagedItems: vi.fn(),
   useManagedItem: vi.fn(),
   useSetUnitLendable: vi.fn(),
+  useUpdateItemType: vi.fn(),
+}));
+
+// The expanded type card carries a photo control. Both of its hooks reach for
+// a tRPC client, which these cases do not stand up.
+vi.mock("../../src/features/staff/inventory/use-item-image", () => ({
+  useUploadImage: vi.fn(),
 }));
 
 const CATALOG = CATALOG_ITEMS.slice(0, 2);
@@ -141,6 +149,12 @@ describe("Module 5 staff inventory", () => {
     vi.mocked(inventoryHooks.useManagedItem).mockReturnValue({
       data: DETAIL,
       isLoading: false,
+    } as never);
+    vi.mocked(inventoryHooks.useUpdateItemType).mockReturnValue({
+      mutateAsync: vi.fn(), isPending: false,
+    } as never);
+    vi.mocked(itemImageHooks.useUploadImage).mockReturnValue({
+      mutateAsync: vi.fn(), isPending: false,
     } as never);
     vi.mocked(inventoryHooks.useSetUnitLendable).mockReturnValue({
       mutateAsync,

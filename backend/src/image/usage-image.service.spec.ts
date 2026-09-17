@@ -1,5 +1,6 @@
 import { UsageImageService } from './usage-image.service';
 import type { StaffScopeService } from '../common/authority/staff-scope.service';
+import type { ImageService } from './image.service';
 import type { PrismaService } from '../prisma.service';
 import type { TrpcUser } from '../trpc/context';
 
@@ -48,7 +49,16 @@ function build(usage: unknown, existing: { ImageURL: string }[] = []) {
   // `createMany` is handed back separately rather than read off `prisma`: the
   // assertions want the mock itself, and pulling a method off the object to
   // pass to `expect` detaches it from its receiver.
-  return { service: new UsageImageService(prisma, scope), createMany };
+  // Only the ticket path touches ImageService, and these cases do not take it.
+  const images = {
+    issueTicket: jest.fn(),
+  } as unknown as ImageService;
+
+  return {
+    service: new UsageImageService(prisma, scope, images),
+    createMany,
+    issueTicket: images.issueTicket as jest.Mock,
+  };
 }
 
 const usage = (status: string, accountKey = BORROWER.accountKey) => ({
@@ -127,5 +137,56 @@ describe('UsageImageService.attach', () => {
     await service.attach(STAFF, { ...photos, stage: 'after' });
 
     expect(createMany).toHaveBeenCalled();
+  });
+});
+
+/**
+ * The borrower's upload ticket.
+ *
+ * `image.requestUpload` is staff-only on purpose, so this is the only way a
+ * borrower gets an upload URL at all. Two things have to hold: the loan is
+ * theirs, and they cannot steer the ticket at anything but loan evidence.
+ */
+describe('UsageImageService.requestUploadTicket', () => {
+  const ask = { usageKey: 7, contentType: 'image/png' as const, sizeBytes: 1024 };
+
+  it('issues a ticket for a loan the borrower owns', async () => {
+    const { service, issueTicket } = build(usage('Lended'));
+    issueTicket.mockReturnValue({ uploadUrl: 'u', imageUrl: '/media/x.png' });
+
+    await service.requestUploadTicket(BORROWER, ask);
+
+    expect(issueTicket).toHaveBeenCalledTimes(1);
+  });
+
+  it('fixes the purpose, so a borrower cannot aim a ticket at the catalogue', async () => {
+    const { service, issueTicket } = build(usage('Lended'));
+    issueTicket.mockReturnValue({ uploadUrl: 'u', imageUrl: '/media/x.png' });
+
+    await service.requestUploadTicket(BORROWER, ask);
+
+    expect(issueTicket).toHaveBeenCalledWith(
+      expect.objectContaining({ purpose: 'inspection' }),
+      BORROWER.accountKey,
+    );
+  });
+
+  it('hides somebody else’s loan behind the same answer as a missing one', async () => {
+    const { service, issueTicket } = build(usage('Lended', 999));
+
+    await expect(service.requestUploadTicket(BORROWER, ask)).rejects.toThrow(
+      'LOAN_NOT_FOUND',
+    );
+    // Refused before a ticket exists, not after one was handed out.
+    expect(issueTicket).not.toHaveBeenCalled();
+  });
+
+  it('refuses a loan that does not exist', async () => {
+    const { service, issueTicket } = build(null);
+
+    await expect(service.requestUploadTicket(BORROWER, ask)).rejects.toThrow(
+      'LOAN_NOT_FOUND',
+    );
+    expect(issueTicket).not.toHaveBeenCalled();
   });
 });
