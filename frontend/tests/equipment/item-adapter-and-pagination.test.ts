@@ -57,12 +57,13 @@ describe("Module 5 catalogue adapters", () => {
     expect(
       toUnitRow({
         id: 1,
+        resourceKey: 501,
         assetTag: "OSC-001",
         imageUrl: null,
         dueAt: null,
         ...input,
       } as never)
-    ).toEqual({ serial: "OSC-001", state });
+    ).toMatchObject({ serial: "OSC-001", state });
   });
 
   it("maps all detail units, including unavailable ones, for the serial/condition table", () => {
@@ -71,6 +72,7 @@ describe("Module 5 catalogue adapters", () => {
       units: [
         {
           id: 1,
+          resourceKey: 101,
           assetTag: "OSC-001",
           imageUrl: null,
           status: "InStorage",
@@ -80,6 +82,7 @@ describe("Module 5 catalogue adapters", () => {
         },
         {
           id: 2,
+          resourceKey: 102,
           assetTag: "OSC-002",
           imageUrl: null,
           status: "Lended",
@@ -91,8 +94,8 @@ describe("Module 5 catalogue adapters", () => {
     });
 
     expect(detail.units).toEqual([
-      { serial: "OSC-001", state: "free" },
-      { serial: "OSC-002", state: "out" },
+      { resourceKey: 101, serial: "OSC-001", state: "free" },
+      { resourceKey: 102, serial: "OSC-002", state: "out" },
     ]);
   });
 });
