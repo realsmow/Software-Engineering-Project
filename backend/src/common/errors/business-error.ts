@@ -129,6 +129,12 @@ export const BUSINESS_ERROR_CODES = {
   UPLOAD_NOT_AN_IMAGE: 'BAD_REQUEST',
   /** Catch-all for a write refused before it happened — see cause */
   UPLOAD_REJECTED: 'BAD_REQUEST',
+  /** No such `Images` row */
+  IMAGE_NOT_FOUND: 'NOT_FOUND',
+  /** Removing a photo somebody else filed — evidence is not editable by third parties */
+  NOT_YOUR_PHOTO: 'FORBIDDEN',
+  /** One stage of one loan is capped; `cause` carries the numbers */
+  TOO_MANY_PHOTOS: 'BAD_REQUEST',
 
   // --- notifications (the topbar bell) ---
   /**
@@ -150,6 +156,56 @@ export const BUSINESS_ERROR_CODES = {
    * desk over.
    */
   CANNOT_INSPECT_OWN_PREPARATION: 'FORBIDDEN',
+
+  // --- room slots (T3) ---
+  /** A slot index the day does not have. See common/booking/room-slots.ts. */
+  ROOM_SLOT_OUT_OF_RANGE: 'BAD_REQUEST',
+  /** More than MAX_ROOM_BOOKING_SLOTS in one booking — `cause` carries both numbers */
+  ROOM_SLOT_LIMIT_EXCEEDED: 'BAD_REQUEST',
+  /**
+   * The chosen slots are not one unbroken run.
+   *
+   * Includes a pair that only the lunch break separates: 11:30 and 13:00 are
+   * neighbours in the list and an hour apart on the clock, and joining them
+   * would hold the room over a period nobody can use.
+   */
+  ROOM_SLOTS_NOT_CONTIGUOUS: 'BAD_REQUEST',
+  /** The slot has already been and gone today. Sibling of INVALID_BORROW_WINDOW. */
+  ROOM_SLOT_IN_THE_PAST: 'BAD_REQUEST',
+
+  // --- appeals (§5.8 "ขออุทธรณ์") ---
+  PENALTY_NOT_FOUND: 'NOT_FOUND',
+  APPEAL_NOT_FOUND: 'NOT_FOUND',
+  /** One appeal per penalty — AppealInfo.OriginalPenalty is unique */
+  ALREADY_APPEALED: 'CONFLICT',
+  /** Appealing somebody else's penalty. Same answer as "no such penalty" would leak less, but the borrower reaches this only from their own list. */
+  NOT_YOUR_PENALTY: 'FORBIDDEN',
+  /** A lifted penalty has nothing left to appeal */
+  PENALTY_NOT_IN_EFFECT: 'CONFLICT',
+  /**
+   * The appeal has already been approved or rejected.
+   *
+   * Distinct from ALREADY_DECIDED, which is the borrowing queue's: the screens
+   * differ and so does what the caller should do next.
+   */
+  APPEAL_ALREADY_RESOLVED: 'CONFLICT',
+  /** Deciding your own appeal — the appeals-desk sibling of CANNOT_APPROVE_OWN_REQUEST */
+  CANNOT_DECIDE_OWN_APPEAL: 'FORBIDDEN',
+  /**
+   * §5.8: "คนตรวจสอบต้องไม่ใช่คนเดิม" — the person who graded the return that
+   * produced the penalty may not be the one who rules on the appeal.
+   *
+   * `cause.inspectorKey` names who is blocked, so the desk can hand it on
+   * rather than guess why it refused.
+   */
+  CANNOT_DECIDE_OWN_INSPECTION: 'FORBIDDEN',
+  /**
+   * An approval that reduces the penalty to the same amount or more.
+   *
+   * An appeal is not a route to a larger penalty, and one that leaves the
+   * borrower exactly where they were is a rejection with extra rows.
+   */
+  INVALID_APPEAL_REDUCTION: 'BAD_REQUEST',
 
   // --- borrowing requests (borrower slice) ---
   /**

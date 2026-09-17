@@ -28,7 +28,7 @@ export interface ServerItem {
   nextAvailableAt: string | null;
   prepDays: number;
   allowBorrow: boolean;
-  owner: { id: number; name: string | null; type: string } | null;
+  owner: { id: number; name: string | null; type: "Faculty" | "Club" } | null;
 }
 
 export function toCatalogItem(s: ServerItem): CatalogItem {
@@ -52,10 +52,11 @@ export function toCatalogItem(s: ServerItem): CatalogItem {
     // type, so a list row has no single code to show. item.listUnits has them
     // for the detail page.
     code: "",
-    // Falls back to the group type ("Faculty" / "Club") when a group has no
-    // name; the dept facet still groups, just coarsely. `owner` itself is
-    // nullable - an item with no management group groups under "".
-    departmentId: s.owner ? (s.owner.name ?? s.owner.type) : "",
+    // Keep the stable ManagementGroup key separate from its display name so
+    // faculty branches and clubs can share one accurate owner filter.
+    owner: s.owner
+      ? { id: String(s.owner.id), name: s.owner.name, type: s.owner.type }
+      : null,
     stockStatus: s.stockStatus,
     description: s.description ?? undefined,
   };
@@ -70,6 +71,8 @@ export function toCatalogItem(s: ServerItem): CatalogItem {
  */
 export interface ServerItemUnit {
   id: number;
+  /** ResourceInfo.ResourceKey - the identifier accepted by loan.create. */
+  resourceKey: number;
   /** ItemIndiv.ItemID - the asset tag printed on the unit. */
   assetTag: string;
   imageUrl: string | null;
@@ -99,10 +102,10 @@ export interface CatalogItemDetail extends CatalogItem {
  * `fix`, which is the less wrong of the two: nobody is holding it on a loan.
  */
 export function toUnitRow(u: ServerItemUnit): UnitRow {
-  return { serial: u.assetTag, state: toUnitState(u) };
+  return { resourceKey: u.resourceKey, serial: u.assetTag, state: toUnitState(u) };
 }
 
-function toUnitState(u: ServerItemUnit): UnitState {
+export function toUnitState(u: ServerItemUnit): UnitState {
   if (u.status === "Lended") return "out";
   if (
     !u.allowBorrow ||

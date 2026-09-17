@@ -6,12 +6,12 @@
  *
  * ⚠️ Replace with real endpoints when the equipment API lands.
  */
-import { DAMAGE_LEVELS, TIER_CONFIG } from "@/constants";
+import { BUSINESS, DAMAGE_LEVELS, TIER_CONFIG } from "@/constants";
 import type { DamageLevel, EquipmentType, Tier } from "@/types/domain";
 
 /**
  * Catalog row = the domain EquipmentType plus the columns the catalog table
- * shows. `code` (asset tag) and `departmentId` are not on EquipmentType yet;
+ * shows. `code` (asset tag) and `owner` are not on EquipmentType yet;
  * they live here as a view type so the shared domain contract stays untouched
  * until the backend schema is final.
  */
@@ -25,7 +25,12 @@ export interface CatalogItem extends Omit<EquipmentType, "tier"> {
   tier: Tier | null;
   /** Asset tag printed on the item, e.g. "EE-MM-001". */
   code: string;
-  departmentId: string;
+  /** Stable ManagementGroup identity supplied by the catalogue backend. */
+  owner: {
+    id: string;
+    name: string | null;
+    type: "Faculty" | "Club";
+  } | null;
   stockStatus: StockStatus;
   /**
    * Free-text blurb shown on the detail page: what it is, key specs, and any
@@ -236,7 +241,11 @@ function item(
     code,
     name,
     description,
-    departmentId,
+    owner: {
+      id: departmentId,
+      name: catalogDeptName(departmentId),
+      type: "Faculty",
+    },
     categoryId,
     tier,
     creditWeight: TIER_CONFIG[tier].creditWeight,
@@ -254,6 +263,8 @@ function item(
 export type UnitState = "free" | "fix" | "out";
 
 export interface UnitRow {
+  /** ResourceInfo key when this row came from the backend. */
+  resourceKey?: number;
   /** Serial printed on the unit, e.g. "EE-OSC-014-01". */
   serial: string;
   state: UnitState;
@@ -289,27 +300,39 @@ export function unitsOf(item: CatalogItem): UnitRow[] {
    is being built, and a `const` is not hoisted the way the function is. */
 
 export interface TimeSlot {
-  /** "09:00" - start of the hour, and the chip label. */
+  /** "07:00" - start of the 30-minute period, and the chip label. */
   start: string;
-  /** "10:00" - end of the hour. Stored so adjacency is a clock comparison. */
+  /** "07:30" - end of the period. Stored so adjacency is a clock comparison. */
   end: string;
 }
 
 /**
- * One-hour slots, 09:00–18:00. 12:00–13:00 is the lunch break and simply is
+ * 30-minute slots, 07:00–18:00. 12:00–13:00 is the lunch break and simply is
  * not on the list - which is why adjacency compares `end` to `start` rather
  * than array positions: 11:00 and 13:00 sit next to each other in this array
  * but are an hour apart on the clock, so a booking must not span them.
  */
 export const TIME_SLOTS: TimeSlot[] = [
-  { start: "09:00", end: "10:00" },
-  { start: "10:00", end: "11:00" },
-  { start: "11:00", end: "12:00" },
-  { start: "13:00", end: "14:00" },
-  { start: "14:00", end: "15:00" },
-  { start: "15:00", end: "16:00" },
-  { start: "16:00", end: "17:00" },
-  { start: "17:00", end: "18:00" },
+  { start: "07:00", end: "07:30" },
+  { start: "07:30", end: "08:00" },
+  { start: "08:00", end: "08:30" },
+  { start: "08:30", end: "09:00" },
+  { start: "09:00", end: "09:30" },
+  { start: "09:30", end: "10:00" },
+  { start: "10:00", end: "10:30" },
+  { start: "10:30", end: "11:00" },
+  { start: "11:00", end: "11:30" },
+  { start: "11:30", end: "12:00" },
+  { start: "13:00", end: "13:30" },
+  { start: "13:30", end: "14:00" },
+  { start: "14:00", end: "14:30" },
+  { start: "14:30", end: "15:00" },
+  { start: "15:00", end: "15:30" },
+  { start: "15:30", end: "16:00" },
+  { start: "16:00", end: "16:30" },
+  { start: "16:30", end: "17:00" },
+  { start: "17:00", end: "17:30" },
+  { start: "17:30", end: "18:00" },
 ];
 
 /** True when slot `a` ends exactly as slot `b` starts (in either order). */
@@ -399,7 +422,7 @@ export interface Room {
   type: RoomType;
   /** Seats. */
   capacity: number;
-  /** Bookable one-hour slots still open today, out of `totalSlots`. */
+  /** Bookable 30-minute slots still open today, out of `totalSlots`. */
   freeSlots: number;
   totalSlots: number;
 }
@@ -423,7 +446,7 @@ function room(
   buildingId: string,
   type: RoomType,
   capacity: number,
-  freeSlots: number,
+  freeHours: number,
 ): Room {
   return {
     id: `room-${code.toLowerCase()}`,
@@ -432,7 +455,9 @@ function room(
     buildingId,
     type,
     capacity,
-    freeSlots,
+    // Existing fixtures express availability in hours; convert them to the
+    // 30-minute slot unit used by the booking grid.
+    freeSlots: (freeHours * 60) / BUSINESS.ROOM_SLOT_MINUTES,
     totalSlots: TIME_SLOTS.length,
   };
 }
@@ -568,6 +593,12 @@ export interface InspectionResult {
 export interface MyRequest {
   /** The reservation number, e.g. "REQ-2569-00431". One per item - see above. */
   id: string;
+  /** Backend Reservations.ReservationKey; absent on session-only room bookings. */
+  reservationKey?: number;
+  /** Backend's authoritative answer for whether loan.cancel is still allowed. */
+  cancellable?: boolean;
+  /** Present after staff allocate the request; absent on local room bookings. */
+  usageKey?: number | null;
   kind: RequestKind;
   tier: Tier;
   name: string;
@@ -576,6 +607,9 @@ export interface MyRequest {
   status: MyRequestStatus;
   startDate: string;
   endDate: string;
+  /** Requested counter times for equipment. Rooms use `slots` instead. */
+  pickupTime?: string;
+  returnTime?: string;
   /** Equipment on loan: when it is due back, and how far off that is. */
   dueAt?: string;
   daysLeft?: number;
@@ -590,7 +624,7 @@ export interface MyRequest {
   appealSent?: boolean;
   inspection?: InspectionResult;
   /**
-   * Room bookings only: the hours reserved, as indices into `TIME_SLOTS`.
+   * Room bookings only: the periods reserved, as indices into `TIME_SLOTS`.
    * Equipment is borrowed by the day and has no slots, hence optional.
    *
    * The set is fixed at booking time - a room is held for the hours picked and
@@ -764,9 +798,9 @@ function booking(
 }
 
 /**
- * Hours held by a seeded booking, derived rather than typed out.
+ * Time slots held by a seeded booking, derived rather than typed out.
  *
- * Picked from the hours `bookedSlotsOf` leaves open, never from the ones it
+ * Picked from the slots `bookedSlotsOf` leaves open, never from the ones it
  * already counts as taken. `Room.freeSlots` stands for what *other people*
  * have booked; this booking is held on top of that, which is what lets
  * `takenSlotsOf` hand the hours back when it is cancelled. Reusing a slot the
@@ -778,6 +812,6 @@ function seededSlots(roomCode: string): number[] {
   const taken = bookedSlotsOf(room);
   const open = TIME_SLOTS.map((_, i) => i).filter((i) => !taken.has(i));
   const second = open.findIndex((s, i) => i > 0 && slotsAdjacent(open[i - 1], s));
-  // No adjacent pair left: one hour is still a valid booking.
+  // No adjacent pair left: one 30-minute period is still a valid booking.
   return second > 0 ? [open[second - 1], open[second]] : open.slice(0, 1);
 }

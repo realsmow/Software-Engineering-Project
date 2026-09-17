@@ -1,17 +1,22 @@
-import { useEffect, useRef, useState, type ChangeEvent, type ReactNode } from "react";
+import { useState, type ChangeEvent, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { Camera, Check, TriangleAlert } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { Badge, type BadgeTone } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ROUTES, UPLOAD } from "@/constants";
+import { Modal } from "@/components/ui/modal";
+import { BUSINESS, ROUTES, UPLOAD } from "@/constants";
 import { cn } from "@/lib/utils";
 import { uploadAcceptAttr, validateUploadFile } from "@/lib/upload-validation";
 import { TIME_SLOTS, type MyRequest } from "../mock-data";
 import { fmtDayMonth } from "../format";
 import { useMyRequests } from "../loans/use-my-requests";
 import { useSubmittedRequests, type RoomUseShots } from "../loans/submitted-requests.store";
+import {
+  prepareBorrowerImage,
+  type PreparedBorrowerImage,
+} from "../uploads/prepared-image";
 
 /**
  * Use a room - where a confirmed T3 booking is checked in and handed back.
@@ -94,6 +99,7 @@ function BookingCard({ row }: { row: MyRequest }) {
   const setStatus = useSubmittedRequests((s) => s.setStatus);
   const cancel = useSubmittedRequests((s) => s.cancel);
   const shots = useSubmittedRequests((s) => s.roomUse[row.id]);
+  const [confirmingCancel, setConfirmingCancel] = useState(false);
 
   const phase = PHASE_OF[row.status] ?? "before";
   const hasBefore = Boolean(shots?.before);
@@ -128,7 +134,9 @@ function BookingCard({ row }: { row: MyRequest }) {
         <Field label={t("borrower.roomUse.dateCol")}>{fmtDayMonth(row.startDate)}</Field>
         <Field label={t("borrower.roomUse.timeCol")}>{timeLabel}</Field>
         <Field label={t("borrower.roomUse.totalCol")}>
-          {t("borrower.roomUse.hours", { count: slots.length })}
+          {t("borrower.roomUse.hours", {
+            count: (slots.length * BUSINESS.ROOM_SLOT_MINUTES) / 60,
+          })}
         </Field>
       </div>
 
@@ -137,7 +145,7 @@ function BookingCard({ row }: { row: MyRequest }) {
           requestId={row.id}
           which="before"
           label={t("borrower.roomUse.takeBefore")}
-          url={shots?.before}
+          image={shots?.before}
           // Each photo is evidence of one moment: the room as found, and the
           // room as left. Locking them outside their phase keeps a check-out
           // shot from being passed off as the arrival one.
@@ -147,7 +155,7 @@ function BookingCard({ row }: { row: MyRequest }) {
           requestId={row.id}
           which="after"
           label={t("borrower.roomUse.takeAfter")}
-          url={shots?.after}
+          image={shots?.after}
           editable={phase === "using"}
         />
       </div>
@@ -161,7 +169,7 @@ function BookingCard({ row }: { row: MyRequest }) {
             type="button"
             variant="outline"
             className="h-[42px] w-full border-[var(--s-alert-b)] text-[var(--s-alert-t)] hover:bg-[var(--s-alert-bg)]"
-            onClick={() => cancel(row.id)}
+            onClick={() => setConfirmingCancel(true)}
           >
             {t("borrower.roomUse.cancel")}
           </Button>
@@ -184,7 +192,7 @@ function BookingCard({ row }: { row: MyRequest }) {
               type="button"
               variant="outline"
               className="h-[42px] border-[var(--s-alert-b)] px-5 text-[var(--s-alert-t)] hover:bg-[var(--s-alert-bg)]"
-              onClick={() => cancel(row.id)}
+              onClick={() => setConfirmingCancel(true)}
             >
               {t("borrower.roomUse.cancel")}
             </Button>
@@ -214,6 +222,34 @@ function BookingCard({ row }: { row: MyRequest }) {
           </p>
         </div>
       ) : null}
+
+      <Modal
+        open={confirmingCancel}
+        onClose={() => setConfirmingCancel(false)}
+        title={t("borrower.roomUse.cancelConfirmTitle")}
+        subtitle={`${row.id} · ${row.name}`}
+        footer={
+          <>
+            <Button type="button" variant="ghost" onClick={() => setConfirmingCancel(false)}>
+              {t("borrower.roomUse.cancelConfirmNo")}
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={() => {
+                cancel(row.id);
+                setConfirmingCancel(false);
+              }}
+            >
+              {t("borrower.roomUse.cancelConfirmYes")}
+            </Button>
+          </>
+        }
+      >
+        <p className="text-sm leading-relaxed text-t2">
+          {t("borrower.roomUse.cancelConfirmBody")}
+        </p>
+      </Modal>
     </section>
   );
 }
@@ -228,27 +264,18 @@ function PhotoBox({
   requestId,
   which,
   label,
-  url,
+  image,
   editable,
 }: {
   requestId: string;
   which: keyof RoomUseShots;
   label: string;
-  url?: string;
+  image?: PreparedBorrowerImage;
   editable: boolean;
 }) {
   const { t } = useTranslation();
   const setRoomPhoto = useSubmittedRequests((s) => s.setRoomPhoto);
   const [error, setError] = useState<string | null>(null);
-
-  // Object URLs are handed to the store, so this page is what has to release
-  // them: one on replacement, and whatever is left when the card unmounts.
-  const ownedRef = useRef<string | null>(null);
-  useEffect(() => {
-    return () => {
-      if (ownedRef.current) URL.revokeObjectURL(ownedRef.current);
-    };
-  }, []);
 
   function onPick(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -267,15 +294,12 @@ function PhotoBox({
     }
 
     setError(null);
-    if (ownedRef.current) URL.revokeObjectURL(ownedRef.current);
-    // TODO: upload via api-client.uploadFile and store the returned key; the
-    // object URL is a stand-in that dies with the tab.
-    const next = URL.createObjectURL(file);
-    ownedRef.current = next;
-    setRoomPhoto(requestId, which, next);
+    // Keep the File as well as its preview. The store owns and releases the
+    // blob URL; the future signed-upload mutation can send this exact File.
+    setRoomPhoto(requestId, which, prepareBorrowerImage(file));
   }
 
-  const taken = Boolean(url);
+  const taken = Boolean(image);
 
   return (
     <div>
@@ -299,9 +323,9 @@ function PhotoBox({
           onChange={onPick}
           className="sr-only"
         />
-        {url ? (
+        {image ? (
           <>
-            <img src={url} alt="" className="h-full w-full object-cover" />
+            <img src={image.previewUrl} alt="" className="h-full w-full object-cover" />
             <span className="absolute bottom-1.5 right-1.5 inline-flex items-center gap-1 rounded bg-[var(--s-ok-t)] px-1.5 py-0.5 text-[11px] font-semibold text-white">
               <Check size={11} strokeWidth={3} />
               {t("borrower.roomUse.shotDone")}

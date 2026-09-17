@@ -1,12 +1,26 @@
-import { Ctx, Input, Mutation, Router, UseMiddlewares } from 'nestjs-trpc';
-import { StaffMiddleware } from '../trpc/auth.middleware';
+import {
+  Ctx,
+  Input,
+  Mutation,
+  Query,
+  Router,
+  UseMiddlewares,
+} from 'nestjs-trpc';
+import { AuthMiddleware, StaffMiddleware } from '../trpc/auth.middleware';
 import type { TrpcContext } from '../trpc/context';
 import {
+  attachUsagePhotosInput,
+  detachUsagePhotoInput,
   requestUploadInput,
   requestUploadOutput,
+  usagePhotosInput,
+  usagePhotosOutput,
+  type AttachUsagePhotosInput,
+  type DetachUsagePhotoInput,
   type RequestUploadInput,
 } from './image.schema';
 import { ImageService } from './image.service';
+import { UsageImageService } from './usage-image.service';
 
 /**
  * Step 1 of the upload flow (CONTRACT.md §3). Step 2 is not a tRPC procedure at
@@ -19,9 +33,11 @@ import { ImageService } from './image.service';
  * StaffMiddleware until then keeps that decision from being made by accident.
  */
 @Router({ alias: 'image' })
-@UseMiddlewares(StaffMiddleware)
 export class ImageRouter {
-  constructor(private readonly imageService: ImageService) {}
+  constructor(
+    private readonly imageService: ImageService,
+    private readonly usageImages: UsageImageService,
+  ) {}
 
   /**
    * Issues a short-lived, signed URL to PUT one file at.
@@ -31,8 +47,43 @@ export class ImageRouter {
    * `inspection.create`. `previewUrl` is the same file, absolute, for showing
    * it before the record is saved.
    */
+  @UseMiddlewares(StaffMiddleware)
   @Mutation({ input: requestUploadInput, output: requestUploadOutput })
   requestUpload(@Input() input: RequestUploadInput, @Ctx() ctx: TrpcContext) {
     return this.imageService.issueTicket(input, ctx.user!.accountKey);
+  }
+
+  // ── Check-in / check-out photos (§5.9) ──────────────────────────────────
+  //
+  // `AuthMiddleware`, not `StaffMiddleware`: these are the borrower's own
+  // photos of their own loan. Who may touch which loan is a per-row question
+  // — the borrower who holds it, or staff whose department manages the unit —
+  // and UsageImageService.loadUsage is where it is answered.
+
+  /** File the photos the frontend has already uploaded, at one stage. */
+  @UseMiddlewares(AuthMiddleware)
+  @Mutation({ input: attachUsagePhotosInput, output: usagePhotosOutput })
+  attachUsagePhotos(
+    @Input() input: AttachUsagePhotosInput,
+    @Ctx() ctx: TrpcContext,
+  ) {
+    return this.usageImages.attach(ctx.user!, input);
+  }
+
+  /** Before, after and inspection photos of one loan. */
+  @UseMiddlewares(AuthMiddleware)
+  @Query({ input: usagePhotosInput, output: usagePhotosOutput })
+  usagePhotos(@Input() input: { usageKey: number }, @Ctx() ctx: TrpcContext) {
+    return this.usageImages.list(ctx.user!, input.usageKey);
+  }
+
+  /** Remove one of your own, while the stage it belongs to is still open. */
+  @UseMiddlewares(AuthMiddleware)
+  @Mutation({ input: detachUsagePhotoInput, output: usagePhotosOutput })
+  detachUsagePhoto(
+    @Input() input: DetachUsagePhotoInput,
+    @Ctx() ctx: TrpcContext,
+  ) {
+    return this.usageImages.detach(ctx.user!, input.imageKey);
   }
 }

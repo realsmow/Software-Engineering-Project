@@ -43,6 +43,7 @@ interface ResourceRow {
 
 export interface ItemUnitRow {
   IndivKey: number;
+  ResourceKey: number;
   ItemID: string;
   ImageURL: string | null;
   Resource: ResourceRow;
@@ -64,6 +65,7 @@ export interface RoomRow {
   RoomLocation: string | null;
   ImageURL: string | null;
   CreditWeight: number;
+  Capacity: number | null;
   Resource: ResourceRow;
 }
 
@@ -192,6 +194,7 @@ export function toItemDetail(row: ItemTypeRow): ItemDetail {
     ...toItemSummary(row),
     units: row.Items.map((unit) => ({
       id: unit.IndivKey,
+      resourceKey: unit.ResourceKey,
       assetTag: unit.ItemID,
       imageUrl: unit.ImageURL,
       status: unit.Resource.ResourceStatus,
@@ -211,6 +214,8 @@ export function toRoomSummary(row: RoomRow): RoomSummary {
     description: row.RoomDesc,
     location: row.RoomLocation,
     imageUrl: row.ImageURL,
+
+    capacity: row.Capacity,
 
     tier: tryMapTier(resource.BorrowRuleInfo.RuleName),
     creditWeight: row.CreditWeight,

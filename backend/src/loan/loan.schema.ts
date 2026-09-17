@@ -5,9 +5,11 @@ import {
   paginationInput,
 } from '../common/schemas/pagination.schema';
 import {
+  isoDate,
   isoDateTime,
   isoDateTimeNullable,
 } from '../common/schemas/datetime.schema';
+import { MAX_ROOM_BOOKING_SLOTS } from '../common/booking/room-slots';
 import {
   approveStatus,
   conditionType,
@@ -535,6 +537,34 @@ export const createRequestOutput = z.object({
     }),
   ),
 });
+
+/**
+ * Book a room by the chips the borrower tapped (§5.5, T3).
+ *
+ * A separate entry point from `create` rather than a shape it also accepts,
+ * because a room booking is not a basket: it is one resource over one run of
+ * slots on one day, and folding it into the per-line loop would mean every
+ * equipment request carried a `slots` field it can never use.
+ *
+ * What it does *not* do is duplicate any rule. It resolves the slots to a
+ * window and then goes through `create` like everything else, so the credit
+ * band, the ban check, eligibility, the clash check and the Serializable
+ * retry are the same code for rooms as for equipment — the alternative is two
+ * booking paths that agree until one of them is changed.
+ */
+export const createRoomBookingInput = z.object({
+  roomKey: dbId,
+  /** The day at the counter, in Bangkok — not a UTC day (ว-08). */
+  date: isoDate,
+  /**
+   * Positions in `ROOM_SLOTS`, in any order. Must form one unbroken run; the
+   * service says so, because the rule is the same one `item.roomAvailability`
+   * renders and neither may hold its own copy of it.
+   */
+  slots: z.array(z.number().int().min(0)).min(1).max(MAX_ROOM_BOOKING_SLOTS),
+  reason: z.string().trim().max(500).optional(),
+});
+export type CreateRoomBookingInput = z.infer<typeof createRoomBookingInput>;
 
 export const cancelRequestInput = requestIdInput.extend({
   reason: z.string().max(500).optional(),

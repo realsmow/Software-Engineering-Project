@@ -1,4 +1,4 @@
-import { toLocalDayKey } from "@/lib/datetime";
+import { fmtTime, toLocalDayKey } from "@/lib/datetime";
 import type { Tier } from "@/types/domain";
 import type { MyRequest, MyRequestStatus } from "../mock-data";
 
@@ -78,5 +78,7 @@ export function toBorrowerRequest(s: ServerRequest): BorrowerRequest {
     // the first seven hours of a Bangkok morning.
     startDate: toLocalDayKey(s.startTime),
     endDate: toLocalDayKey(s.endTime),
+    pickupTime: fmtTime(s.startTime),
+    returnTime: fmtTime(s.endTime),
   };
 }

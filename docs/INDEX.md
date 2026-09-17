@@ -1,6 +1,6 @@
 # สารบัญไฟล์ — โครงการ ULMs
 
-อ่านหน้านี้แล้วควรรู้ว่าจะไปหยิบอะไรที่ไหน · ปรับปรุง 4 ก.ย. 2569
+อ่านหน้านี้แล้วควรรู้ว่าจะไปหยิบอะไรที่ไหน · ปรับปรุง 17 ก.ย. 2569
 
 ## เพิ่งเข้ามาดู อ่าน 4 ไฟล์นี้พอ
 
@@ -10,8 +10,8 @@
 |---|---|
 | โครงการนี้จะทำอะไร ขอบเขตแค่ไหน | [`report/main.pdf`](report/main.pdf) — ข้อเสนอโครงการ 42 หน้า |
 | ระบบต้องทำอะไรได้บ้าง (ความต้องการ 116 ข้อ) | [`report/ULMs-SRS-v1.0.pdf`](report/ULMs-SRS-v1.0.pdf) — 21 หน้า |
-| ระบบออกแบบไว้ยังไง ตอนนี้ทำถึงไหนแล้ว | [`report/ULMs-SDS-v1.0.pdf`](report/ULMs-SDS-v1.0.pdf) — 40 หน้า เขียนจากโค้ดจริงบน `main` |
-| ตอนนี้ช้าหรือเร็วกว่าแผน เหลืออะไรบ้าง | [`report/progress-report-02.pdf`](report/progress-report-02.pdf) — 15 หน้า ฉบับล่าสุดที่ส่งอาจารย์ |
+| ระบบออกแบบไว้ยังไง ตอนนี้ทำถึงไหนแล้ว | [`report/ULMs-SDS-v1.2.pdf`](report/ULMs-SDS-v1.2.pdf) — 46 หน้า นับจากโค้ดบน `main` ที่ `0cb21a7` (17 ก.ย.) · สร้างจาก generator ล้วน ไม่ต้องแก้มือแล้ว · ฉบับ 1.1 และ 1.0 ยังเก็บไว้ข้างกัน |
+| ตอนนี้ช้าหรือเร็วกว่าแผน เหลืออะไรบ้าง | [`report/progress-report-04.pdf`](report/progress-report-04.pdf) — 11 หน้า ฉบับล่าสุด (ครั้งที่ 4 · กลาง Sprint 4) |
 
 SRS กับ SDS มี `.docx` ชื่อเดียวกันในโฟลเดอร์เดียวกัน ถ้าอยากเปิดใน Word
 **แต่ห้ามแก้ `.docx` ตรง ๆ** มันถูกสร้างจาก [`specs/`](specs/) จะหายตอนสร้างใหม่
@@ -45,7 +45,9 @@ SRS กับ SDS มี `.docx` ชื่อเดียวกันในโ�
 | ไฟล์ | คืออะไร | preamble ที่ใช้ | ผลลัพธ์ |
 |---|---|---|---|
 | `main.tex` | ข้อเสนอโครงการ ประกอบจาก `sections/` | `ulms-preamble.tex` | `build/main.pdf` 42 น. |
-| `progress-report-02.tex` | **ฉบับส่งอาจารย์ล่าสุด** — ครั้งที่ 2 รอบ 28 ส.ค. – 4 ก.ย. (วันที่ 8 ของ Sprint 3) · ตัวเลขทุกตัวอ้าง `origin/main` ที่ `99da590` · มีตารางผลของแผนรายวันที่ฉบับที่ 1 ตั้งไว้ ซึ่งฉบับที่ 1 ไม่มี | `ulms-preamble.tex` | `build/progress-report-02.pdf` 15 น. |
+| `progress-report-04.tex` | **ฉบับล่าสุด** — ครั้งที่ 4 รอบ 11 – 17 ก.ย. (วันที่ 7 ของ Sprint 4) · ตัวเลขทุกตัวอ้าง `origin/main` ที่ `0cb21a7` · มีหัวข้อหลักฐานการทดสอบที่รันจริง ซึ่งฉบับก่อนไม่มี | `ulms-preamble.tex` | `build/progress-report-04.pdf` 11 น. |
+| `progress-report-03.tex` | ส่งแล้ว ห้ามแก้ย้อนหลัง — ครั้งที่ 3 รอบ 4 – 10 ก.ย. (วันสิ้นสุด Sprint 3) · ตัวเลขทุกตัวอ้าง `origin/main` ที่ `c8ed505` · มีหัวข้อผลการทบทวนปิด Sprint 3 | `ulms-preamble.tex` | `build/progress-report-03.pdf` 14 น. |
+| `progress-report-02.tex` | ส่งแล้ว ห้ามแก้ย้อนหลัง — ครั้งที่ 2 รอบ 28 ส.ค. – 4 ก.ย. (วันที่ 8 ของ Sprint 3) · ตัวเลขทุกตัวอ้าง `origin/main` ที่ `99da590` · มีตารางผลของแผนรายวันที่ฉบับที่ 1 ตั้งไว้ ซึ่งฉบับที่ 1 ไม่มี | `ulms-preamble.tex` | `build/progress-report-02.pdf` 15 น. |
 | `progress-report-01.tex` | ฉบับส่งอาจารย์ครั้งที่ 1 (27 ส.ค. จบ Sprint 2) — **ส่งไปแล้ว ห้ามแก้ย้อนหลัง** ฉบับใหม่ให้สร้างไฟล์ใหม่แทน เพราะรอบถัดไปต้องอ้างค่าที่ส่งไปจริง | `ulms-preamble.tex` | `build/progress-report-01.pdf` 14 น. |
 | `progress.tex` | ร่างภายใน รอบ 7 ส.ค. — เก็บไว้ไม่แก้ **ไม่ส่ง** | `ulms-preamble.tex` | `build/progress.pdf` 14 น. |
 | `progress2.tex` | ร่างภายใน รอบ 10 ส.ค. — มีแผน Sprint ที่ปรับใหม่ **ไม่ส่ง** | `ulms-preamble.tex` | `build/progress2.pdf` 21 น. |
@@ -74,7 +76,7 @@ SRS กับ SDS ต้องส่งเป็นไฟล์ที่อา�
 ```bash
 cd docs/specs
 uv run --with python-docx --python 3.12 python gen_srs_docx.py   # -> build/ULMs-SRS-v1.0.{docx,pdf}
-uv run --with python-docx --python 3.12 python gen_sds_docx.py   # -> build/ULMs-SDS-v1.0.{docx,pdf}
+uv run --with python-docx --python 3.12 python gen_sds_docx.py   # -> build/ULMs-SDS-v1.2.{docx,pdf}
 ```
 
 | ไฟล์ | คืออะไร |
@@ -116,8 +118,8 @@ uv run --with python-docx --python 3.12 python gen_sds_docx.py   # -> build/ULMs
 | ใช้ต่อ | ไฟล์ |
 |---|---|
 | ✅ | **`main.pdf`** — ข้อเสนอโครงการฉบับล่าสุด ใช้ตัวนี้ ไม่ใช่ไฟล์ `proposal` ข้างล่าง |
-| ✅ | **`ULMs-SRS-v1.0.pdf` / `.docx`** · **`ULMs-SDS-v1.0.pdf` / `.docx`** — ฉบับทางการ |
-| ✅ | **`progress-report-02.pdf`** (ล่าสุด) · `progress-report-01.pdf` (27 ส.ค. เก็บอ้างอิง) |
+| ✅ | **`ULMs-SRS-v1.0.pdf` / `.docx`** · **`ULMs-SDS-v1.2.pdf` / `.docx`** — ฉบับทางการ (SDS 1.1 และ 1.0 เก็บไว้เป็นฉบับที่ส่งเมื่อ 10 และ 3 ก.ย.) |
+| ✅ | **`progress-report-04.pdf`** (ล่าสุด) · `progress-report-03.pdf` (10 ก.ย.) · `-02` (4 ก.ย.) · `-01` (27 ส.ค.) |
 | ✅ | `trpc-guide.pdf`, `trpc-meeting.pdf`, `spike-gap.pdf` — คัดลอกมาจาก `build/` |
 | ✅ | `references.bib` — บรรณานุกรม |
 
@@ -217,7 +219,7 @@ latexmk main.tex            # ข้อเสนอโครงการ  -> bui
 latexmk progress.tex        # รายงานก้าวหน้า ครั้งที่ 1 -> build/progress.pdf
 latexmk progress2.tex       # รายงานก้าวหน้า ครั้งที่ 2 -> build/progress2.pdf
 latexmk progress3.tex       # ร่างภายใน ฉบับละเอียด -> build/progress3.pdf
-latexmk progress-report-02.tex   # *** ฉบับส่งอาจารย์ล่าสุด *** -> build/progress-report-02.pdf
+latexmk progress-report-04.tex   # *** ฉบับล่าสุด *** -> build/progress-report-04.pdf
 latexmk progress-report-01.tex   # ฉบับส่งอาจารย์ครั้งที่ 1 (ส่งไปแล้ว)
 latexmk trpc-guide.tex      # หลักการ tRPC    -> build/trpc-guide.pdf
 latexmk trpc-meeting.tex    # วาระประชุม      -> build/trpc-meeting.pdf

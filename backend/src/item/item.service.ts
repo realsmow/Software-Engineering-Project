@@ -10,11 +10,21 @@ import {
   toRoomSummary,
   type ItemTypeRow,
 } from '../common/mappers/item.mapper';
+import { HOLDING_APPROVE_STATES } from '../common/booking/booking-window';
+import {
+  MAX_ROOM_BOOKING_SLOTS,
+  ROOM_SLOT_MINUTES,
+  dayWindow,
+  markSlots,
+  slotWindow,
+} from '../common/booking/room-slots';
+import { toIso } from '../common/schemas/datetime.schema';
 import { toPage, toSkipTake } from '../common/schemas/pagination.schema';
 import type {
   ItemSummary,
   ListItemsInput,
   ListRoomsInput,
+  RoomAvailabilityInput,
 } from './item.schema';
 
 /**
@@ -67,6 +77,7 @@ export class ItemService {
         Items: {
           select: {
             IndivKey: true,
+            ResourceKey: true,
             ItemID: true,
             ImageURL: true,
             Resource: {
@@ -112,6 +123,7 @@ export class ItemService {
           orderBy: { ItemID: 'asc' },
           select: {
             IndivKey: true,
+            ResourceKey: true,
             ItemID: true,
             ImageURL: true,
             Resource: {
@@ -217,6 +229,7 @@ export class ItemService {
           RoomName: true,
           RoomDesc: true,
           RoomLocation: true,
+          Capacity: true,
           ImageURL: true,
           CreditWeight: true,
           Resource: {
@@ -257,6 +270,7 @@ export class ItemService {
         RoomName: true,
         RoomDesc: true,
         RoomLocation: true,
+        Capacity: true,
         ImageURL: true,
         CreditWeight: true,
         Resource: {
@@ -282,6 +296,71 @@ export class ItemService {
 
     if (!row) throw new BusinessError('ROOM_NOT_FOUND', { id: roomKey });
     return toRoomSummary(row);
+  }
+
+  /**
+   * Which half-hours of one day the room is free (§5.5, T3).
+   *
+   * **Derived, never stored.** There is no slot table and there should not be
+   * one: a slot is a way of looking at `Reservations`, and a second table
+   * holding the same facts is a table that can disagree with the bookings it
+   * describes — a chip shown free over a booking that exists, or the reverse.
+   * The cost of deriving is one indexed range scan per day viewed, which is
+   * what `@@index([ResourceKey, StartTime, EndTime])` on Reservations is for.
+   *
+   * `Pending` counts as taken, exactly as it does for equipment
+   * (HOLDING_APPROVE_STATES): two people may not queue for the same room over
+   * the same half-hour, because whoever is approved second would find it
+   * already promised.
+   *
+   * A slot that has already passed is marked unavailable too. It is not a
+   * booking, but the answer to "may I book this" is the same, and leaving it
+   * to the client means every client has to know the counter's timezone to
+   * work out which chips are behind them.
+   */
+  async roomAvailability(input: RoomAvailabilityInput) {
+    const room = await this.prisma.roomInfo.findUnique({
+      where: { RoomKey: input.roomKey },
+      select: { RoomKey: true, Resource: { select: { ResourceKey: true } } },
+    });
+    if (!room) throw new BusinessError('ROOM_NOT_FOUND', { id: input.roomKey });
+
+    const { from, to } = dayWindow(input.date);
+    const booked = await this.prisma.reservations.findMany({
+      where: {
+        ResourceKey: room.Resource.ResourceKey,
+        ApproveStatus: { in: [...HOLDING_APPROVE_STATES] },
+        // Half-open, matching clashingWindowFilter: a booking that ends as the
+        // day's first slot begins does not touch it.
+        StartTime: { lt: to },
+        EndTime: { gt: from },
+      },
+      select: { StartTime: true, EndTime: true },
+    });
+
+    const now = new Date();
+    const slots = markSlots(
+      input.date,
+      booked.map((row) => ({ startTime: row.StartTime, endTime: row.EndTime })),
+    ).map((slot) => {
+      const window = slotWindow(input.date, slot.index);
+      return {
+        index: slot.index,
+        start: slot.start,
+        end: slot.end,
+        startTime: toIso(window.startTime),
+        endTime: toIso(window.endTime),
+        available: slot.available && window.startTime > now,
+      };
+    });
+
+    return {
+      roomKey: input.roomKey,
+      date: input.date,
+      slots,
+      maxSlotsPerBooking: MAX_ROOM_BOOKING_SLOTS,
+      slotMinutes: ROOM_SLOT_MINUTES,
+    };
   }
 
   // =========================================================================

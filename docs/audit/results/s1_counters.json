@@ -1,0 +1,2304 @@
+{
+  "scenario": "s1_counters",
+  "run_id": "09151258",
+  "recorded_at": "2026-09-15T12:58:56+07:00",
+  "notes": {
+    "item_key": 5,
+    "units": [
+      16,
+      17,
+      18
+    ],
+    "counter_table": [
+      {
+        "step": "0 registered",
+        "borrower_getAvailability": 3,
+        "borrower_item_list": 3,
+        "staff_listManaged": 3,
+        "total": 3
+      },
+      {
+        "step": "0b future request placed",
+        "borrower_getAvailability": 3,
+        "borrower_item_list": 3,
+        "staff_listManaged": 3,
+        "total": 3
+      },
+      {
+        "step": "1 requested",
+        "borrower_getAvailability": 3,
+        "borrower_item_list": 3,
+        "staff_listManaged": 3,
+        "total": 3
+      },
+      {
+        "step": "2 approved",
+        "borrower_getAvailability": 3,
+        "borrower_item_list": 3,
+        "staff_listManaged": 3,
+        "total": 3
+      },
+      {
+        "step": "3 prepared",
+        "borrower_getAvailability": 3,
+        "borrower_item_list": 3,
+        "staff_listManaged": 2,
+        "total": 3
+      },
+      {
+        "step": "4 handed over",
+        "borrower_getAvailability": 2,
+        "borrower_item_list": 2,
+        "staff_listManaged": 2,
+        "total": 3
+      },
+      {
+        "step": "5 returned",
+        "borrower_getAvailability": 3,
+        "borrower_item_list": 3,
+        "staff_listManaged": 2,
+        "total": 3
+      },
+      {
+        "step": "6 inspected",
+        "borrower_getAvailability": 3,
+        "borrower_item_list": 3,
+        "staff_listManaged": 3,
+        "total": 3
+      }
+    ],
+    "future_request": {
+      "reservationKey": 4,
+      "status": "approved",
+      "resource": {
+        "resourceKey": 18,
+        "name": "AUDIT-S1 กล้อง T1 09151258",
+        "serialNo": "S1-09151258-3",
+        "kind": "equipment",
+        "tier": "T1",
+        "creditWeight": 5
+      },
+      "startTime": "2026-09-22T01:00:00.000Z",
+      "endTime": "2026-09-24T10:00:00.000Z",
+      "reason": null,
+      "requestedAt": "2026-09-15T05:58:56.691Z",
+      "expiresAt": "2026-09-16T05:58:56.691Z",
+      "approval": {
+        "route": "auto",
+        "status": "Approved",
+        "approvedBy": null,
+        "autoApproved": true,
+        "approvedAt": "2026-09-15T05:58:56.691Z",
+        "resolvedAt": null
+      },
+      "usageKey": null,
+      "cancellable": true
+    },
+    "request": {
+      "reservationKey": 5,
+      "status": "approved",
+      "resource": {
+        "resourceKey": 16,
+        "name": "AUDIT-S1 กล้อง T1 09151258",
+        "serialNo": "S1-09151258-1",
+        "kind": "equipment",
+        "tier": "T1",
+        "creditWeight": 5
+      },
+      "startTime": "2026-09-15T06:00:00.000Z",
+      "endTime": "2026-09-17T10:00:00.000Z",
+      "reason": null,
+      "requestedAt": "2026-09-15T05:58:56.712Z",
+      "expiresAt": "2026-09-16T05:58:56.712Z",
+      "approval": {
+        "route": "auto",
+        "status": "Approved",
+        "approvedBy": null,
+        "autoApproved": true,
+        "approvedAt": "2026-09-15T05:58:56.712Z",
+        "resolvedAt": null
+      },
+      "usageKey": null,
+      "cancellable": true
+    },
+    "inspection_subject": {
+      "usageKey": 3,
+      "resourceKey": 16,
+      "itemName": "AUDIT-S1 กล้อง T1 09151258",
+      "serialNo": "S1-09151258-1",
+      "tier": "T1",
+      "creditWeight": 5,
+      "borrowerAccountKey": 1,
+      "borrowerName": "Natthawut Srisuwan",
+      "borrowerStudentId": "test_borrower",
+      "borrowerCreditScore": 92,
+      "checkoutCondition": "Normal",
+      "checkoutConditionNote": null,
+      "checkoutAt": "2026-09-15T05:58:56.771Z",
+      "dueAt": "2026-09-17T10:00:00.000Z",
+      "returnedAt": "2026-09-15T05:58:56.789Z",
+      "overdueDays": 0,
+      "beforeImages": [],
+      "afterImages": [],
+      "unitHistory": [
+        {
+          "conditionKey": 3,
+          "condition": "Normal",
+          "note": null,
+          "loggedAt": "2026-09-15T05:58:56.744Z"
+        }
+      ],
+      "existingInspectionKey": null
+    }
+  },
+  "calls": [
+    {
+      "step": "setup: createType AUDIT-S1 กล้อง T1 09151258",
+      "actor": "staff",
+      "procedure": "item.createType",
+      "input": {
+        "name": "AUDIT-S1 กล้อง T1 09151258",
+        "creditWeight": 5
+      },
+      "status": 200,
+      "ok": true,
+      "data": {
+        "id": 5,
+        "name": "AUDIT-S1 กล้อง T1 09151258",
+        "description": null,
+        "imageUrl": null,
+        "creditWeight": 5,
+        "tiers": [],
+        "totalUnits": 0,
+        "availableUnits": 0,
+        "units": []
+      },
+      "error": null
+    },
+    {
+      "step": "setup: groups",
+      "actor": "staff",
+      "procedure": "item.listManagementGroups",
+      "input": null,
+      "status": 200,
+      "ok": true,
+      "data": [
+        {
+          "id": 1,
+          "name": "ภาควิชาวิศวกรรมคอมพิวเตอร์",
+          "type": "Faculty"
+        },
+        {
+          "id": 2,
+          "name": "ภาควิชาวิศวกรรมไฟฟ้า",
+          "type": "Faculty"
+        }
+      ],
+      "error": null
+    },
+    {
+      "step": "setup: createUnit AUDIT-S1 กล้อง T1 09151258 x3",
+      "actor": "staff",
+      "procedure": "item.createUnit",
+      "input": {
+        "itemKey": 5,
+        "manageGroupKey": 1,
+        "tier": "T1",
+        "quantity": 3,
+        "serialNo": "S1-09151258"
+      },
+      "status": 200,
+      "ok": true,
+      "data": [
+        {
+          "resourceKey": 16,
+          "indivKey": 16,
+          "itemKey": 5,
+          "serialNo": "S1-09151258-1",
+          "imageUrl": null,
+          "tier": "T1",
+          "status": "InStorage",
+          "lendable": true,
+          "prepDays": 0,
+          "condition": null,
+          "conditionNote": null,
+          "conditionLoggedAt": null,
+          "managementGroup": {
+            "id": 1,
+            "name": "ภาควิชาวิศวกรรมคอมพิวเตอร์",
+            "type": "Faculty"
+          },
+          "currentDueAt": null
+        },
+        {
+          "resourceKey": 17,
+          "indivKey": 17,
+          "itemKey": 5,
+          "serialNo": "S1-09151258-2",
+          "imageUrl": null,
+          "tier": "T1",
+          "status": "InStorage",
+          "lendable": true,
+          "prepDays": 0,
+          "condition": null,
+          "conditionNote": null,
+          "conditionLoggedAt": null,
+          "managementGroup": {
+            "id": 1,
+            "name": "ภาควิชาวิศวกรรมคอมพิวเตอร์",
+            "type": "Faculty"
+          },
+          "currentDueAt": null
+        },
+        {
+          "resourceKey": 18,
+          "indivKey": 18,
+          "itemKey": 5,
+          "serialNo": "S1-09151258-3",
+          "imageUrl": null,
+          "tier": "T1",
+          "status": "InStorage",
+          "lendable": true,
+          "prepDays": 0,
+          "condition": null,
+          "conditionNote": null,
+          "conditionLoggedAt": null,
+          "managementGroup": {
+            "id": 1,
+            "name": "ภาควิชาวิศวกรรมคอมพิวเตอร์",
+            "type": "Faculty"
+          },
+          "currentDueAt": null
+        }
+      ],
+      "error": null
+    },
+    {
+      "step": "setup: groups",
+      "actor": "staff",
+      "procedure": "item.listManagementGroups",
+      "input": null,
+      "status": 200,
+      "ok": true,
+      "data": [
+        {
+          "id": 1,
+          "name": "ภาควิชาวิศวกรรมคอมพิวเตอร์",
+          "type": "Faculty"
+        },
+        {
+          "id": 2,
+          "name": "ภาควิชาวิศวกรรมไฟฟ้า",
+          "type": "Faculty"
+        }
+      ],
+      "error": null
+    },
+    {
+      "step": "setup: authority roles",
+      "actor": "staff",
+      "procedure": "item.listAuthorityRoles",
+      "input": null,
+      "status": 200,
+      "ok": true,
+      "data": [
+        {
+          "authorityRoleKey": 1,
+          "name": "Student",
+          "level": 0
+        },
+        {
+          "authorityRoleKey": 2,
+          "name": "Lab staff",
+          "level": 2
+        }
+      ],
+      "error": null
+    },
+    {
+      "step": "setup: setEligibility AUDIT-S1 กล้อง T1 09151258",
+      "actor": "staff",
+      "procedure": "item.setEligibility",
+      "input": {
+        "itemKey": 5,
+        "rules": [
+          {
+            "groupKey": 1,
+            "authorityRoleKey": 1
+          },
+          {
+            "groupKey": 1,
+            "authorityRoleKey": 2
+          },
+          {
+            "groupKey": 2,
+            "authorityRoleKey": 1
+          },
+          {
+            "groupKey": 2,
+            "authorityRoleKey": 2
+          }
+        ]
+      },
+      "status": 200,
+      "ok": true,
+      "data": [
+        {
+          "groupKey": 1,
+          "groupName": "ภาควิชาวิศวกรรมคอมพิวเตอร์",
+          "authorityRoleKey": 1,
+          "authorityRoleName": "Student",
+          "appliesToUnits": 3
+        },
+        {
+          "groupKey": 1,
+          "groupName": "ภาควิชาวิศวกรรมคอมพิวเตอร์",
+          "authorityRoleKey": 2,
+          "authorityRoleName": "Lab staff",
+          "appliesToUnits": 3
+        },
+        {
+          "groupKey": 2,
+          "groupName": "ภาควิชาวิศวกรรมไฟฟ้า",
+          "authorityRoleKey": 1,
+          "authorityRoleName": "Student",
+          "appliesToUnits": 3
+        },
+        {
+          "groupKey": 2,
+          "groupName": "ภาควิชาวิศวกรรมไฟฟ้า",
+          "authorityRoleKey": 2,
+          "authorityRoleName": "Lab staff",
+          "appliesToUnits": 3
+        }
+      ],
+      "error": null
+    },
+    {
+      "step": "0 registered: getAvailability",
+      "actor": "borrower",
+      "procedure": "item.getAvailability",
+      "input": {
+        "id": 5
+      },
+      "status": 200,
+      "ok": true,
+      "data": {
+        "availableUnits": 3,
+        "totalUnits": 3,
+        "nextAvailableAt": null
+      },
+      "error": null
+    },
+    {
+      "step": "0 registered: item.list",
+      "actor": "borrower",
+      "procedure": "item.list",
+      "input": {
+        "limit": 50
+      },
+      "status": 200,
+      "ok": true,
+      "data": {
+        "items": [
+          {
+            "id": 2,
+            "name": "สายจัมเปอร์ชุดใหญ่",
+            "description": "สายจัมเปอร์ผู้-เมีย 120 เส้น",
+            "imageUrl": null,
+            "tier": "T0",
+            "creditWeight": 1,
+            "totalUnits": 6,
+            "availableUnits": 6,
+            "stockStatus": "ok",
+            "nextAvailableAt": null,
+            "prepDays": 0,
+            "allowBorrow": true,
+            "owner": {
+              "id": 2,
+              "name": "ภาควิชาวิศวกรรมไฟฟ้า",
+              "type": "Faculty"
+            }
+          },
+          {
+            "id": 1,
+            "name": "เวอร์เนียคาลิปเปอร์ดิจิทัล",
+            "description": "ความละเอียด 0.01 มม. พร้อมกล่องเก็บ",
+            "imageUrl": null,
+            "tier": "T0",
+            "creditWeight": 1,
+            "totalUnits": 4,
+            "availableUnits": 4,
+            "stockStatus": "ok",
+            "nextAvailableAt": null,
+            "prepDays": 0,
+            "allowBorrow": true,
+            "owner": {
+              "id": 1,
+              "name": "ภาควิชาวิศวกรรมคอมพิวเตอร์",
+              "type": "Faculty"
+            }
+          },
+          {
+            "id": 4,
+            "name": "กล้องถ่ายภาพ DSLR",
+            "description": "ตัวกล้องพร้อมเลนส์คิท และแบตสำรอง",
+            "imageUrl": null,
+            "tier": "T1",
+            "creditWeight": 3,
+            "totalUnits": 3,
+            "availableUnits": 3,
+            "stockStatus": "ok",
+            "nextAvailableAt": null,
+            "prepDays": 0,
+            "allowBorrow": true,
+            "owner": {
+              "id": 1,
+              "name": "ภาควิชาวิศวกรรมคอมพิวเตอร์",
+              "type": "Faculty"
+            }
+          },
+          {
+            "id": 5,
+            "name": "AUDIT-S1 กล้อง T1 09151258",
+            "description": null,
+            "imageUrl": null,
+            "tier": "T1",
+            "creditWeight": 5,
+            "totalUnits": 3,
+            "availableUnits": 3,
+            "stockStatus": "ok",
+            "nextAvailableAt": null,
+            "prepDays": 0,
+            "allowBorrow": true,
+            "owner": {
+              "id": 1,
+              "name": "ภาควิชาวิศวกรรมคอมพิวเตอร์",
+              "type": "Faculty"
+            }
+          },
+          {
+            "id": 3,
+            "name": "ออสซิลโลสโคป 100MHz",
+            "description": "สองช่องสัญญาณ พร้อมโพรบ",
+            "imageUrl": null,
+            "tier": "T2",
+            "creditWeight": 3,
+            "totalUnits": 2,
+            "availableUnits": 2,
+            "stockStatus": "ok",
+            "nextAvailableAt": null,
+            "prepDays": 0,
+            "allowBorrow": true,
+            "owner": {
+              "id": 2,
+              "name": "ภาควิชาวิศวกรรมไฟฟ้า",
+              "type": "Faculty"
+            }
+          }
+        ],
+        "total": 5,
+        "page": 1,
+        "pageSize": 20
+      },
+      "error": null
+    },
+    {
+      "step": "0 registered: item.listManaged",
+      "actor": "staff",
+      "procedure": "item.listManaged",
+      "input": {
+        "limit": 50
+      },
+      "status": 200,
+      "ok": true,
+      "data": {
+        "items": [
+          {
+            "id": 1,
+            "name": "เวอร์เนียคาลิปเปอร์ดิจิทัล",
+            "description": "ความละเอียด 0.01 มม. พร้อมกล่องเก็บ",
+            "imageUrl": null,
+            "creditWeight": 1,
+            "tiers": [
+              "T0"
+            ],
+            "totalUnits": 4,
+            "availableUnits": 3
+          },
+          {
+            "id": 2,
+            "name": "สายจัมเปอร์ชุดใหญ่",
+            "description": "สายจัมเปอร์ผู้-เมีย 120 เส้น",
+            "imageUrl": null,
+            "creditWeight": 1,
+            "tiers": [
+              "T0"
+            ],
+            "totalUnits": 6,
+            "availableUnits": 6
+          },
+          {
+            "id": 3,
+            "name": "ออสซิลโลสโคป 100MHz",
+            "description": "สองช่องสัญญาณ พร้อมโพรบ",
+            "imageUrl": null,
+            "creditWeight": 3,
+            "tiers": [
+              "T2"
+            ],
+            "totalUnits": 2,
+            "availableUnits": 2
+          },
+          {
+            "id": 4,
+            "name": "กล้องถ่ายภาพ DSLR",
+            "description": "ตัวกล้องพร้อมเลนส์คิท และแบตสำรอง",
+            "imageUrl": null,
+            "creditWeight": 3,
+            "tiers": [
+              "T1"
+            ],
+            "totalUnits": 3,
+            "availableUnits": 2
+          },
+          {
+            "id": 5,
+            "name": "AUDIT-S1 กล้อง T1 09151258",
+            "description": null,
+            "imageUrl": null,
+            "creditWeight": 5,
+            "tiers": [
+              "T1"
+            ],
+            "totalUnits": 3,
+            "availableUnits": 3
+          }
+        ],
+        "total": 5,
+        "page": 1,
+        "pageSize": 20
+      },
+      "error": null
+    },
+    {
+      "step": "future request (next week)",
+      "actor": "borrower",
+      "procedure": "loan.create",
+      "input": {
+        "startTime": "2026-09-22T01:00:00Z",
+        "endTime": "2026-09-24T10:00:00Z",
+        "lines": [
+          {
+            "resourceKey": 18
+          }
+        ]
+      },
+      "status": 200,
+      "ok": true,
+      "data": {
+        "created": [
+          {
+            "reservationKey": 4,
+            "status": "approved",
+            "resource": {
+              "resourceKey": 18,
+              "name": "AUDIT-S1 กล้อง T1 09151258",
+              "serialNo": "S1-09151258-3",
+              "kind": "equipment",
+              "tier": "T1",
+              "creditWeight": 5
+            },
+            "startTime": "2026-09-22T01:00:00.000Z",
+            "endTime": "2026-09-24T10:00:00.000Z",
+            "reason": null,
+            "requestedAt": "2026-09-15T05:58:56.691Z",
+            "expiresAt": "2026-09-16T05:58:56.691Z",
+            "approval": {
+              "route": "auto",
+              "status": "Approved",
+              "approvedBy": null,
+              "autoApproved": true,
+              "approvedAt": "2026-09-15T05:58:56.691Z",
+              "resolvedAt": null
+            },
+            "usageKey": null,
+            "cancellable": true
+          }
+        ],
+        "rejected": []
+      },
+      "error": null
+    },
+    {
+      "step": "0b future request placed: getAvailability",
+      "actor": "borrower",
+      "procedure": "item.getAvailability",
+      "input": {
+        "id": 5
+      },
+      "status": 200,
+      "ok": true,
+      "data": {
+        "availableUnits": 3,
+        "totalUnits": 3,
+        "nextAvailableAt": null
+      },
+      "error": null
+    },
+    {
+      "step": "0b future request placed: item.list",
+      "actor": "borrower",
+      "procedure": "item.list",
+      "input": {
+        "limit": 50
+      },
+      "status": 200,
+      "ok": true,
+      "data": {
+        "items": [
+          {
+            "id": 2,
+            "name": "สายจัมเปอร์ชุดใหญ่",
+            "description": "สายจัมเปอร์ผู้-เมีย 120 เส้น",
+            "imageUrl": null,
+            "tier": "T0",
+            "creditWeight": 1,
+            "totalUnits": 6,
+            "availableUnits": 6,
+            "stockStatus": "ok",
+            "nextAvailableAt": null,
+            "prepDays": 0,
+            "allowBorrow": true,
+            "owner": {
+              "id": 2,
+              "name": "ภาควิชาวิศวกรรมไฟฟ้า",
+              "type": "Faculty"
+            }
+          },
+          {
+            "id": 1,
+            "name": "เวอร์เนียคาลิปเปอร์ดิจิทัล",
+            "description": "ความละเอียด 0.01 มม. พร้อมกล่องเก็บ",
+            "imageUrl": null,
+            "tier": "T0",
+            "creditWeight": 1,
+            "totalUnits": 4,
+            "availableUnits": 4,
+            "stockStatus": "ok",
+            "nextAvailableAt": null,
+            "prepDays": 0,
+            "allowBorrow": true,
+            "owner": {
+              "id": 1,
+              "name": "ภาควิชาวิศวกรรมคอมพิวเตอร์",
+              "type": "Faculty"
+            }
+          },
+          {
+            "id": 4,
+            "name": "กล้องถ่ายภาพ DSLR",
+            "description": "ตัวกล้องพร้อมเลนส์คิท และแบตสำรอง",
+            "imageUrl": null,
+            "tier": "T1",
+            "creditWeight": 3,
+            "totalUnits": 3,
+            "availableUnits": 3,
+            "stockStatus": "ok",
+            "nextAvailableAt": null,
+            "prepDays": 0,
+            "allowBorrow": true,
+            "owner": {
+              "id": 1,
+              "name": "ภาควิชาวิศวกรรมคอมพิวเตอร์",
+              "type": "Faculty"
+            }
+          },
+          {
+            "id": 5,
+            "name": "AUDIT-S1 กล้อง T1 09151258",
+            "description": null,
+            "imageUrl": null,
+            "tier": "T1",
+            "creditWeight": 5,
+            "totalUnits": 3,
+            "availableUnits": 3,
+            "stockStatus": "ok",
+            "nextAvailableAt": null,
+            "prepDays": 0,
+            "allowBorrow": true,
+            "owner": {
+              "id": 1,
+              "name": "ภาควิชาวิศวกรรมคอมพิวเตอร์",
+              "type": "Faculty"
+            }
+          },
+          {
+            "id": 3,
+            "name": "ออสซิลโลสโคป 100MHz",
+            "description": "สองช่องสัญญาณ พร้อมโพรบ",
+            "imageUrl": null,
+            "tier": "T2",
+            "creditWeight": 3,
+            "totalUnits": 2,
+            "availableUnits": 2,
+            "stockStatus": "ok",
+            "nextAvailableAt": null,
+            "prepDays": 0,
+            "allowBorrow": true,
+            "owner": {
+              "id": 2,
+              "name": "ภาควิชาวิศวกรรมไฟฟ้า",
+              "type": "Faculty"
+            }
+          }
+        ],
+        "total": 5,
+        "page": 1,
+        "pageSize": 20
+      },
+      "error": null
+    },
+    {
+      "step": "0b future request placed: item.listManaged",
+      "actor": "staff",
+      "procedure": "item.listManaged",
+      "input": {
+        "limit": 50
+      },
+      "status": 200,
+      "ok": true,
+      "data": {
+        "items": [
+          {
+            "id": 1,
+            "name": "เวอร์เนียคาลิปเปอร์ดิจิทัล",
+            "description": "ความละเอียด 0.01 มม. พร้อมกล่องเก็บ",
+            "imageUrl": null,
+            "creditWeight": 1,
+            "tiers": [
+              "T0"
+            ],
+            "totalUnits": 4,
+            "availableUnits": 3
+          },
+          {
+            "id": 2,
+            "name": "สายจัมเปอร์ชุดใหญ่",
+            "description": "สายจัมเปอร์ผู้-เมีย 120 เส้น",
+            "imageUrl": null,
+            "creditWeight": 1,
+            "tiers": [
+              "T0"
+            ],
+            "totalUnits": 6,
+            "availableUnits": 6
+          },
+          {
+            "id": 3,
+            "name": "ออสซิลโลสโคป 100MHz",
+            "description": "สองช่องสัญญาณ พร้อมโพรบ",
+            "imageUrl": null,
+            "creditWeight": 3,
+            "tiers": [
+              "T2"
+            ],
+            "totalUnits": 2,
+            "availableUnits": 2
+          },
+          {
+            "id": 4,
+            "name": "กล้องถ่ายภาพ DSLR",
+            "description": "ตัวกล้องพร้อมเลนส์คิท และแบตสำรอง",
+            "imageUrl": null,
+            "creditWeight": 3,
+            "tiers": [
+              "T1"
+            ],
+            "totalUnits": 3,
+            "availableUnits": 2
+          },
+          {
+            "id": 5,
+            "name": "AUDIT-S1 กล้อง T1 09151258",
+            "description": null,
+            "imageUrl": null,
+            "creditWeight": 5,
+            "tiers": [
+              "T1"
+            ],
+            "totalUnits": 3,
+            "availableUnits": 3
+          }
+        ],
+        "total": 5,
+        "page": 1,
+        "pageSize": 20
+      },
+      "error": null
+    },
+    {
+      "step": "request (today, 2 days)",
+      "actor": "borrower",
+      "procedure": "loan.create",
+      "input": {
+        "startTime": "2026-09-15T06:00:00Z",
+        "endTime": "2026-09-17T10:00:00Z",
+        "lines": [
+          {
+            "resourceKey": 16
+          }
+        ]
+      },
+      "status": 200,
+      "ok": true,
+      "data": {
+        "created": [
+          {
+            "reservationKey": 5,
+            "status": "approved",
+            "resource": {
+              "resourceKey": 16,
+              "name": "AUDIT-S1 กล้อง T1 09151258",
+              "serialNo": "S1-09151258-1",
+              "kind": "equipment",
+              "tier": "T1",
+              "creditWeight": 5
+            },
+            "startTime": "2026-09-15T06:00:00.000Z",
+            "endTime": "2026-09-17T10:00:00.000Z",
+            "reason": null,
+            "requestedAt": "2026-09-15T05:58:56.712Z",
+            "expiresAt": "2026-09-16T05:58:56.712Z",
+            "approval": {
+              "route": "auto",
+              "status": "Approved",
+              "approvedBy": null,
+              "autoApproved": true,
+              "approvedAt": "2026-09-15T05:58:56.712Z",
+              "resolvedAt": null
+            },
+            "usageKey": null,
+            "cancellable": true
+          }
+        ],
+        "rejected": []
+      },
+      "error": null
+    },
+    {
+      "step": "1 requested: getAvailability",
+      "actor": "borrower",
+      "procedure": "item.getAvailability",
+      "input": {
+        "id": 5
+      },
+      "status": 200,
+      "ok": true,
+      "data": {
+        "availableUnits": 3,
+        "totalUnits": 3,
+        "nextAvailableAt": null
+      },
+      "error": null
+    },
+    {
+      "step": "1 requested: item.list",
+      "actor": "borrower",
+      "procedure": "item.list",
+      "input": {
+        "limit": 50
+      },
+      "status": 200,
+      "ok": true,
+      "data": {
+        "items": [
+          {
+            "id": 2,
+            "name": "สายจัมเปอร์ชุดใหญ่",
+            "description": "สายจัมเปอร์ผู้-เมีย 120 เส้น",
+            "imageUrl": null,
+            "tier": "T0",
+            "creditWeight": 1,
+            "totalUnits": 6,
+            "availableUnits": 6,
+            "stockStatus": "ok",
+            "nextAvailableAt": null,
+            "prepDays": 0,
+            "allowBorrow": true,
+            "owner": {
+              "id": 2,
+              "name": "ภาควิชาวิศวกรรมไฟฟ้า",
+              "type": "Faculty"
+            }
+          },
+          {
+            "id": 1,
+            "name": "เวอร์เนียคาลิปเปอร์ดิจิทัล",
+            "description": "ความละเอียด 0.01 มม. พร้อมกล่องเก็บ",
+            "imageUrl": null,
+            "tier": "T0",
+            "creditWeight": 1,
+            "totalUnits": 4,
+            "availableUnits": 4,
+            "stockStatus": "ok",
+            "nextAvailableAt": null,
+            "prepDays": 0,
+            "allowBorrow": true,
+            "owner": {
+              "id": 1,
+              "name": "ภาควิชาวิศวกรรมคอมพิวเตอร์",
+              "type": "Faculty"
+            }
+          },
+          {
+            "id": 4,
+            "name": "กล้องถ่ายภาพ DSLR",
+            "description": "ตัวกล้องพร้อมเลนส์คิท และแบตสำรอง",
+            "imageUrl": null,
+            "tier": "T1",
+            "creditWeight": 3,
+            "totalUnits": 3,
+            "availableUnits": 3,
+            "stockStatus": "ok",
+            "nextAvailableAt": null,
+            "prepDays": 0,
+            "allowBorrow": true,
+            "owner": {
+              "id": 1,
+              "name": "ภาควิชาวิศวกรรมคอมพิวเตอร์",
+              "type": "Faculty"
+            }
+          },
+          {
+            "id": 5,
+            "name": "AUDIT-S1 กล้อง T1 09151258",
+            "description": null,
+            "imageUrl": null,
+            "tier": "T1",
+            "creditWeight": 5,
+            "totalUnits": 3,
+            "availableUnits": 3,
+            "stockStatus": "ok",
+            "nextAvailableAt": null,
+            "prepDays": 0,
+            "allowBorrow": true,
+            "owner": {
+              "id": 1,
+              "name": "ภาควิชาวิศวกรรมคอมพิวเตอร์",
+              "type": "Faculty"
+            }
+          },
+          {
+            "id": 3,
+            "name": "ออสซิลโลสโคป 100MHz",
+            "description": "สองช่องสัญญาณ พร้อมโพรบ",
+            "imageUrl": null,
+            "tier": "T2",
+            "creditWeight": 3,
+            "totalUnits": 2,
+            "availableUnits": 2,
+            "stockStatus": "ok",
+            "nextAvailableAt": null,
+            "prepDays": 0,
+            "allowBorrow": true,
+            "owner": {
+              "id": 2,
+              "name": "ภาควิชาวิศวกรรมไฟฟ้า",
+              "type": "Faculty"
+            }
+          }
+        ],
+        "total": 5,
+        "page": 1,
+        "pageSize": 20
+      },
+      "error": null
+    },
+    {
+      "step": "1 requested: item.listManaged",
+      "actor": "staff",
+      "procedure": "item.listManaged",
+      "input": {
+        "limit": 50
+      },
+      "status": 200,
+      "ok": true,
+      "data": {
+        "items": [
+          {
+            "id": 1,
+            "name": "เวอร์เนียคาลิปเปอร์ดิจิทัล",
+            "description": "ความละเอียด 0.01 มม. พร้อมกล่องเก็บ",
+            "imageUrl": null,
+            "creditWeight": 1,
+            "tiers": [
+              "T0"
+            ],
+            "totalUnits": 4,
+            "availableUnits": 3
+          },
+          {
+            "id": 2,
+            "name": "สายจัมเปอร์ชุดใหญ่",
+            "description": "สายจัมเปอร์ผู้-เมีย 120 เส้น",
+            "imageUrl": null,
+            "creditWeight": 1,
+            "tiers": [
+              "T0"
+            ],
+            "totalUnits": 6,
+            "availableUnits": 6
+          },
+          {
+            "id": 3,
+            "name": "ออสซิลโลสโคป 100MHz",
+            "description": "สองช่องสัญญาณ พร้อมโพรบ",
+            "imageUrl": null,
+            "creditWeight": 3,
+            "tiers": [
+              "T2"
+            ],
+            "totalUnits": 2,
+            "availableUnits": 2
+          },
+          {
+            "id": 4,
+            "name": "กล้องถ่ายภาพ DSLR",
+            "description": "ตัวกล้องพร้อมเลนส์คิท และแบตสำรอง",
+            "imageUrl": null,
+            "creditWeight": 3,
+            "tiers": [
+              "T1"
+            ],
+            "totalUnits": 3,
+            "availableUnits": 2
+          },
+          {
+            "id": 5,
+            "name": "AUDIT-S1 กล้อง T1 09151258",
+            "description": null,
+            "imageUrl": null,
+            "creditWeight": 5,
+            "tiers": [
+              "T1"
+            ],
+            "totalUnits": 3,
+            "availableUnits": 3
+          }
+        ],
+        "total": 5,
+        "page": 1,
+        "pageSize": 20
+      },
+      "error": null
+    },
+    {
+      "step": "2 approved: getAvailability",
+      "actor": "borrower",
+      "procedure": "item.getAvailability",
+      "input": {
+        "id": 5
+      },
+      "status": 200,
+      "ok": true,
+      "data": {
+        "availableUnits": 3,
+        "totalUnits": 3,
+        "nextAvailableAt": null
+      },
+      "error": null
+    },
+    {
+      "step": "2 approved: item.list",
+      "actor": "borrower",
+      "procedure": "item.list",
+      "input": {
+        "limit": 50
+      },
+      "status": 200,
+      "ok": true,
+      "data": {
+        "items": [
+          {
+            "id": 2,
+            "name": "สายจัมเปอร์ชุดใหญ่",
+            "description": "สายจัมเปอร์ผู้-เมีย 120 เส้น",
+            "imageUrl": null,
+            "tier": "T0",
+            "creditWeight": 1,
+            "totalUnits": 6,
+            "availableUnits": 6,
+            "stockStatus": "ok",
+            "nextAvailableAt": null,
+            "prepDays": 0,
+            "allowBorrow": true,
+            "owner": {
+              "id": 2,
+              "name": "ภาควิชาวิศวกรรมไฟฟ้า",
+              "type": "Faculty"
+            }
+          },
+          {
+            "id": 1,
+            "name": "เวอร์เนียคาลิปเปอร์ดิจิทัล",
+            "description": "ความละเอียด 0.01 มม. พร้อมกล่องเก็บ",
+            "imageUrl": null,
+            "tier": "T0",
+            "creditWeight": 1,
+            "totalUnits": 4,
+            "availableUnits": 4,
+            "stockStatus": "ok",
+            "nextAvailableAt": null,
+            "prepDays": 0,
+            "allowBorrow": true,
+            "owner": {
+              "id": 1,
+              "name": "ภาควิชาวิศวกรรมคอมพิวเตอร์",
+              "type": "Faculty"
+            }
+          },
+          {
+            "id": 4,
+            "name": "กล้องถ่ายภาพ DSLR",
+            "description": "ตัวกล้องพร้อมเลนส์คิท และแบตสำรอง",
+            "imageUrl": null,
+            "tier": "T1",
+            "creditWeight": 3,
+            "totalUnits": 3,
+            "availableUnits": 3,
+            "stockStatus": "ok",
+            "nextAvailableAt": null,
+            "prepDays": 0,
+            "allowBorrow": true,
+            "owner": {
+              "id": 1,
+              "name": "ภาควิชาวิศวกรรมคอมพิวเตอร์",
+              "type": "Faculty"
+            }
+          },
+          {
+            "id": 5,
+            "name": "AUDIT-S1 กล้อง T1 09151258",
+            "description": null,
+            "imageUrl": null,
+            "tier": "T1",
+            "creditWeight": 5,
+            "totalUnits": 3,
+            "availableUnits": 3,
+            "stockStatus": "ok",
+            "nextAvailableAt": null,
+            "prepDays": 0,
+            "allowBorrow": true,
+            "owner": {
+              "id": 1,
+              "name": "ภาควิชาวิศวกรรมคอมพิวเตอร์",
+              "type": "Faculty"
+            }
+          },
+          {
+            "id": 3,
+            "name": "ออสซิลโลสโคป 100MHz",
+            "description": "สองช่องสัญญาณ พร้อมโพรบ",
+            "imageUrl": null,
+            "tier": "T2",
+            "creditWeight": 3,
+            "totalUnits": 2,
+            "availableUnits": 2,
+            "stockStatus": "ok",
+            "nextAvailableAt": null,
+            "prepDays": 0,
+            "allowBorrow": true,
+            "owner": {
+              "id": 2,
+              "name": "ภาควิชาวิศวกรรมไฟฟ้า",
+              "type": "Faculty"
+            }
+          }
+        ],
+        "total": 5,
+        "page": 1,
+        "pageSize": 20
+      },
+      "error": null
+    },
+    {
+      "step": "2 approved: item.listManaged",
+      "actor": "staff",
+      "procedure": "item.listManaged",
+      "input": {
+        "limit": 50
+      },
+      "status": 200,
+      "ok": true,
+      "data": {
+        "items": [
+          {
+            "id": 1,
+            "name": "เวอร์เนียคาลิปเปอร์ดิจิทัล",
+            "description": "ความละเอียด 0.01 มม. พร้อมกล่องเก็บ",
+            "imageUrl": null,
+            "creditWeight": 1,
+            "tiers": [
+              "T0"
+            ],
+            "totalUnits": 4,
+            "availableUnits": 3
+          },
+          {
+            "id": 2,
+            "name": "สายจัมเปอร์ชุดใหญ่",
+            "description": "สายจัมเปอร์ผู้-เมีย 120 เส้น",
+            "imageUrl": null,
+            "creditWeight": 1,
+            "tiers": [
+              "T0"
+            ],
+            "totalUnits": 6,
+            "availableUnits": 6
+          },
+          {
+            "id": 3,
+            "name": "ออสซิลโลสโคป 100MHz",
+            "description": "สองช่องสัญญาณ พร้อมโพรบ",
+            "imageUrl": null,
+            "creditWeight": 3,
+            "tiers": [
+              "T2"
+            ],
+            "totalUnits": 2,
+            "availableUnits": 2
+          },
+          {
+            "id": 4,
+            "name": "กล้องถ่ายภาพ DSLR",
+            "description": "ตัวกล้องพร้อมเลนส์คิท และแบตสำรอง",
+            "imageUrl": null,
+            "creditWeight": 3,
+            "tiers": [
+              "T1"
+            ],
+            "totalUnits": 3,
+            "availableUnits": 2
+          },
+          {
+            "id": 5,
+            "name": "AUDIT-S1 กล้อง T1 09151258",
+            "description": null,
+            "imageUrl": null,
+            "creditWeight": 5,
+            "tiers": [
+              "T1"
+            ],
+            "totalUnits": 3,
+            "availableUnits": 3
+          }
+        ],
+        "total": 5,
+        "page": 1,
+        "pageSize": 20
+      },
+      "error": null
+    },
+    {
+      "step": "allocate (prepare)",
+      "actor": "staff",
+      "procedure": "loan.allocate",
+      "input": {
+        "reservationKey": 5
+      },
+      "status": 200,
+      "ok": true,
+      "data": {
+        "usageKey": 3,
+        "reservationKey": 5,
+        "status": "Prepared",
+        "borrower": {
+          "accountKey": 1,
+          "studentId": "test_borrower",
+          "firstName": "Natthawut",
+          "lastName": "Srisuwan",
+          "creditScore": 92
+        },
+        "itemName": "AUDIT-S1 กล้อง T1 09151258",
+        "serialNo": "S1-09151258-1",
+        "resourceKey": 16,
+        "tier": "T1",
+        "checkoutCondition": "Normal",
+        "checkoutConditionNote": null,
+        "checkinCondition": null,
+        "checkoutAt": "2026-09-15T06:00:00.000Z",
+        "dueAt": "2026-09-17T10:00:00.000Z",
+        "returnedAt": null,
+        "overdueDays": 0,
+        "pendingExtensionKey": null
+      },
+      "error": null
+    },
+    {
+      "step": "3 prepared: getAvailability",
+      "actor": "borrower",
+      "procedure": "item.getAvailability",
+      "input": {
+        "id": 5
+      },
+      "status": 200,
+      "ok": true,
+      "data": {
+        "availableUnits": 3,
+        "totalUnits": 3,
+        "nextAvailableAt": null
+      },
+      "error": null
+    },
+    {
+      "step": "3 prepared: item.list",
+      "actor": "borrower",
+      "procedure": "item.list",
+      "input": {
+        "limit": 50
+      },
+      "status": 200,
+      "ok": true,
+      "data": {
+        "items": [
+          {
+            "id": 2,
+            "name": "สายจัมเปอร์ชุดใหญ่",
+            "description": "สายจัมเปอร์ผู้-เมีย 120 เส้น",
+            "imageUrl": null,
+            "tier": "T0",
+            "creditWeight": 1,
+            "totalUnits": 6,
+            "availableUnits": 6,
+            "stockStatus": "ok",
+            "nextAvailableAt": null,
+            "prepDays": 0,
+            "allowBorrow": true,
+            "owner": {
+              "id": 2,
+              "name": "ภาควิชาวิศวกรรมไฟฟ้า",
+              "type": "Faculty"
+            }
+          },
+          {
+            "id": 1,
+            "name": "เวอร์เนียคาลิปเปอร์ดิจิทัล",
+            "description": "ความละเอียด 0.01 มม. พร้อมกล่องเก็บ",
+            "imageUrl": null,
+            "tier": "T0",
+            "creditWeight": 1,
+            "totalUnits": 4,
+            "availableUnits": 4,
+            "stockStatus": "ok",
+            "nextAvailableAt": null,
+            "prepDays": 0,
+            "allowBorrow": true,
+            "owner": {
+              "id": 1,
+              "name": "ภาควิชาวิศวกรรมคอมพิวเตอร์",
+              "type": "Faculty"
+            }
+          },
+          {
+            "id": 4,
+            "name": "กล้องถ่ายภาพ DSLR",
+            "description": "ตัวกล้องพร้อมเลนส์คิท และแบตสำรอง",
+            "imageUrl": null,
+            "tier": "T1",
+            "creditWeight": 3,
+            "totalUnits": 3,
+            "availableUnits": 3,
+            "stockStatus": "ok",
+            "nextAvailableAt": null,
+            "prepDays": 0,
+            "allowBorrow": true,
+            "owner": {
+              "id": 1,
+              "name": "ภาควิชาวิศวกรรมคอมพิวเตอร์",
+              "type": "Faculty"
+            }
+          },
+          {
+            "id": 5,
+            "name": "AUDIT-S1 กล้อง T1 09151258",
+            "description": null,
+            "imageUrl": null,
+            "tier": "T1",
+            "creditWeight": 5,
+            "totalUnits": 3,
+            "availableUnits": 3,
+            "stockStatus": "ok",
+            "nextAvailableAt": null,
+            "prepDays": 0,
+            "allowBorrow": true,
+            "owner": {
+              "id": 1,
+              "name": "ภาควิชาวิศวกรรมคอมพิวเตอร์",
+              "type": "Faculty"
+            }
+          },
+          {
+            "id": 3,
+            "name": "ออสซิลโลสโคป 100MHz",
+            "description": "สองช่องสัญญาณ พร้อมโพรบ",
+            "imageUrl": null,
+            "tier": "T2",
+            "creditWeight": 3,
+            "totalUnits": 2,
+            "availableUnits": 2,
+            "stockStatus": "ok",
+            "nextAvailableAt": null,
+            "prepDays": 0,
+            "allowBorrow": true,
+            "owner": {
+              "id": 2,
+              "name": "ภาควิชาวิศวกรรมไฟฟ้า",
+              "type": "Faculty"
+            }
+          }
+        ],
+        "total": 5,
+        "page": 1,
+        "pageSize": 20
+      },
+      "error": null
+    },
+    {
+      "step": "3 prepared: item.listManaged",
+      "actor": "staff",
+      "procedure": "item.listManaged",
+      "input": {
+        "limit": 50
+      },
+      "status": 200,
+      "ok": true,
+      "data": {
+        "items": [
+          {
+            "id": 1,
+            "name": "เวอร์เนียคาลิปเปอร์ดิจิทัล",
+            "description": "ความละเอียด 0.01 มม. พร้อมกล่องเก็บ",
+            "imageUrl": null,
+            "creditWeight": 1,
+            "tiers": [
+              "T0"
+            ],
+            "totalUnits": 4,
+            "availableUnits": 3
+          },
+          {
+            "id": 2,
+            "name": "สายจัมเปอร์ชุดใหญ่",
+            "description": "สายจัมเปอร์ผู้-เมีย 120 เส้น",
+            "imageUrl": null,
+            "creditWeight": 1,
+            "tiers": [
+              "T0"
+            ],
+            "totalUnits": 6,
+            "availableUnits": 6
+          },
+          {
+            "id": 3,
+            "name": "ออสซิลโลสโคป 100MHz",
+            "description": "สองช่องสัญญาณ พร้อมโพรบ",
+            "imageUrl": null,
+            "creditWeight": 3,
+            "tiers": [
+              "T2"
+            ],
+            "totalUnits": 2,
+            "availableUnits": 2
+          },
+          {
+            "id": 4,
+            "name": "กล้องถ่ายภาพ DSLR",
+            "description": "ตัวกล้องพร้อมเลนส์คิท และแบตสำรอง",
+            "imageUrl": null,
+            "creditWeight": 3,
+            "tiers": [
+              "T1"
+            ],
+            "totalUnits": 3,
+            "availableUnits": 2
+          },
+          {
+            "id": 5,
+            "name": "AUDIT-S1 กล้อง T1 09151258",
+            "description": null,
+            "imageUrl": null,
+            "creditWeight": 5,
+            "tiers": [
+              "T1"
+            ],
+            "totalUnits": 3,
+            "availableUnits": 2
+          }
+        ],
+        "total": 5,
+        "page": 1,
+        "pageSize": 20
+      },
+      "error": null
+    },
+    {
+      "step": "confirmPickup (handover)",
+      "actor": "staff",
+      "procedure": "loan.confirmPickup",
+      "input": {
+        "usageKey": 3
+      },
+      "status": 200,
+      "ok": true,
+      "data": {
+        "usageKey": 3,
+        "reservationKey": 5,
+        "status": "Lended",
+        "borrower": {
+          "accountKey": 1,
+          "studentId": "test_borrower",
+          "firstName": "Natthawut",
+          "lastName": "Srisuwan",
+          "creditScore": 92
+        },
+        "itemName": "AUDIT-S1 กล้อง T1 09151258",
+        "serialNo": "S1-09151258-1",
+        "resourceKey": 16,
+        "tier": "T1",
+        "checkoutCondition": "Normal",
+        "checkoutConditionNote": null,
+        "checkinCondition": null,
+        "checkoutAt": "2026-09-15T05:58:56.771Z",
+        "dueAt": "2026-09-17T10:00:00.000Z",
+        "returnedAt": null,
+        "overdueDays": 0,
+        "pendingExtensionKey": null
+      },
+      "error": null
+    },
+    {
+      "step": "4 handed over: getAvailability",
+      "actor": "borrower",
+      "procedure": "item.getAvailability",
+      "input": {
+        "id": 5
+      },
+      "status": 200,
+      "ok": true,
+      "data": {
+        "availableUnits": 2,
+        "totalUnits": 3,
+        "nextAvailableAt": null
+      },
+      "error": null
+    },
+    {
+      "step": "4 handed over: item.list",
+      "actor": "borrower",
+      "procedure": "item.list",
+      "input": {
+        "limit": 50
+      },
+      "status": 200,
+      "ok": true,
+      "data": {
+        "items": [
+          {
+            "id": 2,
+            "name": "สายจัมเปอร์ชุดใหญ่",
+            "description": "สายจัมเปอร์ผู้-เมีย 120 เส้น",
+            "imageUrl": null,
+            "tier": "T0",
+            "creditWeight": 1,
+            "totalUnits": 6,
+            "availableUnits": 6,
+            "stockStatus": "ok",
+            "nextAvailableAt": null,
+            "prepDays": 0,
+            "allowBorrow": true,
+            "owner": {
+              "id": 2,
+              "name": "ภาควิชาวิศวกรรมไฟฟ้า",
+              "type": "Faculty"
+            }
+          },
+          {
+            "id": 1,
+            "name": "เวอร์เนียคาลิปเปอร์ดิจิทัล",
+            "description": "ความละเอียด 0.01 มม. พร้อมกล่องเก็บ",
+            "imageUrl": null,
+            "tier": "T0",
+            "creditWeight": 1,
+            "totalUnits": 4,
+            "availableUnits": 4,
+            "stockStatus": "ok",
+            "nextAvailableAt": null,
+            "prepDays": 0,
+            "allowBorrow": true,
+            "owner": {
+              "id": 1,
+              "name": "ภาควิชาวิศวกรรมคอมพิวเตอร์",
+              "type": "Faculty"
+            }
+          },
+          {
+            "id": 4,
+            "name": "กล้องถ่ายภาพ DSLR",
+            "description": "ตัวกล้องพร้อมเลนส์คิท และแบตสำรอง",
+            "imageUrl": null,
+            "tier": "T1",
+            "creditWeight": 3,
+            "totalUnits": 3,
+            "availableUnits": 3,
+            "stockStatus": "ok",
+            "nextAvailableAt": null,
+            "prepDays": 0,
+            "allowBorrow": true,
+            "owner": {
+              "id": 1,
+              "name": "ภาควิชาวิศวกรรมคอมพิวเตอร์",
+              "type": "Faculty"
+            }
+          },
+          {
+            "id": 3,
+            "name": "ออสซิลโลสโคป 100MHz",
+            "description": "สองช่องสัญญาณ พร้อมโพรบ",
+            "imageUrl": null,
+            "tier": "T2",
+            "creditWeight": 3,
+            "totalUnits": 2,
+            "availableUnits": 2,
+            "stockStatus": "ok",
+            "nextAvailableAt": null,
+            "prepDays": 0,
+            "allowBorrow": true,
+            "owner": {
+              "id": 2,
+              "name": "ภาควิชาวิศวกรรมไฟฟ้า",
+              "type": "Faculty"
+            }
+          },
+          {
+            "id": 5,
+            "name": "AUDIT-S1 กล้อง T1 09151258",
+            "description": null,
+            "imageUrl": null,
+            "tier": "T1",
+            "creditWeight": 5,
+            "totalUnits": 3,
+            "availableUnits": 2,
+            "stockStatus": "ok",
+            "nextAvailableAt": null,
+            "prepDays": 0,
+            "allowBorrow": true,
+            "owner": {
+              "id": 1,
+              "name": "ภาควิชาวิศวกรรมคอมพิวเตอร์",
+              "type": "Faculty"
+            }
+          }
+        ],
+        "total": 5,
+        "page": 1,
+        "pageSize": 20
+      },
+      "error": null
+    },
+    {
+      "step": "4 handed over: item.listManaged",
+      "actor": "staff",
+      "procedure": "item.listManaged",
+      "input": {
+        "limit": 50
+      },
+      "status": 200,
+      "ok": true,
+      "data": {
+        "items": [
+          {
+            "id": 1,
+            "name": "เวอร์เนียคาลิปเปอร์ดิจิทัล",
+            "description": "ความละเอียด 0.01 มม. พร้อมกล่องเก็บ",
+            "imageUrl": null,
+            "creditWeight": 1,
+            "tiers": [
+              "T0"
+            ],
+            "totalUnits": 4,
+            "availableUnits": 3
+          },
+          {
+            "id": 2,
+            "name": "สายจัมเปอร์ชุดใหญ่",
+            "description": "สายจัมเปอร์ผู้-เมีย 120 เส้น",
+            "imageUrl": null,
+            "creditWeight": 1,
+            "tiers": [
+              "T0"
+            ],
+            "totalUnits": 6,
+            "availableUnits": 6
+          },
+          {
+            "id": 3,
+            "name": "ออสซิลโลสโคป 100MHz",
+            "description": "สองช่องสัญญาณ พร้อมโพรบ",
+            "imageUrl": null,
+            "creditWeight": 3,
+            "tiers": [
+              "T2"
+            ],
+            "totalUnits": 2,
+            "availableUnits": 2
+          },
+          {
+            "id": 4,
+            "name": "กล้องถ่ายภาพ DSLR",
+            "description": "ตัวกล้องพร้อมเลนส์คิท และแบตสำรอง",
+            "imageUrl": null,
+            "creditWeight": 3,
+            "tiers": [
+              "T1"
+            ],
+            "totalUnits": 3,
+            "availableUnits": 2
+          },
+          {
+            "id": 5,
+            "name": "AUDIT-S1 กล้อง T1 09151258",
+            "description": null,
+            "imageUrl": null,
+            "creditWeight": 5,
+            "tiers": [
+              "T1"
+            ],
+            "totalUnits": 3,
+            "availableUnits": 2
+          }
+        ],
+        "total": 5,
+        "page": 1,
+        "pageSize": 20
+      },
+      "error": null
+    },
+    {
+      "step": "recordReturn",
+      "actor": "staff",
+      "procedure": "loan.recordReturn",
+      "input": {
+        "usageKey": 3
+      },
+      "status": 200,
+      "ok": true,
+      "data": {
+        "loan": {
+          "usageKey": 3,
+          "reservationKey": 5,
+          "status": "Returned",
+          "borrower": {
+            "accountKey": 1,
+            "studentId": "test_borrower",
+            "firstName": "Natthawut",
+            "lastName": "Srisuwan",
+            "creditScore": 92
+          },
+          "itemName": "AUDIT-S1 กล้อง T1 09151258",
+          "serialNo": "S1-09151258-1",
+          "resourceKey": 16,
+          "tier": "T1",
+          "checkoutCondition": "Normal",
+          "checkoutConditionNote": null,
+          "checkinCondition": null,
+          "checkoutAt": "2026-09-15T05:58:56.771Z",
+          "dueAt": "2026-09-17T10:00:00.000Z",
+          "returnedAt": "2026-09-15T05:58:56.789Z",
+          "overdueDays": 0,
+          "pendingExtensionKey": null
+        },
+        "latePenalty": null
+      },
+      "error": null
+    },
+    {
+      "step": "5 returned: getAvailability",
+      "actor": "borrower",
+      "procedure": "item.getAvailability",
+      "input": {
+        "id": 5
+      },
+      "status": 200,
+      "ok": true,
+      "data": {
+        "availableUnits": 3,
+        "totalUnits": 3,
+        "nextAvailableAt": null
+      },
+      "error": null
+    },
+    {
+      "step": "5 returned: item.list",
+      "actor": "borrower",
+      "procedure": "item.list",
+      "input": {
+        "limit": 50
+      },
+      "status": 200,
+      "ok": true,
+      "data": {
+        "items": [
+          {
+            "id": 2,
+            "name": "สายจัมเปอร์ชุดใหญ่",
+            "description": "สายจัมเปอร์ผู้-เมีย 120 เส้น",
+            "imageUrl": null,
+            "tier": "T0",
+            "creditWeight": 1,
+            "totalUnits": 6,
+            "availableUnits": 6,
+            "stockStatus": "ok",
+            "nextAvailableAt": null,
+            "prepDays": 0,
+            "allowBorrow": true,
+            "owner": {
+              "id": 2,
+              "name": "ภาควิชาวิศวกรรมไฟฟ้า",
+              "type": "Faculty"
+            }
+          },
+          {
+            "id": 1,
+            "name": "เวอร์เนียคาลิปเปอร์ดิจิทัล",
+            "description": "ความละเอียด 0.01 มม. พร้อมกล่องเก็บ",
+            "imageUrl": null,
+            "tier": "T0",
+            "creditWeight": 1,
+            "totalUnits": 4,
+            "availableUnits": 4,
+            "stockStatus": "ok",
+            "nextAvailableAt": null,
+            "prepDays": 0,
+            "allowBorrow": true,
+            "owner": {
+              "id": 1,
+              "name": "ภาควิชาวิศวกรรมคอมพิวเตอร์",
+              "type": "Faculty"
+            }
+          },
+          {
+            "id": 4,
+            "name": "กล้องถ่ายภาพ DSLR",
+            "description": "ตัวกล้องพร้อมเลนส์คิท และแบตสำรอง",
+            "imageUrl": null,
+            "tier": "T1",
+            "creditWeight": 3,
+            "totalUnits": 3,
+            "availableUnits": 3,
+            "stockStatus": "ok",
+            "nextAvailableAt": null,
+            "prepDays": 0,
+            "allowBorrow": true,
+            "owner": {
+              "id": 1,
+              "name": "ภาควิชาวิศวกรรมคอมพิวเตอร์",
+              "type": "Faculty"
+            }
+          },
+          {
+            "id": 5,
+            "name": "AUDIT-S1 กล้อง T1 09151258",
+            "description": null,
+            "imageUrl": null,
+            "tier": "T1",
+            "creditWeight": 5,
+            "totalUnits": 3,
+            "availableUnits": 3,
+            "stockStatus": "ok",
+            "nextAvailableAt": null,
+            "prepDays": 0,
+            "allowBorrow": true,
+            "owner": {
+              "id": 1,
+              "name": "ภาควิชาวิศวกรรมคอมพิวเตอร์",
+              "type": "Faculty"
+            }
+          },
+          {
+            "id": 3,
+            "name": "ออสซิลโลสโคป 100MHz",
+            "description": "สองช่องสัญญาณ พร้อมโพรบ",
+            "imageUrl": null,
+            "tier": "T2",
+            "creditWeight": 3,
+            "totalUnits": 2,
+            "availableUnits": 2,
+            "stockStatus": "ok",
+            "nextAvailableAt": null,
+            "prepDays": 0,
+            "allowBorrow": true,
+            "owner": {
+              "id": 2,
+              "name": "ภาควิชาวิศวกรรมไฟฟ้า",
+              "type": "Faculty"
+            }
+          }
+        ],
+        "total": 5,
+        "page": 1,
+        "pageSize": 20
+      },
+      "error": null
+    },
+    {
+      "step": "5 returned: item.listManaged",
+      "actor": "staff",
+      "procedure": "item.listManaged",
+      "input": {
+        "limit": 50
+      },
+      "status": 200,
+      "ok": true,
+      "data": {
+        "items": [
+          {
+            "id": 1,
+            "name": "เวอร์เนียคาลิปเปอร์ดิจิทัล",
+            "description": "ความละเอียด 0.01 มม. พร้อมกล่องเก็บ",
+            "imageUrl": null,
+            "creditWeight": 1,
+            "tiers": [
+              "T0"
+            ],
+            "totalUnits": 4,
+            "availableUnits": 3
+          },
+          {
+            "id": 2,
+            "name": "สายจัมเปอร์ชุดใหญ่",
+            "description": "สายจัมเปอร์ผู้-เมีย 120 เส้น",
+            "imageUrl": null,
+            "creditWeight": 1,
+            "tiers": [
+              "T0"
+            ],
+            "totalUnits": 6,
+            "availableUnits": 6
+          },
+          {
+            "id": 3,
+            "name": "ออสซิลโลสโคป 100MHz",
+            "description": "สองช่องสัญญาณ พร้อมโพรบ",
+            "imageUrl": null,
+            "creditWeight": 3,
+            "tiers": [
+              "T2"
+            ],
+            "totalUnits": 2,
+            "availableUnits": 2
+          },
+          {
+            "id": 4,
+            "name": "กล้องถ่ายภาพ DSLR",
+            "description": "ตัวกล้องพร้อมเลนส์คิท และแบตสำรอง",
+            "imageUrl": null,
+            "creditWeight": 3,
+            "tiers": [
+              "T1"
+            ],
+            "totalUnits": 3,
+            "availableUnits": 2
+          },
+          {
+            "id": 5,
+            "name": "AUDIT-S1 กล้อง T1 09151258",
+            "description": null,
+            "imageUrl": null,
+            "creditWeight": 5,
+            "tiers": [
+              "T1"
+            ],
+            "totalUnits": 3,
+            "availableUnits": 2
+          }
+        ],
+        "total": 5,
+        "page": 1,
+        "pageSize": 20
+      },
+      "error": null
+    },
+    {
+      "step": "inspection subject (photo counts)",
+      "actor": "staff",
+      "procedure": "inspection.getById",
+      "input": {
+        "usageKey": 3
+      },
+      "status": 200,
+      "ok": true,
+      "data": {
+        "usageKey": 3,
+        "resourceKey": 16,
+        "itemName": "AUDIT-S1 กล้อง T1 09151258",
+        "serialNo": "S1-09151258-1",
+        "tier": "T1",
+        "creditWeight": 5,
+        "borrowerAccountKey": 1,
+        "borrowerName": "Natthawut Srisuwan",
+        "borrowerStudentId": "test_borrower",
+        "borrowerCreditScore": 92,
+        "checkoutCondition": "Normal",
+        "checkoutConditionNote": null,
+        "checkoutAt": "2026-09-15T05:58:56.771Z",
+        "dueAt": "2026-09-17T10:00:00.000Z",
+        "returnedAt": "2026-09-15T05:58:56.789Z",
+        "overdueDays": 0,
+        "beforeImages": [],
+        "afterImages": [],
+        "unitHistory": [
+          {
+            "conditionKey": 3,
+            "condition": "Normal",
+            "note": null,
+            "loggedAt": "2026-09-15T05:58:56.744Z"
+          }
+        ],
+        "existingInspectionKey": null
+      },
+      "error": null
+    },
+    {
+      "step": "inspection.create B0",
+      "actor": "staff",
+      "procedure": "inspection.create",
+      "input": {
+        "usageKey": 3,
+        "level": "B0"
+      },
+      "status": 200,
+      "ok": true,
+      "data": {
+        "inspectionKey": 1,
+        "usageKey": 3,
+        "resourceKey": 16,
+        "inspectorAccountKey": 2,
+        "level": "B0",
+        "condition": "Normal",
+        "note": null,
+        "inspectedAt": "2026-09-15T05:58:56.814Z",
+        "penalty": null,
+        "returnedToPool": true
+      },
+      "error": null
+    },
+    {
+      "step": "6 inspected: getAvailability",
+      "actor": "borrower",
+      "procedure": "item.getAvailability",
+      "input": {
+        "id": 5
+      },
+      "status": 200,
+      "ok": true,
+      "data": {
+        "availableUnits": 3,
+        "totalUnits": 3,
+        "nextAvailableAt": null
+      },
+      "error": null
+    },
+    {
+      "step": "6 inspected: item.list",
+      "actor": "borrower",
+      "procedure": "item.list",
+      "input": {
+        "limit": 50
+      },
+      "status": 200,
+      "ok": true,
+      "data": {
+        "items": [
+          {
+            "id": 2,
+            "name": "สายจัมเปอร์ชุดใหญ่",
+            "description": "สายจัมเปอร์ผู้-เมีย 120 เส้น",
+            "imageUrl": null,
+            "tier": "T0",
+            "creditWeight": 1,
+            "totalUnits": 6,
+            "availableUnits": 6,
+            "stockStatus": "ok",
+            "nextAvailableAt": null,
+            "prepDays": 0,
+            "allowBorrow": true,
+            "owner": {
+              "id": 2,
+              "name": "ภาควิชาวิศวกรรมไฟฟ้า",
+              "type": "Faculty"
+            }
+          },
+          {
+            "id": 1,
+            "name": "เวอร์เนียคาลิปเปอร์ดิจิทัล",
+            "description": "ความละเอียด 0.01 มม. พร้อมกล่องเก็บ",
+            "imageUrl": null,
+            "tier": "T0",
+            "creditWeight": 1,
+            "totalUnits": 4,
+            "availableUnits": 4,
+            "stockStatus": "ok",
+            "nextAvailableAt": null,
+            "prepDays": 0,
+            "allowBorrow": true,
+            "owner": {
+              "id": 1,
+              "name": "ภาควิชาวิศวกรรมคอมพิวเตอร์",
+              "type": "Faculty"
+            }
+          },
+          {
+            "id": 4,
+            "name": "กล้องถ่ายภาพ DSLR",
+            "description": "ตัวกล้องพร้อมเลนส์คิท และแบตสำรอง",
+            "imageUrl": null,
+            "tier": "T1",
+            "creditWeight": 3,
+            "totalUnits": 3,
+            "availableUnits": 3,
+            "stockStatus": "ok",
+            "nextAvailableAt": null,
+            "prepDays": 0,
+            "allowBorrow": true,
+            "owner": {
+              "id": 1,
+              "name": "ภาควิชาวิศวกรรมคอมพิวเตอร์",
+              "type": "Faculty"
+            }
+          },
+          {
+            "id": 5,
+            "name": "AUDIT-S1 กล้อง T1 09151258",
+            "description": null,
+            "imageUrl": null,
+            "tier": "T1",
+            "creditWeight": 5,
+            "totalUnits": 3,
+            "availableUnits": 3,
+            "stockStatus": "ok",
+            "nextAvailableAt": null,
+            "prepDays": 0,
+            "allowBorrow": true,
+            "owner": {
+              "id": 1,
+              "name": "ภาควิชาวิศวกรรมคอมพิวเตอร์",
+              "type": "Faculty"
+            }
+          },
+          {
+            "id": 3,
+            "name": "ออสซิลโลสโคป 100MHz",
+            "description": "สองช่องสัญญาณ พร้อมโพรบ",
+            "imageUrl": null,
+            "tier": "T2",
+            "creditWeight": 3,
+            "totalUnits": 2,
+            "availableUnits": 2,
+            "stockStatus": "ok",
+            "nextAvailableAt": null,
+            "prepDays": 0,
+            "allowBorrow": true,
+            "owner": {
+              "id": 2,
+              "name": "ภาควิชาวิศวกรรมไฟฟ้า",
+              "type": "Faculty"
+            }
+          }
+        ],
+        "total": 5,
+        "page": 1,
+        "pageSize": 20
+      },
+      "error": null
+    },
+    {
+      "step": "6 inspected: item.listManaged",
+      "actor": "staff",
+      "procedure": "item.listManaged",
+      "input": {
+        "limit": 50
+      },
+      "status": 200,
+      "ok": true,
+      "data": {
+        "items": [
+          {
+            "id": 1,
+            "name": "เวอร์เนียคาลิปเปอร์ดิจิทัล",
+            "description": "ความละเอียด 0.01 มม. พร้อมกล่องเก็บ",
+            "imageUrl": null,
+            "creditWeight": 1,
+            "tiers": [
+              "T0"
+            ],
+            "totalUnits": 4,
+            "availableUnits": 3
+          },
+          {
+            "id": 2,
+            "name": "สายจัมเปอร์ชุดใหญ่",
+            "description": "สายจัมเปอร์ผู้-เมีย 120 เส้น",
+            "imageUrl": null,
+            "creditWeight": 1,
+            "tiers": [
+              "T0"
+            ],
+            "totalUnits": 6,
+            "availableUnits": 6
+          },
+          {
+            "id": 3,
+            "name": "ออสซิลโลสโคป 100MHz",
+            "description": "สองช่องสัญญาณ พร้อมโพรบ",
+            "imageUrl": null,
+            "creditWeight": 3,
+            "tiers": [
+              "T2"
+            ],
+            "totalUnits": 2,
+            "availableUnits": 2
+          },
+          {
+            "id": 4,
+            "name": "กล้องถ่ายภาพ DSLR",
+            "description": "ตัวกล้องพร้อมเลนส์คิท และแบตสำรอง",
+            "imageUrl": null,
+            "creditWeight": 3,
+            "tiers": [
+              "T1"
+            ],
+            "totalUnits": 3,
+            "availableUnits": 2
+          },
+          {
+            "id": 5,
+            "name": "AUDIT-S1 กล้อง T1 09151258",
+            "description": null,
+            "imageUrl": null,
+            "creditWeight": 5,
+            "tiers": [
+              "T1"
+            ],
+            "totalUnits": 3,
+            "availableUnits": 3
+          }
+        ],
+        "total": 5,
+        "page": 1,
+        "pageSize": 20
+      },
+      "error": null
+    }
+  ]
+}

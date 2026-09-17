@@ -24,6 +24,7 @@ function unit(overrides: {
 }): ItemUnitRow {
   return {
     IndivKey: 1,
+    ResourceKey: 101,
     ItemID: overrides.tag ?? 'EE-MM-001',
     ImageURL: null,
     Resource: {
@@ -211,6 +212,7 @@ describe('toItemDetail', () => {
     expect(itemDetail.safeParse(detail).success).toBe(true);
     expect(detail.units).toHaveLength(2);
     expect(detail.units[1]).toMatchObject({
+      resourceKey: 101,
       assetTag: 'EE-MM-002',
       status: 'Lended',
       condition: 'Normal',
@@ -234,6 +236,7 @@ describe('toRoomSummary', () => {
     RoomLocation: 'อาคาร 9 ชั้น 2',
     ImageURL: null,
     CreditWeight: 0,
+    Capacity: 24,
     Resource: unit({}).Resource,
   };
 

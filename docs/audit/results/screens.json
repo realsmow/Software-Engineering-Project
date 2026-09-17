@@ -1,0 +1,128 @@
+{
+  "setup": {
+    "items": {
+      "T0": 1,
+      "T1": 4,
+      "T2": 3
+    },
+    "names": {
+      "T0": "เวอร์เนียคาลิปเปอร์ดิจิทัล",
+      "T1": "กล้องถ่ายภาพ DSLR",
+      "T2": "ออสซิลโลสโคป 100MHz"
+    },
+    "t1_ready_usage": 1,
+    "t0_returned_usage": 2,
+    "t2_pending_reservation": 3
+  },
+  "screens": [
+    {
+      "name": "b-catalog",
+      "path": "/catalog",
+      "outlined": {
+        ":text-matches('ว่าง|available', 'i')": 1
+      },
+      "ok": true
+    },
+    {
+      "name": "b-detail-t1",
+      "path": "/catalog/4",
+      "outlined": {
+        ":text-matches('ว่าง|พร้อม', 'i')": 11
+      },
+      "ok": true
+    },
+    {
+      "name": "b-request",
+      "path": "/request",
+      "outlined": {
+        "input[type=date]": 2
+      },
+      "ok": true
+    },
+    {
+      "name": "b-rooms",
+      "path": "/rooms",
+      "outlined": {
+        ":text-matches('ที่นั่ง|seats|ความจุ', 'i')": 13
+      },
+      "ok": true
+    },
+    {
+      "name": "b-room-booking",
+      "path": "/rooms/room-fac-cad2/book",
+      "outlined": {
+        ":text-matches('ที่นั่ง|seats', 'i')": 1
+      },
+      "ok": true
+    },
+    {
+      "name": "b-pickup",
+      "path": "/pickup",
+      "outlined": {
+        ":text-matches('เปลี่ยน', 'i')": 2,
+        "input[type=file]": 1
+      },
+      "ok": true
+    },
+    {
+      "name": "b-my-loans",
+      "path": "/my/loans",
+      "outlined": {},
+      "ok": true
+    },
+    {
+      "name": "b-request-mobile",
+      "path": "/request",
+      "outlined": {},
+      "ok": true
+    },
+    {
+      "name": "s-queue",
+      "path": "/staff",
+      "outlined": {},
+      "ok": true
+    },
+    {
+      "name": "s-inventory",
+      "path": "/staff/inventory",
+      "outlined": {},
+      "ok": true
+    },
+    {
+      "name": "s-inspection",
+      "path": "/staff/inspection",
+      "outlined": {},
+      "ok": true
+    },
+    {
+      "name": "s-handover-placeholder",
+      "path": "/staff/handover",
+      "outlined": {},
+      "ok": true
+    },
+    {
+      "name": "v-approvals",
+      "path": "/supervisor/approvals",
+      "outlined": {},
+      "ok": true
+    },
+    {
+      "name": "v-appeals-mock",
+      "path": "/supervisor/appeals",
+      "outlined": {},
+      "ok": true
+    },
+    {
+      "name": "v-export-placeholder",
+      "path": "/reports/export",
+      "outlined": {},
+      "ok": true
+    },
+    {
+      "name": "a-audit",
+      "path": "/admin/audit",
+      "outlined": {},
+      "ok": true
+    }
+  ]
+}

@@ -7,7 +7,11 @@ import {
 } from "../mock-data";
 import { useMyRequestsApi } from "./use-my-requests-api";
 import { useEquipmentTypes } from "../catalog/use-equipment-types";
-import { useRequestDraft, type DraftLine } from "../request/request-draft.store";
+import {
+  useRequestDraft,
+  type DraftLine,
+  type RequestTime,
+} from "../request/request-draft.store";
 import { useSubmittedRequests } from "./submitted-requests.store";
 
 /**
@@ -21,7 +25,9 @@ export interface DraftSummary {
   lines: number;
   units: number;
   startDate: string;
+  pickupTime: RequestTime;
   endDate: string | null;
+  returnTime: RequestTime;
 }
 
 /**
@@ -55,13 +61,16 @@ export function useMyRequests() {
   const overrides = useSubmittedRequests((s) => s.overrides);
   const draftLines = useRequestDraft((s) => s.lines);
   const startDate = useRequestDraft((s) => s.startDate);
+  const pickupTime = useRequestDraft((s) => s.pickupTime);
   const endDate = useRequestDraft((s) => s.endDate);
+  const returnTime = useRequestDraft((s) => s.returnTime);
 
   const requests = useMemo<LoanRow[]>(() => {
     // Equipment comes from the server. Room bookings do not: there is no
     // reservation router yet, so a booking only exists in this session's store
     // and dropping it here would make it vanish from the page that just
-    // confirmed it.
+    // confirmed it. `submitted` now holds only room bookings, so this filter is
+    // belt and braces rather than load-bearing.
     const rooms = submitted.filter((r) => r.kind === "room");
 
     return [...rooms, ...(server ?? [])].map((r) => {
@@ -73,8 +82,8 @@ export function useMyRequests() {
   }, [server, submitted, overrides]);
 
   const draft = useMemo<DraftSummary | null>(
-    () => summariseDraft(draftLines, catalog ?? [], startDate, endDate),
-    [draftLines, catalog, startDate, endDate],
+    () => summariseDraft(draftLines, catalog ?? [], startDate, pickupTime, endDate, returnTime),
+    [draftLines, catalog, startDate, pickupTime, endDate, returnTime],
   );
 
   const countByTab = useMemo(() => {
@@ -96,7 +105,9 @@ function summariseDraft(
   lines: DraftLine[],
   catalog: CatalogItem[],
   startDate: string,
+  pickupTime: RequestTime,
   endDate: string | null,
+  returnTime: RequestTime,
 ): DraftSummary | null {
   if (lines.length === 0) return null;
 
@@ -110,6 +121,8 @@ function summariseDraft(
     lines: lines.length,
     units: lines.reduce((sum, l) => sum + l.qty, 0),
     startDate,
+    pickupTime,
     endDate,
+    returnTime,
   };
 }

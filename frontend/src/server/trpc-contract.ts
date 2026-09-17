@@ -226,6 +226,47 @@ export const appRouter = t.router({
     cancel: proc
       .input(z.object({ reservationKey: z.number(), reason: z.string().optional() }))
       .mutation(() => as<ServerRequest>()),
+    requestPickupImageUpload: proc
+      .input(
+        z.object({
+          usageKey: z.number(),
+          contentType: z.enum(["image/jpeg", "image/png"]),
+          sizeBytes: z.number(),
+        }),
+      )
+      .mutation(() =>
+        as<{
+          uploadUrl: string;
+          /** Stable storage identifier; never persist the expiring uploadUrl. */
+          objectKey: string;
+          uploadToken: string;
+          imageUrl: string;
+          previewUrl: string;
+          expiresAt: string;
+          maxBytes: number;
+          /** Headers included when the storage provider generated the signature. */
+          uploadHeaders?: Record<string, string>;
+        }>(),
+      ),
+    attachPickupImage: proc
+      .input(
+        z.object({
+          usageKey: z.number(),
+          objectKey: z.string(),
+          uploadToken: z.string(),
+        }),
+      )
+      .mutation(() =>
+        as<{
+          imageKey: number;
+          usageKey: number;
+          imageUrl: string;
+          submittedAt: string;
+        }>(),
+      ),
+    finalizePickup: proc
+      .input(z.object({ usageKeys: z.array(z.number()).min(1).max(10) }))
+      .mutation(() => as<{ finalizedUsageKeys: number[] }>()),
 
     // Staff counter. Typed against backend/src/loan/loan.schema.ts.
     staffQueue: proc

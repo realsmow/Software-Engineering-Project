@@ -4,7 +4,11 @@ import {
   paginated,
   paginationInput,
 } from '../common/schemas/pagination.schema';
-import { isoDateTimeNullable } from '../common/schemas/datetime.schema';
+import {
+  isoDate,
+  isoDateTime,
+  isoDateTimeNullable,
+} from '../common/schemas/datetime.schema';
 import { imageUrl } from '../common/schemas/image.schema';
 import {
   conditionType,
@@ -208,6 +212,14 @@ export const roomOutput = z.object({
   /** Absolute and ready for an `<img src>`; stored as a relative path. */
   imageUrl: z.string().nullable(),
   creditWeight: z.number(),
+  /**
+   * RoomInfo.Capacity — how many people it seats.
+   *
+   * Null means nobody has recorded it, not "seats nobody". Every room created
+   * before the column existed reads null, and the list renders "-" rather than
+   * a zero that looks measured.
+   */
+  capacity: z.number().int().nullable(),
   tier: resourceTier.nullable(),
   status: resourceStatus,
   lendable: z.boolean(),
@@ -230,6 +242,13 @@ export const createRoomInput = z.object({
   imageUrl: imageUrl.optional(),
   /** T3 is not credit-bearing in the proposal, so this defaults to zero. */
   creditWeight: z.number().min(0).max(1000).default(0),
+  /**
+   * Seats. Optional rather than required: staff registering a room they have
+   * not measured should record the room now and the number when they know it,
+   * instead of typing a placeholder that nothing afterwards can tell from a
+   * real figure. The database refuses zero and below either way.
+   */
+  capacity: z.number().int().positive().max(10000).optional(),
   lendable: z.boolean().default(true),
 });
 export type CreateRoomInput = z.infer<typeof createRoomInput>;
@@ -240,6 +259,14 @@ export const updateRoomInput = resourceIdInput.extend({
   location: z.string().trim().max(200).optional(),
   imageUrl: imageUrl.optional(),
   creditWeight: z.number().min(0).max(1000).optional(),
+  /**
+   * `null` clears it, an omitted field leaves it alone.
+   *
+   * The two have to be distinguishable here in a way they do not for the other
+   * fields: "we measured it and it was wrong" is a real edit, and without an
+   * explicit null there would be no way to take a bad number back out.
+   */
+  capacity: z.number().int().positive().max(10000).nullable().optional(),
 });
 export type UpdateRoomInput = z.infer<typeof updateRoomInput>;
 
@@ -366,6 +393,8 @@ export const itemSummary = z.object({
 
 export const itemUnit = z.object({
   id: z.number().int(),
+  /** ResourceInfo.ResourceKey - pass this to loan.create. */
+  resourceKey: z.number().int(),
   /** ItemIndiv.ItemID — the asset tag printed on the unit */
   assetTag: z.string(),
   imageUrl: z.string().nullable(),
@@ -429,9 +458,13 @@ export const paginatedItems = paginated(itemSummary);
  * A bookable room or space.
  *
  * Thinner than the frontend's mock Room on purpose — `type` (lab/meet/lect/
- * shop), `capacity`, `buildingId` and the free-slot counts have no columns in
- * RoomInfo. `location` is the free-text RoomLocation, which is the closest
- * thing the schema has to a building. See docs/auth-admin.md.
+ * shop) and `buildingId` have no columns in RoomInfo, and `location` is the
+ * free-text RoomLocation, which is the closest thing the schema has to a
+ * building. See docs/auth-admin.md.
+ *
+ * `capacity` is no longer among the missing: it is a real column as of the
+ * `room_capacity` migration. The free-slot counts are not a column and never
+ * will be — `item.roomAvailability` derives them from the day's bookings.
  */
 export const roomSummary = z.object({
   id: z.number().int(),
@@ -439,6 +472,9 @@ export const roomSummary = z.object({
   description: z.string().nullable(),
   location: z.string().nullable(),
   imageUrl: z.string().nullable(),
+
+  /** RoomInfo.Capacity — seats, or null when nobody has recorded it. */
+  capacity: z.number().int().nullable(),
 
   /** Null when the room sits on a BorrowRule outside T0–T3. */
   tier: resourceTier.nullable(),
@@ -450,6 +486,49 @@ export const roomSummary = z.object({
   bookable: z.boolean(),
 
   owner: ownerGroup.nullable(),
+});
+
+/**
+ * One half-hour of a room's day, as the chip strip renders it.
+ *
+ * `index` is the position in `ROOM_SLOTS`, and it is what `loan.create` takes
+ * back: the borrower picked chips, and sending back the indices they picked is
+ * a shorter round trip than two instants the client has to build in the right
+ * timezone. `startTime`/`endTime` are the same slot as instants, so a client
+ * that would rather work in absolute time does not have to reimplement the
+ * conversion (ว-08).
+ */
+export const roomSlotOutput = z.object({
+  index: z.number().int().min(0),
+  /** Local wall clock at the counter, `"07:00"` — the chip's label. */
+  start: z.string(),
+  end: z.string(),
+  startTime: isoDateTime,
+  endTime: isoDateTime,
+  /** False when a booking already covers any part of it, or it has passed. */
+  available: z.boolean(),
+});
+
+/**
+ * A room's bookable day.
+ *
+ * The date comes in as `YYYY-MM-DD` and means a day at the counter, in Bangkok
+ * — not a UTC day (ว-08). Sending an instant instead would make "which day is
+ * this" depend on what time of day the client asked.
+ */
+export const roomAvailabilityInput = z.object({
+  roomKey: dbId,
+  date: isoDate,
+});
+export type RoomAvailabilityInput = z.infer<typeof roomAvailabilityInput>;
+
+export const roomAvailabilityOutput = z.object({
+  roomKey: z.number().int(),
+  date: isoDate,
+  slots: z.array(roomSlotOutput),
+  /** Echoed so the client's "เลือกได้สูงสุด N ช่วง" line cannot drift from the rule. */
+  maxSlotsPerBooking: z.number().int().positive(),
+  slotMinutes: z.number().int().positive(),
 });
 
 export const roomSortKey = z.enum(['name', 'location', 'creditWeight']);

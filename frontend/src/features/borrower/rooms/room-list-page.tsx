@@ -25,7 +25,7 @@ import { useMyRequests } from "../loans/use-my-requests";
 import { useRooms } from "./use-rooms";
 
 /** Facet groups, in rail order. Keys namespace the option keys ("type:lab"). */
-const GROUP_KEYS = ["type", "bld", "cap"] as const;
+const GROUP_KEYS = ["bld", "cap"] as const;
 type GroupKey = (typeof GROUP_KEYS)[number];
 
 /** Matches the equipment catalog so both browse pages page identically. */
@@ -78,17 +78,8 @@ export default function RoomListPage() {
 
     return [
       {
-        key: "type",
-        label: t("borrower.rooms.fType"),
-        options: ROOM_TYPES.map((rt) => ({
-          key: `type:${rt.id}`,
-          label: t(`borrower.rooms.${rt.labelKey}`),
-          count: countBy("type", rt.id),
-        })),
-      },
-      {
         key: "bld",
-        label: t("borrower.rooms.fBuilding"),
+        label: t("borrower.rooms.fLocation"),
         options: BUILDINGS.map((b) => ({
           key: `bld:${b.id}`,
           label: b.name,
@@ -167,15 +158,9 @@ export default function RoomListPage() {
     },
     {
       key: "bld",
-      header: t("borrower.rooms.colBuilding"),
+      header: t("borrower.rooms.colLocation"),
       className: "whitespace-nowrap",
       render: (r) => <span className="text-t2">{buildingName(r.buildingId)}</span>,
-    },
-    {
-      key: "type",
-      header: t("borrower.rooms.colType"),
-      className: "whitespace-nowrap",
-      render: (r) => <span className="text-t2">{t(roomTypeKey(r))}</span>,
     },
     {
       key: "cap",
@@ -583,7 +568,6 @@ function roomTypeKey(room: Room): string {
 }
 
 function facetOf(room: Room, group: GroupKey): string {
-  if (group === "type") return room.type;
   if (group === "bld") return room.buildingId;
   return capacityBand(room.capacity);
 }

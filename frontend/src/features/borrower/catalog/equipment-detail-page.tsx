@@ -17,12 +17,7 @@ import {
 import { CREDIT_BANDS, ROUTES } from "@/constants";
 import { useAuthStore } from "@/features/auth/auth.store";
 import { cn } from "@/lib/utils";
-import {
-  EQUIPMENT_CATEGORIES,
-  catalogDeptName,
-  type StockStatus,
-  type UnitState,
-} from "../mock-data";
+import type { StockStatus, UnitState } from "../mock-data";
 import { fmtDateTime, fmtDayMonth } from "../format";
 import { remainingUnits, useRequestDraft } from "../request/request-draft.store";
 import { useEquipmentAvailability, useEquipmentType } from "./use-equipment-types";
@@ -97,7 +92,6 @@ export default function EquipmentDetailPage() {
   // Out of stock, or the draft already holds every free unit.
   const atCap = remainingUnits(draftLines, { ...item, availableUnits }) === 0;
   const days = buildDays(availableUnits, nextAvailableAt);
-  const category = EQUIPMENT_CATEGORIES.find((c) => c.id === item.categoryId);
   // The real window comes from BorrowConstraints via `credit.me`; CREDIT_BANDS
   // is the static fallback for the moment before that query resolves.
   const loanDays =
@@ -154,7 +148,10 @@ export default function EquipmentDetailPage() {
               {availableUnits} / {totalUnits}
             </SpecRow>
             <SpecRow label={t("borrower.detail.deptL")}>
-              {catalogDeptName(item.departmentId)}
+              {item.owner?.name ??
+                (item.owner
+                  ? t(`borrower.catalog.owner${item.owner.type}`)
+                  : t("borrower.catalog.ownerUnknown"))}
             </SpecRow>
             <SpecRow label={t("borrower.detail.periodL")}>{period}</SpecRow>
           </div>
@@ -182,11 +179,11 @@ export default function EquipmentDetailPage() {
         {/* Specifications */}
         <Panel title={t("borrower.detail.spec")}>
           <div className="divide-y divide-border px-3.5 py-1">
-            <SpecRow label={t("borrower.detail.catL")}>
-              {category ? t(`borrower.catalog.${category.labelKey}`) : item.categoryId}
-            </SpecRow>
             <SpecRow label={t("borrower.detail.deptL")}>
-              {catalogDeptName(item.departmentId)}
+              {item.owner?.name ??
+                (item.owner
+                  ? t(`borrower.catalog.owner${item.owner.type}`)
+                  : t("borrower.catalog.ownerUnknown"))}
             </SpecRow>
             <SpecRow label={t("borrower.detail.totalL")} mono>
               {totalUnits}

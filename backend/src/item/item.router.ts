@@ -33,6 +33,8 @@ import {
   paginatedItemTypes,
   paginatedManagedRooms,
   paginatedRooms,
+  roomAvailabilityInput,
+  roomAvailabilityOutput,
   roomIdInput,
   roomOutput,
   roomSummary,
@@ -51,6 +53,7 @@ import {
   type ListManagedRoomsInput,
   type ListManagedUnitsInput,
   type ListRoomsInput,
+  type RoomAvailabilityInput,
   type SetTypeEligibilityInput,
   type SetUnitConditionInput,
   type SetUnitLendableInput,
@@ -142,6 +145,19 @@ export class ItemRouter {
   @Query({ input: listRoomsInput, output: paginatedRooms })
   listRooms(@Input() input: ListRoomsInput) {
     return this.itemService.listRooms(input);
+  }
+
+  /**
+   * The room's bookable day, chip by chip.
+   *
+   * Polled while the booking page is open, like the catalogue's availability:
+   * a slot someone else takes must grey out before this borrower presses
+   * submit, not after.
+   */
+  @UseMiddlewares(AuthMiddleware)
+  @Query({ input: roomAvailabilityInput, output: roomAvailabilityOutput })
+  roomAvailability(@Input() input: RoomAvailabilityInput) {
+    return this.itemService.roomAvailability(input);
   }
 
   @UseMiddlewares(AuthMiddleware)

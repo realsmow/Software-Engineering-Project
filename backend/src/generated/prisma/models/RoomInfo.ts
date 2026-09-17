@@ -30,12 +30,14 @@ export type RoomInfoAvgAggregateOutputType = {
   RoomKey: number | null
   ResourceKey: number | null
   CreditWeight: number | null
+  Capacity: number | null
 }
 
 export type RoomInfoSumAggregateOutputType = {
   RoomKey: number | null
   ResourceKey: number | null
   CreditWeight: number | null
+  Capacity: number | null
 }
 
 export type RoomInfoMinAggregateOutputType = {
@@ -46,6 +48,7 @@ export type RoomInfoMinAggregateOutputType = {
   RoomLocation: string | null
   ImageURL: string | null
   CreditWeight: number | null
+  Capacity: number | null
 }
 
 export type RoomInfoMaxAggregateOutputType = {
@@ -56,6 +59,7 @@ export type RoomInfoMaxAggregateOutputType = {
   RoomLocation: string | null
   ImageURL: string | null
   CreditWeight: number | null
+  Capacity: number | null
 }
 
 export type RoomInfoCountAggregateOutputType = {
@@ -66,6 +70,7 @@ export type RoomInfoCountAggregateOutputType = {
   RoomLocation: number
   ImageURL: number
   CreditWeight: number
+  Capacity: number
   _all: number
 }
 
@@ -74,12 +79,14 @@ export type RoomInfoAvgAggregateInputType = {
   RoomKey?: true
   ResourceKey?: true
   CreditWeight?: true
+  Capacity?: true
 }
 
 export type RoomInfoSumAggregateInputType = {
   RoomKey?: true
   ResourceKey?: true
   CreditWeight?: true
+  Capacity?: true
 }
 
 export type RoomInfoMinAggregateInputType = {
@@ -90,6 +97,7 @@ export type RoomInfoMinAggregateInputType = {
   RoomLocation?: true
   ImageURL?: true
   CreditWeight?: true
+  Capacity?: true
 }
 
 export type RoomInfoMaxAggregateInputType = {
@@ -100,6 +108,7 @@ export type RoomInfoMaxAggregateInputType = {
   RoomLocation?: true
   ImageURL?: true
   CreditWeight?: true
+  Capacity?: true
 }
 
 export type RoomInfoCountAggregateInputType = {
@@ -110,6 +119,7 @@ export type RoomInfoCountAggregateInputType = {
   RoomLocation?: true
   ImageURL?: true
   CreditWeight?: true
+  Capacity?: true
   _all?: true
 }
 
@@ -207,6 +217,7 @@ export type RoomInfoGroupByOutputType = {
   RoomLocation: string | null
   ImageURL: string | null
   CreditWeight: number
+  Capacity: number | null
   _count: RoomInfoCountAggregateOutputType | null
   _avg: RoomInfoAvgAggregateOutputType | null
   _sum: RoomInfoSumAggregateOutputType | null
@@ -240,6 +251,7 @@ export type RoomInfoWhereInput = {
   RoomLocation?: Prisma.StringNullableFilter<"RoomInfo"> | string | null
   ImageURL?: Prisma.StringNullableFilter<"RoomInfo"> | string | null
   CreditWeight?: Prisma.FloatFilter<"RoomInfo"> | number
+  Capacity?: Prisma.IntNullableFilter<"RoomInfo"> | number | null
   Resource?: Prisma.XOR<Prisma.ResourceInfoScalarRelationFilter, Prisma.ResourceInfoWhereInput>
 }
 
@@ -251,6 +263,7 @@ export type RoomInfoOrderByWithRelationInput = {
   RoomLocation?: Prisma.SortOrderInput | Prisma.SortOrder
   ImageURL?: Prisma.SortOrderInput | Prisma.SortOrder
   CreditWeight?: Prisma.SortOrder
+  Capacity?: Prisma.SortOrderInput | Prisma.SortOrder
   Resource?: Prisma.ResourceInfoOrderByWithRelationInput
 }
 
@@ -265,6 +278,7 @@ export type RoomInfoWhereUniqueInput = Prisma.AtLeast<{
   RoomLocation?: Prisma.StringNullableFilter<"RoomInfo"> | string | null
   ImageURL?: Prisma.StringNullableFilter<"RoomInfo"> | string | null
   CreditWeight?: Prisma.FloatFilter<"RoomInfo"> | number
+  Capacity?: Prisma.IntNullableFilter<"RoomInfo"> | number | null
   Resource?: Prisma.XOR<Prisma.ResourceInfoScalarRelationFilter, Prisma.ResourceInfoWhereInput>
 }, "RoomKey" | "ResourceKey">
 
@@ -276,6 +290,7 @@ export type RoomInfoOrderByWithAggregationInput = {
   RoomLocation?: Prisma.SortOrderInput | Prisma.SortOrder
   ImageURL?: Prisma.SortOrderInput | Prisma.SortOrder
   CreditWeight?: Prisma.SortOrder
+  Capacity?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.RoomInfoCountOrderByAggregateInput
   _avg?: Prisma.RoomInfoAvgOrderByAggregateInput
   _max?: Prisma.RoomInfoMaxOrderByAggregateInput
@@ -294,6 +309,7 @@ export type RoomInfoScalarWhereWithAggregatesInput = {
   RoomLocation?: Prisma.StringNullableWithAggregatesFilter<"RoomInfo"> | string | null
   ImageURL?: Prisma.StringNullableWithAggregatesFilter<"RoomInfo"> | string | null
   CreditWeight?: Prisma.FloatWithAggregatesFilter<"RoomInfo"> | number
+  Capacity?: Prisma.IntNullableWithAggregatesFilter<"RoomInfo"> | number | null
 }
 
 export type RoomInfoCreateInput = {
@@ -302,6 +318,7 @@ export type RoomInfoCreateInput = {
   RoomLocation?: string | null
   ImageURL?: string | null
   CreditWeight: number
+  Capacity?: number | null
   Resource: Prisma.ResourceInfoCreateNestedOneWithoutRoomInput
 }
 
@@ -313,6 +330,7 @@ export type RoomInfoUncheckedCreateInput = {
   RoomLocation?: string | null
   ImageURL?: string | null
   CreditWeight: number
+  Capacity?: number | null
 }
 
 export type RoomInfoUpdateInput = {
@@ -321,6 +339,7 @@ export type RoomInfoUpdateInput = {
   RoomLocation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   ImageURL?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   CreditWeight?: Prisma.FloatFieldUpdateOperationsInput | number
+  Capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   Resource?: Prisma.ResourceInfoUpdateOneRequiredWithoutRoomNestedInput
 }
 
@@ -332,6 +351,7 @@ export type RoomInfoUncheckedUpdateInput = {
   RoomLocation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   ImageURL?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   CreditWeight?: Prisma.FloatFieldUpdateOperationsInput | number
+  Capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
 }
 
 export type RoomInfoCreateManyInput = {
@@ -342,6 +362,7 @@ export type RoomInfoCreateManyInput = {
   RoomLocation?: string | null
   ImageURL?: string | null
   CreditWeight: number
+  Capacity?: number | null
 }
 
 export type RoomInfoUpdateManyMutationInput = {
@@ -350,6 +371,7 @@ export type RoomInfoUpdateManyMutationInput = {
   RoomLocation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   ImageURL?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   CreditWeight?: Prisma.FloatFieldUpdateOperationsInput | number
+  Capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
 }
 
 export type RoomInfoUncheckedUpdateManyInput = {
@@ -360,6 +382,7 @@ export type RoomInfoUncheckedUpdateManyInput = {
   RoomLocation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   ImageURL?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   CreditWeight?: Prisma.FloatFieldUpdateOperationsInput | number
+  Capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
 }
 
 export type RoomInfoCountOrderByAggregateInput = {
@@ -370,12 +393,14 @@ export type RoomInfoCountOrderByAggregateInput = {
   RoomLocation?: Prisma.SortOrder
   ImageURL?: Prisma.SortOrder
   CreditWeight?: Prisma.SortOrder
+  Capacity?: Prisma.SortOrder
 }
 
 export type RoomInfoAvgOrderByAggregateInput = {
   RoomKey?: Prisma.SortOrder
   ResourceKey?: Prisma.SortOrder
   CreditWeight?: Prisma.SortOrder
+  Capacity?: Prisma.SortOrder
 }
 
 export type RoomInfoMaxOrderByAggregateInput = {
@@ -386,6 +411,7 @@ export type RoomInfoMaxOrderByAggregateInput = {
   RoomLocation?: Prisma.SortOrder
   ImageURL?: Prisma.SortOrder
   CreditWeight?: Prisma.SortOrder
+  Capacity?: Prisma.SortOrder
 }
 
 export type RoomInfoMinOrderByAggregateInput = {
@@ -396,12 +422,14 @@ export type RoomInfoMinOrderByAggregateInput = {
   RoomLocation?: Prisma.SortOrder
   ImageURL?: Prisma.SortOrder
   CreditWeight?: Prisma.SortOrder
+  Capacity?: Prisma.SortOrder
 }
 
 export type RoomInfoSumOrderByAggregateInput = {
   RoomKey?: Prisma.SortOrder
   ResourceKey?: Prisma.SortOrder
   CreditWeight?: Prisma.SortOrder
+  Capacity?: Prisma.SortOrder
 }
 
 export type RoomInfoNullableScalarRelationFilter = {
@@ -447,6 +475,7 @@ export type RoomInfoCreateWithoutResourceInput = {
   RoomLocation?: string | null
   ImageURL?: string | null
   CreditWeight: number
+  Capacity?: number | null
 }
 
 export type RoomInfoUncheckedCreateWithoutResourceInput = {
@@ -456,6 +485,7 @@ export type RoomInfoUncheckedCreateWithoutResourceInput = {
   RoomLocation?: string | null
   ImageURL?: string | null
   CreditWeight: number
+  Capacity?: number | null
 }
 
 export type RoomInfoCreateOrConnectWithoutResourceInput = {
@@ -480,6 +510,7 @@ export type RoomInfoUpdateWithoutResourceInput = {
   RoomLocation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   ImageURL?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   CreditWeight?: Prisma.FloatFieldUpdateOperationsInput | number
+  Capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
 }
 
 export type RoomInfoUncheckedUpdateWithoutResourceInput = {
@@ -489,6 +520,7 @@ export type RoomInfoUncheckedUpdateWithoutResourceInput = {
   RoomLocation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   ImageURL?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   CreditWeight?: Prisma.FloatFieldUpdateOperationsInput | number
+  Capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
 }
 
 
@@ -501,6 +533,7 @@ export type RoomInfoSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs
   RoomLocation?: boolean
   ImageURL?: boolean
   CreditWeight?: boolean
+  Capacity?: boolean
   Resource?: boolean | Prisma.ResourceInfoDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["roomInfo"]>
 
@@ -512,6 +545,7 @@ export type RoomInfoSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Exte
   RoomLocation?: boolean
   ImageURL?: boolean
   CreditWeight?: boolean
+  Capacity?: boolean
   Resource?: boolean | Prisma.ResourceInfoDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["roomInfo"]>
 
@@ -523,6 +557,7 @@ export type RoomInfoSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Exte
   RoomLocation?: boolean
   ImageURL?: boolean
   CreditWeight?: boolean
+  Capacity?: boolean
   Resource?: boolean | Prisma.ResourceInfoDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["roomInfo"]>
 
@@ -534,9 +569,10 @@ export type RoomInfoSelectScalar = {
   RoomLocation?: boolean
   ImageURL?: boolean
   CreditWeight?: boolean
+  Capacity?: boolean
 }
 
-export type RoomInfoOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"RoomKey" | "ResourceKey" | "RoomName" | "RoomDesc" | "RoomLocation" | "ImageURL" | "CreditWeight", ExtArgs["result"]["roomInfo"]>
+export type RoomInfoOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"RoomKey" | "ResourceKey" | "RoomName" | "RoomDesc" | "RoomLocation" | "ImageURL" | "CreditWeight" | "Capacity", ExtArgs["result"]["roomInfo"]>
 export type RoomInfoInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   Resource?: boolean | Prisma.ResourceInfoDefaultArgs<ExtArgs>
 }
@@ -560,6 +596,14 @@ export type $RoomInfoPayload<ExtArgs extends runtime.Types.Extensions.InternalAr
     RoomLocation: string | null
     ImageURL: string | null
     CreditWeight: number
+    /**
+     * How many people the room seats. Nullable because the rooms already in the
+     * table were created before anyone recorded it, and a guessed number would
+     * be indistinguishable from a measured one; the room list shows "-" until
+     * staff fill it in. Never zero or negative - the check constraint in the
+     * migration holds that, since Prisma cannot express it.
+     */
+    Capacity: number | null
   }, ExtArgs["result"]["roomInfo"]>
   composites: {}
 }
@@ -991,6 +1035,7 @@ export interface RoomInfoFieldRefs {
   readonly RoomLocation: Prisma.FieldRef<"RoomInfo", 'String'>
   readonly ImageURL: Prisma.FieldRef<"RoomInfo", 'String'>
   readonly CreditWeight: Prisma.FieldRef<"RoomInfo", 'Float'>
+  readonly Capacity: Prisma.FieldRef<"RoomInfo", 'Int'>
 }
     
 

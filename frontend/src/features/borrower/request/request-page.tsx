@@ -1,4 +1,4 @@
-import { useMemo, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { fmtDayMonth } from "@/lib/datetime";
 import { useNavigate } from "react-router-dom";
@@ -11,18 +11,25 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { BUSINESS, CREDIT_BANDS, CREDIT_BAND_POLICY, ROUTES } from "@/constants";
 import { useAuthStore } from "@/features/auth/auth.store";
-import { useSubmittedRequests } from "../loans/submitted-requests.store";
+import { getErrorMessage } from "@/lib/error-messages";
 import { cn } from "@/lib/utils";
 import type { CatalogItem, UnitState } from "../mock-data";
 import { useEquipmentTypes, useEquipmentUnits } from "../catalog/use-equipment-types";
 import { useMyCredit } from "@/features/account/use-my-credit";
 import {
-  expandToUnits,
+  REQUEST_TIMES,
   isoOffset,
   todayIso,
   useRequestDraft,
   type DraftLine,
+  type RequestTime,
 } from "./request-draft.store";
+import {
+  MAX_REQUEST_UNITS,
+  RequestPreparationError,
+  requestInstant,
+  useCreateEquipmentRequest,
+} from "./use-create-request";
 
 /** A draft line joined with the catalog row it points at. */
 interface CartRow extends DraftLine {
@@ -56,14 +63,20 @@ export default function RequestPage() {
 
   const lines = useRequestDraft((s) => s.lines);
   const startDate = useRequestDraft((s) => s.startDate);
+  const pickupTime = useRequestDraft((s) => s.pickupTime);
   const endDate = useRequestDraft((s) => s.endDate);
+  const returnTime = useRequestDraft((s) => s.returnTime);
   const setQty = useRequestDraft((s) => s.setQty);
   const removeItem = useRequestDraft((s) => s.removeItem);
   const toggleSerial = useRequestDraft((s) => s.toggleSerial);
   const setStartDate = useRequestDraft((s) => s.setStartDate);
+  const setPickupTime = useRequestDraft((s) => s.setPickupTime);
   const setEndDate = useRequestDraft((s) => s.setEndDate);
+  const setReturnTime = useRequestDraft((s) => s.setReturnTime);
+  const replaceLines = useRequestDraft((s) => s.replaceLines);
   const clear = useRequestDraft((s) => s.clear);
-  const addEquipmentRequest = useSubmittedRequests((s) => s.addEquipmentRequest);
+  const createRequest = useCreateEquipmentRequest();
+  const [submitMessage, setSubmitMessage] = useState<string | null>(null);
 
   // The draft stores item ids only, so the catalogue is what turns a line into
   // something renderable. Same query as the catalogue page, so switching
@@ -89,10 +102,7 @@ export default function RequestPage() {
   );
 
   const t2Rows = rows.filter((r) => r.item.tier === "T2");
-  // The cart groups by type, but the request that goes out is per unit - each
-  // one is approved, handed over, and returned on its own.
-  const units = useMemo(() => expandToUnits(rows), [rows]);
-  const totalUnits = units.length;
+  const totalUnits = rows.reduce((sum, row) => sum + row.qty, 0);
   const hasT2 = t2Rows.length > 0;
   const hasT1 = rows.some((r) => r.item.tier === "T1");
 
@@ -116,9 +126,12 @@ export default function RequestPage() {
   );
 
   const short = rows.filter((r) => r.qty > r.item.availableUnits);
-  // No tier means no rule for who approves it. Blocking here is the fail-safe
-  // reading: the alternative is sending a request nothing can classify.
-  const unclassified = rows.filter((r) => r.item.tier === null);
+  const missingSerials = t2Rows.filter((r) => r.serials.length !== r.qty);
+  const tooManyUnits = totalUnits > MAX_REQUEST_UNITS;
+  const startTime = requestInstant(startDate, pickupTime);
+  const endTime = endDate ? requestInstant(endDate, returnTime) : null;
+  const startsInPast = startTime.getTime() < Date.now();
+  const invalidTimeOrder = endTime !== null && endTime <= startTime;
   const checks = [
     {
       id: "eligible",
@@ -132,34 +145,39 @@ export default function RequestPage() {
     },
     {
       id: "credit",
-      ok: rows.length > 0 && endDate !== null && !overDays,
+      ok:
+        rows.length > 0 &&
+        endDate !== null &&
+        !overDays &&
+        !startsInPast &&
+        !invalidTimeOrder,
       label: t("borrower.request.pcCredit"),
       detail:
         rows.length === 0
           ? t("borrower.request.pcCreditIdle")
           : endDate === null
             ? t("borrower.request.pcCreditNoEnd")
-            : overDays
-              ? t("borrower.request.pcCreditOver", { days, max: maxDays })
-              : t("borrower.request.pcCreditOk", { score, band, days, max: maxDays }),
-    },
-    {
-      id: "tier",
-      ok: unclassified.length === 0,
-      label: t("borrower.request.pcTier"),
-      detail: unclassified.length
-        ? t("borrower.request.pcTierBad", {
-            items: unclassified.map((r) => r.item.name).join(" · "),
-          })
-        : t("borrower.request.pcTierOk"),
+            : startsInPast
+              ? t("borrower.request.pcTimePast")
+              : invalidTimeOrder
+                ? t("borrower.request.pcTimeOrder")
+                : overDays
+                  ? t("borrower.request.pcCreditOver", { days, max: maxDays })
+                  : t("borrower.request.pcCreditOk", { score, band, days, max: maxDays }),
     },
     {
       id: "stock",
-      ok: short.length === 0,
+      ok: short.length === 0 && missingSerials.length === 0 && !tooManyUnits,
       label: t("borrower.request.pcStock"),
-      detail: short.length
-        ? t("borrower.request.pcStockBad", { items: short.map((r) => r.item.name).join(" · ") })
-        : t("borrower.request.pcStockOk"),
+      detail: tooManyUnits
+        ? t("borrower.request.pcTooMany", { max: MAX_REQUEST_UNITS })
+        : missingSerials.length
+          ? t("borrower.request.pcSerialMissing", {
+              items: missingSerials.map((r) => r.item.name).join(" · "),
+            })
+          : short.length
+            ? t("borrower.request.pcStockBad", { items: short.map((r) => r.item.name).join(" · ") })
+            : t("borrower.request.pcStockOk"),
     },
   ];
 
@@ -178,13 +196,72 @@ export default function RequestPage() {
     }
   }
 
-  function submit() {
+  async function submit() {
     if (!canSubmit || endDate === null) return;
-    // TODO: POST /loan-requests with these units. Until then the request is
-    // pushed to the session store so it shows up under "my requests".
-    addEquipmentRequest({ units, startDate, endDate, needsSupervisor });
-    clear();
-    navigate(ROUTES.MY_LOANS);
+    setSubmitMessage(null);
+    createRequest.reset();
+
+    try {
+      const result = await createRequest.mutateAsync({
+        rows: rows.map((row) => ({
+          itemId: row.itemId,
+          name: row.item.name,
+          tier: row.item.tier,
+          qty: row.qty,
+          serials: row.serials,
+        })),
+        startDate,
+        pickupTime,
+        endDate,
+        returnTime,
+      });
+
+      if (result.rejected.length === 0) {
+        clear();
+        navigate(ROUTES.MY_LOANS);
+        return;
+      }
+
+      const rejectedKeys = new Set(result.rejected.map((row) => row.resourceKey));
+      const rejectedUnits = result.selectedUnits.filter((unit) => rejectedKeys.has(unit.resourceKey));
+      replaceLines(
+        rows.flatMap((row) => {
+          const left = rejectedUnits.filter((unit) => unit.itemId === row.itemId);
+          return left.length
+            ? [
+                {
+                  itemId: row.itemId,
+                  qty: left.length,
+                  serials: row.item.tier === "T2" ? left.map((unit) => unit.serial) : [],
+                },
+              ]
+            : [];
+        }),
+      );
+
+      const details = result.rejected.map((rejected) => {
+        const unit = result.selectedUnits.find((candidate) => candidate.resourceKey === rejected.resourceKey);
+        return `${unit?.itemName ?? `#${rejected.resourceKey}`}: ${getErrorMessage(rejected.code)}`;
+      });
+      setSubmitMessage(
+        `${t("borrower.request.submitPartial", {
+          created: result.created.length,
+          rejected: result.rejected.length,
+        })} ${details.join(" · ")}`,
+      );
+    } catch (error) {
+      if (error instanceof RequestPreparationError) {
+        setSubmitMessage(
+          error.reason === "TOO_MANY_UNITS"
+            ? t("borrower.request.pcTooMany", { max: MAX_REQUEST_UNITS })
+            : error.reason === "UNITS_CHANGED"
+              ? t("borrower.request.submitUnitsChanged", { item: error.itemName })
+              : t("borrower.request.submitInvalidItem", { item: error.itemName }),
+        );
+      } else {
+        setSubmitMessage(getErrorMessage(error));
+      }
+    }
   }
 
   function saveDraft() {
@@ -223,21 +300,35 @@ export default function RequestPage() {
                 })}
               </p>
 
-              <div className="grid max-w-[540px] gap-3 sm:grid-cols-2">
-                <DateField
-                  label={t("borrower.request.pickupDate")}
-                  value={startDate}
-                  min={todayIso()}
-                  max={isoOffset(BUSINESS.RESERVATION_MAX_DAYS)}
-                  onChange={handleStart}
-                />
-                <DateField
-                  label={t("borrower.request.returnDate")}
-                  value={endDate ?? ""}
-                  min={startDate}
-                  max={endMax}
-                  onChange={(iso) => setEndDate(iso || null)}
-                />
+              <div className="max-w-[620px] space-y-3">
+                <div className="grid items-end gap-3 sm:grid-cols-[minmax(180px,1fr)_auto]">
+                  <DateField
+                    label={t("borrower.request.pickupDate")}
+                    value={startDate}
+                    min={todayIso()}
+                    max={isoOffset(BUSINESS.RESERVATION_MAX_DAYS)}
+                    onChange={handleStart}
+                  />
+                  <RequestTimeField
+                    label={t("borrower.request.pickupTime")}
+                    value={pickupTime}
+                    onChange={setPickupTime}
+                  />
+                </div>
+                <div className="grid items-end gap-3 sm:grid-cols-[minmax(180px,1fr)_auto]">
+                  <DateField
+                    label={t("borrower.request.returnDate")}
+                    value={endDate ?? ""}
+                    min={startDate}
+                    max={endMax}
+                    onChange={(iso) => setEndDate(iso || null)}
+                  />
+                  <RequestTimeField
+                    label={t("borrower.request.returnTime")}
+                    value={returnTime}
+                    onChange={setReturnTime}
+                  />
+                </div>
               </div>
 
               {overDays ? (
@@ -288,6 +379,12 @@ export default function RequestPage() {
                     })
                   : t("borrower.request.noEnd")}
               </SumRow>
+              <SumRow label={t("borrower.request.sumPickupTime")}>
+                <span className="font-mono">{pickupTime}</span>
+              </SumRow>
+              <SumRow label={t("borrower.request.sumReturnTime")}>
+                <span className="font-mono">{returnTime}</span>
+              </SumRow>
             </div>
 
             <div className="border-t border-border px-3.5 py-3">
@@ -330,20 +427,30 @@ export default function RequestPage() {
             </div>
 
             <div className="flex flex-col gap-2 border-t border-border px-3.5 py-3">
+              {submitMessage ? (
+                <div
+                  role="alert"
+                  className="rounded border border-[var(--s-alert-b)] bg-[var(--s-alert-bg)] px-3 py-2 text-xs leading-relaxed text-[var(--s-alert-t)]"
+                >
+                  {submitMessage}
+                </div>
+              ) : null}
               <Button
                 type="button"
                 className="h-10"
-                disabled={!canSubmit}
+                disabled={!canSubmit || createRequest.isPending}
                 title={canSubmit ? undefined : blockedReason}
-                onClick={submit}
+                onClick={() => void submit()}
               >
-                {t("borrower.request.submit")}
+                {createRequest.isPending
+                  ? t("borrower.request.submitting")
+                  : t("borrower.request.submit")}
               </Button>
               <Button
                 type="button"
                 variant="outline"
                 className="h-9"
-                disabled={rows.length === 0}
+                disabled={rows.length === 0 || createRequest.isPending}
                 onClick={saveDraft}
               >
                 {t("borrower.request.saveDraft")}
@@ -399,6 +506,43 @@ function StepsBar() {
         );
       })}
     </div>
+  );
+}
+
+function RequestTimeField({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: RequestTime;
+  onChange: (time: RequestTime) => void;
+}) {
+  return (
+    <fieldset>
+      <legend className="mb-1.5 text-xs font-medium text-t2">{label}</legend>
+      <div className="flex flex-wrap gap-2">
+        {REQUEST_TIMES.map((time) => {
+          const selected = value === time;
+          return (
+            <button
+              key={time}
+              type="button"
+              aria-pressed={selected}
+              onClick={() => onChange(time)}
+              className={cn(
+                "h-9 min-w-24 rounded-md border px-4 font-mono text-sm font-medium transition-colors",
+                selected
+                  ? "border-accent bg-accent text-white"
+                  : "border-border bg-card text-foreground hover:border-line-strong hover:bg-muted",
+              )}
+            >
+              {time}
+            </button>
+          );
+        })}
+      </div>
+    </fieldset>
   );
 }
 

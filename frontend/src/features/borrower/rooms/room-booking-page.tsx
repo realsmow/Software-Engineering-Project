@@ -42,7 +42,7 @@ export default function RoomBookingPage() {
 
   const [picked, setPicked] = useState<Set<number>>(new Set());
 
-  // Hours already spoken for, live bookings included - sending a request holds
+  // Time slots already spoken for, live bookings included - sending a request holds
   // the room straight away, so a slot someone took is gone before approval.
   const booked = useMemo(
     () => (room ? takenSlotsOf(room, requests) : new Set<number>()),
@@ -75,7 +75,7 @@ export default function RoomBookingPage() {
     );
   }
 
-  const maxSlots = BUSINESS.MAX_T3_CONCURRENT_SLOTS;
+  const maxSlots = BUSINESS.MAX_ROOM_BOOKING_SLOTS;
   const pickedIdx = [...picked].sort((a, b) => a - b);
   const roomFull = booked.size >= TIME_SLOTS.length;
 
@@ -86,7 +86,13 @@ export default function RoomBookingPage() {
    */
   function lockedReason(i: number): "booked" | "quota" | "gap" | null {
     if (booked.has(i)) return "booked";
-    if (picked.has(i)) return null;
+    if (picked.has(i)) {
+      // Only an edge may be removed. Removing a slot from the middle would
+      // split one booking into two disconnected periods.
+      const first = pickedIdx[0];
+      const last = pickedIdx[pickedIdx.length - 1];
+      return picked.size > 1 && i !== first && i !== last ? "gap" : null;
+    }
     if (picked.size >= maxSlots) return "quota";
     if (picked.size > 0 && !pickedIdx.some((j) => slotsAdjacent(i, j))) return "gap";
     return null;
@@ -151,7 +157,10 @@ export default function RoomBookingPage() {
                 {t("borrower.booking.dateTitle")}
               </div>
               <p className="mb-3 mt-1 text-xs leading-relaxed text-t3">
-                {t("borrower.booking.dateHelp", { max: maxSlots })}
+                {t("borrower.booking.dateHelp", {
+                  minutes: BUSINESS.ROOM_SLOT_MINUTES,
+                  hours: BUSINESS.MAX_ROOM_BOOKING_HOURS,
+                })}
               </p>
 
               <div className="max-w-[260px]">
@@ -170,33 +179,38 @@ export default function RoomBookingPage() {
                 {t("borrower.booking.slotTitle")}
               </div>
               <p className="mt-1 text-xs leading-relaxed text-t3">
-                {t("borrower.booking.slotHelp", { max: maxSlots })}
+                {t("borrower.booking.slotHelp", {
+                  max: maxSlots,
+                  hours: BUSINESS.MAX_ROOM_BOOKING_HOURS,
+                })}
               </p>
 
-              <div className="mt-2.5 flex flex-wrap gap-1.5">
-                {TIME_SLOTS.map((slot, i) => {
-                  const isPicked = picked.has(i);
-                  const reason = lockedReason(i);
-                  return (
-                    <button
-                      key={slot.start}
-                      type="button"
-                      disabled={reason !== null}
-                      aria-pressed={isPicked}
-                      onClick={() => toggleSlot(i)}
-                      className={cn(
-                        "inline-flex min-h-[34px] min-w-[68px] items-center justify-center rounded border px-2.5 font-mono text-xs font-medium transition-colors",
-                        isPicked && "border-accent bg-accent text-white",
-                        !isPicked && reason === "booked" && "border-border bg-surface-inset text-t4",
-                        !isPicked && reason !== "booked" && reason !== null && "border-border bg-card text-t4 opacity-50",
-                        !isPicked && reason === null && "border-border bg-card text-t2 hover:border-line-strong hover:text-foreground",
-                        reason !== null && "cursor-not-allowed",
-                      )}
-                    >
-                      {slot.start}
-                    </button>
-                  );
-                })}
+              <div className="mt-2.5 overflow-x-auto pb-1">
+                <div className="grid min-w-[730px] grid-cols-10 gap-1.5">
+                  {TIME_SLOTS.map((slot, i) => {
+                    const isPicked = picked.has(i);
+                    const reason = lockedReason(i);
+                    return (
+                      <button
+                        key={slot.start}
+                        type="button"
+                        disabled={reason !== null}
+                        aria-pressed={isPicked}
+                        onClick={() => toggleSlot(i)}
+                        className={cn(
+                          "inline-flex min-h-[34px] min-w-[68px] items-center justify-center rounded border px-2.5 font-mono text-xs font-medium transition-colors",
+                          isPicked && "border-accent bg-accent text-white",
+                          !isPicked && reason === "booked" && "border-border bg-surface-inset text-t4",
+                          !isPicked && reason !== "booked" && reason !== null && "border-border bg-card text-t4 opacity-50",
+                          !isPicked && reason === null && "border-border bg-card text-t2 hover:border-line-strong hover:text-foreground",
+                          reason !== null && "cursor-not-allowed",
+                        )}
+                      >
+                        {slot.start}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
               <p className="mt-2.5 text-xs leading-relaxed text-t3">
@@ -241,7 +255,9 @@ export default function RoomBookingPage() {
               <SumRow label={t("borrower.booking.sumDate")}>{fmtToday()}</SumRow>
               <SumRow label={t("borrower.booking.sumTime")}>{timeLabel}</SumRow>
               <SumRow label={t("borrower.booking.sumHours")}>
-                {t("borrower.booking.hours", { count: picked.size })}
+                {t("borrower.booking.hours", {
+                  count: (picked.size * BUSINESS.ROOM_SLOT_MINUTES) / 60,
+                })}
               </SumRow>
             </div>
 

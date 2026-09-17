@@ -1,0 +1,553 @@
+{
+  "scenario": "s3_rooms",
+  "run_id": "09151258",
+  "recorded_at": "2026-09-15T12:58:57+07:00",
+  "notes": {
+    "room": {
+      "resourceKey": 20,
+      "roomKey": 1,
+      "name": "AUDIT ห้อง 7603 09151258",
+      "description": null,
+      "location": "ตึก 7",
+      "imageUrl": null,
+      "creditWeight": 0,
+      "tier": "T3",
+      "status": "InStorage",
+      "lendable": true,
+      "condition": null,
+      "managementGroup": {
+        "id": 1,
+        "name": "ภาควิชาวิศวกรรมคอมพิวเตอร์",
+        "type": "Faculty"
+      }
+    },
+    "room_fields": [
+      "condition",
+      "creditWeight",
+      "description",
+      "imageUrl",
+      "lendable",
+      "location",
+      "managementGroup",
+      "name",
+      "resourceKey",
+      "roomKey",
+      "status",
+      "tier"
+    ],
+    "listRooms_fields": [
+      "allowBorrow",
+      "bookable",
+      "creditWeight",
+      "description",
+      "id",
+      "imageUrl",
+      "location",
+      "name",
+      "owner",
+      "status",
+      "tier"
+    ],
+    "R0_fresh_room": {
+      "resourceKey": 20,
+      "code": "NOT_ELIGIBLE",
+      "detail": {
+        "resourceKey": 20,
+        "reason": "NO_RULES_CONFIGURED"
+      }
+    },
+    "outcome": {
+      "R1 tomorrow 09:00-09:30 (1 slot)": "pending",
+      "R2 tomorrow 09:15-09:45 (off grid, overlaps R1)": "WINDOW_NOT_AVAILABLE",
+      "R3 tomorrow 13:10-13:40 (off grid)": "pending",
+      "R4 tomorrow 14:00-17:30 (7 slots)": "pending",
+      "R4b in 2 days 09:00-12:00 (6 slots, the agreed maximum)": "pending",
+      "R5 tomorrow 22:00 to day after 01:00 (cross-day)": "pending",
+      "R6 in 5 days 09:00-10:00 (advance booking)": "pending",
+      "R7 tomorrow 09:00-09:30 again (clash with R1)": "WINDOW_NOT_AVAILABLE"
+    }
+  },
+  "calls": [
+    {
+      "step": "setup: groups",
+      "actor": "staff",
+      "procedure": "item.listManagementGroups",
+      "input": null,
+      "status": 200,
+      "ok": true,
+      "data": [
+        {
+          "id": 1,
+          "name": "ภาควิชาวิศวกรรมคอมพิวเตอร์",
+          "type": "Faculty"
+        },
+        {
+          "id": 2,
+          "name": "ภาควิชาวิศวกรรมไฟฟ้า",
+          "type": "Faculty"
+        }
+      ],
+      "error": null
+    },
+    {
+      "step": "setup: createRoom",
+      "actor": "staff",
+      "procedure": "item.createRoom",
+      "input": {
+        "manageGroupKey": 1,
+        "name": "AUDIT ห้อง 7603 09151258",
+        "location": "ตึก 7"
+      },
+      "status": 200,
+      "ok": true,
+      "data": {
+        "resourceKey": 20,
+        "roomKey": 1,
+        "name": "AUDIT ห้อง 7603 09151258",
+        "description": null,
+        "location": "ตึก 7",
+        "imageUrl": null,
+        "creditWeight": 0,
+        "tier": "T3",
+        "status": "InStorage",
+        "lendable": true,
+        "condition": null,
+        "managementGroup": {
+          "id": 1,
+          "name": "ภาควิชาวิศวกรรมคอมพิวเตอร์",
+          "type": "Faculty"
+        }
+      },
+      "error": null
+    },
+    {
+      "step": "borrower listRooms",
+      "actor": "borrower",
+      "procedure": "item.listRooms",
+      "input": {
+        "limit": 50
+      },
+      "status": 200,
+      "ok": true,
+      "data": {
+        "items": [
+          {
+            "id": 1,
+            "name": "AUDIT ห้อง 7603 09151258",
+            "description": null,
+            "location": "ตึก 7",
+            "imageUrl": null,
+            "tier": "T3",
+            "creditWeight": 0,
+            "status": "InStorage",
+            "allowBorrow": true,
+            "bookable": true,
+            "owner": {
+              "id": 1,
+              "name": "ภาควิชาวิศวกรรมคอมพิวเตอร์",
+              "type": "Faculty"
+            }
+          }
+        ],
+        "total": 1,
+        "page": 1,
+        "pageSize": 20
+      },
+      "error": null
+    },
+    {
+      "step": "R0 book a freshly registered room (no API can open it)",
+      "actor": "borrower",
+      "procedure": "loan.create",
+      "input": {
+        "startTime": "2026-09-16T01:00:00Z",
+        "endTime": "2026-09-16T01:30:00Z",
+        "lines": [
+          {
+            "resourceKey": 20
+          }
+        ]
+      },
+      "status": 200,
+      "ok": true,
+      "data": {
+        "created": [],
+        "rejected": [
+          {
+            "resourceKey": 20,
+            "code": "NOT_ELIGIBLE",
+            "detail": {
+              "resourceKey": 20,
+              "reason": "NO_RULES_CONFIGURED"
+            }
+          }
+        ]
+      },
+      "error": null
+    },
+    {
+      "step": "DB workaround: insert room eligibility",
+      "actor": "sql",
+      "procedure": "psql",
+      "input": "INSERT INTO \"Eligibility\" (\"GroupKey\",\"ResourceKey\",\"RoleKey\") SELECT g.\"ManageGroupKey\", 20, r.\"AuthorityRoleKey\" FROM \"ManagementGroup\" g CROSS JOIN \"AuthorityRole\" r ON CONFLICT DO NOTHING;",
+      "status": 0,
+      "ok": true,
+      "data": "INSERT 0 4",
+      "error": null
+    },
+    {
+      "step": "R1 tomorrow 09:00-09:30 (1 slot)",
+      "actor": "borrower",
+      "procedure": "loan.create",
+      "input": {
+        "startTime": "2026-09-16T02:00:00Z",
+        "endTime": "2026-09-16T02:30:00Z",
+        "lines": [
+          {
+            "resourceKey": 20
+          }
+        ]
+      },
+      "status": 200,
+      "ok": true,
+      "data": {
+        "created": [
+          {
+            "reservationKey": 9,
+            "status": "pending",
+            "resource": {
+              "resourceKey": 20,
+              "name": "AUDIT ห้อง 7603 09151258",
+              "serialNo": null,
+              "kind": "room",
+              "tier": "T3",
+              "creditWeight": 0
+            },
+            "startTime": "2026-09-16T02:00:00.000Z",
+            "endTime": "2026-09-16T02:30:00.000Z",
+            "reason": null,
+            "requestedAt": "2026-09-15T05:58:57.122Z",
+            "expiresAt": null,
+            "approval": {
+              "route": "staff",
+              "status": "Pending",
+              "approvedBy": null,
+              "autoApproved": false,
+              "approvedAt": null,
+              "resolvedAt": null
+            },
+            "usageKey": null,
+            "cancellable": true
+          }
+        ],
+        "rejected": []
+      },
+      "error": null
+    },
+    {
+      "step": "R2 tomorrow 09:15-09:45 (off grid, overlaps R1)",
+      "actor": "borrower",
+      "procedure": "loan.create",
+      "input": {
+        "startTime": "2026-09-16T02:15:00Z",
+        "endTime": "2026-09-16T02:45:00Z",
+        "lines": [
+          {
+            "resourceKey": 20
+          }
+        ]
+      },
+      "status": 200,
+      "ok": true,
+      "data": {
+        "created": [],
+        "rejected": [
+          {
+            "resourceKey": 20,
+            "code": "WINDOW_NOT_AVAILABLE",
+            "detail": {
+              "resourceKey": 20,
+              "nextAvailableAt": "2026-09-16T02:30:00.000Z"
+            }
+          }
+        ]
+      },
+      "error": null
+    },
+    {
+      "step": "R3 tomorrow 13:10-13:40 (off grid)",
+      "actor": "borrower",
+      "procedure": "loan.create",
+      "input": {
+        "startTime": "2026-09-16T06:10:00Z",
+        "endTime": "2026-09-16T06:40:00Z",
+        "lines": [
+          {
+            "resourceKey": 20
+          }
+        ]
+      },
+      "status": 200,
+      "ok": true,
+      "data": {
+        "created": [
+          {
+            "reservationKey": 10,
+            "status": "pending",
+            "resource": {
+              "resourceKey": 20,
+              "name": "AUDIT ห้อง 7603 09151258",
+              "serialNo": null,
+              "kind": "room",
+              "tier": "T3",
+              "creditWeight": 0
+            },
+            "startTime": "2026-09-16T06:10:00.000Z",
+            "endTime": "2026-09-16T06:40:00.000Z",
+            "reason": null,
+            "requestedAt": "2026-09-15T05:58:57.136Z",
+            "expiresAt": null,
+            "approval": {
+              "route": "staff",
+              "status": "Pending",
+              "approvedBy": null,
+              "autoApproved": false,
+              "approvedAt": null,
+              "resolvedAt": null
+            },
+            "usageKey": null,
+            "cancellable": true
+          }
+        ],
+        "rejected": []
+      },
+      "error": null
+    },
+    {
+      "step": "R4 tomorrow 14:00-17:30 (7 slots)",
+      "actor": "borrower",
+      "procedure": "loan.create",
+      "input": {
+        "startTime": "2026-09-16T07:00:00Z",
+        "endTime": "2026-09-16T10:30:00Z",
+        "lines": [
+          {
+            "resourceKey": 20
+          }
+        ]
+      },
+      "status": 200,
+      "ok": true,
+      "data": {
+        "created": [
+          {
+            "reservationKey": 11,
+            "status": "pending",
+            "resource": {
+              "resourceKey": 20,
+              "name": "AUDIT ห้อง 7603 09151258",
+              "serialNo": null,
+              "kind": "room",
+              "tier": "T3",
+              "creditWeight": 0
+            },
+            "startTime": "2026-09-16T07:00:00.000Z",
+            "endTime": "2026-09-16T10:30:00.000Z",
+            "reason": null,
+            "requestedAt": "2026-09-15T05:58:57.144Z",
+            "expiresAt": null,
+            "approval": {
+              "route": "staff",
+              "status": "Pending",
+              "approvedBy": null,
+              "autoApproved": false,
+              "approvedAt": null,
+              "resolvedAt": null
+            },
+            "usageKey": null,
+            "cancellable": true
+          }
+        ],
+        "rejected": []
+      },
+      "error": null
+    },
+    {
+      "step": "R4b in 2 days 09:00-12:00 (6 slots, the agreed maximum)",
+      "actor": "borrower",
+      "procedure": "loan.create",
+      "input": {
+        "startTime": "2026-09-17T02:00:00Z",
+        "endTime": "2026-09-17T05:00:00Z",
+        "lines": [
+          {
+            "resourceKey": 20
+          }
+        ]
+      },
+      "status": 200,
+      "ok": true,
+      "data": {
+        "created": [
+          {
+            "reservationKey": 12,
+            "status": "pending",
+            "resource": {
+              "resourceKey": 20,
+              "name": "AUDIT ห้อง 7603 09151258",
+              "serialNo": null,
+              "kind": "room",
+              "tier": "T3",
+              "creditWeight": 0
+            },
+            "startTime": "2026-09-17T02:00:00.000Z",
+            "endTime": "2026-09-17T05:00:00.000Z",
+            "reason": null,
+            "requestedAt": "2026-09-15T05:58:57.152Z",
+            "expiresAt": null,
+            "approval": {
+              "route": "staff",
+              "status": "Pending",
+              "approvedBy": null,
+              "autoApproved": false,
+              "approvedAt": null,
+              "resolvedAt": null
+            },
+            "usageKey": null,
+            "cancellable": true
+          }
+        ],
+        "rejected": []
+      },
+      "error": null
+    },
+    {
+      "step": "R5 tomorrow 22:00 to day after 01:00 (cross-day)",
+      "actor": "borrower",
+      "procedure": "loan.create",
+      "input": {
+        "startTime": "2026-09-16T15:00:00Z",
+        "endTime": "2026-09-16T18:00:00Z",
+        "lines": [
+          {
+            "resourceKey": 20
+          }
+        ]
+      },
+      "status": 200,
+      "ok": true,
+      "data": {
+        "created": [
+          {
+            "reservationKey": 13,
+            "status": "pending",
+            "resource": {
+              "resourceKey": 20,
+              "name": "AUDIT ห้อง 7603 09151258",
+              "serialNo": null,
+              "kind": "room",
+              "tier": "T3",
+              "creditWeight": 0
+            },
+            "startTime": "2026-09-16T15:00:00.000Z",
+            "endTime": "2026-09-16T18:00:00.000Z",
+            "reason": null,
+            "requestedAt": "2026-09-15T05:58:57.161Z",
+            "expiresAt": null,
+            "approval": {
+              "route": "staff",
+              "status": "Pending",
+              "approvedBy": null,
+              "autoApproved": false,
+              "approvedAt": null,
+              "resolvedAt": null
+            },
+            "usageKey": null,
+            "cancellable": true
+          }
+        ],
+        "rejected": []
+      },
+      "error": null
+    },
+    {
+      "step": "R6 in 5 days 09:00-10:00 (advance booking)",
+      "actor": "borrower",
+      "procedure": "loan.create",
+      "input": {
+        "startTime": "2026-09-20T02:00:00Z",
+        "endTime": "2026-09-20T03:00:00Z",
+        "lines": [
+          {
+            "resourceKey": 20
+          }
+        ]
+      },
+      "status": 200,
+      "ok": true,
+      "data": {
+        "created": [
+          {
+            "reservationKey": 14,
+            "status": "pending",
+            "resource": {
+              "resourceKey": 20,
+              "name": "AUDIT ห้อง 7603 09151258",
+              "serialNo": null,
+              "kind": "room",
+              "tier": "T3",
+              "creditWeight": 0
+            },
+            "startTime": "2026-09-20T02:00:00.000Z",
+            "endTime": "2026-09-20T03:00:00.000Z",
+            "reason": null,
+            "requestedAt": "2026-09-15T05:58:57.169Z",
+            "expiresAt": null,
+            "approval": {
+              "route": "staff",
+              "status": "Pending",
+              "approvedBy": null,
+              "autoApproved": false,
+              "approvedAt": null,
+              "resolvedAt": null
+            },
+            "usageKey": null,
+            "cancellable": true
+          }
+        ],
+        "rejected": []
+      },
+      "error": null
+    },
+    {
+      "step": "R7 tomorrow 09:00-09:30 again (clash with R1)",
+      "actor": "staff",
+      "procedure": "loan.create",
+      "input": {
+        "startTime": "2026-09-16T02:00:00Z",
+        "endTime": "2026-09-16T02:30:00Z",
+        "lines": [
+          {
+            "resourceKey": 20
+          }
+        ]
+      },
+      "status": 200,
+      "ok": true,
+      "data": {
+        "created": [],
+        "rejected": [
+          {
+            "resourceKey": 20,
+            "code": "WINDOW_NOT_AVAILABLE",
+            "detail": {
+              "resourceKey": 20,
+              "nextAvailableAt": "2026-09-16T02:30:00.000Z"
+            }
+          }
+        ]
+      },
+      "error": null
+    }
+  ]
+}
