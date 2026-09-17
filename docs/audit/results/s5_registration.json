@@ -1,0 +1,1020 @@
+{
+  "scenario": "s5_registration",
+  "run_id": "09151258",
+  "recorded_at": "2026-09-15T12:58:57+07:00",
+  "notes": {
+    "outcome": {
+      "T0 x5 serial=False": [
+        "AUDIT-S5-T0--8-1",
+        "AUDIT-S5-T0--8-2",
+        "AUDIT-S5-T0--8-3",
+        "AUDIT-S5-T0--8-4",
+        "AUDIT-S5-T0--8-5"
+      ],
+      "T1 x5 serial=False": "SERIAL_REQUIRED_FOR_TIER",
+      "T1 x5 serial=True": [
+        "S5-T1-09151258-1",
+        "S5-T1-09151258-2",
+        "S5-T1-09151258-3",
+        "S5-T1-09151258-4",
+        "S5-T1-09151258-5"
+      ],
+      "T2 x2 serial=True": "BULK_NOT_ALLOWED_FOR_TIER",
+      "T2 x1 serial=True": [
+        "S5-T2B-09151258"
+      ]
+    },
+    "topup_T0": "SERIAL_ALREADY_IN_USE",
+    "topup_T1_unit_borrow": {
+      "resourceKey": 38,
+      "code": "NOT_ELIGIBLE",
+      "detail": {
+        "resourceKey": 38,
+        "reason": "NO_RULES_CONFIGURED"
+      }
+    }
+  },
+  "calls": [
+    {
+      "step": "setup: groups",
+      "actor": "staff",
+      "procedure": "item.listManagementGroups",
+      "input": null,
+      "status": 200,
+      "ok": true,
+      "data": [
+        {
+          "id": 1,
+          "name": "ภาควิชาวิศวกรรมคอมพิวเตอร์",
+          "type": "Faculty"
+        },
+        {
+          "id": 2,
+          "name": "ภาควิชาวิศวกรรมไฟฟ้า",
+          "type": "Faculty"
+        }
+      ],
+      "error": null
+    },
+    {
+      "step": "createType AUDIT-S5 T0 qty5 noserial 09151258",
+      "actor": "staff",
+      "procedure": "item.createType",
+      "input": {
+        "name": "AUDIT-S5 T0 qty5 noserial 09151258",
+        "creditWeight": 5
+      },
+      "status": 200,
+      "ok": true,
+      "data": {
+        "id": 8,
+        "name": "AUDIT-S5 T0 qty5 noserial 09151258",
+        "description": null,
+        "imageUrl": null,
+        "creditWeight": 5,
+        "tiers": [],
+        "totalUnits": 0,
+        "availableUnits": 0,
+        "units": []
+      },
+      "error": null
+    },
+    {
+      "step": "createUnit T0 x5 serial=False",
+      "actor": "staff",
+      "procedure": "item.createUnit",
+      "input": {
+        "itemKey": 8,
+        "manageGroupKey": 1,
+        "tier": "T0",
+        "quantity": 5
+      },
+      "status": 200,
+      "ok": true,
+      "data": [
+        {
+          "resourceKey": 23,
+          "indivKey": 22,
+          "itemKey": 8,
+          "serialNo": "AUDIT-S5-T0--8-1",
+          "imageUrl": null,
+          "tier": "T0",
+          "status": "InStorage",
+          "lendable": true,
+          "prepDays": 0,
+          "condition": null,
+          "conditionNote": null,
+          "conditionLoggedAt": null,
+          "managementGroup": {
+            "id": 1,
+            "name": "ภาควิชาวิศวกรรมคอมพิวเตอร์",
+            "type": "Faculty"
+          },
+          "currentDueAt": null
+        },
+        {
+          "resourceKey": 24,
+          "indivKey": 23,
+          "itemKey": 8,
+          "serialNo": "AUDIT-S5-T0--8-2",
+          "imageUrl": null,
+          "tier": "T0",
+          "status": "InStorage",
+          "lendable": true,
+          "prepDays": 0,
+          "condition": null,
+          "conditionNote": null,
+          "conditionLoggedAt": null,
+          "managementGroup": {
+            "id": 1,
+            "name": "ภาควิชาวิศวกรรมคอมพิวเตอร์",
+            "type": "Faculty"
+          },
+          "currentDueAt": null
+        },
+        {
+          "resourceKey": 25,
+          "indivKey": 24,
+          "itemKey": 8,
+          "serialNo": "AUDIT-S5-T0--8-3",
+          "imageUrl": null,
+          "tier": "T0",
+          "status": "InStorage",
+          "lendable": true,
+          "prepDays": 0,
+          "condition": null,
+          "conditionNote": null,
+          "conditionLoggedAt": null,
+          "managementGroup": {
+            "id": 1,
+            "name": "ภาควิชาวิศวกรรมคอมพิวเตอร์",
+            "type": "Faculty"
+          },
+          "currentDueAt": null
+        },
+        {
+          "resourceKey": 26,
+          "indivKey": 25,
+          "itemKey": 8,
+          "serialNo": "AUDIT-S5-T0--8-4",
+          "imageUrl": null,
+          "tier": "T0",
+          "status": "InStorage",
+          "lendable": true,
+          "prepDays": 0,
+          "condition": null,
+          "conditionNote": null,
+          "conditionLoggedAt": null,
+          "managementGroup": {
+            "id": 1,
+            "name": "ภาควิชาวิศวกรรมคอมพิวเตอร์",
+            "type": "Faculty"
+          },
+          "currentDueAt": null
+        },
+        {
+          "resourceKey": 27,
+          "indivKey": 26,
+          "itemKey": 8,
+          "serialNo": "AUDIT-S5-T0--8-5",
+          "imageUrl": null,
+          "tier": "T0",
+          "status": "InStorage",
+          "lendable": true,
+          "prepDays": 0,
+          "condition": null,
+          "conditionNote": null,
+          "conditionLoggedAt": null,
+          "managementGroup": {
+            "id": 1,
+            "name": "ภาควิชาวิศวกรรมคอมพิวเตอร์",
+            "type": "Faculty"
+          },
+          "currentDueAt": null
+        }
+      ],
+      "error": null
+    },
+    {
+      "step": "createType AUDIT-S5 T1 qty5 noserial 09151258",
+      "actor": "staff",
+      "procedure": "item.createType",
+      "input": {
+        "name": "AUDIT-S5 T1 qty5 noserial 09151258",
+        "creditWeight": 5
+      },
+      "status": 200,
+      "ok": true,
+      "data": {
+        "id": 9,
+        "name": "AUDIT-S5 T1 qty5 noserial 09151258",
+        "description": null,
+        "imageUrl": null,
+        "creditWeight": 5,
+        "tiers": [],
+        "totalUnits": 0,
+        "availableUnits": 0,
+        "units": []
+      },
+      "error": null
+    },
+    {
+      "step": "createUnit T1 x5 serial=False",
+      "actor": "staff",
+      "procedure": "item.createUnit",
+      "input": {
+        "itemKey": 9,
+        "manageGroupKey": 1,
+        "tier": "T1",
+        "quantity": 5
+      },
+      "status": 400,
+      "ok": false,
+      "data": null,
+      "error": {
+        "message": "SERIAL_REQUIRED_FOR_TIER",
+        "code": "BAD_REQUEST",
+        "httpStatus": 400,
+        "detail": {
+          "businessCode": "SERIAL_REQUIRED_FOR_TIER",
+          "details": {
+            "tier": "T1",
+            "quantity": 5
+          }
+        }
+      }
+    },
+    {
+      "step": "createType AUDIT-S5 T1 qty5 serial 09151258",
+      "actor": "staff",
+      "procedure": "item.createType",
+      "input": {
+        "name": "AUDIT-S5 T1 qty5 serial 09151258",
+        "creditWeight": 5
+      },
+      "status": 200,
+      "ok": true,
+      "data": {
+        "id": 10,
+        "name": "AUDIT-S5 T1 qty5 serial 09151258",
+        "description": null,
+        "imageUrl": null,
+        "creditWeight": 5,
+        "tiers": [],
+        "totalUnits": 0,
+        "availableUnits": 0,
+        "units": []
+      },
+      "error": null
+    },
+    {
+      "step": "createUnit T1 x5 serial=True",
+      "actor": "staff",
+      "procedure": "item.createUnit",
+      "input": {
+        "itemKey": 10,
+        "manageGroupKey": 1,
+        "tier": "T1",
+        "quantity": 5,
+        "serialNo": "S5-T1-09151258"
+      },
+      "status": 200,
+      "ok": true,
+      "data": [
+        {
+          "resourceKey": 28,
+          "indivKey": 27,
+          "itemKey": 10,
+          "serialNo": "S5-T1-09151258-1",
+          "imageUrl": null,
+          "tier": "T1",
+          "status": "InStorage",
+          "lendable": true,
+          "prepDays": 0,
+          "condition": null,
+          "conditionNote": null,
+          "conditionLoggedAt": null,
+          "managementGroup": {
+            "id": 1,
+            "name": "ภาควิชาวิศวกรรมคอมพิวเตอร์",
+            "type": "Faculty"
+          },
+          "currentDueAt": null
+        },
+        {
+          "resourceKey": 29,
+          "indivKey": 28,
+          "itemKey": 10,
+          "serialNo": "S5-T1-09151258-2",
+          "imageUrl": null,
+          "tier": "T1",
+          "status": "InStorage",
+          "lendable": true,
+          "prepDays": 0,
+          "condition": null,
+          "conditionNote": null,
+          "conditionLoggedAt": null,
+          "managementGroup": {
+            "id": 1,
+            "name": "ภาควิชาวิศวกรรมคอมพิวเตอร์",
+            "type": "Faculty"
+          },
+          "currentDueAt": null
+        },
+        {
+          "resourceKey": 30,
+          "indivKey": 29,
+          "itemKey": 10,
+          "serialNo": "S5-T1-09151258-3",
+          "imageUrl": null,
+          "tier": "T1",
+          "status": "InStorage",
+          "lendable": true,
+          "prepDays": 0,
+          "condition": null,
+          "conditionNote": null,
+          "conditionLoggedAt": null,
+          "managementGroup": {
+            "id": 1,
+            "name": "ภาควิชาวิศวกรรมคอมพิวเตอร์",
+            "type": "Faculty"
+          },
+          "currentDueAt": null
+        },
+        {
+          "resourceKey": 31,
+          "indivKey": 30,
+          "itemKey": 10,
+          "serialNo": "S5-T1-09151258-4",
+          "imageUrl": null,
+          "tier": "T1",
+          "status": "InStorage",
+          "lendable": true,
+          "prepDays": 0,
+          "condition": null,
+          "conditionNote": null,
+          "conditionLoggedAt": null,
+          "managementGroup": {
+            "id": 1,
+            "name": "ภาควิชาวิศวกรรมคอมพิวเตอร์",
+            "type": "Faculty"
+          },
+          "currentDueAt": null
+        },
+        {
+          "resourceKey": 32,
+          "indivKey": 31,
+          "itemKey": 10,
+          "serialNo": "S5-T1-09151258-5",
+          "imageUrl": null,
+          "tier": "T1",
+          "status": "InStorage",
+          "lendable": true,
+          "prepDays": 0,
+          "condition": null,
+          "conditionNote": null,
+          "conditionLoggedAt": null,
+          "managementGroup": {
+            "id": 1,
+            "name": "ภาควิชาวิศวกรรมคอมพิวเตอร์",
+            "type": "Faculty"
+          },
+          "currentDueAt": null
+        }
+      ],
+      "error": null
+    },
+    {
+      "step": "createType AUDIT-S5 T2 qty2 serial 09151258",
+      "actor": "staff",
+      "procedure": "item.createType",
+      "input": {
+        "name": "AUDIT-S5 T2 qty2 serial 09151258",
+        "creditWeight": 5
+      },
+      "status": 200,
+      "ok": true,
+      "data": {
+        "id": 11,
+        "name": "AUDIT-S5 T2 qty2 serial 09151258",
+        "description": null,
+        "imageUrl": null,
+        "creditWeight": 5,
+        "tiers": [],
+        "totalUnits": 0,
+        "availableUnits": 0,
+        "units": []
+      },
+      "error": null
+    },
+    {
+      "step": "createUnit T2 x2 serial=True",
+      "actor": "staff",
+      "procedure": "item.createUnit",
+      "input": {
+        "itemKey": 11,
+        "manageGroupKey": 1,
+        "tier": "T2",
+        "quantity": 2,
+        "serialNo": "S5-T2-09151258"
+      },
+      "status": 400,
+      "ok": false,
+      "data": null,
+      "error": {
+        "message": "BULK_NOT_ALLOWED_FOR_TIER",
+        "code": "BAD_REQUEST",
+        "httpStatus": 400,
+        "detail": {
+          "businessCode": "BULK_NOT_ALLOWED_FOR_TIER",
+          "details": {
+            "tier": "T2",
+            "quantity": 2
+          }
+        }
+      }
+    },
+    {
+      "step": "createType AUDIT-S5 T2 qty1 serial 09151258",
+      "actor": "staff",
+      "procedure": "item.createType",
+      "input": {
+        "name": "AUDIT-S5 T2 qty1 serial 09151258",
+        "creditWeight": 5
+      },
+      "status": 200,
+      "ok": true,
+      "data": {
+        "id": 12,
+        "name": "AUDIT-S5 T2 qty1 serial 09151258",
+        "description": null,
+        "imageUrl": null,
+        "creditWeight": 5,
+        "tiers": [],
+        "totalUnits": 0,
+        "availableUnits": 0,
+        "units": []
+      },
+      "error": null
+    },
+    {
+      "step": "createUnit T2 x1 serial=True",
+      "actor": "staff",
+      "procedure": "item.createUnit",
+      "input": {
+        "itemKey": 12,
+        "manageGroupKey": 1,
+        "tier": "T2",
+        "quantity": 1,
+        "serialNo": "S5-T2B-09151258"
+      },
+      "status": 200,
+      "ok": true,
+      "data": [
+        {
+          "resourceKey": 33,
+          "indivKey": 32,
+          "itemKey": 12,
+          "serialNo": "S5-T2B-09151258",
+          "imageUrl": null,
+          "tier": "T2",
+          "status": "InStorage",
+          "lendable": true,
+          "prepDays": 0,
+          "condition": null,
+          "conditionNote": null,
+          "conditionLoggedAt": null,
+          "managementGroup": {
+            "id": 1,
+            "name": "ภาควิชาวิศวกรรมคอมพิวเตอร์",
+            "type": "Faculty"
+          },
+          "currentDueAt": null
+        }
+      ],
+      "error": null
+    },
+    {
+      "step": "createType AUDIT-S5 T0 top-up 09151258",
+      "actor": "staff",
+      "procedure": "item.createType",
+      "input": {
+        "name": "AUDIT-S5 T0 top-up 09151258",
+        "creditWeight": 0
+      },
+      "status": 200,
+      "ok": true,
+      "data": {
+        "id": 13,
+        "name": "AUDIT-S5 T0 top-up 09151258",
+        "description": null,
+        "imageUrl": null,
+        "creditWeight": 0,
+        "tiers": [],
+        "totalUnits": 0,
+        "availableUnits": 0,
+        "units": []
+      },
+      "error": null
+    },
+    {
+      "step": "createUnit T0 x2",
+      "actor": "staff",
+      "procedure": "item.createUnit",
+      "input": {
+        "itemKey": 13,
+        "manageGroupKey": 1,
+        "tier": "T0",
+        "quantity": 2
+      },
+      "status": 200,
+      "ok": true,
+      "data": [
+        {
+          "resourceKey": 34,
+          "indivKey": 33,
+          "itemKey": 13,
+          "serialNo": "AUDIT-S5-T0--13-1",
+          "imageUrl": null,
+          "tier": "T0",
+          "status": "InStorage",
+          "lendable": true,
+          "prepDays": 0,
+          "condition": null,
+          "conditionNote": null,
+          "conditionLoggedAt": null,
+          "managementGroup": {
+            "id": 1,
+            "name": "ภาควิชาวิศวกรรมคอมพิวเตอร์",
+            "type": "Faculty"
+          },
+          "currentDueAt": null
+        },
+        {
+          "resourceKey": 35,
+          "indivKey": 34,
+          "itemKey": 13,
+          "serialNo": "AUDIT-S5-T0--13-2",
+          "imageUrl": null,
+          "tier": "T0",
+          "status": "InStorage",
+          "lendable": true,
+          "prepDays": 0,
+          "condition": null,
+          "conditionNote": null,
+          "conditionLoggedAt": null,
+          "managementGroup": {
+            "id": 1,
+            "name": "ภาควิชาวิศวกรรมคอมพิวเตอร์",
+            "type": "Faculty"
+          },
+          "currentDueAt": null
+        }
+      ],
+      "error": null
+    },
+    {
+      "step": "setup: groups",
+      "actor": "staff",
+      "procedure": "item.listManagementGroups",
+      "input": null,
+      "status": 200,
+      "ok": true,
+      "data": [
+        {
+          "id": 1,
+          "name": "ภาควิชาวิศวกรรมคอมพิวเตอร์",
+          "type": "Faculty"
+        },
+        {
+          "id": 2,
+          "name": "ภาควิชาวิศวกรรมไฟฟ้า",
+          "type": "Faculty"
+        }
+      ],
+      "error": null
+    },
+    {
+      "step": "setup: authority roles",
+      "actor": "staff",
+      "procedure": "item.listAuthorityRoles",
+      "input": null,
+      "status": 200,
+      "ok": true,
+      "data": [
+        {
+          "authorityRoleKey": 1,
+          "name": "Student",
+          "level": 0
+        },
+        {
+          "authorityRoleKey": 2,
+          "name": "Lab staff",
+          "level": 2
+        }
+      ],
+      "error": null
+    },
+    {
+      "step": "setup: setEligibility AUDIT-S5 T0 top-up 09151258",
+      "actor": "staff",
+      "procedure": "item.setEligibility",
+      "input": {
+        "itemKey": 13,
+        "rules": [
+          {
+            "groupKey": 1,
+            "authorityRoleKey": 1
+          },
+          {
+            "groupKey": 1,
+            "authorityRoleKey": 2
+          },
+          {
+            "groupKey": 2,
+            "authorityRoleKey": 1
+          },
+          {
+            "groupKey": 2,
+            "authorityRoleKey": 2
+          }
+        ]
+      },
+      "status": 200,
+      "ok": true,
+      "data": [
+        {
+          "groupKey": 1,
+          "groupName": "ภาควิชาวิศวกรรมคอมพิวเตอร์",
+          "authorityRoleKey": 1,
+          "authorityRoleName": "Student",
+          "appliesToUnits": 2
+        },
+        {
+          "groupKey": 1,
+          "groupName": "ภาควิชาวิศวกรรมคอมพิวเตอร์",
+          "authorityRoleKey": 2,
+          "authorityRoleName": "Lab staff",
+          "appliesToUnits": 2
+        },
+        {
+          "groupKey": 2,
+          "groupName": "ภาควิชาวิศวกรรมไฟฟ้า",
+          "authorityRoleKey": 1,
+          "authorityRoleName": "Student",
+          "appliesToUnits": 2
+        },
+        {
+          "groupKey": 2,
+          "groupName": "ภาควิชาวิศวกรรมไฟฟ้า",
+          "authorityRoleKey": 2,
+          "authorityRoleName": "Lab staff",
+          "appliesToUnits": 2
+        }
+      ],
+      "error": null
+    },
+    {
+      "step": "top-up: createUnit T0 x3 after eligibility",
+      "actor": "staff",
+      "procedure": "item.createUnit",
+      "input": {
+        "itemKey": 13,
+        "manageGroupKey": 1,
+        "tier": "T0",
+        "quantity": 3
+      },
+      "status": 409,
+      "ok": false,
+      "data": null,
+      "error": {
+        "message": "SERIAL_ALREADY_IN_USE",
+        "code": "CONFLICT",
+        "httpStatus": 409,
+        "detail": {
+          "businessCode": "SERIAL_ALREADY_IN_USE",
+          "details": {
+            "itemKey": 13,
+            "serialNo": "AUDIT-S5-T0--13-1"
+          }
+        }
+      }
+    },
+    {
+      "step": "createType AUDIT-S5 T1 top-up 09151258",
+      "actor": "staff",
+      "procedure": "item.createType",
+      "input": {
+        "name": "AUDIT-S5 T1 top-up 09151258",
+        "creditWeight": 5
+      },
+      "status": 200,
+      "ok": true,
+      "data": {
+        "id": 14,
+        "name": "AUDIT-S5 T1 top-up 09151258",
+        "description": null,
+        "imageUrl": null,
+        "creditWeight": 5,
+        "tiers": [],
+        "totalUnits": 0,
+        "availableUnits": 0,
+        "units": []
+      },
+      "error": null
+    },
+    {
+      "step": "createUnit T1 x2 (base A)",
+      "actor": "staff",
+      "procedure": "item.createUnit",
+      "input": {
+        "itemKey": 14,
+        "manageGroupKey": 1,
+        "tier": "T1",
+        "quantity": 2,
+        "serialNo": "TOP-A-09151258"
+      },
+      "status": 200,
+      "ok": true,
+      "data": [
+        {
+          "resourceKey": 36,
+          "indivKey": 35,
+          "itemKey": 14,
+          "serialNo": "TOP-A-09151258-1",
+          "imageUrl": null,
+          "tier": "T1",
+          "status": "InStorage",
+          "lendable": true,
+          "prepDays": 0,
+          "condition": null,
+          "conditionNote": null,
+          "conditionLoggedAt": null,
+          "managementGroup": {
+            "id": 1,
+            "name": "ภาควิชาวิศวกรรมคอมพิวเตอร์",
+            "type": "Faculty"
+          },
+          "currentDueAt": null
+        },
+        {
+          "resourceKey": 37,
+          "indivKey": 36,
+          "itemKey": 14,
+          "serialNo": "TOP-A-09151258-2",
+          "imageUrl": null,
+          "tier": "T1",
+          "status": "InStorage",
+          "lendable": true,
+          "prepDays": 0,
+          "condition": null,
+          "conditionNote": null,
+          "conditionLoggedAt": null,
+          "managementGroup": {
+            "id": 1,
+            "name": "ภาควิชาวิศวกรรมคอมพิวเตอร์",
+            "type": "Faculty"
+          },
+          "currentDueAt": null
+        }
+      ],
+      "error": null
+    },
+    {
+      "step": "setup: groups",
+      "actor": "staff",
+      "procedure": "item.listManagementGroups",
+      "input": null,
+      "status": 200,
+      "ok": true,
+      "data": [
+        {
+          "id": 1,
+          "name": "ภาควิชาวิศวกรรมคอมพิวเตอร์",
+          "type": "Faculty"
+        },
+        {
+          "id": 2,
+          "name": "ภาควิชาวิศวกรรมไฟฟ้า",
+          "type": "Faculty"
+        }
+      ],
+      "error": null
+    },
+    {
+      "step": "setup: authority roles",
+      "actor": "staff",
+      "procedure": "item.listAuthorityRoles",
+      "input": null,
+      "status": 200,
+      "ok": true,
+      "data": [
+        {
+          "authorityRoleKey": 1,
+          "name": "Student",
+          "level": 0
+        },
+        {
+          "authorityRoleKey": 2,
+          "name": "Lab staff",
+          "level": 2
+        }
+      ],
+      "error": null
+    },
+    {
+      "step": "setup: setEligibility AUDIT-S5 T1 top-up 09151258",
+      "actor": "staff",
+      "procedure": "item.setEligibility",
+      "input": {
+        "itemKey": 14,
+        "rules": [
+          {
+            "groupKey": 1,
+            "authorityRoleKey": 1
+          },
+          {
+            "groupKey": 1,
+            "authorityRoleKey": 2
+          },
+          {
+            "groupKey": 2,
+            "authorityRoleKey": 1
+          },
+          {
+            "groupKey": 2,
+            "authorityRoleKey": 2
+          }
+        ]
+      },
+      "status": 200,
+      "ok": true,
+      "data": [
+        {
+          "groupKey": 1,
+          "groupName": "ภาควิชาวิศวกรรมคอมพิวเตอร์",
+          "authorityRoleKey": 1,
+          "authorityRoleName": "Student",
+          "appliesToUnits": 2
+        },
+        {
+          "groupKey": 1,
+          "groupName": "ภาควิชาวิศวกรรมคอมพิวเตอร์",
+          "authorityRoleKey": 2,
+          "authorityRoleName": "Lab staff",
+          "appliesToUnits": 2
+        },
+        {
+          "groupKey": 2,
+          "groupName": "ภาควิชาวิศวกรรมไฟฟ้า",
+          "authorityRoleKey": 1,
+          "authorityRoleName": "Student",
+          "appliesToUnits": 2
+        },
+        {
+          "groupKey": 2,
+          "groupName": "ภาควิชาวิศวกรรมไฟฟ้า",
+          "authorityRoleKey": 2,
+          "authorityRoleName": "Lab staff",
+          "appliesToUnits": 2
+        }
+      ],
+      "error": null
+    },
+    {
+      "step": "top-up: createUnit T1 x3 (base B) after eligibility",
+      "actor": "staff",
+      "procedure": "item.createUnit",
+      "input": {
+        "itemKey": 14,
+        "manageGroupKey": 1,
+        "tier": "T1",
+        "quantity": 3,
+        "serialNo": "TOP-B-09151258"
+      },
+      "status": 200,
+      "ok": true,
+      "data": [
+        {
+          "resourceKey": 38,
+          "indivKey": 37,
+          "itemKey": 14,
+          "serialNo": "TOP-B-09151258-1",
+          "imageUrl": null,
+          "tier": "T1",
+          "status": "InStorage",
+          "lendable": true,
+          "prepDays": 0,
+          "condition": null,
+          "conditionNote": null,
+          "conditionLoggedAt": null,
+          "managementGroup": {
+            "id": 1,
+            "name": "ภาควิชาวิศวกรรมคอมพิวเตอร์",
+            "type": "Faculty"
+          },
+          "currentDueAt": null
+        },
+        {
+          "resourceKey": 39,
+          "indivKey": 38,
+          "itemKey": 14,
+          "serialNo": "TOP-B-09151258-2",
+          "imageUrl": null,
+          "tier": "T1",
+          "status": "InStorage",
+          "lendable": true,
+          "prepDays": 0,
+          "condition": null,
+          "conditionNote": null,
+          "conditionLoggedAt": null,
+          "managementGroup": {
+            "id": 1,
+            "name": "ภาควิชาวิศวกรรมคอมพิวเตอร์",
+            "type": "Faculty"
+          },
+          "currentDueAt": null
+        },
+        {
+          "resourceKey": 40,
+          "indivKey": 39,
+          "itemKey": 14,
+          "serialNo": "TOP-B-09151258-3",
+          "imageUrl": null,
+          "tier": "T1",
+          "status": "InStorage",
+          "lendable": true,
+          "prepDays": 0,
+          "condition": null,
+          "conditionNote": null,
+          "conditionLoggedAt": null,
+          "managementGroup": {
+            "id": 1,
+            "name": "ภาควิชาวิศวกรรมคอมพิวเตอร์",
+            "type": "Faculty"
+          },
+          "currentDueAt": null
+        }
+      ],
+      "error": null
+    },
+    {
+      "step": "borrow a topped-up T1 unit",
+      "actor": "borrower",
+      "procedure": "loan.create",
+      "input": {
+        "startTime": "2026-09-16T01:00:00Z",
+        "endTime": "2026-09-17T10:00:00Z",
+        "lines": [
+          {
+            "resourceKey": 38
+          }
+        ]
+      },
+      "status": 200,
+      "ok": true,
+      "data": {
+        "created": [],
+        "rejected": [
+          {
+            "resourceKey": 38,
+            "code": "NOT_ELIGIBLE",
+            "detail": {
+              "resourceKey": 38,
+              "reason": "NO_RULES_CONFIGURED"
+            }
+          }
+        ]
+      },
+      "error": null
+    },
+    {
+      "step": "borrower createType (expect 403)",
+      "actor": "borrower",
+      "procedure": "item.createType",
+      "input": {
+        "name": "AUDIT-S5 by borrower 09151258",
+        "creditWeight": 0
+      },
+      "status": 403,
+      "ok": false,
+      "data": null,
+      "error": {
+        "message": "ROLE_NOT_ALLOWED",
+        "code": "FORBIDDEN",
+        "httpStatus": 403,
+        "detail": {
+          "businessCode": "ROLE_NOT_ALLOWED",
+          "details": {
+            "allowed": [
+              "staff",
+              "supervisor",
+              "admin"
+            ],
+            "actual": "borrower"
+          }
+        }
+      }
+    }
+  ]
+}

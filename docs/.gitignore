@@ -51,6 +51,9 @@ slides/**/*.png
 slides/ui-slides/
 # ภาพหน้าจอดิบที่ตัดมาจากบอร์ด สร้างใหม่ได้ด้วย extract_screens.py
 slides/screens/
+# SVG ของสไลด์สาธิตก็ฝังภาพหน้าจอเหมือนกัน หนัก 3.3 MB
+# สร้างใหม่ได้ด้วย gen_demo_slides.py จาก demo_data.py + demo-screens/
+slides/demo-slides/
 
 # ผัง BPMN - เก็บ .bpmn (ต้นฉบับ), svg และ pdf ไว้ ตัด png ออก (2.3 MB)
 bpmn/png/
