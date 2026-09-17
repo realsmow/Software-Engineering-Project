@@ -238,7 +238,23 @@
       "tempPassword": "Temporary password",
       "roleChangeBlocked": "Cannot change this role: {{groups}} would be left with no one who can run it. Give someone else authority there first.",
       "roleChangeBlockedWork": "Waiting there now: {{requests}} request(s), {{extensions}} extension(s), {{loans}} loan(s), {{repairs}} repair(s).",
-      "disableBlocked": "Cannot disable this account: {{groups}} would be left with no one who can run it. Give someone else authority there first."
+      "disableBlocked": "Cannot disable this account: {{groups}} would be left with no one who can run it. Give someone else authority there first.",
+      "creditTier": "Credit tier",
+      "borrowLimits": "Borrow limits",
+      "limitsValue": "{{days}} days, {{times}} extensions",
+      "authorities": "Departments",
+      "noAuthorities": "No department authority",
+      "activePenalties": "Active penalties",
+      "noPenalties": "No active penalties",
+      "penaltyUntil": "until {{date}}",
+      "penaltyCost": "-{{n}} credit",
+      "appealed": "Appealed",
+      "editDetails": "Edit details",
+      "firstName": "First name",
+      "lastName": "Last name",
+      "email": "Email",
+      "detailsSaved": "Details updated",
+      "loadingDetail": "Loading details"
     },
     "status": {
       "title": "System status",
@@ -855,7 +871,11 @@
       "requestWindow": "Pickup {{pickupDate}} {{pickupTime}} · return {{returnDate}} {{returnTime}}",
       "draftNoEnd": "return date not set",
       "draftEdit": "Edit draft",
-      "draftDrop": "Discard draft"
+      "draftDrop": "Discard draft",
+      "extBlockedOverdue": "This loan is too far overdue to extend - return the item, or send a new request",
+      "extBlockedWindow": "Someone else is booked on this item - it cannot be held any longer",
+      "extBlockedQuota": "No extensions left on this loan",
+      "extBlockedNotCollected": "Collect this item before asking for more time"
     }
   },
   "staff": {
@@ -1014,7 +1034,21 @@
       "confirmClash": "Approving this cancels {{count}} other request(s) for the same unit over an overlapping window. Continue?",
       "doneApprove": "Approved {{item}}",
       "doneApproveCancelled": "Approved {{item}} and cancelled {{count}} clashing request(s)",
-      "doneReject": "Rejected {{item}} and sent the reason to the requester"
+      "doneReject": "Rejected {{item}} and sent the reason to the requester",
+      "viewRequests": "Requests",
+      "viewExtensions": "Extensions",
+      "colExtension": "Extension",
+      "colDueChange": "Due date",
+      "colCondition": "Condition found",
+      "extendNoLabel": "No. {{n}}",
+      "condNormal": "Normal",
+      "condMinorDamage": "Minor damage",
+      "condMajorDamage": "Major damage",
+      "condBroken": "Broken",
+      "extEmptyTitle": "No extensions waiting",
+      "extEmptyDesc": "Requests routed to you appear here once a borrower asks for more time.",
+      "doneExtApprove": "Extension granted on {{item}}",
+      "doneExtReject": "Extension refused on {{item}}"
     },
     "appeals": {
       "subtitle": "Damage-grade appeals waiting on a decision",

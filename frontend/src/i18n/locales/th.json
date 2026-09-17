@@ -238,7 +238,23 @@
       "tempPassword": "รหัสผ่านชั่วคราว",
       "roleChangeBlocked": "เปลี่ยนบทบาทไม่ได้ เพราะ {{groups}} จะไม่เหลือผู้ดูแล กรุณามอบสิทธิ์ให้ผู้อื่นในหน่วยงานนั้นก่อน",
       "roleChangeBlockedWork": "งานค้างอยู่ตอนนี้: คำขอ {{requests}} รายการ, ขอต่ออายุ {{extensions}} รายการ, การยืม {{loans}} รายการ, การซ่อม {{repairs}} รายการ",
-      "disableBlocked": "ปิดการใช้งานบัญชีนี้ไม่ได้ เพราะ {{groups}} จะไม่เหลือผู้ดูแล กรุณามอบสิทธิ์ให้ผู้อื่นในหน่วยงานนั้นก่อน"
+      "disableBlocked": "ปิดการใช้งานบัญชีนี้ไม่ได้ เพราะ {{groups}} จะไม่เหลือผู้ดูแล กรุณามอบสิทธิ์ให้ผู้อื่นในหน่วยงานนั้นก่อน",
+      "creditTier": "ระดับเครดิต",
+      "borrowLimits": "เพดานการยืม",
+      "limitsValue": "{{days}} วัน, ต่ออายุได้ {{times}} ครั้ง",
+      "authorities": "หน่วยงานที่ดูแล",
+      "noAuthorities": "ไม่มีสิทธิ์ดูแลหน่วยงาน",
+      "activePenalties": "บทลงโทษที่มีผล",
+      "noPenalties": "ไม่มีบทลงโทษที่มีผล",
+      "penaltyUntil": "ถึง {{date}}",
+      "penaltyCost": "-{{n}} เครดิต",
+      "appealed": "ยื่นอุทธรณ์แล้ว",
+      "editDetails": "แก้ไขข้อมูล",
+      "firstName": "ชื่อ",
+      "lastName": "นามสกุล",
+      "email": "อีเมล",
+      "detailsSaved": "บันทึกข้อมูลแล้ว",
+      "loadingDetail": "กำลังโหลดข้อมูล"
     },
     "status": {
       "title": "สถานะระบบ",
@@ -855,7 +871,11 @@
       "requestWindow": "รับ {{pickupDate}} {{pickupTime}} · คืน {{returnDate}} {{returnTime}}",
       "draftNoEnd": "ยังไม่ได้เลือกวันคืน",
       "draftEdit": "แก้ไขร่าง",
-      "draftDrop": "ทิ้งร่าง"
+      "draftDrop": "ทิ้งร่าง",
+      "extBlockedOverdue": "เกินกำหนดคืนนานเกินกว่าจะต่อเวลา กรุณาคืนอุปกรณ์ หรือส่งคำขอใหม่",
+      "extBlockedWindow": "มีผู้จองอุปกรณ์นี้ต่อแล้ว จึงยืดเวลาต่อไม่ได้",
+      "extBlockedQuota": "ต่อเวลาครบจำนวนครั้งที่กำหนดแล้ว",
+      "extBlockedNotCollected": "กรุณารับอุปกรณ์ก่อน จึงจะขอต่อเวลาได้"
     }
   },
   "staff": {
@@ -1014,7 +1034,21 @@
       "confirmClash": "การอนุมัตินี้จะยกเลิกคำขออื่นอีก {{count}} รายการที่ขออุปกรณ์ชิ้นเดียวกันในช่วงเวลาที่ทับกัน ดำเนินการต่อ?",
       "doneApprove": "อนุมัติ {{item}} แล้ว",
       "doneApproveCancelled": "อนุมัติ {{item}} แล้ว และยกเลิกคำขอที่ทับซ้อน {{count}} รายการ",
-      "doneReject": "ปฏิเสธ {{item}} แล้ว และแจ้งเหตุผลให้ผู้ขอ"
+      "doneReject": "ปฏิเสธ {{item}} แล้ว และแจ้งเหตุผลให้ผู้ขอ",
+      "viewRequests": "คำขอยืม",
+      "viewExtensions": "ขอต่อเวลา",
+      "colExtension": "ครั้งที่",
+      "colDueChange": "กำหนดคืน",
+      "colCondition": "สภาพที่ตรวจพบ",
+      "extendNoLabel": "ครั้งที่ {{n}}",
+      "condNormal": "ปกติ",
+      "condMinorDamage": "ชำรุดเล็กน้อย",
+      "condMajorDamage": "ชำรุดมาก",
+      "condBroken": "เสียหาย",
+      "extEmptyTitle": "ไม่มีคำขอต่อเวลา",
+      "extEmptyDesc": "คำขอต่อเวลาที่ส่งมาถึงคุณจะแสดงที่นี่",
+      "doneExtApprove": "อนุมัติต่อเวลา {{item}} แล้ว",
+      "doneExtReject": "ปฏิเสธการต่อเวลา {{item}} แล้ว"
     },
     "appeals": {
       "subtitle": "คำอุทธรณ์ผลประเมินความเสียหายที่รอการตัดสิน",

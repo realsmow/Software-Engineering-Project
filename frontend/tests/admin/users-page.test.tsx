@@ -41,6 +41,7 @@ describe('Admin users page', () => {
   const resetPasswordMutate = vi.fn();
   const setUserBanMutate = vi.fn();
   const setUserActiveMutate = vi.fn();
+  const updateUserMutate = vi.fn();
 
   const t = (key: string) => i18n.t(key);
 
@@ -78,6 +79,16 @@ describe('Admin users page', () => {
     } as never);
     vi.spyOn(adminUsersHooks, 'useSetUserActive').mockReturnValue({
       mutate: setUserActiveMutate, isPending: false,
+    } as never);
+    // The detail drawer fetches the fuller account (credit tier, borrow limits,
+    // every authority, active penalties) only once a row is opened. Left
+    // undefined here so these cases keep asserting against the summary the
+    // table itself carries; the page falls back to it while the query is idle.
+    vi.spyOn(adminUsersHooks, 'useUserDetail').mockReturnValue({
+      data: undefined, isLoading: false,
+    } as never);
+    vi.spyOn(adminUsersHooks, 'useUpdateUser').mockReturnValue({
+      mutate: updateUserMutate, isPending: false,
     } as never);
   });
 

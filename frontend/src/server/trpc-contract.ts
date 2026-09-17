@@ -26,6 +26,11 @@ import type {
 } from "@/features/borrower/catalog/item.adapter";
 import type { ServerCredit } from "@/features/account/credit.adapter";
 import type { ServerRequest } from "@/features/borrower/loans/request.adapter";
+import type {
+  ServerExtension,
+  ServerExtensionOptions,
+} from "@/features/borrower/loans/extension.adapter";
+import type { ExtensionReviewRow } from "@/features/supervisor/approvals/approval.types";
 import type { LendingSettings } from "@/features/staff/settings/settings.types";
 import type {
   InspectionQueueRow,
@@ -49,7 +54,8 @@ import type {
   ApprovalQueueRow,
   DecideApprovalOutput,
 } from "@/features/supervisor/approvals/approval.types";
-import type { ServerAdminUser } from "@/features/admin/users/admin-user.adapter";
+import type { ServerAdminUser,
+  ServerAdminUserDetail } from "@/features/admin/users/admin-user.adapter";
 import type { ServerAuditEvent } from "@/features/admin/audit/audit-event.adapter";
 import type { CronJob, SystemStatus } from "@/features/admin/status/status.types";
 import type { ReportSummary } from "@/features/admin/reports/report.types";
@@ -195,6 +201,28 @@ export const appRouter = t.router({
           rejected: { resourceKey: number; code: string; detail: Record<string, unknown> | null }[];
         }>(),
       ),
+    // ── extensions (SRS 5.4) ──────────────────────────
+    // extensionOptions is a dry run of requestExtension: same checks, no
+    // writes, so the screen can offer or withhold the button without asking
+    // and reading an error.
+    extensionOptions: proc
+      .input(z.object({ usageKey: z.number() }))
+      .query(() => as<ServerExtensionOptions>()),
+    requestExtension: proc
+      .input(
+        z.object({
+          usageKey: z.number(),
+          requestedDueAt: z.string(),
+          reason: z.string().optional(),
+        }),
+      )
+      .mutation(() => as<ServerExtension>()),
+    myExtensions: proc
+      .input(pageInput.extend({ status: z.string().optional() }))
+      .query(() => as<Paginated<ServerExtension>>()),
+    cancelExtension: proc
+      .input(z.object({ extensionKey: z.number() }))
+      .mutation(() => as<ServerExtension>()),
     cancel: proc
       .input(z.object({ reservationKey: z.number(), reason: z.string().optional() }))
       .mutation(() => as<ServerRequest>()),
@@ -281,10 +309,22 @@ export const appRouter = t.router({
         }),
       )
       .mutation(() => as<LoanOutput>()),
-    extensionReviews: proc.input(pageInput).query(() => as<Paginated<unknown>>()),
+    // The staff counter's view of the same service. `route` separates the two
+    // piles: T1 alternates to this desk because the borrower carries the item
+    // in, T2 goes up to a supervisor. approval.extensionQueue is the other end.
+    extensionReviews: proc
+      .input(pageInput.extend({ route: z.string().optional(), q: z.string().optional() }))
+      .query(() => as<Paginated<ExtensionReviewRow>>()),
     decideExtension: proc
-      .input(z.object({ extensionKey: z.number() }).passthrough())
-      .mutation(() => as<LoanOutput>()),
+      .input(
+        z.object({
+          extensionKey: z.number(),
+          decision: z.enum(["approve", "reject"]),
+          condition: z.string().optional(),
+          note: z.string().optional(),
+        }),
+      )
+      .mutation(() => as<ServerExtension>()),
   }),
 
   // ── approval ──────────────────────────────────────────
@@ -299,6 +339,24 @@ export const appRouter = t.router({
       )
       .query(() => as<ServerPaginated<ApprovalQueueRow>>()),
     counts: proc.query(() => as<ApprovalCounts>()),
+    // ── extensions ────────────────────────────────────
+    // The same service as loan.extensionReviews / loan.decideExtension, not a
+    // second implementation: one extension is granted once, by whichever desk
+    // it was routed to. Exposed here so a supervisor clearing T2 does not have
+    // to open the counter's screen.
+    extensionQueue: proc
+      .input(pageInput.extend({ route: z.string().optional(), q: z.string().optional() }))
+      .query(() => as<Paginated<ExtensionReviewRow>>()),
+    decideExtension: proc
+      .input(
+        z.object({
+          extensionKey: z.number(),
+          decision: z.enum(["approve", "reject"]),
+          condition: z.string().optional(),
+          note: z.string().optional(),
+        }),
+      )
+      .mutation(() => as<ServerExtension>()),
     decide: proc
       .input(
         z.object({
@@ -410,7 +468,19 @@ export const appRouter = t.router({
     listUsers: proc
       .input(pageInput.extend({ role: z.string().optional(), status: z.string().optional() }))
       .query(() => as<Paginated<ServerAdminUser>>()),
-    getUserById: proc.input(numericIdInput).query(() => as<ServerAdminUser>()),
+    // Returns adminUserDetail, not the summary: credit tier, borrow limits,
+    // every authority (the list carries only the first) and active penalties.
+    getUserById: proc.input(numericIdInput).query(() => as<ServerAdminUserDetail>()),
+    updateUser: proc
+      .input(
+        numericIdInput.extend({
+          email: z.string().optional(),
+          studentId: z.string().optional(),
+          firstName: z.string().optional(),
+          lastName: z.string().optional(),
+        }),
+      )
+      .mutation(() => as<{ ok: true }>()),
     // The same list scoped to the caller's departments. StaffMiddleware, not
     // admin: staff must be able to find someone before they can ban them.
     listUsersInScope: proc
