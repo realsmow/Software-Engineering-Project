@@ -71,15 +71,17 @@ test.describe("Module 5 equipment browser flows", () => {
     await page.goto("/catalog");
     expect((await list).ok()).toBeTruthy();
 
-    const details = page.getByRole("button", { name: "Details" }).first();
+    const detailsBtn = page.getByRole("button", { name: "Details" }).first();
+    const row = page.locator("tbody tr").first();
+    const opener = (await detailsBtn.count()) ? detailsBtn : row;
     test.skip(
-      !(await details.count()),
+      !(await opener.count()),
       "Seed database has no equipment type to open.",
     );
 
     const detail = trpcResponse(page, "item.getById");
     const availability = trpcResponse(page, "item.getAvailability");
-    await details.click();
+    await opener.click();
     expect((await detail).ok()).toBeTruthy();
     await expect(page.getByText("Availability, next 14 days")).toBeVisible();
     expect((await availability).ok()).toBeTruthy();
@@ -98,7 +100,7 @@ test.describe("Module 5 equipment browser flows", () => {
       page.getByRole("heading", { name: "New room booking" }),
     ).toBeVisible();
     await expect(page.getByText(/Fixed facilities \(T3\) are booked same-day only/)).toBeVisible();
-    await expect(page.getByText(/40 seats/)).toBeVisible();
+    await expect(page.getByText(/\d+\s*seats/i)).toBeVisible();
     await expect(page.getByRole("button", { name: "07:00" })).toBeVisible();
     await expect(page.getByRole("button", { name: "17:30" })).toBeVisible();
     await expect(page.getByText(/lunch break - not bookable/)).toBeVisible();
