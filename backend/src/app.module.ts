@@ -32,6 +32,7 @@ import { AuthRouter } from './auth/auth.router';
 import { AuthService } from './auth/auth.service';
 import { SessionService } from './auth/session.service';
 import { LoginThrottleService } from './auth/login-throttle.service';
+import { PasswordResetService } from './auth/password-reset.service';
 
 import { AdminRouter } from './admin/admin.router';
 import { AdminService } from './admin/admin.service';
@@ -122,6 +123,7 @@ import {
     // session - issued by auth, read by AppContext on every request
     SessionService,
     LoginThrottleService,
+    PasswordResetService,
     TrpcErrorLogger,
 
     // router + service, one pair per domain

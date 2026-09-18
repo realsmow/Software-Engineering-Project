@@ -118,6 +118,18 @@ export const appRouter = t.router({
       .mutation(() => as<{ user: ServerUser }>()),
     logout: proc.mutation(() => as<{ ok: true }>()),
     /** Revokes every session the account holds, not just this browser's. */
+    // Revokes every other session, so a password change actually cuts off
+    // whoever might have known the old one.
+    // Both public: the caller is locked out by definition.
+    requestPasswordReset: proc
+      .input(z.object({ email: z.string() }))
+      .mutation(() => as<{ ok: true }>()),
+    resetPasswordWithToken: proc
+      .input(z.object({ token: z.string(), newPassword: z.string() }))
+      .mutation(() => as<{ ok: true }>()),
+    changePassword: proc
+      .input(z.object({ currentPassword: z.string(), newPassword: z.string() }))
+      .mutation(() => as<{ ok: true; otherSessionsRevoked: number }>()),
     logoutAll: proc.mutation(() => as<{ ok: true }>()),
   }),
 

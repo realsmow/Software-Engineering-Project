@@ -52,6 +52,18 @@ export const BUSINESS_ERROR_CODES = {
    */
   DISABLE_WOULD_ORPHAN_GROUP: 'CONFLICT',
   /** No CreditTier row covers this score - CreditMin/CreditMax leave a gap */
+  /**
+   * The current password given on a self-service change did not match.
+   *
+   * Deliberately not INVALID_CREDENTIALS: that maps to UNAUTHORIZED, and a
+   * client which treats 401 as "session expired" would sign the user out for
+   * mistyping a field on a form they are already authenticated for.
+   */
+  /** Forged, already spent, or expired. One code for all three on purpose. */
+  RESET_TOKEN_INVALID: 'BAD_REQUEST',
+  CURRENT_PASSWORD_INCORRECT: 'FORBIDDEN',
+  /** A new password identical to the old one - the change would be a no-op. */
+  PASSWORD_UNCHANGED: 'BAD_REQUEST',
   CREDIT_TIER_NOT_CONFIGURED: 'PRECONDITION_FAILED',
 
   // --- lending settings ---

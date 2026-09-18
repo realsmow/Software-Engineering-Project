@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { SignInHelp } from "./signin-help";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { useNavigate } from "react-router-dom";
 import { Moon, Sun } from "lucide-react";
 import { KULogo } from "@/components/layout/ku-logo";
@@ -125,12 +126,44 @@ export function LoginPage() {
           </div>
 
           <div className="login-footer">
-            <a href="#">{t("auth.termsOfUse")}</a>
-            <a href="#">{t("auth.privacyPolicy")}</a>
+            <LegalDialog label={t("auth.termsOfUse")} />
+            <LegalDialog label={t("auth.privacyPolicy")} />
             <SignInHelp className="login-footer-link" />
           </div>
         </div>
       </div>
     </div>
+  );
+}
+
+/**
+ * Terms of use and privacy policy.
+ *
+ * Empty on purpose. A PDPA privacy notice has to state what this university
+ * actually collects and how long it keeps it, which is a decision rather than
+ * a paragraph to invent - so the frame is here and the text is not.
+ *
+ * Closing on a click outside comes from Radix; the backdrop blur lives on the
+ * shared DialogOverlay so every modal in the app behaves the same way.
+ */
+function LegalDialog({ label }: { label: string }) {
+  const { t } = useTranslation();
+  const [open, setOpen] = useState(false);
+
+  return (
+    <>
+      <button type="button" className="login-footer-link" onClick={() => setOpen(true)}>
+        {label}
+      </button>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogTitle>{label}</DialogTitle>
+          <p className="py-8 text-center text-sm text-muted-foreground">
+            {t("auth.legalPending")}
+          </p>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

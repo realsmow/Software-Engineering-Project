@@ -116,6 +116,7 @@ model AccountInfo {
   Role       RoleInfo      @relation(fields: [RoleKey], references: [RoleKey])
   Faculty    FacultyInfo?  @relation(fields: [FacultyKey], references: [FacultyKey])
   Sessions   SessionInfo[]
+  PasswordResets PasswordReset[]
   AuditTrail AuditLog[]
 
   Authorities          Authority[]
@@ -139,6 +140,22 @@ model AccountInfo {
 /// The token itself is never stored. It carries a random id which is hashed
 /// into TokenHash, so a dump of this table cannot be replayed as a session,
 /// the same reason passwords are hashed.
+model PasswordReset {
+  ResetKey   Int       @id @default(autoincrement())
+  AccountKey Int
+  /// SHA-256 of the token in the emailed link. The token itself is never stored,
+  /// so a leaked database cannot be used to reset anybody's password.
+  TokenHash  String    @unique
+  IssuedAt   DateTime  @default(now()) @db.Timestamptz(3)
+  ExpiresAt  DateTime  @db.Timestamptz(3)
+  /// Set the moment it is spent. One link, one reset.
+  UsedAt     DateTime? @db.Timestamptz(3)
+
+  Account AccountInfo @relation(fields: [AccountKey], references: [AccountKey], onDelete: Cascade)
+
+  @@index([AccountKey])
+}
+
 model SessionInfo {
   SessionKey Int       @id @default(autoincrement())
   AccountKey Int

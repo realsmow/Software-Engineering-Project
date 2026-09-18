@@ -28,3 +28,38 @@ export type LoginInput = z.infer<typeof loginInput>;
  * immediately, without a second round trip to auth.me.
  */
 export const loginOutput = z.object({ user: userOutput });
+
+/**
+ * Changing your own password.
+ *
+ * `currentPassword` is required even though the caller is already
+ * authenticated: a session that has been taken over would otherwise be enough
+ * to lock the real owner out of their own account.
+ */
+export const changePasswordInput = z.object({
+  currentPassword: z.string().min(1).max(200),
+  newPassword: z.string().min(8).max(200),
+});
+export type ChangePasswordInput = z.infer<typeof changePasswordInput>;
+
+export const changePasswordOutput = z.object({
+  ok: z.literal(true),
+  /** Sessions cut off by the change, not counting the one that made it. */
+  otherSessionsRevoked: z.number().int().min(0),
+});
+
+/** Asking for a reset link. Answers the same whether or not the address exists. */
+export const requestPasswordResetInput = z.object({
+  email: z.string().trim().min(1).max(200),
+});
+export type RequestPasswordResetInput = z.infer<
+  typeof requestPasswordResetInput
+>;
+
+export const resetPasswordWithTokenInput = z.object({
+  token: z.string().min(1).max(200),
+  newPassword: z.string().min(8).max(200),
+});
+export type ResetPasswordWithTokenInput = z.infer<
+  typeof resetPasswordWithTokenInput
+>;

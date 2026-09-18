@@ -79,6 +79,8 @@ const AdminAuditPage = lazy(() => import("@/features/admin/audit/audit-page"));
 const AdminConfigPage = lazy(() => import("@/features/admin/config/config-page"));
 const AdminReportsPage = lazy(() => import("@/features/admin/reports/reports-page"));
 const Rule86Page = lazy(() => import("@/features/easter-egg/rule86-page"));
+const ForgotPasswordPage = lazy(() => import("@/features/auth/forgot-password-page"));
+const ResetPasswordPage = lazy(() => import("@/features/auth/reset-password-page"));
 
 /** Layout: guarantees auth, then renders AppShell (which hosts <Outlet/>). */
 function ProtectedShell() {
@@ -104,6 +106,8 @@ export function AppRouter() {
       <Routes>
         {/* Public */}
         <Route path={ROUTES.LOGIN} element={<LoginPage />} />
+        <Route path={ROUTES.FORGOT_PASSWORD} element={<ForgotPasswordPage />} />
+        <Route path={ROUTES.RESET_PASSWORD} element={<ResetPasswordPage />} />
 
         {/* Authenticated app shell */}
         <Route element={<ProtectedShell />}>
