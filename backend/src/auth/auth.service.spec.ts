@@ -207,4 +207,48 @@ describe('AuthService', () => {
       });
     });
   });
+
+  /**
+   * Self-service password change.
+   *
+   * The fixture account's password is restored after each case, because the
+   * `authenticate` block above signs in with it and test order is not a
+   * contract.
+   */
+  describe('changePassword', () => {
+    const NEXT = 'a completely different passphrase';
+
+    afterEach(async () => {
+      await prisma.accountInfo.update({
+        where: { AccountKey: accountKey },
+        data: { HashedPassword: await hashPassword(PASSWORD) },
+      });
+    });
+
+    it('replaces the password when the current one is right', async () => {
+      await service.changePassword(accountKey, PASSWORD, NEXT);
+
+      await expect(service.authenticate(EMAIL, NEXT)).resolves.toBe(accountKey);
+      await expect(service.authenticate(EMAIL, PASSWORD)).rejects.toMatchObject({
+        businessCode: 'INVALID_CREDENTIALS',
+      });
+    });
+
+    it('refuses a wrong current password, and changes nothing', async () => {
+      await expect(
+        service.changePassword(accountKey, 'not the password', NEXT),
+      ).rejects.toMatchObject({ businessCode: 'CURRENT_PASSWORD_INCORRECT' });
+
+      // The old one still works: a failed attempt must not half-apply.
+      await expect(service.authenticate(EMAIL, PASSWORD)).resolves.toBe(
+        accountKey,
+      );
+    });
+
+    it('refuses a new password identical to the old one', async () => {
+      await expect(
+        service.changePassword(accountKey, PASSWORD, PASSWORD),
+      ).rejects.toMatchObject({ businessCode: 'PASSWORD_UNCHANGED' });
+    });
+  });
 });

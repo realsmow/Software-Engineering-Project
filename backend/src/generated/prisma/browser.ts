@@ -23,12 +23,17 @@ export * from './enums.js';
  */
 export type AccountInfo = Prisma.AccountInfoModel
 /**
- * Model SessionInfo
+ * Model PasswordReset
  * A single sign-in, so a session can be ended before its token expires.
  * 
  * The token itself is never stored. It carries a random id which is hashed
  * into TokenHash, so a dump of this table cannot be replayed as a session,
  * the same reason passwords are hashed.
+ */
+export type PasswordReset = Prisma.PasswordResetModel
+/**
+ * Model SessionInfo
+ * 
  */
 export type SessionInfo = Prisma.SessionInfoModel
 /**

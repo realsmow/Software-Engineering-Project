@@ -7,11 +7,14 @@ import { Badge } from "@/components/ui/badge";
 import { CREDIT_BANDS } from "@/constants";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { ROUTES } from "@/constants";
 import { fmtDate } from "@/lib/datetime";
 import { getErrorMessage } from "@/lib/error-messages";
 import { useAuthStore } from "@/features/auth/auth.store";
 import { useLogoutAll } from "@/features/auth/use-logout-all";
+import { useChangePassword } from "@/features/auth/use-change-password";
 import { useMyCredit } from "./use-my-credit";
 import { validateUploadFile, uploadAcceptAttr } from "@/lib/upload-validation";
 import type { Role } from "@/types/domain";
@@ -170,11 +173,15 @@ export default function ProfilePage() {
           <CardHeader>
             <CardTitle>{t("profile.security")}</CardTitle>
           </CardHeader>
-          <CardContent className="flex flex-wrap items-center justify-between gap-4 py-5">
-            <p className="max-w-prose text-sm leading-relaxed text-muted-foreground">
-              {t("profile.signOutEverywhereHelp")}
-            </p>
-            <SignOutEverywhere />
+          <CardContent className="flex flex-col gap-5 py-5">
+            <ChangePassword />
+
+            <div className="flex flex-wrap items-center justify-between gap-4 border-t border-border pt-5">
+              <p className="max-w-prose text-sm leading-relaxed text-muted-foreground">
+                {t("profile.signOutEverywhereHelp")}
+              </p>
+              <SignOutEverywhere />
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -191,6 +198,109 @@ export default function ProfilePage() {
  * behaviour - a stolen session is not revoked by leaving one alive - but it
  * should not happen on a stray tap.
  */
+/**
+ * Change your own password.
+ *
+ * The current password is asked for even though the page is behind a session:
+ * the server requires it, so that a browser somebody else walked up to cannot
+ * be used to lock the owner out. The confirm field is this side's own idea -
+ * a typo in a password you cannot read back is the one mistake that cannot be
+ * undone from here.
+ */
+function ChangePassword() {
+  const { t } = useTranslation();
+  const changePassword = useChangePassword();
+  const [form, setForm] = useState({ current: "", next: "", confirm: "" });
+  const [error, setError] = useState<string | null>(null);
+  const [done, setDone] = useState<string | null>(null);
+
+  const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) =>
+    setForm((f) => ({ ...f, [k]: e.target.value }));
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    setDone(null);
+
+    // Checked here as well as on the server, so the person is not told off by
+    // a round trip for something the form already knows.
+    if (form.next.length < 8) return setError(t("profile.passwordTooShort"));
+    if (form.next !== form.confirm) return setError(t("profile.passwordMismatch"));
+
+    try {
+      const out = await changePassword.mutateAsync({
+        currentPassword: form.current,
+        newPassword: form.next,
+      });
+      setForm({ current: "", next: "", confirm: "" });
+      setDone(
+        out.otherSessionsRevoked > 0
+          ? t("profile.passwordChangedOthers", { count: out.otherSessionsRevoked })
+          : t("profile.passwordChanged"),
+      );
+    } catch (err) {
+      setError(getErrorMessage(err));
+    }
+  }
+
+  return (
+    <form onSubmit={(e) => void submit(e)} className="flex flex-col gap-3">
+      <div>
+        <div className="text-sm font-medium text-foreground">{t("profile.changePassword")}</div>
+        <p className="mt-0.5 max-w-prose text-sm leading-relaxed text-muted-foreground">
+          {t("profile.changePasswordHelp")}
+        </p>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-3">
+        <div className="flex flex-col gap-1">
+          <Label htmlFor="pw-current">{t("profile.currentPassword")}</Label>
+          <Input
+            id="pw-current"
+            type="password"
+            autoComplete="current-password"
+            value={form.current}
+            onChange={set("current")}
+          />
+        </div>
+        <div className="flex flex-col gap-1">
+          <Label htmlFor="pw-new">{t("profile.newPassword")}</Label>
+          <Input
+            id="pw-new"
+            type="password"
+            autoComplete="new-password"
+            value={form.next}
+            onChange={set("next")}
+          />
+        </div>
+        <div className="flex flex-col gap-1">
+          <Label htmlFor="pw-confirm">{t("profile.confirmPassword")}</Label>
+          <Input
+            id="pw-confirm"
+            type="password"
+            autoComplete="new-password"
+            value={form.confirm}
+            onChange={set("confirm")}
+          />
+        </div>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-3">
+        <Button
+          type="submit"
+          disabled={
+            changePassword.isPending || !form.current || !form.next || !form.confirm
+          }
+        >
+          {changePassword.isPending ? t("common.loading") : t("profile.changePassword")}
+        </Button>
+        {error ? <p className="text-xs text-[var(--s-warn-t)]">{error}</p> : null}
+        {done ? <p className="text-xs text-[var(--s-ok-t)]">{done}</p> : null}
+      </div>
+    </form>
+  );
+}
+
 function SignOutEverywhere() {
   const { t } = useTranslation();
   const navigate = useNavigate();

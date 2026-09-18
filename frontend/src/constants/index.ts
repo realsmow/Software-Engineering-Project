@@ -106,6 +106,8 @@ export const DAMAGE_LEVELS = {
 // ==================== Routes ====================
 export const ROUTES = {
   LOGIN: "/login",
+  FORGOT_PASSWORD: "/forgot-password",
+  RESET_PASSWORD: "/reset-password",
   HOME: "/",
   // Account (any authenticated role)
   PROFILE: "/profile",
