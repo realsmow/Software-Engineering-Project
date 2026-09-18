@@ -217,6 +217,15 @@ export class LoanExtensionService {
         maxRequestedDueAt: dueAt,
       });
     }
+    if (latest.getTime() <= Date.now()) {
+      // Every date the rules would still allow is already behind us, which
+      // happens once a loan is overdue by more than a whole borrow window.
+      // `assertExtensionWindow` refuses exactly this on the write path, so
+      // without the same check here the dry run reports canRequest: true and
+      // hands back a ceiling that can only ever fail - which is the one thing
+      // this procedure exists to stop.
+      return blocked('INVALID_EXTENSION_WINDOW', detail);
+    }
 
     return {
       usageKey,

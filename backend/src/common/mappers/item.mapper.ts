@@ -65,6 +65,7 @@ export interface RoomRow {
   RoomLocation: string | null;
   ImageURL: string | null;
   CreditWeight: number;
+  Capacity: number | null;
   Resource: ResourceRow;
 }
 
@@ -213,6 +214,8 @@ export function toRoomSummary(row: RoomRow): RoomSummary {
     description: row.RoomDesc,
     location: row.RoomLocation,
     imageUrl: row.ImageURL,
+
+    capacity: row.Capacity,
 
     tier: tryMapTier(resource.BorrowRuleInfo.RuleName),
     creditWeight: row.CreditWeight,

@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { SignInHelp } from "./signin-help";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ChevronDown, Lock } from "lucide-react";
@@ -109,7 +108,6 @@ export function LoginMethodLocal({
               <input type="checkbox" {...register("remember")} />
               {t("auth.rememberMe")}
             </label>
-            <SignInHelp />
           </div>
 
           {errors.root && (

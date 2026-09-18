@@ -2,6 +2,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { POLLING } from "@/constants";
 import { useTRPCClient } from "@/lib/trpc";
 import { fetchAllPages } from "@/lib/paging";
+// Same server schema as the supervisor desk sees; one shape, one type.
+import type { ExtensionReviewRow } from "@/features/supervisor/approvals/approval.types";
 import type {
   ConditionType,
   RecordReturnOutput,
@@ -145,5 +147,58 @@ export function useMarkLost() {
       reportedByBorrower?: boolean;
     }) => trpc.loan.markLost.mutate(input),
     onSuccess: refresh,
+  });
+}
+
+/**
+ * Extension requests waiting at this counter.
+ *
+ * `route: "staff"` is explicit because the server would otherwise return
+ * everything this caller may decide, and a supervisor working the counter
+ * would see their own T2 pile mixed into it. The two desks are separate piles
+ * of the same service - `approval.extensionQueue` is the other end.
+ */
+export function useStaffExtensionQueue(q: string) {
+  const trpc = useTRPCClient();
+  const search = q.trim();
+
+  return useQuery({
+    queryKey: [...QUEUE_KEY, "extensions", search],
+    queryFn: async (): Promise<ExtensionReviewRow[]> =>
+      fetchAllPages((page, pageSize) =>
+        trpc.loan.extensionReviews.query({
+          page,
+          pageSize,
+          route: "staff",
+          ...(search ? { q: search } : {}),
+        }),
+      ),
+    refetchInterval: POLLING.STAFF_QUEUE,
+    staleTime: 0,
+  });
+}
+
+/**
+ * Grant or refuse one, recording the condition the item was found in.
+ *
+ * That recording is the whole reason a T1 extension alternates to this desk:
+ * the borrower carries the item in so somebody can look at it before more time
+ * is given.
+ */
+export function useStaffDecideExtension() {
+  const trpc = useTRPCClient();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (input: {
+      extensionKey: number;
+      decision: "approve" | "reject";
+      condition?: ConditionType;
+      note?: string;
+    }) => trpc.loan.decideExtension.mutate(input),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: QUEUE_KEY });
+      void queryClient.invalidateQueries({ queryKey: ["borrower"] });
+    },
   });
 }

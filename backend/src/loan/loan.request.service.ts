@@ -14,6 +14,7 @@ import {
   runSerializable,
   withBuffer,
 } from '../common/booking/booking-window';
+import { slotsToWindow } from '../common/booking/room-slots';
 import { BusinessError } from '../common/errors/business-error';
 import { activeBanWhere } from '../common/schemas/penalty.schema';
 import { addDays, daysBetween, toIso } from '../common/schemas/datetime.schema';
@@ -24,6 +25,7 @@ import type { TrpcUser } from '../trpc/context';
 import type {
   CancelRequestInput,
   CreateRequestInput,
+  CreateRoomBookingInput,
   ListMyRequestsInput,
   RequestStatus,
 } from './loan.schema';
@@ -187,6 +189,34 @@ export class LoanRequestService {
       created: created.map((row) => this.toRequest(row, toBand)),
       rejected,
     };
+  }
+
+  /**
+   * Book a room from a run of half-hour slots (§5.5, T3).
+   *
+   * Thin on purpose. It turns chips into a window and hands the result to
+   * `create`, which owns every rule a booking has to pass. The two things it
+   * does own are the ones only rooms have: that the key names a room at all,
+   * and that the slots form one unbroken run — `slotsToWindow` throws
+   * ROOM_SLOTS_NOT_CONTIGUOUS for a pair the lunch break separates, which is
+   * the case a plain start/end window cannot express.
+   */
+  async createRoomBooking(user: TrpcUser, input: CreateRoomBookingInput) {
+    const room = await this.prisma.roomInfo.findUnique({
+      where: { RoomKey: input.roomKey },
+      select: { Resource: { select: { ResourceKey: true } } },
+    });
+    if (!room) {
+      throw new BusinessError('ROOM_NOT_FOUND', { id: input.roomKey });
+    }
+
+    const { startTime, endTime } = slotsToWindow(input.date, input.slots);
+
+    return this.create(user, {
+      startTime: toIso(startTime),
+      endTime: toIso(endTime),
+      lines: [{ resourceKey: room.Resource.ResourceKey, reason: input.reason }],
+    });
   }
 
   private async createOne(

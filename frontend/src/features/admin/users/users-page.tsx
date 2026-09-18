@@ -38,6 +38,8 @@ import {
   useResetPassword,
   useSetUserActive,
   useSetUserBan,
+  useUpdateUser,
+  useUserDetail,
 } from "./use-admin-users";
 
 /**
@@ -215,6 +217,51 @@ export default function AdminUsersPage() {
   // the table beside them was real.
   const { data: auditEvents = [] } = useAuditEvents();
   const busiest = useMemo(() => topActors(auditEvents), [auditEvents]);
+
+  // The list endpoint omits credit tier, borrow limits, every authority past
+  // the first, and penalties. They cost joins a 500-row table does not need,
+  // so they are fetched once, when a row is opened.
+  const { data: detail, isLoading: detailLoading } = useUserDetail(selected?.id ?? null);
+  const updateUser = useUpdateUser();
+  const [editing, setEditing] = useState(false);
+  const [edit, setEdit] = useState({ firstName: "", lastName: "", email: "", studentId: "" });
+
+  const openEdit = () => {
+    if (!detail) return;
+    setEdit({
+      firstName: detail.firstName,
+      lastName: detail.lastName,
+      email: detail.email,
+      studentId: detail.govId,
+    });
+    setEditing(true);
+  };
+
+  const saveEdit = () => {
+    if (!detail) return;
+    // Only what actually changed: resubmitting an unchanged email still trips
+    // the uniqueness check against the account's own row.
+    const changed: Record<string, string> = {};
+    if (edit.firstName !== detail.firstName) changed.firstName = edit.firstName.trim();
+    if (edit.lastName !== detail.lastName) changed.lastName = edit.lastName.trim();
+    if (edit.email !== detail.email) changed.email = edit.email.trim();
+    if (edit.studentId !== detail.govId) changed.studentId = edit.studentId.trim();
+    if (Object.keys(changed).length === 0) { setEditing(false); return; }
+
+    updateUser.mutate(
+      { id: detail.id, ...changed },
+      {
+        onSuccess: () => {
+          setEditing(false);
+          setNotice(t("admin.users.detailsSaved"));
+          setSelected((prev) =>
+            prev ? { ...prev, name: `${edit.firstName} ${edit.lastName}`.trim(), email: edit.email, govId: edit.studentId } : prev,
+          );
+        },
+        onError: (e) => setNotice(coverageMessage(e)),
+      },
+    );
+  };
 
   // Status counts for the quick-filter stat strip (whole dataset, not filtered).
   const counts = useMemo(() => {
@@ -511,6 +558,7 @@ export default function AdminUsersPage() {
         rowKey={(u) => u.id}
         onRowClick={(u) => {
           setNotice(null);
+          setEditing(false);
           setSelected(u);
         }}
         pageSize={10}
@@ -647,7 +695,146 @@ export default function AdminUsersPage() {
               <UserKvRow label={t("admin.users.colLastActive")} mono>
                 {fmtDateTime(selected.lastActiveAt)}
               </UserKvRow>
+              {detail && (
+                <>
+                  <UserKvRow label={t("admin.users.creditTier")} mono>
+                    {detail.creditTier}
+                  </UserKvRow>
+                  <UserKvRow label={t("admin.users.borrowLimits")}>
+                    {t("admin.users.limitsValue", {
+                      days: detail.maxBorrowDays,
+                      times: detail.maxExtendTimes,
+                    })}
+                  </UserKvRow>
+                </>
+              )}
             </div>
+
+            {detailLoading && (
+              <p className="mt-3 text-xs text-muted-foreground">
+                {t("admin.users.loadingDetail")}
+              </p>
+            )}
+
+            {detail && (
+              <div className="mt-5 flex flex-col gap-4">
+                {/*
+                  Every department this account holds authority in. The table
+                  column shows only the first, which quietly understated anyone
+                  covering more than one.
+                */}
+                <div>
+                  <Label>{t("admin.users.authorities")}</Label>
+                  {detail.authorities.length === 0 ? (
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {t("admin.users.noAuthorities")}
+                    </p>
+                  ) : (
+                    <ul className="mt-1.5 flex flex-col gap-1">
+                      {detail.authorities.map((a) => (
+                        <li
+                          key={a.manageGroupKey}
+                          className="flex items-center justify-between gap-3 text-[13px]"
+                        >
+                          <span className="text-foreground">
+                            {a.groupName ?? `#${a.manageGroupKey}`}
+                          </span>
+                          <span className="text-xs text-muted-foreground">{a.authorityName}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+
+                {/*
+                  What is actually holding this account back. An admin deciding
+                  whether to lift a suspension needs the reason and the expiry,
+                  and previously had to guess from the status chip alone.
+                */}
+                <div>
+                  <Label>{t("admin.users.activePenalties")}</Label>
+                  {detail.activePenalties.length === 0 ? (
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {t("admin.users.noPenalties")}
+                    </p>
+                  ) : (
+                    <ul className="mt-1.5 flex flex-col gap-1.5">
+                      {detail.activePenalties.map((pen) => (
+                        <li key={pen.id} className="text-[13px]">
+                          <div className="flex items-center justify-between gap-3">
+                            <span className="text-foreground">{pen.reason ?? "-"}</span>
+                            {pen.creditDeducted !== null && (
+                              <span className="mono text-xs text-muted-foreground">
+                                {t("admin.users.penaltyCost", { n: pen.creditDeducted })}
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {t("admin.users.penaltyUntil", { date: fmtDate(pen.expiresAt) })}
+                            {pen.appealed ? ` · ${t("admin.users.appealed")}` : ""}
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {detail && !editing && (
+              <Button
+                type="button"
+                variant="outline"
+                className="mt-4 w-full"
+                onClick={openEdit}
+              >
+                {t("admin.users.editDetails")}
+              </Button>
+            )}
+
+            {detail && editing && (
+              <div className="mt-4 flex flex-col gap-2.5 rounded-md border border-border p-3">
+                <div className="flex gap-2">
+                  <div className="flex flex-1 flex-col gap-1">
+                    <Label>{t("admin.users.firstName")}</Label>
+                    <Input
+                      value={edit.firstName}
+                      onChange={(e) => setEdit((f) => ({ ...f, firstName: e.target.value }))}
+                    />
+                  </div>
+                  <div className="flex flex-1 flex-col gap-1">
+                    <Label>{t("admin.users.lastName")}</Label>
+                    <Input
+                      value={edit.lastName}
+                      onChange={(e) => setEdit((f) => ({ ...f, lastName: e.target.value }))}
+                    />
+                  </div>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <Label>{t("admin.users.email")}</Label>
+                  <Input
+                    type="email"
+                    value={edit.email}
+                    onChange={(e) => setEdit((f) => ({ ...f, email: e.target.value }))}
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <Label>{t("admin.users.studentId")}</Label>
+                  <Input
+                    value={edit.studentId}
+                    onChange={(e) => setEdit((f) => ({ ...f, studentId: e.target.value }))}
+                  />
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button type="button" variant="outline" onClick={() => setEditing(false)}>
+                    {t("common.cancel")}
+                  </Button>
+                  <Button type="button" onClick={saveEdit} disabled={updateUser.isPending}>
+                    {t("common.save")}
+                  </Button>
+                </div>
+              </div>
+            )}
 
             <div className="mt-5 flex flex-col gap-1.5">
               <Label>{t("admin.users.changeRole")}</Label>

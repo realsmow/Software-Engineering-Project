@@ -95,7 +95,16 @@
     "security": "Account security",
     "signOutEverywhere": "Sign out everywhere",
     "signOutEverywhereHelp": "Ends every session this account has open. Use it if you left yourself signed in on a shared machine, or think someone knows your password.",
-    "signOutEverywhereConfirm": "Sign out of every device? This device is included, so you will need to sign in again."
+    "signOutEverywhereConfirm": "Sign out of every device? This device is included, so you will need to sign in again.",
+    "changePassword": "Change password",
+    "changePasswordHelp": "Changing your password signs out every other device. This one stays signed in.",
+    "currentPassword": "Current password",
+    "newPassword": "New password",
+    "confirmPassword": "Confirm new password",
+    "passwordMismatch": "The two new passwords do not match",
+    "passwordTooShort": "Use at least 8 characters",
+    "passwordChanged": "Password changed",
+    "passwordChangedOthers": "Password changed. {{count}} other device(s) signed out."
   },
   "auth": {
     "universityAccount": "University account",
@@ -104,7 +113,7 @@
     "kuMailHint": "For students & faculty · @ku.ac.th, @ku.th",
     "localAccount": "Local account",
     "localAccountHint": "For department staff · clubs · Local login",
-    "email": "KU email",
+    "email": "Email",
     "password": "Password",
     "username": "Username",
     "usernamePlaceholder": "Username assigned by your administrator",
@@ -121,10 +130,20 @@
     "invalidCredentials": "Incorrect username or password",
     "signinHelp": "Need help signing in?",
     "signinHelpTitle": "Getting back into your account",
-    "signinHelpIntro": "There is no self-service password reset. This system does not send email, so a person has to reset it for you.",
-    "signinHelpKu": "Ask the staff of the department that issued your account to reset your password.",
+    "signinHelpIntro": "If your account has an email, ask for a reset link and choose a new password yourself. Local accounts without an email are reset by a person.",
+    "signinHelpKu": "Use the reset link below.",
     "signinHelpLocal": "Your department admin created this account and can reset it.",
-    "signinHelpTemp": "You will be given a temporary password, shown once. Change it from your profile after you sign in."
+    "signinHelpTemp": "You will be given a temporary password, shown once. Change it from your profile after you sign in.",
+    "forgotTitle": "Forgot your password?",
+    "forgotHelp": "Enter the email on your account and we will send a link to choose a new password.",
+    "forgotSubmit": "Send reset link",
+    "forgotSent": "If that address has an account, a reset link is on its way. The link expires in 30 minutes and works once.",
+    "backToSignIn": "Back to sign in",
+    "resetTitle": "Choose a new password",
+    "resetHelp": "This signs you out everywhere else.",
+    "resetSubmit": "Set new password",
+    "resetNoToken": "This link is missing its token. Ask for a new one.",
+    "legalPending": "This text has not been written yet."
   },
   "nav": {
     "borrower": "Borrower",
@@ -238,7 +257,23 @@
       "tempPassword": "Temporary password",
       "roleChangeBlocked": "Cannot change this role: {{groups}} would be left with no one who can run it. Give someone else authority there first.",
       "roleChangeBlockedWork": "Waiting there now: {{requests}} request(s), {{extensions}} extension(s), {{loans}} loan(s), {{repairs}} repair(s).",
-      "disableBlocked": "Cannot disable this account: {{groups}} would be left with no one who can run it. Give someone else authority there first."
+      "disableBlocked": "Cannot disable this account: {{groups}} would be left with no one who can run it. Give someone else authority there first.",
+      "creditTier": "Credit tier",
+      "borrowLimits": "Borrow limits",
+      "limitsValue": "{{days}} days, {{times}} extensions",
+      "authorities": "Departments",
+      "noAuthorities": "No department authority",
+      "activePenalties": "Active penalties",
+      "noPenalties": "No active penalties",
+      "penaltyUntil": "until {{date}}",
+      "penaltyCost": "-{{n}} credit",
+      "appealed": "Appealed",
+      "editDetails": "Edit details",
+      "firstName": "First name",
+      "lastName": "Last name",
+      "email": "Email",
+      "detailsSaved": "Details updated",
+      "loadingDetail": "Loading details"
     },
     "status": {
       "title": "System status",
@@ -855,7 +890,11 @@
       "requestWindow": "Pickup {{pickupDate}} {{pickupTime}} · return {{returnDate}} {{returnTime}}",
       "draftNoEnd": "return date not set",
       "draftEdit": "Edit draft",
-      "draftDrop": "Discard draft"
+      "draftDrop": "Discard draft",
+      "extBlockedOverdue": "This loan is too far overdue to extend - return the item, or send a new request",
+      "extBlockedWindow": "Someone else is booked on this item - it cannot be held any longer",
+      "extBlockedQuota": "No extensions left on this loan",
+      "extBlockedNotCollected": "Collect this item before asking for more time"
     }
   },
   "staff": {
@@ -968,7 +1007,13 @@
       "outOnLoanHint": "A unit held by a borrower must be returned before it can be withdrawn",
       "noUnits": "No units registered for this type yet",
       "emptyTitle": "No equipment in your scope",
-      "emptyDesc": "Equipment appears here once it is registered to a department you have authority over."
+      "emptyDesc": "Equipment appears here once it is registered to a department you have authority over.",
+      "photo": "Photo",
+      "choosePhoto": "Choose photo",
+      "photoHint": "JPG or PNG, up to 5 MB",
+      "photoUploading": "Uploading",
+      "photoSaved": "Photo updated",
+      "noPhoto": "No photo yet"
     },
     "users": {
       "subtitle": "People in the departments you have authority over",
@@ -1014,7 +1059,21 @@
       "confirmClash": "Approving this cancels {{count}} other request(s) for the same unit over an overlapping window. Continue?",
       "doneApprove": "Approved {{item}}",
       "doneApproveCancelled": "Approved {{item}} and cancelled {{count}} clashing request(s)",
-      "doneReject": "Rejected {{item}} and sent the reason to the requester"
+      "doneReject": "Rejected {{item}} and sent the reason to the requester",
+      "viewRequests": "Requests",
+      "viewExtensions": "Extensions",
+      "colExtension": "Extension",
+      "colDueChange": "Due date",
+      "colCondition": "Condition found",
+      "extendNoLabel": "No. {{n}}",
+      "condNormal": "Normal",
+      "condMinorDamage": "Minor damage",
+      "condMajorDamage": "Major damage",
+      "condBroken": "Broken",
+      "extEmptyTitle": "No extensions waiting",
+      "extEmptyDesc": "Requests routed to you appear here once a borrower asks for more time.",
+      "doneExtApprove": "Extension granted on {{item}}",
+      "doneExtReject": "Extension refused on {{item}}"
     },
     "appeals": {
       "subtitle": "Damage-grade appeals waiting on a decision",

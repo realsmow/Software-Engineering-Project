@@ -40,6 +40,16 @@ services:
       timeout: 5s
       retries: 5
 
+  # Dev mail catcher. Nothing leaves the laptop: SMTP on 1025, web UI on 8025.
+  # Password-reset links are read out of the UI rather than a real inbox.
+  mailhog:
+    image: mailhog/mailhog:v1.0.1
+    container_name: mailhog
+    restart: unless-stopped
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
 volumes:
   postgres_data:
   mongo_data:

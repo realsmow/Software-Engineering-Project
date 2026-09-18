@@ -49,3 +49,64 @@ export function toAdminUser(s: ServerAdminUser): AdminUser {
     createdAt: "-",
   };
 }
+
+/**
+ * The fuller account shape (`adminUserDetail`), returned only by
+ * `admin.getUserById`.
+ *
+ * The list endpoint deliberately does not carry these: they cost several joins
+ * each, and a 500-row table does not need them. They are fetched once, when a
+ * row is opened. Note `authorities` is a list, while the summary carries only
+ * the first group - an account can hold authority in several departments, and
+ * the table was only ever showing one of them.
+ */
+export interface ServerAuthorityGrant {
+  manageGroupKey: number;
+  groupName: string | null;
+  groupType: "Club" | "Faculty";
+  authorityName: string;
+  authorityLevel: number | null;
+}
+
+export interface ServerActivePenalty {
+  id: number;
+  reason: string | null;
+  creditDeducted: number | null;
+  issuedAt: string | null;
+  expiresAt: string;
+  appealed: boolean;
+}
+
+export interface ServerAdminUserDetail extends ServerAdminUser {
+  creditTier: string;
+  maxBorrowDays: number;
+  maxExtendTimes: number;
+  authorities: ServerAuthorityGrant[];
+  activePenalties: ServerActivePenalty[];
+}
+
+export interface AdminUserDetail extends AdminUser {
+  /** Kept apart from the combined `name`, because the edit form writes them separately. */
+  firstName: string;
+  lastName: string;
+  creditScore: number;
+  creditTier: string;
+  maxBorrowDays: number;
+  maxExtendTimes: number;
+  authorities: ServerAuthorityGrant[];
+  activePenalties: ServerActivePenalty[];
+}
+
+export function toAdminUserDetail(s: ServerAdminUserDetail): AdminUserDetail {
+  return {
+    ...toAdminUser(s),
+    firstName: s.firstName,
+    lastName: s.lastName,
+    creditScore: s.creditScore,
+    creditTier: s.creditTier,
+    maxBorrowDays: s.maxBorrowDays,
+    maxExtendTimes: s.maxExtendTimes,
+    authorities: s.authorities,
+    activePenalties: s.activePenalties,
+  };
+}

@@ -17,6 +17,22 @@
  * client bundle.
  */
 import { initTRPC } from "@trpc/server";
+
+/** `usagePhotosOutput` groups by stage; it is not a flat list. */
+interface UsagePhotoSet {
+  before: UsagePhoto[];
+  after: UsagePhoto[];
+  inspection: UsagePhoto[];
+}
+
+/** One row of `usagePhotosOutput` (backend/src/image/image.schema.ts). */
+interface UsagePhoto {
+  imageKey: number;
+  imageUrl: string;
+  stage: "before" | "after" | "inspection";
+  submittedBy: number;
+  submittedAt: string | null;
+}
 import { z } from "zod";
 import type { ServerUser } from "@/features/auth/user.adapter";
 import type {
@@ -26,6 +42,11 @@ import type {
 } from "@/features/borrower/catalog/item.adapter";
 import type { ServerCredit } from "@/features/account/credit.adapter";
 import type { ServerRequest } from "@/features/borrower/loans/request.adapter";
+import type {
+  ServerExtension,
+  ServerExtensionOptions,
+} from "@/features/borrower/loans/extension.adapter";
+import type { ExtensionReviewRow } from "@/features/supervisor/approvals/approval.types";
 import type { LendingSettings } from "@/features/staff/settings/settings.types";
 import type {
   InspectionQueueRow,
@@ -49,7 +70,8 @@ import type {
   ApprovalQueueRow,
   DecideApprovalOutput,
 } from "@/features/supervisor/approvals/approval.types";
-import type { ServerAdminUser } from "@/features/admin/users/admin-user.adapter";
+import type { ServerAdminUser,
+  ServerAdminUserDetail } from "@/features/admin/users/admin-user.adapter";
 import type { ServerAuditEvent } from "@/features/admin/audit/audit-event.adapter";
 import type { CronJob, SystemStatus } from "@/features/admin/status/status.types";
 import type { ReportSummary } from "@/features/admin/reports/report.types";
@@ -96,6 +118,18 @@ export const appRouter = t.router({
       .mutation(() => as<{ user: ServerUser }>()),
     logout: proc.mutation(() => as<{ ok: true }>()),
     /** Revokes every session the account holds, not just this browser's. */
+    // Revokes every other session, so a password change actually cuts off
+    // whoever might have known the old one.
+    // Both public: the caller is locked out by definition.
+    requestPasswordReset: proc
+      .input(z.object({ email: z.string() }))
+      .mutation(() => as<{ ok: true }>()),
+    resetPasswordWithToken: proc
+      .input(z.object({ token: z.string(), newPassword: z.string() }))
+      .mutation(() => as<{ ok: true }>()),
+    changePassword: proc
+      .input(z.object({ currentPassword: z.string(), newPassword: z.string() }))
+      .mutation(() => as<{ ok: true; otherSessionsRevoked: number }>()),
     logoutAll: proc.mutation(() => as<{ ok: true }>()),
   }),
 
@@ -130,6 +164,17 @@ export const appRouter = t.router({
 
     // Staff half. Scoped per row on the server to the caller's Authority, so
     // none of these take a department.
+    updateType: proc
+      .input(
+        z.object({
+          itemKey: z.number(),
+          name: z.string().optional(),
+          description: z.string().optional(),
+          imageUrl: z.string().optional(),
+          creditWeight: z.number().optional(),
+        }),
+      )
+      .mutation(() => as<ManagedItemDetail>()),
     listManaged: proc
       .input(pageInput.extend({ tier: z.string().optional(), availableOnly: z.boolean().optional() }))
       .query(() => as<ServerPaginated<ManagedItemType>>()),
@@ -195,51 +240,31 @@ export const appRouter = t.router({
           rejected: { resourceKey: number; code: string; detail: Record<string, unknown> | null }[];
         }>(),
       ),
+    // ── extensions (SRS 5.4) ──────────────────────────
+    // extensionOptions is a dry run of requestExtension: same checks, no
+    // writes, so the screen can offer or withhold the button without asking
+    // and reading an error.
+    extensionOptions: proc
+      .input(z.object({ usageKey: z.number() }))
+      .query(() => as<ServerExtensionOptions>()),
+    requestExtension: proc
+      .input(
+        z.object({
+          usageKey: z.number(),
+          requestedDueAt: z.string(),
+          reason: z.string().optional(),
+        }),
+      )
+      .mutation(() => as<ServerExtension>()),
+    myExtensions: proc
+      .input(pageInput.extend({ status: z.string().optional() }))
+      .query(() => as<Paginated<ServerExtension>>()),
+    cancelExtension: proc
+      .input(z.object({ extensionKey: z.number() }))
+      .mutation(() => as<ServerExtension>()),
     cancel: proc
       .input(z.object({ reservationKey: z.number(), reason: z.string().optional() }))
       .mutation(() => as<ServerRequest>()),
-    requestPickupImageUpload: proc
-      .input(
-        z.object({
-          usageKey: z.number(),
-          contentType: z.enum(["image/jpeg", "image/png"]),
-          sizeBytes: z.number(),
-        }),
-      )
-      .mutation(() =>
-        as<{
-          uploadUrl: string;
-          /** Stable storage identifier; never persist the expiring uploadUrl. */
-          objectKey: string;
-          uploadToken: string;
-          imageUrl: string;
-          previewUrl: string;
-          expiresAt: string;
-          maxBytes: number;
-          /** Headers included when the storage provider generated the signature. */
-          uploadHeaders?: Record<string, string>;
-        }>(),
-      ),
-    attachPickupImage: proc
-      .input(
-        z.object({
-          usageKey: z.number(),
-          objectKey: z.string(),
-          uploadToken: z.string(),
-        }),
-      )
-      .mutation(() =>
-        as<{
-          imageKey: number;
-          usageKey: number;
-          imageUrl: string;
-          submittedAt: string;
-        }>(),
-      ),
-    finalizePickup: proc
-      .input(z.object({ usageKeys: z.array(z.number()).min(1).max(10) }))
-      .mutation(() => as<{ finalizedUsageKeys: number[] }>()),
-
     // Staff counter. Typed against backend/src/loan/loan.schema.ts.
     staffQueue: proc
       .input(
@@ -281,10 +306,78 @@ export const appRouter = t.router({
         }),
       )
       .mutation(() => as<LoanOutput>()),
-    extensionReviews: proc.input(pageInput).query(() => as<Paginated<unknown>>()),
+    // The staff counter's view of the same service. `route` separates the two
+    // piles: T1 alternates to this desk because the borrower carries the item
+    // in, T2 goes up to a supervisor. approval.extensionQueue is the other end.
+    extensionReviews: proc
+      .input(pageInput.extend({ route: z.string().optional(), q: z.string().optional() }))
+      .query(() => as<Paginated<ExtensionReviewRow>>()),
     decideExtension: proc
-      .input(z.object({ extensionKey: z.number() }).passthrough())
-      .mutation(() => as<LoanOutput>()),
+      .input(
+        z.object({
+          extensionKey: z.number(),
+          decision: z.enum(["approve", "reject"]),
+          condition: z.string().optional(),
+          note: z.string().optional(),
+        }),
+      )
+      .mutation(() => as<ServerExtension>()),
+  }),
+
+  // ── image ─────────────────────────────────────────────
+  // Two steps: ask for a ticket, then PUT the bytes to `uploadUrl`. The file
+  // never travels through tRPC. `imageUrl` is what gets stored; `previewUrl`
+  // is the absolute form for an <img> straight after uploading.
+  image: t.router({
+    // The borrower's own ticket. No `purpose`: the server fixes it, and the
+    // loan is checked for ownership first. `requestUpload` above stays staff.
+    requestUsagePhotoUpload: proc
+      .input(
+        z.object({
+          usageKey: z.number(),
+          contentType: z.enum(["image/jpeg", "image/png"]),
+          sizeBytes: z.number(),
+        }),
+      )
+      .mutation(() =>
+        as<{
+          uploadUrl: string;
+          imageUrl: string;
+          previewUrl: string;
+          expiresAt: string;
+          maxBytes: number;
+        }>(),
+      ),
+    // Photos against one loan. `before` is taken at pickup, `after` at return.
+    attachUsagePhotos: proc
+      .input(
+        z.object({
+          usageKey: z.number(),
+          stage: z.enum(["before", "after"]),
+          imageUrls: z.array(z.string()).min(1).max(10),
+        }),
+      )
+      .mutation(() => as<UsagePhotoSet>()),
+    usagePhotos: proc
+      .input(z.object({ usageKey: z.number() }))
+      .query(() => as<UsagePhotoSet>()),
+    requestUpload: proc
+      .input(
+        z.object({
+          purpose: z.enum(["itemType", "itemUnit", "room", "inspection"]),
+          contentType: z.string(),
+          sizeBytes: z.number(),
+        }),
+      )
+      .mutation(() =>
+        as<{
+          uploadUrl: string;
+          imageUrl: string;
+          previewUrl: string;
+          expiresAt: string;
+          maxBytes: number;
+        }>(),
+      ),
   }),
 
   // ── approval ──────────────────────────────────────────
@@ -299,6 +392,24 @@ export const appRouter = t.router({
       )
       .query(() => as<ServerPaginated<ApprovalQueueRow>>()),
     counts: proc.query(() => as<ApprovalCounts>()),
+    // ── extensions ────────────────────────────────────
+    // The same service as loan.extensionReviews / loan.decideExtension, not a
+    // second implementation: one extension is granted once, by whichever desk
+    // it was routed to. Exposed here so a supervisor clearing T2 does not have
+    // to open the counter's screen.
+    extensionQueue: proc
+      .input(pageInput.extend({ route: z.string().optional(), q: z.string().optional() }))
+      .query(() => as<Paginated<ExtensionReviewRow>>()),
+    decideExtension: proc
+      .input(
+        z.object({
+          extensionKey: z.number(),
+          decision: z.enum(["approve", "reject"]),
+          condition: z.string().optional(),
+          note: z.string().optional(),
+        }),
+      )
+      .mutation(() => as<ServerExtension>()),
     decide: proc
       .input(
         z.object({
@@ -410,7 +521,19 @@ export const appRouter = t.router({
     listUsers: proc
       .input(pageInput.extend({ role: z.string().optional(), status: z.string().optional() }))
       .query(() => as<Paginated<ServerAdminUser>>()),
-    getUserById: proc.input(numericIdInput).query(() => as<ServerAdminUser>()),
+    // Returns adminUserDetail, not the summary: credit tier, borrow limits,
+    // every authority (the list carries only the first) and active penalties.
+    getUserById: proc.input(numericIdInput).query(() => as<ServerAdminUserDetail>()),
+    updateUser: proc
+      .input(
+        numericIdInput.extend({
+          email: z.string().optional(),
+          studentId: z.string().optional(),
+          firstName: z.string().optional(),
+          lastName: z.string().optional(),
+        }),
+      )
+      .mutation(() => as<{ ok: true }>()),
     // The same list scoped to the caller's departments. StaffMiddleware, not
     // admin: staff must be able to find someone before they can ban them.
     listUsersInScope: proc

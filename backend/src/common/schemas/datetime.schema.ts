@@ -83,6 +83,23 @@ export function toIsoNullable(value: Date | null | undefined): string | null {
   return value === null || value === undefined ? null : value.toISOString();
 }
 
+/**
+ * A calendar day plus a wall-clock time at the counter -> the instant it is.
+ *
+ * `localTimeToUtc('2026-09-16', '07:00')` is 00:00Z that morning, because the
+ * counter opens at 07:00 Bangkok. Room slots are the reason this exists: their
+ * boundaries are written as the times staff see on the wall, while everything
+ * stored and compared is UTC, and doing that conversion at each call site is
+ * how half of them end up seven hours out.
+ */
+export function localTimeToUtc(isoDateOnly: string, hhmm: string): Date {
+  const [hours, minutes] = hhmm.split(':').map(Number);
+  const midnightLocal = new Date(`${isoDateOnly}T00:00:00Z`).getTime();
+  return new Date(
+    midnightLocal + (hours * 60 + minutes) * 60_000 - APP_UTC_OFFSET_MS,
+  );
+}
+
 /** A calendar day from the client -> the exact instant the loan falls due. */
 export function toDueDate(isoDateOnly: string): Date {
   return new Date(`${isoDateOnly}T${DUE_TIME_OF_DAY_UTC}Z`);

@@ -22,6 +22,7 @@ Three things here are less obvious than they look:
 
 from __future__ import annotations
 
+import math
 import re
 import shutil
 import subprocess
@@ -271,6 +272,33 @@ def add_toc(document, title: str, headings: list[tuple[int, str]],
 
 # --- content blocks ----------------------------------------------------------
 
+# Rough render metrics, calibrated against a built page: at SIZE_TABLE a cell
+# fits about this many characters per centimetre of column width, and a line of
+# text plus the cell padding stands this tall.
+CHARS_PER_CM = 3.5
+LINE_CM = 0.46
+ROW_PAD_CM = 0.14
+
+# A table up to this tall is held on one page. Beyond it, holding the table
+# whole costs more than it buys: it cannot share a page with the heading above
+# it, so the heading is left stranded and the page before ends half empty.
+KEEP_WHOLE_MAX_CM = 12.0
+
+
+def _estimated_height_cm(widths_cm, header, rows) -> float:
+    """How tall the table will be, near enough to decide whether to hold it."""
+    total = 0.0
+    for row in [header, *rows]:
+        lines = 1
+        for text, width in zip(row, widths_cm):
+            per_line = max(1, int(width * CHARS_PER_CM))
+            used = sum(max(1, math.ceil(len(part) / per_line))
+                       for part in str(text).split("\n"))
+            lines = max(lines, used)
+        total += lines * LINE_CM + ROW_PAD_CM
+    return total
+
+
 def add_table(document, widths_cm, header, rows) -> None:
     table = document.add_table(rows=1, cols=len(header))
     table.style = "Table Grid"
@@ -289,7 +317,15 @@ def add_table(document, widths_cm, header, rows) -> None:
         paragraph.paragraph_format.space_before = Pt(2)
         paragraph.paragraph_format.space_after = Pt(2)
         paragraph.paragraph_format.line_spacing_rule = WD_LINE_SPACING.SINGLE
-        run_font(paragraph.add_run(text), SIZE_TABLE, bold=bold)
+        # "\n" inside a cell becomes a line break, so a numbered path reads
+        # one step per line instead of one long run-on sentence
+        for index, line in enumerate(text.split("\n")):
+            run = paragraph.add_run(line)
+            if index:
+                run.add_break()
+                # add_break() appends after the text, so move it in front
+                run._r.insert(0, run._r[-1])
+            run_font(run, SIZE_TABLE, bold=bold)
 
     header_row = table.rows[0]
     # repeat the header on every page the table spills onto
@@ -305,6 +341,16 @@ def add_table(document, widths_cm, header, rows) -> None:
         row._tr.get_or_add_trPr().append(_el("cantSplit", val="true"))
         for cell, text, width in zip(row.cells, values, widths_cm):
             fill(cell, text, bold=False, width_cm=width)
+
+    # Keep a short table on one page. cantSplit above only stops a single row
+    # breaking mid-row; the table could still break between rows. Gluing every
+    # row to the row after it makes the renderer move the whole table instead.
+    # Tall tables are left free to split - see KEEP_WHOLE_MAX_CM.
+    if _estimated_height_cm(widths_cm, header, rows) <= KEEP_WHOLE_MAX_CM:
+        for row in list(table.rows)[:-1]:
+            for cell in row.cells:
+                for paragraph in cell.paragraphs:
+                    paragraph.paragraph_format.keep_with_next = True
 
     spacer = document.add_paragraph()
     spacer.paragraph_format.space_after = Pt(4)
@@ -393,20 +439,50 @@ def add_wide_image(document, rel_path: str, caption: str) -> None:
     _new_section(document, landscape=False)
 
 
-def add_body(document, body) -> None:
+# An intro paragraph up to this many characters is treated as "short" and is
+# kept whole with its heading. Roughly four lines at the body width - long
+# enough for the intros this document uses, short enough that pulling one to
+# the next page does not leave an obvious gap behind it.
+SHORT_INTRO_CHARS = 450
+
+
+def add_body(document, body, paragraph_indent_cm: float | None = None) -> None:
+    # True while the block just written was a heading, so the paragraph that
+    # follows can be tied to it. See the module docstring of the keep* rules.
+    after_heading = False
+
     for block in body:
         kind = block[0]
         if kind == "h1":
-            document.add_paragraph(block[1], style="Heading 1")
+            paragraph = document.add_paragraph(block[1], style="Heading 1")
+            # a heading alone at the foot of a page reads as a mistake
+            paragraph.paragraph_format.keep_with_next = True
+            after_heading = True
+            continue
         elif kind == "h2":
-            document.add_paragraph(block[1], style="Heading 2")
+            paragraph = document.add_paragraph(block[1], style="Heading 2")
+            paragraph.paragraph_format.keep_with_next = True
+            after_heading = True
+            continue
         elif kind == "p":
-            document.add_paragraph(block[1])
+            paragraph = document.add_paragraph(block[1])
+            # Thai reports indent the first line of a body paragraph; a real
+            # indent instead of a typed tab survives reflow in Word
+            if paragraph_indent_cm:
+                paragraph.paragraph_format.first_line_indent = Cm(paragraph_indent_cm)
+            if after_heading:
+                paragraph.paragraph_format.keep_with_next = True
+                if len(block[1]) <= SHORT_INTRO_CHARS:
+                    paragraph.paragraph_format.keep_together = True
         elif kind == "note":
             paragraph = document.add_paragraph()
             paragraph.paragraph_format.left_indent = Cm(0.5)
             paragraph.paragraph_format.space_after = Pt(10)
             run_font(paragraph.add_run(block[1]), SIZE_TABLE, color="404040")
+            if after_heading:
+                paragraph.paragraph_format.keep_with_next = True
+                if len(block[1]) <= SHORT_INTRO_CHARS:
+                    paragraph.paragraph_format.keep_together = True
         elif kind == "table":
             add_table(document, block[1], block[2], block[3])
         elif kind == "bullets":
@@ -419,6 +495,10 @@ def add_body(document, body) -> None:
             add_wide_image(document, block[1], block[2])
         else:
             raise ValueError(f"unknown block type: {kind!r}")
+
+        # only the two heading branches skip this, via `continue`, so the tie
+        # lasts exactly one block past the heading
+        after_heading = False
 
 
 def set_properties(document, data) -> None:
@@ -445,7 +525,7 @@ def render(data, pages: dict[str, int] | None) -> Document:
     setup_page(document, data.RUNNING_HEADER)
     add_cover(document, data.COVER)
     add_toc(document, data.TOC_TITLE, headings_of(data.BODY), pages)
-    add_body(document, data.BODY)
+    add_body(document, data.BODY, getattr(data, "PARAGRAPH_INDENT_CM", None))
     set_properties(document, data)
     enable_field_update(document)
     return document
@@ -512,15 +592,17 @@ def build(data) -> tuple[Path, Path]:
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     check_font()
 
+    headings = headings_of(data.BODY)
+    first_body_text = next(block[1] for block in data.BODY if block[0] == "p")
+
     with tempfile.TemporaryDirectory(prefix="specs-pass1-") as scratch:
         scratch_dir = Path(scratch)
         draft = scratch_dir / f"{data.OUTPUT_STEM}.docx"
         render(data, pages=None).save(draft)
         draft_pdf = to_pdf(draft, scratch_dir)
-        first_body_text = next(block[1] for block in data.BODY if block[0] == "p")
-        pages = resolve_pages(draft_pdf, headings_of(data.BODY), first_body_text)
+        pages = resolve_pages(draft_pdf, headings, first_body_text)
 
-    missing = [text for _, text in headings_of(data.BODY) if text not in pages]
+    missing = [text for _, text in headings if text not in pages]
     if missing:
         print(f"! no page number found for {len(missing)} heading(s): {missing[:3]}",
               file=sys.stderr)

@@ -84,3 +84,39 @@ export interface DecideApprovalOutput {
     endTime: string;
   }[];
 }
+
+/**
+ * Condition found when the item was brought in.
+ *
+ * Recorded on every extension decision, which is the point of routing one to a
+ * desk at all: the borrower carries the item in, somebody looks at it, and the
+ * result is written down before more time is granted.
+ */
+export type ConditionType = "Normal" | "MinorDamage" | "MajorDamage" | "Broken";
+
+/**
+ * One extension request waiting on a decision
+ * (`extensionReviewRow` in backend/src/loan/loan.schema.ts).
+ *
+ * `route` says whose desk it landed on: T2 always goes to a supervisor, T1
+ * alternates with a staff inspection, and a low credit band loses the online
+ * option entirely. The queue is already scoped server-side, so the screen does
+ * not filter by route itself.
+ */
+export interface ExtensionReviewRow {
+  extensionKey: number;
+  usageKey: number;
+  borrower: BorrowerRef;
+  creditTier: string;
+  route: ApprovalRoute;
+  itemName: string | null;
+  serialNo: string | null;
+  tier: Tier | null;
+  /** Which extension of this loan it is. */
+  extendNo: number | null;
+  previousDueAt: string;
+  requestedDueAt: string;
+  requestedAt: string;
+  reason: string | null;
+  status: string;
+}

@@ -129,6 +129,9 @@ const ERROR_MESSAGES: Record<string, string> = {
   // Configuration problems - not the user's fault, and they cannot fix them,
   // so each one says who can.
   ROLE_NOT_CONFIGURED: "ระบบยังไม่ได้ตั้งค่าบทบาทนี้ กรุณาแจ้งผู้ดูแลระบบ",
+  RESET_TOKEN_INVALID: "ลิงก์นี้หมดอายุหรือถูกใช้ไปแล้ว กรุณาขอลิงก์ใหม่",
+  CURRENT_PASSWORD_INCORRECT: "รหัสผ่านปัจจุบันไม่ถูกต้อง",
+  PASSWORD_UNCHANGED: "รหัสผ่านใหม่ต้องไม่ซ้ำกับรหัสผ่านเดิม",
   CREDIT_TIER_NOT_CONFIGURED: "ระบบยังไม่ได้ตั้งค่าระดับเครดิตที่ครอบคลุมคะแนนนี้ กรุณาแจ้งผู้ดูแลระบบ",
   NOT_IMPLEMENTED: "ฟังก์ชันนี้ยังไม่เปิดใช้งาน",
 

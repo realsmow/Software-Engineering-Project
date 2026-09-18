@@ -1,6 +1,7 @@
 import { CREDIT_BAND_POLICY } from "@/constants";
 import type { CreditBand, Tier } from "@/types/domain";
 import type { MyRequest } from "../mock-data";
+import type { ServerExtensionOptions } from "./extension.adapter";
 
 /**
  * Who grants an extension on this loan.
@@ -139,4 +140,77 @@ export function extensionState(row: MyRequest, band: CreditBand): ExtensionState
 export function onlineLeft(row: MyRequest): number {
   const used = row.extensionsUsed ?? 0;
   return Math.max(0, ONLINE_LIMIT[row.tier] - used);
+}
+
+/**
+ * The same state, taken from the server instead of recomputed.
+ *
+ * `extensionState` above reimplements SRS 5.4 and 5.7 in the client so the
+ * page could work before the API existed. `loan.extensionOptions` is the
+ * authority on all of it, so where the server has answered this is used and
+ * the local copy is only a fallback while the query is in flight.
+ */
+export function extensionStateFromServer(o: ServerExtensionOptions): ExtensionState {
+  if (o.pendingExtensionKey !== null) {
+    return {
+      ...IDLE,
+      mode: "pending",
+      isPending: true,
+      labelKey: "borrower.myRequests.extPending",
+      reasonKey: "borrower.myRequests.extPending",
+    };
+  }
+
+  if (!o.canRequest) {
+    // `blockedBy` is the BusinessError code the write path would have thrown.
+    // They are genuinely different refusals, and the credit wording was the
+    // only one on offer - telling an overdue borrower their credit band is the
+    // problem sends them to fix the wrong thing.
+    const REASON: Record<string, string> = {
+      CREDIT_TOO_LOW: "borrower.myRequests.extQuotaBlocked",
+      EXTENSION_QUOTA_EXCEEDED: "borrower.myRequests.extBlockedQuota",
+      WINDOW_NOT_AVAILABLE: "borrower.myRequests.extBlockedWindow",
+      INVALID_EXTENSION_WINDOW: "borrower.myRequests.extBlockedOverdue",
+      // Seen on a loan that has been set aside but not yet picked up.
+      WRONG_LOAN_STATE: "borrower.myRequests.extBlockedNotCollected",
+    };
+    return {
+      ...IDLE,
+      mode: "blocked",
+      reasonKey:
+        (o.blockedBy && REASON[o.blockedBy]) ?? "borrower.myRequests.extQuotaBlocked",
+    };
+  }
+
+  if (o.route === "supervisor") {
+    return {
+      ...IDLE,
+      mode: "supervisor",
+      canRequest: true,
+      reasonKey: "borrower.myRequests.extQuotaSup",
+      askNoteKey: "borrower.myRequests.extAskSup",
+      confirmLabelKey: "borrower.myRequests.extAskYesSup",
+    };
+  }
+
+  if (o.route === "staff") {
+    return {
+      ...IDLE,
+      mode: "staff",
+      canRequest: true,
+      reasonKey: "borrower.myRequests.extQuotaNone",
+      askNoteKey: "borrower.myRequests.extAskStaff",
+      confirmLabelKey: "borrower.myRequests.extAskYesStaff",
+    };
+  }
+
+  // route === "auto": granted the moment it is asked for.
+  const left = Math.max(0, o.extensionsAllowed - o.extensionsUsed);
+  return {
+    ...IDLE,
+    mode: "online",
+    canExtend: true,
+    reasonKey: "borrower.myRequests.extQuota",
+    count: left,
+  };
 }

@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Link } from "react-router-dom";
+import { ROUTES } from "@/constants";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 
 /**
@@ -46,7 +48,15 @@ export function SignInHelp({ className }: { className?: string }) {
               <p className="mt-0.5">{t("auth.signinHelpLocal")}</p>
             </div>
 
-            <p className="border-t border-border pt-3">{t("auth.signinHelpTemp")}</p>
+            <Link
+              to={ROUTES.FORGOT_PASSWORD}
+              onClick={() => setOpen(false)}
+              className="block border-t border-border pt-3 text-accent"
+            >
+              {t("auth.forgotSubmit")}
+            </Link>
+
+            <p>{t("auth.signinHelpTemp")}</p>
           </div>
         </DialogContent>
       </Dialog>

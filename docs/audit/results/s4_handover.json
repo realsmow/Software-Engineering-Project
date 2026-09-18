@@ -1,0 +1,709 @@
+{
+  "scenario": "s4_handover",
+  "run_id": "09151258",
+  "recorded_at": "2026-09-15T12:58:57+07:00",
+  "notes": {
+    "item_key": 7,
+    "units": [
+      21,
+      22
+    ],
+    "request": {
+      "reservationKey": 15,
+      "status": "pending",
+      "resource": {
+        "resourceKey": 21,
+        "name": "AUDIT-S4 ออสซิลโลสโคป T2 09151258",
+        "serialNo": "S4A-09151258",
+        "kind": "equipment",
+        "tier": "T2",
+        "creditWeight": 10
+      },
+      "startTime": "2026-09-15T06:00:00.000Z",
+      "endTime": "2026-09-17T10:00:00.000Z",
+      "reason": null,
+      "requestedAt": "2026-09-15T05:58:57.337Z",
+      "expiresAt": null,
+      "approval": {
+        "route": "supervisor",
+        "status": "Pending",
+        "approvedBy": null,
+        "autoApproved": false,
+        "approvedAt": null,
+        "resolvedAt": null
+      },
+      "usageKey": null,
+      "cancellable": true
+    },
+    "allocated_serial": "S4B-09151258",
+    "inspection_subject": {
+      "usageKey": 4,
+      "resourceKey": 22,
+      "itemName": "AUDIT-S4 ออสซิลโลสโคป T2 09151258",
+      "serialNo": "S4B-09151258",
+      "tier": "T2",
+      "creditWeight": 10,
+      "borrowerAccountKey": 1,
+      "borrowerName": "Natthawut Srisuwan",
+      "borrowerStudentId": "test_borrower",
+      "borrowerCreditScore": 92,
+      "checkoutCondition": "Normal",
+      "checkoutConditionNote": null,
+      "checkoutAt": "2026-09-15T05:58:57.380Z",
+      "dueAt": "2026-09-17T10:00:00.000Z",
+      "returnedAt": "2026-09-15T05:58:57.387Z",
+      "overdueDays": 0,
+      "beforeImages": [],
+      "afterImages": [],
+      "unitHistory": [
+        {
+          "conditionKey": 5,
+          "condition": "Normal",
+          "note": null,
+          "loggedAt": "2026-09-15T05:58:57.364Z"
+        }
+      ],
+      "existingInspectionKey": null
+    }
+  },
+  "calls": [
+    {
+      "step": "setup: createType AUDIT-S4 ออสซิลโลสโคป T2 09151258",
+      "actor": "staff",
+      "procedure": "item.createType",
+      "input": {
+        "name": "AUDIT-S4 ออสซิลโลสโคป T2 09151258",
+        "creditWeight": 10
+      },
+      "status": 200,
+      "ok": true,
+      "data": {
+        "id": 7,
+        "name": "AUDIT-S4 ออสซิลโลสโคป T2 09151258",
+        "description": null,
+        "imageUrl": null,
+        "creditWeight": 10,
+        "tiers": [],
+        "totalUnits": 0,
+        "availableUnits": 0,
+        "units": []
+      },
+      "error": null
+    },
+    {
+      "step": "setup: groups",
+      "actor": "staff",
+      "procedure": "item.listManagementGroups",
+      "input": null,
+      "status": 200,
+      "ok": true,
+      "data": [
+        {
+          "id": 1,
+          "name": "ภาควิชาวิศวกรรมคอมพิวเตอร์",
+          "type": "Faculty"
+        },
+        {
+          "id": 2,
+          "name": "ภาควิชาวิศวกรรมไฟฟ้า",
+          "type": "Faculty"
+        }
+      ],
+      "error": null
+    },
+    {
+      "step": "setup: createUnit AUDIT-S4 ออสซิลโลสโคป T2 09151258 x1",
+      "actor": "staff",
+      "procedure": "item.createUnit",
+      "input": {
+        "itemKey": 7,
+        "manageGroupKey": 1,
+        "tier": "T2",
+        "quantity": 1,
+        "serialNo": "S4A-09151258"
+      },
+      "status": 200,
+      "ok": true,
+      "data": [
+        {
+          "resourceKey": 21,
+          "indivKey": 20,
+          "itemKey": 7,
+          "serialNo": "S4A-09151258",
+          "imageUrl": null,
+          "tier": "T2",
+          "status": "InStorage",
+          "lendable": true,
+          "prepDays": 0,
+          "condition": null,
+          "conditionNote": null,
+          "conditionLoggedAt": null,
+          "managementGroup": {
+            "id": 1,
+            "name": "ภาควิชาวิศวกรรมคอมพิวเตอร์",
+            "type": "Faculty"
+          },
+          "currentDueAt": null
+        }
+      ],
+      "error": null
+    },
+    {
+      "step": "setup: groups",
+      "actor": "staff",
+      "procedure": "item.listManagementGroups",
+      "input": null,
+      "status": 200,
+      "ok": true,
+      "data": [
+        {
+          "id": 1,
+          "name": "ภาควิชาวิศวกรรมคอมพิวเตอร์",
+          "type": "Faculty"
+        },
+        {
+          "id": 2,
+          "name": "ภาควิชาวิศวกรรมไฟฟ้า",
+          "type": "Faculty"
+        }
+      ],
+      "error": null
+    },
+    {
+      "step": "setup: authority roles",
+      "actor": "staff",
+      "procedure": "item.listAuthorityRoles",
+      "input": null,
+      "status": 200,
+      "ok": true,
+      "data": [
+        {
+          "authorityRoleKey": 1,
+          "name": "Student",
+          "level": 0
+        },
+        {
+          "authorityRoleKey": 2,
+          "name": "Lab staff",
+          "level": 2
+        }
+      ],
+      "error": null
+    },
+    {
+      "step": "setup: setEligibility AUDIT-S4 ออสซิลโลสโคป T2 09151258",
+      "actor": "staff",
+      "procedure": "item.setEligibility",
+      "input": {
+        "itemKey": 7,
+        "rules": [
+          {
+            "groupKey": 1,
+            "authorityRoleKey": 1
+          },
+          {
+            "groupKey": 1,
+            "authorityRoleKey": 2
+          },
+          {
+            "groupKey": 2,
+            "authorityRoleKey": 1
+          },
+          {
+            "groupKey": 2,
+            "authorityRoleKey": 2
+          }
+        ]
+      },
+      "status": 200,
+      "ok": true,
+      "data": [
+        {
+          "groupKey": 1,
+          "groupName": "ภาควิชาวิศวกรรมคอมพิวเตอร์",
+          "authorityRoleKey": 1,
+          "authorityRoleName": "Student",
+          "appliesToUnits": 1
+        },
+        {
+          "groupKey": 1,
+          "groupName": "ภาควิชาวิศวกรรมคอมพิวเตอร์",
+          "authorityRoleKey": 2,
+          "authorityRoleName": "Lab staff",
+          "appliesToUnits": 1
+        },
+        {
+          "groupKey": 2,
+          "groupName": "ภาควิชาวิศวกรรมไฟฟ้า",
+          "authorityRoleKey": 1,
+          "authorityRoleName": "Student",
+          "appliesToUnits": 1
+        },
+        {
+          "groupKey": 2,
+          "groupName": "ภาควิชาวิศวกรรมไฟฟ้า",
+          "authorityRoleKey": 2,
+          "authorityRoleName": "Lab staff",
+          "appliesToUnits": 1
+        }
+      ],
+      "error": null
+    },
+    {
+      "step": "setup: groups",
+      "actor": "staff",
+      "procedure": "item.listManagementGroups",
+      "input": null,
+      "status": 200,
+      "ok": true,
+      "data": [
+        {
+          "id": 1,
+          "name": "ภาควิชาวิศวกรรมคอมพิวเตอร์",
+          "type": "Faculty"
+        },
+        {
+          "id": 2,
+          "name": "ภาควิชาวิศวกรรมไฟฟ้า",
+          "type": "Faculty"
+        }
+      ],
+      "error": null
+    },
+    {
+      "step": "setup: second T2 serial",
+      "actor": "staff",
+      "procedure": "item.createUnit",
+      "input": {
+        "itemKey": 7,
+        "manageGroupKey": 1,
+        "tier": "T2",
+        "serialNo": "S4B-09151258"
+      },
+      "status": 200,
+      "ok": true,
+      "data": [
+        {
+          "resourceKey": 22,
+          "indivKey": 21,
+          "itemKey": 7,
+          "serialNo": "S4B-09151258",
+          "imageUrl": null,
+          "tier": "T2",
+          "status": "InStorage",
+          "lendable": true,
+          "prepDays": 0,
+          "condition": null,
+          "conditionNote": null,
+          "conditionLoggedAt": null,
+          "managementGroup": {
+            "id": 1,
+            "name": "ภาควิชาวิศวกรรมคอมพิวเตอร์",
+            "type": "Faculty"
+          },
+          "currentDueAt": null
+        }
+      ],
+      "error": null
+    },
+    {
+      "step": "borrower requests serial A",
+      "actor": "borrower",
+      "procedure": "loan.create",
+      "input": {
+        "startTime": "2026-09-15T06:00:00Z",
+        "endTime": "2026-09-17T10:00:00Z",
+        "lines": [
+          {
+            "resourceKey": 21
+          }
+        ]
+      },
+      "status": 200,
+      "ok": true,
+      "data": {
+        "created": [
+          {
+            "reservationKey": 15,
+            "status": "pending",
+            "resource": {
+              "resourceKey": 21,
+              "name": "AUDIT-S4 ออสซิลโลสโคป T2 09151258",
+              "serialNo": "S4A-09151258",
+              "kind": "equipment",
+              "tier": "T2",
+              "creditWeight": 10
+            },
+            "startTime": "2026-09-15T06:00:00.000Z",
+            "endTime": "2026-09-17T10:00:00.000Z",
+            "reason": null,
+            "requestedAt": "2026-09-15T05:58:57.337Z",
+            "expiresAt": null,
+            "approval": {
+              "route": "supervisor",
+              "status": "Pending",
+              "approvedBy": null,
+              "autoApproved": false,
+              "approvedAt": null,
+              "resolvedAt": null
+            },
+            "usageKey": null,
+            "cancellable": true
+          }
+        ],
+        "rejected": []
+      },
+      "error": null
+    },
+    {
+      "step": "staff approves T2 (expect 403)",
+      "actor": "staff",
+      "procedure": "approval.decide",
+      "input": {
+        "reservationKey": 15,
+        "decision": "approve"
+      },
+      "status": 403,
+      "ok": false,
+      "data": null,
+      "error": {
+        "message": "APPROVAL_NEEDS_SUPERVISOR",
+        "code": "FORBIDDEN",
+        "httpStatus": 403,
+        "detail": {
+          "businessCode": "APPROVAL_NEEDS_SUPERVISOR",
+          "details": {
+            "reservationKey": 15,
+            "route": "supervisor",
+            "tier": "T2"
+          }
+        }
+      }
+    },
+    {
+      "step": "supervisor approves serial A",
+      "actor": "supervisor",
+      "procedure": "approval.decide",
+      "input": {
+        "reservationKey": 15,
+        "decision": "approve"
+      },
+      "status": 200,
+      "ok": true,
+      "data": {
+        "request": {
+          "reservationKey": 15,
+          "status": "approved",
+          "resource": {
+            "resourceKey": 21,
+            "name": "AUDIT-S4 ออสซิลโลสโคป T2 09151258",
+            "serialNo": "S4A-09151258",
+            "kind": "equipment",
+            "tier": "T2",
+            "creditWeight": 10
+          },
+          "startTime": "2026-09-15T06:00:00.000Z",
+          "endTime": "2026-09-17T10:00:00.000Z",
+          "reason": null,
+          "requestedAt": "2026-09-15T05:58:57.337Z",
+          "expiresAt": "2026-09-16T05:58:57.349Z",
+          "approval": {
+            "route": "supervisor",
+            "status": "Approved",
+            "approvedBy": {
+              "accountKey": 3,
+              "studentId": "test_supervisor",
+              "firstName": "Orawan",
+              "lastName": "Phakdee",
+              "creditScore": 100
+            },
+            "autoApproved": false,
+            "approvedAt": "2026-09-15T05:58:57.349Z",
+            "resolvedAt": "2026-09-15T05:58:57.349Z"
+          },
+          "usageKey": null,
+          "cancellable": true
+        },
+        "cancelled": []
+      },
+      "error": null
+    },
+    {
+      "step": "borrower asks for photo upload (expect 403)",
+      "actor": "borrower",
+      "procedure": "image.requestUpload",
+      "input": {
+        "purpose": "inspection",
+        "contentType": "image/jpeg",
+        "sizeBytes": 1000
+      },
+      "status": 403,
+      "ok": false,
+      "data": null,
+      "error": {
+        "message": "ROLE_NOT_ALLOWED",
+        "code": "FORBIDDEN",
+        "httpStatus": 403,
+        "detail": {
+          "businessCode": "ROLE_NOT_ALLOWED",
+          "details": {
+            "allowed": [
+              "staff",
+              "supervisor",
+              "admin"
+            ],
+            "actual": "borrower"
+          }
+        }
+      }
+    },
+    {
+      "step": "allocate with serial B instead of approved A",
+      "actor": "staff",
+      "procedure": "loan.allocate",
+      "input": {
+        "reservationKey": 15,
+        "resourceKey": 22
+      },
+      "status": 200,
+      "ok": true,
+      "data": {
+        "usageKey": 4,
+        "reservationKey": 15,
+        "status": "Prepared",
+        "borrower": {
+          "accountKey": 1,
+          "studentId": "test_borrower",
+          "firstName": "Natthawut",
+          "lastName": "Srisuwan",
+          "creditScore": 92
+        },
+        "itemName": "AUDIT-S4 ออสซิลโลสโคป T2 09151258",
+        "serialNo": "S4B-09151258",
+        "resourceKey": 22,
+        "tier": "T2",
+        "checkoutCondition": "Normal",
+        "checkoutConditionNote": null,
+        "checkinCondition": null,
+        "checkoutAt": "2026-09-15T06:00:00.000Z",
+        "dueAt": "2026-09-17T10:00:00.000Z",
+        "returnedAt": null,
+        "overdueDays": 0,
+        "pendingExtensionKey": null
+      },
+      "error": null
+    },
+    {
+      "step": "swapUnit on T2 (expect refused)",
+      "actor": "staff",
+      "procedure": "loan.swapUnit",
+      "input": {
+        "usageKey": 4,
+        "resourceKey": 21
+      },
+      "status": 403,
+      "ok": false,
+      "data": null,
+      "error": {
+        "message": "UNIT_SWAP_NOT_ALLOWED",
+        "code": "FORBIDDEN",
+        "httpStatus": 403,
+        "detail": {
+          "businessCode": "UNIT_SWAP_NOT_ALLOWED",
+          "details": {
+            "usageKey": 4,
+            "tier": "T2"
+          }
+        }
+      }
+    },
+    {
+      "step": "borrower confirmPickup (expect 403)",
+      "actor": "borrower",
+      "procedure": "loan.confirmPickup",
+      "input": {
+        "usageKey": 4
+      },
+      "status": 403,
+      "ok": false,
+      "data": null,
+      "error": {
+        "message": "ROLE_NOT_ALLOWED",
+        "code": "FORBIDDEN",
+        "httpStatus": 403,
+        "detail": {
+          "businessCode": "ROLE_NOT_ALLOWED",
+          "details": {
+            "allowed": [
+              "staff",
+              "supervisor",
+              "admin"
+            ],
+            "actual": "borrower"
+          }
+        }
+      }
+    },
+    {
+      "step": "staff confirmPickup",
+      "actor": "staff",
+      "procedure": "loan.confirmPickup",
+      "input": {
+        "usageKey": 4
+      },
+      "status": 200,
+      "ok": true,
+      "data": {
+        "usageKey": 4,
+        "reservationKey": 15,
+        "status": "Lended",
+        "borrower": {
+          "accountKey": 1,
+          "studentId": "test_borrower",
+          "firstName": "Natthawut",
+          "lastName": "Srisuwan",
+          "creditScore": 92
+        },
+        "itemName": "AUDIT-S4 ออสซิลโลสโคป T2 09151258",
+        "serialNo": "S4B-09151258",
+        "resourceKey": 22,
+        "tier": "T2",
+        "checkoutCondition": "Normal",
+        "checkoutConditionNote": null,
+        "checkinCondition": null,
+        "checkoutAt": "2026-09-15T05:58:57.380Z",
+        "dueAt": "2026-09-17T10:00:00.000Z",
+        "returnedAt": null,
+        "overdueDays": 0,
+        "pendingExtensionKey": null
+      },
+      "error": null
+    },
+    {
+      "step": "staff recordReturn (no photo field)",
+      "actor": "staff",
+      "procedure": "loan.recordReturn",
+      "input": {
+        "usageKey": 4
+      },
+      "status": 200,
+      "ok": true,
+      "data": {
+        "loan": {
+          "usageKey": 4,
+          "reservationKey": 15,
+          "status": "Returned",
+          "borrower": {
+            "accountKey": 1,
+            "studentId": "test_borrower",
+            "firstName": "Natthawut",
+            "lastName": "Srisuwan",
+            "creditScore": 92
+          },
+          "itemName": "AUDIT-S4 ออสซิลโลสโคป T2 09151258",
+          "serialNo": "S4B-09151258",
+          "resourceKey": 22,
+          "tier": "T2",
+          "checkoutCondition": "Normal",
+          "checkoutConditionNote": null,
+          "checkinCondition": null,
+          "checkoutAt": "2026-09-15T05:58:57.380Z",
+          "dueAt": "2026-09-17T10:00:00.000Z",
+          "returnedAt": "2026-09-15T05:58:57.387Z",
+          "overdueDays": 0,
+          "pendingExtensionKey": null
+        },
+        "latePenalty": null
+      },
+      "error": null
+    },
+    {
+      "step": "inspection subject",
+      "actor": "staff",
+      "procedure": "inspection.getById",
+      "input": {
+        "usageKey": 4
+      },
+      "status": 200,
+      "ok": true,
+      "data": {
+        "usageKey": 4,
+        "resourceKey": 22,
+        "itemName": "AUDIT-S4 ออสซิลโลสโคป T2 09151258",
+        "serialNo": "S4B-09151258",
+        "tier": "T2",
+        "creditWeight": 10,
+        "borrowerAccountKey": 1,
+        "borrowerName": "Natthawut Srisuwan",
+        "borrowerStudentId": "test_borrower",
+        "borrowerCreditScore": 92,
+        "checkoutCondition": "Normal",
+        "checkoutConditionNote": null,
+        "checkoutAt": "2026-09-15T05:58:57.380Z",
+        "dueAt": "2026-09-17T10:00:00.000Z",
+        "returnedAt": "2026-09-15T05:58:57.387Z",
+        "overdueDays": 0,
+        "beforeImages": [],
+        "afterImages": [],
+        "unitHistory": [
+          {
+            "conditionKey": 5,
+            "condition": "Normal",
+            "note": null,
+            "loggedAt": "2026-09-15T05:58:57.364Z"
+          }
+        ],
+        "existingInspectionKey": null
+      },
+      "error": null
+    },
+    {
+      "step": "preparer inspects own T2 (expect refused)",
+      "actor": "staff",
+      "procedure": "inspection.create",
+      "input": {
+        "usageKey": 4,
+        "level": "B0"
+      },
+      "status": 403,
+      "ok": false,
+      "data": null,
+      "error": {
+        "message": "CANNOT_INSPECT_OWN_PREPARATION",
+        "code": "FORBIDDEN",
+        "httpStatus": 403,
+        "detail": {
+          "businessCode": "CANNOT_INSPECT_OWN_PREPARATION",
+          "details": {
+            "usageKey": 4,
+            "inspectorKey": 2
+          }
+        }
+      }
+    },
+    {
+      "step": "admin inspects",
+      "actor": "admin",
+      "procedure": "inspection.create",
+      "input": {
+        "usageKey": 4,
+        "level": "B0"
+      },
+      "status": 200,
+      "ok": true,
+      "data": {
+        "inspectionKey": 2,
+        "usageKey": 4,
+        "resourceKey": 22,
+        "inspectorAccountKey": 4,
+        "level": "B0",
+        "condition": "Normal",
+        "note": null,
+        "inspectedAt": "2026-09-15T05:58:57.401Z",
+        "penalty": null,
+        "returnedToPool": true
+      },
+      "error": null
+    }
+  ]
+}

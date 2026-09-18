@@ -22,8 +22,9 @@ import {
 } from "../mock-data";
 import { useAuthStore } from "@/features/auth/auth.store";
 import { useRequestDraft } from "../request/request-draft.store";
-import { extensionState } from "./extension-rules";
-import { useMyRequests, requestsInTab, type DraftSummary } from "./use-my-requests";
+import { extensionState, extensionStateFromServer } from "./extension-rules";
+import { useCancelExtension, useExtensionOptions, useRequestExtension } from "./use-extensions";
+import { useMyRequests, requestsInTab, type DraftSummary, type LoanRow } from "./use-my-requests";
 import { useCancelRequest } from "./use-my-requests-api";
 import { useSubmittedRequests } from "./submitted-requests.store";
 
@@ -401,7 +402,7 @@ function Actions({
   cancelling,
   onCancel,
 }: {
-  row: MyRequest;
+  row: LoanRow;
   canCancel: boolean;
   cancelling: boolean;
   onCancel: () => void;
@@ -412,9 +413,54 @@ function Actions({
   const canAppeal = insp && insp.damage !== "B0" && insp.appealDaysLeft > 0;
   const band = useAuthStore((s) => s.user?.creditBand) ?? "D0";
   const extendLoan = useSubmittedRequests((s) => s.extendLoan);
-  const requestExtension = useSubmittedRequests((s) => s.requestExtension);
+  const storeRequestExtension = useSubmittedRequests((s) => s.requestExtension);
   const cancelExtensionRequest = useSubmittedRequests((s) => s.cancelExtensionRequest);
-  const ext = extensionState(row, band);
+
+  // The server decides whether an extension is possible and who signs it. The
+  // local rules stay as a fallback for rows it does not know about: a room
+  // booking has no loan behind it, and a freshly submitted request has no unit
+  // set aside yet, so neither has a usageKey to ask about.
+  const { data: extOptions } = useExtensionOptions(row.usageKey ?? null);
+  const requestExtension = useRequestExtension();
+  const cancelExtension = useCancelExtension();
+  const ext = extOptions ? extensionStateFromServer(extOptions) : extensionState(row, band);
+
+  /**
+   * One call for every route. `extensionOptions` already said whether this is
+   * granted on the spot or lands on somebody's desk, and the server applies
+   * that same rule again when it writes - so the button does not need to know.
+   * The due date is echoed back exactly as the server reported it.
+   */
+  const askForExtension = (mode: "staff" | "supervisor") => {
+    if (!extOptions) {
+      storeRequestExtension(row, mode);
+      return;
+    }
+    requestExtension.mutate({
+      usageKey: extOptions.usageKey,
+      requestedDueAt: extOptions.maxRequestedDueAt,
+    });
+  };
+
+  const takeExtension = () => {
+    if (!extOptions) {
+      extendLoan(row);
+      return;
+    }
+    requestExtension.mutate({
+      usageKey: extOptions.usageKey,
+      requestedDueAt: extOptions.maxRequestedDueAt,
+    });
+  };
+
+  const withdrawExtension = () => {
+    const key = extOptions?.pendingExtensionKey;
+    if (key == null) {
+      cancelExtensionRequest(row.id);
+      return;
+    }
+    cancelExtension.mutate({ extensionKey: key });
+  };
   const onLoan = row.status === "inUse";
   const onUseRoom = () => navigate(ROUTES.ROOM_USE);
   // Between pressing "extend" and the request going out: the borrower is
@@ -445,7 +491,7 @@ function Actions({
         size="sm"
         onClick={() => {
           setAsking(false);
-          requestExtension(row, ext.mode === "supervisor" ? "supervisor" : "staff");
+          askForExtension(ext.mode === "supervisor" ? "supervisor" : "staff");
         }}
       >
         {t(ext.confirmLabelKey)}
@@ -470,7 +516,7 @@ function Actions({
         variant="outline"
         size="sm"
         title={t(ext.reasonKey, { count: ext.count })}
-        onClick={() => (ext.canExtend ? extendLoan(row) : setAsking(true))}
+        onClick={() => (ext.canExtend ? takeExtension() : setAsking(true))}
       >
         {t(ext.labelKey)}
       </Button>,
@@ -483,7 +529,7 @@ function Actions({
         type="button"
         variant="outline"
         size="sm"
-        onClick={() => cancelExtensionRequest(row.id)}
+        onClick={withdrawExtension}
       >
         {t("borrower.myRequests.cancelExt")}
       </Button>,

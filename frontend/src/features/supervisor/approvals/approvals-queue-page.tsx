@@ -8,8 +8,19 @@ import { Input } from "@/components/ui/input";
 import { DataTable, type Column } from "@/components/ui/data-table";
 import { getErrorMessage } from "@/lib/error-messages";
 import { fmtDateTime } from "@/features/borrower/format";
-import { useApprovalCounts, useApprovalQueue, useDecideApproval } from "./use-approvals";
-import type { ApprovalQueueRow } from "./approval.types";
+import { Segmented } from "@/components/ui/segmented";
+import {
+  useApprovalCounts,
+  useApprovalQueue,
+  useDecideApproval,
+  useDecideExtension,
+  useExtensionQueue,
+} from "./use-approvals";
+import type {
+  ApprovalQueueRow,
+  ConditionType,
+  ExtensionReviewRow,
+} from "./approval.types";
 
 /**
  * The approval desk (SRS FR-APV-01..04, polled every 60s).
@@ -43,6 +54,166 @@ export default function SupervisorApprovalsPage() {
   // desk they are.
   const { data: rows, isLoading } = useApprovalQueue(undefined, search);
   const decide = useDecideApproval();
+
+  // Extensions are a second pile at the same desk, not a second screen: the
+  // supervisor clearing T2 requests is the person who also clears T2 extensions.
+  const [view, setView] = useState<"requests" | "extensions">("requests");
+  const { data: extRows, isLoading: extLoading } = useExtensionQueue(search);
+  const decideExtension = useDecideExtension();
+  // Per row, because the condition is a fact about one item on one counter.
+  const [conditions, setConditions] = useState<Record<number, ConditionType>>({});
+  const conditionOf = (key: number): ConditionType => conditions[key] ?? "Normal";
+
+  async function decideExt(row: ExtensionReviewRow, decision: "approve" | "reject") {
+    const why = reason.trim();
+    if (decision === "reject" && !why) return;
+
+    setBusyKey(row.extensionKey);
+    setResult(null);
+    try {
+      await decideExtension.mutateAsync({
+        extensionKey: row.extensionKey,
+        decision,
+        condition: conditionOf(row.extensionKey),
+        ...(why ? { note: why } : {}),
+      });
+      setResult({
+        tone: "ok",
+        text: t(
+          decision === "approve"
+            ? "supervisor.approvals.doneExtApprove"
+            : "supervisor.approvals.doneExtReject",
+          { item: row.itemName ?? "" },
+        ),
+      });
+      setRejecting(null);
+      setReason("");
+    } catch (error) {
+      setResult({ tone: "bad", text: getErrorMessage(error) });
+    } finally {
+      setBusyKey(null);
+    }
+  }
+
+  const CONDITIONS: ConditionType[] = ["Normal", "MinorDamage", "MajorDamage", "Broken"];
+
+  const extColumns: Column<ExtensionReviewRow>[] = [
+    {
+      key: "borrower",
+      header: t("supervisor.approvals.colBorrower"),
+      render: (r) => (
+        <div className="min-w-0">
+          <div className="truncate font-medium text-foreground">
+            {r.borrower.firstName} {r.borrower.lastName}
+          </div>
+          <div className="mono truncate text-xs text-muted-foreground">{r.borrower.studentId}</div>
+        </div>
+      ),
+    },
+    {
+      key: "item",
+      header: t("supervisor.approvals.colItem"),
+      render: (r) => (
+        <div className="flex min-w-0 items-center gap-1.5">
+          {r.tier ? <TierDot tier={r.tier} /> : null}
+          <div className="min-w-0">
+            <div className="truncate text-foreground">{r.itemName ?? "-"}</div>
+            <div className="mono truncate text-xs text-muted-foreground">{r.serialNo ?? "-"}</div>
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: "extendNo",
+      header: t("supervisor.approvals.colExtension"),
+      render: (r) => (
+        <Badge tone="neutral">
+          {t("supervisor.approvals.extendNoLabel", { n: r.extendNo ?? 1 })}
+        </Badge>
+      ),
+    },
+    {
+      key: "due",
+      header: t("supervisor.approvals.colDueChange"),
+      render: (r) => (
+        <div className="mono whitespace-nowrap text-xs">
+          <span className="text-muted-foreground line-through">{fmtDateTime(r.previousDueAt)}</span>
+          <span className="mx-1 text-muted-foreground">&rarr;</span>
+          <span className="text-foreground">{fmtDateTime(r.requestedDueAt)}</span>
+        </div>
+      ),
+    },
+    {
+      key: "condition",
+      header: t("supervisor.approvals.colCondition"),
+      render: (r) => (
+        <select
+          className="rounded border border-border bg-transparent px-1.5 py-1 text-xs text-foreground"
+          value={conditionOf(r.extensionKey)}
+          onChange={(e) =>
+            setConditions((c) => ({ ...c, [r.extensionKey]: e.target.value as ConditionType }))
+          }
+          aria-label={t("supervisor.approvals.colCondition")}
+        >
+          {CONDITIONS.map((c) => (
+            <option key={c} value={c}>
+              {t(`supervisor.approvals.cond${c}`)}
+            </option>
+          ))}
+        </select>
+      ),
+    },
+    {
+      key: "actions",
+      header: "",
+      render: (r) =>
+        rejecting === r.extensionKey ? (
+          <div className="flex items-center gap-1.5">
+            <Input
+              autoFocus
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              placeholder={t("supervisor.approvals.reasonPlaceholder")}
+              className="h-8 w-44"
+            />
+            <Button
+              type="button"
+              size="sm"
+              variant="destructive"
+              disabled={!reason.trim() || busyKey === r.extensionKey}
+              onClick={() => decideExt(r, "reject")}
+            >
+              {t("supervisor.approvals.reject")}
+            </Button>
+            <Button type="button" size="sm" variant="outline" onClick={() => setRejecting(null)}>
+              {t("common.cancel")}
+            </Button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-1.5">
+            <Button
+              type="button"
+              size="sm"
+              disabled={busyKey === r.extensionKey}
+              onClick={() => decideExt(r, "approve")}
+            >
+              {t("supervisor.approvals.approve")}
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                setReason("");
+                setRejecting(r.extensionKey);
+              }}
+            >
+              {t("supervisor.approvals.reject")}
+            </Button>
+          </div>
+        ),
+    },
+  ];
 
   async function approve(row: ApprovalQueueRow) {
     if (
@@ -244,6 +415,43 @@ export default function SupervisorApprovalsPage() {
         </div>
       ) : null}
 
+      <div className="mb-3">
+        <Segmented<"requests" | "extensions">
+          value={view}
+          onChange={(v) => {
+            setView(v);
+            setRejecting(null);
+            setResult(null);
+          }}
+          options={[
+            { value: "requests", label: t("supervisor.approvals.viewRequests") },
+            { value: "extensions", label: t("supervisor.approvals.viewExtensions") },
+          ]}
+        />
+      </div>
+
+      {view === "extensions" ? (
+        <DataTable
+          columns={extColumns}
+          rows={extRows ?? []}
+          rowKey={(r) => String(r.extensionKey)}
+          pageSize={15}
+          beforeRows={
+            <div className="border-b border-border px-3.5 py-2.5">
+              <Input
+                type="search"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder={t("supervisor.approvals.searchPlaceholder")}
+                className="max-w-sm"
+              />
+            </div>
+          }
+          emptyTitle={extLoading ? t("common.loading") : t("supervisor.approvals.extEmptyTitle")}
+          emptyDescription={extLoading ? undefined : t("supervisor.approvals.extEmptyDesc")}
+          rangeLabel={(start, end, total) => t("common.showingRange", { start, end, total })}
+        />
+      ) : (
       <DataTable
         columns={columns}
         rows={rows ?? []}
@@ -264,6 +472,7 @@ export default function SupervisorApprovalsPage() {
         emptyDescription={isLoading ? undefined : t("supervisor.approvals.emptyDesc")}
         rangeLabel={(start, end, total) => t("common.showingRange", { start, end, total })}
       />
+      )}
     </div>
   );
 }

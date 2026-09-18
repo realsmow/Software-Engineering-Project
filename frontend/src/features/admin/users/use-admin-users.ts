@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTRPCClient } from "@/lib/trpc";
 import { fetchAllPages } from "@/lib/paging";
 import type { Role } from "@/types/domain";
-import { toAdminUser } from "./admin-user.adapter";
+import { toAdminUser, toAdminUserDetail, type AdminUserDetail } from "./admin-user.adapter";
 import type { AdminUser } from "../mock-data";
 
 /**
@@ -29,6 +29,24 @@ export function useAdminUsers() {
       );
       return rows.map(toAdminUser);
     },
+  });
+}
+
+/**
+ * One account in full, fetched only when a row is opened.
+ *
+ * `listUsers` omits credit tier, borrow limits, every authority beyond the
+ * first, and active penalties, because each costs joins the table does not
+ * need. Passing null keeps the query idle, so closing the drawer stops it.
+ */
+export function useUserDetail(id: string | null) {
+  const trpc = useTRPCClient();
+
+  return useQuery({
+    queryKey: [...ADMIN_USERS_KEY, "detail", id],
+    enabled: id !== null,
+    queryFn: async (): Promise<AdminUserDetail> =>
+      toAdminUserDetail(await trpc.admin.getUserById.query({ id: Number(id) })),
   });
 }
 
@@ -85,6 +103,32 @@ export function useResetPassword() {
   return useMutation({
     mutationFn: ({ id }: { id: string }) =>
       trpc.admin.resetPassword.mutate({ id: Number(id) }),
+  });
+}
+
+/**
+ * Corrects an account's name, email or ID.
+ *
+ * Every field is optional server-side, so only what actually changed is sent -
+ * submitting an unchanged email would still fail the uniqueness check against
+ * the account's own row.
+ */
+export function useUpdateUser() {
+  const trpc = useTRPCClient();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      id,
+      ...fields
+    }: {
+      id: string;
+      email?: string;
+      studentId?: string;
+      firstName?: string;
+      lastName?: string;
+    }) => trpc.admin.updateUser.mutate({ id: Number(id), ...fields }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ADMIN_USERS_KEY }),
   });
 }
 

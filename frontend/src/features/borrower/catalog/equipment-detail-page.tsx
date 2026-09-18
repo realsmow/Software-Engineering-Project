@@ -2,8 +2,9 @@ import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
 import { localInstant, toLocalDayKey, todayLocalDayKey } from "@/lib/datetime";
-import { ArrowLeft, Package, Plus } from "lucide-react";
+import { ArrowLeft, Plus } from "lucide-react";
 import { TierDot, tierNoteKey } from "@/components/shared/tier-badge";
+import { ImageThumb } from "@/components/shared/image-thumb";
 import { Badge, type BadgeTone } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -118,9 +119,11 @@ export default function EquipmentDetailPage() {
           </button>
 
           <div className="mt-3 flex flex-col gap-4 sm:flex-row sm:items-start">
-            <div className="flex h-[150px] w-full shrink-0 items-center justify-center rounded-md border border-border bg-surface-inset text-t4 sm:h-[132px] sm:w-[132px]">
-              <Package size={34} strokeWidth={1.4} />
-            </div>
+            <ImageThumb
+              src={item.imageUrl}
+              alt={item.name}
+              className="h-[150px] w-full rounded-md sm:h-[132px] sm:w-[132px]"
+            />
 
             <div className="min-w-0 flex-1">
               <h1 className="text-lg font-semibold leading-snug text-foreground sm:text-xl">

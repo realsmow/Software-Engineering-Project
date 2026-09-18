@@ -1,9 +1,10 @@
 import { useMemo, useState, type MouseEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
-import { Check, Package, Plus, ShoppingCart, SlidersHorizontal, X } from "lucide-react";
+import { Check, Plus, ShoppingCart, SlidersHorizontal, X } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { TierBadge, TierDot, TIERS, tierNoteKey } from "@/components/shared/tier-badge";
+import { ImageThumb } from "@/components/shared/image-thumb";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -178,7 +179,7 @@ export default function CatalogPage() {
       header: t("borrower.catalog.colItem"),
       render: (e) => (
         <div className="flex items-center gap-3">
-          <Thumb />
+          <ImageThumb src={e.imageUrl} size={44} />
           <div className="min-w-0">
             <div className="font-medium text-foreground">{e.name}</div>
             <div className="mt-0.5 font-mono text-[11px] text-t4">{e.code}</div>
@@ -521,7 +522,7 @@ function ItemCard({
   return (
     <div className="rounded-lg border border-border bg-card p-3.5 shadow-sm">
       <div className="flex items-start gap-3">
-        <Thumb size={64} />
+        <ImageThumb src={item.imageUrl} size={64} />
         <div className="min-w-0">
           <div className="text-sm font-semibold leading-snug text-foreground">{item.name}</div>
           <div className="mt-1 font-mono text-[11px] text-t4">
@@ -654,18 +655,6 @@ function DraftPill({ count, onOpen }: { count: number; onOpen: () => void }) {
 }
 
 /** Photo placeholder - equipment images land with the upload feature. */
-function Thumb({ size = 44 }: { size?: number }) {
-  return (
-    <div
-      className="flex shrink-0 items-center justify-center rounded border border-border bg-surface-inset text-t4"
-      style={{ width: size, height: size }}
-      aria-hidden
-    >
-      <Package size={size < 56 ? 18 : 24} strokeWidth={1.6} />
-    </div>
-  );
-}
-
 function facetOf(item: CatalogItem, group: GroupKey): string {
   if (group === "owner") return item.owner?.id ?? "unowned";
   if (group === "tier") return item.tier ?? "";

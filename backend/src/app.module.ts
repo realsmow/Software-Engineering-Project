@@ -32,6 +32,7 @@ import { AuthRouter } from './auth/auth.router';
 import { AuthService } from './auth/auth.service';
 import { SessionService } from './auth/session.service';
 import { LoginThrottleService } from './auth/login-throttle.service';
+import { PasswordResetService } from './auth/password-reset.service';
 
 import { AdminRouter } from './admin/admin.router';
 import { AdminService } from './admin/admin.service';
@@ -54,6 +55,9 @@ import { ApprovalService } from './approval/approval.service';
 import { InspectionRouter } from './inspection/inspection.router';
 import { InspectionService } from './inspection/inspection.service';
 
+import { AppealRouter } from './appeal/appeal.router';
+import { AppealService } from './appeal/appeal.service';
+
 import { NotificationRouter } from './notification/notification.router';
 import { NotificationService } from './notification/notification.service';
 
@@ -64,6 +68,7 @@ import { ReportService } from './report/report.service';
 import { ImageRouter } from './image/image.router';
 import { ImageService } from './image/image.service';
 import { ImageController } from './image/image.controller';
+import { UsageImageService } from './image/usage-image.service';
 import {
   MAX_UPLOAD_BYTES,
   uploadContentType,
@@ -118,6 +123,7 @@ import {
     // session - issued by auth, read by AppContext on every request
     SessionService,
     LoginThrottleService,
+    PasswordResetService,
     TrpcErrorLogger,
 
     // router + service, one pair per domain
@@ -145,6 +151,9 @@ import {
     InspectionRouter,
     InspectionService,
 
+    AppealRouter,
+    AppealService,
+
     NotificationRouter,
     NotificationService,
 
@@ -158,6 +167,7 @@ import {
     ReportService,
 
     ImageRouter,
+    UsageImageService,
   ],
 })
 export class AppModule implements NestModule {

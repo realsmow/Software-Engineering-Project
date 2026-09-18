@@ -42,6 +42,7 @@ import {
   type SwapUnitInput,
   cancelRequestInput,
   createRequestInput,
+  createRoomBookingInput,
   createRequestOutput,
   listMyRequestsInput,
   paginatedRequests,
@@ -49,6 +50,7 @@ import {
   requestOutput,
   type CancelRequestInput,
   type CreateRequestInput,
+  type CreateRoomBookingInput,
   type ListMyRequestsInput,
 } from './loan.schema';
 import { LoanService } from './loan.service';
@@ -99,6 +101,16 @@ export class LoanRouter {
   }
 
   /** The caller's own requests. `tab` matches the three tabs on คำขอของฉัน. */
+  /** The same desk, entered by tapping chips on a room's day (§5.5, T3). */
+  @UseMiddlewares(AuthMiddleware)
+  @Mutation({ input: createRoomBookingInput, output: createRequestOutput })
+  createRoomBooking(
+    @Input() input: CreateRoomBookingInput,
+    @Ctx() ctx: TrpcContext,
+  ) {
+    return this.requests.createRoomBooking(ctx.user!, input);
+  }
+
   @UseMiddlewares(AuthMiddleware)
   @Query({ input: listMyRequestsInput, output: paginatedRequests })
   list(@Input() input: ListMyRequestsInput, @Ctx() ctx: TrpcContext) {

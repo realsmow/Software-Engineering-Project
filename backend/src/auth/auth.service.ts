@@ -2,7 +2,11 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { CreditTierService } from '../common/credit/credit-tier.service';
 import { BusinessError } from '../common/errors/business-error';
-import { dummyPasswordHash, verifyPassword } from '../common/crypto/password';
+import {
+  dummyPasswordHash,
+  hashPassword,
+  verifyPassword,
+} from '../common/crypto/password';
 import { toUserOutput } from '../common/mappers/user.mapper';
 import type { UserOutput } from '../common/schemas/user.schema';
 
@@ -81,5 +85,42 @@ export class AuthService {
     }
 
     return account.AccountKey;
+  }
+
+  /**
+   * Change your own password.
+   *
+   * The current password is checked even though the caller already holds a
+   * session. Without it, anyone who got hold of a signed-in browser could
+   * change the password and lock the real owner out of their own account -
+   * the session proves who opened the tab, not who is sitting at it now.
+   *
+   * Refusing an unchanged password is not pedantry: a form that accepts it
+   * reports success while nothing happened, which is exactly the outcome
+   * somebody re-typing their old password by mistake would misread as safe.
+   */
+  async changePassword(
+    accountKey: number,
+    currentPassword: string,
+    newPassword: string,
+  ): Promise<void> {
+    const account = await this.prisma.accountInfo.findUniqueOrThrow({
+      where: { AccountKey: accountKey },
+      select: { HashedPassword: true },
+    });
+
+    const ok = await verifyPassword(currentPassword, account.HashedPassword);
+    if (!ok) {
+      throw new BusinessError('CURRENT_PASSWORD_INCORRECT');
+    }
+
+    if (await verifyPassword(newPassword, account.HashedPassword)) {
+      throw new BusinessError('PASSWORD_UNCHANGED');
+    }
+
+    await this.prisma.accountInfo.update({
+      where: { AccountKey: accountKey },
+      data: { HashedPassword: await hashPassword(newPassword) },
+    });
   }
 }
