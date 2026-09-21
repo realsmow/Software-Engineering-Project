@@ -505,6 +505,8 @@ export const requestOutput = z.object({
   approval: approvalTrail,
   /** Set once staff have prepared a unit; null while the request is only a request. */
   usageKey: z.number().int().nullable(),
+  /** Current loan deadline. Unlike `endTime`, this moves when an extension is approved. */
+  dueAt: isoDateTimeNullable,
   /** True while the borrower can still call `loan.cancel` on it. */
   cancellable: z.boolean(),
 });
