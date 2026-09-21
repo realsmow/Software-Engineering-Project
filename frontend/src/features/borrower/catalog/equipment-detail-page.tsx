@@ -2,8 +2,9 @@ import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
 import { localInstant, toLocalDayKey, todayLocalDayKey } from "@/lib/datetime";
-import { ArrowLeft, Package, Plus } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { TierDot, tierNoteKey } from "@/components/shared/tier-badge";
+import { ImageThumb } from "@/components/shared/image-thumb";
 import { Badge, type BadgeTone } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,6 +21,7 @@ import { cn } from "@/lib/utils";
 import type { StockStatus, UnitState } from "../mock-data";
 import { fmtDateTime, fmtDayMonth } from "../format";
 import { remainingUnits, useRequestDraft } from "../request/request-draft.store";
+import { AddButton } from "./add-button";
 import { useEquipmentAvailability, useEquipmentType } from "./use-equipment-types";
 import { useMyCredit } from "@/features/account/use-my-credit";
 
@@ -56,6 +58,8 @@ export default function EquipmentDetailPage() {
   // and the request page sees whatever was added here.
   const draftLines = useRequestDraft((s) => s.lines);
   const addItem = useRequestDraft((s) => s.addItem);
+  const setQty = useRequestDraft((s) => s.setQty);
+  const removeItem = useRequestDraft((s) => s.removeItem);
   const qty = draftLines.find((l) => l.itemId === id)?.qty ?? 0;
 
   const units = item?.units ?? [];
@@ -86,6 +90,11 @@ export default function EquipmentDetailPage() {
 
   // Live stock when the poll has answered, the cached detail until then.
   const availableUnits = live?.availableUnits ?? item.availableUnits;
+  const decreaseItem = () => {
+    const currentQty = useRequestDraft.getState().lines.find((line) => line.itemId === item.id)?.qty ?? 0;
+    if (currentQty <= 1) removeItem(item.id);
+    else setQty(item.id, currentQty - 1, availableUnits);
+  };
   const totalUnits = live?.totalUnits ?? item.totalUnits;
   const nextAvailableAt = live ? (live.nextAvailableAt ?? undefined) : item.nextAvailableAt;
 
@@ -118,9 +127,11 @@ export default function EquipmentDetailPage() {
           </button>
 
           <div className="mt-3 flex flex-col gap-4 sm:flex-row sm:items-start">
-            <div className="flex h-[150px] w-full shrink-0 items-center justify-center rounded-md border border-border bg-surface-inset text-t4 sm:h-[132px] sm:w-[132px]">
-              <Package size={34} strokeWidth={1.4} />
-            </div>
+            <ImageThumb
+              src={item.imageUrl}
+              alt={item.name}
+              className="h-[150px] w-full rounded-md sm:h-[132px] sm:w-[132px]"
+            />
 
             <div className="min-w-0 flex-1">
               <h1 className="text-lg font-semibold leading-snug text-foreground sm:text-xl">
@@ -156,16 +167,14 @@ export default function EquipmentDetailPage() {
             <SpecRow label={t("borrower.detail.periodL")}>{period}</SpecRow>
           </div>
           <div className="px-3.5 pb-3.5 pt-3">
-            <Button
-              type="button"
+            <AddButton
               className="h-11 w-full"
-              disabled={atCap}
-              onClick={() => addItem(item.id, availableUnits)}
-            >
-              <Plus size={15} strokeWidth={2.2} />
-              {t("borrower.detail.addToRequest")}
-              {qty ? ` (${qty})` : ""}
-            </Button>
+              qty={qty}
+              capped={atCap}
+              variant="default"
+              onAdd={() => addItem(item.id, availableUnits)}
+              onDecrease={decreaseItem}
+            />
           </div>
         </Panel>
 
@@ -269,16 +278,14 @@ export default function EquipmentDetailPage() {
             </div>
           </div>
           <div className="flex flex-col gap-2 px-3.5 pb-3.5">
-            <Button
-              type="button"
+            <AddButton
               className="h-10"
-              disabled={atCap}
-              onClick={() => addItem(item.id, availableUnits)}
-            >
-              <Plus size={15} strokeWidth={2.2} />
-              {t("borrower.detail.addToRequest")}
-              {qty ? ` (${qty})` : ""}
-            </Button>
+              qty={qty}
+              capped={atCap}
+              variant="default"
+              onAdd={() => addItem(item.id, availableUnits)}
+              onDecrease={decreaseItem}
+            />
             <Button type="button" variant="outline" className="h-9" onClick={backToCatalog}>
               {t("borrower.detail.back")}
             </Button>

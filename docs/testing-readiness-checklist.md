@@ -12,7 +12,7 @@
 | 3. Credit Tier & Borrow Limits | Tier resolution, constraints, penalties, and credit.me implemented. | Account credit hook and adapter consume server data. | [CONNECTED] auth.me and credit.me are connected. | Add tier-boundary and missing-tier tests. |
 | 4. Lending Settings | Validated atomic rule/penalty upsert implemented. | Staff settings page reads and saves real settings. | [CONNECTED] Query and mutation are wired end-to-end. | Add rollback, validation, and form tests. |
 | 5. Equipment Management | Item catalog/detail, availability, serials, inventory, lendable, and condition paths registered. | Catalog/detail and inventory pages use API queries, adapters, pagination, and polling. | [CONNECTED] item procedures are API-backed; categories remain a stub. | Item tests exist; add catalog/inventory/browser tests. |
-| 6. Loan Request Submission | Eligibility, stock/window checks, create/list/cancel, and staff loan operations implemented. | Request/cart UI exists; create remains session-local and loans remain partly mock-backed. | [PARTIAL] Backend ready; primary request form is not connected. | Add request service tests and connect the form before E2E. |
+| 6. Loan Request Submission | Eligibility, stock/window checks, create/list/cancel, and staff loan operations implemented. | Request/cart UI exists; create remains session-local and loans remain partly mock-backed. | [PARTIAL] Backend ready; primary request form is not connected. | Module 6 backend and E2E test files now exist; connect the request form and resolve login redirect before full E2E execution. |
 | 7. Approval Workflow | Queue, counts, decisions, self-approval guard, and allocation rules implemented. | Supervisor queue and decision UI use real hooks. | [CONNECTED] Approval queries/mutations call the backend. | Add approval service/component/E2E tests. |
 | 8. Handover / Pickup / Return | Loan queue, pickup/return, inspection, image, and damage paths partly implemented. | Queue/inspection connected; handover page and full evidence flow incomplete. | [PARTIAL] Queue/inspection connected; full handover is not. | Finish UI/maintenance jobs before full E2E. |
 | 9. Notifications | List, unread count, read actions, and generation paths implemented. | Bell/popover, polling, optimistic read actions, and invalidation connected. | [CONNECTED] Notification procedures are consumed by the frontend. | Add notification lifecycle tests. |
@@ -25,12 +25,13 @@
 | Area | Result | Details |
 |---|---|---|
 | Backend build | [PASS] | backend: npm run build completed successfully. |
+| Module 6 targeted backend tests | [PASS] | Approval policy + loan request service: 23/23 tests passed. |
 | Backend Jest/admin suites | [BLOCKED] | Prisma RoleInfo.create/findFirst setup fails with PrismaClientKnownRequestError. |
 | Frontend typecheck | [PASS] | frontend: npm run typecheck passed. |
 | Frontend lint | [PASS] | frontend: npm run lint passed with 0 errors and 7 warnings. |
 | Frontend Vitest | [BLOCKED] | Vite/Vitest cannot start esbuild because of spawn EPERM. |
 | Frontend production build | [BLOCKED] | TypeScript passes; Vite/esbuild fails with spawn EPERM. |
-| Playwright E2E | [NOT RUN] | Three admin specs exist; services and a seeded database are required. |
+| Playwright E2E | [BLOCKED] | Module 6 loan-request E2E specs exist, but execution currently stops at login because the frontend login flow does not redirect; admin E2E specs also require services and a seeded database. |
 | Load test | [NOT RUN] | tests/load/admin-system-load.k6.js requires a running target and k6. |
 
 > [!IMPORTANT]
@@ -217,17 +218,17 @@
 
 | # | Test Item | Layer | SRS Req. | Impl. | Test Readiness | Notes |
 |---|-----------|:-----:|----------|:-----:|:--------------:|-------|
-| 6.1 | Borrower adds multiple items to cart and submits as single request | FE | FR-REQ-01 | [PARTIAL] | [PARTIAL] | Cart UI remains session-local; backend request creation exists. |
-| 6.2 | Request specifies pickup date and return date (1–14 days range enforced) | FE | FR-REQ-02 | [PARTIAL] | [PARTIAL] | Date validation exists in the UI; create submission is not yet connected. |
-| 6.3 | System validates eligibility, credit tier, and stock before accepting | BE | FR-REQ-03 | [CONNECTED] | [READY] | Backend loan work is implemented, but the primary request submission UI remains partially connected. |
-| 6.4 | T0 request is auto-approved immediately upon validation | BE | FR-REQ-04 | [CONNECTED] | [READY] | Backend loan work is implemented, but the primary request submission UI remains partially connected. |
-| 6.5 | T1 request: D0–D1 credit auto-approved; D2–D3 credit requires supervisor | BE | FR-REQ-05 | [CONNECTED] | [READY] | Backend loan work is implemented, but the primary request submission UI remains partially connected. |
-| 6.6 | T2 request always routes to supervisor regardless of credit | BE | FR-REQ-06 | [CONNECTED] | [READY] | Backend loan work is implemented, but the primary request submission UI remains partially connected. |
-| 6.7 | T2 request requires borrower to select specific serial number | FE/BE | FR-REQ-07 | [PARTIAL] | [PARTIAL] | API supports resource selection; request form integration is incomplete. |
-| 6.8 | T3 request: select time slot(s), max 2 simultaneous slots | BE | FR-REQ-08 | [CONNECTED] | [HAS TESTS] | Backend loan work is implemented, but the primary request submission UI remains partially connected. Test evidence: backend/src/common/booking/booking-window.spec.ts. |
-| 6.9 | Conflicting concurrent requests handled atomically (rollback loser) | BE | FR-REQ-09, NFR-REL-02 | [CONNECTED] | [HAS TESTS] | Backend loan work is implemented, but the primary request submission UI remains partially connected. Test evidence: backend/src/common/booking/booking-window.spec.ts. |
-| 6.10 | Borrower can cancel own pending request | BE/FE | FR-REQ-10 | [CONNECTED] | [READY] | loan.cancel and its hook are connected; request creation UI remains local. |
-| 6.11 | Submit the request form through the tRPC loan router | INT/E2E | FR-REQ-01 | [PARTIAL] | [PARTIAL] | Backend mutation exists, but the primary request form is not wired to it. |
+| 6.1 | Borrower adds multiple items to cart and submits as single request | FE | FR-REQ-01 | [PARTIAL] | [HAS TESTS] | E2E coverage exists in `tests/e2e/loan-request.spec.ts`; execution is currently blocked at login. Cart UI remains session-local. |
+| 6.2 | Request specifies pickup date and return date (1–14 days range enforced) | FE | FR-REQ-02 | [PARTIAL] | [HAS TESTS] | E2E coverage exists in `tests/e2e/loan-request.spec.ts`; execution is currently blocked at login. Date validation exists, but create submission is not yet connected. |
+| 6.3 | System validates eligibility, credit tier, and stock before accepting | BE | FR-REQ-03 | [CONNECTED] | [HAS TESTS] | Test evidence: `backend/src/loan/loan.request.service.spec.ts`. |
+| 6.4 | T0 request is auto-approved immediately upon validation | BE | FR-REQ-04 | [CONNECTED] | [HAS TESTS] | Covered by `backend/src/loan/loan.request.service.spec.ts`. |
+| 6.5 | T1 request: D0–D1 credit auto-approved; D2–D3 credit requires supervisor | BE | FR-REQ-05 | [CONNECTED] | [HAS TESTS] | Covered by `backend/src/loan/loan.request.service.spec.ts` and approval-policy tests. |
+| 6.6 | T2 request always routes to supervisor regardless of credit | BE | FR-REQ-06 | [CONNECTED] | [HAS TESTS] | Covered by `backend/src/loan/loan.request.service.spec.ts` and approval-policy tests. |
+| 6.7 | T2 request requires borrower to select specific serial number | FE/BE | FR-REQ-07 | [PARTIAL] | [HAS TESTS] | Backend service coverage exists in `backend/src/loan/loan.request.service.spec.ts`; frontend request-form integration remains incomplete. |
+| 6.8 | T3 request: select time slot(s), max 2 simultaneous slots | BE | FR-REQ-08 | [CONNECTED] | [HAS TESTS] | Test evidence: `backend/src/common/booking/booking-window.spec.ts`. |
+| 6.9 | Conflicting concurrent requests handled atomically (rollback loser) | BE | FR-REQ-09, NFR-REL-02 | [CONNECTED] | [HAS TESTS] | Test evidence: `backend/src/common/booking/booking-window.spec.ts`. |
+| 6.10 | Borrower can cancel own pending request | BE/FE | FR-REQ-10 | [CONNECTED] | [READY] | loan.cancel and its hook are connected; dedicated cancel test is still needed. Request creation UI remains local. |
+| 6.11 | Submit the request form through the tRPC loan router | INT/E2E | FR-REQ-01 | [PARTIAL] | [HAS TESTS] | E2E coverage exists in `tests/e2e/loan-request.spec.ts`; execution is currently blocked at login. Backend mutation exists, but the primary request form is not wired to it. |
 
 ---
 
@@ -353,7 +354,7 @@
 | 3. Credit Tier | READY | Add dedicated boundary tests. |
 | 4. Lending Settings | READY | Add rollback, validation, and form tests. |
 | 5. Equipment Management | READY, with 2 partial items | Add catalog/inventory/browser tests; scheduled/decommission work remains partial. |
-| 6. Loan Request | READY backend, PARTIAL frontend/integration | Request form create flow remains session-local. |
+| 6. Loan Request | HAS TESTS backend/E2E, PARTIAL frontend/integration | Approval-policy and loan-request service tests pass (23/23); E2E coverage exists but is blocked at login, and the request form create flow remains session-local. |
 | 7. Approval Workflow | READY | Dedicated approval tests are still needed. |
 | 8. Handover/Return | PARTIAL | Handover UI and maintenance jobs remain incomplete. |
 | 9. Notifications | READY | Lifecycle tests are still needed. |
@@ -372,6 +373,9 @@
 | [`session.service.spec.ts`](file:///C:/Users/veerasak/.gemini/antigravity-ide/scratch/Software-Engineering-Project/backend/src/auth/session.service.spec.ts) | BE Unit | Cookie flags, expiry, secret handling — 12 cases |
 | [`app.controller.spec.ts`](file:///C:/Users/veerasak/.gemini/antigravity-ide/scratch/Software-Engineering-Project/backend/src/app.controller.spec.ts) | BE Unit | Smoke test only (1 case) |
 | [`prisma.service.spec.ts`](file:///C:/Users/veerasak/.gemini/antigravity-ide/scratch/Software-Engineering-Project/backend/src/prisma.service.spec.ts) | BE Unit | Prisma connect/disconnect |
+| `backend/src/common/approval/approval-policy.spec.ts` | BE Unit | Module 6 approval-policy matrix (T0–T3 × D0–D3) |
+| `backend/src/loan/loan.request.service.spec.ts` | BE Unit | Module 6 loan request service — eligibility, validation, approval routing, and request rules |
+| `tests/e2e/loan-request.spec.ts` | INT/E2E | Module 6 loan request flows — 6.1, 6.2, 6.11; currently blocked at login |
 | [`app.e2e-spec.ts`](file:///C:/Users/veerasak/.gemini/antigravity-ide/scratch/Software-Engineering-Project/backend/test/app.e2e-spec.ts) | BE E2E | Smoke test (GET /) |
 
 ---

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
 import { PageHeader } from "@/components/shared/page-header";
 import { TierDot } from "@/components/shared/tier-badge";
 import { Badge, type BadgeTone } from "@/components/ui/badge";
@@ -7,17 +8,26 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Segmented } from "@/components/ui/segmented";
 import { DataTable, type Column } from "@/components/ui/data-table";
+import { ROUTES } from "@/constants";
 import { getErrorMessage } from "@/lib/error-messages";
 import { fmtDateTime } from "@/features/borrower/format";
+import type { ExtensionReviewRow } from "@/features/supervisor/approvals/approval.types";
 import {
   useAllocate,
   useConfirmPickup,
   useMarkLost,
   useRecordReturn,
+  useStaffDecideExtension,
+  useStaffExtensionQueue,
   useStaffQueue,
   useStaffQueueCounts,
 } from "./use-staff-queue";
-import { STAFF_QUEUE_BUCKETS, type StaffQueueBucket, type StaffQueueRow } from "./queue.types";
+import {
+  STAFF_QUEUE_BUCKETS,
+  type ConditionType,
+  type StaffQueueBucket,
+  type StaffQueueRow,
+} from "./queue.types";
 
 const BUCKET_LABEL: Record<StaffQueueBucket, string> = {
   toPrepare: "staff.queue.bucketToPrepare",
@@ -50,6 +60,10 @@ const ACTION_LABEL: Record<StaffQueueBucket, string> = {
  */
 export default function StaffQueuePage() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
+  // Extensions are a second pile at the same counter, not a second screen: the
+  // fifth tile above (`extensionsToInspect`) opens straight into it.
+  const [view, setView] = useState<"queue" | "extensions">("queue");
   const [bucket, setBucket] = useState<StaffQueueBucket>("toPrepare");
   const [search, setSearch] = useState("");
 
@@ -65,6 +79,165 @@ export default function StaffQueuePage() {
   const confirmPickup = useConfirmPickup();
   const recordReturn = useRecordReturn();
   const markLost = useMarkLost();
+
+  const { data: extRows, isLoading: extLoading } = useStaffExtensionQueue(
+    view === "extensions" ? search : "",
+  );
+  const decideExtension = useStaffDecideExtension();
+  const [extBusyKey, setExtBusyKey] = useState<number | null>(null);
+  const [extRejecting, setExtRejecting] = useState<number | null>(null);
+  const [extReason, setExtReason] = useState("");
+  const [extConditions, setExtConditions] = useState<Record<number, ConditionType>>({});
+  const extConditionOf = (key: number): ConditionType => extConditions[key] ?? "Normal";
+
+  async function decideExt(row: ExtensionReviewRow, decision: "approve" | "reject") {
+    const why = extReason.trim();
+    if (decision === "reject" && !why) return;
+
+    setExtBusyKey(row.extensionKey);
+    setResult(null);
+    try {
+      await decideExtension.mutateAsync({
+        extensionKey: row.extensionKey,
+        decision,
+        condition: extConditionOf(row.extensionKey),
+        ...(why ? { note: why } : {}),
+      });
+      setResult({
+        tone: "ok",
+        text: t(
+          decision === "approve" ? "staff.queue.doneExtApprove" : "staff.queue.doneExtReject",
+          { item: row.itemName ?? "" },
+        ),
+      });
+      setExtRejecting(null);
+      setExtReason("");
+    } catch (error) {
+      setResult({ tone: "bad", text: getErrorMessage(error) });
+    } finally {
+      setExtBusyKey(null);
+    }
+  }
+
+  const EXT_CONDITIONS: ConditionType[] = ["Normal", "MinorDamage", "MajorDamage", "Broken"];
+
+  const extColumns: Column<ExtensionReviewRow>[] = [
+    {
+      key: "borrower",
+      header: t("staff.queue.colBorrower"),
+      render: (r) => (
+        <div className="min-w-0">
+          <div className="truncate font-medium text-foreground">
+            {r.borrower.firstName} {r.borrower.lastName}
+          </div>
+          <div className="mt-0.5 font-mono text-[11px] text-t4">{r.borrower.studentId}</div>
+        </div>
+      ),
+    },
+    {
+      key: "item",
+      header: t("staff.queue.colItem"),
+      render: (r) => (
+        <div className="min-w-0">
+          <div className="truncate text-foreground">{r.itemName ?? "-"}</div>
+          <div className="mt-0.5 flex items-center gap-1.5 font-mono text-[11px] text-t4">
+            {r.tier ? <TierDot tier={r.tier} /> : null}
+            {r.tier ?? t("borrower.catalog.tierUnknown")}
+            {r.serialNo ? ` · ${r.serialNo}` : ""}
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: "extendNo",
+      header: t("staff.queue.colExtension"),
+      render: (r) => <Badge tone="neutral">{t("staff.queue.extendNoLabel", { n: r.extendNo ?? 1 })}</Badge>,
+    },
+    {
+      key: "due",
+      header: t("staff.queue.colDueChange"),
+      render: (r) => (
+        <div className="whitespace-nowrap font-mono text-xs">
+          <span className="text-t4 line-through">{fmtDateTime(r.previousDueAt)}</span>
+          <span className="mx-1 text-t4">&rarr;</span>
+          <span className="text-foreground">{fmtDateTime(r.requestedDueAt)}</span>
+        </div>
+      ),
+    },
+    {
+      key: "condition",
+      header: t("staff.queue.colCondition"),
+      render: (r) => (
+        <select
+          className="rounded border border-border bg-transparent px-1.5 py-1 text-xs text-foreground"
+          value={extConditionOf(r.extensionKey)}
+          onChange={(e) =>
+            setExtConditions((c) => ({ ...c, [r.extensionKey]: e.target.value as ConditionType }))
+          }
+          aria-label={t("staff.queue.colCondition")}
+        >
+          {EXT_CONDITIONS.map((c) => (
+            <option key={c} value={c}>
+              {t(`staff.inspection.cond${c}`)}
+            </option>
+          ))}
+        </select>
+      ),
+    },
+    {
+      key: "act",
+      header: "",
+      align: "right",
+      className: "sticky right-0 bg-card",
+      render: (r) =>
+        extRejecting === r.extensionKey ? (
+          <div className="flex items-center justify-end gap-2">
+            <Input
+              autoFocus
+              value={extReason}
+              onChange={(e) => setExtReason(e.target.value)}
+              placeholder={t("staff.queue.extReasonPlaceholder")}
+              className="h-8 w-44"
+            />
+            <Button
+              type="button"
+              size="sm"
+              variant="destructive"
+              disabled={!extReason.trim() || extBusyKey === r.extensionKey}
+              onClick={() => void decideExt(r, "reject")}
+            >
+              {t("staff.queue.extReject")}
+            </Button>
+            <Button type="button" variant="outline" size="sm" onClick={() => setExtRejecting(null)}>
+              {t("common.cancel")}
+            </Button>
+          </div>
+        ) : (
+          <div className="flex justify-end gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={extBusyKey === r.extensionKey}
+              onClick={() => {
+                setExtReason("");
+                setExtRejecting(r.extensionKey);
+              }}
+            >
+              {t("staff.queue.extReject")}
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              disabled={extBusyKey === r.extensionKey}
+              onClick={() => void decideExt(r, "approve")}
+            >
+              {extBusyKey === r.extensionKey ? t("common.loading") : t("staff.queue.extApprove")}
+            </Button>
+          </div>
+        ),
+    },
+  ];
 
   async function act(row: StaffQueueRow) {
     const key = rowKey(row);
@@ -191,7 +364,7 @@ export default function StaffQueuePage() {
       render: (r) => {
         const busy = busyKey === rowKey(r);
         return (
-          <div className="flex justify-end gap-2">
+          <div className="flex justify-end gap-2" onClick={(e) => e.stopPropagation()}>
             {bucket === "overdue" && r.lostEligible ? (
               <Button
                 type="button"
@@ -212,6 +385,13 @@ export default function StaffQueuePage() {
     },
   ];
 
+  // A row past `toPrepare` already has a UsageLog, so it has somewhere to link
+  // to; `toPrepare` rows are still just a reservation and open nothing.
+  function openRow(row: StaffQueueRow) {
+    if (row.usageKey === null) return;
+    navigate(ROUTES.STAFF_HANDOVER.replace(":usageKey", String(row.usageKey)));
+  }
+
   return (
     <div>
       <PageHeader title={t("nav.queue")} subtitle={t("staff.queue.subtitle")} />
@@ -227,12 +407,15 @@ export default function StaffQueuePage() {
             onClick={() => setBucket(b)}
           />
         ))}
-        {/* Not buckets of this table - they belong to the inspection desk, and
-            are shown so the counter knows the backlog exists. */}
+        {/* toInspect belongs to the inspection desk's own page and is shown
+            here only so the counter knows the backlog exists. Extensions are
+            this desk's own second pile, so its tile opens straight into it. */}
         <CountTile label={t("staff.queue.tileToInspect")} value={counts?.toInspect} />
         <CountTile
           label={t("staff.queue.tileExtensions")}
           value={counts?.extensionsToInspect}
+          active={view === "extensions"}
+          onClick={() => setView("extensions")}
         />
       </div>
 
@@ -249,10 +432,38 @@ export default function StaffQueuePage() {
         </div>
       ) : null}
 
+      {view === "extensions" ? (
+        <DataTable
+          columns={extColumns}
+          rows={extRows ?? []}
+          rowKey={(r) => String(r.extensionKey)}
+          pageSize={15}
+          headerActions={
+            <Button type="button" variant="outline" size="sm" onClick={() => setView("queue")}>
+              {t("staff.queue.backToQueue")}
+            </Button>
+          }
+          beforeRows={
+            <div className="border-b border-border px-3.5 py-2.5">
+              <Input
+                type="search"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder={t("staff.queue.searchPlaceholder")}
+                className="max-w-sm"
+              />
+            </div>
+          }
+          emptyTitle={extLoading ? t("common.loading") : t("staff.queue.extEmptyTitle")}
+          emptyDescription={extLoading ? undefined : t("staff.queue.extEmptyDesc")}
+          rangeLabel={(start, end, total) => t("common.showingRange", { start, end, total })}
+        />
+      ) : (
       <DataTable
         columns={columns}
         rows={rows ?? []}
         rowKey={rowKey}
+        onRowClick={openRow}
         pageSize={15}
         headerActions={
           <Segmented
@@ -282,6 +493,7 @@ export default function StaffQueuePage() {
           t("common.showingRange", { start, end, total })
         }
       />
+      )}
     </div>
   );
 }

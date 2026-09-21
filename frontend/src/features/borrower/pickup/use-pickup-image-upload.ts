@@ -8,32 +8,51 @@ interface UploadPickupImageInput {
   image: PreparedBorrowerImage;
 }
 
-/** Presigned direct-to-storage upload followed by the database attachment. */
+/**
+ * Collection photos: request a ticket, PUT the bytes, attach the stored URL.
+ *
+ * This previously called `loan.requestPickupImageUpload` and
+ * `loan.attachPickupImage`, which do not exist on the server. It type-checked
+ * because `server/trpc-contract.ts` is a hand-written mirror and declared them,
+ * so the mismatch only showed up as a failed call at the counter. The real
+ * procedures live on the image router and are named differently.
+ *
+ * `before` is the stage taken at pickup; `after` is the matching set at return.
+ */
 export function usePickupImageUpload() {
   const trpc = useTRPCClient();
 
   return useMutation({
     mutationFn: async ({ usageKey, image }: UploadPickupImageInput) => {
-      const ticket = await trpc.loan.requestPickupImageUpload.mutate({
+      // Not `image.requestUpload`: that one is staff-only, so a borrower
+      // standing at the counter could never get a URL from it. This one checks
+      // the loan is theirs and fixes the purpose server-side.
+      const ticket = await trpc.image.requestUsagePhotoUpload.mutate({
         usageKey,
         contentType: image.contentType,
         sizeBytes: image.sizeBytes,
       });
 
-      await apiClient.uploadFile(ticket.uploadUrl, image.file, ticket.uploadHeaders);
+      await apiClient.uploadFile(ticket.uploadUrl, image.file);
 
-      const evidence = await trpc.loan.attachPickupImage.mutate({
+      const attached = await trpc.image.attachUsagePhotos.mutate({
         usageKey,
-        objectKey: ticket.objectKey,
-        uploadToken: ticket.uploadToken,
+        stage: "before",
+        imageUrls: [ticket.imageUrl],
       });
+
+      // `attachUsagePhotos` answers with every photo on the loan, grouped by
+      // stage, not with the row it just wrote. Pick ours back out by URL.
+      const evidence =
+        attached.before.find((photo) => photo.imageUrl === ticket.imageUrl) ??
+        attached.before[attached.before.length - 1];
 
       return {
         evidence,
         image: {
           ...image,
           status: "uploaded" as const,
-          imageUrl: evidence.imageUrl,
+          imageUrl: evidence?.imageUrl ?? ticket.imageUrl,
           error: undefined,
         },
       };
@@ -42,16 +61,27 @@ export function usePickupImageUpload() {
 }
 
 /**
- * Starts every selected loan only after all of its BeforePicture rows exist.
- * The backend owns the transaction; the frontend only requests it and then
- * replaces its view with fresh server state.
+ * Starts every selected loan once its photos are filed.
+ *
+ * `loan.confirmPickup` takes one loan, so this walks the list. That is a real
+ * difference from the single transaction the old (nonexistent)
+ * `loan.finalizePickup` implied: if the third of five fails, the first two are
+ * already collected. Sequential rather than parallel so the failure point is
+ * the loan actually reported, and the ones after it are untouched.
  */
 export function useFinalizePickup() {
   const trpc = useTRPCClient();
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (usageKeys: number[]) => trpc.loan.finalizePickup.mutate({ usageKeys }),
+    mutationFn: async (usageKeys: number[]) => {
+      const confirmed: number[] = [];
+      for (const usageKey of usageKeys) {
+        await trpc.loan.confirmPickup.mutate({ usageKey });
+        confirmed.push(usageKey);
+      }
+      return { finalizedUsageKeys: confirmed };
+    },
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["loan", "my-requests"] }),

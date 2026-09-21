@@ -9,6 +9,7 @@
  * 🟢 You can import this file directly.
  */
 export type * from './models/AccountInfo.js'
+export type * from './models/PasswordReset.js'
 export type * from './models/SessionInfo.js'
 export type * from './models/AuditLog.js'
 export type * from './models/RoleInfo.js'

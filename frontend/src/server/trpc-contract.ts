@@ -17,6 +17,22 @@
  * client bundle.
  */
 import { initTRPC } from "@trpc/server";
+
+/** `usagePhotosOutput` groups by stage; it is not a flat list. */
+interface UsagePhotoSet {
+  before: UsagePhoto[];
+  after: UsagePhoto[];
+  inspection: UsagePhoto[];
+}
+
+/** One row of `usagePhotosOutput` (backend/src/image/image.schema.ts). */
+interface UsagePhoto {
+  imageKey: number;
+  imageUrl: string;
+  stage: "before" | "after" | "inspection";
+  submittedBy: number;
+  submittedAt: string | null;
+}
 import { z } from "zod";
 import type { ServerUser } from "@/features/auth/user.adapter";
 import type {
@@ -42,6 +58,11 @@ import type {
   ManagedItemType,
   ManagedUnit,
 } from "@/features/staff/inventory/inventory.types";
+import type {
+  AuthorityRoleOption,
+  EligibilityGroupOption,
+  EligibilityRule,
+} from "@/features/staff/permissions/permissions.types";
 import type {
   LoanOutput,
   Paginated as ServerPaginated,
@@ -102,6 +123,18 @@ export const appRouter = t.router({
       .mutation(() => as<{ user: ServerUser }>()),
     logout: proc.mutation(() => as<{ ok: true }>()),
     /** Revokes every session the account holds, not just this browser's. */
+    // Revokes every other session, so a password change actually cuts off
+    // whoever might have known the old one.
+    // Both public: the caller is locked out by definition.
+    requestPasswordReset: proc
+      .input(z.object({ email: z.string() }))
+      .mutation(() => as<{ ok: true }>()),
+    resetPasswordWithToken: proc
+      .input(z.object({ token: z.string(), newPassword: z.string() }))
+      .mutation(() => as<{ ok: true }>()),
+    changePassword: proc
+      .input(z.object({ currentPassword: z.string(), newPassword: z.string() }))
+      .mutation(() => as<{ ok: true; otherSessionsRevoked: number }>()),
     logoutAll: proc.mutation(() => as<{ ok: true }>()),
   }),
 
@@ -136,6 +169,17 @@ export const appRouter = t.router({
 
     // Staff half. Scoped per row on the server to the caller's Authority, so
     // none of these take a department.
+    updateType: proc
+      .input(
+        z.object({
+          itemKey: z.number(),
+          name: z.string().optional(),
+          description: z.string().optional(),
+          imageUrl: z.string().optional(),
+          creditWeight: z.number().optional(),
+        }),
+      )
+      .mutation(() => as<ManagedItemDetail>()),
     listManaged: proc
       .input(pageInput.extend({ tier: z.string().optional(), availableOnly: z.boolean().optional() }))
       .query(() => as<ServerPaginated<ManagedItemType>>()),
@@ -171,6 +215,20 @@ export const appRouter = t.router({
     updateUnitStatus: proc
       .input(z.object({ unitId: z.string(), status: z.string() }))
       .mutation(() => as<EquipmentUnit>()),
+    // ── Eligibility (who may borrow a type) ────────────
+    listEligibility: proc
+      .input(z.object({ itemKey: z.number() }))
+      .query(() => as<EligibilityRule[]>()),
+    setEligibility: proc
+      .input(
+        z.object({
+          itemKey: z.number(),
+          rules: z.array(z.object({ groupKey: z.number(), authorityRoleKey: z.number() })).max(200),
+        }),
+      )
+      .mutation(() => as<EligibilityRule[]>()),
+    listManagementGroups: proc.query(() => as<EligibilityGroupOption[]>()),
+    listAuthorityRoles: proc.query(() => as<AuthorityRoleOption[]>()),
   }),
 
   // ── loan ──────────────────────────────────────────────
@@ -226,48 +284,6 @@ export const appRouter = t.router({
     cancel: proc
       .input(z.object({ reservationKey: z.number(), reason: z.string().optional() }))
       .mutation(() => as<ServerRequest>()),
-    requestPickupImageUpload: proc
-      .input(
-        z.object({
-          usageKey: z.number(),
-          contentType: z.enum(["image/jpeg", "image/png"]),
-          sizeBytes: z.number(),
-        }),
-      )
-      .mutation(() =>
-        as<{
-          uploadUrl: string;
-          /** Stable storage identifier; never persist the expiring uploadUrl. */
-          objectKey: string;
-          uploadToken: string;
-          imageUrl: string;
-          previewUrl: string;
-          expiresAt: string;
-          maxBytes: number;
-          /** Headers included when the storage provider generated the signature. */
-          uploadHeaders?: Record<string, string>;
-        }>(),
-      ),
-    attachPickupImage: proc
-      .input(
-        z.object({
-          usageKey: z.number(),
-          objectKey: z.string(),
-          uploadToken: z.string(),
-        }),
-      )
-      .mutation(() =>
-        as<{
-          imageKey: number;
-          usageKey: number;
-          imageUrl: string;
-          submittedAt: string;
-        }>(),
-      ),
-    finalizePickup: proc
-      .input(z.object({ usageKeys: z.array(z.number()).min(1).max(10) }))
-      .mutation(() => as<{ finalizedUsageKeys: number[] }>()),
-
     // Staff counter. Typed against backend/src/loan/loan.schema.ts.
     staffQueue: proc
       .input(
@@ -325,6 +341,62 @@ export const appRouter = t.router({
         }),
       )
       .mutation(() => as<ServerExtension>()),
+  }),
+
+  // ── image ─────────────────────────────────────────────
+  // Two steps: ask for a ticket, then PUT the bytes to `uploadUrl`. The file
+  // never travels through tRPC. `imageUrl` is what gets stored; `previewUrl`
+  // is the absolute form for an <img> straight after uploading.
+  image: t.router({
+    // The borrower's own ticket. No `purpose`: the server fixes it, and the
+    // loan is checked for ownership first. `requestUpload` above stays staff.
+    requestUsagePhotoUpload: proc
+      .input(
+        z.object({
+          usageKey: z.number(),
+          contentType: z.enum(["image/jpeg", "image/png"]),
+          sizeBytes: z.number(),
+        }),
+      )
+      .mutation(() =>
+        as<{
+          uploadUrl: string;
+          imageUrl: string;
+          previewUrl: string;
+          expiresAt: string;
+          maxBytes: number;
+        }>(),
+      ),
+    // Photos against one loan. `before` is taken at pickup, `after` at return.
+    attachUsagePhotos: proc
+      .input(
+        z.object({
+          usageKey: z.number(),
+          stage: z.enum(["before", "after"]),
+          imageUrls: z.array(z.string()).min(1).max(10),
+        }),
+      )
+      .mutation(() => as<UsagePhotoSet>()),
+    usagePhotos: proc
+      .input(z.object({ usageKey: z.number() }))
+      .query(() => as<UsagePhotoSet>()),
+    requestUpload: proc
+      .input(
+        z.object({
+          purpose: z.enum(["itemType", "itemUnit", "room", "inspection"]),
+          contentType: z.string(),
+          sizeBytes: z.number(),
+        }),
+      )
+      .mutation(() =>
+        as<{
+          uploadUrl: string;
+          imageUrl: string;
+          previewUrl: string;
+          expiresAt: string;
+          maxBytes: number;
+        }>(),
+      ),
   }),
 
   // ── approval ──────────────────────────────────────────

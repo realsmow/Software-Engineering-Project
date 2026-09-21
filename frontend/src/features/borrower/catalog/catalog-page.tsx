@@ -1,9 +1,10 @@
-import { useMemo, useState, type MouseEvent } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
-import { Check, Package, Plus, ShoppingCart, SlidersHorizontal, X } from "lucide-react";
+import { ShoppingCart, SlidersHorizontal, X } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { TierBadge, TierDot, TIERS, tierNoteKey } from "@/components/shared/tier-badge";
+import { ImageThumb } from "@/components/shared/image-thumb";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -26,6 +27,7 @@ import { STOCK_STATUSES, type CatalogItem } from "../mock-data";
 import { fmtDateTime } from "../format";
 import { FacetFilters, type FilterGroup } from "../facet-filters";
 import { remainingUnits, useRequestDraft } from "../request/request-draft.store";
+import { AddButton } from "./add-button";
 import { useEquipmentTypes } from "./use-equipment-types";
 
 /** Facet groups, in rail order. Keys namespace the option keys ("owner:12"). */
@@ -58,6 +60,14 @@ export default function CatalogPage() {
   // Draft lines live in the shared store so the request page picks them up.
   const draftLines = useRequestDraft((s) => s.lines);
   const addItem = useRequestDraft((s) => s.addItem);
+  const setQty = useRequestDraft((s) => s.setQty);
+  const removeItem = useRequestDraft((s) => s.removeItem);
+
+  function decreaseItem(item: CatalogItem) {
+    const qty = useRequestDraft.getState().lines.find((line) => line.itemId === item.id)?.qty ?? 0;
+    if (qty <= 1) removeItem(item.id);
+    else setQty(item.id, qty - 1, item.availableUnits);
+  }
 
   const groups = useMemo<FilterGroup[]>(() => {
     const countBy = (group: GroupKey, id: string) =>
@@ -178,7 +188,7 @@ export default function CatalogPage() {
       header: t("borrower.catalog.colItem"),
       render: (e) => (
         <div className="flex items-center gap-3">
-          <Thumb />
+          <ImageThumb src={e.imageUrl} size={44} />
           <div className="min-w-0">
             <div className="font-medium text-foreground">{e.name}</div>
             <div className="mt-0.5 font-mono text-[11px] text-t4">{e.code}</div>
@@ -236,6 +246,7 @@ export default function CatalogPage() {
             qty={qtyOf(e.id)}
             capped={atCap(e)}
             size="sm"
+            onDecrease={() => decreaseItem(e)}
             onAdd={(ev) => {
               ev.stopPropagation();
               addItem(e.id, e.availableUnits);
@@ -301,27 +312,27 @@ export default function CatalogPage() {
 
         <div className="min-w-0">
           {/* Desktop / tablet: one card, table rows. */}
-          <div className="hidden md:block">
-            {showEmpty ? (
-              <div className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
-                {strips}
+          <div className="hidden overflow-hidden rounded-lg border border-border bg-card shadow-sm md:block">
+            {strips}
+            <div className="[&>div]:rounded-none [&>div]:border-0">
+              {showEmpty ? (
                 <EmptyState onClear={clearFilters} />
-              </div>
-            ) : (
-              <DataTable
-                // Remount on any change to the result set so pagination starts
-                // over - DataTable owns its page state and has no reset prop.
-                key={`${query}|${sort}|${[...selected].sort().join(",")}`}
-                columns={columns}
-                rows={rows}
-                rowKey={(e) => e.id}
-                onRowClick={openDetail}
-                pageSize={PAGE_SIZE}
-                beforeRows={strips}
-                emptyTitle={t("common.loading")}
-                rangeLabel={(s, e, total) => t("table.range", { start: s, end: e, total })}
-              />
-            )}
+              ) : (
+                <DataTable
+                  // Remount on any change to the result set so pagination starts
+                  // over. The toolbar stays outside this keyed subtree so the
+                  // search field keeps focus while results change.
+                  key={`${query}|${sort}|${[...selected].sort().join(",")}`}
+                  columns={columns}
+                  rows={rows}
+                  rowKey={(e) => e.id}
+                  onRowClick={openDetail}
+                  pageSize={PAGE_SIZE}
+                  emptyTitle={t("common.loading")}
+                  rangeLabel={(s, e, total) => t("table.range", { start: s, end: e, total })}
+                />
+              )}
+            </div>
           </div>
 
           {/* Phone: search + chips above a card list. */}
@@ -372,6 +383,7 @@ export default function CatalogPage() {
                   capped={atCap(e)}
                   onOpen={() => openDetail(e)}
                   onAdd={() => addItem(e.id, e.availableUnits)}
+                  onDecrease={() => decreaseItem(e)}
                 />
               ))
             )}
@@ -510,18 +522,20 @@ function ItemCard({
   capped,
   onOpen,
   onAdd,
+  onDecrease,
 }: {
   item: CatalogItem;
   qty: number;
   capped: boolean;
   onOpen: () => void;
   onAdd: () => void;
+  onDecrease: () => void;
 }) {
   const { t } = useTranslation();
   return (
     <div className="rounded-lg border border-border bg-card p-3.5 shadow-sm">
       <div className="flex items-start gap-3">
-        <Thumb size={64} />
+        <ImageThumb src={item.imageUrl} size={64} />
         <div className="min-w-0">
           <div className="text-sm font-semibold leading-snug text-foreground">{item.name}</div>
           <div className="mt-1 font-mono text-[11px] text-t4">
@@ -555,60 +569,13 @@ function ItemCard({
           variant="default"
           className="h-10 flex-1"
           onAdd={onAdd}
+          onDecrease={onDecrease}
         />
       </div>
     </div>
   );
 }
 
-/**
- * Add-to-request button. Flips to a "selected" state once the item is in the
- * draft - accent fill, a check instead of the plus, and the count - so a glance
- * down the list shows what is already picked. Still adds another unit on click
- * until the shelf runs out, at which point it locks.
- */
-function AddButton({
-  qty,
-  capped,
-  size,
-  variant = "outline",
-  className,
-  onAdd,
-}: {
-  qty: number;
-  capped: boolean;
-  size?: "sm";
-  /** Look to use before anything is selected; the selected look is fixed. */
-  variant?: "outline" | "default";
-  className?: string;
-  onAdd: (ev: MouseEvent<HTMLButtonElement>) => void;
-}) {
-  const { t } = useTranslation();
-  const selected = qty > 0;
-  const icon = size === "sm" ? 14 : 15;
-
-  return (
-    <Button
-      type="button"
-      size={size}
-      variant={selected ? "outline" : variant}
-      className={cn(
-        selected &&
-          "border-accent bg-[var(--accent-soft)] text-accent hover:bg-accent hover:text-white",
-        className,
-      )}
-      disabled={capped}
-      onClick={onAdd}
-    >
-      {selected ? (
-        <Check size={icon} strokeWidth={2.6} />
-      ) : (
-        <Plus size={icon} strokeWidth={2.2} />
-      )}
-      {selected ? t("borrower.catalog.selected", { count: qty }) : t("borrower.catalog.add")}
-    </Button>
-  );
-}
 
 function AvailCount({ item }: { item: CatalogItem }) {
   return (
@@ -654,18 +621,6 @@ function DraftPill({ count, onOpen }: { count: number; onOpen: () => void }) {
 }
 
 /** Photo placeholder - equipment images land with the upload feature. */
-function Thumb({ size = 44 }: { size?: number }) {
-  return (
-    <div
-      className="flex shrink-0 items-center justify-center rounded border border-border bg-surface-inset text-t4"
-      style={{ width: size, height: size }}
-      aria-hidden
-    >
-      <Package size={size < 56 ? 18 : 24} strokeWidth={1.6} />
-    </div>
-  );
-}
-
 function facetOf(item: CatalogItem, group: GroupKey): string {
   if (group === "owner") return item.owner?.id ?? "unowned";
   if (group === "tier") return item.tier ?? "";
