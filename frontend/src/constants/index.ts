@@ -125,7 +125,7 @@ export const ROUTES = {
   APPEALS: "/my/appeals",
   // Staff
   STAFF_DASHBOARD: "/staff",
-  STAFF_HANDOVER: "/staff/handover",
+  STAFF_HANDOVER: "/staff/handover/:usageKey",
   STAFF_INSPECTION: "/staff/inspection",
   STAFF_INVENTORY: "/staff/inventory",
   // Department management (shared by staff + supervisor, jurisdiction-scoped)

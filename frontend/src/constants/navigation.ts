@@ -176,6 +176,7 @@ const NON_NAV_TITLE_KEYS: Record<string, string> = {
   [ROUTES.PROFILE]: "profile.title",
   [ROUTES.EQUIPMENT_DETAIL]: "nav.equipmentDetail",
   [ROUTES.ROOM_BOOKING]: "nav.roomBooking",
+  [ROUTES.STAFF_HANDOVER]: "nav.handover",
 };
 
 /** Flat lookup: route path → i18n label key (for breadcrumb + placeholder title). */

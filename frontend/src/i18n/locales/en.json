@@ -929,7 +929,31 @@
       "doneReturn": "Return recorded for {{who}}",
       "doneReturnLate": "Return recorded for {{who}}. {{days}} days late, {{credit}} credit deducted.",
       "doneLost": "Marked lost and charged to {{who}}",
-      "confirmLost": "Mark {{item}} held by {{who}} as lost? This charges their credit and removes the unit from stock."
+      "confirmLost": "Mark {{item}} held by {{who}} as lost? This charges their credit and removes the unit from stock.",
+      "backToQueue": "Back to the main queue",
+      "colExtension": "Extension",
+      "colDueChange": "Due date change",
+      "colCondition": "Condition found",
+      "extendNoLabel": "Extension {{n}}",
+      "extReasonPlaceholder": "Reason for rejecting",
+      "extReject": "Reject",
+      "extApprove": "Approve",
+      "extEmptyTitle": "No extensions waiting",
+      "extEmptyDesc": "Extension requests that need a condition check before approval appear here.",
+      "doneExtApprove": "Approved the extension for {{item}}",
+      "doneExtReject": "Rejected the extension for {{item}}"
+    },
+    "handover": {
+      "subtitle": "One loan, in full",
+      "backToQueue": "Back to queue",
+      "notFound": "This loan could not be found",
+      "swapTitle": "Swap unit",
+      "swapHint": "Use this when the borrower asks for a different unit before pickup (T1 equipment only)",
+      "newResourceKey": "New unit's resource key",
+      "swapReasonPlaceholder": "Reason for the swap (optional)",
+      "confirmSwap": "Confirm swap",
+      "doneSwap": "Unit swapped successfully",
+      "swapNotAllowed": "Only T1 loans may have their unit swapped"
     },
     "settings": {
       "subtitle": "Borrow periods and penalties for your department's equipment",
@@ -1034,7 +1058,23 @@
       "confirmBan": "Confirm {{days}}-day suspension",
       "reasonPlaceholder": "Reason (the borrower will see this)",
       "doneBanned": "Suspended borrowing for {{who}} for {{days}} days",
-      "doneLifted": "Restored borrowing for {{who}}"
+      "doneLifted": "Restored borrowing for {{who}}",
+      "viewBans": "Borrowing bans",
+      "viewEligibility": "Equipment eligibility",
+      "pickType": "Equipment type",
+      "pickTypePlaceholder": "Select an equipment type",
+      "pickTypeHint": "Pick an equipment type above to view and edit who may borrow it",
+      "colGroup": "Group / department",
+      "colRole": "Role",
+      "pickGroup": "Select a group or department",
+      "pickRole": "Select a role",
+      "addRule": "Add rule",
+      "removeRule": "Remove",
+      "noRules": "No rules yet - this type cannot be borrowed until at least one is added",
+      "unknownGroup": "Unknown group",
+      "appliesToUnits": "Applies to {{count}} units",
+      "saveRules": "Save eligibility",
+      "eligibilitySaved": "Eligibility saved"
     }
   },
   "supervisor": {
