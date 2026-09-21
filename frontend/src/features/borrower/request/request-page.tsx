@@ -264,12 +264,6 @@ export default function RequestPage() {
     }
   }
 
-  function saveDraft() {
-    // Nothing to persist yet - the draft already lives in the store, so this
-    // just steps out of the flow. TODO: POST /loan-requests as status "draft".
-    navigate(ROUTES.MY_LOANS);
-  }
-
   return (
     <div>
       <PageHeader title={t("nav.newRequest")} subtitle={t("borrower.request.subtitle")} />
@@ -445,15 +439,6 @@ export default function RequestPage() {
                 {createRequest.isPending
                   ? t("borrower.request.submitting")
                   : t("borrower.request.submit")}
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                className="h-9"
-                disabled={rows.length === 0 || createRequest.isPending}
-                onClick={saveDraft}
-              >
-                {t("borrower.request.saveDraft")}
               </Button>
             </div>
           </Panel>
