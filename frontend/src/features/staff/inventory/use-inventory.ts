@@ -1,7 +1,18 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTRPCClient } from "@/lib/trpc";
 import { fetchAllPages } from "@/lib/paging";
-import type { ManagedItemDetail, ManagedItemType, ManagedUnit } from "./inventory.types";
+import { queryKeys } from "@/lib/query-client";
+import type { ConditionType } from "@/features/staff/queue/queue.types";
+import type { Tier } from "@/types/domain";
+import type {
+  ManagedItemDetail,
+  ManagedItemType,
+  ManagedRoom,
+  ManagedUnit,
+  ManagementGroupRef,
+  ResourceStatus,
+  TierOption,
+} from "./inventory.types";
 
 /**
  * The department's own equipment.
@@ -46,6 +57,9 @@ function useRefreshInventory() {
   return () => {
     void queryClient.invalidateQueries({ queryKey: INVENTORY_KEY });
     void queryClient.invalidateQueries({ queryKey: ["equipment-types"] });
+    // Rooms are catalogue rows too, and registering or renaming one changes
+    // what the borrower's facility list shows.
+    void queryClient.invalidateQueries({ queryKey: queryKeys.facilities });
   };
 }
 
@@ -69,10 +83,27 @@ export function useSetUnitLendable() {
   });
 }
 
-// item.setUnitCondition is deliberately not wrapped yet. It records damage
-// found on the shelf, with no loan and therefore nobody to charge, which is a
-// different action from withdrawing a unit and needs its own control rather
-// than a second button squeezed into this row.
+/**
+ * Record what a unit is actually like, outside any loan.
+ *
+ * Not the same act as withdrawing one, which is why it is a separate control:
+ * this grades the thing and charges nobody, while `setUnitLendable` decides
+ * whether it may go out. Damage found during a return goes through
+ * `inspection.create` instead, because there the borrower can be charged.
+ */
+export function useSetUnitCondition() {
+  const trpc = useTRPCClient();
+  const refresh = useRefreshInventory();
+
+  return useMutation({
+    mutationFn: (input: {
+      resourceKey: number;
+      condition: ConditionType;
+      note?: string;
+    }): Promise<ManagedUnit> => trpc.item.setUnitCondition.mutate(input),
+    onSuccess: refresh,
+  });
+}
 
 /**
  * Edit one catalogue type.
@@ -94,5 +125,204 @@ export function useUpdateItemType() {
       creditWeight?: number;
     }) => trpc.item.updateType.mutate(input),
     onSuccess: refresh,
+  });
+}
+
+/**
+ * Register a catalogue entry.
+ *
+ * A type on its own is not stock: it has no units, and therefore no tier,
+ * until `item.createUnit` runs against it. The form says so rather than
+ * letting staff think they have registered equipment.
+ */
+export function useCreateItemType() {
+  const trpc = useTRPCClient();
+  const refresh = useRefreshInventory();
+
+  return useMutation({
+    mutationFn: (input: {
+      name: string;
+      description?: string;
+      imageUrl?: string;
+      creditWeight: number;
+    }): Promise<ManagedItemDetail> => trpc.item.createType.mutate(input),
+    onSuccess: refresh,
+  });
+}
+
+/**
+ * Register physical units of a type. Answers an ARRAY, not one unit.
+ *
+ * `quantity` registers a batch in one transaction and every row it wrote comes
+ * back, so the counter can print the whole run of stickers at once. The serial
+ * is suffixed per unit, which is why two boxes from the same batch are still
+ * tellable apart at the desk.
+ */
+export function useCreateItemUnits() {
+  const trpc = useTRPCClient();
+  const refresh = useRefreshInventory();
+
+  return useMutation({
+    mutationFn: (input: {
+      itemKey: number;
+      manageGroupKey: number;
+      tier: Tier;
+      serialNo?: string;
+      imageUrl?: string;
+      prepDays?: number;
+      lendable?: boolean;
+      quantity?: number;
+    }): Promise<ManagedUnit[]> => trpc.item.createUnit.mutate(input),
+    onSuccess: refresh,
+  });
+}
+
+/** Correct one unit: its serial, its tier, its prep days, its photo. */
+export function useUpdateUnit() {
+  const trpc = useTRPCClient();
+  const refresh = useRefreshInventory();
+
+  return useMutation({
+    mutationFn: (input: {
+      resourceKey: number;
+      serialNo?: string;
+      imageUrl?: string;
+      tier?: Tier;
+      prepDays?: number;
+    }): Promise<ManagedUnit> => trpc.item.updateUnit.mutate(input),
+    onSuccess: refresh,
+  });
+}
+
+/**
+ * Units of one type, filtered server-side.
+ *
+ * Separate from `useManagedItem`, which answers the type and its units in one
+ * round trip for the inventory card. This one exists for callers that hold an
+ * itemKey and want a narrowed set - the handover desk asking which units of
+ * this type are on the shelf and lendable right now.
+ */
+export function useManagedUnits(
+  itemKey: number | null,
+  filters: { status?: ResourceStatus; lendable?: boolean } = {},
+) {
+  const trpc = useTRPCClient();
+  const { status, lendable } = filters;
+
+  return useQuery({
+    queryKey: [...INVENTORY_KEY, "units", itemKey, status ?? null, lendable ?? null],
+    queryFn: async (): Promise<ManagedUnit[]> =>
+      itemKey === null
+        ? []
+        : trpc.item.listManagedUnits.query({
+            itemKey,
+            ...(status ? { status } : {}),
+            ...(lendable === undefined ? {} : { lendable }),
+          }),
+    enabled: itemKey !== null,
+  });
+}
+
+/**
+ * Rooms the department owns (T3).
+ *
+ * Whole set rather than a page: a department has tens of rooms, not
+ * thousands, and the screen filters them by name as you type.
+ */
+export function useManagedRooms() {
+  const trpc = useTRPCClient();
+
+  return useQuery({
+    queryKey: [...INVENTORY_KEY, "rooms"],
+    queryFn: async (): Promise<ManagedRoom[]> =>
+      fetchAllPages((page, pageSize) => trpc.item.listManagedRooms.query({ page, pageSize })),
+  });
+}
+
+/**
+ * Register a room.
+ *
+ * `capacity` is left out when nobody has measured it. Recording the room now
+ * and the seat count later beats typing a placeholder that nothing afterwards
+ * can tell from a real figure.
+ */
+export function useCreateRoom() {
+  const trpc = useTRPCClient();
+  const refresh = useRefreshInventory();
+
+  return useMutation({
+    mutationFn: (input: {
+      manageGroupKey: number;
+      name: string;
+      description?: string;
+      location?: string;
+      imageUrl?: string;
+      creditWeight?: number;
+      capacity?: number;
+      lendable?: boolean;
+    }): Promise<ManagedRoom> => trpc.item.createRoom.mutate(input),
+    onSuccess: refresh,
+  });
+}
+
+/**
+ * Edit a room.
+ *
+ * `capacity: null` clears a seat count, an omitted `capacity` leaves it alone.
+ * The two have to stay distinguishable: "we measured it and it was wrong" is a
+ * real edit, and without the explicit null a bad number could never be taken
+ * back out.
+ */
+export function useUpdateRoom() {
+  const trpc = useTRPCClient();
+  const refresh = useRefreshInventory();
+
+  return useMutation({
+    mutationFn: (input: {
+      resourceKey: number;
+      name?: string;
+      description?: string;
+      location?: string;
+      imageUrl?: string;
+      creditWeight?: number;
+      capacity?: number | null;
+    }): Promise<ManagedRoom> => trpc.item.updateRoom.mutate(input),
+    onSuccess: refresh,
+  });
+}
+
+/**
+ * The tier picker's options, read from BorrowRule rather than hard-coded.
+ *
+ * A department may add rules of its own; the server returns only the four that
+ * map to T0-T3, and registering against a key that is not configured is
+ * refused outright, so the list has to come from there.
+ */
+export function useTierOptions() {
+  const trpc = useTRPCClient();
+
+  return useQuery({
+    queryKey: [...INVENTORY_KEY, "tiers"],
+    queryFn: async (): Promise<TierOption[]> => trpc.item.listTiers.query(),
+    staleTime: Infinity,
+  });
+}
+
+/**
+ * Departments and clubs the caller may register equipment into.
+ *
+ * Queried here rather than borrowed from the permissions screen's copy: that
+ * folder belongs to another slice, and a create form that cannot be submitted
+ * because a neighbouring feature renamed a hook is a worse trade than one
+ * small duplicate query.
+ */
+export function useManagementGroupOptions() {
+  const trpc = useTRPCClient();
+
+  return useQuery({
+    queryKey: [...INVENTORY_KEY, "groups"],
+    queryFn: async (): Promise<ManagementGroupRef[]> =>
+      trpc.item.listManagementGroups.query(),
+    staleTime: Infinity,
   });
 }

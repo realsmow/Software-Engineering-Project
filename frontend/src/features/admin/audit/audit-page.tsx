@@ -313,33 +313,39 @@ export default function AdminAuditPage() {
         subtitle={selected?.id}
       >
         {selected ? (
-          <div className="flex flex-col divide-y divide-border">
-            <KvRow label={t("admin.audit.colTime")}>
-              <span className="font-mono">{fmtDateTime(selected.at)}</span>
-            </KvRow>
-            <KvRow label={t("admin.audit.colActor")}>
-              {selected.actorName}{" "}
-              <Badge tone={ROLE_TONE[selected.actorRole]}>{t(`nav.${selected.actorRole}`)}</Badge>
-            </KvRow>
-            <KvRow label={t("admin.audit.colAction")}>
-              <Badge tone={ACTION_TONE[selected.action]} dot>
-                {t(`admin.audit.act${cap(selected.action)}`)}
-              </Badge>
-            </KvRow>
-            <KvRow label={t("admin.audit.colTarget")}>
-              <span className="font-mono">{selected.target}</span>
-            </KvRow>
-            <KvRow label={t("admin.audit.colIp")}>
-              <span className="font-mono">{selected.ip}</span>
-            </KvRow>
-            <KvRow label={t("admin.audit.userAgent")}>{selected.userAgent}</KvRow>
+          <>
+            <div className="flex flex-col divide-y divide-border">
+              <KvRow label={t("admin.audit.colTime")}>
+                <span className="font-mono">{fmtDateTime(selected.at)}</span>
+              </KvRow>
+              <KvRow label={t("admin.audit.colActor")}>
+                {selected.actorName}{" "}
+                <Badge tone={ROLE_TONE[selected.actorRole]}>{t(`nav.${selected.actorRole}`)}</Badge>
+              </KvRow>
+              <KvRow label={t("admin.audit.colAction")}>
+                <Badge tone={ACTION_TONE[selected.action]} dot>
+                  {t(`admin.audit.act${cap(selected.action)}`)}
+                </Badge>
+              </KvRow>
+              <KvRow label={t("admin.audit.colTarget")}>
+                <span className="font-mono">{selected.target}</span>
+              </KvRow>
+              <KvRow label={t("admin.audit.colIp")}>
+                <span className="font-mono">{selected.ip}</span>
+              </KvRow>
+              <KvRow label={t("admin.audit.userAgent")}>{selected.userAgent}</KvRow>
+              <KvRow label={t("admin.audit.actorId")}>
+                <span className="font-mono">{selected.actorId ?? "-"}</span>
+              </KvRow>
+            </div>
+
             <div className="pt-4">
               <div className="mb-1.5 text-xs font-medium text-muted-foreground">{t("admin.audit.changes")}</div>
               <div className="min-h-[44px] whitespace-pre-wrap rounded-md border border-border bg-secondary px-3 py-2 text-sm text-foreground">
                 {selected.detail}
               </div>
             </div>
-          </div>
+          </>
         ) : null}
       </SlideOver>
     </div>

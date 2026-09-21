@@ -117,6 +117,7 @@ model AccountInfo {
   Faculty    FacultyInfo?  @relation(fields: [FacultyKey], references: [FacultyKey])
   Sessions   SessionInfo[]
   PasswordResets PasswordReset[]
+  EmailVerifications EmailVerification[]
   AuditTrail AuditLog[]
 
   Authorities          Authority[]
@@ -150,6 +151,27 @@ model PasswordReset {
   ExpiresAt  DateTime  @db.Timestamptz(3)
   /// Set the moment it is spent. One link, one reset.
   UsedAt     DateTime? @db.Timestamptz(3)
+
+  Account AccountInfo @relation(fields: [AccountKey], references: [AccountKey], onDelete: Cascade)
+
+  @@index([AccountKey])
+}
+
+/// A pending email address check for a self-registered account.
+///
+/// Same shape as PasswordReset and for the same reason: only the SHA-256 of
+/// the emailed token is kept, so a leaked database cannot be used to activate
+/// anybody's account. The account row exists from the moment someone submits
+/// the form, with IsActive false, which is what holds the email and student id
+/// against a second registration while the first is still unconfirmed.
+model EmailVerification {
+  VerificationKey Int       @id @default(autoincrement())
+  AccountKey      Int
+  TokenHash       String    @unique
+  IssuedAt        DateTime  @default(now()) @db.Timestamptz(3)
+  ExpiresAt       DateTime  @db.Timestamptz(3)
+  /// Set the moment it is spent. One link, one activation.
+  UsedAt          DateTime? @db.Timestamptz(3)
 
   Account AccountInfo @relation(fields: [AccountKey], references: [AccountKey], onDelete: Cascade)
 

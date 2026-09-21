@@ -15,17 +15,22 @@ import {
   changePasswordOutput,
   loginInput,
   loginOutput,
+  registerInput,
   requestPasswordResetInput,
   resetPasswordWithTokenInput,
+  verifyEmailInput,
   type ChangePasswordInput,
   type LoginInput,
+  type RegisterInput,
   type RequestPasswordResetInput,
   type ResetPasswordWithTokenInput,
+  type VerifyEmailInput,
 } from './auth.schema';
 import { AuthService } from './auth.service';
 import { SESSION_COOKIE, SessionService } from './session.service';
 import { LoginThrottleService } from './login-throttle.service';
 import { PasswordResetService } from './password-reset.service';
+import { RegistrationService } from './registration.service';
 import { BusinessError } from '../common/errors/business-error';
 import { AuditService } from '../common/audit/audit.service';
 
@@ -37,6 +42,7 @@ export class AuthRouter {
     private readonly throttle: LoginThrottleService,
     private readonly audit: AuditService,
     private readonly passwordReset: PasswordResetService,
+    private readonly registration: RegistrationService,
   ) {}
 
   /** Own profile: role, faculty, and the borrow limits of the current credit tier */
@@ -146,6 +152,34 @@ export class AuthRouter {
     this.throttle.assertAllowed(limiterKey, ctx.req.ip);
     this.throttle.recordFailure(limiterKey, ctx.req.ip);
     await this.passwordReset.request(input.email);
+    return OK;
+  }
+
+  /**
+   * Create an account. Public, and deliberately uninformative.
+   *
+   * Always returns ok, so this cannot be used to find out which addresses or
+   * student ids are already taken - when one is, the mail goes to the address
+   * itself rather than an error to the caller. The account is written inactive
+   * and cannot sign in until the emailed link is opened.
+   *
+   * The limiter is namespaced the same way the reset one is: sharing login's
+   * bucket would let anyone lock an address out of signing in by submitting
+   * this form five times.
+   */
+  @Mutation({ input: registerInput, output: okOutput })
+  async register(@Input() input: RegisterInput, @Ctx() ctx: TrpcContext) {
+    const limiterKey = `register:${input.email.trim().toLowerCase()}`;
+    this.throttle.assertAllowed(limiterKey, ctx.req.ip);
+    this.throttle.recordFailure(limiterKey, ctx.req.ip);
+    await this.registration.register(input);
+    return OK;
+  }
+
+  /** Spend a confirmation link and let the account sign in. Public. */
+  @Mutation({ input: verifyEmailInput, output: okOutput })
+  async verifyEmail(@Input() input: VerifyEmailInput) {
+    await this.registration.verify(input.token);
     return OK;
   }
 

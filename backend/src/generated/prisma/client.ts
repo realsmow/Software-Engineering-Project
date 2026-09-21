@@ -54,6 +54,17 @@ export type AccountInfo = Prisma.AccountInfoModel
  */
 export type PasswordReset = Prisma.PasswordResetModel
 /**
+ * Model EmailVerification
+ * A pending email address check for a self-registered account.
+ * 
+ * Same shape as PasswordReset and for the same reason: only the SHA-256 of
+ * the emailed token is kept, so a leaked database cannot be used to activate
+ * anybody's account. The account row exists from the moment someone submits
+ * the form, with IsActive false, which is what holds the email and student id
+ * against a second registration while the first is still unconfirmed.
+ */
+export type EmailVerification = Prisma.EmailVerificationModel
+/**
  * Model SessionInfo
  * 
  */
