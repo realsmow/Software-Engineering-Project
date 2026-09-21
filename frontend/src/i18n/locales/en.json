@@ -658,6 +658,7 @@
       "emptyBody": "Add equipment from the catalog to start a borrowing request.",
       "emptyCta": "Browse catalog",
       "selectedItems": "Selected items",
+      "clearItems": "Clear all",
       "colItem": "Equipment",
       "colTier": "Tier",
       "colQty": "Qty",
