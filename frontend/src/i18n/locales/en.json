@@ -592,7 +592,7 @@
       "deptL": "Owning group",
       "totalL": "Units held",
       "periodL": "Max loan period",
-      "weightL": "Credit weight",
+      "weightL": "Credit weight of the equipment",
       "unitsSuffix": "units",
       "rule": "Borrowing conditions",
       "ruleT0": "Borrow instantly, no approval needed",
