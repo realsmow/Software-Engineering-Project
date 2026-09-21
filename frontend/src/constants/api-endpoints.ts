@@ -50,7 +50,6 @@ export const API = {
     /** Live remaining count + next-available for a type. POLLED - POLLING.AVAILABILITY (15s). */
     getAvailability: "item.getAvailability",
     /** Long-cached master data: categories + tiers (staleTime 1h). */
-    listCategories: "item.listCategories",
     /** Units of a type (serials, status) - staff prepare / inventory. */
     listUnits: "item.listUnits",
     /** Create a new equipment type. Staff inventory. */
@@ -212,7 +211,6 @@ export const API = {
     /** Read technical config (auth/storage/email/polling). Page: Technical config. */
     getConfig: "admin.getConfig",
     /** Update technical config. Page: Technical config. */
-    updateConfig: "admin.updateConfig",
 
     // System status & cron (IT admin)
     /** Service/DB/cron health. POLLED. Page: System status, Admin overview. */

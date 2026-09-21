@@ -266,6 +266,7 @@ export type ResourceInfoWhereInput = {
   Reservations?: Prisma.ReservationsListRelationFilter
   UsageLogs?: Prisma.UsageLogListRelationFilter
   Inspections?: Prisma.InspectionListRelationFilter
+  CheckRounds?: Prisma.RoomCheckRoundListRelationFilter
   Images?: Prisma.ImagesListRelationFilter
   RepairLogs?: Prisma.RepairLogListRelationFilter
 }
@@ -289,6 +290,7 @@ export type ResourceInfoOrderByWithRelationInput = {
   Reservations?: Prisma.ReservationsOrderByRelationAggregateInput
   UsageLogs?: Prisma.UsageLogOrderByRelationAggregateInput
   Inspections?: Prisma.InspectionOrderByRelationAggregateInput
+  CheckRounds?: Prisma.RoomCheckRoundOrderByRelationAggregateInput
   Images?: Prisma.ImagesOrderByRelationAggregateInput
   RepairLogs?: Prisma.RepairLogOrderByRelationAggregateInput
 }
@@ -315,6 +317,7 @@ export type ResourceInfoWhereUniqueInput = Prisma.AtLeast<{
   Reservations?: Prisma.ReservationsListRelationFilter
   UsageLogs?: Prisma.UsageLogListRelationFilter
   Inspections?: Prisma.InspectionListRelationFilter
+  CheckRounds?: Prisma.RoomCheckRoundListRelationFilter
   Images?: Prisma.ImagesListRelationFilter
   RepairLogs?: Prisma.RepairLogListRelationFilter
 }, "ResourceKey">
@@ -364,6 +367,7 @@ export type ResourceInfoCreateInput = {
   Reservations?: Prisma.ReservationsCreateNestedManyWithoutResourceInput
   UsageLogs?: Prisma.UsageLogCreateNestedManyWithoutResourceInput
   Inspections?: Prisma.InspectionCreateNestedManyWithoutResourceInput
+  CheckRounds?: Prisma.RoomCheckRoundCreateNestedManyWithoutResourceInput
   Images?: Prisma.ImagesCreateNestedManyWithoutResourceInput
   RepairLogs?: Prisma.RepairLogCreateNestedManyWithoutResourceInput
 }
@@ -384,6 +388,7 @@ export type ResourceInfoUncheckedCreateInput = {
   Reservations?: Prisma.ReservationsUncheckedCreateNestedManyWithoutResourceInput
   UsageLogs?: Prisma.UsageLogUncheckedCreateNestedManyWithoutResourceInput
   Inspections?: Prisma.InspectionUncheckedCreateNestedManyWithoutResourceInput
+  CheckRounds?: Prisma.RoomCheckRoundUncheckedCreateNestedManyWithoutResourceInput
   Images?: Prisma.ImagesUncheckedCreateNestedManyWithoutResourceInput
   RepairLogs?: Prisma.RepairLogUncheckedCreateNestedManyWithoutResourceInput
 }
@@ -403,6 +408,7 @@ export type ResourceInfoUpdateInput = {
   Reservations?: Prisma.ReservationsUpdateManyWithoutResourceNestedInput
   UsageLogs?: Prisma.UsageLogUpdateManyWithoutResourceNestedInput
   Inspections?: Prisma.InspectionUpdateManyWithoutResourceNestedInput
+  CheckRounds?: Prisma.RoomCheckRoundUpdateManyWithoutResourceNestedInput
   Images?: Prisma.ImagesUpdateManyWithoutResourceNestedInput
   RepairLogs?: Prisma.RepairLogUpdateManyWithoutResourceNestedInput
 }
@@ -423,6 +429,7 @@ export type ResourceInfoUncheckedUpdateInput = {
   Reservations?: Prisma.ReservationsUncheckedUpdateManyWithoutResourceNestedInput
   UsageLogs?: Prisma.UsageLogUncheckedUpdateManyWithoutResourceNestedInput
   Inspections?: Prisma.InspectionUncheckedUpdateManyWithoutResourceNestedInput
+  CheckRounds?: Prisma.RoomCheckRoundUncheckedUpdateManyWithoutResourceNestedInput
   Images?: Prisma.ImagesUncheckedUpdateManyWithoutResourceNestedInput
   RepairLogs?: Prisma.RepairLogUncheckedUpdateManyWithoutResourceNestedInput
 }
@@ -596,6 +603,20 @@ export type EnumResourceStatusFieldUpdateOperationsInput = {
 
 export type EnumResourceTypeFieldUpdateOperationsInput = {
   set?: $Enums.ResourceType
+}
+
+export type ResourceInfoCreateNestedOneWithoutCheckRoundsInput = {
+  create?: Prisma.XOR<Prisma.ResourceInfoCreateWithoutCheckRoundsInput, Prisma.ResourceInfoUncheckedCreateWithoutCheckRoundsInput>
+  connectOrCreate?: Prisma.ResourceInfoCreateOrConnectWithoutCheckRoundsInput
+  connect?: Prisma.ResourceInfoWhereUniqueInput
+}
+
+export type ResourceInfoUpdateOneRequiredWithoutCheckRoundsNestedInput = {
+  create?: Prisma.XOR<Prisma.ResourceInfoCreateWithoutCheckRoundsInput, Prisma.ResourceInfoUncheckedCreateWithoutCheckRoundsInput>
+  connectOrCreate?: Prisma.ResourceInfoCreateOrConnectWithoutCheckRoundsInput
+  upsert?: Prisma.ResourceInfoUpsertWithoutCheckRoundsInput
+  connect?: Prisma.ResourceInfoWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.ResourceInfoUpdateToOneWithWhereWithoutCheckRoundsInput, Prisma.ResourceInfoUpdateWithoutCheckRoundsInput>, Prisma.ResourceInfoUncheckedUpdateWithoutCheckRoundsInput>
 }
 
 export type ResourceInfoCreateNestedOneWithoutConditionLogsInput = {
@@ -794,6 +815,7 @@ export type ResourceInfoCreateWithoutManagementGroupInput = {
   Reservations?: Prisma.ReservationsCreateNestedManyWithoutResourceInput
   UsageLogs?: Prisma.UsageLogCreateNestedManyWithoutResourceInput
   Inspections?: Prisma.InspectionCreateNestedManyWithoutResourceInput
+  CheckRounds?: Prisma.RoomCheckRoundCreateNestedManyWithoutResourceInput
   Images?: Prisma.ImagesCreateNestedManyWithoutResourceInput
   RepairLogs?: Prisma.RepairLogCreateNestedManyWithoutResourceInput
 }
@@ -813,6 +835,7 @@ export type ResourceInfoUncheckedCreateWithoutManagementGroupInput = {
   Reservations?: Prisma.ReservationsUncheckedCreateNestedManyWithoutResourceInput
   UsageLogs?: Prisma.UsageLogUncheckedCreateNestedManyWithoutResourceInput
   Inspections?: Prisma.InspectionUncheckedCreateNestedManyWithoutResourceInput
+  CheckRounds?: Prisma.RoomCheckRoundUncheckedCreateNestedManyWithoutResourceInput
   Images?: Prisma.ImagesUncheckedCreateNestedManyWithoutResourceInput
   RepairLogs?: Prisma.RepairLogUncheckedCreateNestedManyWithoutResourceInput
 }
@@ -871,6 +894,7 @@ export type ResourceInfoCreateWithoutItemInput = {
   Reservations?: Prisma.ReservationsCreateNestedManyWithoutResourceInput
   UsageLogs?: Prisma.UsageLogCreateNestedManyWithoutResourceInput
   Inspections?: Prisma.InspectionCreateNestedManyWithoutResourceInput
+  CheckRounds?: Prisma.RoomCheckRoundCreateNestedManyWithoutResourceInput
   Images?: Prisma.ImagesCreateNestedManyWithoutResourceInput
   RepairLogs?: Prisma.RepairLogCreateNestedManyWithoutResourceInput
 }
@@ -890,6 +914,7 @@ export type ResourceInfoUncheckedCreateWithoutItemInput = {
   Reservations?: Prisma.ReservationsUncheckedCreateNestedManyWithoutResourceInput
   UsageLogs?: Prisma.UsageLogUncheckedCreateNestedManyWithoutResourceInput
   Inspections?: Prisma.InspectionUncheckedCreateNestedManyWithoutResourceInput
+  CheckRounds?: Prisma.RoomCheckRoundUncheckedCreateNestedManyWithoutResourceInput
   Images?: Prisma.ImagesUncheckedCreateNestedManyWithoutResourceInput
   RepairLogs?: Prisma.RepairLogUncheckedCreateNestedManyWithoutResourceInput
 }
@@ -924,6 +949,7 @@ export type ResourceInfoUpdateWithoutItemInput = {
   Reservations?: Prisma.ReservationsUpdateManyWithoutResourceNestedInput
   UsageLogs?: Prisma.UsageLogUpdateManyWithoutResourceNestedInput
   Inspections?: Prisma.InspectionUpdateManyWithoutResourceNestedInput
+  CheckRounds?: Prisma.RoomCheckRoundUpdateManyWithoutResourceNestedInput
   Images?: Prisma.ImagesUpdateManyWithoutResourceNestedInput
   RepairLogs?: Prisma.RepairLogUpdateManyWithoutResourceNestedInput
 }
@@ -943,6 +969,7 @@ export type ResourceInfoUncheckedUpdateWithoutItemInput = {
   Reservations?: Prisma.ReservationsUncheckedUpdateManyWithoutResourceNestedInput
   UsageLogs?: Prisma.UsageLogUncheckedUpdateManyWithoutResourceNestedInput
   Inspections?: Prisma.InspectionUncheckedUpdateManyWithoutResourceNestedInput
+  CheckRounds?: Prisma.RoomCheckRoundUncheckedUpdateManyWithoutResourceNestedInput
   Images?: Prisma.ImagesUncheckedUpdateManyWithoutResourceNestedInput
   RepairLogs?: Prisma.RepairLogUncheckedUpdateManyWithoutResourceNestedInput
 }
@@ -961,6 +988,7 @@ export type ResourceInfoCreateWithoutRoomInput = {
   Reservations?: Prisma.ReservationsCreateNestedManyWithoutResourceInput
   UsageLogs?: Prisma.UsageLogCreateNestedManyWithoutResourceInput
   Inspections?: Prisma.InspectionCreateNestedManyWithoutResourceInput
+  CheckRounds?: Prisma.RoomCheckRoundCreateNestedManyWithoutResourceInput
   Images?: Prisma.ImagesCreateNestedManyWithoutResourceInput
   RepairLogs?: Prisma.RepairLogCreateNestedManyWithoutResourceInput
 }
@@ -980,6 +1008,7 @@ export type ResourceInfoUncheckedCreateWithoutRoomInput = {
   Reservations?: Prisma.ReservationsUncheckedCreateNestedManyWithoutResourceInput
   UsageLogs?: Prisma.UsageLogUncheckedCreateNestedManyWithoutResourceInput
   Inspections?: Prisma.InspectionUncheckedCreateNestedManyWithoutResourceInput
+  CheckRounds?: Prisma.RoomCheckRoundUncheckedCreateNestedManyWithoutResourceInput
   Images?: Prisma.ImagesUncheckedCreateNestedManyWithoutResourceInput
   RepairLogs?: Prisma.RepairLogUncheckedCreateNestedManyWithoutResourceInput
 }
@@ -1014,6 +1043,7 @@ export type ResourceInfoUpdateWithoutRoomInput = {
   Reservations?: Prisma.ReservationsUpdateManyWithoutResourceNestedInput
   UsageLogs?: Prisma.UsageLogUpdateManyWithoutResourceNestedInput
   Inspections?: Prisma.InspectionUpdateManyWithoutResourceNestedInput
+  CheckRounds?: Prisma.RoomCheckRoundUpdateManyWithoutResourceNestedInput
   Images?: Prisma.ImagesUpdateManyWithoutResourceNestedInput
   RepairLogs?: Prisma.RepairLogUpdateManyWithoutResourceNestedInput
 }
@@ -1028,6 +1058,101 @@ export type ResourceInfoUncheckedUpdateWithoutRoomInput = {
   BufferTime?: Prisma.IntFieldUpdateOperationsInput | number
   AllowBorrow?: Prisma.BoolFieldUpdateOperationsInput | boolean
   Item?: Prisma.ItemIndivUncheckedUpdateOneWithoutResourceNestedInput
+  ConditionLogs?: Prisma.ConditionLogUncheckedUpdateManyWithoutResourceNestedInput
+  Eligibilities?: Prisma.EligibilityUncheckedUpdateManyWithoutResourceNestedInput
+  Reservations?: Prisma.ReservationsUncheckedUpdateManyWithoutResourceNestedInput
+  UsageLogs?: Prisma.UsageLogUncheckedUpdateManyWithoutResourceNestedInput
+  Inspections?: Prisma.InspectionUncheckedUpdateManyWithoutResourceNestedInput
+  CheckRounds?: Prisma.RoomCheckRoundUncheckedUpdateManyWithoutResourceNestedInput
+  Images?: Prisma.ImagesUncheckedUpdateManyWithoutResourceNestedInput
+  RepairLogs?: Prisma.RepairLogUncheckedUpdateManyWithoutResourceNestedInput
+}
+
+export type ResourceInfoCreateWithoutCheckRoundsInput = {
+  ResourceStatus: $Enums.ResourceStatus
+  ResourceType: $Enums.ResourceType
+  BufferTime: number
+  AllowBorrow?: boolean
+  ManagementGroup: Prisma.ManagementGroupCreateNestedOneWithoutResourcesInput
+  BorrowRuleInfo: Prisma.BorrowRuleCreateNestedOneWithoutResourcesInput
+  CurrentCondition?: Prisma.ConditionLogCreateNestedOneWithoutResourcesCurrentlyOnInput
+  Item?: Prisma.ItemIndivCreateNestedOneWithoutResourceInput
+  Room?: Prisma.RoomInfoCreateNestedOneWithoutResourceInput
+  ConditionLogs?: Prisma.ConditionLogCreateNestedManyWithoutResourceInput
+  Eligibilities?: Prisma.EligibilityCreateNestedManyWithoutResourceInput
+  Reservations?: Prisma.ReservationsCreateNestedManyWithoutResourceInput
+  UsageLogs?: Prisma.UsageLogCreateNestedManyWithoutResourceInput
+  Inspections?: Prisma.InspectionCreateNestedManyWithoutResourceInput
+  Images?: Prisma.ImagesCreateNestedManyWithoutResourceInput
+  RepairLogs?: Prisma.RepairLogCreateNestedManyWithoutResourceInput
+}
+
+export type ResourceInfoUncheckedCreateWithoutCheckRoundsInput = {
+  ResourceKey?: number
+  ManagedBy: number
+  BorrowRule: number
+  ConditionKey?: number | null
+  ResourceStatus: $Enums.ResourceStatus
+  ResourceType: $Enums.ResourceType
+  BufferTime: number
+  AllowBorrow?: boolean
+  Item?: Prisma.ItemIndivUncheckedCreateNestedOneWithoutResourceInput
+  Room?: Prisma.RoomInfoUncheckedCreateNestedOneWithoutResourceInput
+  ConditionLogs?: Prisma.ConditionLogUncheckedCreateNestedManyWithoutResourceInput
+  Eligibilities?: Prisma.EligibilityUncheckedCreateNestedManyWithoutResourceInput
+  Reservations?: Prisma.ReservationsUncheckedCreateNestedManyWithoutResourceInput
+  UsageLogs?: Prisma.UsageLogUncheckedCreateNestedManyWithoutResourceInput
+  Inspections?: Prisma.InspectionUncheckedCreateNestedManyWithoutResourceInput
+  Images?: Prisma.ImagesUncheckedCreateNestedManyWithoutResourceInput
+  RepairLogs?: Prisma.RepairLogUncheckedCreateNestedManyWithoutResourceInput
+}
+
+export type ResourceInfoCreateOrConnectWithoutCheckRoundsInput = {
+  where: Prisma.ResourceInfoWhereUniqueInput
+  create: Prisma.XOR<Prisma.ResourceInfoCreateWithoutCheckRoundsInput, Prisma.ResourceInfoUncheckedCreateWithoutCheckRoundsInput>
+}
+
+export type ResourceInfoUpsertWithoutCheckRoundsInput = {
+  update: Prisma.XOR<Prisma.ResourceInfoUpdateWithoutCheckRoundsInput, Prisma.ResourceInfoUncheckedUpdateWithoutCheckRoundsInput>
+  create: Prisma.XOR<Prisma.ResourceInfoCreateWithoutCheckRoundsInput, Prisma.ResourceInfoUncheckedCreateWithoutCheckRoundsInput>
+  where?: Prisma.ResourceInfoWhereInput
+}
+
+export type ResourceInfoUpdateToOneWithWhereWithoutCheckRoundsInput = {
+  where?: Prisma.ResourceInfoWhereInput
+  data: Prisma.XOR<Prisma.ResourceInfoUpdateWithoutCheckRoundsInput, Prisma.ResourceInfoUncheckedUpdateWithoutCheckRoundsInput>
+}
+
+export type ResourceInfoUpdateWithoutCheckRoundsInput = {
+  ResourceStatus?: Prisma.EnumResourceStatusFieldUpdateOperationsInput | $Enums.ResourceStatus
+  ResourceType?: Prisma.EnumResourceTypeFieldUpdateOperationsInput | $Enums.ResourceType
+  BufferTime?: Prisma.IntFieldUpdateOperationsInput | number
+  AllowBorrow?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  ManagementGroup?: Prisma.ManagementGroupUpdateOneRequiredWithoutResourcesNestedInput
+  BorrowRuleInfo?: Prisma.BorrowRuleUpdateOneRequiredWithoutResourcesNestedInput
+  CurrentCondition?: Prisma.ConditionLogUpdateOneWithoutResourcesCurrentlyOnNestedInput
+  Item?: Prisma.ItemIndivUpdateOneWithoutResourceNestedInput
+  Room?: Prisma.RoomInfoUpdateOneWithoutResourceNestedInput
+  ConditionLogs?: Prisma.ConditionLogUpdateManyWithoutResourceNestedInput
+  Eligibilities?: Prisma.EligibilityUpdateManyWithoutResourceNestedInput
+  Reservations?: Prisma.ReservationsUpdateManyWithoutResourceNestedInput
+  UsageLogs?: Prisma.UsageLogUpdateManyWithoutResourceNestedInput
+  Inspections?: Prisma.InspectionUpdateManyWithoutResourceNestedInput
+  Images?: Prisma.ImagesUpdateManyWithoutResourceNestedInput
+  RepairLogs?: Prisma.RepairLogUpdateManyWithoutResourceNestedInput
+}
+
+export type ResourceInfoUncheckedUpdateWithoutCheckRoundsInput = {
+  ResourceKey?: Prisma.IntFieldUpdateOperationsInput | number
+  ManagedBy?: Prisma.IntFieldUpdateOperationsInput | number
+  BorrowRule?: Prisma.IntFieldUpdateOperationsInput | number
+  ConditionKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  ResourceStatus?: Prisma.EnumResourceStatusFieldUpdateOperationsInput | $Enums.ResourceStatus
+  ResourceType?: Prisma.EnumResourceTypeFieldUpdateOperationsInput | $Enums.ResourceType
+  BufferTime?: Prisma.IntFieldUpdateOperationsInput | number
+  AllowBorrow?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  Item?: Prisma.ItemIndivUncheckedUpdateOneWithoutResourceNestedInput
+  Room?: Prisma.RoomInfoUncheckedUpdateOneWithoutResourceNestedInput
   ConditionLogs?: Prisma.ConditionLogUncheckedUpdateManyWithoutResourceNestedInput
   Eligibilities?: Prisma.EligibilityUncheckedUpdateManyWithoutResourceNestedInput
   Reservations?: Prisma.ReservationsUncheckedUpdateManyWithoutResourceNestedInput
@@ -1051,6 +1176,7 @@ export type ResourceInfoCreateWithoutConditionLogsInput = {
   Reservations?: Prisma.ReservationsCreateNestedManyWithoutResourceInput
   UsageLogs?: Prisma.UsageLogCreateNestedManyWithoutResourceInput
   Inspections?: Prisma.InspectionCreateNestedManyWithoutResourceInput
+  CheckRounds?: Prisma.RoomCheckRoundCreateNestedManyWithoutResourceInput
   Images?: Prisma.ImagesCreateNestedManyWithoutResourceInput
   RepairLogs?: Prisma.RepairLogCreateNestedManyWithoutResourceInput
 }
@@ -1070,6 +1196,7 @@ export type ResourceInfoUncheckedCreateWithoutConditionLogsInput = {
   Reservations?: Prisma.ReservationsUncheckedCreateNestedManyWithoutResourceInput
   UsageLogs?: Prisma.UsageLogUncheckedCreateNestedManyWithoutResourceInput
   Inspections?: Prisma.InspectionUncheckedCreateNestedManyWithoutResourceInput
+  CheckRounds?: Prisma.RoomCheckRoundUncheckedCreateNestedManyWithoutResourceInput
   Images?: Prisma.ImagesUncheckedCreateNestedManyWithoutResourceInput
   RepairLogs?: Prisma.RepairLogUncheckedCreateNestedManyWithoutResourceInput
 }
@@ -1093,6 +1220,7 @@ export type ResourceInfoCreateWithoutCurrentConditionInput = {
   Reservations?: Prisma.ReservationsCreateNestedManyWithoutResourceInput
   UsageLogs?: Prisma.UsageLogCreateNestedManyWithoutResourceInput
   Inspections?: Prisma.InspectionCreateNestedManyWithoutResourceInput
+  CheckRounds?: Prisma.RoomCheckRoundCreateNestedManyWithoutResourceInput
   Images?: Prisma.ImagesCreateNestedManyWithoutResourceInput
   RepairLogs?: Prisma.RepairLogCreateNestedManyWithoutResourceInput
 }
@@ -1112,6 +1240,7 @@ export type ResourceInfoUncheckedCreateWithoutCurrentConditionInput = {
   Reservations?: Prisma.ReservationsUncheckedCreateNestedManyWithoutResourceInput
   UsageLogs?: Prisma.UsageLogUncheckedCreateNestedManyWithoutResourceInput
   Inspections?: Prisma.InspectionUncheckedCreateNestedManyWithoutResourceInput
+  CheckRounds?: Prisma.RoomCheckRoundUncheckedCreateNestedManyWithoutResourceInput
   Images?: Prisma.ImagesUncheckedCreateNestedManyWithoutResourceInput
   RepairLogs?: Prisma.RepairLogUncheckedCreateNestedManyWithoutResourceInput
 }
@@ -1151,6 +1280,7 @@ export type ResourceInfoUpdateWithoutConditionLogsInput = {
   Reservations?: Prisma.ReservationsUpdateManyWithoutResourceNestedInput
   UsageLogs?: Prisma.UsageLogUpdateManyWithoutResourceNestedInput
   Inspections?: Prisma.InspectionUpdateManyWithoutResourceNestedInput
+  CheckRounds?: Prisma.RoomCheckRoundUpdateManyWithoutResourceNestedInput
   Images?: Prisma.ImagesUpdateManyWithoutResourceNestedInput
   RepairLogs?: Prisma.RepairLogUpdateManyWithoutResourceNestedInput
 }
@@ -1170,6 +1300,7 @@ export type ResourceInfoUncheckedUpdateWithoutConditionLogsInput = {
   Reservations?: Prisma.ReservationsUncheckedUpdateManyWithoutResourceNestedInput
   UsageLogs?: Prisma.UsageLogUncheckedUpdateManyWithoutResourceNestedInput
   Inspections?: Prisma.InspectionUncheckedUpdateManyWithoutResourceNestedInput
+  CheckRounds?: Prisma.RoomCheckRoundUncheckedUpdateManyWithoutResourceNestedInput
   Images?: Prisma.ImagesUncheckedUpdateManyWithoutResourceNestedInput
   RepairLogs?: Prisma.RepairLogUncheckedUpdateManyWithoutResourceNestedInput
 }
@@ -1204,6 +1335,7 @@ export type ResourceInfoCreateWithoutBorrowRuleInfoInput = {
   Reservations?: Prisma.ReservationsCreateNestedManyWithoutResourceInput
   UsageLogs?: Prisma.UsageLogCreateNestedManyWithoutResourceInput
   Inspections?: Prisma.InspectionCreateNestedManyWithoutResourceInput
+  CheckRounds?: Prisma.RoomCheckRoundCreateNestedManyWithoutResourceInput
   Images?: Prisma.ImagesCreateNestedManyWithoutResourceInput
   RepairLogs?: Prisma.RepairLogCreateNestedManyWithoutResourceInput
 }
@@ -1223,6 +1355,7 @@ export type ResourceInfoUncheckedCreateWithoutBorrowRuleInfoInput = {
   Reservations?: Prisma.ReservationsUncheckedCreateNestedManyWithoutResourceInput
   UsageLogs?: Prisma.UsageLogUncheckedCreateNestedManyWithoutResourceInput
   Inspections?: Prisma.InspectionUncheckedCreateNestedManyWithoutResourceInput
+  CheckRounds?: Prisma.RoomCheckRoundUncheckedCreateNestedManyWithoutResourceInput
   Images?: Prisma.ImagesUncheckedCreateNestedManyWithoutResourceInput
   RepairLogs?: Prisma.RepairLogUncheckedCreateNestedManyWithoutResourceInput
 }
@@ -1267,6 +1400,7 @@ export type ResourceInfoCreateWithoutEligibilitiesInput = {
   Reservations?: Prisma.ReservationsCreateNestedManyWithoutResourceInput
   UsageLogs?: Prisma.UsageLogCreateNestedManyWithoutResourceInput
   Inspections?: Prisma.InspectionCreateNestedManyWithoutResourceInput
+  CheckRounds?: Prisma.RoomCheckRoundCreateNestedManyWithoutResourceInput
   Images?: Prisma.ImagesCreateNestedManyWithoutResourceInput
   RepairLogs?: Prisma.RepairLogCreateNestedManyWithoutResourceInput
 }
@@ -1286,6 +1420,7 @@ export type ResourceInfoUncheckedCreateWithoutEligibilitiesInput = {
   Reservations?: Prisma.ReservationsUncheckedCreateNestedManyWithoutResourceInput
   UsageLogs?: Prisma.UsageLogUncheckedCreateNestedManyWithoutResourceInput
   Inspections?: Prisma.InspectionUncheckedCreateNestedManyWithoutResourceInput
+  CheckRounds?: Prisma.RoomCheckRoundUncheckedCreateNestedManyWithoutResourceInput
   Images?: Prisma.ImagesUncheckedCreateNestedManyWithoutResourceInput
   RepairLogs?: Prisma.RepairLogUncheckedCreateNestedManyWithoutResourceInput
 }
@@ -1320,6 +1455,7 @@ export type ResourceInfoUpdateWithoutEligibilitiesInput = {
   Reservations?: Prisma.ReservationsUpdateManyWithoutResourceNestedInput
   UsageLogs?: Prisma.UsageLogUpdateManyWithoutResourceNestedInput
   Inspections?: Prisma.InspectionUpdateManyWithoutResourceNestedInput
+  CheckRounds?: Prisma.RoomCheckRoundUpdateManyWithoutResourceNestedInput
   Images?: Prisma.ImagesUpdateManyWithoutResourceNestedInput
   RepairLogs?: Prisma.RepairLogUpdateManyWithoutResourceNestedInput
 }
@@ -1339,6 +1475,7 @@ export type ResourceInfoUncheckedUpdateWithoutEligibilitiesInput = {
   Reservations?: Prisma.ReservationsUncheckedUpdateManyWithoutResourceNestedInput
   UsageLogs?: Prisma.UsageLogUncheckedUpdateManyWithoutResourceNestedInput
   Inspections?: Prisma.InspectionUncheckedUpdateManyWithoutResourceNestedInput
+  CheckRounds?: Prisma.RoomCheckRoundUncheckedUpdateManyWithoutResourceNestedInput
   Images?: Prisma.ImagesUncheckedUpdateManyWithoutResourceNestedInput
   RepairLogs?: Prisma.RepairLogUncheckedUpdateManyWithoutResourceNestedInput
 }
@@ -1357,6 +1494,7 @@ export type ResourceInfoCreateWithoutReservationsInput = {
   Eligibilities?: Prisma.EligibilityCreateNestedManyWithoutResourceInput
   UsageLogs?: Prisma.UsageLogCreateNestedManyWithoutResourceInput
   Inspections?: Prisma.InspectionCreateNestedManyWithoutResourceInput
+  CheckRounds?: Prisma.RoomCheckRoundCreateNestedManyWithoutResourceInput
   Images?: Prisma.ImagesCreateNestedManyWithoutResourceInput
   RepairLogs?: Prisma.RepairLogCreateNestedManyWithoutResourceInput
 }
@@ -1376,6 +1514,7 @@ export type ResourceInfoUncheckedCreateWithoutReservationsInput = {
   Eligibilities?: Prisma.EligibilityUncheckedCreateNestedManyWithoutResourceInput
   UsageLogs?: Prisma.UsageLogUncheckedCreateNestedManyWithoutResourceInput
   Inspections?: Prisma.InspectionUncheckedCreateNestedManyWithoutResourceInput
+  CheckRounds?: Prisma.RoomCheckRoundUncheckedCreateNestedManyWithoutResourceInput
   Images?: Prisma.ImagesUncheckedCreateNestedManyWithoutResourceInput
   RepairLogs?: Prisma.RepairLogUncheckedCreateNestedManyWithoutResourceInput
 }
@@ -1410,6 +1549,7 @@ export type ResourceInfoUpdateWithoutReservationsInput = {
   Eligibilities?: Prisma.EligibilityUpdateManyWithoutResourceNestedInput
   UsageLogs?: Prisma.UsageLogUpdateManyWithoutResourceNestedInput
   Inspections?: Prisma.InspectionUpdateManyWithoutResourceNestedInput
+  CheckRounds?: Prisma.RoomCheckRoundUpdateManyWithoutResourceNestedInput
   Images?: Prisma.ImagesUpdateManyWithoutResourceNestedInput
   RepairLogs?: Prisma.RepairLogUpdateManyWithoutResourceNestedInput
 }
@@ -1429,6 +1569,7 @@ export type ResourceInfoUncheckedUpdateWithoutReservationsInput = {
   Eligibilities?: Prisma.EligibilityUncheckedUpdateManyWithoutResourceNestedInput
   UsageLogs?: Prisma.UsageLogUncheckedUpdateManyWithoutResourceNestedInput
   Inspections?: Prisma.InspectionUncheckedUpdateManyWithoutResourceNestedInput
+  CheckRounds?: Prisma.RoomCheckRoundUncheckedUpdateManyWithoutResourceNestedInput
   Images?: Prisma.ImagesUncheckedUpdateManyWithoutResourceNestedInput
   RepairLogs?: Prisma.RepairLogUncheckedUpdateManyWithoutResourceNestedInput
 }
@@ -1447,6 +1588,7 @@ export type ResourceInfoCreateWithoutUsageLogsInput = {
   Eligibilities?: Prisma.EligibilityCreateNestedManyWithoutResourceInput
   Reservations?: Prisma.ReservationsCreateNestedManyWithoutResourceInput
   Inspections?: Prisma.InspectionCreateNestedManyWithoutResourceInput
+  CheckRounds?: Prisma.RoomCheckRoundCreateNestedManyWithoutResourceInput
   Images?: Prisma.ImagesCreateNestedManyWithoutResourceInput
   RepairLogs?: Prisma.RepairLogCreateNestedManyWithoutResourceInput
 }
@@ -1466,6 +1608,7 @@ export type ResourceInfoUncheckedCreateWithoutUsageLogsInput = {
   Eligibilities?: Prisma.EligibilityUncheckedCreateNestedManyWithoutResourceInput
   Reservations?: Prisma.ReservationsUncheckedCreateNestedManyWithoutResourceInput
   Inspections?: Prisma.InspectionUncheckedCreateNestedManyWithoutResourceInput
+  CheckRounds?: Prisma.RoomCheckRoundUncheckedCreateNestedManyWithoutResourceInput
   Images?: Prisma.ImagesUncheckedCreateNestedManyWithoutResourceInput
   RepairLogs?: Prisma.RepairLogUncheckedCreateNestedManyWithoutResourceInput
 }
@@ -1500,6 +1643,7 @@ export type ResourceInfoUpdateWithoutUsageLogsInput = {
   Eligibilities?: Prisma.EligibilityUpdateManyWithoutResourceNestedInput
   Reservations?: Prisma.ReservationsUpdateManyWithoutResourceNestedInput
   Inspections?: Prisma.InspectionUpdateManyWithoutResourceNestedInput
+  CheckRounds?: Prisma.RoomCheckRoundUpdateManyWithoutResourceNestedInput
   Images?: Prisma.ImagesUpdateManyWithoutResourceNestedInput
   RepairLogs?: Prisma.RepairLogUpdateManyWithoutResourceNestedInput
 }
@@ -1519,6 +1663,7 @@ export type ResourceInfoUncheckedUpdateWithoutUsageLogsInput = {
   Eligibilities?: Prisma.EligibilityUncheckedUpdateManyWithoutResourceNestedInput
   Reservations?: Prisma.ReservationsUncheckedUpdateManyWithoutResourceNestedInput
   Inspections?: Prisma.InspectionUncheckedUpdateManyWithoutResourceNestedInput
+  CheckRounds?: Prisma.RoomCheckRoundUncheckedUpdateManyWithoutResourceNestedInput
   Images?: Prisma.ImagesUncheckedUpdateManyWithoutResourceNestedInput
   RepairLogs?: Prisma.RepairLogUncheckedUpdateManyWithoutResourceNestedInput
 }
@@ -1537,6 +1682,7 @@ export type ResourceInfoCreateWithoutInspectionsInput = {
   Eligibilities?: Prisma.EligibilityCreateNestedManyWithoutResourceInput
   Reservations?: Prisma.ReservationsCreateNestedManyWithoutResourceInput
   UsageLogs?: Prisma.UsageLogCreateNestedManyWithoutResourceInput
+  CheckRounds?: Prisma.RoomCheckRoundCreateNestedManyWithoutResourceInput
   Images?: Prisma.ImagesCreateNestedManyWithoutResourceInput
   RepairLogs?: Prisma.RepairLogCreateNestedManyWithoutResourceInput
 }
@@ -1556,6 +1702,7 @@ export type ResourceInfoUncheckedCreateWithoutInspectionsInput = {
   Eligibilities?: Prisma.EligibilityUncheckedCreateNestedManyWithoutResourceInput
   Reservations?: Prisma.ReservationsUncheckedCreateNestedManyWithoutResourceInput
   UsageLogs?: Prisma.UsageLogUncheckedCreateNestedManyWithoutResourceInput
+  CheckRounds?: Prisma.RoomCheckRoundUncheckedCreateNestedManyWithoutResourceInput
   Images?: Prisma.ImagesUncheckedCreateNestedManyWithoutResourceInput
   RepairLogs?: Prisma.RepairLogUncheckedCreateNestedManyWithoutResourceInput
 }
@@ -1590,6 +1737,7 @@ export type ResourceInfoUpdateWithoutInspectionsInput = {
   Eligibilities?: Prisma.EligibilityUpdateManyWithoutResourceNestedInput
   Reservations?: Prisma.ReservationsUpdateManyWithoutResourceNestedInput
   UsageLogs?: Prisma.UsageLogUpdateManyWithoutResourceNestedInput
+  CheckRounds?: Prisma.RoomCheckRoundUpdateManyWithoutResourceNestedInput
   Images?: Prisma.ImagesUpdateManyWithoutResourceNestedInput
   RepairLogs?: Prisma.RepairLogUpdateManyWithoutResourceNestedInput
 }
@@ -1609,6 +1757,7 @@ export type ResourceInfoUncheckedUpdateWithoutInspectionsInput = {
   Eligibilities?: Prisma.EligibilityUncheckedUpdateManyWithoutResourceNestedInput
   Reservations?: Prisma.ReservationsUncheckedUpdateManyWithoutResourceNestedInput
   UsageLogs?: Prisma.UsageLogUncheckedUpdateManyWithoutResourceNestedInput
+  CheckRounds?: Prisma.RoomCheckRoundUncheckedUpdateManyWithoutResourceNestedInput
   Images?: Prisma.ImagesUncheckedUpdateManyWithoutResourceNestedInput
   RepairLogs?: Prisma.RepairLogUncheckedUpdateManyWithoutResourceNestedInput
 }
@@ -1628,6 +1777,7 @@ export type ResourceInfoCreateWithoutImagesInput = {
   Reservations?: Prisma.ReservationsCreateNestedManyWithoutResourceInput
   UsageLogs?: Prisma.UsageLogCreateNestedManyWithoutResourceInput
   Inspections?: Prisma.InspectionCreateNestedManyWithoutResourceInput
+  CheckRounds?: Prisma.RoomCheckRoundCreateNestedManyWithoutResourceInput
   RepairLogs?: Prisma.RepairLogCreateNestedManyWithoutResourceInput
 }
 
@@ -1647,6 +1797,7 @@ export type ResourceInfoUncheckedCreateWithoutImagesInput = {
   Reservations?: Prisma.ReservationsUncheckedCreateNestedManyWithoutResourceInput
   UsageLogs?: Prisma.UsageLogUncheckedCreateNestedManyWithoutResourceInput
   Inspections?: Prisma.InspectionUncheckedCreateNestedManyWithoutResourceInput
+  CheckRounds?: Prisma.RoomCheckRoundUncheckedCreateNestedManyWithoutResourceInput
   RepairLogs?: Prisma.RepairLogUncheckedCreateNestedManyWithoutResourceInput
 }
 
@@ -1681,6 +1832,7 @@ export type ResourceInfoUpdateWithoutImagesInput = {
   Reservations?: Prisma.ReservationsUpdateManyWithoutResourceNestedInput
   UsageLogs?: Prisma.UsageLogUpdateManyWithoutResourceNestedInput
   Inspections?: Prisma.InspectionUpdateManyWithoutResourceNestedInput
+  CheckRounds?: Prisma.RoomCheckRoundUpdateManyWithoutResourceNestedInput
   RepairLogs?: Prisma.RepairLogUpdateManyWithoutResourceNestedInput
 }
 
@@ -1700,6 +1852,7 @@ export type ResourceInfoUncheckedUpdateWithoutImagesInput = {
   Reservations?: Prisma.ReservationsUncheckedUpdateManyWithoutResourceNestedInput
   UsageLogs?: Prisma.UsageLogUncheckedUpdateManyWithoutResourceNestedInput
   Inspections?: Prisma.InspectionUncheckedUpdateManyWithoutResourceNestedInput
+  CheckRounds?: Prisma.RoomCheckRoundUncheckedUpdateManyWithoutResourceNestedInput
   RepairLogs?: Prisma.RepairLogUncheckedUpdateManyWithoutResourceNestedInput
 }
 
@@ -1718,6 +1871,7 @@ export type ResourceInfoCreateWithoutRepairLogsInput = {
   Reservations?: Prisma.ReservationsCreateNestedManyWithoutResourceInput
   UsageLogs?: Prisma.UsageLogCreateNestedManyWithoutResourceInput
   Inspections?: Prisma.InspectionCreateNestedManyWithoutResourceInput
+  CheckRounds?: Prisma.RoomCheckRoundCreateNestedManyWithoutResourceInput
   Images?: Prisma.ImagesCreateNestedManyWithoutResourceInput
 }
 
@@ -1737,6 +1891,7 @@ export type ResourceInfoUncheckedCreateWithoutRepairLogsInput = {
   Reservations?: Prisma.ReservationsUncheckedCreateNestedManyWithoutResourceInput
   UsageLogs?: Prisma.UsageLogUncheckedCreateNestedManyWithoutResourceInput
   Inspections?: Prisma.InspectionUncheckedCreateNestedManyWithoutResourceInput
+  CheckRounds?: Prisma.RoomCheckRoundUncheckedCreateNestedManyWithoutResourceInput
   Images?: Prisma.ImagesUncheckedCreateNestedManyWithoutResourceInput
 }
 
@@ -1771,6 +1926,7 @@ export type ResourceInfoUpdateWithoutRepairLogsInput = {
   Reservations?: Prisma.ReservationsUpdateManyWithoutResourceNestedInput
   UsageLogs?: Prisma.UsageLogUpdateManyWithoutResourceNestedInput
   Inspections?: Prisma.InspectionUpdateManyWithoutResourceNestedInput
+  CheckRounds?: Prisma.RoomCheckRoundUpdateManyWithoutResourceNestedInput
   Images?: Prisma.ImagesUpdateManyWithoutResourceNestedInput
 }
 
@@ -1790,6 +1946,7 @@ export type ResourceInfoUncheckedUpdateWithoutRepairLogsInput = {
   Reservations?: Prisma.ReservationsUncheckedUpdateManyWithoutResourceNestedInput
   UsageLogs?: Prisma.UsageLogUncheckedUpdateManyWithoutResourceNestedInput
   Inspections?: Prisma.InspectionUncheckedUpdateManyWithoutResourceNestedInput
+  CheckRounds?: Prisma.RoomCheckRoundUncheckedUpdateManyWithoutResourceNestedInput
   Images?: Prisma.ImagesUncheckedUpdateManyWithoutResourceNestedInput
 }
 
@@ -1817,6 +1974,7 @@ export type ResourceInfoUpdateWithoutManagementGroupInput = {
   Reservations?: Prisma.ReservationsUpdateManyWithoutResourceNestedInput
   UsageLogs?: Prisma.UsageLogUpdateManyWithoutResourceNestedInput
   Inspections?: Prisma.InspectionUpdateManyWithoutResourceNestedInput
+  CheckRounds?: Prisma.RoomCheckRoundUpdateManyWithoutResourceNestedInput
   Images?: Prisma.ImagesUpdateManyWithoutResourceNestedInput
   RepairLogs?: Prisma.RepairLogUpdateManyWithoutResourceNestedInput
 }
@@ -1836,6 +1994,7 @@ export type ResourceInfoUncheckedUpdateWithoutManagementGroupInput = {
   Reservations?: Prisma.ReservationsUncheckedUpdateManyWithoutResourceNestedInput
   UsageLogs?: Prisma.UsageLogUncheckedUpdateManyWithoutResourceNestedInput
   Inspections?: Prisma.InspectionUncheckedUpdateManyWithoutResourceNestedInput
+  CheckRounds?: Prisma.RoomCheckRoundUncheckedUpdateManyWithoutResourceNestedInput
   Images?: Prisma.ImagesUncheckedUpdateManyWithoutResourceNestedInput
   RepairLogs?: Prisma.RepairLogUncheckedUpdateManyWithoutResourceNestedInput
 }
@@ -1874,6 +2033,7 @@ export type ResourceInfoUpdateWithoutCurrentConditionInput = {
   Reservations?: Prisma.ReservationsUpdateManyWithoutResourceNestedInput
   UsageLogs?: Prisma.UsageLogUpdateManyWithoutResourceNestedInput
   Inspections?: Prisma.InspectionUpdateManyWithoutResourceNestedInput
+  CheckRounds?: Prisma.RoomCheckRoundUpdateManyWithoutResourceNestedInput
   Images?: Prisma.ImagesUpdateManyWithoutResourceNestedInput
   RepairLogs?: Prisma.RepairLogUpdateManyWithoutResourceNestedInput
 }
@@ -1893,6 +2053,7 @@ export type ResourceInfoUncheckedUpdateWithoutCurrentConditionInput = {
   Reservations?: Prisma.ReservationsUncheckedUpdateManyWithoutResourceNestedInput
   UsageLogs?: Prisma.UsageLogUncheckedUpdateManyWithoutResourceNestedInput
   Inspections?: Prisma.InspectionUncheckedUpdateManyWithoutResourceNestedInput
+  CheckRounds?: Prisma.RoomCheckRoundUncheckedUpdateManyWithoutResourceNestedInput
   Images?: Prisma.ImagesUncheckedUpdateManyWithoutResourceNestedInput
   RepairLogs?: Prisma.RepairLogUncheckedUpdateManyWithoutResourceNestedInput
 }
@@ -1931,6 +2092,7 @@ export type ResourceInfoUpdateWithoutBorrowRuleInfoInput = {
   Reservations?: Prisma.ReservationsUpdateManyWithoutResourceNestedInput
   UsageLogs?: Prisma.UsageLogUpdateManyWithoutResourceNestedInput
   Inspections?: Prisma.InspectionUpdateManyWithoutResourceNestedInput
+  CheckRounds?: Prisma.RoomCheckRoundUpdateManyWithoutResourceNestedInput
   Images?: Prisma.ImagesUpdateManyWithoutResourceNestedInput
   RepairLogs?: Prisma.RepairLogUpdateManyWithoutResourceNestedInput
 }
@@ -1950,6 +2112,7 @@ export type ResourceInfoUncheckedUpdateWithoutBorrowRuleInfoInput = {
   Reservations?: Prisma.ReservationsUncheckedUpdateManyWithoutResourceNestedInput
   UsageLogs?: Prisma.UsageLogUncheckedUpdateManyWithoutResourceNestedInput
   Inspections?: Prisma.InspectionUncheckedUpdateManyWithoutResourceNestedInput
+  CheckRounds?: Prisma.RoomCheckRoundUncheckedUpdateManyWithoutResourceNestedInput
   Images?: Prisma.ImagesUncheckedUpdateManyWithoutResourceNestedInput
   RepairLogs?: Prisma.RepairLogUncheckedUpdateManyWithoutResourceNestedInput
 }
@@ -1975,6 +2138,7 @@ export type ResourceInfoCountOutputType = {
   Reservations: number
   UsageLogs: number
   Inspections: number
+  CheckRounds: number
   Images: number
   RepairLogs: number
 }
@@ -1985,6 +2149,7 @@ export type ResourceInfoCountOutputTypeSelect<ExtArgs extends runtime.Types.Exte
   Reservations?: boolean | ResourceInfoCountOutputTypeCountReservationsArgs
   UsageLogs?: boolean | ResourceInfoCountOutputTypeCountUsageLogsArgs
   Inspections?: boolean | ResourceInfoCountOutputTypeCountInspectionsArgs
+  CheckRounds?: boolean | ResourceInfoCountOutputTypeCountCheckRoundsArgs
   Images?: boolean | ResourceInfoCountOutputTypeCountImagesArgs
   RepairLogs?: boolean | ResourceInfoCountOutputTypeCountRepairLogsArgs
 }
@@ -2037,6 +2202,13 @@ export type ResourceInfoCountOutputTypeCountInspectionsArgs<ExtArgs extends runt
 /**
  * ResourceInfoCountOutputType without action
  */
+export type ResourceInfoCountOutputTypeCountCheckRoundsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.RoomCheckRoundWhereInput
+}
+
+/**
+ * ResourceInfoCountOutputType without action
+ */
 export type ResourceInfoCountOutputTypeCountImagesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   where?: Prisma.ImagesWhereInput
 }
@@ -2068,6 +2240,7 @@ export type ResourceInfoSelect<ExtArgs extends runtime.Types.Extensions.Internal
   Reservations?: boolean | Prisma.ResourceInfo$ReservationsArgs<ExtArgs>
   UsageLogs?: boolean | Prisma.ResourceInfo$UsageLogsArgs<ExtArgs>
   Inspections?: boolean | Prisma.ResourceInfo$InspectionsArgs<ExtArgs>
+  CheckRounds?: boolean | Prisma.ResourceInfo$CheckRoundsArgs<ExtArgs>
   Images?: boolean | Prisma.ResourceInfo$ImagesArgs<ExtArgs>
   RepairLogs?: boolean | Prisma.ResourceInfo$RepairLogsArgs<ExtArgs>
   _count?: boolean | Prisma.ResourceInfoCountOutputTypeDefaultArgs<ExtArgs>
@@ -2124,6 +2297,7 @@ export type ResourceInfoInclude<ExtArgs extends runtime.Types.Extensions.Interna
   Reservations?: boolean | Prisma.ResourceInfo$ReservationsArgs<ExtArgs>
   UsageLogs?: boolean | Prisma.ResourceInfo$UsageLogsArgs<ExtArgs>
   Inspections?: boolean | Prisma.ResourceInfo$InspectionsArgs<ExtArgs>
+  CheckRounds?: boolean | Prisma.ResourceInfo$CheckRoundsArgs<ExtArgs>
   Images?: boolean | Prisma.ResourceInfo$ImagesArgs<ExtArgs>
   RepairLogs?: boolean | Prisma.ResourceInfo$RepairLogsArgs<ExtArgs>
   _count?: boolean | Prisma.ResourceInfoCountOutputTypeDefaultArgs<ExtArgs>
@@ -2152,6 +2326,7 @@ export type $ResourceInfoPayload<ExtArgs extends runtime.Types.Extensions.Intern
     Reservations: Prisma.$ReservationsPayload<ExtArgs>[]
     UsageLogs: Prisma.$UsageLogPayload<ExtArgs>[]
     Inspections: Prisma.$InspectionPayload<ExtArgs>[]
+    CheckRounds: Prisma.$RoomCheckRoundPayload<ExtArgs>[]
     Images: Prisma.$ImagesPayload<ExtArgs>[]
     RepairLogs: Prisma.$RepairLogPayload<ExtArgs>[]
   }
@@ -2568,6 +2743,7 @@ export interface Prisma__ResourceInfoClient<T, Null = never, ExtArgs extends run
   Reservations<T extends Prisma.ResourceInfo$ReservationsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ResourceInfo$ReservationsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ReservationsPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   UsageLogs<T extends Prisma.ResourceInfo$UsageLogsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ResourceInfo$UsageLogsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$UsageLogPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   Inspections<T extends Prisma.ResourceInfo$InspectionsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ResourceInfo$InspectionsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$InspectionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  CheckRounds<T extends Prisma.ResourceInfo$CheckRoundsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ResourceInfo$CheckRoundsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$RoomCheckRoundPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   Images<T extends Prisma.ResourceInfo$ImagesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ResourceInfo$ImagesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ImagesPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   RepairLogs<T extends Prisma.ResourceInfo$RepairLogsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ResourceInfo$RepairLogsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$RepairLogPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
@@ -3182,6 +3358,30 @@ export type ResourceInfo$InspectionsArgs<ExtArgs extends runtime.Types.Extension
   take?: number
   skip?: number
   distinct?: Prisma.InspectionScalarFieldEnum | Prisma.InspectionScalarFieldEnum[]
+}
+
+/**
+ * ResourceInfo.CheckRounds
+ */
+export type ResourceInfo$CheckRoundsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the RoomCheckRound
+   */
+  select?: Prisma.RoomCheckRoundSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the RoomCheckRound
+   */
+  omit?: Prisma.RoomCheckRoundOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.RoomCheckRoundInclude<ExtArgs> | null
+  where?: Prisma.RoomCheckRoundWhereInput
+  orderBy?: Prisma.RoomCheckRoundOrderByWithRelationInput | Prisma.RoomCheckRoundOrderByWithRelationInput[]
+  cursor?: Prisma.RoomCheckRoundWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.RoomCheckRoundScalarFieldEnum | Prisma.RoomCheckRoundScalarFieldEnum[]
 }
 
 /**

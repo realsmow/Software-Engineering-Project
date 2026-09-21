@@ -357,8 +357,39 @@ model ResourceInfo {
   Reservations  Reservations[]
   UsageLogs     UsageLog[]
   Inspections   Inspection[]
+  CheckRounds   RoomCheckRound[]
   Images        Images[]
   RepairLogs    RepairLog[]
+}
+
+/// A scheduled condition check on one T3 room (SRS §5.3, §5.9).
+///
+/// `recordRoomCheck` already records the *result* of a check. This is the
+/// *task* of doing one: without it nothing says a room is due, and a room
+/// nobody thought about looks exactly like a room that was checked and found
+/// fine. The nightly job opens one per room whose last check has aged out, and
+/// the check that follows closes it.
+///
+/// At most one round may be open per room. That is the database's rule rather
+/// than the job's, so running the job twice in a row cannot produce a second
+/// task for the same room.
+model RoomCheckRound {
+  RoundKey    Int       @id @default(autoincrement())
+  ResourceKey Int
+  OpenedAt    DateTime  @default(now()) @db.Timestamptz(3)
+  /// When the check should have happened by. Past this, the round is overdue.
+  DueAt       DateTime  @db.Timestamptz(3)
+  ClosedAt    DateTime? @db.Timestamptz(3)
+  /// The ConditionLog row the closing check wrote. Null while still open.
+  ConditionKey Int?
+
+  Resource  ResourceInfo  @relation(fields: [ResourceKey], references: [ResourceKey], onDelete: Cascade)
+  Condition ConditionLog? @relation("RoomCheckRoundCondition", fields: [ConditionKey], references: [ConditionKey])
+
+  /// Enforces "one open round per room": ClosedAt is null on the open one, and
+  /// Postgres treats each null as distinct, so closed rounds never collide.
+  @@unique([ResourceKey, ClosedAt])
+  @@index([DueAt])
 }
 
 model ConditionLog {
@@ -374,6 +405,7 @@ model ConditionLog {
 
   ResourcesCurrentlyOn ResourceInfo[] @relation("ResourceCurrentCondition")
   UsageCheckIns        UsageLog[]     @relation("UsageCheckInCondition")
+  ClosedCheckRounds    RoomCheckRound[] @relation("RoomCheckRoundCondition")
   UsageCheckouts       UsageLog[]     @relation("UsageCheckoutCondition")
   Inspections          Inspection[]   @relation("InspectionCondition")
   RepairsBefore        RepairLog[]    @relation("RepairConditionBefore")

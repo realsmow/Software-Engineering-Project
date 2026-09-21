@@ -276,15 +276,19 @@ export const systemStatusOutput = z.object({
   }),
 });
 
-/** The eight backend jobs listed in "รายการเรียกใช้งานจาก Backend" group 3. */
+/**
+ * The backend jobs from "รายการเรียกใช้งานจาก Backend" group 3 that this
+ * system runs. `computeAvailability` and `rollupDailyStats` were listed there
+ * and are not here: availability is computed live by the catalogue queries and
+ * report.summary counts from UsageLog on demand, so neither had anything to
+ * precompute and both existed only as a button that answered NOT_IMPLEMENTED.
+ */
 export const cronJobId = z.enum([
   'markOverdue',
   'markLost',
   'expireDemerits',
   'dueSoonReminder',
-  'computeAvailability',
   'openT3InspectionRounds',
-  'rollupDailyStats',
   'expireStaleRequests',
 ]);
 
@@ -350,9 +354,6 @@ export const technicalConfigOutput = z.object({
     nodeEnv: z.string(),
   }),
 });
-
-/** Send only the groups being changed. */
-export const updateTechnicalConfigInput = technicalConfigOutput.partial();
 
 // ---------------------------------------------------------------------------
 // Audit (IT admin)

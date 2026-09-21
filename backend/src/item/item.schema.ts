@@ -559,18 +559,6 @@ export const availabilityOutput = z.object({
   nextAvailableAt: z.iso.datetime().nullable(),
 });
 
-/**
- * Equipment category (instrument / tool / board in the frontend's mock).
- *
- * Declared so the contract is complete and the catalogue's category filter can
- * be written against it, but the service cannot answer: ItemInfo has no
- * category column and there is no category table. See docs/auth-admin.md.
- */
-export const itemCategory = z.object({
-  id: z.number().int(),
-  name: z.string(),
-});
-
 export type ListItemsInput = z.infer<typeof listItemsInput>;
 export type ListRoomsInput = z.infer<typeof listRoomsInput>;
 export type ItemSummary = z.infer<typeof itemSummary>;

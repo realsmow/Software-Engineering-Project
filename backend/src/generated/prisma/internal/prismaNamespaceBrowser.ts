@@ -67,6 +67,7 @@ export const ModelName = {
   ItemIndiv: 'ItemIndiv',
   RoomInfo: 'RoomInfo',
   ResourceInfo: 'ResourceInfo',
+  RoomCheckRound: 'RoomCheckRound',
   ConditionLog: 'ConditionLog',
   BorrowRule: 'BorrowRule',
   BorrowConstraints: 'BorrowConstraints',
@@ -279,6 +280,18 @@ export const ResourceInfoScalarFieldEnum = {
 } as const
 
 export type ResourceInfoScalarFieldEnum = (typeof ResourceInfoScalarFieldEnum)[keyof typeof ResourceInfoScalarFieldEnum]
+
+
+export const RoomCheckRoundScalarFieldEnum = {
+  RoundKey: 'RoundKey',
+  ResourceKey: 'ResourceKey',
+  OpenedAt: 'OpenedAt',
+  DueAt: 'DueAt',
+  ClosedAt: 'ClosedAt',
+  ConditionKey: 'ConditionKey'
+} as const
+
+export type RoomCheckRoundScalarFieldEnum = (typeof RoomCheckRoundScalarFieldEnum)[keyof typeof RoomCheckRoundScalarFieldEnum]
 
 
 export const ConditionLogScalarFieldEnum = {

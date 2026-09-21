@@ -117,6 +117,21 @@ export type RoomInfo = Prisma.RoomInfoModel
  */
 export type ResourceInfo = Prisma.ResourceInfoModel
 /**
+ * Model RoomCheckRound
+ * A scheduled condition check on one T3 room (SRS §5.3, §5.9).
+ * 
+ * `recordRoomCheck` already records the *result* of a check. This is the
+ * *task* of doing one: without it nothing says a room is due, and a room
+ * nobody thought about looks exactly like a room that was checked and found
+ * fine. The nightly job opens one per room whose last check has aged out, and
+ * the check that follows closes it.
+ * 
+ * At most one round may be open per room. That is the database's rule rather
+ * than the job's, so running the job twice in a row cannot produce a second
+ * task for the same room.
+ */
+export type RoomCheckRound = Prisma.RoomCheckRoundModel
+/**
  * Model ConditionLog
  * 
  */

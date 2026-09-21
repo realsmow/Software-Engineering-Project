@@ -7,19 +7,25 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Segmented } from "@/components/ui/segmented";
-import { getErrorMessage, getErrorPayload } from "@/lib/error-messages";
+import { getErrorMessage } from "@/lib/error-messages";
 import { fmtDateTime } from "@/features/borrower/format";
 import type { ConditionType } from "@/features/staff/queue/queue.types";
 import { UnitHistory } from "./unit-history";
 import {
   useFinishRepair,
-  useProposeDecommission,
   useRepairTargetUnits,
   useRepairTargets,
   useRepairs,
   useStartRepair,
+  useRoomRounds,
+  useRecordRoomCheck,
 } from "./use-repairs";
-import { CONDITIONS, isUsable, type Repair } from "./repairs.types";
+import {
+  CONDITIONS,
+  isUsable,
+  type Repair,
+  type RoomCheckRound,
+} from "./repairs.types";
 
 /**
  * The repair workshop (R02 "การติดตามการซ่อมบำรุง").
@@ -94,6 +100,146 @@ export default function StaffRepairsPage() {
           ))}
         </div>
       )}
+
+      <RoomRounds openOnly={openOnly} />
+    </div>
+  );
+}
+
+/**
+ * The scheduled room checks (§5.3, §5.9).
+ *
+ * On this page rather than a page of its own because it is the same job: a
+ * room found broken becomes a repair, and the staff member holding the list of
+ * one wants the other in front of them.
+ *
+ * Rounds are opened by a nightly job once a room's last check has aged out, so
+ * an empty list means everything has been looked at recently, not that the
+ * feature is off.
+ */
+function RoomRounds({ openOnly }: { openOnly: boolean }) {
+  const { t } = useTranslation();
+  const { data, isLoading } = useRoomRounds(openOnly);
+  const rounds = data ?? [];
+
+  return (
+    <section className="mt-8">
+      <div className="mb-3 text-[11px] font-semibold uppercase tracking-[0.05em] text-t3">
+        {t("staff.repairs.roundsTitle")}
+      </div>
+
+      {isLoading ? (
+        <div className="py-8 text-center text-sm text-t3">{t("common.loading")}</div>
+      ) : rounds.length === 0 ? (
+        <div className="rounded-lg border border-border bg-card px-4 py-8 text-center text-xs text-t3">
+          {t("staff.repairs.roundsEmpty")}
+        </div>
+      ) : (
+        <div className="flex flex-col gap-3">
+          {rounds.map((round) => (
+            <RoundCard key={round.roundKey} round={round} />
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function RoundCard({ round }: { round: RoomCheckRound }) {
+  const { t } = useTranslation();
+  const record = useRecordRoomCheck();
+  const [condition, setCondition] = useState<ConditionType>("Normal");
+  const [note, setNote] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const open = round.closedAt === null;
+
+  async function submit() {
+    setError(null);
+    try {
+      await record.mutateAsync({
+        resourceKey: round.resourceKey,
+        condition,
+        note: note.trim() || undefined,
+      });
+      // No local "done" state: the mutation invalidates the list, so an
+      // answered round leaves the open list on its own rather than sitting
+      // there wearing a success message.
+    } catch (e) {
+      setError(getErrorMessage(e));
+    }
+  }
+
+  return (
+    <div className="overflow-hidden rounded-lg border border-border bg-card">
+      <div className="flex flex-wrap items-center gap-2 px-3.5 py-3">
+        <div className="min-w-0 flex-1">
+          <div className="truncate text-sm font-semibold text-foreground">
+            {round.roomName ?? t("staff.repairs.roundUnnamedRoom")}
+          </div>
+          {round.location ? (
+            <div className="truncate text-xs text-t3">{round.location}</div>
+          ) : null}
+        </div>
+
+        {round.overdue ? (
+          <Badge tone="alert">{t("staff.repairs.roundOverdue")}</Badge>
+        ) : null}
+        {!round.stillBookable ? (
+          <Badge tone="warn">{t("staff.repairs.roundOutOfService")}</Badge>
+        ) : null}
+
+        <div className="text-xs text-t3">
+          {open
+            ? t("staff.repairs.roundDue", { at: fmtDateTime(round.dueAt) })
+            : t("staff.repairs.roundChecked", { at: fmtDateTime(round.closedAt!) })}
+        </div>
+      </div>
+
+      {open ? (
+        <div className="border-t border-border px-3.5 py-3">
+          <div className="mb-2.5 flex flex-wrap gap-2">
+            {CONDITIONS.map((c) => (
+              <button
+                key={c}
+                type="button"
+                onClick={() => setCondition(c)}
+                className={[
+                  "rounded border px-2.5 py-1.5 text-left text-[13px] transition-colors",
+                  condition === c
+                    ? "border-accent bg-[var(--accent-soft)]"
+                    : "border-border bg-secondary",
+                ].join(" ")}
+              >
+                {t(`staff.inspection.cond${c}`)}
+              </button>
+            ))}
+          </div>
+
+          <Input
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder={t("staff.repairs.roundNotePlaceholder")}
+          />
+
+          {!isUsable(condition) ? (
+            <p className="mt-2 text-xs text-[var(--s-warn-t)]">
+              {t("staff.repairs.roundWillClose")}
+            </p>
+          ) : null}
+
+          <div className="mt-2.5 flex items-center gap-2">
+            <Button type="button" size="sm" onClick={() => void submit()} disabled={record.isPending}>
+              {record.isPending ? t("common.loading") : t("staff.repairs.roundSubmit")}
+            </Button>
+            {error ? <span className="text-xs text-[var(--s-warn-t)]">{error}</span> : null}
+          </div>
+        </div>
+      ) : round.condition ? (
+        <div className="border-t border-border bg-secondary px-3.5 py-2.5 text-[13px] text-t2">
+          {t(`staff.inspection.cond${round.condition}`)}
+          {round.note ? `: ${round.note}` : ""}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -161,7 +307,6 @@ function RepairCard({ row }: { row: Repair }) {
             <UnitHistory resourceKey={row.resourceKey} />
           </div>
 
-          {isOpenRepair ? <DecommissionForm resourceKey={row.resourceKey} /> : null}
         </div>
       ) : null}
     </section>
@@ -281,113 +426,6 @@ function FinishForm({ row }: { row: Repair }) {
       >
         {finish.isPending ? t("common.loading") : t("staff.repairs.finishAction")}
       </Button>
-    </div>
-  );
-}
-
-/**
- * Propose writing the unit off.
- *
- * The server refuses this one. It checks the caller's scope and then answers
- * NOT_IMPLEMENTED, because a proposal needs a row with a proposer, a
- * supervisor's decision and an audit entry, and the schema has none of those
- * tables. The form is here anyway, wired to the real procedure: the workshop is
- * exactly where somebody decides a thing is beyond fixing, and the refusal is
- * shown with what the server itself says to do instead. When the table lands,
- * this starts working without being rewritten.
- */
-function DecommissionForm({ resourceKey }: { resourceKey: number }) {
-  const { t } = useTranslation();
-  const propose = useProposeDecommission();
-  const [openForm, setOpenForm] = useState(false);
-  const [reason, setReason] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [fallback, setFallback] = useState<string | null>(null);
-  const [done, setDone] = useState(false);
-
-  async function submit() {
-    setError(null);
-    setFallback(null);
-    if (reason.trim() === "") {
-      setError(t("staff.repairs.decommissionNeedsReason"));
-      return;
-    }
-    try {
-      await propose.mutateAsync({ resourceKey, reason: reason.trim() });
-      setDone(true);
-    } catch (e) {
-      setError(getErrorMessage(e));
-      // The server names what is missing and what to use meanwhile. Reading it
-      // off the error beats repeating it here, where it would rot.
-      const note = getErrorPayload(e)?.note;
-      if (typeof note === "string") setFallback(note);
-    }
-  }
-
-  if (done) {
-    return (
-      <div className="border-t border-border bg-[var(--s-ok-bg)] px-3.5 py-3 text-[13px] text-[var(--s-ok-t)]">
-        {t("staff.repairs.decommissionSent")}
-      </div>
-    );
-  }
-
-  return (
-    <div className="border-t border-border px-3.5 py-3">
-      {openForm ? (
-        <>
-          <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.05em] text-t3">
-            {t("staff.repairs.decommissionTitle")}
-          </div>
-          <p className="mb-2.5 text-xs leading-relaxed text-t3">
-            {t("staff.repairs.decommissionHint")}
-          </p>
-          <Input
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-            placeholder={t("staff.repairs.decommissionReasonPlaceholder")}
-            className="mb-2.5 max-w-xl"
-          />
-
-          {error ? (
-            <p className="mb-2 text-xs text-[var(--s-warn-t)]">{error}</p>
-          ) : null}
-          {fallback ? (
-            <p className="mb-2.5 max-w-xl text-xs leading-relaxed text-t3">{fallback}</p>
-          ) : null}
-
-          <div className="flex gap-2">
-            <Button
-              type="button"
-              size="sm"
-              variant="destructive"
-              disabled={propose.isPending}
-              onClick={() => void submit()}
-            >
-              {propose.isPending
-                ? t("common.loading")
-                : t("staff.repairs.decommissionAction")}
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              variant="ghost"
-              onClick={() => setOpenForm(false)}
-            >
-              {t("common.cancel")}
-            </Button>
-          </div>
-        </>
-      ) : (
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          onClick={() => setOpenForm(true)}
-        >
-          {t("staff.repairs.decommissionOpen")}
-        </Button>
-      )}
     </div>
   );
 }
