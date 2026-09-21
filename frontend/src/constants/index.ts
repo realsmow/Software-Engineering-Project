@@ -183,6 +183,11 @@ export const ROLE_ROUTES = {
   supervisor: [
     ROUTES.SUPERVISOR_APPROVALS,
     ROUTES.SUPERVISOR_APPEALS,
+    // What the department owns and what condition it is in. Not the counter:
+    // handing units over and grading returns is what a supervisor assigns to
+    // staff, so STAFF_DASHBOARD, STAFF_HANDOVER, STAFF_INSPECTION and
+    // STAFF_REPAIRS stay out.
+    ROUTES.STAFF_INVENTORY,
     ROUTES.STAFF_USERS,
     ROUTES.STAFF_PERMISSIONS,
     ROUTES.STAFF_SETTINGS,
