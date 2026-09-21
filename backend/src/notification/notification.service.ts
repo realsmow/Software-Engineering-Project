@@ -436,14 +436,14 @@ export class NotificationService {
   /**
    * Brings "ใกล้ครบกำหนดคืน" and "เกินกำหนดคืน" up to date for one borrower.
    *
-   * **Why a list query writes rows.** The contract files these as backend cron
-   * jobs (`dueSoonReminder`, `markOverdue`), and there is no scheduler in this
-   * service — `admin.runCronJob` is still NOT_IMPLEMENTED and adding
-   * `@nestjs/schedule` would put background writes into every test run and
-   * every developer's machine. Driving it from the borrower's own 60-second
-   * poll gets the reminder in front of the only person it is for, at the only
-   * moment it matters, with no new moving parts. The cost is that a borrower
-   * who never opens the app is never reminded — which is exactly what a real
+   * **Why a list query writes rows.** `dueSoonReminder` does run on a schedule
+   * now (CronScheduler, 08:00), but it only reaches accounts that already hold
+   * something: a borrower who opens the app between runs would otherwise see
+   * yesterday's picture. Driving it from the borrower's own 60-second poll as
+   * well gets the reminder in front of the only person it is for, at the
+   * moment it matters. The two are idempotent against each other, so the
+   * overlap costs nothing. The remaining gap is a borrower who never opens the
+   * app and is reminded only by the job, which is exactly what a real
    * scheduler would fix, and why this stays idempotent so one can be dropped
    * in front of it later without changing anything here.
    *

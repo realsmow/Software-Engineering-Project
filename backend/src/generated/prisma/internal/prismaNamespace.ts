@@ -413,6 +413,7 @@ export const ModelName = {
   ItemIndiv: 'ItemIndiv',
   RoomInfo: 'RoomInfo',
   ResourceInfo: 'ResourceInfo',
+  RoomCheckRound: 'RoomCheckRound',
   ConditionLog: 'ConditionLog',
   BorrowRule: 'BorrowRule',
   BorrowConstraints: 'BorrowConstraints',
@@ -444,7 +445,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "accountInfo" | "passwordReset" | "emailVerification" | "sessionInfo" | "auditLog" | "roleInfo" | "facultyInfo" | "branchInfo" | "managementGroup" | "authority" | "authorityRole" | "clubInfo" | "itemInfo" | "itemIndiv" | "roomInfo" | "resourceInfo" | "conditionLog" | "borrowRule" | "borrowConstraints" | "penaltyRule" | "eligibility" | "creditTier" | "reservations" | "usageLog" | "extensionRequest" | "inspection" | "penaltyInfo" | "appealInfo" | "images" | "notification" | "repairLog" | "cronRunLog"
+    modelProps: "accountInfo" | "passwordReset" | "emailVerification" | "sessionInfo" | "auditLog" | "roleInfo" | "facultyInfo" | "branchInfo" | "managementGroup" | "authority" | "authorityRole" | "clubInfo" | "itemInfo" | "itemIndiv" | "roomInfo" | "resourceInfo" | "roomCheckRound" | "conditionLog" | "borrowRule" | "borrowConstraints" | "penaltyRule" | "eligibility" | "creditTier" | "reservations" | "usageLog" | "extensionRequest" | "inspection" | "penaltyInfo" | "appealInfo" | "images" | "notification" | "repairLog" | "cronRunLog"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1629,6 +1630,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.ResourceInfoCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.ResourceInfoCountAggregateOutputType> | number
+        }
+      }
+    }
+    RoomCheckRound: {
+      payload: Prisma.$RoomCheckRoundPayload<ExtArgs>
+      fields: Prisma.RoomCheckRoundFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.RoomCheckRoundFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RoomCheckRoundPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.RoomCheckRoundFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RoomCheckRoundPayload>
+        }
+        findFirst: {
+          args: Prisma.RoomCheckRoundFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RoomCheckRoundPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.RoomCheckRoundFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RoomCheckRoundPayload>
+        }
+        findMany: {
+          args: Prisma.RoomCheckRoundFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RoomCheckRoundPayload>[]
+        }
+        create: {
+          args: Prisma.RoomCheckRoundCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RoomCheckRoundPayload>
+        }
+        createMany: {
+          args: Prisma.RoomCheckRoundCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.RoomCheckRoundCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RoomCheckRoundPayload>[]
+        }
+        delete: {
+          args: Prisma.RoomCheckRoundDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RoomCheckRoundPayload>
+        }
+        update: {
+          args: Prisma.RoomCheckRoundUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RoomCheckRoundPayload>
+        }
+        deleteMany: {
+          args: Prisma.RoomCheckRoundDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.RoomCheckRoundUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.RoomCheckRoundUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RoomCheckRoundPayload>[]
+        }
+        upsert: {
+          args: Prisma.RoomCheckRoundUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RoomCheckRoundPayload>
+        }
+        aggregate: {
+          args: Prisma.RoomCheckRoundAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateRoomCheckRound>
+        }
+        groupBy: {
+          args: Prisma.RoomCheckRoundGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.RoomCheckRoundGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.RoomCheckRoundCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.RoomCheckRoundCountAggregateOutputType> | number
         }
       }
     }
@@ -3035,6 +3110,18 @@ export const ResourceInfoScalarFieldEnum = {
 export type ResourceInfoScalarFieldEnum = (typeof ResourceInfoScalarFieldEnum)[keyof typeof ResourceInfoScalarFieldEnum]
 
 
+export const RoomCheckRoundScalarFieldEnum = {
+  RoundKey: 'RoundKey',
+  ResourceKey: 'ResourceKey',
+  OpenedAt: 'OpenedAt',
+  DueAt: 'DueAt',
+  ClosedAt: 'ClosedAt',
+  ConditionKey: 'ConditionKey'
+} as const
+
+export type RoomCheckRoundScalarFieldEnum = (typeof RoomCheckRoundScalarFieldEnum)[keyof typeof RoomCheckRoundScalarFieldEnum]
+
+
 export const ConditionLogScalarFieldEnum = {
   ConditionKey: 'ConditionKey',
   ResourceKey: 'ResourceKey',
@@ -3637,6 +3724,7 @@ export type GlobalOmitConfig = {
   itemIndiv?: Prisma.ItemIndivOmit
   roomInfo?: Prisma.RoomInfoOmit
   resourceInfo?: Prisma.ResourceInfoOmit
+  roomCheckRound?: Prisma.RoomCheckRoundOmit
   conditionLog?: Prisma.ConditionLogOmit
   borrowRule?: Prisma.BorrowRuleOmit
   borrowConstraints?: Prisma.BorrowConstraintsOmit

@@ -22,8 +22,9 @@ import { APP_TIME_ZONE } from '../common/schemas/datetime.schema';
  * Passed to every decorator below.
  *
  * Named once rather than repeated: the failure mode this guards against is a
- * sixth job being added without it, which nothing would report - the job would
- * register, fire, and log successfully, seven hours from where it was meant to.
+ * another job being added without it, which nothing would report - the job
+ * would register, fire, and log successfully, seven hours from where it was
+ * meant to.
  * cron.scheduler.spec.ts asserts that every scheduled method carries it.
  */
 const SCHEDULE = { timeZone: APP_TIME_ZONE } as const;
@@ -45,6 +46,11 @@ export class CronScheduler {
   @Cron('0 1 * * *', SCHEDULE)
   expireDemerits() {
     return this.jobs.runScheduled('expireDemerits');
+  }
+
+  @Cron('0 6 * * *', SCHEDULE)
+  openT3InspectionRounds() {
+    return this.jobs.runScheduled('openT3InspectionRounds');
   }
 
   @Cron('0 8 * * *', SCHEDULE)

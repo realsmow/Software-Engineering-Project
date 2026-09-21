@@ -34,7 +34,6 @@ import {
   systemStatusOutput,
   technicalConfigOutput,
   updateLendingSettingsInput,
-  updateTechnicalConfigInput,
   updateUserInput,
   type ChangeRoleInput,
   type CreateUserInput,
@@ -189,13 +188,6 @@ export class AdminRouter {
     return this.adminService.getConfig();
   }
 
-  /** Not implemented - see getConfig. */
-  @UseMiddlewares(AdminMiddleware)
-  @Mutation({ input: updateTechnicalConfigInput, output: okOutput })
-  updateConfig() {
-    return this.adminService.updateConfig();
-  }
-
   // ── System status & cron (IT admin) ─────────────────────────────────────
 
   /** Polled by the status page. Answers even when the database is unreachable. */
@@ -218,8 +210,8 @@ export class AdminRouter {
   }
 
   /**
-   * Runs one job now, off the schedule. The three unbuilt ones still refuse
-   * with NOT_IMPLEMENTED, and the attempt is recorded either way.
+   * Runs one job now, off the schedule. Every job in the registry does real
+   * work, and the attempt is recorded whether it succeeds or throws.
    */
   @UseMiddlewares(AdminMiddleware)
   @Mutation({ input: runCronJobInput, output: okOutput })

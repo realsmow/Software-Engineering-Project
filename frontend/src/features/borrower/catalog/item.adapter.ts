@@ -35,10 +35,10 @@ export function toCatalogItem(s: ServerItem): CatalogItem {
   return {
     id: String(s.id),
     name: s.name,
-    // No category table exists in the schema, so item.listCategories answers
-    // NOT_IMPLEMENTED and there is nothing to map here. The catalogue's
-    // category facet therefore matches nothing while data comes from the
+    // ItemInfo has no category column, so there is nothing to map here. The
+    // catalogue's category facet matches nothing while data comes from the
     // server. Faking a value would make a broken filter look like it works.
+    // Tier is unaffected: it comes from the unit's BorrowRule.
     categoryId: "",
     tier: s.tier,
     imageUrl: s.imageUrl ?? undefined,

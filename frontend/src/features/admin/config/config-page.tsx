@@ -13,8 +13,9 @@ import { useTechnicalConfig } from "./use-config";
  * silently does nothing is worse than no form.
  *
  * What was here before was a settings screen with toggles and inputs over
- * invented values, backed by a procedure that answered NOT_IMPLEMENTED. It
- * offered edits that could never be saved.
+ * invented values, backed by a procedure that only ever threw. Both are gone:
+ * there is no `admin.updateConfig` to pair with `getConfig`, because offering
+ * the verb at all promised an edit nothing could save.
  *
  * The question an administrator actually arrives with is "is this deployment
  * configured the way we think it is" - a cookie missing `secure`, a forgotten

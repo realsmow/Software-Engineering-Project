@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import type { Prisma } from '../generated/prisma/client';
 import { PrismaService } from '../prisma.service';
-import { BusinessError, notImplemented } from '../common/errors/business-error';
+import { BusinessError } from '../common/errors/business-error';
 import {
   isUnitAvailable,
   nextAvailableAt,
@@ -61,9 +61,10 @@ export class ItemService {
    * not units and not loans — a faculty has hundreds, not millions — and each
    * carries only its units' status flags.
    *
-   * Revisit when either becomes true: ItemInfo grows past a few thousand rows,
-   * or the planned `computeAvailability` cron lands and availability becomes a
-   * stored column, at which point this is an ordinary indexed ORDER BY.
+   * Revisit if ItemInfo grows past a few thousand rows. Storing availability
+   * instead was considered and dropped: it is a cache of something these
+   * queries already answer correctly, and a stale column is worse than a slow
+   * one.
    */
   async list(input: ListItemsInput) {
     const rows = await this.prisma.itemInfo.findMany({
@@ -192,20 +193,6 @@ export class ItemService {
   /** The units of one type — the same list `getById` returns, without the type. */
   async listUnits(itemKey: number) {
     return (await this.getById(itemKey)).units;
-  }
-
-  /**
-   * Not implemented — nothing in the schema groups equipment into categories.
-   *
-   * Kept as a declared procedure rather than left out, so the catalogue's
-   * category filter has a contract to be written against the day the table
-   * exists.
-   */
-  listCategories(): never {
-    return notImplemented(
-      ['Category table (name), plus ItemInfo.CategoryKey'],
-      "The frontend groups the catalogue into instrument / tool / board, but ItemInfo has no category column. Tier is unaffected — it comes from the unit's BorrowRule.",
-    );
   }
 
   /**

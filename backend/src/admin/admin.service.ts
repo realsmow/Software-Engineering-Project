@@ -8,7 +8,7 @@ import { AuditService, type AuditActor } from '../common/audit/audit.service';
 import { CreditTierService } from '../common/credit/credit-tier.service';
 import { StaffScopeService } from '../common/authority/staff-scope.service';
 import { CronService } from '../cron/cron.service';
-import { BusinessError, notImplemented } from '../common/errors/business-error';
+import { BusinessError } from '../common/errors/business-error';
 import {
   generateTemporaryPassword,
   hashPassword,
@@ -138,8 +138,8 @@ const USER_SORT_COLUMNS = {
  * The daily/hourly jobs from "รายการเรียกใช้งานจาก Backend" group 3.
  *
  * A static registry, not a table: the list of jobs that are meant to exist is
- * a property of the code, not of the data, and the status page has to name the
- * three that are still unbuilt as well as the five on the clock.
+ * a property of the code, not of the data, and the status page has to name a
+ * job that has never run as well as the ones that have.
  *
  * `schedule` is the human-readable time shown to the administrator. The times
  * it states are Asia/Bangkok, which is what CronScheduler pins its @Cron
@@ -149,12 +149,6 @@ const CRON_REGISTRY = [
   { id: 'markOverdue', name: 'Mark overdue', schedule: '00:01 ทุกวัน' },
   { id: 'markLost', name: 'Mark lost', schedule: '00:15 ทุกวัน' },
   { id: 'expireDemerits', name: 'หมดอายุบทลงโทษ', schedule: '01:00 ทุกวัน' },
-  {
-    id: 'computeAvailability',
-    name: 'คำนวณวันที่พร้อมให้ยืม',
-    schedule: '02:00 ทุกวัน',
-  },
-  { id: 'rollupDailyStats', name: 'สรุปสถิติรายวัน', schedule: '03:00 ทุกวัน' },
   {
     id: 'openT3InspectionRounds',
     name: 'สร้างรอบตรวจสถานที่ (T3)',
@@ -178,6 +172,7 @@ const IMPLEMENTED_JOBS: readonly string[] = [
   'expireDemerits',
   'dueSoonReminder',
   'expireStaleRequests',
+  'openT3InspectionRounds',
 ];
 
 /** Above this, the database is answering but not healthily. */
@@ -724,10 +719,10 @@ export class AdminService {
   /**
    * The jobs, with what actually happened last time.
    *
-   * `implemented` still distinguishes the five that do work from the three
-   * that cannot yet - a job with no last run and a job that does not exist
-   * look identical otherwise, and an administrator reading "never run" would
-   * go hunting a scheduler fault that is really a missing table.
+   * `implemented` stays in the output even though every job in the registry
+   * now runs: a job with no last run and a job that does not exist look
+   * identical otherwise, and the flag is what tells an administrator which
+   * they are looking at.
    */
   async listCronJobs() {
     const last = await this.cron.lastRuns();
@@ -751,9 +746,10 @@ export class AdminService {
   /**
    * Runs one job now.
    *
-   * The three unbuilt jobs still throw NOT_IMPLEMENTED from CronService, with
-   * the missing pieces named, so pressing the button on one explains itself
-   * rather than failing silently.
+   * Every job in the registry runs. Two that were listed here only as
+   * NOT_IMPLEMENTED stubs are gone: availability is computed live by the
+   * catalogue queries, and report.summary counts from UsageLog on demand, so
+   * neither had anything to precompute.
    */
   async runCronJob(input: RunCronJobInput, actor: AuditActor) {
     const outcome = await this.cron.run(input.job);
@@ -781,9 +777,10 @@ export class AdminService {
    * effect until a redeploy, and a UI that accepts an edit which silently does
    * nothing is worse than one that refuses it.
    *
-   * So `updateConfig` still refuses. This procedure exists to let an
-   * administrator confirm what is deployed - which is the question they
-   * actually arrive with - rather than to pretend the values are editable.
+   * There is deliberately no `updateConfig` to pair with this. It existed as a
+   * procedure that only ever threw, which is a worse answer than not offering
+   * the verb at all: the page is a read-only record of what is deployed, which
+   * is the question an administrator actually arrives with.
    */
   getConfig() {
     const env = (key: string) => this.config.get<string>(key);
@@ -809,10 +806,14 @@ export class AdminService {
         presignedUploads: true,
       },
       email: {
-        // Nothing sends mail yet. Empty strings say so; a plausible-looking
-        // default here would read as a configured mail server.
-        smtpHost: '',
-        fromAddress: 'noreply@ku.th',
+        // Read from the same place the senders read it (common/mail/mailer.ts),
+        // so this page cannot drift from what actually goes out. The defaults
+        // point at the MailHog container in docker-compose.
+        smtpHost: env('SMTP_HOST') ?? 'localhost',
+        fromAddress: env('MAIL_FROM') ?? 'ULMs <no-reply@ku.th>',
+        // Mail is sent for password resets and registration confirmations.
+        // Due-soon reminders are not among them: dueSoonReminder writes in-app
+        // notifications, so there is no email to enable or disable.
         dueReminderEnabled: false,
       },
       // The polling intervals the contract fixes (SRS §"ช่วงเวลา polling").
@@ -826,13 +827,6 @@ export class AdminService {
         nodeEnv: env('NODE_ENV') ?? 'development',
       },
     };
-  }
-
-  updateConfig(): never {
-    return notImplemented(
-      ['SystemConfig table (key, value Json, updatedBy, updatedAt)'],
-      'These settings are environment variables and compiled-in constants, fixed per instance for the life of the process. Accepting an edit here would change nothing until a redeploy.',
-    );
   }
 
   // =========================================================================

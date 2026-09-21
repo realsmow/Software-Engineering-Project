@@ -54,6 +54,10 @@ import type {
   InspectionSubject,
 } from "@/features/staff/inspection/inspection.types";
 import type {
+  RoomCheckResult,
+  RoomCheckRound,
+} from "@/features/staff/repairs/repairs.types";
+import type {
   ManagedItemDetail,
   ManagedItemType,
   ManagedRoom,
@@ -163,8 +167,6 @@ export const appRouter = t.router({
   item: t.router({
     // NOTE: item returns ServerItem, not the frontend's EquipmentType, and its
     // ids are numbers. features/borrower/catalog/item.adapter.ts converts.
-    // listCategories exists in the contract but the server answers
-    // NOT_IMPLEMENTED: the schema has no category table.
     list: proc
       .input(
         pageInput.extend({
@@ -186,7 +188,6 @@ export const appRouter = t.router({
         nextAvailableAt: string | null;
       }>(),
     ),
-    listCategories: proc.query(() => as<{ id: string; name: string }[]>()),
 
     // Staff half. Scoped per row on the server to the caller's Authority, so
     // none of these take a department.
@@ -620,15 +621,24 @@ export const appRouter = t.router({
     listForResource: proc
       .input(z.object({ resourceKey: z.number(), limit: z.number().optional() }))
       .query(() => as<unknown[]>()),
+    // Rounds are opened by the openT3InspectionRounds job once a room's last
+    // check has aged out, so this is scheduled work rather than a filter over
+    // rooms. recordRoomCheck closes the open one.
+    listRoomRounds: proc
+      .input(pageInput.extend({ openOnly: z.boolean().optional() }))
+      .query(() => as<ServerPaginated<RoomCheckRound>>()),
     recordRoomCheck: proc
-      .input(z.object({ resourceKey: z.number() }).passthrough())
-      .mutation(() => as<unknown>()),
+      .input(
+        z.object({
+          resourceKey: z.number(),
+          condition: z.string(),
+          note: z.string().optional(),
+        }),
+      )
+      .mutation(() => as<RoomCheckResult>()),
     listRepairs: proc.input(pageInput).query(() => as<Paginated<unknown>>()),
     startRepair: proc.input(z.object({ resourceKey: z.number() }).passthrough()).mutation(() => as<unknown>()),
     finishRepair: proc.input(z.object({ repairKey: z.number() }).passthrough()).mutation(() => as<unknown>()),
-    proposeDecommission: proc
-      .input(z.object({ resourceKey: z.number() }).passthrough())
-      .mutation(() => as<unknown>()),
   }),
 
   // ── notification ──────────────────────────────────────
@@ -708,8 +718,6 @@ export const appRouter = t.router({
     // System status. Only the database is probed server-side; there is no
     // multi-service health check behind this.
     // Read-only: every value is an env var or a compiled-in constant, so
-    // updateConfig still refuses rather than accepting an edit that would do
-    // nothing until a redeploy.
     getConfig: proc.query(() => as<TechnicalConfig>()),
     getSystemStatus: proc.query(() => as<SystemStatus>()),
     listCronJobs: proc.query(() => as<CronJob[]>()),

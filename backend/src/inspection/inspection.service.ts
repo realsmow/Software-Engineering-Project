@@ -4,7 +4,7 @@ import { PrismaService } from '../prisma.service';
 import { StaffScopeService } from '../common/authority/staff-scope.service';
 import { ImageService } from '../image/image.service';
 import { PenaltyService } from '../common/penalty/penalty.service';
-import { BusinessError, notImplemented } from '../common/errors/business-error';
+import { BusinessError } from '../common/errors/business-error';
 import {
   daysBetween,
   toIso,
@@ -25,7 +25,7 @@ import type {
   ListInspectionQueueInput,
   ListInspectionsForResourceInput,
   ListRepairsInput,
-  ProposeDecommissionInput,
+  ListRoomRoundsInput,
   RecordRoomCheckInput,
   StartRepairInput,
 } from './inspection.schema';
@@ -461,6 +461,14 @@ export class InspectionService {
         },
       });
 
+      // Closes the scheduled round, if one is open. A check somebody did on
+      // their own initiative is still a check: it closes the task rather than
+      // leaving the room looking unchecked next to a round nobody answered.
+      await tx.roomCheckRound.updateMany({
+        where: { ResourceKey: input.resourceKey, ClosedAt: null },
+        data: { ClosedAt: now, ConditionKey: log.ConditionKey },
+      });
+
       return log.ConditionKey;
     });
 
@@ -471,6 +479,65 @@ export class InspectionService {
       note: input.note ?? null,
       checkedAt: toIso(now),
       stillBookable: !unusable,
+    };
+  }
+
+  /**
+   * The room checks still waiting to be done, oldest first.
+   *
+   * Scoped to the departments the caller manages, like every other staff list
+   * here. Overdue ones sort first by virtue of being the oldest: the job opens
+   * them in one batch, so age and lateness are the same ordering.
+   */
+  async listRoomRounds(user: TrpcUser, input: ListRoomRoundsInput) {
+    const resourceWhere = await this.scope.resourceScope(user);
+
+    const where: Prisma.RoomCheckRoundWhereInput = {
+      Resource: resourceWhere,
+      ...(input.openOnly ? { ClosedAt: null } : {}),
+    };
+
+    const [rows, total] = await this.prisma.$transaction([
+      this.prisma.roomCheckRound.findMany({
+        where,
+        orderBy: { DueAt: 'asc' },
+        ...toSkipTake(input),
+        select: {
+          RoundKey: true,
+          ResourceKey: true,
+          OpenedAt: true,
+          DueAt: true,
+          ClosedAt: true,
+          Condition: { select: { Condition: true, Notes: true } },
+          Resource: {
+            select: {
+              AllowBorrow: true,
+              Room: { select: { RoomName: true, RoomLocation: true } },
+            },
+          },
+        },
+      }),
+      this.prisma.roomCheckRound.count({ where }),
+    ]);
+
+    const now = Date.now();
+    return {
+      items: rows.map((row) => ({
+        roundKey: row.RoundKey,
+        resourceKey: row.ResourceKey,
+        roomName: row.Resource.Room?.RoomName ?? null,
+        location: row.Resource.Room?.RoomLocation ?? null,
+        openedAt: toIso(row.OpenedAt),
+        dueAt: toIso(row.DueAt),
+        closedAt: row.ClosedAt ? toIso(row.ClosedAt) : null,
+        overdue: row.ClosedAt === null && row.DueAt.getTime() < now,
+        condition: row.Condition?.Condition ?? null,
+        note: row.Condition?.Notes ?? null,
+        stillBookable: row.Resource.AllowBorrow,
+      })),
+      total,
+      page: input.page,
+      pageSize: input.pageSize,
     };
   }
 
@@ -627,24 +694,6 @@ export class InspectionService {
     });
 
     return this.readRepair(input.repairKey);
-  }
-
-  // =========================================================================
-  // Decommission — declared, not storable
-  // =========================================================================
-
-  async proposeDecommission(user: TrpcUser, input: ProposeDecommissionInput) {
-    await this.scope.assertResourceInScope(user, input.resourceKey);
-
-    notImplemented(
-      [
-        'DecommissionRequest (resourceKey, proposedBy, reason, status, decidedBy, decidedAt)',
-        'AuditLog (the proposal requires the approval to be recorded)',
-      ],
-      'Staff propose and a supervisor approves a retirement (§5.9). Today the ' +
-        'nearest available action is item.setUnitCondition + item.setUnitLendable, ' +
-        'which withdraws the unit but records no decision and no approver.',
-    );
   }
 
   // =========================================================================

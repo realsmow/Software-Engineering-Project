@@ -8,11 +8,11 @@ import type {
   ManagedRoom,
 } from "@/features/staff/inventory/inventory.types";
 import type {
-  DecommissionRequest,
   InspectionHistoryEntry,
   PaginatedRepairs,
   Repair,
   RoomCheckResult,
+  RoomCheckRound,
 } from "./repairs.types";
 
 /**
@@ -124,36 +124,29 @@ export function useFinishRepair() {
 }
 
 /**
- * Propose retiring a unit.
- *
- * Wired against a procedure that always throws. The server has no table to hold
- * a proposal - no proposer, no supervisor decision, no audit row - so it answers
- * NOT_IMPLEMENTED after checking the caller's scope, and names in the error what
- * is missing. Kept wired rather than stubbed out so the screen is arguing with
- * the real server, and so it starts working the day the table lands.
- */
-export function useProposeDecommission() {
-  const trpc = useTRPCClient();
-  const refresh = useRefreshRepairs();
-
-  return useMutation({
-    mutationFn: async (input: {
-      resourceKey: number;
-      reason: string;
-    }): Promise<DecommissionRequest> =>
-      (await trpc.inspection.proposeDecommission.mutate(
-        input,
-      )) as DecommissionRequest,
-    onSuccess: refresh,
-  });
-}
-
-/**
  * Record the result of a room walk-round (T3).
  *
  * Refetches the room list because a non-Normal result closes the room to
  * bookings, and refuses outright on anything that is not a Room.
  */
+/**
+ * The room checks still waiting to be done.
+ *
+ * Every page is pulled rather than paged: a department has rooms in the tens,
+ * and the list is a work queue somebody reads top to bottom.
+ */
+export function useRoomRounds(openOnly: boolean) {
+  const trpc = useTRPCClient();
+
+  return useQuery({
+    queryKey: [...REPAIRS_KEY, "rounds", openOnly],
+    queryFn: async (): Promise<RoomCheckRound[]> =>
+      fetchAllPages((page, pageSize) =>
+        trpc.inspection.listRoomRounds.query({ page, pageSize, openOnly }),
+      ),
+  });
+}
+
 export function useRecordRoomCheck() {
   const trpc = useTRPCClient();
   const queryClient = useQueryClient();
@@ -166,6 +159,8 @@ export function useRecordRoomCheck() {
     }): Promise<RoomCheckResult> =>
       (await trpc.inspection.recordRoomCheck.mutate(input)) as RoomCheckResult,
     onSuccess: () => {
+      // REPAIRS_KEY is the prefix the rounds list sits under, so answering a
+      // check moves it out of the open list without a second invalidation.
       void queryClient.invalidateQueries({ queryKey: REPAIRS_KEY });
       void queryClient.invalidateQueries({ queryKey: ["staff", "inventory"] });
       void queryClient.invalidateQueries({ queryKey: ["rooms"] });

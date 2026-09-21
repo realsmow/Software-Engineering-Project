@@ -68,22 +68,31 @@ export interface RoomCheckResult {
   stillBookable: boolean;
 }
 
-/**
- * What `proposeDecommission` would answer.
- *
- * Declared for completeness; the server has nowhere to store a proposal and
- * answers NOT_IMPLEMENTED, so nothing has ever received one of these.
- */
-export interface DecommissionRequest {
-  requestKey: number;
-  resourceKey: number;
-  reason: string;
-  proposedByAccountKey: number;
-  proposedAt: string;
-  status: "Pending" | "Approved" | "Rejected";
-}
-
 /** Whether a condition leaves the unit lendable once the repair closes. */
 export function isUsable(condition: ConditionType): boolean {
   return !UNUSABLE_CONDITIONS.includes(condition);
+}
+
+/**
+ * One scheduled room check.
+ *
+ * The task, not the result. `RoomCheckResult` is what answering it produces;
+ * this is the row saying somebody still has to go and look. Opened by the
+ * openT3InspectionRounds job once a room's last check is older than the
+ * interval, closed by recordRoomCheck.
+ */
+export interface RoomCheckRound {
+  roundKey: number;
+  resourceKey: number;
+  roomName: string | null;
+  location: string | null;
+  openedAt: string;
+  dueAt: string;
+  closedAt: string | null;
+  /** Open and past its due date. A closed round is never overdue. */
+  overdue: boolean;
+  /** What the closing check found. Null while the round is open. */
+  condition: ConditionType | null;
+  note: string | null;
+  stillBookable: boolean;
 }

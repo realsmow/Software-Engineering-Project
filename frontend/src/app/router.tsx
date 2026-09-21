@@ -130,17 +130,25 @@ export function AppRouter() {
           <Route path={ROUTES.PROFILE} element={<ProfilePage />} />
           <Route path={ROUTES.RULE86} element={<Rule86Page />} />
 
-          {/* Staff operations - staff + admin */}
+          {/*
+            The counter - staff + admin.
+
+            Supervisors are deliberately not here even though the backend would
+            let them in (StaffMiddleware admits supervisor): handing a unit to a
+            borrower and grading what comes back is the job a supervisor assigns
+            to staff, not one they do. What they do need is to see what the
+            department owns, which is why inventory sits in the block below.
+          */}
           <Route element={<RoleGuard allowedRoles={["staff", "admin"]} />}>
             <Route path={ROUTES.STAFF_DASHBOARD} element={<StaffDashboardPage />} />
             <Route path={ROUTES.STAFF_HANDOVER} element={<StaffHandoverPage />} />
             <Route path={ROUTES.STAFF_INSPECTION} element={<StaffInspectionPage />} />
-            <Route path={ROUTES.STAFF_INVENTORY} element={<StaffInventoryPage />} />
             <Route path={ROUTES.STAFF_REPAIRS} element={<StaffRepairsPage />} />
           </Route>
 
           {/* Department management + reports - staff + supervisor + admin */}
           <Route element={<RoleGuard allowedRoles={["staff", "supervisor", "admin"]} />}>
+            <Route path={ROUTES.STAFF_INVENTORY} element={<StaffInventoryPage />} />
             <Route path={ROUTES.STAFF_USERS} element={<StaffUsersPage />} />
             <Route path={ROUTES.STAFF_PERMISSIONS} element={<StaffPermissionsPage />} />
             <Route path={ROUTES.STAFF_SETTINGS} element={<StaffSettingsPage />} />
