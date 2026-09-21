@@ -26,3 +26,10 @@ build/
 
 # A checkout of this repo nested inside itself
 Software-Engineering-Project*/
+
+.npm-cache/
+
+.npm-cache/
+**/.npm-cache/
+
+/test-results/

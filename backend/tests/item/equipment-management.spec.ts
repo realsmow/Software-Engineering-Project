@@ -528,3 +528,303 @@ describe('Module 5 borrower availability and catalogue queries', () => {
   });
   */
 });
+
+describe('Equipment registration & unit increments — serial collision (Audit #8)', () => {
+  it('does not collide when adding T0 units to an existing type with auto-generated serials', async () => {
+    const { service, prisma, tx } = managementHarness();
+    prisma.itemInfo.findUnique.mockResolvedValue({
+      ItemKey: 10,
+      ItemName: 'Jumper Wire',
+    });
+    prisma.borrowRule.findFirst.mockResolvedValue({ BorrowRuleKey: 20 });
+    // Existing units: JUMPER-WIRE-10-1, JUMPER-WIRE-10-2
+    prisma.itemIndiv.findFirst.mockResolvedValue(null); // no collision
+    prisma.itemIndiv.findMany.mockResolvedValue([
+      {
+        IndivKey: 201,
+        ItemKey: 10,
+        ItemID: 'JUMPER-WIRE-10-1',
+        ImageURL: null,
+        Resource: {
+          ResourceKey: 801,
+          ResourceStatus: 'InStorage',
+          AllowBorrow: true,
+          BufferTime: 0,
+          ManagedBy: 8,
+          BorrowRuleInfo: { RuleName: 'T0' },
+          CurrentCondition: null,
+          ManagementGroup: {
+            ManageGroupKey: 8,
+            GroupType: 'Faculty',
+            Branch: { BranchName: 'Engineering' },
+            Club: null,
+          },
+          UsageLogs: [],
+        },
+      },
+      {
+        IndivKey: 202,
+        ItemKey: 10,
+        ItemID: 'JUMPER-WIRE-10-2',
+        ImageURL: null,
+        Resource: {
+          ResourceKey: 802,
+          ResourceStatus: 'InStorage',
+          AllowBorrow: true,
+          BufferTime: 0,
+          ManagedBy: 8,
+          BorrowRuleInfo: { RuleName: 'T0' },
+          CurrentCondition: null,
+          ManagementGroup: {
+            ManageGroupKey: 8,
+            GroupType: 'Faculty',
+            Branch: { BranchName: 'Engineering' },
+            Club: null,
+          },
+          UsageLogs: [],
+        },
+      },
+    ]);
+    tx.resourceInfo.create
+      .mockResolvedValueOnce({ ResourceKey: 803 })
+      .mockResolvedValueOnce({ ResourceKey: 804 })
+      .mockResolvedValueOnce({ ResourceKey: 805 });
+
+    const result = await service.createItemUnits(user(), {
+      itemKey: 10,
+      manageGroupKey: 8,
+      tier: 'T0',
+      quantity: 3,
+      prepDays: 0,
+      lendable: true,
+    });
+
+    expect(result).toHaveLength(2); // from findMany mock
+    expect(tx.itemIndiv.create).toHaveBeenCalledTimes(3);
+    const serials = tx.itemIndiv.create.mock.calls.map(
+      (call: unknown[]) => (call[0] as { data: { ItemID: string } }).data.ItemID,
+    );
+    expect(new Set(serials).size).toBe(serials.length);
+  });
+
+  it('rejects T0 units if the auto-generated serial collides with an existing one', async () => {
+    const { service, prisma } = managementHarness();
+    prisma.itemInfo.findUnique.mockResolvedValue({
+      ItemKey: 10,
+      ItemName: 'Jumper Wire',
+    });
+    prisma.borrowRule.findFirst.mockResolvedValue({ BorrowRuleKey: 20 });
+    prisma.itemIndiv.findFirst.mockResolvedValue({
+      ItemID: 'JUMPER-WIRE-10-1',
+    });
+
+    await expect(
+      service.createItemUnits(user(), {
+        itemKey: 10,
+        manageGroupKey: 8,
+        tier: 'T0',
+        quantity: 2,
+        prepDays: 0,
+        lendable: true,
+      }),
+    ).rejects.toMatchObject({ businessCode: 'SERIAL_ALREADY_IN_USE' });
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  it('adds T1 units that inherit the batch serial pattern with new suffixes', async () => {
+    const { service, prisma, tx } = managementHarness();
+    prisma.itemInfo.findUnique.mockResolvedValue({
+      ItemKey: 15,
+      ItemName: 'Arduino Mega',
+    });
+    prisma.borrowRule.findFirst.mockResolvedValue({ BorrowRuleKey: 21 });
+    prisma.itemIndiv.findFirst.mockResolvedValue(null); // no collision
+    prisma.itemIndiv.findMany.mockResolvedValue([
+      {
+        IndivKey: 301,
+        ItemKey: 15,
+        ItemID: 'ARD-MEGA-1',
+        ImageURL: null,
+        Resource: {
+          ResourceKey: 901,
+          ResourceStatus: 'InStorage',
+          AllowBorrow: true,
+          BufferTime: 0,
+          ManagedBy: 8,
+          BorrowRuleInfo: { RuleName: 'T1' },
+          CurrentCondition: null,
+          ManagementGroup: {
+            ManageGroupKey: 8,
+            GroupType: 'Faculty',
+            Branch: { BranchName: 'Engineering' },
+            Club: null,
+          },
+          UsageLogs: [],
+        },
+      },
+      {
+        IndivKey: 302,
+        ItemKey: 15,
+        ItemID: 'ARD-MEGA-2',
+        ImageURL: null,
+        Resource: {
+          ResourceKey: 902,
+          ResourceStatus: 'InStorage',
+          AllowBorrow: true,
+          BufferTime: 0,
+          ManagedBy: 8,
+          BorrowRuleInfo: { RuleName: 'T1' },
+          CurrentCondition: null,
+          ManagementGroup: {
+            ManageGroupKey: 8,
+            GroupType: 'Faculty',
+            Branch: { BranchName: 'Engineering' },
+            Club: null,
+          },
+          UsageLogs: [],
+        },
+      },
+    ]);
+    tx.resourceInfo.create
+      .mockResolvedValueOnce({ ResourceKey: 903 })
+      .mockResolvedValueOnce({ ResourceKey: 904 });
+
+    const result = await service.createItemUnits(user(), {
+      itemKey: 15,
+      manageGroupKey: 8,
+      tier: 'T1',
+      serialNo: 'ARD-MEGA',
+      quantity: 2,
+      prepDays: 1,
+      lendable: true,
+    });
+
+    expect(result).toHaveLength(2);
+    expect(tx.resourceInfo.create).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        data: expect.objectContaining({ BorrowRule: 21, BufferTime: 1 }),
+      }),
+    );
+    expect(tx.itemIndiv.create).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        data: expect.objectContaining({ ItemID: 'ARD-MEGA-1' }),
+      }),
+    );
+    expect(tx.itemIndiv.create).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        data: expect.objectContaining({ ItemID: 'ARD-MEGA-2' }),
+      }),
+    );
+  });
+});
+
+describe('Department isolation — staff scope checks (Audit #17 / FR-AUTH-05)', () => {
+  it('rejects createItemUnits from an unauthorized department (FR-AUTH-05)', async () => {
+    const { service, scope } = managementHarness();
+    scope.assertGroupInScope.mockRejectedValue(
+      new BusinessError('OUT_OF_MANAGEMENT_SCOPE', { manageGroupKey: 99 }),
+    );
+
+    await expect(
+      service.createItemUnits(user(), {
+        itemKey: 7,
+        manageGroupKey: 99,
+        tier: 'T1',
+        serialNo: 'UNAUTH-001',
+        quantity: 1,
+        prepDays: 0,
+        lendable: true,
+      }),
+    ).rejects.toMatchObject({
+      businessCode: 'OUT_OF_MANAGEMENT_SCOPE',
+    });
+    expect(scope.assertGroupInScope).toHaveBeenCalledWith(user(), 99);
+  });
+
+  it('rejects createRoom from an unauthorized department (FR-AUTH-05)', async () => {
+    const { service, scope } = managementHarness();
+    scope.assertGroupInScope.mockRejectedValue(
+      new BusinessError('OUT_OF_MANAGEMENT_SCOPE', { manageGroupKey: 42 }),
+    );
+
+    await expect(
+      service.createRoom(user(), {
+        manageGroupKey: 42,
+        name: 'Forbidden Room',
+        creditWeight: 0,
+        lendable: true,
+      }),
+    ).rejects.toMatchObject({
+      businessCode: 'OUT_OF_MANAGEMENT_SCOPE',
+    });
+    expect(scope.assertGroupInScope).toHaveBeenCalledWith(user(), 42);
+  });
+
+  it('allows createItemUnits when the department is in scope', async () => {
+    const { service, prisma, tx } = managementHarness();
+    prisma.itemInfo.findUnique.mockResolvedValue({
+      ItemKey: 7,
+      ItemName: 'Oscilloscope',
+    });
+    prisma.borrowRule.findFirst.mockResolvedValue({ BorrowRuleKey: 22 });
+    prisma.itemIndiv.findMany.mockResolvedValue([
+      {
+        IndivKey: 101,
+        ItemKey: 7,
+        ItemID: 'OSC-999',
+        ImageURL: null,
+        Resource: {
+          ResourceKey: 501,
+          ResourceStatus: 'InStorage',
+          AllowBorrow: true,
+          BufferTime: 0,
+          ManagedBy: 8,
+          BorrowRuleInfo: { RuleName: 'T2' },
+          CurrentCondition: null,
+          ManagementGroup: {
+            ManageGroupKey: 8,
+            GroupType: 'Faculty',
+            Branch: { BranchName: 'Engineering' },
+            Club: null,
+          },
+          UsageLogs: [],
+        },
+      },
+    ]);
+    tx.resourceInfo.create.mockResolvedValue({ ResourceKey: 501 });
+
+    await expect(
+      service.createItemUnits(user(), {
+        itemKey: 7,
+        manageGroupKey: 8,
+        tier: 'T2',
+        serialNo: 'OSC-999',
+        quantity: 1,
+        prepDays: 0,
+        lendable: true,
+      }),
+    ).resolves.toHaveLength(1);
+  });
+
+  it('refuses getManagedItemById for a type owned entirely by another department', async () => {
+    const { service, prisma } = managementHarness();
+    prisma.itemInfo.findUnique.mockResolvedValue({
+      ItemKey: 50,
+      ItemName: 'Proprietary Tool',
+      ItemDesc: null,
+      ImageURL: null,
+      CreditWeight: 20,
+      Items: [],
+      _count: { Items: 5 },
+    });
+
+    await expect(
+      service.getManagedItemById(user(), 50),
+    ).rejects.toMatchObject({
+      businessCode: 'OUT_OF_MANAGEMENT_SCOPE',
+    });
+  });
+});

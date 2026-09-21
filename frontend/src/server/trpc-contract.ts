@@ -59,6 +59,11 @@ import type {
   ManagedUnit,
 } from "@/features/staff/inventory/inventory.types";
 import type {
+  AuthorityRoleOption,
+  EligibilityGroupOption,
+  EligibilityRule,
+} from "@/features/staff/permissions/permissions.types";
+import type {
   LoanOutput,
   Paginated as ServerPaginated,
   RecordReturnOutput,
@@ -210,6 +215,20 @@ export const appRouter = t.router({
     updateUnitStatus: proc
       .input(z.object({ unitId: z.string(), status: z.string() }))
       .mutation(() => as<EquipmentUnit>()),
+    // ── Eligibility (who may borrow a type) ────────────
+    listEligibility: proc
+      .input(z.object({ itemKey: z.number() }))
+      .query(() => as<EligibilityRule[]>()),
+    setEligibility: proc
+      .input(
+        z.object({
+          itemKey: z.number(),
+          rules: z.array(z.object({ groupKey: z.number(), authorityRoleKey: z.number() })).max(200),
+        }),
+      )
+      .mutation(() => as<EligibilityRule[]>()),
+    listManagementGroups: proc.query(() => as<EligibilityGroupOption[]>()),
+    listAuthorityRoles: proc.query(() => as<AuthorityRoleOption[]>()),
   }),
 
   // ── loan ──────────────────────────────────────────────
