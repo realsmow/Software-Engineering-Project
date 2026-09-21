@@ -106,6 +106,8 @@ export const DAMAGE_LEVELS = {
 // ==================== Routes ====================
 export const ROUTES = {
   LOGIN: "/login",
+  REGISTER: "/register",
+  VERIFY_EMAIL: "/verify-email",
   FORGOT_PASSWORD: "/forgot-password",
   RESET_PASSWORD: "/reset-password",
   HOME: "/",
@@ -128,6 +130,7 @@ export const ROUTES = {
   STAFF_HANDOVER: "/staff/handover/:usageKey",
   STAFF_INSPECTION: "/staff/inspection",
   STAFF_INVENTORY: "/staff/inventory",
+  STAFF_REPAIRS: "/staff/repairs",
   // Department management (shared by staff + supervisor, jurisdiction-scoped)
   STAFF_USERS: "/staff/users",
   STAFF_PERMISSIONS: "/staff/permissions",
@@ -170,6 +173,7 @@ export const ROLE_ROUTES = {
     ROUTES.STAFF_HANDOVER,
     ROUTES.STAFF_INSPECTION,
     ROUTES.STAFF_INVENTORY,
+    ROUTES.STAFF_REPAIRS,
     ROUTES.STAFF_USERS,
     ROUTES.STAFF_PERMISSIONS,
     ROUTES.STAFF_SETTINGS,

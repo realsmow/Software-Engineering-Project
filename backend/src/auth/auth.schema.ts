@@ -63,3 +63,23 @@ export const resetPasswordWithTokenInput = z.object({
 export type ResetPasswordWithTokenInput = z.infer<
   typeof resetPasswordWithTokenInput
 >;
+
+/**
+ * Self-registration.
+ *
+ * No role field on purpose: a public endpoint that accepted one would be a way
+ * to mint an admin. The server always creates a borrower.
+ */
+export const registerInput = z.object({
+  email: z.email().max(200),
+  studentId: z.string().trim().min(1).max(50),
+  firstName: z.string().trim().min(1).max(100),
+  lastName: z.string().trim().min(1).max(100),
+  password: z.string().min(8).max(200),
+});
+export type RegisterInput = z.infer<typeof registerInput>;
+
+export const verifyEmailInput = z.object({
+  token: z.string().min(1).max(200),
+});
+export type VerifyEmailInput = z.infer<typeof verifyEmailInput>;

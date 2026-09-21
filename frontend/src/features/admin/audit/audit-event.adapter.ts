@@ -26,6 +26,7 @@ export function toAuditEvent(s: ServerAuditEvent): AuditEvent {
   return {
     id: String(s.id),
     at: s.at,
+    actorId: s.actorId,
     actorName: s.actorName,
     actorRole: s.actorRole,
     action: s.action,

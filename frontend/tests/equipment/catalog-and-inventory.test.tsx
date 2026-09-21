@@ -62,7 +62,7 @@ const UNIT: ManagedUnit = {
   condition: null,
   conditionNote: null,
   conditionLoggedAt: null,
-  managementGroup: { manageGroupKey: 8, name: "Engineering", type: "Faculty" },
+  managementGroup: { id: 8, name: "Engineering", type: "Faculty" },
   currentDueAt: null,
 };
 

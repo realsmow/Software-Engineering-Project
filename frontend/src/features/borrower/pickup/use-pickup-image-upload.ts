@@ -1,4 +1,4 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api-client";
 import { useTRPCClient } from "@/lib/trpc";
 import type { PreparedBorrowerImage } from "../uploads/prepared-image";
@@ -7,6 +7,24 @@ interface UploadPickupImageInput {
   usageKey: number;
   image: PreparedBorrowerImage;
 }
+
+/** One photo on file against a loan (`usagePhotoOutput` in backend/src/image/image.schema.ts). */
+export interface UsagePhoto {
+  imageKey: number;
+  imageUrl: string;
+  stage: "before" | "after" | "inspection";
+  submittedBy: number;
+  submittedAt: string | null;
+}
+
+/** Both sides of one loan's photo record (`usagePhotosOutput`), grouped by stage. */
+export interface UsagePhotoSet {
+  before: UsagePhoto[];
+  after: UsagePhoto[];
+  inspection: UsagePhoto[];
+}
+
+const usagePhotosKey = (usageKey: number | null) => ["image", "usagePhotos", usageKey] as const;
 
 /**
  * Collection photos: request a ticket, PUT the bytes, attach the stored URL.
@@ -21,6 +39,7 @@ interface UploadPickupImageInput {
  */
 export function usePickupImageUpload() {
   const trpc = useTRPCClient();
+  const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async ({ usageKey, image }: UploadPickupImageInput) => {
@@ -41,6 +60,12 @@ export function usePickupImageUpload() {
         imageUrls: [ticket.imageUrl],
       });
 
+      // `attachUsagePhotos` returns the loan's full, current photo set - the
+      // same shape `useUsagePhotos` reads. Write it straight into that cache
+      // so the gallery reflects what was just filed instead of last session's
+      // set until something else happens to refetch it.
+      queryClient.setQueryData(usagePhotosKey(usageKey), attached);
+
       // `attachUsagePhotos` answers with every photo on the loan, grouped by
       // stage, not with the row it just wrote. Pick ours back out by URL.
       const evidence =
@@ -56,6 +81,43 @@ export function usePickupImageUpload() {
           error: undefined,
         },
       };
+    },
+  });
+}
+
+/**
+ * What is already filed against this loan, grouped by stage.
+ *
+ * Idle until a usage key exists - a request staff have not yet allocated a
+ * unit for has nothing to look up.
+ */
+export function useUsagePhotos(usageKey: number | null) {
+  const trpc = useTRPCClient();
+
+  return useQuery({
+    queryKey: usagePhotosKey(usageKey),
+    enabled: usageKey !== null,
+    queryFn: (): Promise<UsagePhotoSet> =>
+      trpc.image.usagePhotos.query({ usageKey: usageKey as number }),
+  });
+}
+
+/**
+ * Removes one photo the borrower filed by mistake.
+ *
+ * The server restricts this to the caller's own photo, and only while the
+ * stage it belongs to is still open - a refusal here is an expected outcome,
+ * not a bug, so the caller must show it rather than assume the remove worked.
+ */
+export function useDetachUsagePhoto() {
+  const trpc = useTRPCClient();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (vars: { usageKey: number; imageKey: number }) =>
+      trpc.image.detachUsagePhoto.mutate({ imageKey: vars.imageKey }),
+    onSuccess: (result, vars) => {
+      queryClient.setQueryData(usagePhotosKey(vars.usageKey), result);
     },
   });
 }

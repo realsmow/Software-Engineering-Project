@@ -51,7 +51,10 @@ export const BUSINESS_ERROR_CODES = {
    * has the same shape.
    */
   DISABLE_WOULD_ORPHAN_GROUP: 'CONFLICT',
-  /** No CreditTier row covers this score - CreditMin/CreditMax leave a gap */
+  /** Forged, already spent, or expired. One code for all three on purpose. */
+  RESET_TOKEN_INVALID: 'BAD_REQUEST',
+  /** Same three cases, for the link that confirms a self-registered address. */
+  VERIFICATION_TOKEN_INVALID: 'BAD_REQUEST',
   /**
    * The current password given on a self-service change did not match.
    *
@@ -59,11 +62,10 @@ export const BUSINESS_ERROR_CODES = {
    * client which treats 401 as "session expired" would sign the user out for
    * mistyping a field on a form they are already authenticated for.
    */
-  /** Forged, already spent, or expired. One code for all three on purpose. */
-  RESET_TOKEN_INVALID: 'BAD_REQUEST',
   CURRENT_PASSWORD_INCORRECT: 'FORBIDDEN',
   /** A new password identical to the old one - the change would be a no-op. */
   PASSWORD_UNCHANGED: 'BAD_REQUEST',
+  /** No CreditTier row covers this score - CreditMin/CreditMax leave a gap */
   CREDIT_TIER_NOT_CONFIGURED: 'PRECONDITION_FAILED',
 
   // --- lending settings ---

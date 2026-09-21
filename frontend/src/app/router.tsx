@@ -49,6 +49,7 @@ const StaffInventoryPage = lazy(
 
 // Department management (staff + supervisor)
 const StaffUsersPage = lazy(() => import("@/features/staff/users/users-page"));
+const StaffRepairsPage = lazy(() => import("@/features/staff/repairs/repairs-page"));
 const StaffPermissionsPage = lazy(
   () => import("@/features/staff/permissions/permissions-page"),
 );
@@ -79,6 +80,8 @@ const AdminAuditPage = lazy(() => import("@/features/admin/audit/audit-page"));
 const AdminConfigPage = lazy(() => import("@/features/admin/config/config-page"));
 const AdminReportsPage = lazy(() => import("@/features/admin/reports/reports-page"));
 const Rule86Page = lazy(() => import("@/features/easter-egg/rule86-page"));
+const RegisterPage = lazy(() => import("@/features/auth/register-page"));
+const VerifyEmailPage = lazy(() => import("@/features/auth/verify-email-page"));
 const ForgotPasswordPage = lazy(() => import("@/features/auth/forgot-password-page"));
 const ResetPasswordPage = lazy(() => import("@/features/auth/reset-password-page"));
 
@@ -106,6 +109,8 @@ export function AppRouter() {
       <Routes>
         {/* Public */}
         <Route path={ROUTES.LOGIN} element={<LoginPage />} />
+        <Route path={ROUTES.REGISTER} element={<RegisterPage />} />
+        <Route path={ROUTES.VERIFY_EMAIL} element={<VerifyEmailPage />} />
         <Route path={ROUTES.FORGOT_PASSWORD} element={<ForgotPasswordPage />} />
         <Route path={ROUTES.RESET_PASSWORD} element={<ResetPasswordPage />} />
 
@@ -131,6 +136,7 @@ export function AppRouter() {
             <Route path={ROUTES.STAFF_HANDOVER} element={<StaffHandoverPage />} />
             <Route path={ROUTES.STAFF_INSPECTION} element={<StaffInspectionPage />} />
             <Route path={ROUTES.STAFF_INVENTORY} element={<StaffInventoryPage />} />
+            <Route path={ROUTES.STAFF_REPAIRS} element={<StaffRepairsPage />} />
           </Route>
 
           {/* Department management + reports - staff + supervisor + admin */}

@@ -88,6 +88,7 @@ export const NAV_CONFIG: Record<Role, RoleNav> = {
           { key: "queue", labelKey: "nav.queue", icon: "inbox", active: true, route: ROUTES.STAFF_DASHBOARD },
           { key: "inventory", labelKey: "nav.inventory", icon: "package", route: ROUTES.STAFF_INVENTORY },
           { key: "inspect", labelKey: "nav.inspect", icon: "check-square", route: ROUTES.STAFF_INSPECTION },
+          { key: "repairs", labelKey: "nav.repairs", icon: "wrench", route: ROUTES.STAFF_REPAIRS },
         ],
       },
       {

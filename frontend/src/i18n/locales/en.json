@@ -143,7 +143,21 @@
     "resetHelp": "This signs you out everywhere else.",
     "resetSubmit": "Set new password",
     "resetNoToken": "This link is missing its token. Ask for a new one.",
-    "legalPending": "This text has not been written yet."
+    "legalPending": "This text has not been written yet.",
+    "registerTitle": "Create an account",
+    "registerHelp": "Sign up with your university address. We will email you a link to confirm it before the account can be used.",
+    "registerSent": "Check your email. If that address is not already registered, a confirmation link is on its way. The link expires in 24 hours.",
+    "registerSubmit": "Create account",
+    "createAccount": "Create an account",
+    "studentId": "Student / staff ID",
+    "firstName": "First name",
+    "lastName": "Last name",
+    "confirmPassword": "Confirm password",
+    "verifyTitle": "Confirming your account",
+    "verifyChecking": "One moment.",
+    "verifyDone": "Your account is confirmed. You can sign in now.",
+    "verifyFailed": "This link cannot be used. It may have expired, or it may already have been opened.",
+    "verifyNoToken": "This address has no confirmation token in it."
   },
   "nav": {
     "borrower": "Borrower",
@@ -183,7 +197,8 @@
     "overview": "My overview",
     "thisPage": "This page",
     "systemOverview": "System overview",
-    "technicalConfig": "Technical config"
+    "technicalConfig": "Technical config",
+    "repairs": "Repairs"
   },
   "theme": {
     "darkMode": "Dark mode",
@@ -343,6 +358,7 @@
       "actConfig": "Config change",
       "detailTitle": "Event details",
       "eventId": "Event ID",
+      "actorId": "Actor account ID",
       "userAgent": "Device / browser",
       "changes": "Changes",
       "timeRange": "Time range",
@@ -752,7 +768,11 @@
       "noneBody": "Once a request is approved and staff have prepared it, it appears here.",
       "goRequests": "Go to my requests",
       "photoTooLarge": "File is larger than {{max}} MB - retake it or shrink it first.",
-      "photoBadType": "Only JPG or PNG images are accepted."
+      "photoBadType": "Only JPG or PNG images are accepted.",
+      "stageBefore": "At pickup",
+      "stageAfter": "At return",
+      "stageInspection": "Inspection",
+      "removePhoto": "Remove photo"
     },
     "booking": {
       "subtitle": "Pick the date and time slots you need, say how many people are coming and why, then submit.",
@@ -1049,7 +1069,10 @@
       "statusSuspended": "Borrowing suspended",
       "statusDisabled": "Account disabled",
       "emptyTitle": "No users in your departments",
-      "emptyDesc": "People appear here once they hold authority in a department you manage."
+      "emptyDesc": "People appear here once they hold authority in a department you manage.",
+      "viewCredit": "View credit",
+      "maxExtends": "Max extensions",
+      "noPenalties": "No penalties on record"
     },
     "permissions": {
       "subtitle": "Suspend or restore borrowing for people in your departments",
@@ -1116,13 +1139,13 @@
       "doneExtReject": "Extension refused on {{item}}"
     },
     "appeals": {
-      "subtitle": "Damage-grade appeals waiting on a decision",
+      "subtitle": "Credit penalties a borrower has asked a supervisor to overturn",
       "mockNotice": "This page runs on sample data. The appeal backend does not exist yet, so nothing here is real and any decision is lost on refresh.",
-      "staffSide": "Staff assessment",
+      "staffSide": "Penalty under appeal",
       "borrowerSide": "Borrower's account",
-      "noStaffNote": "Staff left no note",
+      "noStaffNote": "No reason recorded on the penalty",
       "noReason": "Borrower gave no reason",
-      "photos": "Before and after",
+      "photos": "Evidence",
       "noPhotos": "No photos filed. The decision rests on the written accounts alone.",
       "photoBefore": "At handover",
       "photoAfter": "At return",
@@ -1138,8 +1161,37 @@
       "doneReduce": "Reduced to {{level}} and returned {{credit}} credit",
       "doneUphold": "Grade upheld, reason sent to the borrower",
       "failed": "Could not record the decision",
-      "emptyTitle": "No appeals waiting",
-      "emptyDesc": "Appeals appear here as borrowers file them."
+      "emptyTitle": "No appeals to show",
+      "emptyDesc": "Appeals appear here as borrowers file them.",
+      "filterPending": "Pending",
+      "filterApproved": "Approved",
+      "filterRejected": "Rejected",
+      "photoInspection": "At inspection",
+      "noUsage": "No loan behind this penalty, so there is nothing to photograph.",
+      "deducted": "-{{credit}} credit",
+      "noDeduction": "No credit deducted",
+      "issuedAt": "Issued {{when}}",
+      "inForceUntil": "In force until {{when}}",
+      "notInForce": "No longer in force",
+      "filedAt": "Filed {{when}}",
+      "approve": "Approve",
+      "reject": "Reject",
+      "reduceLabel": "Leave a smaller penalty of",
+      "reduceHint": "Leave empty to cancel the penalty outright",
+      "restores": "returns {{credit}} credit",
+      "reduceTooLarge": "Has to be a whole number below {{credit}}",
+      "notePlaceholder": "Note to the borrower (optional)",
+      "blockedOwnInspection": "You graded this return, so you cannot decide the appeal against it.",
+      "blockedOwnAppeal": "You filed this appeal, so you cannot decide it.",
+      "noDeductionToRefund": "This penalty deducted no credit, so an approval would have nothing to return.",
+      "resolvedBy": "Decided by {{name}}, {{when}}",
+      "creditReturned": "{{credit}} credit returned",
+      "replacedBy": "Replaced by a smaller penalty of {{credit}} credit",
+      "doneApprove": "Appeal approved, {{credit}} credit returned",
+      "doneReject": "Appeal rejected, the penalty stands",
+      "errAlreadyResolved": "This appeal has already been decided.",
+      "errInvalidReduction": "The penalty left standing has to be smaller than the original deduction.",
+      "errOutOfScope": "This penalty belongs to a department you do not manage."
     }
   },
   "damage": {

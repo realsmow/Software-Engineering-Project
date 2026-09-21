@@ -33,6 +33,7 @@ import { AuthService } from './auth/auth.service';
 import { SessionService } from './auth/session.service';
 import { LoginThrottleService } from './auth/login-throttle.service';
 import { PasswordResetService } from './auth/password-reset.service';
+import { RegistrationService } from './auth/registration.service';
 
 import { AdminRouter } from './admin/admin.router';
 import { AdminService } from './admin/admin.service';
@@ -124,6 +125,7 @@ import {
     SessionService,
     LoginThrottleService,
     PasswordResetService,
+    RegistrationService,
     TrpcErrorLogger,
 
     // router + service, one pair per domain
