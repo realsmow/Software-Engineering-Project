@@ -312,27 +312,27 @@ export default function CatalogPage() {
 
         <div className="min-w-0">
           {/* Desktop / tablet: one card, table rows. */}
-          <div className="hidden md:block">
-            {showEmpty ? (
-              <div className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
-                {strips}
+          <div className="hidden overflow-hidden rounded-lg border border-border bg-card shadow-sm md:block">
+            {strips}
+            <div className="[&>div]:rounded-none [&>div]:border-0">
+              {showEmpty ? (
                 <EmptyState onClear={clearFilters} />
-              </div>
-            ) : (
-              <DataTable
-                // Remount on any change to the result set so pagination starts
-                // over - DataTable owns its page state and has no reset prop.
-                key={`${query}|${sort}|${[...selected].sort().join(",")}`}
-                columns={columns}
-                rows={rows}
-                rowKey={(e) => e.id}
-                onRowClick={openDetail}
-                pageSize={PAGE_SIZE}
-                beforeRows={strips}
-                emptyTitle={t("common.loading")}
-                rangeLabel={(s, e, total) => t("table.range", { start: s, end: e, total })}
-              />
-            )}
+              ) : (
+                <DataTable
+                  // Remount on any change to the result set so pagination starts
+                  // over. The toolbar stays outside this keyed subtree so the
+                  // search field keeps focus while results change.
+                  key={`${query}|${sort}|${[...selected].sort().join(",")}`}
+                  columns={columns}
+                  rows={rows}
+                  rowKey={(e) => e.id}
+                  onRowClick={openDetail}
+                  pageSize={PAGE_SIZE}
+                  emptyTitle={t("common.loading")}
+                  rangeLabel={(s, e, total) => t("table.range", { start: s, end: e, total })}
+                />
+              )}
+            </div>
           </div>
 
           {/* Phone: search + chips above a card list. */}
