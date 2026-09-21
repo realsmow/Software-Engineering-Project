@@ -77,7 +77,7 @@ describe("Module 5 catalogue adapters", () => {
           imageUrl: null,
           status: "InStorage",
           allowBorrow: true,
-          condition: null,
+          condition: "Normal",
           dueAt: null,
         },
         {
@@ -94,8 +94,8 @@ describe("Module 5 catalogue adapters", () => {
     });
 
     expect(detail.units).toEqual([
-      { resourceKey: 101, serial: "OSC-001", state: "free" },
-      { resourceKey: 102, serial: "OSC-002", state: "out" },
+      { resourceKey: 101, serial: "OSC-001", state: "free", condition: "Normal" },
+      { resourceKey: 102, serial: "OSC-002", state: "out", condition: null },
     ]);
   });
 });

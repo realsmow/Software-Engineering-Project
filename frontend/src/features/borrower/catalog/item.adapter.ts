@@ -102,7 +102,12 @@ export interface CatalogItemDetail extends CatalogItem {
  * `fix`, which is the less wrong of the two: nobody is holding it on a loan.
  */
 export function toUnitRow(u: ServerItemUnit): UnitRow {
-  return { resourceKey: u.resourceKey, serial: u.assetTag, state: toUnitState(u) };
+  return {
+    resourceKey: u.resourceKey,
+    serial: u.assetTag,
+    state: toUnitState(u),
+    condition: u.condition,
+  };
 }
 
 export function toUnitState(u: ServerItemUnit): UnitState {
