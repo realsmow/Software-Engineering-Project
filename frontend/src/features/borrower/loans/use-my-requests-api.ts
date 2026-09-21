@@ -11,7 +11,7 @@ import { toBorrowerRequest, type BorrowerRequest } from "./request.adapter";
  * somebody else's decision (a supervisor approving, staff preparing), so the
  * borrower has no local event to refresh on.
  */
-const MY_REQUESTS_KEY = ["loan", "my-requests"] as const;
+export const MY_REQUESTS_KEY = ["loan", "my-requests"] as const;
 
 export function useMyRequestsApi() {
   const trpc = useTRPCClient();

@@ -8,13 +8,9 @@ import type { MyRequest, MyRequestStatus } from "../mock-data";
  * ── What this can and cannot fill in ──────────────────────────────────────
  * `requestOutput` describes a *reservation*: what was asked for, where the
  * approval got to, and whether it can still be called off. It does not carry
- * the loan that follows one. So `dueAt`, `daysLeft`, `extensionsUsed` and the
- * inspection verdict are absent here and are left undefined rather than
- * guessed - a due date invented on the client is the kind of number a borrower
- * plans around and then misses.
- *
- * Filling them needs a borrower-side view of UsageLog (staff have
- * `loan.getForStaff`; there is no borrower equivalent yet).
+ * the loan that follows one. Once a UsageLog exists, however, the response
+ * includes its authoritative due time so preparation and approved extensions
+ * are reflected here instead of leaving the original requested date on screen.
  */
 export interface ServerRequest {
   reservationKey: number;
@@ -43,6 +39,8 @@ export interface ServerRequest {
   };
   /** Set once staff have prepared a unit. */
   usageKey: number | null;
+  /** Current UsageLog deadline; null until the request has become a loan. */
+  dueAt: string | null;
   /** True while `loan.cancel` would still be accepted. */
   cancellable: boolean;
 }
@@ -56,6 +54,7 @@ export interface BorrowerRequest extends MyRequest {
 }
 
 export function toBorrowerRequest(s: ServerRequest): BorrowerRequest {
+  const dueDate = s.dueAt ? toLocalDayKey(s.dueAt) : undefined;
   return {
     reservationKey: s.reservationKey,
     cancellable: s.cancellable,
@@ -79,6 +78,15 @@ export function toBorrowerRequest(s: ServerRequest): BorrowerRequest {
     startDate: toLocalDayKey(s.startTime),
     endDate: toLocalDayKey(s.endTime),
     pickupTime: fmtTime(s.startTime),
-    returnTime: fmtTime(s.endTime),
+    returnTime: fmtTime(s.dueAt ?? s.endTime),
+    dueAt: dueDate,
+    daysLeft: dueDate ? calendarDayDifference(dueDate, toLocalDayKey(new Date())) : undefined,
   };
+}
+
+/** Difference between YYYY-MM-DD values without depending on the browser timezone. */
+function calendarDayDifference(later: string, earlier: string): number {
+  return Math.round(
+    (Date.parse(`${later}T00:00:00Z`) - Date.parse(`${earlier}T00:00:00Z`)) / 86_400_000,
+  );
 }
