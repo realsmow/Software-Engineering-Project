@@ -97,7 +97,7 @@ const REQUEST_SELECT = {
   UsageLogs: {
     orderBy: { UsageKey: 'desc' },
     take: 1,
-    select: { UsageKey: true, CurrentStatus: true },
+    select: { UsageKey: true, CurrentStatus: true, DueTime: true },
   },
 } satisfies Prisma.ReservationsSelect;
 
@@ -596,6 +596,7 @@ export class LoanRequestService {
         resolvedAt: row.ResolvedAt ? toIso(row.ResolvedAt) : null,
       },
       usageKey: usage?.UsageKey ?? null,
+      dueAt: usage ? toIso(usage.DueTime) : null,
       cancellable:
         (row.ApproveStatus === 'Pending' || row.ApproveStatus === 'Approved') &&
         usage === null,
