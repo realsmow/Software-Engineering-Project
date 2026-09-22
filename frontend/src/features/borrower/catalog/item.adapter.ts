@@ -81,6 +81,10 @@ export interface ServerItemUnit {
   condition: "Normal" | "MinorDamage" | "MajorDamage" | "Broken" | "Missing" | null;
   /** Due date of the loan holding this unit, when it is out. */
   dueAt: string | null;
+  /** Due date plus this unit's preparation time. */
+  nextAvailableAt: string | null;
+  /** Whether this serial is free for the requested window from listUnits. */
+  availableForWindow?: boolean;
 }
 
 /** `item.getById` answers `itemDetail` - the summary plus every unit. */
@@ -107,11 +111,11 @@ export function toUnitRow(u: ServerItemUnit): UnitRow {
     serial: u.assetTag,
     state: toUnitState(u),
     condition: u.condition,
+    ...(u.nextAvailableAt ? { nextAvailableAt: u.nextAvailableAt } : {}),
   };
 }
 
 export function toUnitState(u: ServerItemUnit): UnitState {
-  if (u.status === "Lended") return "out";
   if (
     !u.allowBorrow ||
     u.status === "Missing" ||
@@ -121,6 +125,10 @@ export function toUnitState(u: ServerItemUnit): UnitState {
   ) {
     return "fix";
   }
+  if (u.availableForWindow !== undefined) {
+    return u.availableForWindow ? "free" : "out";
+  }
+  if (u.status === "Lended" || u.nextAvailableAt != null) return "out";
   return "free";
 }
 

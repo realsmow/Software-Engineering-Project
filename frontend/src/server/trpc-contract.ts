@@ -150,6 +150,9 @@ export const appRouter = t.router({
           tier: z.string().optional(),
           ownerGroupKey: z.number().optional(),
           availableOnly: z.boolean().optional(),
+          /** Optional requested period for range-specific availability counts. */
+          startTime: z.string().datetime().optional(),
+          endTime: z.string().datetime().optional(),
         }),
       )
       .query(() => as<Paginated<ServerItem>>()),
@@ -207,7 +210,14 @@ export const appRouter = t.router({
         }),
       )
       .mutation(() => as<ManagedUnit>()),
-    listUnits: proc.input(numericIdInput).query(() => as<ServerItemUnit[]>()),
+    listUnits: proc
+      .input(
+        numericIdInput.extend({
+          startTime: z.string().datetime().optional(),
+          endTime: z.string().datetime().optional(),
+        }),
+      )
+      .query(() => as<ServerItemUnit[]>()),
     create: proc.input(z.object({}).passthrough()).mutation(() => as<EquipmentType>()),
     update: proc
       .input(z.object({ id: z.string() }).passthrough())
