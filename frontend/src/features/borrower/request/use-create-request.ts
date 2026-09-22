@@ -62,13 +62,15 @@ export function useCreateEquipmentRequest() {
         throw new RequestPreparationError("TOO_MANY_UNITS");
       }
 
+      const startTime = requestInstant(input.startDate, input.pickupTime).toISOString();
+      const endTime = requestInstant(input.endDate, input.returnTime).toISOString();
       const unitsByItem = await Promise.all(
         input.rows.map(async (row) => {
           const itemKey = Number(row.itemId);
           if (!Number.isInteger(itemKey) || itemKey <= 0) {
             throw new RequestPreparationError("INVALID_ITEM_ID", row.name);
           }
-          const units = await trpc.item.listUnits.query({ id: itemKey });
+          const units = await trpc.item.listUnits.query({ id: itemKey, startTime, endTime });
           return [row.itemId, units] as const;
         }),
       );
@@ -77,8 +79,8 @@ export function useCreateEquipmentRequest() {
       const selectedUnits = input.rows.flatMap((row) => selectUnits(row, byItem.get(row.itemId) ?? []));
 
       const result = await trpc.loan.create.mutate({
-        startTime: requestInstant(input.startDate, input.pickupTime).toISOString(),
-        endTime: requestInstant(input.endDate, input.returnTime).toISOString(),
+        startTime,
+        endTime,
         lines: selectedUnits.map((unit) => ({ resourceKey: unit.resourceKey })),
       });
 

@@ -173,6 +173,9 @@ export const appRouter = t.router({
           tier: z.string().optional(),
           ownerGroupKey: z.number().optional(),
           availableOnly: z.boolean().optional(),
+          /** Optional requested period for range-specific availability counts. */
+          startTime: z.string().datetime().optional(),
+          endTime: z.string().datetime().optional(),
         }),
       )
       .query(() => as<Paginated<ServerItem>>()),
@@ -229,7 +232,14 @@ export const appRouter = t.router({
         }),
       )
       .mutation(() => as<ManagedUnit>()),
-    listUnits: proc.input(numericIdInput).query(() => as<ServerItemUnit[]>()),
+    listUnits: proc
+      .input(
+        numericIdInput.extend({
+          startTime: z.string().datetime().optional(),
+          endTime: z.string().datetime().optional(),
+        }),
+      )
+      .query(() => as<ServerItemUnit[]>()),
     create: proc.input(z.object({}).passthrough()).mutation(() => as<EquipmentType>()),
     update: proc
       .input(z.object({ id: z.string() }).passthrough())
@@ -376,6 +386,9 @@ export const appRouter = t.router({
       .mutation(() => as<ServerExtension>()),
     cancel: proc
       .input(z.object({ reservationKey: z.number(), reason: z.string().optional() }))
+      .mutation(() => as<ServerRequest>()),
+    confirmMyPickup: proc
+      .input(z.object({ usageKey: z.number() }))
       .mutation(() => as<ServerRequest>()),
     // Staff counter. Typed against backend/src/loan/loan.schema.ts.
     staffQueue: proc

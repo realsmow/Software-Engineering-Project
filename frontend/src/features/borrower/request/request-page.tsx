@@ -1,9 +1,9 @@
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { fmtDayMonth } from "@/lib/datetime";
 import { useNavigate } from "react-router-dom";
 import { differenceInCalendarDays, parseISO } from "date-fns";
-import { Check, Minus, Package, Plus, ShoppingCart, TriangleAlert } from "lucide-react";
+import { Check, Minus, Package, Plus, ShoppingCart, Trash2, TriangleAlert } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { TierDot } from "@/components/shared/tier-badge";
 import { Badge, type BadgeTone } from "@/components/ui/badge";
@@ -13,7 +13,8 @@ import { BUSINESS, CREDIT_BANDS, CREDIT_BAND_POLICY, ROUTES } from "@/constants"
 import { useAuthStore } from "@/features/auth/auth.store";
 import { getErrorMessage } from "@/lib/error-messages";
 import { cn } from "@/lib/utils";
-import type { CatalogItem, UnitState } from "../mock-data";
+import type { CatalogItem, UnitCondition, UnitState } from "../mock-data";
+import { toAvailabilityWindow } from "../catalog/availability-window";
 import { useEquipmentTypes, useEquipmentUnits } from "../catalog/use-equipment-types";
 import { useMyCredit } from "@/features/account/use-my-credit";
 import {
@@ -42,6 +43,14 @@ const UNIT_CONDITION_KEY: Record<UnitState, string> = {
   free: "borrower.request.condOk",
   fix: "borrower.request.condFix",
   out: "borrower.request.condUse",
+};
+
+const UNIT_RECORDED_CONDITION_KEY: Record<UnitCondition, string> = {
+  Normal: "borrower.detail.condNormal",
+  MinorDamage: "borrower.detail.condMinorDamage",
+  MajorDamage: "borrower.detail.condMajorDamage",
+  Broken: "borrower.detail.condBroken",
+  Missing: "borrower.detail.condMissing",
 };
 
 /**
@@ -81,7 +90,8 @@ export default function RequestPage() {
   // The draft stores item ids only, so the catalogue is what turns a line into
   // something renderable. Same query as the catalogue page, so switching
   // between them costs nothing.
-  const { data: catalog, isLoading: catalogLoading } = useEquipmentTypes();
+  const availabilityWindow = toAvailabilityWindow(startDate, pickupTime, endDate, returnTime);
+  const { data: catalog, isLoading: catalogLoading } = useEquipmentTypes(availabilityWindow);
   const { data: credit } = useMyCredit();
 
   const band = credit?.band ?? user?.creditBand ?? "D0";
@@ -132,28 +142,31 @@ export default function RequestPage() {
   const endTime = endDate ? requestInstant(endDate, returnTime) : null;
   const startsInPast = startTime.getTime() < Date.now();
   const invalidTimeOrder = endTime !== null && endTime <= startTime;
+  const hasItems = rows.length > 0;
   const checks = [
     {
       id: "eligible",
-      ok: !policy.blocked,
+      ok: hasItems && !policy.blocked,
       label: t("borrower.request.pcEligible"),
-      detail: policy.blocked
-        ? t("borrower.request.pcEligibleBad", { band })
-        : needsSupervisor
-          ? t("borrower.request.pcEligibleSup")
-          : t("borrower.request.pcEligibleOk"),
+      detail: !hasItems
+        ? t("borrower.request.pcCreditIdle")
+        : policy.blocked
+          ? t("borrower.request.pcEligibleBad", { band })
+          : needsSupervisor
+            ? t("borrower.request.pcEligibleSup")
+            : t("borrower.request.pcEligibleOk"),
     },
     {
       id: "credit",
       ok:
-        rows.length > 0 &&
+        hasItems &&
         endDate !== null &&
         !overDays &&
         !startsInPast &&
         !invalidTimeOrder,
       label: t("borrower.request.pcCredit"),
       detail:
-        rows.length === 0
+        !hasItems
           ? t("borrower.request.pcCreditIdle")
           : endDate === null
             ? t("borrower.request.pcCreditNoEnd")
@@ -167,17 +180,19 @@ export default function RequestPage() {
     },
     {
       id: "stock",
-      ok: short.length === 0 && missingSerials.length === 0 && !tooManyUnits,
+      ok: hasItems && short.length === 0 && missingSerials.length === 0 && !tooManyUnits,
       label: t("borrower.request.pcStock"),
-      detail: tooManyUnits
-        ? t("borrower.request.pcTooMany", { max: MAX_REQUEST_UNITS })
-        : missingSerials.length
-          ? t("borrower.request.pcSerialMissing", {
-              items: missingSerials.map((r) => r.item.name).join(" · "),
-            })
-          : short.length
-            ? t("borrower.request.pcStockBad", { items: short.map((r) => r.item.name).join(" · ") })
-            : t("borrower.request.pcStockOk"),
+      detail: !hasItems
+        ? t("borrower.request.pcCreditIdle")
+        : tooManyUnits
+          ? t("borrower.request.pcTooMany", { max: MAX_REQUEST_UNITS })
+          : missingSerials.length
+            ? t("borrower.request.pcSerialMissing", {
+                items: missingSerials.map((r) => r.item.name).join(" · "),
+              })
+            : short.length
+              ? t("borrower.request.pcStockBad", { items: short.map((r) => r.item.name).join(" · ") })
+              : t("borrower.request.pcStockOk"),
     },
   ];
 
@@ -189,11 +204,16 @@ export default function RequestPage() {
   function handleStart(iso: string) {
     if (!iso) return;
     setStartDate(iso);
-    // A return date that no longer fits the new pickup date is cleared rather
-    // than silently left behind as an out-of-range value.
+    // Keep a valid same-day default when the pickup date moves beyond the
+    // current return date or outside the borrower's allowed duration.
     if (endDate && (endDate < iso || differenceInCalendarDays(parseISO(endDate), parseISO(iso)) + 1 > maxDays)) {
-      setEndDate(null);
+      setEndDate(iso);
     }
+  }
+
+  function clearItems() {
+    replaceLines([]);
+    setSubmitMessage(null);
   }
 
   async function submit() {
@@ -279,7 +299,23 @@ export default function RequestPage() {
           ) : rows.length === 0 ? (
             <EmptyState onBrowse={() => navigate(ROUTES.CATALOG)} />
           ) : (
-            <Panel title={t("borrower.request.selectedItems")}>
+            <Panel
+              title={
+                <div className="flex items-center justify-between gap-3">
+                  <span>{t("borrower.request.selectedItems")}</span>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="border-[var(--s-alert-b)] bg-[var(--s-alert-bg)] text-[var(--s-alert-t)] hover:bg-[var(--s-alert-bg)] hover:opacity-80"
+                    onClick={clearItems}
+                  >
+                    <Trash2 size={14} />
+                    {t("borrower.request.clearItems")}
+                  </Button>
+                </div>
+              }
+            >
               <LineTable rows={rows} onQty={setQty} onRemove={removeItem} />
             </Panel>
           )}
@@ -342,7 +378,12 @@ export default function RequestPage() {
                   {t("borrower.request.serialHelp")}
                 </p>
                 {t2Rows.map((row) => (
-                  <SerialPicker key={row.itemId} row={row} onToggle={toggleSerial} />
+                  <SerialPicker
+                    key={row.itemId}
+                    row={row}
+                    window={availabilityWindow}
+                    onToggle={toggleSerial}
+                  />
                 ))}
               </div>
             </Panel>
@@ -660,16 +701,28 @@ function QtyStepper({
 /** Serial checkboxes for one T2 line, capped at the line's quantity. */
 function SerialPicker({
   row,
+  window,
   onToggle,
 }: {
   row: CartRow;
+  window: ReturnType<typeof toAvailabilityWindow>;
   onToggle: (itemId: string, serial: string) => void;
 }) {
   const { t } = useTranslation();
   // Serials are not on the catalogue row - `item.list` returns types, not
   // units - so each T2 line asks for its own.
-  const { data: units = [], isLoading } = useEquipmentUnits(row.itemId);
+  const { data: units = [], isLoading } = useEquipmentUnits(row.itemId, window);
   const full = row.serials.length >= row.qty;
+
+  // A period change can invalidate a previously selected serial. Remove it so
+  // the stock pre-check cannot stay green with a unit the server now marks busy.
+  useEffect(() => {
+    if (isLoading) return;
+    const available = new Set(units.filter((unit) => unit.state === "free").map((unit) => unit.serial));
+    row.serials
+      .filter((serial) => !available.has(serial))
+      .forEach((serial) => onToggle(row.itemId, serial));
+  }, [isLoading, onToggle, row.itemId, row.serials, units]);
 
   return (
     <div>
@@ -713,7 +766,9 @@ function SerialPicker({
                 onChange={() => onToggle(row.itemId, u.serial)}
               />
               <span className="whitespace-nowrap font-mono text-xs">{u.serial}</span>
-              <span className="min-w-0 truncate text-t3">{t(UNIT_CONDITION_KEY[u.state])}</span>
+              <span className="min-w-0 truncate text-t3">
+                {t(u.condition ? UNIT_RECORDED_CONDITION_KEY[u.condition] : UNIT_CONDITION_KEY[u.state])}
+              </span>
               <span className="ml-auto">
                 <Badge tone={UNIT_TONE[u.state]}>
                   {t(`borrower.request.unit${cap(u.state)}`)}
