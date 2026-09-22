@@ -63,7 +63,7 @@ export function usePickupImageUpload() {
 /**
  * Starts every selected loan once its photos are filed.
  *
- * `loan.confirmPickup` takes one loan, so this walks the list. That is a real
+ * `loan.confirmMyPickup` takes one loan, so this walks the list. That is a real
  * difference from the single transaction the old (nonexistent)
  * `loan.finalizePickup` implied: if the third of five fails, the first two are
  * already collected. Sequential rather than parallel so the failure point is
@@ -77,7 +77,7 @@ export function useFinalizePickup() {
     mutationFn: async (usageKeys: number[]) => {
       const confirmed: number[] = [];
       for (const usageKey of usageKeys) {
-        await trpc.loan.confirmPickup.mutate({ usageKey });
+        await trpc.loan.confirmMyPickup.mutate({ usageKey });
         confirmed.push(usageKey);
       }
       return { finalizedUsageKeys: confirmed };

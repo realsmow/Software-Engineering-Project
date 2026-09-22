@@ -103,6 +103,8 @@ export const BUSINESS_ERROR_CODES = {
   NOT_APPROVED_YET: 'CONFLICT',
   /** The loan is not at the step this action expects — `cause` names both */
   WRONG_LOAN_STATE: 'CONFLICT',
+  /** Borrower confirmation requires their before-pickup evidence photo. */
+  PICKUP_PHOTO_REQUIRED: 'PRECONDITION_FAILED',
   /** The chosen unit is a different type, or a different department, than the request */
   UNIT_DOES_NOT_MATCH_REQUEST: 'BAD_REQUEST',
   EXTENSION_NOT_FOUND: 'NOT_FOUND',

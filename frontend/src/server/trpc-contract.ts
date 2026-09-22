@@ -284,6 +284,9 @@ export const appRouter = t.router({
     cancel: proc
       .input(z.object({ reservationKey: z.number(), reason: z.string().optional() }))
       .mutation(() => as<ServerRequest>()),
+    confirmMyPickup: proc
+      .input(z.object({ usageKey: z.number() }))
+      .mutation(() => as<ServerRequest>()),
     // Staff counter. Typed against backend/src/loan/loan.schema.ts.
     staffQueue: proc
       .input(

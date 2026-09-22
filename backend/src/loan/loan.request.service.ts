@@ -382,6 +382,79 @@ export class LoanRequestService {
   }
 
   /**
+   * The borrower confirms that a prepared unit has physically been received.
+   * Kept separate from the existing staff-counter confirmation so both flows
+   * retain their own authorization and ownership rules.
+   */
+  async confirmMyPickup(user: TrpcUser, usageKey: number) {
+    const usage = await this.prisma.usageLog.findUnique({
+      where: { UsageKey: usageKey },
+      select: {
+        UsageKey: true,
+        AccountKey: true,
+        ResourceKey: true,
+        ReservationKey: true,
+        CurrentStatus: true,
+      },
+    });
+
+    if (
+      !usage ||
+      usage.AccountKey !== user.accountKey ||
+      usage.ReservationKey === null
+    ) {
+      throw new BusinessError('LOAN_NOT_FOUND', { usageKey });
+    }
+    if (usage.CurrentStatus !== 'Prepared') {
+      throw new BusinessError('WRONG_LOAN_STATE', {
+        usageKey,
+        status: usage.CurrentStatus,
+        expected: 'Prepared',
+      });
+    }
+
+    const photo = await this.prisma.images.findFirst({
+      where: {
+        UsageKey: usageKey,
+        SubmittedBy: user.accountKey,
+        SubmissionType: 'BeforePicture',
+      },
+      select: { ImageKey: true },
+    });
+    if (!photo) {
+      throw new BusinessError('PICKUP_PHOTO_REQUIRED', { usageKey });
+    }
+
+    const now = new Date();
+    await this.prisma.$transaction(async (tx) => {
+      const changed = await tx.usageLog.updateMany({
+        where: {
+          UsageKey: usageKey,
+          AccountKey: user.accountKey,
+          CurrentStatus: 'Prepared',
+        },
+        data: { CurrentStatus: 'Lended', CheckoutTime: now },
+      });
+      if (changed.count !== 1) {
+        throw new BusinessError('WRONG_LOAN_STATE', {
+          usageKey,
+          expected: 'Prepared',
+        });
+      }
+
+      await tx.resourceInfo.update({
+        where: { ResourceKey: usage.ResourceKey },
+        data: { ResourceStatus: 'Lended' },
+      });
+    });
+
+    return this.toRequest(
+      await this.read(usage.ReservationKey),
+      await this.creditTiers.tierMapper(),
+    );
+  }
+
+  /**
    * The same shape, for a caller who is not the borrower.
    *
    * Ownership is deliberately not checked: the approval desk has already

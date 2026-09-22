@@ -136,6 +136,16 @@ export class LoanRouter {
     return this.requests.cancel(ctx.user!, input);
   }
 
+  /** Borrower confirms receipt after attaching their before-pickup photo. */
+  @UseMiddlewares(AuthMiddleware)
+  @Mutation({ input: usageIdInput, output: requestOutput })
+  confirmMyPickup(
+    @Input() input: { usageKey: number },
+    @Ctx() ctx: TrpcContext,
+  ) {
+    return this.requests.confirmMyPickup(ctx.user!, input.usageKey);
+  }
+
   // ── Keeping it longer (§5.4 "ขอต่ออายุการยืม") ──────────────────────────
 
   /**
