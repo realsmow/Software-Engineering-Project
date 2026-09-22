@@ -184,16 +184,24 @@ describe('IT admin system status, cron, config, and audit procedures', () => {
     );
   });
 
-  it('rejects technical configuration updates with a typed error', () => {
+  /**
+   * There is no setter, and that is the design rather than a gap.
+   *
+   * Every value getConfig reports comes from an environment variable or a
+   * compiled-in constant, fixed for the life of the process, so a setter could
+   * only ever accept an edit that changed nothing until a redeploy. This used
+   * to be a procedure that threw NOT_IMPLEMENTED; it is now absent, and this
+   * asserts it stays absent rather than coming back as a no-op.
+   */
+  it('exposes no way to write the technical configuration', () => {
     const { service } = serviceWith();
 
-    try {
-      service.updateConfig();
-      fail('expected updateConfig to reject');
-    } catch (error) {
-      expect(error).toBeInstanceOf(BusinessError);
-      expect((error as BusinessError).businessCode).toBe('NOT_IMPLEMENTED');
-    }
+    expect('updateConfig' in service).toBe(false);
+    expect(
+      Object.getOwnPropertyNames(Object.getPrototypeOf(service)).filter((name) =>
+        /^(update|set|save|write).*Config$/i.test(name),
+      ),
+    ).toEqual([]);
   });
 
   it('rejects malformed admin inputs at the schema boundary', () => {

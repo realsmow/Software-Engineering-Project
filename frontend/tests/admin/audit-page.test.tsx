@@ -17,6 +17,7 @@ const EVENTS: AuditEvent[] = [
   {
     id: "10",
     at: "2026-09-20T02:00:00.000Z",
+    actorId: 6,
     actorName: "System admin",
     actorRole: "admin",
     action: "config",
@@ -28,6 +29,7 @@ const EVENTS: AuditEvent[] = [
   {
     id: "11",
     at: "2026-09-20T01:00:00.000Z",
+    actorId: 4,
     actorName: "Staff user",
     actorRole: "staff",
     action: "login",
