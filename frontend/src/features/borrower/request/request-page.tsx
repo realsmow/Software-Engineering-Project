@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { fmtDayMonth } from "@/lib/datetime";
 import { useNavigate } from "react-router-dom";
@@ -13,7 +13,8 @@ import { BUSINESS, CREDIT_BANDS, CREDIT_BAND_POLICY, ROUTES } from "@/constants"
 import { useAuthStore } from "@/features/auth/auth.store";
 import { getErrorMessage } from "@/lib/error-messages";
 import { cn } from "@/lib/utils";
-import type { CatalogItem, UnitState } from "../mock-data";
+import type { CatalogItem, UnitCondition, UnitState } from "../mock-data";
+import { toAvailabilityWindow } from "../catalog/availability-window";
 import { useEquipmentTypes, useEquipmentUnits } from "../catalog/use-equipment-types";
 import { useMyCredit } from "@/features/account/use-my-credit";
 import {
@@ -42,6 +43,14 @@ const UNIT_CONDITION_KEY: Record<UnitState, string> = {
   free: "borrower.request.condOk",
   fix: "borrower.request.condFix",
   out: "borrower.request.condUse",
+};
+
+const UNIT_RECORDED_CONDITION_KEY: Record<UnitCondition, string> = {
+  Normal: "borrower.detail.condNormal",
+  MinorDamage: "borrower.detail.condMinorDamage",
+  MajorDamage: "borrower.detail.condMajorDamage",
+  Broken: "borrower.detail.condBroken",
+  Missing: "borrower.detail.condMissing",
 };
 
 /**
@@ -81,7 +90,8 @@ export default function RequestPage() {
   // The draft stores item ids only, so the catalogue is what turns a line into
   // something renderable. Same query as the catalogue page, so switching
   // between them costs nothing.
-  const { data: catalog, isLoading: catalogLoading } = useEquipmentTypes();
+  const availabilityWindow = toAvailabilityWindow(startDate, pickupTime, endDate, returnTime);
+  const { data: catalog, isLoading: catalogLoading } = useEquipmentTypes(availabilityWindow);
   const { data: credit } = useMyCredit();
 
   const band = credit?.band ?? user?.creditBand ?? "D0";
@@ -368,7 +378,12 @@ export default function RequestPage() {
                   {t("borrower.request.serialHelp")}
                 </p>
                 {t2Rows.map((row) => (
-                  <SerialPicker key={row.itemId} row={row} onToggle={toggleSerial} />
+                  <SerialPicker
+                    key={row.itemId}
+                    row={row}
+                    window={availabilityWindow}
+                    onToggle={toggleSerial}
+                  />
                 ))}
               </div>
             </Panel>
@@ -686,16 +701,28 @@ function QtyStepper({
 /** Serial checkboxes for one T2 line, capped at the line's quantity. */
 function SerialPicker({
   row,
+  window,
   onToggle,
 }: {
   row: CartRow;
+  window: ReturnType<typeof toAvailabilityWindow>;
   onToggle: (itemId: string, serial: string) => void;
 }) {
   const { t } = useTranslation();
   // Serials are not on the catalogue row - `item.list` returns types, not
   // units - so each T2 line asks for its own.
-  const { data: units = [], isLoading } = useEquipmentUnits(row.itemId);
+  const { data: units = [], isLoading } = useEquipmentUnits(row.itemId, window);
   const full = row.serials.length >= row.qty;
+
+  // A period change can invalidate a previously selected serial. Remove it so
+  // the stock pre-check cannot stay green with a unit the server now marks busy.
+  useEffect(() => {
+    if (isLoading) return;
+    const available = new Set(units.filter((unit) => unit.state === "free").map((unit) => unit.serial));
+    row.serials
+      .filter((serial) => !available.has(serial))
+      .forEach((serial) => onToggle(row.itemId, serial));
+  }, [isLoading, onToggle, row.itemId, row.serials, units]);
 
   return (
     <div>
@@ -739,7 +766,9 @@ function SerialPicker({
                 onChange={() => onToggle(row.itemId, u.serial)}
               />
               <span className="whitespace-nowrap font-mono text-xs">{u.serial}</span>
-              <span className="min-w-0 truncate text-t3">{t(UNIT_CONDITION_KEY[u.state])}</span>
+              <span className="min-w-0 truncate text-t3">
+                {t(u.condition ? UNIT_RECORDED_CONDITION_KEY[u.condition] : UNIT_CONDITION_KEY[u.state])}
+              </span>
               <span className="ml-auto">
                 <Badge tone={UNIT_TONE[u.state]}>
                   {t(`borrower.request.unit${cap(u.state)}`)}

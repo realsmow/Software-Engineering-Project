@@ -271,6 +271,8 @@ export interface UnitRow {
   state: UnitState;
   /** Latest condition recorded by staff; null when the unit has never been assessed. */
   condition: UnitCondition | null;
+  /** Backend-computed return date plus this unit's preparation time. */
+  nextAvailableAt?: string;
 }
 
 /** The unit list is a sample, not every serial in a 40-unit pool. */

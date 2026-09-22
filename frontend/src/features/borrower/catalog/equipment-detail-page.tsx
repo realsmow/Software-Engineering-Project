@@ -21,7 +21,7 @@ import type { StockStatus, UnitCondition, UnitState } from "../mock-data";
 import { fmtDateTime } from "../format";
 import { remainingUnits, useRequestDraft } from "../request/request-draft.store";
 import { AddButton } from "./add-button";
-import { useEquipmentAvailability, useEquipmentType } from "./use-equipment-types";
+import { useEquipmentType } from "./use-equipment-types";
 import { useMyCredit } from "@/features/account/use-my-credit";
 
 const STOCK_TONE: Record<StockStatus, BadgeTone> = {
@@ -45,8 +45,6 @@ export default function EquipmentDetailPage() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const { data: item, isLoading } = useEquipmentType(id);
-  // Refreshed on a timer while this page is open; the detail itself is not.
-  const { data: live } = useEquipmentAvailability(id);
   const { data: credit } = useMyCredit();
   const creditBand = useAuthStore((s) => s.user?.creditBand) ?? "D0";
 
@@ -84,15 +82,13 @@ export default function EquipmentDetailPage() {
     );
   }
 
-  // Live stock when the poll has answered, the cached detail until then.
-  const availableUnits = live?.availableUnits ?? item.availableUnits;
+  const availableUnits = item.availableUnits;
   const decreaseItem = () => {
     const currentQty = useRequestDraft.getState().lines.find((line) => line.itemId === item.id)?.qty ?? 0;
     if (currentQty <= 1) removeItem(item.id);
     else setQty(item.id, currentQty - 1, availableUnits);
   };
-  const totalUnits = live?.totalUnits ?? item.totalUnits;
-  const nextAvailableAt = live ? (live.nextAvailableAt ?? undefined) : item.nextAvailableAt;
+  const totalUnits = item.totalUnits;
 
   // Out of stock, or the draft already holds every free unit.
   const atCap = remainingUnits(draftLines, { ...item, availableUnits }) === 0;
@@ -211,6 +207,7 @@ export default function EquipmentDetailPage() {
                 <TableHead>{t("borrower.detail.colUnit")}</TableHead>
                 <TableHead>{t("borrower.detail.colCond")}</TableHead>
                 <TableHead>{t("common.status")}</TableHead>
+                <TableHead>{t("borrower.catalog.colNext")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -227,6 +224,11 @@ export default function EquipmentDetailPage() {
                       {t(`borrower.detail.unit${cap(u.state)}`)}
                     </Badge>
                   </TableCell>
+                  <TableCell className="whitespace-nowrap text-xs text-t2">
+                    {u.state === "free"
+                      ? t("borrower.detail.availableNow")
+                      : <span className="font-mono">{fmtDateTime(u.nextAvailableAt)}</span>}
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -242,12 +244,6 @@ export default function EquipmentDetailPage() {
               <span className="text-t3">{t("borrower.catalog.colAvail")}</span>
               <b className="font-mono text-[15px] tabular-nums text-foreground">
                 {availableUnits} / {totalUnits}
-              </b>
-            </div>
-            <div className="flex items-baseline justify-between gap-2.5">
-              <span className="text-t3">{t("borrower.catalog.colNext")}</span>
-              <b className="font-mono text-xs text-foreground">
-                {fmtDateTime(nextAvailableAt)}
               </b>
             </div>
           </div>

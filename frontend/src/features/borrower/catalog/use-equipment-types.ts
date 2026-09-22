@@ -10,6 +10,7 @@ import {
   type CatalogItemDetail,
 } from "./item.adapter";
 import type { CatalogItem, UnitRow } from "../mock-data";
+import type { EquipmentAvailabilityWindow } from "./availability-window";
 
 /**
  * useEquipmentTypes - equipment catalogue list for the borrower view.
@@ -24,17 +25,22 @@ import type { CatalogItem, UnitRow } from "../mock-data";
  * reason the whole set is needed.
  */
 
-export function useEquipmentTypes(filters?: Record<string, unknown>) {
+export function useEquipmentTypes(window?: EquipmentAvailabilityWindow) {
   const trpc = useTRPCClient();
 
   return useQuery({
-    queryKey: queryKeys.equipmentTypes(filters),
+    // Keeping the requested window in the key makes a date/time change a new
+    // query. Once the server calculates window availability, no catalogue UI
+    // code needs to change for it to refresh the counts and available filter.
+    queryKey: queryKeys.equipmentTypes(window),
     queryFn: async (): Promise<CatalogItem[]> => {
       const rows = await fetchAllPages((page, pageSize) =>
-        trpc.item.list.query({ page, pageSize }),
+        trpc.item.list.query({ page, pageSize, ...window }),
       );
       return rows.map(toCatalogItem);
     },
+    refetchInterval: POLLING.AVAILABILITY,
+    staleTime: 0,
   });
 }
 
@@ -42,8 +48,9 @@ export function useEquipmentTypes(filters?: Record<string, unknown>) {
  * useEquipmentType - one catalogue item by id, for the detail page.
  *
  * Resolves to `null` when the id matches nothing, so a stale link renders the
- * empty state instead of surfacing an error. The server keys items by integer,
- * while routes carry strings, hence the parse.
+ * empty state instead of surfacing an error. The unit rows include live status
+ * and next-available dates, so the detail is refreshed on the same interval as
+ * the catalogue availability count.
  */
 export function useEquipmentType(id: string | undefined) {
   const trpc = useTRPCClient();
@@ -63,6 +70,8 @@ export function useEquipmentType(id: string | undefined) {
       }
     },
     enabled: Boolean(id),
+    refetchInterval: POLLING.AVAILABILITY,
+    staleTime: 0,
   });
 }
 
@@ -102,17 +111,22 @@ export function useEquipmentAvailability(id: string | undefined) {
  * The catalogue list (`item.list`) carries no units, so a T2 line has to ask
  * for them by id. The detail page does not use this - it already has them.
  */
-export function useEquipmentUnits(id: string | undefined) {
+export function useEquipmentUnits(
+  id: string | undefined,
+  window?: EquipmentAvailabilityWindow,
+) {
   const trpc = useTRPCClient();
 
   return useQuery({
-    queryKey: queryKeys.equipmentUnits(id ?? ""),
+    queryKey: queryKeys.equipmentUnits(id ?? "", window),
     queryFn: async (): Promise<UnitRow[]> => {
       const numericId = itemKey(id);
       if (numericId === null) return [];
-      return (await trpc.item.listUnits.query({ id: numericId })).map(toUnitRow);
+      return (await trpc.item.listUnits.query({ id: numericId, ...window })).map(toUnitRow);
     },
     enabled: Boolean(id),
+    refetchInterval: POLLING.AVAILABILITY,
+    staleTime: 0,
   });
 }
 
