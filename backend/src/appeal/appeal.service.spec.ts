@@ -46,12 +46,23 @@ const account = (key: number) => ({
   UserCredit: 60,
 });
 
+/**
+ * Relative to now, not a fixed date.
+ *
+ * `create` refuses a penalty older than APPEAL_WINDOW_DAYS, so a hardcoded
+ * ActionTime turns this suite into a time bomb: it passes until the wall clock
+ * walks past the window, then fails with APPEAL_WINDOW_CLOSED on a day nobody
+ * changed anything. That is exactly what happened.
+ */
+const DAY = 86_400_000;
+const RECENTLY = new Date(Date.now() - DAY);
+
 const PENALTY = {
   PenaltyKey: 55,
   Reason: 'DamagedItem',
   CreditDeducted: 20,
-  ActionTime: new Date('2026-09-15T03:00:00Z'),
-  ExpirationTime: new Date('2026-10-15T03:00:00Z'),
+  ActionTime: RECENTLY,
+  ExpirationTime: new Date(Date.now() + 30 * DAY),
   InEffect: true,
   AccountKey: BORROWER.accountKey,
   UsageKey: 7,
@@ -70,7 +81,7 @@ function appealRow(
     AppealKey: 9,
     AppealReason: 'ผมไม่ได้ทำ',
     ApproveStatus: overrides.ApproveStatus ?? 'Pending',
-    ActionTime: new Date('2026-09-16T03:00:00Z'),
+    ActionTime: RECENTLY,
     ResolvedAt: null,
     FiledBy: overrides.FiledBy ?? BORROWER.accountKey,
     FiledByUser: account(BORROWER.accountKey),
