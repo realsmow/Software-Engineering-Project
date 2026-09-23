@@ -89,17 +89,20 @@ function managementHarness() {
     resolveGroupKeys: jest.fn().mockResolvedValue([8]),
   };
   const imageService = images();
+  const audit = { record: jest.fn() };
 
   return {
     service: new ItemManagementService(
       prisma as never,
       scope as never,
       imageService as never,
+      audit as never,
     ),
     prisma,
     tx,
     scope,
     imageService,
+    audit,
   };
 }
 

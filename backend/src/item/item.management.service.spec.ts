@@ -111,13 +111,15 @@ function harness(options: { rows?: Row[]; unitsOfType?: number[] } = {}) {
   };
 
   const scope = new StaffScopeService(prisma as unknown as PrismaService);
+  const audit = { record: jest.fn() };
   const service = new ItemManagementService(
     prisma as never,
     scope,
     {} as never,
+    audit as never,
   );
 
-  return { service, prisma, eligibility, rows: () => table };
+  return { service, prisma, eligibility, rows: () => table, audit };
 }
 
 const STUDENTS = { groupKey: MY_GROUP, authorityRoleKey: 1 };
@@ -125,12 +127,19 @@ const LECTURERS = { groupKey: MY_GROUP, authorityRoleKey: 2 };
 
 describe('room eligibility', () => {
   it('writes the rules onto the room resource and reads them back', async () => {
-    const { service, rows } = harness();
+    const { service, rows, audit } = harness();
 
     const saved = await service.setEligibility(user(), {
       roomKey: MY_ROOM.RoomKey,
       rules: [STUDENTS, LECTURERS],
     });
+
+    expect(audit.record).toHaveBeenCalledWith(
+      { accountKey: user().accountKey },
+      'update',
+      `room/${MY_ROOM.RoomKey}`,
+      expect.any(String),
+    );
 
     // Keyed on the ResourceKey EligibilityService checks, not the RoomKey.
     expect(rows()).toEqual([
@@ -199,7 +208,7 @@ describe('room eligibility', () => {
 
   it('refuses to write rules for another department room, touching nothing', async () => {
     const other = { ResourceKey: 90, GroupKey: OTHER_GROUP, RoleKey: 1 };
-    const { service, eligibility, rows } = harness({ rows: [other] });
+    const { service, eligibility, rows, audit } = harness({ rows: [other] });
 
     await expect(
       service.setEligibility(user(), {
@@ -211,6 +220,7 @@ describe('room eligibility', () => {
     expect(eligibility.deleteMany).not.toHaveBeenCalled();
     expect(eligibility.createMany).not.toHaveBeenCalled();
     expect(rows()).toEqual([other]);
+    expect(audit.record).not.toHaveBeenCalled();
   });
 
   it('refuses to read rules for another department room', async () => {
