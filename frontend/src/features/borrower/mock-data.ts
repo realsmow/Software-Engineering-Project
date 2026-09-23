@@ -261,6 +261,7 @@ function item(
 /* ==================== Equipment units (serials) ==================== */
 
 export type UnitState = "free" | "fix" | "out";
+export type UnitCondition = "Normal" | "MinorDamage" | "MajorDamage" | "Broken" | "Missing";
 
 export interface UnitRow {
   /** ResourceInfo key when this row came from the backend. */
@@ -268,6 +269,10 @@ export interface UnitRow {
   /** Serial printed on the unit, e.g. "EE-OSC-014-01". */
   serial: string;
   state: UnitState;
+  /** Latest condition recorded by staff; null when the unit has never been assessed. */
+  condition: UnitCondition | null;
+  /** Backend-computed return date plus this unit's preparation time. */
+  nextAvailableAt?: string;
 }
 
 /** The unit list is a sample, not every serial in a 40-unit pool. */
@@ -292,6 +297,7 @@ export function unitsOf(item: CatalogItem): UnitRow[] {
   return Array.from({ length: rows }, (_, i) => ({
     serial: `${item.code}-${String(i + 1).padStart(2, "0")}`,
     state: i < free ? "free" : i < free + fix ? "fix" : "out",
+    condition: null,
   }));
 }
 

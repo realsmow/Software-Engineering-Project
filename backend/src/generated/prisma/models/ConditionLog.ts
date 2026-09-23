@@ -236,6 +236,7 @@ export type ConditionLogWhereInput = {
   LoggedByUser?: Prisma.XOR<Prisma.AccountInfoScalarRelationFilter, Prisma.AccountInfoWhereInput>
   ResourcesCurrentlyOn?: Prisma.ResourceInfoListRelationFilter
   UsageCheckIns?: Prisma.UsageLogListRelationFilter
+  ClosedCheckRounds?: Prisma.RoomCheckRoundListRelationFilter
   UsageCheckouts?: Prisma.UsageLogListRelationFilter
   Inspections?: Prisma.InspectionListRelationFilter
   RepairsBefore?: Prisma.RepairLogListRelationFilter
@@ -253,6 +254,7 @@ export type ConditionLogOrderByWithRelationInput = {
   LoggedByUser?: Prisma.AccountInfoOrderByWithRelationInput
   ResourcesCurrentlyOn?: Prisma.ResourceInfoOrderByRelationAggregateInput
   UsageCheckIns?: Prisma.UsageLogOrderByRelationAggregateInput
+  ClosedCheckRounds?: Prisma.RoomCheckRoundOrderByRelationAggregateInput
   UsageCheckouts?: Prisma.UsageLogOrderByRelationAggregateInput
   Inspections?: Prisma.InspectionOrderByRelationAggregateInput
   RepairsBefore?: Prisma.RepairLogOrderByRelationAggregateInput
@@ -273,6 +275,7 @@ export type ConditionLogWhereUniqueInput = Prisma.AtLeast<{
   LoggedByUser?: Prisma.XOR<Prisma.AccountInfoScalarRelationFilter, Prisma.AccountInfoWhereInput>
   ResourcesCurrentlyOn?: Prisma.ResourceInfoListRelationFilter
   UsageCheckIns?: Prisma.UsageLogListRelationFilter
+  ClosedCheckRounds?: Prisma.RoomCheckRoundListRelationFilter
   UsageCheckouts?: Prisma.UsageLogListRelationFilter
   Inspections?: Prisma.InspectionListRelationFilter
   RepairsBefore?: Prisma.RepairLogListRelationFilter
@@ -313,6 +316,7 @@ export type ConditionLogCreateInput = {
   LoggedByUser: Prisma.AccountInfoCreateNestedOneWithoutConditionLogsLoggedInput
   ResourcesCurrentlyOn?: Prisma.ResourceInfoCreateNestedManyWithoutCurrentConditionInput
   UsageCheckIns?: Prisma.UsageLogCreateNestedManyWithoutCheckInConditionLogInput
+  ClosedCheckRounds?: Prisma.RoomCheckRoundCreateNestedManyWithoutConditionInput
   UsageCheckouts?: Prisma.UsageLogCreateNestedManyWithoutCheckoutConditionLogInput
   Inspections?: Prisma.InspectionCreateNestedManyWithoutConditionInput
   RepairsBefore?: Prisma.RepairLogCreateNestedManyWithoutConditionBeforeInput
@@ -328,6 +332,7 @@ export type ConditionLogUncheckedCreateInput = {
   LoggedAt?: Date | string | null
   ResourcesCurrentlyOn?: Prisma.ResourceInfoUncheckedCreateNestedManyWithoutCurrentConditionInput
   UsageCheckIns?: Prisma.UsageLogUncheckedCreateNestedManyWithoutCheckInConditionLogInput
+  ClosedCheckRounds?: Prisma.RoomCheckRoundUncheckedCreateNestedManyWithoutConditionInput
   UsageCheckouts?: Prisma.UsageLogUncheckedCreateNestedManyWithoutCheckoutConditionLogInput
   Inspections?: Prisma.InspectionUncheckedCreateNestedManyWithoutConditionInput
   RepairsBefore?: Prisma.RepairLogUncheckedCreateNestedManyWithoutConditionBeforeInput
@@ -342,6 +347,7 @@ export type ConditionLogUpdateInput = {
   LoggedByUser?: Prisma.AccountInfoUpdateOneRequiredWithoutConditionLogsLoggedNestedInput
   ResourcesCurrentlyOn?: Prisma.ResourceInfoUpdateManyWithoutCurrentConditionNestedInput
   UsageCheckIns?: Prisma.UsageLogUpdateManyWithoutCheckInConditionLogNestedInput
+  ClosedCheckRounds?: Prisma.RoomCheckRoundUpdateManyWithoutConditionNestedInput
   UsageCheckouts?: Prisma.UsageLogUpdateManyWithoutCheckoutConditionLogNestedInput
   Inspections?: Prisma.InspectionUpdateManyWithoutConditionNestedInput
   RepairsBefore?: Prisma.RepairLogUpdateManyWithoutConditionBeforeNestedInput
@@ -357,6 +363,7 @@ export type ConditionLogUncheckedUpdateInput = {
   LoggedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   ResourcesCurrentlyOn?: Prisma.ResourceInfoUncheckedUpdateManyWithoutCurrentConditionNestedInput
   UsageCheckIns?: Prisma.UsageLogUncheckedUpdateManyWithoutCheckInConditionLogNestedInput
+  ClosedCheckRounds?: Prisma.RoomCheckRoundUncheckedUpdateManyWithoutConditionNestedInput
   UsageCheckouts?: Prisma.UsageLogUncheckedUpdateManyWithoutCheckoutConditionLogNestedInput
   Inspections?: Prisma.InspectionUncheckedUpdateManyWithoutConditionNestedInput
   RepairsBefore?: Prisma.RepairLogUncheckedUpdateManyWithoutConditionBeforeNestedInput
@@ -546,6 +553,22 @@ export type ConditionLogUncheckedUpdateManyWithoutResourceNestedInput = {
   deleteMany?: Prisma.ConditionLogScalarWhereInput | Prisma.ConditionLogScalarWhereInput[]
 }
 
+export type ConditionLogCreateNestedOneWithoutClosedCheckRoundsInput = {
+  create?: Prisma.XOR<Prisma.ConditionLogCreateWithoutClosedCheckRoundsInput, Prisma.ConditionLogUncheckedCreateWithoutClosedCheckRoundsInput>
+  connectOrCreate?: Prisma.ConditionLogCreateOrConnectWithoutClosedCheckRoundsInput
+  connect?: Prisma.ConditionLogWhereUniqueInput
+}
+
+export type ConditionLogUpdateOneWithoutClosedCheckRoundsNestedInput = {
+  create?: Prisma.XOR<Prisma.ConditionLogCreateWithoutClosedCheckRoundsInput, Prisma.ConditionLogUncheckedCreateWithoutClosedCheckRoundsInput>
+  connectOrCreate?: Prisma.ConditionLogCreateOrConnectWithoutClosedCheckRoundsInput
+  upsert?: Prisma.ConditionLogUpsertWithoutClosedCheckRoundsInput
+  disconnect?: Prisma.ConditionLogWhereInput | boolean
+  delete?: Prisma.ConditionLogWhereInput | boolean
+  connect?: Prisma.ConditionLogWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.ConditionLogUpdateToOneWithWhereWithoutClosedCheckRoundsInput, Prisma.ConditionLogUpdateWithoutClosedCheckRoundsInput>, Prisma.ConditionLogUncheckedUpdateWithoutClosedCheckRoundsInput>
+}
+
 export type EnumConditionTypeFieldUpdateOperationsInput = {
   set?: $Enums.ConditionType
 }
@@ -631,6 +654,7 @@ export type ConditionLogCreateWithoutLoggedByUserInput = {
   Resource: Prisma.ResourceInfoCreateNestedOneWithoutConditionLogsInput
   ResourcesCurrentlyOn?: Prisma.ResourceInfoCreateNestedManyWithoutCurrentConditionInput
   UsageCheckIns?: Prisma.UsageLogCreateNestedManyWithoutCheckInConditionLogInput
+  ClosedCheckRounds?: Prisma.RoomCheckRoundCreateNestedManyWithoutConditionInput
   UsageCheckouts?: Prisma.UsageLogCreateNestedManyWithoutCheckoutConditionLogInput
   Inspections?: Prisma.InspectionCreateNestedManyWithoutConditionInput
   RepairsBefore?: Prisma.RepairLogCreateNestedManyWithoutConditionBeforeInput
@@ -645,6 +669,7 @@ export type ConditionLogUncheckedCreateWithoutLoggedByUserInput = {
   LoggedAt?: Date | string | null
   ResourcesCurrentlyOn?: Prisma.ResourceInfoUncheckedCreateNestedManyWithoutCurrentConditionInput
   UsageCheckIns?: Prisma.UsageLogUncheckedCreateNestedManyWithoutCheckInConditionLogInput
+  ClosedCheckRounds?: Prisma.RoomCheckRoundUncheckedCreateNestedManyWithoutConditionInput
   UsageCheckouts?: Prisma.UsageLogUncheckedCreateNestedManyWithoutCheckoutConditionLogInput
   Inspections?: Prisma.InspectionUncheckedCreateNestedManyWithoutConditionInput
   RepairsBefore?: Prisma.RepairLogUncheckedCreateNestedManyWithoutConditionBeforeInput
@@ -696,6 +721,7 @@ export type ConditionLogCreateWithoutResourcesCurrentlyOnInput = {
   Resource: Prisma.ResourceInfoCreateNestedOneWithoutConditionLogsInput
   LoggedByUser: Prisma.AccountInfoCreateNestedOneWithoutConditionLogsLoggedInput
   UsageCheckIns?: Prisma.UsageLogCreateNestedManyWithoutCheckInConditionLogInput
+  ClosedCheckRounds?: Prisma.RoomCheckRoundCreateNestedManyWithoutConditionInput
   UsageCheckouts?: Prisma.UsageLogCreateNestedManyWithoutCheckoutConditionLogInput
   Inspections?: Prisma.InspectionCreateNestedManyWithoutConditionInput
   RepairsBefore?: Prisma.RepairLogCreateNestedManyWithoutConditionBeforeInput
@@ -710,6 +736,7 @@ export type ConditionLogUncheckedCreateWithoutResourcesCurrentlyOnInput = {
   Notes?: string | null
   LoggedAt?: Date | string | null
   UsageCheckIns?: Prisma.UsageLogUncheckedCreateNestedManyWithoutCheckInConditionLogInput
+  ClosedCheckRounds?: Prisma.RoomCheckRoundUncheckedCreateNestedManyWithoutConditionInput
   UsageCheckouts?: Prisma.UsageLogUncheckedCreateNestedManyWithoutCheckoutConditionLogInput
   Inspections?: Prisma.InspectionUncheckedCreateNestedManyWithoutConditionInput
   RepairsBefore?: Prisma.RepairLogUncheckedCreateNestedManyWithoutConditionBeforeInput
@@ -728,6 +755,7 @@ export type ConditionLogCreateWithoutResourceInput = {
   LoggedByUser: Prisma.AccountInfoCreateNestedOneWithoutConditionLogsLoggedInput
   ResourcesCurrentlyOn?: Prisma.ResourceInfoCreateNestedManyWithoutCurrentConditionInput
   UsageCheckIns?: Prisma.UsageLogCreateNestedManyWithoutCheckInConditionLogInput
+  ClosedCheckRounds?: Prisma.RoomCheckRoundCreateNestedManyWithoutConditionInput
   UsageCheckouts?: Prisma.UsageLogCreateNestedManyWithoutCheckoutConditionLogInput
   Inspections?: Prisma.InspectionCreateNestedManyWithoutConditionInput
   RepairsBefore?: Prisma.RepairLogCreateNestedManyWithoutConditionBeforeInput
@@ -742,6 +770,7 @@ export type ConditionLogUncheckedCreateWithoutResourceInput = {
   LoggedAt?: Date | string | null
   ResourcesCurrentlyOn?: Prisma.ResourceInfoUncheckedCreateNestedManyWithoutCurrentConditionInput
   UsageCheckIns?: Prisma.UsageLogUncheckedCreateNestedManyWithoutCheckInConditionLogInput
+  ClosedCheckRounds?: Prisma.RoomCheckRoundUncheckedCreateNestedManyWithoutConditionInput
   UsageCheckouts?: Prisma.UsageLogUncheckedCreateNestedManyWithoutCheckoutConditionLogInput
   Inspections?: Prisma.InspectionUncheckedCreateNestedManyWithoutConditionInput
   RepairsBefore?: Prisma.RepairLogUncheckedCreateNestedManyWithoutConditionBeforeInput
@@ -776,6 +805,7 @@ export type ConditionLogUpdateWithoutResourcesCurrentlyOnInput = {
   Resource?: Prisma.ResourceInfoUpdateOneRequiredWithoutConditionLogsNestedInput
   LoggedByUser?: Prisma.AccountInfoUpdateOneRequiredWithoutConditionLogsLoggedNestedInput
   UsageCheckIns?: Prisma.UsageLogUpdateManyWithoutCheckInConditionLogNestedInput
+  ClosedCheckRounds?: Prisma.RoomCheckRoundUpdateManyWithoutConditionNestedInput
   UsageCheckouts?: Prisma.UsageLogUpdateManyWithoutCheckoutConditionLogNestedInput
   Inspections?: Prisma.InspectionUpdateManyWithoutConditionNestedInput
   RepairsBefore?: Prisma.RepairLogUpdateManyWithoutConditionBeforeNestedInput
@@ -790,6 +820,7 @@ export type ConditionLogUncheckedUpdateWithoutResourcesCurrentlyOnInput = {
   Notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   LoggedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   UsageCheckIns?: Prisma.UsageLogUncheckedUpdateManyWithoutCheckInConditionLogNestedInput
+  ClosedCheckRounds?: Prisma.RoomCheckRoundUncheckedUpdateManyWithoutConditionNestedInput
   UsageCheckouts?: Prisma.UsageLogUncheckedUpdateManyWithoutCheckoutConditionLogNestedInput
   Inspections?: Prisma.InspectionUncheckedUpdateManyWithoutConditionNestedInput
   RepairsBefore?: Prisma.RepairLogUncheckedUpdateManyWithoutConditionBeforeNestedInput
@@ -812,6 +843,80 @@ export type ConditionLogUpdateManyWithWhereWithoutResourceInput = {
   data: Prisma.XOR<Prisma.ConditionLogUpdateManyMutationInput, Prisma.ConditionLogUncheckedUpdateManyWithoutResourceInput>
 }
 
+export type ConditionLogCreateWithoutClosedCheckRoundsInput = {
+  Condition: $Enums.ConditionType
+  Notes?: string | null
+  LoggedAt?: Date | string | null
+  Resource: Prisma.ResourceInfoCreateNestedOneWithoutConditionLogsInput
+  LoggedByUser: Prisma.AccountInfoCreateNestedOneWithoutConditionLogsLoggedInput
+  ResourcesCurrentlyOn?: Prisma.ResourceInfoCreateNestedManyWithoutCurrentConditionInput
+  UsageCheckIns?: Prisma.UsageLogCreateNestedManyWithoutCheckInConditionLogInput
+  UsageCheckouts?: Prisma.UsageLogCreateNestedManyWithoutCheckoutConditionLogInput
+  Inspections?: Prisma.InspectionCreateNestedManyWithoutConditionInput
+  RepairsBefore?: Prisma.RepairLogCreateNestedManyWithoutConditionBeforeInput
+  RepairsAfter?: Prisma.RepairLogCreateNestedManyWithoutConditionAfterInput
+}
+
+export type ConditionLogUncheckedCreateWithoutClosedCheckRoundsInput = {
+  ConditionKey?: number
+  ResourceKey: number
+  LoggedBy: number
+  Condition: $Enums.ConditionType
+  Notes?: string | null
+  LoggedAt?: Date | string | null
+  ResourcesCurrentlyOn?: Prisma.ResourceInfoUncheckedCreateNestedManyWithoutCurrentConditionInput
+  UsageCheckIns?: Prisma.UsageLogUncheckedCreateNestedManyWithoutCheckInConditionLogInput
+  UsageCheckouts?: Prisma.UsageLogUncheckedCreateNestedManyWithoutCheckoutConditionLogInput
+  Inspections?: Prisma.InspectionUncheckedCreateNestedManyWithoutConditionInput
+  RepairsBefore?: Prisma.RepairLogUncheckedCreateNestedManyWithoutConditionBeforeInput
+  RepairsAfter?: Prisma.RepairLogUncheckedCreateNestedManyWithoutConditionAfterInput
+}
+
+export type ConditionLogCreateOrConnectWithoutClosedCheckRoundsInput = {
+  where: Prisma.ConditionLogWhereUniqueInput
+  create: Prisma.XOR<Prisma.ConditionLogCreateWithoutClosedCheckRoundsInput, Prisma.ConditionLogUncheckedCreateWithoutClosedCheckRoundsInput>
+}
+
+export type ConditionLogUpsertWithoutClosedCheckRoundsInput = {
+  update: Prisma.XOR<Prisma.ConditionLogUpdateWithoutClosedCheckRoundsInput, Prisma.ConditionLogUncheckedUpdateWithoutClosedCheckRoundsInput>
+  create: Prisma.XOR<Prisma.ConditionLogCreateWithoutClosedCheckRoundsInput, Prisma.ConditionLogUncheckedCreateWithoutClosedCheckRoundsInput>
+  where?: Prisma.ConditionLogWhereInput
+}
+
+export type ConditionLogUpdateToOneWithWhereWithoutClosedCheckRoundsInput = {
+  where?: Prisma.ConditionLogWhereInput
+  data: Prisma.XOR<Prisma.ConditionLogUpdateWithoutClosedCheckRoundsInput, Prisma.ConditionLogUncheckedUpdateWithoutClosedCheckRoundsInput>
+}
+
+export type ConditionLogUpdateWithoutClosedCheckRoundsInput = {
+  Condition?: Prisma.EnumConditionTypeFieldUpdateOperationsInput | $Enums.ConditionType
+  Notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  LoggedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  Resource?: Prisma.ResourceInfoUpdateOneRequiredWithoutConditionLogsNestedInput
+  LoggedByUser?: Prisma.AccountInfoUpdateOneRequiredWithoutConditionLogsLoggedNestedInput
+  ResourcesCurrentlyOn?: Prisma.ResourceInfoUpdateManyWithoutCurrentConditionNestedInput
+  UsageCheckIns?: Prisma.UsageLogUpdateManyWithoutCheckInConditionLogNestedInput
+  UsageCheckouts?: Prisma.UsageLogUpdateManyWithoutCheckoutConditionLogNestedInput
+  Inspections?: Prisma.InspectionUpdateManyWithoutConditionNestedInput
+  RepairsBefore?: Prisma.RepairLogUpdateManyWithoutConditionBeforeNestedInput
+  RepairsAfter?: Prisma.RepairLogUpdateManyWithoutConditionAfterNestedInput
+}
+
+export type ConditionLogUncheckedUpdateWithoutClosedCheckRoundsInput = {
+  ConditionKey?: Prisma.IntFieldUpdateOperationsInput | number
+  ResourceKey?: Prisma.IntFieldUpdateOperationsInput | number
+  LoggedBy?: Prisma.IntFieldUpdateOperationsInput | number
+  Condition?: Prisma.EnumConditionTypeFieldUpdateOperationsInput | $Enums.ConditionType
+  Notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  LoggedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  ResourcesCurrentlyOn?: Prisma.ResourceInfoUncheckedUpdateManyWithoutCurrentConditionNestedInput
+  UsageCheckIns?: Prisma.UsageLogUncheckedUpdateManyWithoutCheckInConditionLogNestedInput
+  UsageCheckouts?: Prisma.UsageLogUncheckedUpdateManyWithoutCheckoutConditionLogNestedInput
+  Inspections?: Prisma.InspectionUncheckedUpdateManyWithoutConditionNestedInput
+  RepairsBefore?: Prisma.RepairLogUncheckedUpdateManyWithoutConditionBeforeNestedInput
+  RepairsAfter?: Prisma.RepairLogUncheckedUpdateManyWithoutConditionAfterNestedInput
+}
+
 export type ConditionLogCreateWithoutUsageCheckoutsInput = {
   Condition: $Enums.ConditionType
   Notes?: string | null
@@ -820,6 +925,7 @@ export type ConditionLogCreateWithoutUsageCheckoutsInput = {
   LoggedByUser: Prisma.AccountInfoCreateNestedOneWithoutConditionLogsLoggedInput
   ResourcesCurrentlyOn?: Prisma.ResourceInfoCreateNestedManyWithoutCurrentConditionInput
   UsageCheckIns?: Prisma.UsageLogCreateNestedManyWithoutCheckInConditionLogInput
+  ClosedCheckRounds?: Prisma.RoomCheckRoundCreateNestedManyWithoutConditionInput
   Inspections?: Prisma.InspectionCreateNestedManyWithoutConditionInput
   RepairsBefore?: Prisma.RepairLogCreateNestedManyWithoutConditionBeforeInput
   RepairsAfter?: Prisma.RepairLogCreateNestedManyWithoutConditionAfterInput
@@ -834,6 +940,7 @@ export type ConditionLogUncheckedCreateWithoutUsageCheckoutsInput = {
   LoggedAt?: Date | string | null
   ResourcesCurrentlyOn?: Prisma.ResourceInfoUncheckedCreateNestedManyWithoutCurrentConditionInput
   UsageCheckIns?: Prisma.UsageLogUncheckedCreateNestedManyWithoutCheckInConditionLogInput
+  ClosedCheckRounds?: Prisma.RoomCheckRoundUncheckedCreateNestedManyWithoutConditionInput
   Inspections?: Prisma.InspectionUncheckedCreateNestedManyWithoutConditionInput
   RepairsBefore?: Prisma.RepairLogUncheckedCreateNestedManyWithoutConditionBeforeInput
   RepairsAfter?: Prisma.RepairLogUncheckedCreateNestedManyWithoutConditionAfterInput
@@ -851,6 +958,7 @@ export type ConditionLogCreateWithoutUsageCheckInsInput = {
   Resource: Prisma.ResourceInfoCreateNestedOneWithoutConditionLogsInput
   LoggedByUser: Prisma.AccountInfoCreateNestedOneWithoutConditionLogsLoggedInput
   ResourcesCurrentlyOn?: Prisma.ResourceInfoCreateNestedManyWithoutCurrentConditionInput
+  ClosedCheckRounds?: Prisma.RoomCheckRoundCreateNestedManyWithoutConditionInput
   UsageCheckouts?: Prisma.UsageLogCreateNestedManyWithoutCheckoutConditionLogInput
   Inspections?: Prisma.InspectionCreateNestedManyWithoutConditionInput
   RepairsBefore?: Prisma.RepairLogCreateNestedManyWithoutConditionBeforeInput
@@ -865,6 +973,7 @@ export type ConditionLogUncheckedCreateWithoutUsageCheckInsInput = {
   Notes?: string | null
   LoggedAt?: Date | string | null
   ResourcesCurrentlyOn?: Prisma.ResourceInfoUncheckedCreateNestedManyWithoutCurrentConditionInput
+  ClosedCheckRounds?: Prisma.RoomCheckRoundUncheckedCreateNestedManyWithoutConditionInput
   UsageCheckouts?: Prisma.UsageLogUncheckedCreateNestedManyWithoutCheckoutConditionLogInput
   Inspections?: Prisma.InspectionUncheckedCreateNestedManyWithoutConditionInput
   RepairsBefore?: Prisma.RepairLogUncheckedCreateNestedManyWithoutConditionBeforeInput
@@ -895,6 +1004,7 @@ export type ConditionLogUpdateWithoutUsageCheckoutsInput = {
   LoggedByUser?: Prisma.AccountInfoUpdateOneRequiredWithoutConditionLogsLoggedNestedInput
   ResourcesCurrentlyOn?: Prisma.ResourceInfoUpdateManyWithoutCurrentConditionNestedInput
   UsageCheckIns?: Prisma.UsageLogUpdateManyWithoutCheckInConditionLogNestedInput
+  ClosedCheckRounds?: Prisma.RoomCheckRoundUpdateManyWithoutConditionNestedInput
   Inspections?: Prisma.InspectionUpdateManyWithoutConditionNestedInput
   RepairsBefore?: Prisma.RepairLogUpdateManyWithoutConditionBeforeNestedInput
   RepairsAfter?: Prisma.RepairLogUpdateManyWithoutConditionAfterNestedInput
@@ -909,6 +1019,7 @@ export type ConditionLogUncheckedUpdateWithoutUsageCheckoutsInput = {
   LoggedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   ResourcesCurrentlyOn?: Prisma.ResourceInfoUncheckedUpdateManyWithoutCurrentConditionNestedInput
   UsageCheckIns?: Prisma.UsageLogUncheckedUpdateManyWithoutCheckInConditionLogNestedInput
+  ClosedCheckRounds?: Prisma.RoomCheckRoundUncheckedUpdateManyWithoutConditionNestedInput
   Inspections?: Prisma.InspectionUncheckedUpdateManyWithoutConditionNestedInput
   RepairsBefore?: Prisma.RepairLogUncheckedUpdateManyWithoutConditionBeforeNestedInput
   RepairsAfter?: Prisma.RepairLogUncheckedUpdateManyWithoutConditionAfterNestedInput
@@ -932,6 +1043,7 @@ export type ConditionLogUpdateWithoutUsageCheckInsInput = {
   Resource?: Prisma.ResourceInfoUpdateOneRequiredWithoutConditionLogsNestedInput
   LoggedByUser?: Prisma.AccountInfoUpdateOneRequiredWithoutConditionLogsLoggedNestedInput
   ResourcesCurrentlyOn?: Prisma.ResourceInfoUpdateManyWithoutCurrentConditionNestedInput
+  ClosedCheckRounds?: Prisma.RoomCheckRoundUpdateManyWithoutConditionNestedInput
   UsageCheckouts?: Prisma.UsageLogUpdateManyWithoutCheckoutConditionLogNestedInput
   Inspections?: Prisma.InspectionUpdateManyWithoutConditionNestedInput
   RepairsBefore?: Prisma.RepairLogUpdateManyWithoutConditionBeforeNestedInput
@@ -946,6 +1058,7 @@ export type ConditionLogUncheckedUpdateWithoutUsageCheckInsInput = {
   Notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   LoggedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   ResourcesCurrentlyOn?: Prisma.ResourceInfoUncheckedUpdateManyWithoutCurrentConditionNestedInput
+  ClosedCheckRounds?: Prisma.RoomCheckRoundUncheckedUpdateManyWithoutConditionNestedInput
   UsageCheckouts?: Prisma.UsageLogUncheckedUpdateManyWithoutCheckoutConditionLogNestedInput
   Inspections?: Prisma.InspectionUncheckedUpdateManyWithoutConditionNestedInput
   RepairsBefore?: Prisma.RepairLogUncheckedUpdateManyWithoutConditionBeforeNestedInput
@@ -960,6 +1073,7 @@ export type ConditionLogCreateWithoutInspectionsInput = {
   LoggedByUser: Prisma.AccountInfoCreateNestedOneWithoutConditionLogsLoggedInput
   ResourcesCurrentlyOn?: Prisma.ResourceInfoCreateNestedManyWithoutCurrentConditionInput
   UsageCheckIns?: Prisma.UsageLogCreateNestedManyWithoutCheckInConditionLogInput
+  ClosedCheckRounds?: Prisma.RoomCheckRoundCreateNestedManyWithoutConditionInput
   UsageCheckouts?: Prisma.UsageLogCreateNestedManyWithoutCheckoutConditionLogInput
   RepairsBefore?: Prisma.RepairLogCreateNestedManyWithoutConditionBeforeInput
   RepairsAfter?: Prisma.RepairLogCreateNestedManyWithoutConditionAfterInput
@@ -974,6 +1088,7 @@ export type ConditionLogUncheckedCreateWithoutInspectionsInput = {
   LoggedAt?: Date | string | null
   ResourcesCurrentlyOn?: Prisma.ResourceInfoUncheckedCreateNestedManyWithoutCurrentConditionInput
   UsageCheckIns?: Prisma.UsageLogUncheckedCreateNestedManyWithoutCheckInConditionLogInput
+  ClosedCheckRounds?: Prisma.RoomCheckRoundUncheckedCreateNestedManyWithoutConditionInput
   UsageCheckouts?: Prisma.UsageLogUncheckedCreateNestedManyWithoutCheckoutConditionLogInput
   RepairsBefore?: Prisma.RepairLogUncheckedCreateNestedManyWithoutConditionBeforeInput
   RepairsAfter?: Prisma.RepairLogUncheckedCreateNestedManyWithoutConditionAfterInput
@@ -1003,6 +1118,7 @@ export type ConditionLogUpdateWithoutInspectionsInput = {
   LoggedByUser?: Prisma.AccountInfoUpdateOneRequiredWithoutConditionLogsLoggedNestedInput
   ResourcesCurrentlyOn?: Prisma.ResourceInfoUpdateManyWithoutCurrentConditionNestedInput
   UsageCheckIns?: Prisma.UsageLogUpdateManyWithoutCheckInConditionLogNestedInput
+  ClosedCheckRounds?: Prisma.RoomCheckRoundUpdateManyWithoutConditionNestedInput
   UsageCheckouts?: Prisma.UsageLogUpdateManyWithoutCheckoutConditionLogNestedInput
   RepairsBefore?: Prisma.RepairLogUpdateManyWithoutConditionBeforeNestedInput
   RepairsAfter?: Prisma.RepairLogUpdateManyWithoutConditionAfterNestedInput
@@ -1017,6 +1133,7 @@ export type ConditionLogUncheckedUpdateWithoutInspectionsInput = {
   LoggedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   ResourcesCurrentlyOn?: Prisma.ResourceInfoUncheckedUpdateManyWithoutCurrentConditionNestedInput
   UsageCheckIns?: Prisma.UsageLogUncheckedUpdateManyWithoutCheckInConditionLogNestedInput
+  ClosedCheckRounds?: Prisma.RoomCheckRoundUncheckedUpdateManyWithoutConditionNestedInput
   UsageCheckouts?: Prisma.UsageLogUncheckedUpdateManyWithoutCheckoutConditionLogNestedInput
   RepairsBefore?: Prisma.RepairLogUncheckedUpdateManyWithoutConditionBeforeNestedInput
   RepairsAfter?: Prisma.RepairLogUncheckedUpdateManyWithoutConditionAfterNestedInput
@@ -1030,6 +1147,7 @@ export type ConditionLogCreateWithoutRepairsBeforeInput = {
   LoggedByUser: Prisma.AccountInfoCreateNestedOneWithoutConditionLogsLoggedInput
   ResourcesCurrentlyOn?: Prisma.ResourceInfoCreateNestedManyWithoutCurrentConditionInput
   UsageCheckIns?: Prisma.UsageLogCreateNestedManyWithoutCheckInConditionLogInput
+  ClosedCheckRounds?: Prisma.RoomCheckRoundCreateNestedManyWithoutConditionInput
   UsageCheckouts?: Prisma.UsageLogCreateNestedManyWithoutCheckoutConditionLogInput
   Inspections?: Prisma.InspectionCreateNestedManyWithoutConditionInput
   RepairsAfter?: Prisma.RepairLogCreateNestedManyWithoutConditionAfterInput
@@ -1044,6 +1162,7 @@ export type ConditionLogUncheckedCreateWithoutRepairsBeforeInput = {
   LoggedAt?: Date | string | null
   ResourcesCurrentlyOn?: Prisma.ResourceInfoUncheckedCreateNestedManyWithoutCurrentConditionInput
   UsageCheckIns?: Prisma.UsageLogUncheckedCreateNestedManyWithoutCheckInConditionLogInput
+  ClosedCheckRounds?: Prisma.RoomCheckRoundUncheckedCreateNestedManyWithoutConditionInput
   UsageCheckouts?: Prisma.UsageLogUncheckedCreateNestedManyWithoutCheckoutConditionLogInput
   Inspections?: Prisma.InspectionUncheckedCreateNestedManyWithoutConditionInput
   RepairsAfter?: Prisma.RepairLogUncheckedCreateNestedManyWithoutConditionAfterInput
@@ -1062,6 +1181,7 @@ export type ConditionLogCreateWithoutRepairsAfterInput = {
   LoggedByUser: Prisma.AccountInfoCreateNestedOneWithoutConditionLogsLoggedInput
   ResourcesCurrentlyOn?: Prisma.ResourceInfoCreateNestedManyWithoutCurrentConditionInput
   UsageCheckIns?: Prisma.UsageLogCreateNestedManyWithoutCheckInConditionLogInput
+  ClosedCheckRounds?: Prisma.RoomCheckRoundCreateNestedManyWithoutConditionInput
   UsageCheckouts?: Prisma.UsageLogCreateNestedManyWithoutCheckoutConditionLogInput
   Inspections?: Prisma.InspectionCreateNestedManyWithoutConditionInput
   RepairsBefore?: Prisma.RepairLogCreateNestedManyWithoutConditionBeforeInput
@@ -1076,6 +1196,7 @@ export type ConditionLogUncheckedCreateWithoutRepairsAfterInput = {
   LoggedAt?: Date | string | null
   ResourcesCurrentlyOn?: Prisma.ResourceInfoUncheckedCreateNestedManyWithoutCurrentConditionInput
   UsageCheckIns?: Prisma.UsageLogUncheckedCreateNestedManyWithoutCheckInConditionLogInput
+  ClosedCheckRounds?: Prisma.RoomCheckRoundUncheckedCreateNestedManyWithoutConditionInput
   UsageCheckouts?: Prisma.UsageLogUncheckedCreateNestedManyWithoutCheckoutConditionLogInput
   Inspections?: Prisma.InspectionUncheckedCreateNestedManyWithoutConditionInput
   RepairsBefore?: Prisma.RepairLogUncheckedCreateNestedManyWithoutConditionBeforeInput
@@ -1105,6 +1226,7 @@ export type ConditionLogUpdateWithoutRepairsBeforeInput = {
   LoggedByUser?: Prisma.AccountInfoUpdateOneRequiredWithoutConditionLogsLoggedNestedInput
   ResourcesCurrentlyOn?: Prisma.ResourceInfoUpdateManyWithoutCurrentConditionNestedInput
   UsageCheckIns?: Prisma.UsageLogUpdateManyWithoutCheckInConditionLogNestedInput
+  ClosedCheckRounds?: Prisma.RoomCheckRoundUpdateManyWithoutConditionNestedInput
   UsageCheckouts?: Prisma.UsageLogUpdateManyWithoutCheckoutConditionLogNestedInput
   Inspections?: Prisma.InspectionUpdateManyWithoutConditionNestedInput
   RepairsAfter?: Prisma.RepairLogUpdateManyWithoutConditionAfterNestedInput
@@ -1119,6 +1241,7 @@ export type ConditionLogUncheckedUpdateWithoutRepairsBeforeInput = {
   LoggedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   ResourcesCurrentlyOn?: Prisma.ResourceInfoUncheckedUpdateManyWithoutCurrentConditionNestedInput
   UsageCheckIns?: Prisma.UsageLogUncheckedUpdateManyWithoutCheckInConditionLogNestedInput
+  ClosedCheckRounds?: Prisma.RoomCheckRoundUncheckedUpdateManyWithoutConditionNestedInput
   UsageCheckouts?: Prisma.UsageLogUncheckedUpdateManyWithoutCheckoutConditionLogNestedInput
   Inspections?: Prisma.InspectionUncheckedUpdateManyWithoutConditionNestedInput
   RepairsAfter?: Prisma.RepairLogUncheckedUpdateManyWithoutConditionAfterNestedInput
@@ -1143,6 +1266,7 @@ export type ConditionLogUpdateWithoutRepairsAfterInput = {
   LoggedByUser?: Prisma.AccountInfoUpdateOneRequiredWithoutConditionLogsLoggedNestedInput
   ResourcesCurrentlyOn?: Prisma.ResourceInfoUpdateManyWithoutCurrentConditionNestedInput
   UsageCheckIns?: Prisma.UsageLogUpdateManyWithoutCheckInConditionLogNestedInput
+  ClosedCheckRounds?: Prisma.RoomCheckRoundUpdateManyWithoutConditionNestedInput
   UsageCheckouts?: Prisma.UsageLogUpdateManyWithoutCheckoutConditionLogNestedInput
   Inspections?: Prisma.InspectionUpdateManyWithoutConditionNestedInput
   RepairsBefore?: Prisma.RepairLogUpdateManyWithoutConditionBeforeNestedInput
@@ -1157,6 +1281,7 @@ export type ConditionLogUncheckedUpdateWithoutRepairsAfterInput = {
   LoggedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   ResourcesCurrentlyOn?: Prisma.ResourceInfoUncheckedUpdateManyWithoutCurrentConditionNestedInput
   UsageCheckIns?: Prisma.UsageLogUncheckedUpdateManyWithoutCheckInConditionLogNestedInput
+  ClosedCheckRounds?: Prisma.RoomCheckRoundUncheckedUpdateManyWithoutConditionNestedInput
   UsageCheckouts?: Prisma.UsageLogUncheckedUpdateManyWithoutCheckoutConditionLogNestedInput
   Inspections?: Prisma.InspectionUncheckedUpdateManyWithoutConditionNestedInput
   RepairsBefore?: Prisma.RepairLogUncheckedUpdateManyWithoutConditionBeforeNestedInput
@@ -1177,6 +1302,7 @@ export type ConditionLogUpdateWithoutLoggedByUserInput = {
   Resource?: Prisma.ResourceInfoUpdateOneRequiredWithoutConditionLogsNestedInput
   ResourcesCurrentlyOn?: Prisma.ResourceInfoUpdateManyWithoutCurrentConditionNestedInput
   UsageCheckIns?: Prisma.UsageLogUpdateManyWithoutCheckInConditionLogNestedInput
+  ClosedCheckRounds?: Prisma.RoomCheckRoundUpdateManyWithoutConditionNestedInput
   UsageCheckouts?: Prisma.UsageLogUpdateManyWithoutCheckoutConditionLogNestedInput
   Inspections?: Prisma.InspectionUpdateManyWithoutConditionNestedInput
   RepairsBefore?: Prisma.RepairLogUpdateManyWithoutConditionBeforeNestedInput
@@ -1191,6 +1317,7 @@ export type ConditionLogUncheckedUpdateWithoutLoggedByUserInput = {
   LoggedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   ResourcesCurrentlyOn?: Prisma.ResourceInfoUncheckedUpdateManyWithoutCurrentConditionNestedInput
   UsageCheckIns?: Prisma.UsageLogUncheckedUpdateManyWithoutCheckInConditionLogNestedInput
+  ClosedCheckRounds?: Prisma.RoomCheckRoundUncheckedUpdateManyWithoutConditionNestedInput
   UsageCheckouts?: Prisma.UsageLogUncheckedUpdateManyWithoutCheckoutConditionLogNestedInput
   Inspections?: Prisma.InspectionUncheckedUpdateManyWithoutConditionNestedInput
   RepairsBefore?: Prisma.RepairLogUncheckedUpdateManyWithoutConditionBeforeNestedInput
@@ -1220,6 +1347,7 @@ export type ConditionLogUpdateWithoutResourceInput = {
   LoggedByUser?: Prisma.AccountInfoUpdateOneRequiredWithoutConditionLogsLoggedNestedInput
   ResourcesCurrentlyOn?: Prisma.ResourceInfoUpdateManyWithoutCurrentConditionNestedInput
   UsageCheckIns?: Prisma.UsageLogUpdateManyWithoutCheckInConditionLogNestedInput
+  ClosedCheckRounds?: Prisma.RoomCheckRoundUpdateManyWithoutConditionNestedInput
   UsageCheckouts?: Prisma.UsageLogUpdateManyWithoutCheckoutConditionLogNestedInput
   Inspections?: Prisma.InspectionUpdateManyWithoutConditionNestedInput
   RepairsBefore?: Prisma.RepairLogUpdateManyWithoutConditionBeforeNestedInput
@@ -1234,6 +1362,7 @@ export type ConditionLogUncheckedUpdateWithoutResourceInput = {
   LoggedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   ResourcesCurrentlyOn?: Prisma.ResourceInfoUncheckedUpdateManyWithoutCurrentConditionNestedInput
   UsageCheckIns?: Prisma.UsageLogUncheckedUpdateManyWithoutCheckInConditionLogNestedInput
+  ClosedCheckRounds?: Prisma.RoomCheckRoundUncheckedUpdateManyWithoutConditionNestedInput
   UsageCheckouts?: Prisma.UsageLogUncheckedUpdateManyWithoutCheckoutConditionLogNestedInput
   Inspections?: Prisma.InspectionUncheckedUpdateManyWithoutConditionNestedInput
   RepairsBefore?: Prisma.RepairLogUncheckedUpdateManyWithoutConditionBeforeNestedInput
@@ -1256,6 +1385,7 @@ export type ConditionLogUncheckedUpdateManyWithoutResourceInput = {
 export type ConditionLogCountOutputType = {
   ResourcesCurrentlyOn: number
   UsageCheckIns: number
+  ClosedCheckRounds: number
   UsageCheckouts: number
   Inspections: number
   RepairsBefore: number
@@ -1265,6 +1395,7 @@ export type ConditionLogCountOutputType = {
 export type ConditionLogCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   ResourcesCurrentlyOn?: boolean | ConditionLogCountOutputTypeCountResourcesCurrentlyOnArgs
   UsageCheckIns?: boolean | ConditionLogCountOutputTypeCountUsageCheckInsArgs
+  ClosedCheckRounds?: boolean | ConditionLogCountOutputTypeCountClosedCheckRoundsArgs
   UsageCheckouts?: boolean | ConditionLogCountOutputTypeCountUsageCheckoutsArgs
   Inspections?: boolean | ConditionLogCountOutputTypeCountInspectionsArgs
   RepairsBefore?: boolean | ConditionLogCountOutputTypeCountRepairsBeforeArgs
@@ -1293,6 +1424,13 @@ export type ConditionLogCountOutputTypeCountResourcesCurrentlyOnArgs<ExtArgs ext
  */
 export type ConditionLogCountOutputTypeCountUsageCheckInsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   where?: Prisma.UsageLogWhereInput
+}
+
+/**
+ * ConditionLogCountOutputType without action
+ */
+export type ConditionLogCountOutputTypeCountClosedCheckRoundsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.RoomCheckRoundWhereInput
 }
 
 /**
@@ -1335,6 +1473,7 @@ export type ConditionLogSelect<ExtArgs extends runtime.Types.Extensions.Internal
   LoggedByUser?: boolean | Prisma.AccountInfoDefaultArgs<ExtArgs>
   ResourcesCurrentlyOn?: boolean | Prisma.ConditionLog$ResourcesCurrentlyOnArgs<ExtArgs>
   UsageCheckIns?: boolean | Prisma.ConditionLog$UsageCheckInsArgs<ExtArgs>
+  ClosedCheckRounds?: boolean | Prisma.ConditionLog$ClosedCheckRoundsArgs<ExtArgs>
   UsageCheckouts?: boolean | Prisma.ConditionLog$UsageCheckoutsArgs<ExtArgs>
   Inspections?: boolean | Prisma.ConditionLog$InspectionsArgs<ExtArgs>
   RepairsBefore?: boolean | Prisma.ConditionLog$RepairsBeforeArgs<ExtArgs>
@@ -1379,6 +1518,7 @@ export type ConditionLogInclude<ExtArgs extends runtime.Types.Extensions.Interna
   LoggedByUser?: boolean | Prisma.AccountInfoDefaultArgs<ExtArgs>
   ResourcesCurrentlyOn?: boolean | Prisma.ConditionLog$ResourcesCurrentlyOnArgs<ExtArgs>
   UsageCheckIns?: boolean | Prisma.ConditionLog$UsageCheckInsArgs<ExtArgs>
+  ClosedCheckRounds?: boolean | Prisma.ConditionLog$ClosedCheckRoundsArgs<ExtArgs>
   UsageCheckouts?: boolean | Prisma.ConditionLog$UsageCheckoutsArgs<ExtArgs>
   Inspections?: boolean | Prisma.ConditionLog$InspectionsArgs<ExtArgs>
   RepairsBefore?: boolean | Prisma.ConditionLog$RepairsBeforeArgs<ExtArgs>
@@ -1401,6 +1541,7 @@ export type $ConditionLogPayload<ExtArgs extends runtime.Types.Extensions.Intern
     LoggedByUser: Prisma.$AccountInfoPayload<ExtArgs>
     ResourcesCurrentlyOn: Prisma.$ResourceInfoPayload<ExtArgs>[]
     UsageCheckIns: Prisma.$UsageLogPayload<ExtArgs>[]
+    ClosedCheckRounds: Prisma.$RoomCheckRoundPayload<ExtArgs>[]
     UsageCheckouts: Prisma.$UsageLogPayload<ExtArgs>[]
     Inspections: Prisma.$InspectionPayload<ExtArgs>[]
     RepairsBefore: Prisma.$RepairLogPayload<ExtArgs>[]
@@ -1811,6 +1952,7 @@ export interface Prisma__ConditionLogClient<T, Null = never, ExtArgs extends run
   LoggedByUser<T extends Prisma.AccountInfoDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AccountInfoDefaultArgs<ExtArgs>>): Prisma.Prisma__AccountInfoClient<runtime.Types.Result.GetResult<Prisma.$AccountInfoPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   ResourcesCurrentlyOn<T extends Prisma.ConditionLog$ResourcesCurrentlyOnArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ConditionLog$ResourcesCurrentlyOnArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ResourceInfoPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   UsageCheckIns<T extends Prisma.ConditionLog$UsageCheckInsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ConditionLog$UsageCheckInsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$UsageLogPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  ClosedCheckRounds<T extends Prisma.ConditionLog$ClosedCheckRoundsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ConditionLog$ClosedCheckRoundsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$RoomCheckRoundPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   UsageCheckouts<T extends Prisma.ConditionLog$UsageCheckoutsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ConditionLog$UsageCheckoutsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$UsageLogPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   Inspections<T extends Prisma.ConditionLog$InspectionsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ConditionLog$InspectionsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$InspectionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   RepairsBefore<T extends Prisma.ConditionLog$RepairsBeforeArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ConditionLog$RepairsBeforeArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$RepairLogPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
@@ -2296,6 +2438,30 @@ export type ConditionLog$UsageCheckInsArgs<ExtArgs extends runtime.Types.Extensi
   take?: number
   skip?: number
   distinct?: Prisma.UsageLogScalarFieldEnum | Prisma.UsageLogScalarFieldEnum[]
+}
+
+/**
+ * ConditionLog.ClosedCheckRounds
+ */
+export type ConditionLog$ClosedCheckRoundsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the RoomCheckRound
+   */
+  select?: Prisma.RoomCheckRoundSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the RoomCheckRound
+   */
+  omit?: Prisma.RoomCheckRoundOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.RoomCheckRoundInclude<ExtArgs> | null
+  where?: Prisma.RoomCheckRoundWhereInput
+  orderBy?: Prisma.RoomCheckRoundOrderByWithRelationInput | Prisma.RoomCheckRoundOrderByWithRelationInput[]
+  cursor?: Prisma.RoomCheckRoundWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.RoomCheckRoundScalarFieldEnum | Prisma.RoomCheckRoundScalarFieldEnum[]
 }
 
 /**

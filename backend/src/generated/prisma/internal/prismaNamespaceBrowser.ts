@@ -53,6 +53,7 @@ export const AnyNull = runtime.AnyNull
 export const ModelName = {
   AccountInfo: 'AccountInfo',
   PasswordReset: 'PasswordReset',
+  EmailVerification: 'EmailVerification',
   SessionInfo: 'SessionInfo',
   AuditLog: 'AuditLog',
   RoleInfo: 'RoleInfo',
@@ -66,6 +67,7 @@ export const ModelName = {
   ItemIndiv: 'ItemIndiv',
   RoomInfo: 'RoomInfo',
   ResourceInfo: 'ResourceInfo',
+  RoomCheckRound: 'RoomCheckRound',
   ConditionLog: 'ConditionLog',
   BorrowRule: 'BorrowRule',
   BorrowConstraints: 'BorrowConstraints',
@@ -126,6 +128,18 @@ export const PasswordResetScalarFieldEnum = {
 } as const
 
 export type PasswordResetScalarFieldEnum = (typeof PasswordResetScalarFieldEnum)[keyof typeof PasswordResetScalarFieldEnum]
+
+
+export const EmailVerificationScalarFieldEnum = {
+  VerificationKey: 'VerificationKey',
+  AccountKey: 'AccountKey',
+  TokenHash: 'TokenHash',
+  IssuedAt: 'IssuedAt',
+  ExpiresAt: 'ExpiresAt',
+  UsedAt: 'UsedAt'
+} as const
+
+export type EmailVerificationScalarFieldEnum = (typeof EmailVerificationScalarFieldEnum)[keyof typeof EmailVerificationScalarFieldEnum]
 
 
 export const SessionInfoScalarFieldEnum = {
@@ -266,6 +280,18 @@ export const ResourceInfoScalarFieldEnum = {
 } as const
 
 export type ResourceInfoScalarFieldEnum = (typeof ResourceInfoScalarFieldEnum)[keyof typeof ResourceInfoScalarFieldEnum]
+
+
+export const RoomCheckRoundScalarFieldEnum = {
+  RoundKey: 'RoundKey',
+  ResourceKey: 'ResourceKey',
+  OpenedAt: 'OpenedAt',
+  DueAt: 'DueAt',
+  ClosedAt: 'ClosedAt',
+  ConditionKey: 'ConditionKey'
+} as const
+
+export type RoomCheckRoundScalarFieldEnum = (typeof RoomCheckRoundScalarFieldEnum)[keyof typeof RoomCheckRoundScalarFieldEnum]
 
 
 export const ConditionLogScalarFieldEnum = {

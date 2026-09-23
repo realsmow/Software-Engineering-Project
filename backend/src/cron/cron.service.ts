@@ -2,18 +2,26 @@ import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { PenaltyService } from '../common/penalty/penalty.service';
 import { NotificationService } from '../notification/notification.service';
-import { notImplemented } from '../common/errors/business-error';
 
-/** The eight jobs in SRS §5.3. */
+/** The six jobs in SRS §5.3 that this system runs. */
 export type CronJobId =
   | 'markOverdue'
   | 'markLost'
   | 'expireDemerits'
-  | 'computeAvailability'
-  | 'rollupDailyStats'
   | 'openT3InspectionRounds'
   | 'dueSoonReminder'
   | 'expireStaleRequests';
+
+/**
+ * How long a room may go unchecked before a new round opens.
+ *
+ * A month: long enough that staff are not handed the same room every week,
+ * short enough that a term does not pass without anybody looking at it.
+ */
+const CHECK_INTERVAL_DAYS = 30;
+
+/** How long staff have to carry out a round once it is opened. */
+const CHECK_GRACE_DAYS = 7;
 
 /** §5.7: two weeks past due and the thing is written off. */
 const LOST_AFTER_DAYS = 14;
@@ -106,21 +114,8 @@ export class CronService {
         return this.dueSoonReminder();
       case 'expireStaleRequests':
         return this.expireStaleRequests();
-      case 'computeAvailability':
-        return notImplemented(
-          ['a stored availability column or table'],
-          'Availability is computed live by item.getAvailability and the catalogue queries, so there is nothing for a nightly job to precompute. Needed only if those queries become too slow to run per request.',
-        );
-      case 'rollupDailyStats':
-        return notImplemented(
-          ['a DailyStats table (date, department, loans, overdue, returns)'],
-          'report.summary counts from UsageLog on demand. A rollup needs somewhere to put the daily figures, and would only pay for itself once counting live is too slow.',
-        );
       case 'openT3InspectionRounds':
-        return notImplemented(
-          ['an inspection task/round table', 'seeded T3 rooms'],
-          'inspection.recordRoomCheck records the result of a check, but nothing models the task of doing one, and no rooms exist to check.',
-        );
+        return this.openT3InspectionRounds();
     }
   }
 
@@ -333,6 +328,61 @@ export class CronService {
    * aside there is a UsageLog, and that is the counter's problem to settle,
    * not a job's.
    */
+/**
+   * Opens a condition-check task for every bookable room whose last check has
+   * aged out (§5.3, §5.9).
+   *
+   * Idempotent in the way that matters here: a room with a round already open
+   * is skipped, and the `@@unique([ResourceKey, ClosedAt])` constraint means
+   * two runs racing cannot both win. Running it twice in a row opens nothing
+   * the second time.
+   *
+   * Only bookable rooms. A room already withdrawn from service does not need a
+   * task telling somebody to go and find out that it is broken; the check that
+   * withdrew it is the record, and it comes back into the rotation when it is
+   * made bookable again.
+   */
+  private async openT3InspectionRounds(): Promise<CronOutcome> {
+    const now = new Date();
+    const staleBefore = new Date(now.getTime() - CHECK_INTERVAL_DAYS * 86_400_000);
+
+    const rooms = await this.prisma.resourceInfo.findMany({
+      where: { ResourceType: 'Room', AllowBorrow: true },
+      select: {
+        ResourceKey: true,
+        CheckRounds: {
+          orderBy: { OpenedAt: 'desc' },
+          take: 1,
+          select: { ClosedAt: true },
+        },
+      },
+    });
+
+    const due = rooms.filter(({ CheckRounds: [latest] }) => {
+      if (!latest) return true;
+      // Still open: the task exists and nobody has done it yet.
+      if (!latest.ClosedAt) return false;
+      return latest.ClosedAt < staleBefore;
+    });
+
+    if (due.length === 0) {
+      return { affected: 0, detail: 'every bookable room has been checked recently' };
+    }
+
+    const dueAt = new Date(now.getTime() + CHECK_GRACE_DAYS * 86_400_000);
+    const { count } = await this.prisma.roomCheckRound.createMany({
+      data: due.map((room) => ({ ResourceKey: room.ResourceKey, OpenedAt: now, DueAt: dueAt })),
+      // A concurrent run that already opened one loses here rather than failing
+      // the whole job.
+      skipDuplicates: true,
+    });
+
+    return {
+      affected: count,
+      detail: `${count} room check round(s) opened, due ${CHECK_GRACE_DAYS} day(s) from now`,
+    };
+  }
+
   private async expireStaleRequests(): Promise<CronOutcome> {
     const now = new Date();
     const stale = await this.prisma.reservations.findMany({

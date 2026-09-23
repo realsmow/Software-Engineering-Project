@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTRPCClient } from "@/lib/trpc";
 import type { ServerExtensionOptions } from "./extension.adapter";
+import { MY_REQUESTS_KEY } from "./use-my-requests-api";
 
 /**
  * Extensions, answered by the server rather than recomputed here.
@@ -30,7 +31,7 @@ function useInvalidateExtensions() {
     void queryClient.invalidateQueries({ queryKey: EXT_KEY });
     // The loan list carries the due date and the pending flag, both of which
     // this just moved.
-    void queryClient.invalidateQueries({ queryKey: ["borrower", "requests"] });
+    void queryClient.invalidateQueries({ queryKey: MY_REQUESTS_KEY });
   };
 }
 

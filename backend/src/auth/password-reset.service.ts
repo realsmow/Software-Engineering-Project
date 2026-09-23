@@ -1,11 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createHash, randomBytes } from 'node:crypto';
-import { createTransport } from 'nodemailer';
 import { PrismaService } from '../prisma.service';
 import { BusinessError } from '../common/errors/business-error';
 import { hashPassword } from '../common/crypto/password';
 import { SessionService } from './session.service';
+import { mailSettings } from '../common/mail/mailer';
 
 /** Long enough that a stolen link is unlikely to still be live, short enough to be usable. */
 const TTL_MS = 30 * 60 * 1000;
@@ -31,17 +31,10 @@ export class PasswordResetService {
     private readonly sessions: SessionService,
     config: ConfigService,
   ) {
-    this.appUrl = (
-      config.get<string>('PUBLIC_APP_URL') ?? 'http://localhost:5173'
-    ).replace(/\/+$/, '');
-    this.from = config.get<string>('MAIL_FROM') ?? 'ULMs <no-reply@ku.th>';
-    // ponytail: no pooling, no retry queue. One short mail on a human action.
-    // Defaults point at the MailHog container in docker-compose.
-    this.mailer = createTransport({
-      host: config.get<string>('SMTP_HOST') ?? 'localhost',
-      port: Number(config.get<string>('SMTP_PORT') ?? 1025),
-      secure: false,
-    });
+    const settings = mailSettings(config);
+    this.appUrl = settings.appUrl;
+    this.from = settings.from;
+    this.mailer = settings.mailer;
   }
 
   private static hash(token: string): string {

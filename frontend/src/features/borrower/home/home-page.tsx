@@ -96,7 +96,7 @@ export default function HomePage() {
         </Panel>
       </div>
 
-      <div className="min-w-[280px] flex-[1_1_300px]">
+      <div className="min-w-0 flex-[1_1_300px]">
         <NoticesPanel />
       </div>
     </div>
@@ -434,9 +434,9 @@ function NoticesPanel() {
                   <span className="mt-0.5 shrink-0 text-t3">
                     <NavIcon name={meta.icon} size={14} />
                   </span>
-                  <span className="min-w-0">
+                  <span className="min-w-0 flex-1 whitespace-normal [overflow-wrap:anywhere]">
                     <span className="flex items-center gap-1.5">
-                      <span className="text-[13px] font-medium leading-snug text-foreground">
+                      <span className="min-w-0 text-[13px] font-medium leading-snug text-foreground">
                         {n.title}
                       </span>
                       {!n.readAt ? (

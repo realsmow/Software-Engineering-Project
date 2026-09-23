@@ -92,6 +92,65 @@ describe('Module 6 request validation', () => {
     expect(result.created[0].resource.serialNo).toBe('T2-SERIAL-42');
   });
 
+  it('lets the borrower complete pickup after attaching a before photo', async () => {
+    const db: any = dbFor();
+    const row = await db.reservations.findUnique();
+    row.UsageLogs = [{
+      UsageKey: 501,
+      CurrentStatus: 'Prepared',
+      DueTime: new Date('2099-01-10T13:00:00.000Z'),
+    }];
+    db.usageLog.findUnique = jest.fn().mockResolvedValue({
+      UsageKey: 501,
+      AccountKey: user.accountKey,
+      ResourceKey: 7,
+      ReservationKey: 101,
+      CurrentStatus: 'Prepared',
+    });
+    db.images = { findFirst: jest.fn().mockResolvedValue({ ImageKey: 91 }) };
+    const updateMany = jest.fn().mockImplementation(() => {
+      row.UsageLogs[0].CurrentStatus = 'Lended';
+      return Promise.resolve({ count: 1 });
+    });
+    const updateResource = jest.fn().mockResolvedValue({});
+    db.$transaction.mockImplementation(async (arg: any) =>
+      Array.isArray(arg)
+        ? Promise.all(arg)
+        : arg({
+            usageLog: { updateMany },
+            resourceInfo: { update: updateResource },
+          }),
+    );
+
+    const result = await service(db).confirmMyPickup(user, 501);
+
+    expect(result.status).toBe('inUse');
+    expect(updateMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({ AccountKey: user.accountKey, CurrentStatus: 'Prepared' }),
+      data: expect.objectContaining({ CurrentStatus: 'Lended' }),
+    }));
+    expect(updateResource).toHaveBeenCalledWith({
+      where: { ResourceKey: 7 },
+      data: { ResourceStatus: 'Lended' },
+    });
+  });
+
+  it('does not complete borrower pickup without a before photo', async () => {
+    const db: any = dbFor();
+    db.usageLog.findUnique = jest.fn().mockResolvedValue({
+      UsageKey: 501,
+      AccountKey: user.accountKey,
+      ResourceKey: 7,
+      ReservationKey: 101,
+      CurrentStatus: 'Prepared',
+    });
+    db.images = { findFirst: jest.fn().mockResolvedValue(null) };
+
+    await expect(service(db).confirmMyPickup(user, 501)).rejects.toMatchObject({
+      message: 'PICKUP_PHOTO_REQUIRED',
+    });
+  });
+
   it('6.3 rejects a borrower who fails eligibility', async () => {
     const db = dbFor();
     const eligibility = { assertMayBorrow: jest.fn().mockRejectedValue(new BusinessError('NOT_ELIGIBLE')) };

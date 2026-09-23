@@ -1,63 +1,62 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { damageWeight, type AppealRow, type DecideAppealInput } from "./appeal.types";
-import { MOCK_APPEALS } from "./mock-appeals";
+import { POLLING } from "@/constants";
+import { fetchAllPages } from "@/lib/paging";
+import { useTRPCClient } from "@/lib/trpc";
+import type { AppealOutput, AppealStatus, DecideAppealInput } from "./appeal.types";
 
 /**
- * The appeal desk's data layer.
+ * The appeal desk's data layer, on `appeal.list` and `appeal.decide`.
  *
- * MOCK. `appeal.*` does not exist on the backend yet (schema.prisma has
- * AppealInfo; no router or service reads it), so these two hooks are the only
- * place that knows. They already have the shape the real ones will have, so
- * landing the backend means swapping the two bodies for
- * `trpc.appeal.queue.query()` / `trpc.appeal.decide.mutate()` and deleting
- * mock-appeals.ts.
+ * Polled on the supervisor interval (60s) like the approval queue next door:
+ * nobody is standing at a counter waiting for an appeal to move.
  *
- * The decision is kept in module state rather than pretending to persist: a
- * refresh puts the queue back, which is honest about there being no server.
+ * This was mock until the backend's appeal module landed. What the mock had
+ * wrong was not the transport but the model - it let the desk lower a damage
+ * grade and worked a refund out of the difference, and the server has no grade
+ * in this domain at all. See appeal.types.ts.
  */
 const APPEALS_KEY = ["appeals"] as const;
 
-/** Decisions taken this session, so the list visibly responds to the desk. */
-const decided = new Map<number, AppealRow["status"]>();
+/**
+ * The queue for one status.
+ *
+ * Every page is pulled rather than paged through, because the screen shows one
+ * card per appeal and has no pager: a supervisor reads the pile, they do not
+ * navigate it. The server scopes the rows to the departments this caller
+ * manages, so there is nothing to filter here.
+ */
+export function useAppeals(status: AppealStatus) {
+  const trpc = useTRPCClient();
 
-export function useAppeals() {
   return useQuery({
-    queryKey: APPEALS_KEY,
-    queryFn: async (): Promise<AppealRow[]> =>
-      MOCK_APPEALS.filter((a) => (decided.get(a.appealKey) ?? a.status) === "Pending"),
+    queryKey: [...APPEALS_KEY, "queue", status],
+    queryFn: async (): Promise<AppealOutput[]> =>
+      fetchAllPages((page, pageSize) => trpc.appeal.list.query({ page, pageSize, status })),
+    refetchInterval: POLLING.SUPERVISOR_QUEUE,
+    staleTime: 0,
   });
 }
 
 /**
- * Credit handed back by lowering a grade.
+ * Approve or reject one appeal.
  *
- * Derived from the two grades rather than typed in, so the refund can never
- * disagree with the verdict it came from. Mirrors DAMAGE_CREDIT_WEIGHT on the
- * server; the real procedure will compute the same figure server-side and this
- * becomes a preview of it.
+ * The refusals worth knowing about are the server's: it will not let the
+ * inspector whose grade is under appeal decide it, and it will not accept a
+ * reduction that is not smaller than the original deduction. The page checks
+ * the first before offering the buttons at all; the second it checks as the
+ * figure is typed. Both are still enforced server-side, so a stale screen
+ * gets an error rather than a wrong decision.
  */
-export function refundFor(row: AppealRow, newLevel: AppealRow["gradedLevel"]): number {
-  const before = damageWeight(row.gradedLevel);
-  const after = damageWeight(newLevel);
-  if (before === 0) return 0;
-  const perPoint = row.creditDeducted / before;
-  return Math.max(0, Math.round(row.creditDeducted - perPoint * after));
-}
-
 export function useDecideAppeal() {
+  const trpc = useTRPCClient();
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (input: DecideAppealInput) => {
-      // Same refusals the server will make, so the page is written against the
-      // real rules rather than against a permissive stub.
-      if (!input.reason.trim()) throw new Error("APPEAL_REASON_REQUIRED");
-      if (input.decision === "reduce" && !input.newLevel) {
-        throw new Error("APPEAL_NEW_LEVEL_REQUIRED");
-      }
-      decided.set(input.appealKey, input.decision === "reduce" ? "Approved" : "Rejected");
-      return { ok: true as const };
-    },
+    mutationFn: (input: DecideAppealInput): Promise<AppealOutput> =>
+      trpc.appeal.decide.mutate(input),
+    // Every status list moves at once: the row leaves `pending` and arrives in
+    // `approved` or `rejected`, so invalidating only the visible one would
+    // leave the other two showing the state before the decision.
     onSuccess: () => queryClient.invalidateQueries({ queryKey: APPEALS_KEY }),
   });
 }

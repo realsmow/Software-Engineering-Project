@@ -50,6 +50,7 @@ const ERROR_MESSAGES: Record<string, string> = {
   WRONG_LOAN_STATE:
     "รายการนี้ถูกดำเนินการไปแล้ว (อาจมีเจ้าหน้าที่อีกคนทำไปก่อน) กรุณารีเฟรชคิว",
   LOAN_NOT_FOUND: "ไม่พบรายการยืมนี้ อาจถูกยกเลิกหรือดำเนินการไปแล้ว",
+  PICKUP_PHOTO_REQUIRED: "กรุณาถ่ายรูปครุภัณฑ์ก่อนยืนยันการรับของ",
   RESERVATION_NOT_FOUND: "ไม่พบคำขอนี้ อาจถูกยกเลิกไปแล้ว",
   RESOURCE_NOT_FOUND: "ไม่พบอุปกรณ์ชิ้นนี้ในระบบ",
   NOT_APPROVED_YET: "คำขอนี้ยังไม่ผ่านการอนุมัติ จึงยังจัดเตรียมไม่ได้",
@@ -126,10 +127,16 @@ const ERROR_MESSAGES: Record<string, string> = {
   UPLOAD_NOT_AN_IMAGE: "ไฟล์นี้ไม่ใช่รูปภาพ",
   UPLOAD_REJECTED: "อัปโหลดไม่สำเร็จ กรุณาลองใหม่",
 
+  // Usage/check-in photos (borrower pickup & return)
+  IMAGE_NOT_FOUND: "ไม่พบรูปภาพนี้ อาจถูกลบไปแล้ว",
+  NOT_YOUR_PHOTO: "ลบได้เฉพาะรูปที่คุณอัปโหลดเอง",
+
   // Configuration problems - not the user's fault, and they cannot fix them,
   // so each one says who can.
   ROLE_NOT_CONFIGURED: "ระบบยังไม่ได้ตั้งค่าบทบาทนี้ กรุณาแจ้งผู้ดูแลระบบ",
   RESET_TOKEN_INVALID: "ลิงก์นี้หมดอายุหรือถูกใช้ไปแล้ว กรุณาขอลิงก์ใหม่",
+  VERIFICATION_TOKEN_INVALID:
+    "ลิงก์ยืนยันนี้หมดอายุหรือถูกใช้ไปแล้ว กรุณาสมัครอีกครั้ง",
   CURRENT_PASSWORD_INCORRECT: "รหัสผ่านปัจจุบันไม่ถูกต้อง",
   PASSWORD_UNCHANGED: "รหัสผ่านใหม่ต้องไม่ซ้ำกับรหัสผ่านเดิม",
   CREDIT_TIER_NOT_CONFIGURED: "ระบบยังไม่ได้ตั้งค่าระดับเครดิตที่ครอบคลุมคะแนนนี้ กรุณาแจ้งผู้ดูแลระบบ",

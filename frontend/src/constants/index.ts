@@ -106,6 +106,8 @@ export const DAMAGE_LEVELS = {
 // ==================== Routes ====================
 export const ROUTES = {
   LOGIN: "/login",
+  REGISTER: "/register",
+  VERIFY_EMAIL: "/verify-email",
   FORGOT_PASSWORD: "/forgot-password",
   RESET_PASSWORD: "/reset-password",
   HOME: "/",
@@ -125,9 +127,10 @@ export const ROUTES = {
   APPEALS: "/my/appeals",
   // Staff
   STAFF_DASHBOARD: "/staff",
-  STAFF_HANDOVER: "/staff/handover",
+  STAFF_HANDOVER: "/staff/handover/:usageKey",
   STAFF_INSPECTION: "/staff/inspection",
   STAFF_INVENTORY: "/staff/inventory",
+  STAFF_REPAIRS: "/staff/repairs",
   // Department management (shared by staff + supervisor, jurisdiction-scoped)
   STAFF_USERS: "/staff/users",
   STAFF_PERMISSIONS: "/staff/permissions",
@@ -170,6 +173,7 @@ export const ROLE_ROUTES = {
     ROUTES.STAFF_HANDOVER,
     ROUTES.STAFF_INSPECTION,
     ROUTES.STAFF_INVENTORY,
+    ROUTES.STAFF_REPAIRS,
     ROUTES.STAFF_USERS,
     ROUTES.STAFF_PERMISSIONS,
     ROUTES.STAFF_SETTINGS,
@@ -179,6 +183,11 @@ export const ROLE_ROUTES = {
   supervisor: [
     ROUTES.SUPERVISOR_APPROVALS,
     ROUTES.SUPERVISOR_APPEALS,
+    // What the department owns and what condition it is in. Not the counter:
+    // handing units over and grading returns is what a supervisor assigns to
+    // staff, so STAFF_DASHBOARD, STAFF_HANDOVER, STAFF_INSPECTION and
+    // STAFF_REPAIRS stay out.
+    ROUTES.STAFF_INVENTORY,
     ROUTES.STAFF_USERS,
     ROUTES.STAFF_PERMISSIONS,
     ROUTES.STAFF_SETTINGS,

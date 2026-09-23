@@ -34,10 +34,9 @@ export function useCronJobs() {
 /**
  * Runs one scheduled job now.
  *
- * The three unbuilt jobs refuse with NOT_IMPLEMENTED naming the table they
- * would need, so the button explains itself rather than failing blankly. On
- * success the job list is refetched: the point of pressing it is to see the
- * run recorded.
+ * Every job in the registry does real work now, so a failure here is a real
+ * failure rather than a stub explaining itself. On success the job list is
+ * refetched: the point of pressing it is to see the run recorded.
  */
 export function useRunCronJob() {
   const trpc = useTRPCClient();

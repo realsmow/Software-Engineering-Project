@@ -84,7 +84,7 @@ export const useRequestDraft = create<RequestDraftState>((set) => ({
   lines: [],
   startDate: todayIso(),
   pickupTime: "08:00",
-  endDate: null,
+  endDate: todayIso(),
   returnTime: "16:00",
 
   addItem: (itemId, stock) =>
@@ -136,7 +136,7 @@ export const useRequestDraft = create<RequestDraftState>((set) => ({
     lines: [],
     startDate: todayIso(),
     pickupTime: "08:00",
-    endDate: null,
+    endDate: todayIso(),
     returnTime: "16:00",
   }),
 }));

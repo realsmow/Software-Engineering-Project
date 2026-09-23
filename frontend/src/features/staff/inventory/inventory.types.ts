@@ -13,10 +13,18 @@ import type { ConditionType, Paginated } from "@/features/staff/queue/queue.type
 
 export type ResourceStatus = "InStorage" | "Lended" | "Missing";
 
+/**
+ * The department or club that owns a resource (ResourceInfo.ManagedBy).
+ *
+ * `id` rather than `manageGroupKey`: the server's `managementGroupRef` spells
+ * it `id`, and this file said `manageGroupKey` until a live response was read
+ * beside it. It is also what `item.listManagementGroups` answers, so the
+ * owner shown on a unit and the option picked in a create form are one shape.
+ */
 export interface ManagementGroupRef {
-  manageGroupKey: number;
+  id: number;
   name: string | null;
-  type: string;
+  type: "Club" | "Faculty";
 }
 
 /** One equipment type, summarised across its units. */
@@ -64,4 +72,29 @@ export interface ManagedUnit {
 
 export interface ManagedItemDetail extends ManagedItemType {
   units: ManagedUnit[];
+}
+
+/** One bookable room, mirroring `roomOutput` on the server. */
+export interface ManagedRoom {
+  resourceKey: number;
+  roomKey: number;
+  name: string | null;
+  description: string | null;
+  location: string | null;
+  imageUrl: string | null;
+  creditWeight: number;
+  /** Null means nobody has recorded it, not that it seats nobody. */
+  capacity: number | null;
+  tier: Tier | null;
+  status: ResourceStatus;
+  lendable: boolean;
+  condition: ConditionType | null;
+  managementGroup: ManagementGroupRef;
+}
+
+/** A BorrowRule row that maps to T0-T3, for the tier picker. */
+export interface TierOption {
+  borrowRuleKey: number;
+  tier: Tier;
+  name: string | null;
 }

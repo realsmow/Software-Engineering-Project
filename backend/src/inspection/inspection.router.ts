@@ -11,7 +11,6 @@ import { StaffMiddleware } from '../trpc/auth.middleware';
 import type { TrpcContext } from '../trpc/context';
 import {
   createInspectionInput,
-  decommissionRequestOutput,
   finishRepairInput,
   inspectionHistoryEntry,
   inspectionOutput,
@@ -21,7 +20,8 @@ import {
   listRepairsInput,
   paginatedInspectionQueue,
   paginatedRepairs,
-  proposeDecommissionInput,
+  paginatedRoomCheckRounds,
+  listRoomRoundsInput,
   recordRoomCheckInput,
   repairOutput,
   roomCheckOutput,
@@ -31,8 +31,8 @@ import {
   type FinishRepairInput,
   type ListInspectionQueueInput,
   type ListInspectionsForResourceInput,
+  type ListRoomRoundsInput,
   type ListRepairsInput,
-  type ProposeDecommissionInput,
   type RecordRoomCheckInput,
   type StartRepairInput,
 } from './inspection.schema';
@@ -83,7 +83,19 @@ export class InspectionRouter {
 
   // ── Rooms (T3) ──────────────────────────────────────────────────────────
 
-  /** The daily walk-round result. Opening the round is a scheduled job's job. */
+  /**
+   * The checks still waiting to be done.
+   *
+   * The rounds themselves are opened by the `openT3InspectionRounds` job, once
+   * a room's last check has aged out, so this list is work somebody scheduled
+   * rather than a filter over rooms.
+   */
+  @Query({ input: listRoomRoundsInput, output: paginatedRoomCheckRounds })
+  listRoomRounds(@Input() input: ListRoomRoundsInput, @Ctx() ctx: TrpcContext) {
+    return this.inspectionService.listRoomRounds(ctx.user!, input);
+  }
+
+  /** The walk-round result. Closes the open round for that room, if any. */
   @Mutation({ input: recordRoomCheckInput, output: roomCheckOutput })
   recordRoomCheck(
     @Input() input: RecordRoomCheckInput,
@@ -107,19 +119,5 @@ export class InspectionRouter {
   @Mutation({ input: finishRepairInput, output: repairOutput })
   finishRepair(@Input() input: FinishRepairInput, @Ctx() ctx: TrpcContext) {
     return this.inspectionService.finishRepair(ctx.user!, input);
-  }
-
-  // ── Decommission ────────────────────────────────────────────────────────
-
-  /** Not implemented — no table can hold the proposal. See docs/staff.md. */
-  @Mutation({
-    input: proposeDecommissionInput,
-    output: decommissionRequestOutput,
-  })
-  proposeDecommission(
-    @Input() input: ProposeDecommissionInput,
-    @Ctx() ctx: TrpcContext,
-  ) {
-    return this.inspectionService.proposeDecommission(ctx.user!, input);
   }
 }

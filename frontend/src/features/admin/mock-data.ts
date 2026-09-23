@@ -139,6 +139,8 @@ export type AuditAction = "login" | "create" | "update" | "delete" | "role" | "c
 export interface AuditEvent {
   id: string;
   at: string;
+  /** Account key behind `actorName`. Null for a cron job, which has no actor. */
+  actorId: number | null;
   actorName: string;
   actorRole: Role;
   action: AuditAction;

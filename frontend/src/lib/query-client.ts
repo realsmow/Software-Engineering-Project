@@ -35,11 +35,12 @@ export const queryKeys = {
   me: ["me"] as const,
 
   // Equipment
-  equipmentTypes: (filters?: Record<string, unknown>) =>
+  equipmentTypes: (filters?: object) =>
     ["equipment-types", filters] as const,
   equipmentType: (id: string) => ["equipment-types", id] as const,
   equipmentAvailability: (id: string) => ["equipment-types", id, "availability"] as const,
-  equipmentUnits: (id: string) => ["equipment-types", id, "units"] as const,
+  equipmentUnits: (id: string, window?: object) =>
+    ["equipment-types", id, "units", window] as const,
 
   // Facility (T3)
   facilities: ["facilities"] as const,

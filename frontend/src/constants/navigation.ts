@@ -88,6 +88,7 @@ export const NAV_CONFIG: Record<Role, RoleNav> = {
           { key: "queue", labelKey: "nav.queue", icon: "inbox", active: true, route: ROUTES.STAFF_DASHBOARD },
           { key: "inventory", labelKey: "nav.inventory", icon: "package", route: ROUTES.STAFF_INVENTORY },
           { key: "inspect", labelKey: "nav.inspect", icon: "check-square", route: ROUTES.STAFF_INSPECTION },
+          { key: "repairs", labelKey: "nav.repairs", icon: "wrench", route: ROUTES.STAFF_REPAIRS },
         ],
       },
       {
@@ -131,6 +132,7 @@ export const NAV_CONFIG: Record<Role, RoleNav> = {
       {
         labelKey: "nav.departmentMgmt",
         items: [
+          { key: "inventory", labelKey: "nav.inventory", icon: "package", route: ROUTES.STAFF_INVENTORY },
           { key: "users", labelKey: "nav.userMgmt", icon: "users", route: ROUTES.STAFF_USERS },
           { key: "permissions", labelKey: "nav.permissions", icon: "user-x", route: ROUTES.STAFF_PERMISSIONS },
           { key: "settings", labelKey: "nav.lendingSettings", icon: "sliders", route: ROUTES.STAFF_SETTINGS },
@@ -176,6 +178,7 @@ const NON_NAV_TITLE_KEYS: Record<string, string> = {
   [ROUTES.PROFILE]: "profile.title",
   [ROUTES.EQUIPMENT_DETAIL]: "nav.equipmentDetail",
   [ROUTES.ROOM_BOOKING]: "nav.roomBooking",
+  [ROUTES.STAFF_HANDOVER]: "nav.handover",
 };
 
 /** Flat lookup: route path → i18n label key (for breadcrumb + placeholder title). */

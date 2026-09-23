@@ -62,7 +62,7 @@ const UNIT: ManagedUnit = {
   condition: null,
   conditionNote: null,
   conditionLoggedAt: null,
-  managementGroup: { manageGroupKey: 8, name: "Engineering", type: "Faculty" },
+  managementGroup: { id: 8, name: "Engineering", type: "Faculty" },
   currentDueAt: null,
 };
 
@@ -86,6 +86,10 @@ describe("Module 5 borrower catalogue", () => {
       </MemoryRouter>
     );
 
+    expect(catalogHooks.useEquipmentTypes).toHaveBeenCalledWith({
+      startTime: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T/),
+      endTime: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T/),
+    });
     expect(screen.getAllByText(AVAILABLE_ITEM.name).length).toBeGreaterThan(0);
     expect(screen.getAllByText(QUEUED_ITEM.name).length).toBeGreaterThan(0);
 

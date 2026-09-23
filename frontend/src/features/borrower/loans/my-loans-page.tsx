@@ -605,7 +605,10 @@ function DraftCard({
         <Badge tone="neutral">{t("borrower.myRequests.draftStatus")}</Badge>
       </div>
 
-      <h3 className="mt-2 text-[15px] font-semibold leading-snug text-foreground">
+      <h3
+        className="mt-2 truncate text-[15px] font-semibold leading-snug text-foreground"
+        title={draft.title}
+      >
         {draft.title}
       </h3>
       <div className="mt-1 font-mono text-xs text-t3">

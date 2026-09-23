@@ -1,7 +1,7 @@
-import { useMemo, useState, type MouseEvent } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
-import { Check, Plus, ShoppingCart, SlidersHorizontal, X } from "lucide-react";
+import { ShoppingCart, SlidersHorizontal, X } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { TierBadge, TierDot, TIERS, tierNoteKey } from "@/components/shared/tier-badge";
 import { ImageThumb } from "@/components/shared/image-thumb";
@@ -21,12 +21,20 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { DataTable, type Column } from "@/components/ui/data-table";
-import { ROUTES } from "@/constants";
+import { BUSINESS, ROUTES } from "@/constants";
 import { cn } from "@/lib/utils";
 import { STOCK_STATUSES, type CatalogItem } from "../mock-data";
-import { fmtDateTime } from "../format";
 import { FacetFilters, type FilterGroup } from "../facet-filters";
-import { remainingUnits, useRequestDraft } from "../request/request-draft.store";
+import {
+  REQUEST_TIMES,
+  isoOffset,
+  remainingUnits,
+  todayIso,
+  useRequestDraft,
+  type RequestTime,
+} from "../request/request-draft.store";
+import { AddButton } from "./add-button";
+import { toAvailabilityWindow } from "./availability-window";
 import { useEquipmentTypes } from "./use-equipment-types";
 
 /** Facet groups, in rail order. Keys namespace the option keys ("owner:12"). */
@@ -50,15 +58,38 @@ const PAGE_SIZE = 8;
 export default function CatalogPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { data: items = [], isLoading } = useEquipmentTypes();
 
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<SortKey>("avail");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [availableOnly, setAvailableOnly] = useState(true);
   // Draft lines live in the shared store so the request page picks them up.
   const draftLines = useRequestDraft((s) => s.lines);
+  const startDate = useRequestDraft((s) => s.startDate);
+  const pickupTime = useRequestDraft((s) => s.pickupTime);
+  const endDate = useRequestDraft((s) => s.endDate);
+  const returnTime = useRequestDraft((s) => s.returnTime);
   const addItem = useRequestDraft((s) => s.addItem);
+  const setQty = useRequestDraft((s) => s.setQty);
+  const removeItem = useRequestDraft((s) => s.removeItem);
+  const setStartDate = useRequestDraft((s) => s.setStartDate);
+  const setPickupTime = useRequestDraft((s) => s.setPickupTime);
+  const setEndDate = useRequestDraft((s) => s.setEndDate);
+  const setReturnTime = useRequestDraft((s) => s.setReturnTime);
+  const availabilityWindow = toAvailabilityWindow(
+    startDate,
+    pickupTime,
+    endDate,
+    returnTime,
+  );
+  const { data: items = [], isLoading } = useEquipmentTypes(availabilityWindow);
+
+  function decreaseItem(item: CatalogItem) {
+    const qty = useRequestDraft.getState().lines.find((line) => line.itemId === item.id)?.qty ?? 0;
+    if (qty <= 1) removeItem(item.id);
+    else setQty(item.id, qty - 1, item.availableUnits);
+  }
 
   const groups = useMemo<FilterGroup[]>(() => {
     const countBy = (group: GroupKey, id: string) =>
@@ -128,6 +159,7 @@ export default function CatalogPage() {
 
     const list = items.filter((it) => {
       if (q && !`${it.name} ${it.code}`.toLowerCase().includes(q)) return false;
+      if (availableOnly && it.availableUnits === 0) return false;
       return picked.every((p) => p.keys.includes(`${p.group}:${facetOf(it, p.group)}`));
     });
 
@@ -140,7 +172,7 @@ export default function CatalogPage() {
         b.availableUnits - a.availableUnits
       );
     });
-  }, [items, query, selected, sort]);
+  }, [availableOnly, items, query, selected, sort]);
 
   const chips = useMemo(
     () =>
@@ -167,6 +199,13 @@ export default function CatalogPage() {
   function clearFilters() {
     setSelected(new Set());
     setQuery("");
+    setAvailableOnly(false);
+  }
+
+  function handleStartDate(iso: string) {
+    if (!iso) return;
+    setStartDate(iso);
+    if (!endDate || endDate < iso) setEndDate(iso);
   }
 
   function openDetail(item: CatalogItem) {
@@ -212,14 +251,6 @@ export default function CatalogPage() {
       render: (e) => <AvailCount item={e} />,
     },
     {
-      key: "next",
-      header: t("borrower.catalog.colNext"),
-      className: "whitespace-nowrap",
-      render: (e) => (
-        <span className="font-mono text-xs text-t3">{fmtDateTime(e.nextAvailableAt)}</span>
-      ),
-    },
-    {
       key: "add",
       header: "",
       align: "right",
@@ -237,6 +268,7 @@ export default function CatalogPage() {
             qty={qtyOf(e.id)}
             capped={atCap(e)}
             size="sm"
+            onDecrease={() => decreaseItem(e)}
             onAdd={(ev) => {
               ev.stopPropagation();
               addItem(e.id, e.availableUnits);
@@ -290,6 +322,19 @@ export default function CatalogPage() {
         }
       />
 
+      <CatalogPeriodFilter
+        startDate={startDate}
+        pickupTime={pickupTime}
+        endDate={endDate}
+        returnTime={returnTime}
+        availableOnly={availableOnly}
+        onStartDate={handleStartDate}
+        onPickupTime={setPickupTime}
+        onEndDate={(iso) => setEndDate(iso || null)}
+        onReturnTime={setReturnTime}
+        onAvailableOnly={setAvailableOnly}
+      />
+
       <div className="grid items-start gap-4 lg:grid-cols-[224px_minmax(0,1fr)]">
         <aside className="hidden overflow-hidden rounded-lg border border-border bg-card shadow-sm lg:block">
           <FacetFilters
@@ -302,27 +347,27 @@ export default function CatalogPage() {
 
         <div className="min-w-0">
           {/* Desktop / tablet: one card, table rows. */}
-          <div className="hidden md:block">
-            {showEmpty ? (
-              <div className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
-                {strips}
+          <div className="hidden overflow-hidden rounded-lg border border-border bg-card shadow-sm md:block">
+            {strips}
+            <div className="[&>div]:rounded-none [&>div]:border-0">
+              {showEmpty ? (
                 <EmptyState onClear={clearFilters} />
-              </div>
-            ) : (
-              <DataTable
-                // Remount on any change to the result set so pagination starts
-                // over - DataTable owns its page state and has no reset prop.
-                key={`${query}|${sort}|${[...selected].sort().join(",")}`}
-                columns={columns}
-                rows={rows}
-                rowKey={(e) => e.id}
-                onRowClick={openDetail}
-                pageSize={PAGE_SIZE}
-                beforeRows={strips}
-                emptyTitle={t("common.loading")}
-                rangeLabel={(s, e, total) => t("table.range", { start: s, end: e, total })}
-              />
-            )}
+              ) : (
+                <DataTable
+                  // Remount on any change to the result set so pagination starts
+                  // over. The toolbar stays outside this keyed subtree so the
+                  // search field keeps focus while results change.
+                  key={`${query}|${sort}|${[...selected].sort().join(",")}`}
+                  columns={columns}
+                  rows={rows}
+                  rowKey={(e) => e.id}
+                  onRowClick={openDetail}
+                  pageSize={PAGE_SIZE}
+                  emptyTitle={t("common.loading")}
+                  rangeLabel={(s, e, total) => t("table.range", { start: s, end: e, total })}
+                />
+              )}
+            </div>
           </div>
 
           {/* Phone: search + chips above a card list. */}
@@ -373,6 +418,7 @@ export default function CatalogPage() {
                   capped={atCap(e)}
                   onOpen={() => openDetail(e)}
                   onAdd={() => addItem(e.id, e.availableUnits)}
+                  onDecrease={() => decreaseItem(e)}
                 />
               ))
             )}
@@ -405,6 +451,121 @@ export default function CatalogPage() {
         </SheetContent>
       </Sheet>
     </div>
+  );
+}
+
+function CatalogPeriodFilter({
+  startDate,
+  pickupTime,
+  endDate,
+  returnTime,
+  availableOnly,
+  onStartDate,
+  onPickupTime,
+  onEndDate,
+  onReturnTime,
+  onAvailableOnly,
+}: {
+  startDate: string;
+  pickupTime: RequestTime;
+  endDate: string | null;
+  returnTime: RequestTime;
+  availableOnly: boolean;
+  onStartDate: (iso: string) => void;
+  onPickupTime: (time: RequestTime) => void;
+  onEndDate: (iso: string) => void;
+  onReturnTime: (time: RequestTime) => void;
+  onAvailableOnly: (value: boolean) => void;
+}) {
+  const { t } = useTranslation();
+  const maxDate = isoOffset(BUSINESS.RESERVATION_MAX_DAYS);
+
+  return (
+    <section className="mb-4 overflow-hidden rounded-lg border border-border bg-card shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-3.5 py-2.5">
+        <div>
+          <div className="text-sm font-semibold text-foreground">
+            {t("borrower.catalog.periodTitle")}
+          </div>
+          <div className="mt-0.5 text-xs text-t3">{t("borrower.catalog.periodHelp")}</div>
+        </div>
+        <label className="inline-flex cursor-pointer items-center gap-2 text-xs font-medium text-foreground">
+          <input
+            type="checkbox"
+            checked={availableOnly}
+            onChange={(event) => onAvailableOnly(event.target.checked)}
+            className="h-4 w-4 accent-[var(--accent)]"
+          />
+          {t("borrower.catalog.availableOnly")}
+        </label>
+      </div>
+
+      <div className="grid gap-3 p-3.5 md:grid-cols-2">
+        <CatalogDateTimeField
+          label={t("borrower.catalog.periodStart")}
+          date={startDate}
+          time={pickupTime}
+          min={todayIso()}
+          max={maxDate}
+          onDate={onStartDate}
+          onTime={onPickupTime}
+        />
+        <CatalogDateTimeField
+          label={t("borrower.catalog.periodEnd")}
+          date={endDate ?? ""}
+          time={returnTime}
+          min={startDate}
+          max={maxDate}
+          onDate={onEndDate}
+          onTime={onReturnTime}
+        />
+      </div>
+    </section>
+  );
+}
+
+function CatalogDateTimeField({
+  label,
+  date,
+  time,
+  min,
+  max,
+  onDate,
+  onTime,
+}: {
+  label: string;
+  date: string;
+  time: RequestTime;
+  min: string;
+  max: string;
+  onDate: (iso: string) => void;
+  onTime: (time: RequestTime) => void;
+}) {
+  return (
+    <fieldset>
+      <legend className="mb-1.5 text-xs font-medium text-t2">{label}</legend>
+      <div className="grid grid-cols-[minmax(0,1fr)_112px] gap-2">
+        <Input
+          type="date"
+          value={date}
+          min={min}
+          max={max}
+          onChange={(event) => onDate(event.target.value)}
+        />
+        <Select value={time} onValueChange={(value) => onTime(value as RequestTime)}>
+          <SelectTrigger aria-label={label}>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {REQUEST_TIMES.map((option) => (
+              <SelectItem key={option} value={option}>
+                {option}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+    </fieldset>
   );
 }
 
@@ -511,12 +672,14 @@ function ItemCard({
   capped,
   onOpen,
   onAdd,
+  onDecrease,
 }: {
   item: CatalogItem;
   qty: number;
   capped: boolean;
   onOpen: () => void;
   onAdd: () => void;
+  onDecrease: () => void;
 }) {
   const { t } = useTranslation();
   return (
@@ -541,9 +704,6 @@ function ItemCard({
           {t(tierNoteKey(item.tier))}
         </span>
         <AvailCount item={item} />
-        {item.nextAvailableAt ? (
-          <span className="font-mono text-t3">{fmtDateTime(item.nextAvailableAt)}</span>
-        ) : null}
       </div>
 
       <div className="mt-3 flex gap-2">
@@ -556,60 +716,13 @@ function ItemCard({
           variant="default"
           className="h-10 flex-1"
           onAdd={onAdd}
+          onDecrease={onDecrease}
         />
       </div>
     </div>
   );
 }
 
-/**
- * Add-to-request button. Flips to a "selected" state once the item is in the
- * draft - accent fill, a check instead of the plus, and the count - so a glance
- * down the list shows what is already picked. Still adds another unit on click
- * until the shelf runs out, at which point it locks.
- */
-function AddButton({
-  qty,
-  capped,
-  size,
-  variant = "outline",
-  className,
-  onAdd,
-}: {
-  qty: number;
-  capped: boolean;
-  size?: "sm";
-  /** Look to use before anything is selected; the selected look is fixed. */
-  variant?: "outline" | "default";
-  className?: string;
-  onAdd: (ev: MouseEvent<HTMLButtonElement>) => void;
-}) {
-  const { t } = useTranslation();
-  const selected = qty > 0;
-  const icon = size === "sm" ? 14 : 15;
-
-  return (
-    <Button
-      type="button"
-      size={size}
-      variant={selected ? "outline" : variant}
-      className={cn(
-        selected &&
-          "border-accent bg-[var(--accent-soft)] text-accent hover:bg-accent hover:text-white",
-        className,
-      )}
-      disabled={capped}
-      onClick={onAdd}
-    >
-      {selected ? (
-        <Check size={icon} strokeWidth={2.6} />
-      ) : (
-        <Plus size={icon} strokeWidth={2.2} />
-      )}
-      {selected ? t("borrower.catalog.selected", { count: qty }) : t("borrower.catalog.add")}
-    </Button>
-  );
-}
 
 function AvailCount({ item }: { item: CatalogItem }) {
   return (

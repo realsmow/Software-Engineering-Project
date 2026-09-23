@@ -54,10 +54,21 @@ import type {
   InspectionSubject,
 } from "@/features/staff/inspection/inspection.types";
 import type {
+  RoomCheckResult,
+  RoomCheckRound,
+} from "@/features/staff/repairs/repairs.types";
+import type {
   ManagedItemDetail,
   ManagedItemType,
+  ManagedRoom,
   ManagedUnit,
+  TierOption,
 } from "@/features/staff/inventory/inventory.types";
+import type {
+  AuthorityRoleOption,
+  EligibilityGroupOption,
+  EligibilityRule,
+} from "@/features/staff/permissions/permissions.types";
 import type {
   LoanOutput,
   Paginated as ServerPaginated,
@@ -79,10 +90,12 @@ import type { TechnicalConfig } from "@/features/admin/config/config.types";
 import type {
   EquipmentType,
   EquipmentUnit,
-  Appeal,
-  DamageReport,
   Notification,
 } from "@/types/domain";
+import type {
+  AppealOutput,
+  AppealablePenalty,
+} from "@/features/supervisor/appeals/appeal.types";
 
 const t = initTRPC.create();
 const proc = t.procedure;
@@ -120,6 +133,23 @@ export const appRouter = t.router({
     /** Revokes every session the account holds, not just this browser's. */
     // Revokes every other session, so a password change actually cuts off
     // whoever might have known the old one.
+    // Public: the caller has no account yet. Always answers ok, even when the
+    // address is taken, so the form cannot be used to find out who is
+    // registered. Role is not an input; the server always creates a borrower.
+    register: proc
+      .input(
+        z.object({
+          email: z.string(),
+          studentId: z.string(),
+          firstName: z.string(),
+          lastName: z.string(),
+          password: z.string(),
+        }),
+      )
+      .mutation(() => as<{ ok: true }>()),
+    verifyEmail: proc
+      .input(z.object({ token: z.string() }))
+      .mutation(() => as<{ ok: true }>()),
     // Both public: the caller is locked out by definition.
     requestPasswordReset: proc
       .input(z.object({ email: z.string() }))
@@ -137,14 +167,15 @@ export const appRouter = t.router({
   item: t.router({
     // NOTE: item returns ServerItem, not the frontend's EquipmentType, and its
     // ids are numbers. features/borrower/catalog/item.adapter.ts converts.
-    // listCategories exists in the contract but the server answers
-    // NOT_IMPLEMENTED: the schema has no category table.
     list: proc
       .input(
         pageInput.extend({
           tier: z.string().optional(),
           ownerGroupKey: z.number().optional(),
           availableOnly: z.boolean().optional(),
+          /** Optional requested period for range-specific availability counts. */
+          startTime: z.string().datetime().optional(),
+          endTime: z.string().datetime().optional(),
         }),
       )
       .query(() => as<Paginated<ServerItem>>()),
@@ -160,7 +191,6 @@ export const appRouter = t.router({
         nextAvailableAt: string | null;
       }>(),
     ),
-    listCategories: proc.query(() => as<{ id: string; name: string }[]>()),
 
     // Staff half. Scoped per row on the server to the caller's Authority, so
     // none of these take a department.
@@ -202,7 +232,14 @@ export const appRouter = t.router({
         }),
       )
       .mutation(() => as<ManagedUnit>()),
-    listUnits: proc.input(numericIdInput).query(() => as<ServerItemUnit[]>()),
+    listUnits: proc
+      .input(
+        numericIdInput.extend({
+          startTime: z.string().datetime().optional(),
+          endTime: z.string().datetime().optional(),
+        }),
+      )
+      .query(() => as<ServerItemUnit[]>()),
     create: proc.input(z.object({}).passthrough()).mutation(() => as<EquipmentType>()),
     update: proc
       .input(z.object({ id: z.string() }).passthrough())
@@ -210,6 +247,91 @@ export const appRouter = t.router({
     updateUnitStatus: proc
       .input(z.object({ unitId: z.string(), status: z.string() }))
       .mutation(() => as<EquipmentUnit>()),
+    createType: proc
+      .input(
+        z.object({
+          name: z.string(),
+          description: z.string().optional(),
+          imageUrl: z.string().optional(),
+          creditWeight: z.number(),
+        }),
+      )
+      .mutation(() => as<ManagedItemDetail>()),
+    // Answers an ARRAY, not one unit: `quantity` registers a batch and every
+    // row it wrote comes back.
+    createUnit: proc
+      .input(
+        z.object({
+          itemKey: z.number(),
+          manageGroupKey: z.number(),
+          tier: z.string(),
+          serialNo: z.string().optional(),
+          imageUrl: z.string().optional(),
+          prepDays: z.number().optional(),
+          lendable: z.boolean().optional(),
+          quantity: z.number().optional(),
+        }),
+      )
+      .mutation(() => as<ManagedUnit[]>()),
+    updateUnit: proc
+      .input(
+        z.object({
+          resourceKey: z.number(),
+          serialNo: z.string().optional(),
+          imageUrl: z.string().optional(),
+          tier: z.string().optional(),
+          prepDays: z.number().optional(),
+        }),
+      )
+      .mutation(() => as<ManagedUnit>()),
+    listTiers: proc.query(() => as<TierOption[]>()),
+
+    // ── Rooms, the T3 tier (RoomInfo + ResourceInfo) ────
+    listManagedRooms: proc
+      .input(pageInput.extend({ lendable: z.boolean().optional() }))
+      .query(() => as<ServerPaginated<ManagedRoom>>()),
+    createRoom: proc
+      .input(
+        z.object({
+          manageGroupKey: z.number(),
+          name: z.string(),
+          description: z.string().optional(),
+          location: z.string().optional(),
+          imageUrl: z.string().optional(),
+          creditWeight: z.number().optional(),
+          capacity: z.number().optional(),
+          lendable: z.boolean().optional(),
+        }),
+      )
+      .mutation(() => as<ManagedRoom>()),
+    // `capacity: null` clears a wrong measurement; omitting it leaves it alone.
+    updateRoom: proc
+      .input(
+        z.object({
+          resourceKey: z.number(),
+          name: z.string().optional(),
+          description: z.string().optional(),
+          location: z.string().optional(),
+          imageUrl: z.string().optional(),
+          creditWeight: z.number().optional(),
+          capacity: z.number().nullable().optional(),
+        }),
+      )
+      .mutation(() => as<ManagedRoom>()),
+    // ── Eligibility (who may borrow a type) ────────────
+    listEligibility: proc
+      .input(z.object({ itemKey: z.number() }))
+      .query(() => as<EligibilityRule[]>()),
+    setEligibility: proc
+      .input(
+        z.object({
+          itemKey: z.number(),
+          rules: z.array(z.object({ groupKey: z.number(), authorityRoleKey: z.number() })).max(200),
+        }),
+      )
+      .mutation(() => as<EligibilityRule[]>()),
+    listManagementGroups: proc.query(() => as<EligibilityGroupOption[]>()),
+    listAuthorityRoles: proc.query(() => as<AuthorityRoleOption[]>()),
   }),
 
   // ── loan ──────────────────────────────────────────────
@@ -264,6 +386,9 @@ export const appRouter = t.router({
       .mutation(() => as<ServerExtension>()),
     cancel: proc
       .input(z.object({ reservationKey: z.number(), reason: z.string().optional() }))
+      .mutation(() => as<ServerRequest>()),
+    confirmMyPickup: proc
+      .input(z.object({ usageKey: z.number() }))
       .mutation(() => as<ServerRequest>()),
     // Staff counter. Typed against backend/src/loan/loan.schema.ts.
     staffQueue: proc
@@ -361,6 +486,11 @@ export const appRouter = t.router({
     usagePhotos: proc
       .input(z.object({ usageKey: z.number() }))
       .query(() => as<UsagePhotoSet>()),
+    // Own photo only, and only while its stage is still open - the server
+    // refuses otherwise rather than silently no-op-ing.
+    detachUsagePhoto: proc
+      .input(z.object({ imageKey: z.number() }))
+      .mutation(() => as<UsagePhotoSet>()),
     requestUpload: proc
       .input(
         z.object({
@@ -432,15 +562,44 @@ export const appRouter = t.router({
   }),
 
   // ── appeal ────────────────────────────────────────────
+  // Typed against backend/src/appeal/appeal.schema.ts. Every entry here was
+  // wrong before and none had ever been called, so nothing caught it: string
+  // ids where the server keys by int, a `damageReport` relation the payload
+  // does not carry, and `decide` taking "accepted"/"rejected" where the server
+  // takes "approve"/"reject". An appeal argues with a credit penalty, and the
+  // decision reduces the deducted amount - there is no damage grade in it.
   appeal: t.router({
-    list: proc.input(pageInput).query(() => as<Paginated<Appeal>>()),
-    getById: proc.input(idInput).query(() => as<Appeal & { damageReport: DamageReport }>()),
+    /** The caller's own penalties that are still inside the appeal window. */
+    appealable: proc.query(() => as<AppealablePenalty[]>()),
     create: proc
-      .input(z.object({ damageReportId: z.string(), reason: z.string() }))
-      .mutation(() => as<Appeal>()),
+      .input(z.object({ penaltyKey: z.number(), appealReason: z.string() }))
+      .mutation(() => as<AppealOutput>()),
+    mine: proc
+      .input(pageInput.extend({
+        status: z.enum(["pending", "approved", "rejected"]).optional(),
+      }))
+      .query(() => as<ServerPaginated<AppealOutput>>()),
+    getById: proc
+      .input(z.object({ appealKey: z.number() }))
+      .query(() => as<AppealOutput>()),
+    /** Supervisor queue, oldest first. Defaults to what is still pending. */
+    list: proc
+      .input(pageInput.extend({
+        status: z.enum(["pending", "approved", "rejected"]).optional(),
+      }))
+      .query(() => as<ServerPaginated<AppealOutput>>()),
+    // Omitting `reducedCreditDeducted` cancels the penalty outright; a positive
+    // figure must be smaller than the original or the server refuses it.
     decide: proc
-      .input(z.object({ id: z.string(), decision: z.enum(["accepted", "rejected"]) }))
-      .mutation(() => as<Appeal>()),
+      .input(
+        z.object({
+          appealKey: z.number(),
+          decision: z.enum(["approve", "reject"]),
+          note: z.string().optional(),
+          reducedCreditDeducted: z.number().optional(),
+        }),
+      )
+      .mutation(() => as<AppealOutput>()),
   }),
 
   // ── credit ────────────────────────────────────────────
@@ -475,15 +634,24 @@ export const appRouter = t.router({
     listForResource: proc
       .input(z.object({ resourceKey: z.number(), limit: z.number().optional() }))
       .query(() => as<unknown[]>()),
+    // Rounds are opened by the openT3InspectionRounds job once a room's last
+    // check has aged out, so this is scheduled work rather than a filter over
+    // rooms. recordRoomCheck closes the open one.
+    listRoomRounds: proc
+      .input(pageInput.extend({ openOnly: z.boolean().optional() }))
+      .query(() => as<ServerPaginated<RoomCheckRound>>()),
     recordRoomCheck: proc
-      .input(z.object({ resourceKey: z.number() }).passthrough())
-      .mutation(() => as<unknown>()),
+      .input(
+        z.object({
+          resourceKey: z.number(),
+          condition: z.string(),
+          note: z.string().optional(),
+        }),
+      )
+      .mutation(() => as<RoomCheckResult>()),
     listRepairs: proc.input(pageInput).query(() => as<Paginated<unknown>>()),
     startRepair: proc.input(z.object({ resourceKey: z.number() }).passthrough()).mutation(() => as<unknown>()),
     finishRepair: proc.input(z.object({ repairKey: z.number() }).passthrough()).mutation(() => as<unknown>()),
-    proposeDecommission: proc
-      .input(z.object({ resourceKey: z.number() }).passthrough())
-      .mutation(() => as<unknown>()),
   }),
 
   // ── notification ──────────────────────────────────────
@@ -563,8 +731,6 @@ export const appRouter = t.router({
     // System status. Only the database is probed server-side; there is no
     // multi-service health check behind this.
     // Read-only: every value is an env var or a compiled-in constant, so
-    // updateConfig still refuses rather than accepting an edit that would do
-    // nothing until a redeploy.
     getConfig: proc.query(() => as<TechnicalConfig>()),
     getSystemStatus: proc.query(() => as<SystemStatus>()),
     listCronJobs: proc.query(() => as<CronJob[]>()),

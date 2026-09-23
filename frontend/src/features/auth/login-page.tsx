@@ -2,12 +2,12 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { SignInHelp } from "./signin-help";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Moon, Sun } from "lucide-react";
 import { KULogo } from "@/components/layout/ku-logo";
 import { LanguageToggle } from "@/components/shared/language-toggle";
 import { useTheme } from "@/hooks/use-theme";
-import { HOME_ROUTE_BY_ROLE } from "@/constants";
+import { HOME_ROUTE_BY_ROLE, ROUTES } from "@/constants";
 import { useTRPCClient } from "@/lib/trpc";
 import { useAuthStore } from "./auth.store";
 import { toClientUser } from "./user.adapter";
@@ -126,6 +126,9 @@ export function LoginPage() {
           </div>
 
           <div className="login-footer">
+            <Link to={ROUTES.REGISTER} className="login-footer-link">
+              {t("auth.createAccount")}
+            </Link>
             <LegalDialog label={t("auth.termsOfUse")} />
             <LegalDialog label={t("auth.privacyPolicy")} />
             <SignInHelp className="login-footer-link" />

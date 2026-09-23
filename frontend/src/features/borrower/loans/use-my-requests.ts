@@ -117,7 +117,7 @@ function summariseDraft(
   });
 
   return {
-    title: names.slice(0, 2).join(" · "),
+    title: `${names.slice(0, 2).join(" · ")}${names.length > 2 ? " ·  . . ." : ""}`,
     lines: lines.length,
     units: lines.reduce((sum, l) => sum + l.qty, 0),
     startDate,

@@ -131,7 +131,7 @@ function JobRow({ job }: { job: CronJob }) {
     try {
       await run.mutateAsync(job.id);
     } catch (e) {
-      // The three unbuilt jobs land here, saying which table they need.
+      // A real failure now: every job in the registry does real work.
       setError(getErrorMessage(e));
     }
   }

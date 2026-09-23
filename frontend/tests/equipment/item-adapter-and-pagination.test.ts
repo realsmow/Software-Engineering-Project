@@ -77,8 +77,9 @@ describe("Module 5 catalogue adapters", () => {
           imageUrl: null,
           status: "InStorage",
           allowBorrow: true,
-          condition: null,
+          condition: "Normal",
           dueAt: null,
+          nextAvailableAt: null,
         },
         {
           id: 2,
@@ -89,14 +90,62 @@ describe("Module 5 catalogue adapters", () => {
           allowBorrow: true,
           condition: null,
           dueAt: "2026-09-20T00:00:00Z",
+          nextAvailableAt: "2026-09-22T00:00:00Z",
         },
       ],
     });
 
     expect(detail.units).toEqual([
-      { resourceKey: 101, serial: "OSC-001", state: "free" },
-      { resourceKey: 102, serial: "OSC-002", state: "out" },
+      { resourceKey: 101, serial: "OSC-001", state: "free", condition: "Normal" },
+      {
+        resourceKey: 102,
+        serial: "OSC-002",
+        state: "out",
+        condition: null,
+        nextAvailableAt: "2026-09-22T00:00:00Z",
+      },
     ]);
+  });
+
+  it("treats an in-storage unit held by an active usage as unavailable", () => {
+    expect(
+      toUnitRow({
+        id: 3,
+        resourceKey: 103,
+        assetTag: "OSC-003",
+        imageUrl: null,
+        status: "InStorage",
+        allowBorrow: true,
+        condition: "Normal",
+        dueAt: "2026-09-20T00:00:00Z",
+        nextAvailableAt: "2026-09-22T00:00:00Z",
+      }),
+    ).toMatchObject({ state: "out", nextAvailableAt: "2026-09-22T00:00:00Z" });
+  });
+
+  it("uses window availability for T2 serials when the backend supplies it", () => {
+    const base = {
+      id: 4,
+      resourceKey: 104,
+      assetTag: "OSC-004",
+      imageUrl: null,
+      status: "Lended" as const,
+      allowBorrow: true,
+      condition: "Normal" as const,
+      dueAt: "2026-09-22T00:00:00Z",
+      nextAvailableAt: "2026-09-23T00:00:00Z",
+    };
+
+    expect(toUnitRow({ ...base, availableForWindow: true })).toMatchObject({ state: "free" });
+    expect(
+      toUnitRow({
+        ...base,
+        status: "InStorage",
+        dueAt: null,
+        nextAvailableAt: null,
+        availableForWindow: false,
+      }),
+    ).toMatchObject({ state: "out" });
   });
 });
 

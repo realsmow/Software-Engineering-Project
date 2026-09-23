@@ -86,7 +86,7 @@ export function NotificationsMenu() {
         </button>
       </PopoverTrigger>
 
-      <PopoverContent className="w-[340px] p-0">
+      <PopoverContent className="w-[340px] max-w-[calc(100vw-2rem)] p-0">
         <div className="flex items-center justify-between border-b border-border px-3.5 py-2.5">
           <span className="text-sm font-semibold text-foreground">
             {t("notifications.title")}
@@ -148,9 +148,9 @@ export function NotificationsMenu() {
                     >
                       <NavIcon name={meta.icon} size={15} />
                     </span>
-                    <div className="min-w-0 flex-1">
+                    <div className="min-w-0 flex-1 whitespace-normal [overflow-wrap:anywhere]">
                       <div className="flex items-start justify-between gap-2">
-                        <span className="text-sm font-medium text-foreground">{n.title}</span>
+                        <span className="min-w-0 text-sm font-medium text-foreground">{n.title}</span>
                         {!n.readAt ? (
                           <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--accent-red)]" />
                         ) : null}

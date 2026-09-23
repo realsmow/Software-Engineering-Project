@@ -16,7 +16,6 @@ import {
   createItemUnitInput,
   createRoomInput,
   eligibilityRule,
-  itemCategory,
   itemDetail,
   itemIdInput,
   itemTypeDetail,
@@ -135,11 +134,6 @@ export class ItemRouter {
 
   /** Not implemented — equipment has no category column or table. */
   @UseMiddlewares(AuthMiddleware)
-  @Query({ output: z.array(itemCategory) })
-  listCategories() {
-    return this.itemService.listCategories();
-  }
-
   /** Room and facility search. `q` matches name, description and location. */
   @UseMiddlewares(AuthMiddleware)
   @Query({ input: listRoomsInput, output: paginatedRooms })

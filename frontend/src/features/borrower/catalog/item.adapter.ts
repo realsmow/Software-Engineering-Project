@@ -35,10 +35,10 @@ export function toCatalogItem(s: ServerItem): CatalogItem {
   return {
     id: String(s.id),
     name: s.name,
-    // No category table exists in the schema, so item.listCategories answers
-    // NOT_IMPLEMENTED and there is nothing to map here. The catalogue's
-    // category facet therefore matches nothing while data comes from the
+    // ItemInfo has no category column, so there is nothing to map here. The
+    // catalogue's category facet matches nothing while data comes from the
     // server. Faking a value would make a broken filter look like it works.
+    // Tier is unaffected: it comes from the unit's BorrowRule.
     categoryId: "",
     tier: s.tier,
     imageUrl: s.imageUrl ?? undefined,
@@ -81,6 +81,10 @@ export interface ServerItemUnit {
   condition: "Normal" | "MinorDamage" | "MajorDamage" | "Broken" | "Missing" | null;
   /** Due date of the loan holding this unit, when it is out. */
   dueAt: string | null;
+  /** Due date plus this unit's preparation time. */
+  nextAvailableAt: string | null;
+  /** Whether this serial is free for the requested window from listUnits. */
+  availableForWindow?: boolean;
 }
 
 /** `item.getById` answers `itemDetail` - the summary plus every unit. */
@@ -102,11 +106,16 @@ export interface CatalogItemDetail extends CatalogItem {
  * `fix`, which is the less wrong of the two: nobody is holding it on a loan.
  */
 export function toUnitRow(u: ServerItemUnit): UnitRow {
-  return { resourceKey: u.resourceKey, serial: u.assetTag, state: toUnitState(u) };
+  return {
+    resourceKey: u.resourceKey,
+    serial: u.assetTag,
+    state: toUnitState(u),
+    condition: u.condition,
+    ...(u.nextAvailableAt ? { nextAvailableAt: u.nextAvailableAt } : {}),
+  };
 }
 
 export function toUnitState(u: ServerItemUnit): UnitState {
-  if (u.status === "Lended") return "out";
   if (
     !u.allowBorrow ||
     u.status === "Missing" ||
@@ -116,6 +125,10 @@ export function toUnitState(u: ServerItemUnit): UnitState {
   ) {
     return "fix";
   }
+  if (u.availableForWindow !== undefined) {
+    return u.availableForWindow ? "free" : "out";
+  }
+  if (u.status === "Lended" || u.nextAvailableAt != null) return "out";
   return "free";
 }
 

@@ -117,6 +117,7 @@ model AccountInfo {
   Faculty    FacultyInfo?  @relation(fields: [FacultyKey], references: [FacultyKey])
   Sessions   SessionInfo[]
   PasswordResets PasswordReset[]
+  EmailVerifications EmailVerification[]
   AuditTrail AuditLog[]
 
   Authorities          Authority[]
@@ -150,6 +151,27 @@ model PasswordReset {
   ExpiresAt  DateTime  @db.Timestamptz(3)
   /// Set the moment it is spent. One link, one reset.
   UsedAt     DateTime? @db.Timestamptz(3)
+
+  Account AccountInfo @relation(fields: [AccountKey], references: [AccountKey], onDelete: Cascade)
+
+  @@index([AccountKey])
+}
+
+/// A pending email address check for a self-registered account.
+///
+/// Same shape as PasswordReset and for the same reason: only the SHA-256 of
+/// the emailed token is kept, so a leaked database cannot be used to activate
+/// anybody's account. The account row exists from the moment someone submits
+/// the form, with IsActive false, which is what holds the email and student id
+/// against a second registration while the first is still unconfirmed.
+model EmailVerification {
+  VerificationKey Int       @id @default(autoincrement())
+  AccountKey      Int
+  TokenHash       String    @unique
+  IssuedAt        DateTime  @default(now()) @db.Timestamptz(3)
+  ExpiresAt       DateTime  @db.Timestamptz(3)
+  /// Set the moment it is spent. One link, one activation.
+  UsedAt          DateTime? @db.Timestamptz(3)
 
   Account AccountInfo @relation(fields: [AccountKey], references: [AccountKey], onDelete: Cascade)
 
@@ -335,8 +357,39 @@ model ResourceInfo {
   Reservations  Reservations[]
   UsageLogs     UsageLog[]
   Inspections   Inspection[]
+  CheckRounds   RoomCheckRound[]
   Images        Images[]
   RepairLogs    RepairLog[]
+}
+
+/// A scheduled condition check on one T3 room (SRS §5.3, §5.9).
+///
+/// `recordRoomCheck` already records the *result* of a check. This is the
+/// *task* of doing one: without it nothing says a room is due, and a room
+/// nobody thought about looks exactly like a room that was checked and found
+/// fine. The nightly job opens one per room whose last check has aged out, and
+/// the check that follows closes it.
+///
+/// At most one round may be open per room. That is the database's rule rather
+/// than the job's, so running the job twice in a row cannot produce a second
+/// task for the same room.
+model RoomCheckRound {
+  RoundKey    Int       @id @default(autoincrement())
+  ResourceKey Int
+  OpenedAt    DateTime  @default(now()) @db.Timestamptz(3)
+  /// When the check should have happened by. Past this, the round is overdue.
+  DueAt       DateTime  @db.Timestamptz(3)
+  ClosedAt    DateTime? @db.Timestamptz(3)
+  /// The ConditionLog row the closing check wrote. Null while still open.
+  ConditionKey Int?
+
+  Resource  ResourceInfo  @relation(fields: [ResourceKey], references: [ResourceKey], onDelete: Cascade)
+  Condition ConditionLog? @relation("RoomCheckRoundCondition", fields: [ConditionKey], references: [ConditionKey])
+
+  /// Enforces "one open round per room": ClosedAt is null on the open one, and
+  /// Postgres treats each null as distinct, so closed rounds never collide.
+  @@unique([ResourceKey, ClosedAt])
+  @@index([DueAt])
 }
 
 model ConditionLog {
@@ -352,6 +405,7 @@ model ConditionLog {
 
   ResourcesCurrentlyOn ResourceInfo[] @relation("ResourceCurrentCondition")
   UsageCheckIns        UsageLog[]     @relation("UsageCheckInCondition")
+  ClosedCheckRounds    RoomCheckRound[] @relation("RoomCheckRoundCondition")
   UsageCheckouts       UsageLog[]     @relation("UsageCheckoutCondition")
   Inspections          Inspection[]   @relation("InspectionCondition")
   RepairsBefore        RepairLog[]    @relation("RepairConditionBefore")
