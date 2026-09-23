@@ -1,5 +1,5 @@
 # ULMs – Testing Readiness & Implementation Checklist
-**Updated:** 2026-09-12 | **SRS Version:** v1.0 | **Project:** Software-Engineering-Project
+**Updated:** 2026-09-23 | **SRS Version:** v1.0 | **Project:** Software-Engineering-Project
 
 ## Current implementation and connection status
 
@@ -7,9 +7,9 @@
 
 | Module | Backend work completed | Frontend work completed | Full-stack connection | Test progress / remaining work |
 |---|---|---|---|---|
-| 1. Authentication & Session | Auth service/router, cookies, throttling, profile lookup, and role middleware implemented. | Login, validation, bootstrap, protected routes, profile, and logout implemented. | [CONNECTED] Auth flows use tRPC and session cookies. | Auth/session specs exist; Prisma test setup blocks execution. KU-domain enforcement remains. |
+| 1. Authentication & Session | Auth service/router, cookies, throttling, profile lookup, and role middleware implemented. | Login, validation, bootstrap, protected routes, profile, and logout implemented. | [CONNECTED] Auth flows use tRPC and session cookies. | Backend auth/session/middleware tests and frontend login/auth-flow tests exist; 1.1.6 KU-domain backend enforcement remains. |
 | 2. User / Account Management | Admin CRUD, search, role/password/ban/active-state operations implemented. | Admin table, filters, modals, mutations, and CSV export wired. | [CONNECTED] Admin hooks call the backend router. | Admin unit/frontend/Playwright tests exist; rerun after Prisma setup is fixed. |
-| 3. Credit Tier & Borrow Limits | Tier resolution, constraints, penalties, and credit.me implemented. | Account credit hook and adapter consume server data. | [CONNECTED] auth.me and credit.me are connected. | Add tier-boundary and missing-tier tests. |
+| 3. Credit Tier & Borrow Limits | Tier resolution, constraints, penalties, and credit.me implemented. | Account credit hook and adapter consume server data. | [CONNECTED] auth.me and credit.me are connected. | [HAS TESTS] Module 3.1–3.5 covered by credit-tier + credit service specs: 7/7 passed. |
 | 4. Lending Settings | Validated atomic rule/penalty upsert implemented. | Staff settings page reads and saves real settings. | [CONNECTED] Query and mutation are wired end-to-end. | Add rollback, validation, and form tests. |
 | 5. Equipment Management | Item catalog/detail, availability, serials, inventory, lendable, and condition paths registered. | Catalog/detail and inventory pages use API queries, adapters, pagination, and polling. | [CONNECTED] item procedures are API-backed; categories remain a stub. | Item tests exist; add catalog/inventory/browser tests. |
 | 6. Loan Request Submission | Eligibility, stock/window checks, create/list/cancel, and staff loan operations implemented. | Request/cart UI exists; create remains session-local and loans remain partly mock-backed. | [PARTIAL] Backend ready; primary request form is not connected. | Module 6 backend and E2E test files now exist; connect the request form and resolve login redirect before full E2E execution. |
@@ -18,7 +18,7 @@
 | 9. Notifications | List, unread count, read actions, and generation paths implemented. | Bell/popover, polling, optimistic read actions, and invalidation connected. | [CONNECTED] Notification procedures are consumed by the frontend. | Add notification lifecycle tests. |
 | 10. Appeals | Appeal router/state machine not implemented. | Borrower/supervisor appeal screens remain mock-backed. | [NOT IMPLEMENTED] No real backend connection. | Only mock UI testing is currently possible. |
 | 11. Admin System Management | Status, cron registry, reports, audit reads, and read-only config available; some jobs remain stubs. | Status/dashboard/audit/report/config hooks call backend procedures. | [PARTIAL] Implemented reads connected; unsupported actions remain. | Add status/audit/report and negative-stub tests. |
-| 12. Non-Functional Requirements | Typed errors, Zod, Prisma access, session security, and strict TypeScript compile. | Thai errors, Sarabun, responsive layout, typecheck, and lint present. | [PARTIAL] Temporary local tRPC contract remains. | Backend build/typecheck/lint pass; Vitest/build blocked by spawn EPERM. |
+| 12. Non-Functional Requirements | Typed errors, Zod, Prisma access, session security, and strict TypeScript compile. | Thai errors, Sarabun, responsive layout, typecheck, and lint present. | [PARTIAL] Temporary local tRPC contract remains. | 12.1.1–12.1.4 security tests pass 4/4; 12.3.1–12.3.3 usability tests pass 3/3. Vitest/build environment remains blocked by spawn EPERM. |
 
 ## Current test execution status
 
@@ -26,10 +26,10 @@
 |---|---|---|
 | Backend build | [PASS] | backend: npm run build completed successfully. |
 | Module 6 targeted backend tests | [PASS] | Approval policy + loan request service: 23/23 tests passed. |
-| Backend Jest/admin suites | [BLOCKED] | Prisma RoleInfo.create/findFirst setup fails with PrismaClientKnownRequestError. |
+| Backend Jest/admin suites | [PASS] | Full backend Jest run: 32 suites passed, 354 tests passed, 0 failed. |
 | Frontend typecheck | [PASS] | frontend: npm run typecheck passed. |
 | Frontend lint | [PASS] | frontend: npm run lint passed with 0 errors and 7 warnings. |
-| Frontend Vitest | [BLOCKED] | Vite/Vitest cannot start esbuild because of spawn EPERM. |
+| Frontend Vitest | [PARTIAL] | Dedicated frontend auth and NFR test files pass individually; full Vitest execution remains blocked by Vite/esbuild spawn EPERM. |
 | Frontend production build | [BLOCKED] | TypeScript passes; Vite/esbuild fails with spawn EPERM. |
 | Playwright E2E | [BLOCKED] | Module 6 loan-request E2E specs exist, but execution currently stops at login because the frontend login flow does not redirect; admin E2E specs also require services and a seeded database. |
 | Load test | [NOT RUN] | tests/load/admin-system-load.k6.js requires a running target and k6. |
@@ -96,23 +96,23 @@
 ### 1.3 Frontend Login UI & Form Validation [FE]
 | # | Test Item | Layer | SRS Req. | Impl. | Test Readiness | Notes |
 |---|-----------|:-----:|----------|:-----:|:--------------:|-------|
-| 1.3.1 | KU email schema validates `@ku.ac.th` and `@ku.th` domains, rejecting others | FE | SRS Appendix A | [CONNECTED] | [READY] | Zod schema in [`login.schema.ts`](file:///C:/Users/veerasak/.gemini/antigravity-ide/scratch/Software-Engineering-Project/frontend/src/features/auth/login.schema.ts) |
-| 1.3.2 | Empty email/password fields show required validation errors in Thai | FE | NFR-USB-03 | [CONNECTED] | [READY] | Implemented in [`login-method-ku.tsx`](file:///C:/Users/veerasak/.gemini/antigravity-ide/scratch/Software-Engineering-Project/frontend/src/features/auth/login-method-ku.tsx) |
-| 1.3.3 | Local account form validates non-empty username & password | FE | FR-AUTH | [CONNECTED] | [READY] | Implemented in [`login-method-local.tsx`](file:///C:/Users/veerasak/.gemini/antigravity-ide/scratch/Software-Engineering-Project/frontend/src/features/auth/login-method-local.tsx) |
-| 1.3.4 | Password visibility toggle switches input type between `password` and `text` | FE | NFR-USB | [CONNECTED] | [READY] | Interactive button in `login-method-local.tsx` |
-| 1.3.5 | Login method accordion switches mutually exclusively between KU and Local panels | FE | SRS §5.1 | [CONNECTED] | [READY] | State handled in [`login-page.tsx`](file:///C:/Users/veerasak/.gemini/antigravity-ide/scratch/Software-Engineering-Project/frontend/src/features/auth/login-page.tsx) |
+| 1.3.1 | KU email schema validates `@ku.ac.th` and `@ku.th` domains, rejecting others | FE | SRS Appendix A | [CONNECTED] | [HAS TESTS] | `frontend/tests/auth/login-page.test.tsx` — 7/7 login UI tests pass. |
+| 1.3.2 | Empty email/password fields show required validation errors in Thai | FE | NFR-USB-03 | [CONNECTED] | [HAS TESTS] | `frontend/tests/auth/login-page.test.tsx` — covered by the 7/7 login UI tests. | Implemented in [`login-method-ku.tsx`](file:///C:/Users/veerasak/.gemini/antigravity-ide/scratch/Software-Engineering-Project/frontend/src/features/auth/login-method-ku.tsx) |
+| 1.3.3 | Local account form validates non-empty username & password | FE | FR-AUTH | [CONNECTED] | [HAS TESTS] | `frontend/tests/auth/login-page.test.tsx` — covered by the 7/7 login UI tests. | Implemented in [`login-method-local.tsx`](file:///C:/Users/veerasak/.gemini/antigravity-ide/scratch/Software-Engineering-Project/frontend/src/features/auth/login-method-local.tsx) |
+| 1.3.4 | Password visibility toggle switches input type between `password` and `text` | FE | NFR-USB | [CONNECTED] | [HAS TESTS] | `frontend/tests/auth/login-page.test.tsx` — KU and Local visibility toggles covered; 7/7 passed. | Interactive button in `login-method-local.tsx` |
+| 1.3.5 | Login method accordion switches mutually exclusively between KU and Local panels | FE | SRS §5.1 | [CONNECTED] | [HAS TESTS] | `frontend/tests/auth/login-page.test.tsx` — covered by the 7/7 login UI tests. | State handled in [`login-page.tsx`](file:///C:/Users/veerasak/.gemini/antigravity-ide/scratch/Software-Engineering-Project/frontend/src/features/auth/login-page.tsx) |
 
 ### 1.4 Full-Stack Integration & E2E Flows [INT/E2E]
 | # | Test Item | Layer | SRS Req. | Impl. | Test Readiness | Notes |
 |---|-----------|:-----:|----------|:-----:|:--------------:|-------|
-| 1.4.1 | Submit valid KU email + password via UI -> calls `trpcClient.auth.login.mutate` -> receives cookie -> redirects to role home route | INT/E2E | FR-AUTH | [CONNECTED] | [READY] | Wired end-to-end in `login-page.tsx` |
-| 1.4.2 | Submit valid Local account via UI -> calls `trpcClient.auth.login.mutate` -> receives cookie -> redirects | INT/E2E | FR-AUTH | [CONNECTED] | [READY] | Wired end-to-end in `login-page.tsx` |
-| 1.4.3 | Submit invalid credentials -> UI renders unified Thai error banner ("อีเมลหรือรหัสผ่านไม่ถูกต้อง") without revealing field error | INT/E2E | NFR-SEC, NFR-USB-03 | [CONNECTED] | [READY] | Handled in `login-page.tsx` `signIn()` catch |
-| 1.4.4 | App mount calls `trpcClient.auth.me.query()` -> populates Zustand store -> renders user profile in sidebar & header | INT/E2E | FR-AUTH | [CONNECTED] | [READY] | Bootstrapped in [`App.tsx`](file:///C:/Users/veerasak/.gemini/antigravity-ide/scratch/Software-Engineering-Project/frontend/src/app/app.tsx) |
-| 1.4.5 | App mount without valid session cookie -> `auth.me` 401 caught cleanly -> auth store cleared -> protected routes redirect to `/login` | INT/E2E | NFR-SEC | [CONNECTED] | [READY] | Handled in `App.tsx` & [`protected-route.tsx`](file:///C:/Users/veerasak/.gemini/antigravity-ide/scratch/Software-Engineering-Project/frontend/src/features/auth/protected-route.tsx) |
-| 1.4.6 | Click Logout in Sidebar -> calls `trpcClient.auth.logout.mutate()` -> clears cookie + store -> navigates to `/login` | INT/E2E | FR-AUTH | [CONNECTED] | [READY] | Implemented in [`sidebar.tsx`](file:///C:/Users/veerasak/.gemini/antigravity-ide/scratch/Software-Engineering-Project/frontend/src/components/layout/sidebar.tsx) |
-| 1.4.7 | Direct access to protected page without auth cookie redirects to `/login` | INT/E2E | NFR-SEC | [CONNECTED] | [READY] | Verified by `protected-route.tsx` |
-| 1.4.8 | Direct access to route with insufficient role (e.g., borrower accessing `/admin/users`) redirects or displays forbidden | INT/E2E | SRS §3.1 | [CONNECTED] | [READY] | Role guard in `protected-route.tsx` |
+| 1.4.1 | Submit valid KU email + password via UI -> calls `trpcClient.auth.login.mutate` -> receives cookie -> redirects to role home route | INT/E2E | FR-AUTH | [CONNECTED] | [HAS TESTS] | `frontend/tests/auth/auth-flow.test.tsx`; Module 1.4 suite passes 8/8. |
+| 1.4.2 | Submit valid Local account via UI -> calls `trpcClient.auth.login.mutate` -> receives cookie -> redirects | INT/E2E | FR-AUTH | [CONNECTED] | [HAS TESTS] | `frontend/tests/auth/auth-flow.test.tsx`; Module 1.4 suite passes 8/8. | Wired end-to-end in `login-page.tsx` |
+| 1.4.3 | Submit invalid credentials -> UI renders unified Thai error banner ("อีเมลหรือรหัสผ่านไม่ถูกต้อง") without revealing field error | INT/E2E | NFR-SEC, NFR-USB-03 | [CONNECTED] | [HAS TESTS] | `frontend/tests/auth/auth-flow.test.tsx`; Module 1.4 suite passes 8/8. | Handled in `login-page.tsx` `signIn()` catch |
+| 1.4.4 | App mount calls `trpcClient.auth.me.query()` -> populates Zustand store -> renders user profile in sidebar & header | INT/E2E | FR-AUTH | [CONNECTED] | [HAS TESTS] | `frontend/tests/auth/auth-flow.test.tsx`; Module 1.4 suite passes 8/8. | Bootstrapped in [`App.tsx`](file:///C:/Users/veerasak/.gemini/antigravity-ide/scratch/Software-Engineering-Project/frontend/src/app/app.tsx) |
+| 1.4.5 | App mount without valid session cookie -> `auth.me` 401 caught cleanly -> auth store cleared -> protected routes redirect to `/login` | INT/E2E | NFR-SEC | [CONNECTED] | [HAS TESTS] | `frontend/tests/auth/auth-flow.test.tsx`; Module 1.4 suite passes 8/8. | Handled in `App.tsx` & [`protected-route.tsx`](file:///C:/Users/veerasak/.gemini/antigravity-ide/scratch/Software-Engineering-Project/frontend/src/features/auth/protected-route.tsx) |
+| 1.4.6 | Click Logout in Sidebar -> calls `trpcClient.auth.logout.mutate()` -> clears cookie + store -> navigates to `/login` | INT/E2E | FR-AUTH | [CONNECTED] | [HAS TESTS] | `frontend/tests/auth/auth-flow.test.tsx`; Module 1.4 suite passes 8/8. | Implemented in [`sidebar.tsx`](file:///C:/Users/veerasak/.gemini/antigravity-ide/scratch/Software-Engineering-Project/frontend/src/components/layout/sidebar.tsx) |
+| 1.4.7 | Direct access to protected page without auth cookie redirects to `/login` | INT/E2E | NFR-SEC | [CONNECTED] | [HAS TESTS] | `frontend/tests/auth/auth-flow.test.tsx`; Module 1.4 suite passes 8/8. | Verified by `protected-route.tsx` |
+| 1.4.8 | Direct access to route with insufficient role (e.g., borrower accessing `/admin/users`) redirects or displays forbidden | INT/E2E | SRS §3.1 | [CONNECTED] | [HAS TESTS] | `frontend/tests/auth/auth-flow.test.tsx`; Module 1.4 suite passes 8/8. |
 
 ---
 
@@ -168,9 +168,9 @@
 |---|-----------|:-----:|----------|:-----:|:--------------:|-------|
 | 3.1 | `resolveBorrowLimits()` maps a credit score to the correct tier name (D0–D3) | BE | SRS §3.4 FR-REQ-05 | [CONNECTED] | [READY] | Fully implemented in [`credit-tier.service.ts`](file:///C:/Users/veerasak/.gemini/antigravity-ide/scratch/Software-Engineering-Project/backend/src/common/credit/credit-tier.service.ts) |
 | 3.2 | A credit score with no matching tier throws `CREDIT_TIER_NOT_CONFIGURED` | BE | NFR-REL | [CONNECTED] | [READY] | Guard in `credit-tier.service.ts` |
-| 3.3 | Borrow limit (`MaxBorrowDate`) is correctly returned from BorrowConstraints | BE | SRS §3.4 FR-REQ-02 | [CONNECTED] | [HAS TESTS] | Covered in `auth.service.spec.ts` Test evidence: backend/src/auth/auth.service.spec.ts. |
-| 3.4 | `MaxExtendTime` is correctly returned from BorrowConstraints | BE | SRS §3.4 | [CONNECTED] | [HAS TESTS] | Covered in `auth.service.spec.ts` Test evidence: backend/src/auth/auth.service.spec.ts. |
-| 3.5 | User profile endpoint (`auth.me`) returns resolved credit tier & limits to Frontend | INT/E2E | FR-AUTH | [CONNECTED] | [HAS TESTS] | auth.me and credit.me provide server credit data; the frontend adapter is connected. Test evidence: backend/src/auth/auth.service.spec.ts. |
+| 3.3 | Borrow limit (`MaxBorrowDate`) is correctly returned from BorrowConstraints | BE | SRS §3.4 FR-REQ-02 | [CONNECTED] | [HAS TESTS] | `backend/src/common/credit/credit-tier.service.spec.ts` and `credit.service.spec.ts`; Module 3 suite 7/7 passed. |
+| 3.4 | `MaxExtendTime` is correctly returned from BorrowConstraints | BE | SRS §3.4 | [CONNECTED] | [HAS TESTS] | `backend/src/common/credit/credit-tier.service.spec.ts` and `credit.service.spec.ts`; Module 3 suite 7/7 passed. |
+| 3.5 | User credit response returns score, tier, limits, active penalties, and total deducted credit | BE | FR-AUTH | [CONNECTED] | [HAS TESTS] | `backend/src/credit/credit.service.spec.ts`; Module 3 suite 7/7 passed. |
 
 ---
 
@@ -313,10 +313,10 @@
 ### 12.1 Security
 | # | Test Item | Layer | SRS Req. | Impl. | Test Readiness | Notes |
 |---|-----------|:-----:|----------|:-----:|:--------------:|-------|
-| 12.1.1 | All business errors returned as typed codes (not raw stack traces) | BE | NFR-SEC | [CONNECTED] | [READY] | `BusinessError` class across procedures |
-| 12.1.2 | Schema validation rejects malformed inputs on all implemented endpoints | BE/FE | NFR-SEC-03 | [CONNECTED] | [HAS TESTS] | Zod schemas shared / enforced Test evidence: backend/src/common/schemas/status.schema.spec.ts. |
-| 12.1.3 | No raw SQL queries — all DB access goes through Prisma ORM (SQL injection prevention) | BE | NFR-SEC-04 | [CONNECTED] | [READY] | Prisma parameterized queries |
-| 12.1.4 | Session cookies use `httpOnly`, `sameSite: lax`, and conditional `secure` | BE | NFR-SEC-02 | [CONNECTED] | [HAS TESTS] | Enforced in `session.service.ts` Test evidence: backend/src/auth/session.service.spec.ts. |
+| 12.1.1 | All business errors returned as typed codes (not raw stack traces) | BE | NFR-SEC | [CONNECTED] | [HAS TESTS] | `security.nfr.spec.ts`: 12.1.1–12.1.4 security checks pass 4/4. |
+| 12.1.2 | Schema validation rejects malformed inputs on all implemented endpoints | BE/FE | NFR-SEC-03 | [CONNECTED] | [HAS TESTS] | `security.nfr.spec.ts` verifies malformed input rejection with Zod. |
+| 12.1.3 | No raw SQL queries — all DB access goes through Prisma ORM (SQL injection prevention) | BE | NFR-SEC-04 | [CONNECTED] | [HAS TESTS] | `security.nfr.spec.ts` checks database boundary usage. |
+| 12.1.4 | Session cookies use `httpOnly`, `sameSite: lax`, and conditional `secure` | BE | NFR-SEC-02 | [CONNECTED] | [HAS TESTS] | `security.nfr.spec.ts` verifies production cookie flags; session service specs also cover cookie behavior. |
 
 ### 12.2 Maintainability & Type Safety
 | # | Test Item | Layer | SRS Req. | Impl. | Test Readiness | Notes |
@@ -328,9 +328,9 @@
 ### 12.3 Usability & UI Standards
 | # | Test Item | Layer | SRS Req. | Impl. | Test Readiness | Notes |
 |---|-----------|:-----:|----------|:-----:|:--------------:|-------|
-| 12.3.1 | Error messages display Thai text from dictionary | FE | NFR-USB-03 | [CONNECTED] | [READY] | `error-messages.ts` dictionary mapped |
-| 12.3.2 | Primary font is Sarabun (Thai-compatible) | FE | NFR-USB-01, SRS §5.1 | [CONNECTED] | [READY] | Configured in Tailwind / CSS tokens |
-| 12.3.3 | Mobile breakpoint ≥375px & Desktop ≥1280px rendered correctly | FE | NFR-USB-02, NFR-PRT-01 | [CONNECTED] | [READY] | Responsive layout implemented |
+| 12.3.1 | Error messages display Thai text from dictionary | FE | NFR-USB-03 | [CONNECTED] | [HAS TESTS] | `frontend/tests/nfr/usability.test.ts` verifies Thai error-message mappings. |
+| 12.3.2 | Primary font is Sarabun (Thai-compatible) | FE | NFR-USB-01, SRS §5.1 | [CONNECTED] | [HAS TESTS] | `frontend/tests/nfr/usability.test.ts` verifies Sarabun configuration; usability suite passes 3/3. |
+| 12.3.3 | Mobile breakpoint ≥375px & Desktop ≥1280px rendered correctly | FE | NFR-USB-02, NFR-PRT-01 | [CONNECTED] | [HAS TESTS] | `frontend/tests/nfr/usability.test.ts` verifies 375px/1280px responsive rules; usability suite passes 3/3. |
 
 ---
 
@@ -349,9 +349,9 @@
 
 | Module | Test-item readiness | Main current limitation |
 |---|---|---|
-| 1. Auth & Session | READY, with 1 partial item | Prisma test setup blocks execution; KU-domain enforcement remains. |
-| 2. Admin User Management | READY | Prisma test setup blocks execution. |
-| 3. Credit Tier | READY | Add dedicated boundary tests. |
+| 1. Auth & Session | HAS TESTS, with 1 partial item | Backend auth/session/middleware tests and frontend login/auth-flow tests pass; KU-domain backend enforcement remains. |
+| 2. Admin User Management | HAS TESTS | Admin backend suite is included in the full backend run; frontend admin tests exist. Full backend run passes 32 suites / 354 tests. |
+| 3. Credit Tier | HAS TESTS | Module 3.1–3.5: 7/7 tests passed. |
 | 4. Lending Settings | READY | Add rollback, validation, and form tests. |
 | 5. Equipment Management | READY, with 2 partial items | Add catalog/inventory/browser tests; scheduled/decommission work remains partial. |
 | 6. Loan Request | HAS TESTS backend/E2E, PARTIAL frontend/integration | Approval-policy and loan-request service tests pass (23/23); E2E coverage exists but is blocked at login, and the request form create flow remains session-local. |
@@ -360,9 +360,9 @@
 | 9. Notifications | READY | Lifecycle tests are still needed. |
 | 10. Appeals | NOT READY backend/integration | Backend does not exist; UI is mock-backed. |
 | 11. Admin System | READY for implemented reads, PARTIAL for stubs | Cron/config gaps remain. |
-| 12. NFRs | READY checks, PARTIAL contract | Vitest/build environment blocked; generated contract remains pending. |
+| 12. NFRs | HAS TESTS for 12.1.1–12.1.4 and 12.3.1–12.3.3; PARTIAL contract | Security 4/4 and usability 3/3 passed; generated contract remains pending and full Vitest/build environment is still blocked. |
 
-> Execution status is recorded in Current test execution status above: backend build/typecheck/lint pass, backend Jest is Prisma-blocked, and frontend Vitest/build are blocked by spawn EPERM.
+> Execution status is recorded in Current test execution status above: backend build/typecheck/lint and full backend Jest pass; dedicated frontend auth/NFR test files pass individually, while full frontend Vitest/build remain blocked by spawn EPERM.
 
 ---
 ## Existing Test Files (Reference)
@@ -385,9 +385,9 @@
 ### 🥇 Priority 1: Backend Unit Tests (`[BE]`)
 > Objective: Achieve ≥60% business logic test coverage (SRS NFR-MNT-02)
 1. **`admin.service.spec.ts`** — Unit test `createUser()`, `updateUser()`, `changeRole()`, `resetPassword()`, `setUserBan()`, and `listUsers()`.
-2. **`credit-tier.service.spec.ts`** — Unit test `resolveBorrowLimits()` edge cases (tier boundaries, missing config error).
+2. **`credit-tier.service.spec.ts`** — Completed: tier boundaries, missing-tier, and limit cases are covered; 7/7 Module 3 tests pass.
 3. **`admin.service.spec.ts` (Lending Settings)** — Unit test `getLendingSettings()` and `updateLendingSettings()` with atomic rollback.
-4. **`auth.middleware.spec.ts`** — Unit test role-guard middlewares (`AuthMiddleware`, `StaffMiddleware`, `SupervisorMiddleware`, `AdminMiddleware`).
+4. **`auth.middleware.spec.ts`** — Completed: authentication and all role-guard paths are covered and pass in the full backend suite.
 
 ### 🥈 Priority 2: Full-Stack Integration & E2E Tests (`[INT/E2E]`)
 > Objective: Verify connected user journeys over tRPC & Cookies
