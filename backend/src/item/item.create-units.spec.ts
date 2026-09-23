@@ -35,7 +35,12 @@ function harness(inherited: { GroupKey: number; RoleKey: number }[]) {
   } as unknown as PrismaService;
   const scope = { assertGroupInScope: jest.fn() } as unknown as StaffScopeService;
   const images = { toStoredUrl: (url?: string) => url ?? null } as unknown as ImageService;
-  return { service: new ItemManagementService(prisma, scope, images), tx };
+  const audit = { record: jest.fn() };
+  return {
+    service: new ItemManagementService(prisma, scope, images, audit as never),
+    tx,
+    audit,
+  };
 }
 
 const input = {
@@ -61,6 +66,12 @@ it("gives new units the rules their siblings in this department already have", a
       { ResourceKey: 100, GroupKey: 3, RoleKey: 1 },
       { ResourceKey: 101, GroupKey: 3, RoleKey: 2 },
     ]),
+  );
+  expect(t.audit.record).toHaveBeenCalledWith(
+    { accountKey: staff.accountKey },
+    'create',
+    `item/${input.itemKey}`,
+    expect.any(String),
   );
 });
 
@@ -106,5 +117,6 @@ describe('generated serials', () => {
     await expect(
       t.service.createItemUnits(staff, { ...input, tier: 'T2' as never, quantity: 1 }),
     ).rejects.toMatchObject({ businessCode: 'SERIAL_REQUIRED_FOR_TIER' });
+    expect(t.audit.record).not.toHaveBeenCalled();
   });
 });

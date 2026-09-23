@@ -321,7 +321,7 @@ describe('AppealService.create', () => {
 
   it('files it, flags the penalty and points the grading back at it', async () => {
     const { prisma, tx } = prismaWith({ ...PENALTY, OriginalAppeal: null });
-    const { service } = build(prisma);
+    const { service, audit } = build(prisma);
 
     await service.create(BORROWER, filing);
 
@@ -335,19 +335,26 @@ describe('AppealService.create', () => {
       where: { PenaltyKey: 55 },
       data: { AppealKey: 9 },
     });
+    expect(audit.record).toHaveBeenCalledWith(
+      { accountKey: BORROWER.accountKey },
+      'create',
+      'appeal/9',
+      expect.any(String),
+    );
   });
 
-  it('refuses somebody else’s penalty', async () => {
+  it('refuses somebody else’s penalty and never touches the audit log', async () => {
     const { prisma } = prismaWith({
       ...PENALTY,
       AccountKey: 999,
       OriginalAppeal: null,
     });
-    const { service } = build(prisma);
+    const { service, audit } = build(prisma);
 
     await expect(service.create(BORROWER, filing)).rejects.toThrow(
       /NOT_YOUR_PENALTY/,
     );
+    expect(audit.record).not.toHaveBeenCalled();
   });
 
   it('refuses a second appeal against the same penalty', async () => {

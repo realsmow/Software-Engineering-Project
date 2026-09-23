@@ -465,6 +465,12 @@ export class AppealService {
       });
     }
 
+    // One increment for the net difference, not a refund followed by a fresh
+    // deduction: two writes would leave a moment where the borrower's score
+    // is higher than it ever should have been, which is exactly when a
+    // concurrent request reads it to decide what they may borrow.
+    const restored = deducted - reduced;
+
     await this.prisma.$transaction(async (tx) => {
       // The original stops applying whatever happens next. Written before the
       // replacement so that a failure mid-transaction cannot leave two penalties
@@ -492,11 +498,6 @@ export class AppealService {
         newPenaltyKey = replacement.PenaltyKey;
       }
 
-      // One increment for the net difference, not a refund followed by a fresh
-      // deduction: two writes would leave a moment where the borrower's score
-      // is higher than it ever should have been, which is exactly when a
-      // concurrent request reads it to decide what they may borrow.
-      const restored = deducted - reduced;
       if (restored > 0) {
         await tx.accountInfo.update({
           where: { AccountKey: penalty.AccountKey },
