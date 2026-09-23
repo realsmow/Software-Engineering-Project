@@ -151,6 +151,50 @@ describe('Module 6 request validation', () => {
     });
   });
 
+  it('6.10 borrower can cancel their own pending request', async () => {
+    const db: any = dbFor();
+    const row = await db.reservations.findUnique();
+    row.ApproveStatus = 'Pending';
+    row.AutoApproved = false;
+    row.ApprovedAt = null;
+    row.ResolvedAt = null;
+    db.reservations.update = jest.fn().mockImplementation(({ data }: any) => {
+      row.ApproveStatus = data.ApproveStatus;
+      row.ResolvedAt = data.ResolvedAt;
+      row.Reason = data.Reason;
+      return Promise.resolve(row);
+    });
+
+    const result = await service(db).cancel(user, {
+      reservationKey: 101,
+      reason: 'เปลี่ยนแผนการใช้งาน',
+    });
+
+    expect(db.reservations.update).toHaveBeenCalledWith(expect.objectContaining({
+      where: { ReservationKey: 101 },
+      data: expect.objectContaining({
+        ApproveStatus: 'Canceled',
+        Reason: 'เปลี่ยนแผนการใช้งาน',
+      }),
+    }));
+    expect(result.status).toBe('cancelled');
+    expect(result.cancellable).toBe(false);
+  });
+
+  it('6.10 borrower cannot cancel another borrower’s request', async () => {
+    const db: any = dbFor();
+    db.reservations.update = jest.fn();
+    const otherUser = { accountKey: 99, creditScore: 80 };
+
+    await expect(
+      service(db).cancel(otherUser, { reservationKey: 101 }),
+    ).rejects.toMatchObject({
+      message: 'RESERVATION_NOT_FOUND',
+    });
+
+    expect(db.reservations.update).not.toHaveBeenCalled();
+  });
+
   it('6.3 rejects a borrower who fails eligibility', async () => {
     const db = dbFor();
     const eligibility = { assertMayBorrow: jest.fn().mockRejectedValue(new BusinessError('NOT_ELIGIBLE')) };

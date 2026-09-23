@@ -227,7 +227,7 @@
 | 6.7 | T2 request requires borrower to select specific serial number | FE/BE | FR-REQ-07 | [PARTIAL] | [HAS TESTS] | Backend service coverage exists in `backend/src/loan/loan.request.service.spec.ts`; frontend request-form integration remains incomplete. |
 | 6.8 | T3 request: select time slot(s), max 2 simultaneous slots | BE | FR-REQ-08 | [CONNECTED] | [HAS TESTS] | Test evidence: `backend/src/common/booking/booking-window.spec.ts`. |
 | 6.9 | Conflicting concurrent requests handled atomically (rollback loser) | BE | FR-REQ-09, NFR-REL-02 | [CONNECTED] | [HAS TESTS] | Test evidence: `backend/src/common/booking/booking-window.spec.ts`. |
-| 6.10 | Borrower can cancel own pending request | BE/FE | FR-REQ-10 | [CONNECTED] | [READY] | loan.cancel and its hook are connected; dedicated cancel test is still needed. Request creation UI remains local. |
+| 6.10 | Borrower can cancel own pending request | BE/FE | FR-REQ-10 | [CONNECTED] | [HAS TESTS] | `backend/src/loan/loan.request.service.spec.ts` verifies own pending cancellation and rejects cancellation of another borrower's request; 2/2 cases pass. Request creation UI remains local. |
 | 6.11 | Submit the request form through the tRPC loan router | INT/E2E | FR-REQ-01 | [PARTIAL] | [HAS TESTS] | E2E coverage exists in `tests/e2e/loan-request.spec.ts`; execution is currently blocked at login. Backend mutation exists, but the primary request form is not wired to it. |
 
 ---
