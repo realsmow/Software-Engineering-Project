@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import type { Prisma } from '../generated/prisma/client';
 import { PrismaService } from '../prisma.service';
+import { AuditService } from '../common/audit/audit.service';
 import { StaffScopeService } from '../common/authority/staff-scope.service';
 import { BusinessError } from '../common/errors/business-error';
 import {
@@ -142,6 +143,7 @@ export class AppealService {
     private readonly prisma: PrismaService,
     private readonly scope: StaffScopeService,
     private readonly notifications: NotificationService,
+    private readonly audit: AuditService,
   ) {}
 
   // =========================================================================
@@ -259,6 +261,13 @@ export class AppealService {
 
       return created.AppealKey;
     });
+
+    await this.audit.record(
+      { accountKey: user.accountKey },
+      'create',
+      `appeal/${appealKey}`,
+      `Filed appeal against penalty/${input.penaltyKey}: ${input.appealReason}`,
+    );
 
     return this.getById(user, appealKey);
   }
@@ -433,6 +442,13 @@ export class AppealService {
         });
       });
 
+      await this.audit.record(
+        { accountKey: user.accountKey },
+        'update',
+        `appeal/${input.appealKey}`,
+        `Rejected appeal${input.note ? `: ${input.note}` : ''}`,
+      );
+
       return this.getById(user, input.appealKey);
     }
 
@@ -508,6 +524,13 @@ export class AppealService {
         note: input.note,
       });
     });
+
+    await this.audit.record(
+      { accountKey: user.accountKey },
+      'update',
+      `appeal/${input.appealKey}`,
+      `Approved appeal, restored ${restored} credit${input.note ? `: ${input.note}` : ''}`,
+    );
 
     return this.getById(user, input.appealKey);
   }

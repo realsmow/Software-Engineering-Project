@@ -55,7 +55,9 @@ it("widens each resource's window by its own buffer", async () => {
   expect(twoDays.EndTime.gt).toEqual(new Date(start.getTime() - 2 * DAY));
 
   const held = prisma.usageLog.findMany.mock.calls[0][0].where.OR;
-  expect(held[1].DueTime.gt).toEqual(new Date(start.getTime() - 2 * DAY));
+  expect(held[1].OR[0].DueTime.gt).toEqual(new Date(start.getTime() - 2 * DAY));
+  // A unit back and not yet graded holds every window, whatever its due date.
+  expect(held[1].OR[1]).toEqual({ CurrentStatus: 'Returned' });
 });
 
 it('asks nothing of the database for an empty list', async () => {

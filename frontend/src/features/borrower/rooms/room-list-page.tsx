@@ -74,8 +74,8 @@ export default function RoomListPage() {
   const [filtersOpen, setFiltersOpen] = useState(false);
 
   const groups = useMemo<FilterGroup[]>(() => {
-    const countBy = (group: GroupKey, id: string) =>
-      rooms.filter((r) => facetOf(r, group) === id).length;
+    const countBy = (_group: GroupKey, id: string) =>
+      rooms.filter((r) => facetOf(r) === id).length;
 
     return [
       {
@@ -100,7 +100,7 @@ export default function RoomListPage() {
 
     const matched = rooms.filter((r) => {
       if (q && !`${r.name} ${r.location ?? ""}`.toLowerCase().includes(q)) return false;
-      return picked.every((p) => p.keys.includes(`${p.group}:${facetOf(r, p.group)}`));
+      return picked.every((p) => p.keys.includes(`${p.group}:${facetOf(r)}`));
     });
 
     // Rooms with slots left first, most first; unknown counts sort last.
@@ -544,6 +544,6 @@ function EmptyState({ onClear }: { onClear: () => void }) {
 }
 
 /** A room nobody has measured has no band, so no capacity filter matches it. */
-function facetOf(room: Room, _group: GroupKey): string | null {
+function facetOf(room: Room): string | null {
   return room.capacity === null ? null : capacityBand(room.capacity);
 }

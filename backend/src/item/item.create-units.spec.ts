@@ -78,3 +78,33 @@ it('leaves a type nobody has opened closed', async () => {
   await t.service.createItemUnits(staff, input);
   expect(t.tx.eligibility.createMany).not.toHaveBeenCalled();
 });
+
+describe('generated serials', () => {
+  function withExisting(ids: string[]) {
+    const t = harness([]);
+    const prisma = (t.service as unknown as { prisma: { itemIndiv: { findMany: jest.Mock } } }).prisma;
+    prisma.itemIndiv.findMany.mockResolvedValueOnce(ids.map((ItemID) => ({ ItemID })));
+    return t;
+  }
+  const serialsOf = (t: ReturnType<typeof harness>) =>
+    t.tx.itemIndiv.create.mock.calls.map((c: [{ data: { ItemID: string } }]) => c[0].data.ItemID);
+
+  it('carries numbering on from the last batch instead of colliding with it', async () => {
+    const t = withExisting(['LCR-METER-9-1', 'LCR-METER-9-2', 'LCR-METER-9-3']);
+    await t.service.createItemUnits(staff, { ...input, quantity: 2 });
+    expect(serialsOf(t)).toEqual(['LCR-METER-9-4', 'LCR-METER-9-5']);
+  });
+
+  it('does not demand a serial for T1', async () => {
+    const t = withExisting([]);
+    await t.service.createItemUnits(staff, { ...input, tier: 'T1' as never, quantity: 1 });
+    expect(serialsOf(t)).toEqual(['LCR-METER-9-1']);
+  });
+
+  it('still demands one for T2', async () => {
+    const t = withExisting([]);
+    await expect(
+      t.service.createItemUnits(staff, { ...input, tier: 'T2' as never, quantity: 1 }),
+    ).rejects.toMatchObject({ businessCode: 'SERIAL_REQUIRED_FOR_TIER' });
+  });
+});

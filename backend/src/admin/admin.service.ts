@@ -820,7 +820,9 @@ export class AdminService {
         // so this page cannot drift from what actually goes out. The defaults
         // point at the MailHog container in docker-compose.
         smtpHost: env('SMTP_HOST') ?? 'localhost',
-        fromAddress: env('MAIL_FROM') ?? 'ULMs <no-reply@ku.th>',
+        // MAIL_FROM is a header value ("ULMs <no-reply@ku.th>"); the page
+        // reports the address, which is what the schema declares.
+        fromAddress: mailAddress(env('MAIL_FROM') ?? 'ULMs <no-reply@ku.th>'),
         // Mail is sent for password resets and registration confirmations.
         // Due-soon reminders are not among them: dueSoonReminder writes in-app
         // notifications, so there is no email to enable or disable.
@@ -1118,4 +1120,9 @@ export class AdminService {
     }
     return key;
   }
+}
+
+/** The bare address from a From header value, or the value itself if it has no brackets. */
+function mailAddress(from: string): string {
+  return /<([^>]+)>/.exec(from)?.[1].trim() ?? from.trim();
 }

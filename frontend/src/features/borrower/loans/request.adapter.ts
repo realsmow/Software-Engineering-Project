@@ -27,6 +27,8 @@ export interface ServerRequest {
   startTime: string;
   endTime: string;
   reason: string | null;
+  /** Why it ended: the approver's rejection reason or the borrower's cancel note. */
+  decisionNote: string | null;
   requestedAt: string;
   /** When an approved request stops being held for the borrower. */
   expiresAt: string | null;
@@ -45,7 +47,7 @@ export interface ServerRequest {
   cancellable: boolean;
 }
 
-/** A request plus the two facts the pages need that MyRequest has no room for. */
+/** A request plus the facts the pages need that MyRequest leaves optional. */
 export interface BorrowerRequest extends MyRequest {
   reservationKey: number;
   cancellable: boolean;
@@ -65,13 +67,13 @@ export function toBorrowerRequest(s: ServerRequest): BorrowerRequest {
     // inventing a format here would print something staff cannot search for.
     id: String(s.reservationKey),
     kind: s.resource.kind,
-    // A request for an unclassified item should not claim a tier it has not
-    // got. T2 is the safe display default: it is the one that says "a human
-    // has to look at this".
-    tier: s.resource.tier ?? "T2",
+    // Left null rather than defaulted: showing an unclassified unit as T2 put a
+    // tier on screen the server never gave it.
+    tier: s.resource.tier,
     name: s.resource.name ?? "",
     serial: s.resource.serialNo ?? "-",
     status: s.status,
+    decisionNote: s.decisionNote,
     // The Bangkok day, not the UTC one. `slice(0, 10)` on the ISO string names
     // the UTC day, which is the day before for anything the borrower holds in
     // the first seven hours of a Bangkok morning.

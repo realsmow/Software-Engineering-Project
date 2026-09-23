@@ -12,7 +12,6 @@ import {
   type DraftLine,
   type RequestTime,
 } from "../request/request-draft.store";
-import { useSubmittedRequests } from "./submitted-requests.store";
 
 /**
  * The saved draft, shown alongside real requests so an unfinished basket is
@@ -38,10 +37,9 @@ export interface DraftSummary {
  * The draft stays local because it is not a request yet - nothing has been
  * sent, so there is nothing for the server to have an opinion about.
  *
- * `overrides` also stays. It carries the extension and inspection state the
- * pages show, and `requestOutput` cannot supply any of it: a reservation
- * describes what was asked for, not the loan that follows. Those fields are
- * still local until a borrower-side view of UsageLog exists.
+ * Nothing is layered over the server rows any more. Extension state comes
+ * from `loan.extensionOptions`/`loan.myExtensions` and penalties from
+ * `appeal.*`; a local copy of either showed changes the server never saw.
  */
 /**
  * A listed row, plus the loan key when the server knows one.
@@ -56,23 +54,15 @@ export function useMyRequests() {
   // item's name. Submitted requests already carry their own name.
   const { data: catalog } = useEquipmentTypes();
   const { data: server, isLoading } = useMyRequestsApi();
-  const overrides = useSubmittedRequests((s) => s.overrides);
   const draftLines = useRequestDraft((s) => s.lines);
   const startDate = useRequestDraft((s) => s.startDate);
   const pickupTime = useRequestDraft((s) => s.pickupTime);
   const endDate = useRequestDraft((s) => s.endDate);
   const returnTime = useRequestDraft((s) => s.returnTime);
 
-  const requests = useMemo<LoanRow[]>(() => {
-    // Equipment and room bookings both come from `loan.list` now; a room
-    // booking is a reservation like any other, marked `kind: "room"`.
-    return (server ?? []).map((r) => {
-      // Local extension/inspection state layered on top of the server row.
-      // Keyed by the reservation number, which is what `id` now holds.
-      const changes = overrides[r.id];
-      return changes ? { ...r, ...changes } : r;
-    });
-  }, [server, overrides]);
+  // Equipment and room bookings both come from `loan.list`; a room booking is
+  // a reservation like any other, marked `kind: "room"`.
+  const requests = useMemo<LoanRow[]>(() => server ?? [], [server]);
 
   const draft = useMemo<DraftSummary | null>(
     () => summariseDraft(draftLines, catalog ?? [], startDate, pickupTime, endDate, returnTime),

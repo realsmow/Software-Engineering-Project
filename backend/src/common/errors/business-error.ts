@@ -107,6 +107,8 @@ export const BUSINESS_ERROR_CODES = {
   WRONG_LOAN_STATE: 'CONFLICT',
   /** Borrower confirmation requires their before-pickup evidence photo. */
   PICKUP_PHOTO_REQUIRED: 'PRECONDITION_FAILED',
+  /** No "after" photo on the loan yet; the return is photographed (FR-RTN-01). */
+  RETURN_PHOTO_REQUIRED: 'PRECONDITION_FAILED',
   /** The chosen unit is a different type, or a different department, than the request */
   UNIT_DOES_NOT_MATCH_REQUEST: 'BAD_REQUEST',
   EXTENSION_NOT_FOUND: 'NOT_FOUND',
@@ -190,6 +192,8 @@ export const BUSINESS_ERROR_CODES = {
   ROOM_SLOTS_NOT_CONTIGUOUS: 'BAD_REQUEST',
   /** The slot has already been and gone today. Sibling of INVALID_BORROW_WINDOW. */
   ROOM_SLOT_IN_THE_PAST: 'BAD_REQUEST',
+  /** Rooms are booked for today only; the booking screen never offered another day. */
+  ROOM_BOOKING_SAME_DAY_ONLY: 'BAD_REQUEST',
 
   // --- appeals (§5.8 "ขออุทธรณ์") ---
   PENALTY_NOT_FOUND: 'NOT_FOUND',

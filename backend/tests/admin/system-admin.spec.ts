@@ -112,9 +112,11 @@ describe('IT admin system status, cron, config, and audit procedures', () => {
 
     const jobs = await service.listCronJobs();
 
-    expect(jobs).toHaveLength(8);
-    expect(jobs.filter((job) => job.implemented)).toHaveLength(5);
-    expect(jobs.filter((job) => !job.implemented)).toHaveLength(3);
+    // Six since computeAvailability and rollupDailyStats were removed as jobs
+    // with nothing to do, and openT3InspectionRounds was built. Every job in
+    // the registry now runs.
+    expect(jobs).toHaveLength(6);
+    expect(jobs.every((job) => job.implemented)).toBe(true);
     expect(jobs.find((job) => job.id === 'markOverdue')).toMatchObject({
       lastRunAt: lastRunAt.toISOString(),
       lastResult: 'success',
@@ -140,22 +142,21 @@ describe('IT admin system status, cron, config, and audit procedures', () => {
     );
   });
 
-  it('preserves the typed NOT_IMPLEMENTED error for an unavailable cron job', async () => {
+  it('passes a failing job error through without recording a run', async () => {
     const { service, cron, audit } = serviceWith();
-    const error = new BusinessError('NOT_IMPLEMENTED', {
-      missing: ['DailyStats table'],
-      note: 'The job is not available yet.',
-    });
+    const error = new BusinessError('LOAN_NOT_FOUND', { usageKey: 1 });
     cron.run.mockRejectedValue(error);
 
     await expect(
-      service.runCronJob(
-        runCronJobInput.parse({ job: 'rollupDailyStats' }),
-        ACTOR,
-      ),
+      service.runCronJob(runCronJobInput.parse({ job: 'markLost' }), ACTOR),
     ).rejects.toBe(error);
     expect(audit.record).not.toHaveBeenCalled();
-    expect(() => runCronJobInput.parse({ job: 'unknownJob' })).toThrow();
+  });
+
+  it('no longer accepts the removed jobs, or an unknown one', () => {
+    for (const job of ['rollupDailyStats', 'computeAvailability', 'unknownJob']) {
+      expect(() => runCronJobInput.parse({ job })).toThrow();
+    }
   });
 
   it('returns read-only technical configuration that conforms to its schema', () => {
@@ -174,6 +175,8 @@ describe('IT admin system status, cron, config, and audit procedures', () => {
     expect(technicalConfig.auth.sessionTimeoutMinutes).toBe(480);
     expect(technicalConfig.storage.provider).toBe('local-disk');
     expect(technicalConfig.storage.bucket).toBe('/srv/media');
+    // A From header value is reported as its address, or the schema rejects it.
+    expect(technicalConfig.email.fromAddress).toBe('no-reply@ku.th');
     expect(technicalConfig.security).toMatchObject({
       cookieSecure: true,
       cookieSameSite: 'strict',

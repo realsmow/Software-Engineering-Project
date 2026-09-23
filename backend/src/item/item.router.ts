@@ -193,8 +193,8 @@ export class ItemRouter {
    */
   @UseMiddlewares(StaffMiddleware)
   @Mutation({ input: createItemTypeInput, output: itemTypeDetail })
-  createType(@Input() input: CreateItemTypeInput) {
-    return this.management.createItemType(input);
+  createType(@Input() input: CreateItemTypeInput, @Ctx() ctx: TrpcContext) {
+    return this.management.createItemType(ctx.user!, input);
   }
 
   @UseMiddlewares(StaffMiddleware)

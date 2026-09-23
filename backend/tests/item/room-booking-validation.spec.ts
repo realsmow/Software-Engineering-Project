@@ -36,7 +36,11 @@ function managementHarness() {
     },
     itemInfo: { update: jest.fn() },
     roomInfo: { create: jest.fn(), findUnique: jest.fn(), update: jest.fn() },
-    eligibility: { createMany: jest.fn(), deleteMany: jest.fn() },
+    eligibility: {
+      findMany: jest.fn().mockResolvedValue([]),
+      createMany: jest.fn(),
+      deleteMany: jest.fn(),
+    },
   };
 
   const prisma = {

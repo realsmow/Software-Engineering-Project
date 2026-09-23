@@ -1,3 +1,4 @@
+import type { UsageStatus } from '../schemas/status.schema';
 import { tryMapTier } from '../schemas/status.schema';
 import type {
   ItemDetail,
@@ -34,11 +35,11 @@ interface ResourceRow {
     Condition: 'Normal' | 'MinorDamage' | 'MajorDamage' | 'Broken' | 'Missing';
   } | null;
   /**
-   * MUST be filtered to the loan currently holding this unit (CurrentStatus
-   * 'Lended') and limited to one row. The mapper reads `dueAt` from the first
-   * entry, so an unfiltered select would report a long-closed loan's due date.
+   * MUST be filtered to loans still holding the unit (UNAVAILABLE_USAGE_STATES)
+   * and limited to one row. Any row at all makes the unit unavailable; the
+   * status says whether its due date means anything to a borrower.
    */
-  UsageLogs: { DueTime: Date }[];
+  UsageLogs: { DueTime: Date; CurrentStatus: UsageStatus }[];
 }
 
 export interface ItemUnitRow {
@@ -108,14 +109,21 @@ export interface AvailabilityUnitRow {
     ResourceStatus: 'InStorage' | 'Lended' | 'Missing';
     AllowBorrow: boolean;
     BufferTime: number;
-    UsageLogs: { DueTime: Date }[];
+    UsageLogs: { DueTime: Date; CurrentStatus: UsageStatus }[];
   };
 }
 
-/** Free to borrow right now: in storage, and the resource is open for borrowing. */
+/**
+ * Free to borrow right now: on the shelf, open for borrowing, and not held by
+ * any loan. The last part is what staff inventory already checked; without it
+ * a unit set aside for someone, or returned and not yet graded, read as free
+ * here while the staff screen and loan.create both said otherwise.
+ */
 export function isUnitAvailable(unit: AvailabilityUnitRow): boolean {
   return (
-    unit.Resource.ResourceStatus === 'InStorage' && unit.Resource.AllowBorrow
+    unit.Resource.ResourceStatus === 'InStorage' &&
+    unit.Resource.AllowBorrow &&
+    unit.Resource.UsageLogs.length === 0
   );
 }
 
@@ -156,10 +164,15 @@ export function nextAvailableAt<U extends AvailabilityUnitRow>(
   return new Date(Math.min(...readyAt)).toISOString();
 }
 
-/** Due date plus this unit's prep days, or null when it is not out on loan. */
+/**
+ * Due date plus this unit's prep days, or null when there is no date to give.
+ * A unit back and awaiting grading has no honest date: it is free once staff
+ * have looked at it, which could be today or never if it is broken.
+ */
 function unitReadyAt(unit: AvailabilityUnitRow): number | null {
-  const due = unit.Resource.UsageLogs[0]?.DueTime;
-  return due == null ? null : due.getTime() + unit.Resource.BufferTime * DAY_MS;
+  const loan = unit.Resource.UsageLogs[0];
+  if (!loan || loan.CurrentStatus === 'Returned') return null;
+  return loan.DueTime.getTime() + unit.Resource.BufferTime * DAY_MS;
 }
 
 /**
@@ -224,7 +237,11 @@ export function toItemDetail(
       status: unit.Resource.ResourceStatus,
       allowBorrow: unit.Resource.AllowBorrow,
       condition: unit.Resource.CurrentCondition?.Condition ?? null,
-      dueAt: unit.Resource.UsageLogs[0]?.DueTime.toISOString() ?? null,
+      // Due date of the loan it is out on; a unit merely set aside is not out.
+      dueAt:
+        unit.Resource.UsageLogs[0]?.CurrentStatus === 'Lended'
+          ? unit.Resource.UsageLogs[0].DueTime.toISOString()
+          : null,
       nextAvailableAt: readyAtIso(unit),
       ...(freeInWindow
         ? { availableForWindow: isAvailable(unit) }

@@ -2,6 +2,7 @@ import { toBorrowerRef } from './loan.schema';
 import { Injectable } from '@nestjs/common';
 import type { Prisma } from '../generated/prisma/client';
 import { PrismaService } from '../prisma.service';
+import { AuditService } from '../common/audit/audit.service';
 import { CreditTierService } from '../common/credit/credit-tier.service';
 import { EligibilityService } from '../common/authority/eligibility.service';
 import {
@@ -18,6 +19,7 @@ import {
 } from '../common/booking/booking-window';
 import {
   MAX_ACTIVE_ROOM_BOOKINGS,
+  assertRoomWindow,
   slotsToWindow,
 } from '../common/booking/room-slots';
 import { BusinessError } from '../common/errors/business-error';
@@ -78,6 +80,7 @@ const REQUEST_SELECT = {
   ReservationKey: true,
   ReservedBy: true,
   Reason: true,
+  DecisionNote: true,
   StartTime: true,
   EndTime: true,
   ApproveStatus: true,
@@ -124,6 +127,7 @@ export class LoanRequestService {
     private readonly prisma: PrismaService,
     private readonly creditTiers: CreditTierService,
     private readonly eligibility: EligibilityService,
+    private readonly audit: AuditService,
   ) {}
 
   // =========================================================================
@@ -246,6 +250,9 @@ export class LoanRequestService {
       });
     }
 
+    // Same rule whether the window came from chips or from raw instants.
+    if (resource.Room) assertRoomWindow(startTime, endTime);
+
     const tier = tryMapTier(resource.BorrowRuleInfo.RuleName);
     if (tier === null) {
       throw new BusinessError('TIER_NOT_CONFIGURED', {
@@ -333,6 +340,14 @@ export class LoanRequestService {
       });
       return row.ReservationKey;
     });
+
+    // One row per reservation opened, after the write commits.
+    await this.audit.record(
+      { accountKey: user.accountKey },
+      'create',
+      `reservation/${key}`,
+      `Requested ${resource.Item ? resource.Item.Item.ItemName : resource.Room?.RoomName ?? 'resource'} (resourceKey ${resourceKey})${approved ? ', auto-approved' : ''}`,
+    );
 
     return this.read(key);
   }
@@ -469,6 +484,13 @@ export class LoanRequestService {
       });
     });
 
+    await this.audit.record(
+      { accountKey: user.accountKey },
+      'update',
+      `loan/${usage.UsageKey}`,
+      'Borrower confirmed self-pickup',
+    );
+
     return this.toRequest(
       await this.read(usage.ReservationKey),
       await this.creditTiers.tierMapper(),
@@ -530,9 +552,16 @@ export class LoanRequestService {
       data: {
         ApproveStatus: 'Canceled',
         ResolvedAt: new Date(),
-        Reason: input.reason ?? row.Reason,
+        DecisionNote: input.reason ?? null,
       },
     });
+
+    await this.audit.record(
+      { accountKey: user.accountKey },
+      'update',
+      `reservation/${input.reservationKey}`,
+      `Borrower cancelled the request${input.reason ? `: ${input.reason}` : ''}`,
+    );
 
     return this.toRequest(
       await this.read(input.reservationKey),
@@ -670,6 +699,7 @@ export class LoanRequestService {
       startTime: toIso(row.StartTime),
       endTime: toIso(row.EndTime),
       reason: row.Reason,
+      decisionNote: row.DecisionNote,
       requestedAt: toIso(row.ActionTime),
       expiresAt:
         row.ApproveStatus === 'Approved' && usage === null

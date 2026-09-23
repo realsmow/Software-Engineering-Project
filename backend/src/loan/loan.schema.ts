@@ -499,6 +499,8 @@ export const requestOutput = z.object({
   startTime: isoDateTime,
   endTime: isoDateTime,
   reason: z.string().nullable(),
+  /** Why it ended: a rejection's reason or the borrower's cancel note. Null otherwise. */
+  decisionNote: z.string().nullable(),
   requestedAt: isoDateTime,
   /** When an approved request stops being held for the borrower (§5.9). */
   expiresAt: isoDateTimeNullable,

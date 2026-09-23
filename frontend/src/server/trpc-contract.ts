@@ -415,7 +415,11 @@ export const appRouter = t.router({
       )
       .mutation(() => as<ServerExtension>()),
     myExtensions: proc
-      .input(pageInput.extend({ status: z.string().optional() }))
+      .input(
+        pageInput.extend({
+          status: z.enum(["Pending", "Approved", "Rejected", "Canceled"]).optional(),
+        }),
+      )
       .query(() => as<Paginated<ServerExtension>>()),
     cancelExtension: proc
       .input(z.object({ extensionKey: z.number() }))

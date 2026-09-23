@@ -9,6 +9,15 @@ import { Input } from "@/components/ui/input";
 import { Segmented } from "@/components/ui/segmented";
 import { DataTable, type Column } from "@/components/ui/data-table";
 import { ROUTES } from "@/constants";
+import { uploadAcceptAttr, validateUploadFile } from "@/lib/upload-validation";
+import {
+  usePickupImageUpload,
+  useUsagePhotos,
+} from "@/features/borrower/pickup/use-pickup-image-upload";
+import {
+  prepareBorrowerImage,
+  releaseBorrowerImage,
+} from "@/features/borrower/uploads/prepared-image";
 import { getErrorMessage } from "@/lib/error-messages";
 import { fmtDateTime } from "@/features/borrower/format";
 import type { ExtensionReviewRow } from "@/features/supervisor/approvals/approval.types";
@@ -376,9 +385,13 @@ export default function StaffQueuePage() {
                 {t("staff.queue.actionLost")}
               </Button>
             ) : null}
-            <Button type="button" size="sm" disabled={busy} onClick={() => void act(r)}>
-              {busy ? t("common.loading") : t(ACTION_LABEL[bucket])}
-            </Button>
+            {(bucket === "onLoan" || bucket === "overdue") && r.usageKey !== null ? (
+              <ReturnAction usageKey={r.usageKey} busy={busy} onReturn={() => void act(r)} />
+            ) : (
+              <Button type="button" size="sm" disabled={busy} onClick={() => void act(r)}>
+                {busy ? t("common.loading") : t(ACTION_LABEL[bucket])}
+              </Button>
+            )}
           </div>
         );
       },
@@ -547,5 +560,79 @@ function CountTile({
     </button>
   ) : (
     <div className={className}>{body}</div>
+  );
+}
+
+/**
+ * Photograph the item as it comes back, then take it in (FR-RTN-01).
+ *
+ * The server refuses a return with no "after" photo (RETURN_PHOTO_REQUIRED),
+ * so the button waits for one. The photo goes onto the loan, where the
+ * inspection screen shows it beside the borrower's pickup photo; without it a
+ * damage grade had nothing to be compared against.
+ */
+function ReturnAction({
+  usageKey,
+  busy,
+  onReturn,
+}: {
+  usageKey: number;
+  busy: boolean;
+  onReturn: () => void;
+}) {
+  const { t } = useTranslation();
+  const { data: photos } = useUsagePhotos(usageKey);
+  const upload = usePickupImageUpload();
+  const [error, setError] = useState<string | null>(null);
+  const hasPhoto = (photos?.after.length ?? 0) > 0;
+
+  async function onPick(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (!validateUploadFile(file).ok) {
+      setError(t("staff.queue.returnPhotoBad"));
+      return;
+    }
+    setError(null);
+    const prepared = prepareBorrowerImage(file);
+    try {
+      await upload.mutateAsync({ usageKey, stage: "after", image: prepared });
+    } catch (err) {
+      setError(getErrorMessage(err));
+    } finally {
+      releaseBorrowerImage(prepared);
+    }
+  }
+
+  return (
+    <div className="flex items-center gap-2">
+      {error ? <span className="max-w-[160px] text-[11px] text-[var(--s-alert-t)]">{error}</span> : null}
+      <label
+        className={[
+          "inline-flex h-8 cursor-pointer items-center rounded-md border px-2.5 text-xs font-medium",
+          hasPhoto
+            ? "border-[var(--s-ok-t)] bg-[var(--s-ok-bg)] text-[var(--s-ok-t)]"
+            : "border-border bg-card text-t2 hover:text-foreground",
+        ].join(" ")}
+      >
+        <input
+          type="file"
+          accept={uploadAcceptAttr()}
+          capture="environment"
+          className="sr-only"
+          disabled={upload.isPending}
+          onChange={(e) => void onPick(e)}
+        />
+        {upload.isPending
+          ? t("common.loading")
+          : hasPhoto
+            ? t("staff.queue.returnPhotoDone")
+            : t("staff.queue.returnPhoto")}
+      </label>
+      <Button type="button" size="sm" disabled={busy || !hasPhoto} onClick={onReturn}>
+        {busy ? t("common.loading") : t("staff.queue.actionReturn")}
+      </Button>
+    </div>
   );
 }

@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import type { Prisma } from '../generated/prisma/client';
 import { PrismaService } from '../prisma.service';
+import { AuditService } from '../common/audit/audit.service';
 import { StaffScopeService } from '../common/authority/staff-scope.service';
 import { ImageService } from '../image/image.service';
 import {
@@ -134,6 +135,7 @@ export class ItemManagementService {
     // Image URLs are stored relative and served absolute, so every read and
     // write of an ImageURL column goes through here — see image.schema.ts.
     private readonly images: ImageService,
+    private readonly audit: AuditService,
   ) {}
 
   // =========================================================================
@@ -225,7 +227,13 @@ export class ItemManagementService {
     };
   }
 
-  async createItemType(input: CreateItemTypeInput) {
+  async createItemType(user: TrpcUser, input: CreateItemTypeInput) {
+    // ItemInfo has no department, so there is no group to check against. What
+    // can be checked is the same thing every other staff write requires: the
+    // caller administers some department. A staff account attached to none
+    // was creating catalogue entries (FR-AUTH-05). Admins are unscoped.
+    await this.scope.resolveGroupKeys(user);
+
     const created = await this.prisma.itemInfo.create({
       data: {
         ItemName: input.name,
@@ -241,6 +249,13 @@ export class ItemManagementService {
         CreditWeight: true,
       },
     });
+
+    await this.audit.record(
+      { accountKey: user.accountKey },
+      'create',
+      `item/${created.ItemKey}`,
+      `Created item type "${created.ItemName}"`,
+    );
 
     // A type with no units yet: the counts are zero and there are no tiers,
     // because a tier lives on the unit. `item.createUnit` is the next call.
@@ -272,6 +287,13 @@ export class ItemManagementService {
       where: { ItemKey: input.itemKey },
       data,
     });
+
+    await this.audit.record(
+      { accountKey: user.accountKey },
+      'update',
+      `item/${input.itemKey}`,
+      `Updated item type fields: ${Object.keys(data).join(', ') || 'none'}`,
+    );
 
     return this.getManagedItemById(user, input.itemKey);
   }
@@ -320,7 +342,15 @@ export class ItemManagementService {
     }
 
     const borrowRuleKey = await this.resolveTierRuleKey(input.tier);
-    const serials = this.buildSerials(input, itemType.ItemName);
+    const existing = await this.prisma.itemIndiv.findMany({
+      where: { ItemKey: input.itemKey },
+      select: { ItemID: true },
+    });
+    const serials = this.buildSerials(
+      input,
+      itemType.ItemName,
+      existing.map((row) => row.ItemID),
+    );
     await this.assertSerialsFree(input.itemKey, serials);
 
     const created = await this.prisma.$transaction(async (tx) => {
@@ -388,6 +418,13 @@ export class ItemManagementService {
       select: UNIT_SELECT,
     });
 
+    await this.audit.record(
+      { accountKey: user.accountKey },
+      'create',
+      `item/${input.itemKey}`,
+      `Registered ${serials.length} unit(s) (${serials.join(', ')}), tier ${input.tier}`,
+    );
+
     return rows.map((row) => this.toItemUnit(row));
   }
 
@@ -444,6 +481,13 @@ export class ItemManagementService {
         });
       }
     });
+
+    await this.audit.record(
+      { accountKey: user.accountKey },
+      'update',
+      `unit/${input.resourceKey}`,
+      `Updated unit${input.serialNo !== undefined ? `, serial ${input.serialNo}` : ''}${input.tier !== undefined ? `, tier ${input.tier}` : ''}`,
+    );
 
     return this.readUnit(input.resourceKey);
   }
@@ -514,6 +558,13 @@ export class ItemManagementService {
       }
     });
 
+    await this.audit.record(
+      { accountKey: user.accountKey },
+      'update',
+      `unit/${input.resourceKey}`,
+      `Set lendable = ${input.lendable}${input.reason ? `: ${input.reason}` : ''}`,
+    );
+
     return this.readUnit(input.resourceKey);
   }
 
@@ -555,6 +606,13 @@ export class ItemManagementService {
         },
       });
     });
+
+    await this.audit.record(
+      { accountKey: user.accountKey },
+      'update',
+      `unit/${input.resourceKey}`,
+      `Set condition ${condition}${input.note ? `: ${input.note}` : ''}`,
+    );
 
     return this.readUnit(input.resourceKey);
   }
@@ -631,6 +689,13 @@ export class ItemManagementService {
       return resource.ResourceKey;
     });
 
+    await this.audit.record(
+      { accountKey: user.accountKey },
+      'create',
+      `room/${resourceKey}`,
+      `Created room "${input.name}"`,
+    );
+
     return this.readRoom(resourceKey);
   }
 
@@ -669,6 +734,13 @@ export class ItemManagementService {
         ...(input.capacity !== undefined ? { Capacity: input.capacity } : {}),
       },
     });
+
+    await this.audit.record(
+      { accountKey: user.accountKey },
+      'update',
+      `room/${input.resourceKey}`,
+      `Updated room${input.name !== undefined ? ` name to "${input.name}"` : ''}`,
+    );
 
     return this.readRoom(input.resourceKey);
   }
@@ -748,6 +820,15 @@ export class ItemManagementService {
         skipDuplicates: true,
       });
     });
+
+    const target =
+      'roomKey' in input ? `room/${input.roomKey}` : `item/${input.itemKey}`;
+    await this.audit.record(
+      { accountKey: user.accountKey },
+      'update',
+      target,
+      `Set eligibility to ${input.rules.length} rule(s)`,
+    );
 
     return this.listEligibility(user, input);
   }
@@ -946,10 +1027,13 @@ export class ItemManagementService {
   private buildSerials(
     input: CreateItemUnitInput,
     itemName: string | null,
+    existing: readonly string[],
   ): string[] {
-    const needsSerial = input.tier === 'T1' || input.tier === 'T2';
-
-    if (needsSerial && !input.serialNo) {
+    // Only T2 needs a serial typed in: it is bound to the number printed on
+    // the unit, and approval is for that unit. T0 and T1 get a generated tag,
+    // which is what the team decided for T1 (the audit found the code still
+    // demanding one).
+    if (input.tier === 'T2' && !input.serialNo) {
       throw new BusinessError('SERIAL_REQUIRED_FOR_TIER', {
         tier: input.tier,
         quantity: input.quantity,
@@ -963,20 +1047,28 @@ export class ItemManagementService {
       });
     }
 
+    // One unit with a serial typed in is that serial, exactly.
+    if (input.serialNo && input.quantity === 1) return [input.serialNo];
+
     const base =
       input.serialNo ??
       `${(itemName ?? 'ITEM').trim().slice(0, 12).toUpperCase().replace(/\s+/g, '-')}-${input.itemKey}`;
 
-    if (input.quantity === 1) return [input.serialNo ?? `${base}-1`];
+    // Numbering carries on from the last batch. Starting at 1 every time made
+    // the second delivery of the same thing collide with the first
+    // (SERIAL_ALREADY_IN_USE), so a department could never add ten more.
+    const suffix = new RegExp(`^${base.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}-(\\d+)$`);
+    const highest = existing.reduce((max, id) => {
+      const match = suffix.exec(id);
+      return match ? Math.max(max, Number(match[1])) : max;
+    }, 0);
 
-    // T0/T1 only, per the guard above. Suffixed rather than repeated:
-    // ItemIndiv.ItemID is how a staff member tells two boxes apart at the
-    // counter, and two rows reading "ARDUINO-7" make allocation a guess.
     return Array.from(
       { length: input.quantity },
-      (_, index) => `${base}-${index + 1}`,
+      (_, index) => `${base}-${highest + index + 1}`,
     );
   }
+
 
   /**
    * Refuses a serial already used by another unit of the same type.

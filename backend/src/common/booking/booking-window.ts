@@ -73,8 +73,18 @@ export function heldUsageFilter(
 ): Prisma.UsageLogWhereInput {
   return {
     ResourceKey: resourceKey,
-    CurrentStatus: { in: UNAVAILABLE_USAGE_STATES },
-    DueTime: { gt: from },
+    OR: [
+      {
+        CurrentStatus: {
+          in: UNAVAILABLE_USAGE_STATES.filter((s) => s !== 'Returned'),
+        },
+        DueTime: { gt: from },
+      },
+      // Back and not yet graded: nobody knows yet whether it can go out again,
+      // so it holds every window until staff have looked at it. Keyed on the
+      // due date instead, it read as free the moment it was handed back.
+      { CurrentStatus: 'Returned' },
+    ],
   };
 }
 

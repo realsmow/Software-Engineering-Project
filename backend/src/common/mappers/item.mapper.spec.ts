@@ -41,7 +41,7 @@ function unit(overrides: {
       },
       ManagementGroup: GROUP,
       CurrentCondition: { Condition: 'Normal' },
-      UsageLogs: overrides.dueAt ? [{ DueTime: overrides.dueAt }] : [],
+      UsageLogs: overrides.dueAt ? [{ DueTime: overrides.dueAt, CurrentStatus: 'Lended' as const }] : [],
     },
   };
 }
@@ -312,5 +312,30 @@ describe('toRoomSummary', () => {
 
     const closed = { ...room, Resource: unit({ allowBorrow: false }).Resource };
     expect(toRoomSummary(closed).bookable).toBe(false);
+  });
+});
+
+describe('availability counts every active loan, as staff inventory does (audit #2)', () => {
+  const held = (status: 'Pending' | 'Prepared' | 'Lended' | 'Returned') => ({
+    ...unit({}),
+    Resource: {
+      ...unit({}).Resource,
+      UsageLogs: [{ DueTime: new Date('2099-01-10T00:00:00Z'), CurrentStatus: status }],
+    },
+  });
+
+  it.each(['Pending', 'Prepared', 'Lended', 'Returned'] as const)(
+    'a unit whose loan is %s is not available',
+    (status) => {
+      expect(toItemSummary(itemRow([held(status)])).availableUnits).toBe(0);
+    },
+  );
+
+  it('gives an ungraded return no ready date, and only a lent unit a due date', () => {
+    const [returned] = toItemDetail(itemRow([held('Returned')])).units;
+    expect(returned.nextAvailableAt).toBeNull();
+    expect(returned.dueAt).toBeNull();
+    const [prepared] = toItemDetail(itemRow([held('Prepared')])).units;
+    expect(prepared.dueAt).toBeNull();
   });
 });

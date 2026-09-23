@@ -20,6 +20,11 @@ const ERROR_MESSAGES: Record<string, string> = {
   // Booking / Reservation
   SLOT_UNAVAILABLE: "ช่วงเวลานี้ไม่ว่างแล้ว",
   RESERVATION_TOO_FAR: "จองล่วงหน้าได้ไม่เกิน 3 เดือน",
+  ROOM_SLOT_OUT_OF_RANGE: "ช่วงเวลาที่เลือกไม่ตรงกับช่วงจองของห้อง (ช่วงละ 30 นาที)",
+  ROOM_SLOT_LIMIT_EXCEEDED: "จองห้องได้ไม่เกิน 3 ชั่วโมงต่อครั้ง",
+  ROOM_SLOTS_NOT_CONTIGUOUS: "ช่วงเวลาที่เลือกต้องต่อเนื่องกัน และข้ามช่วงพักเที่ยงไม่ได้",
+  ROOM_SLOT_IN_THE_PAST: "ช่วงเวลานี้ผ่านไปแล้ว",
+  ROOM_BOOKING_SAME_DAY_ONLY: "จองห้องได้เฉพาะวันนี้เท่านั้น",
   ROOM_BOOKING_LIMIT_REACHED: "คุณจองห้องไว้แล้วหนึ่งรายการ ยกเลิกหรือใช้งานให้เสร็จก่อนจึงจะจองห้องอื่นได้",
 
   // Renewal
@@ -45,6 +50,12 @@ const ERROR_MESSAGES: Record<string, string> = {
   LOAN_PERIOD_EXCEEDS_LIMIT: "ระยะเวลายืมเกินสิทธิ์ที่คุณได้รับ",
   EXTENSION_QUOTA_EXCEEDED: "คุณต่ออายุออนไลน์ครบแล้ว ต้องนำอุปกรณ์มาให้เจ้าหน้าที่ตรวจ", // → RENEWAL_LIMIT_REACHED
   APPEAL_WINDOW_CLOSED: "หมดเวลายื่นอุทธรณ์สำหรับรายการนี้แล้ว",
+  ALREADY_APPEALED: "โทษนี้ยื่นอุทธรณ์ไปแล้ว",
+  PENALTY_NOT_FOUND: "ไม่พบรายการโทษนี้",
+  NOT_YOUR_PENALTY: "อุทธรณ์ได้เฉพาะโทษของตัวเอง",
+  PENALTY_NOT_IN_EFFECT: "โทษนี้ไม่มีผลแล้ว จึงไม่ต้องอุทธรณ์",
+  EXTENSION_ALREADY_PENDING: "มีคำขอต่ออายุที่รอพิจารณาอยู่แล้ว",
+  INVALID_EXTENSION_WINDOW: "วันที่ขอต่ออายุไม่อยู่ในช่วงที่ต่อได้",
 
   // Staff counter (loan.*) - written for someone reading this with a student
   // standing in front of them, so each one says what to do next.
@@ -52,6 +63,7 @@ const ERROR_MESSAGES: Record<string, string> = {
     "รายการนี้ถูกดำเนินการไปแล้ว (อาจมีเจ้าหน้าที่อีกคนทำไปก่อน) กรุณารีเฟรชคิว",
   LOAN_NOT_FOUND: "ไม่พบรายการยืมนี้ อาจถูกยกเลิกหรือดำเนินการไปแล้ว",
   PICKUP_PHOTO_REQUIRED: "กรุณาถ่ายรูปครุภัณฑ์ก่อนยืนยันการรับของ",
+  RETURN_PHOTO_REQUIRED: "กรุณาถ่ายรูปครุภัณฑ์ตอนรับคืนก่อนบันทึกการคืน",
   RESERVATION_NOT_FOUND: "ไม่พบคำขอนี้ อาจถูกยกเลิกไปแล้ว",
   RESOURCE_NOT_FOUND: "ไม่พบอุปกรณ์ชิ้นนี้ในระบบ",
   NOT_APPROVED_YET: "คำขอนี้ยังไม่ผ่านการอนุมัติ จึงยังจัดเตรียมไม่ได้",

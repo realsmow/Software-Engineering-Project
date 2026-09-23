@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import type { Prisma } from '../generated/prisma/client';
 import { PrismaService } from '../prisma.service';
+import { UNAVAILABLE_USAGE_STATES } from '../common/usage/usage-states';
 import {
   heldPairs,
   matchingRules,
@@ -46,10 +47,16 @@ import type {
  * due dates from loans that closed months ago.
  */
 const CURRENT_LOAN_SELECT = {
-  where: { CurrentStatus: 'Lended' },
+  // Every loan that keeps the unit off the shelf, not only one that is out:
+  // a unit set aside for someone, or back and not yet graded, is no more
+  // available than one in a borrower's bag. Staff inventory already counted
+  // that way, and the borrower's catalogue did not, so the two screens showed
+  // different numbers for the same shelf (audit #2). Still closed loans are
+  // excluded, so no long-finished due date can leak through.
+  where: { CurrentStatus: { in: UNAVAILABLE_USAGE_STATES } },
   orderBy: { DueTime: 'asc' },
   take: 1,
-  select: { DueTime: true },
+  select: { DueTime: true, CurrentStatus: true },
 } as const;
 
 @Injectable()

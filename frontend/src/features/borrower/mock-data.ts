@@ -4,8 +4,8 @@
  * tests build on. The pages read the real API; what fabricated data is left
  * here is test fixture only.
  */
-import { DAMAGE_LEVELS, TIER_CONFIG } from "@/constants";
-import type { DamageLevel, EquipmentType, Tier } from "@/types/domain";
+import { TIER_CONFIG } from "@/constants";
+import type { EquipmentType, Tier } from "@/types/domain";
 
 /**
  * Catalog row = the domain EquipmentType plus the columns the catalog table
@@ -359,8 +359,8 @@ export type MyRequestStatus =
   | "preparing"
   | "ready"
   | "inUse"
+  /** Back at the counter, not yet graded. The server never splits this in two. */
   | "returned"
-  | "inspecting"
   | "done"
   | "rejected"
   | "cancelled";
@@ -373,8 +373,8 @@ export type MyRequestStatus =
  * Returning and inspecting are one step, not two: the borrower hands the item
  * back at the counter and staff photograph it and check its condition right
  * there, in the same visit. Splitting them would imply the borrower has a
- * second thing to do after returning, which they do not - so the `returned`
- * and `inspecting` statuses both sit on that final step.
+ * second thing to do after returning, which they do not - so `returned`
+ * (back, not yet graded) sits on that final step until grading makes it `done`.
  */
 export const EQUIPMENT_STEPS = [
   "stepSubmit",
@@ -413,10 +413,8 @@ const EQUIPMENT_STEP_AT: Record<MyRequestStatus, number> = {
   preparing: 2,
   ready: 3,
   inUse: 4,
-  // Both sit on the last step: returning and inspecting are one counter visit,
-  // not two (see EQUIPMENT_STEPS).
+  // Returning and inspecting are one counter visit, not two (see EQUIPMENT_STEPS).
   returned: 5,
-  inspecting: 5,
   done: EQUIPMENT_STEPS.length,
   rejected: 1,
   cancelled: 0,
@@ -429,7 +427,6 @@ const ROOM_STEP_AT: Record<MyRequestStatus, number> = {
   ready: 2,
   inUse: 3,
   returned: 4,
-  inspecting: 4,
   done: ROOM_STEPS.length,
   rejected: 1,
   cancelled: 0,
@@ -450,22 +447,10 @@ export const STATUS_TAB: Record<MyRequestStatus, RequestTab> = {
   ready: "active",
   inUse: "using",
   returned: "history",
-  inspecting: "history",
   done: "history",
   rejected: "history",
   cancelled: "history",
 };
-
-/** Staff verdict on a returned item, and the appeal window it opens. */
-export interface InspectionResult {
-  damage: DamageLevel;
-  inspectedAt: string;
-  inspectedBy: string;
-  /** Empty for B0 - nothing to explain when nothing was wrong. */
-  reason?: string;
-  /** Days left to appeal; 0 once the window has closed. */
-  appealDaysLeft: number;
-}
 
 export interface MyRequest {
   /** The reservation number, e.g. "REQ-2569-00431". One per item - see above. */
@@ -477,11 +462,14 @@ export interface MyRequest {
   /** Present after staff allocate the request; absent on local room bookings. */
   usageKey?: number | null;
   kind: RequestKind;
-  tier: Tier;
+  /** Null when the server could not classify the unit; never guessed. */
+  tier: Tier | null;
   name: string;
   /** Unit serial, or the room code for a booking. */
   serial: string;
   status: MyRequestStatus;
+  /** Why a rejected or cancelled request ended, as the server recorded it. */
+  decisionNote?: string | null;
   startDate: string;
   endDate: string;
   /** Requested counter times for equipment. Rooms use `slots` instead. */
@@ -490,16 +478,6 @@ export interface MyRequest {
   /** Equipment on loan: when it is due back, and how far off that is. */
   dueAt?: string;
   daysLeft?: number;
-  /** Online extensions already used on this request. */
-  extensionsUsed?: number;
-  /**
-   * An extension the borrower has asked for but cannot grant themselves, and
-   * who has to decide it. Absent when nothing is outstanding.
-   */
-  extensionPending?: "staff" | "supervisor";
-  /** True once an appeal against `inspection` has gone to a supervisor. */
-  appealSent?: boolean;
-  inspection?: InspectionResult;
   /**
    * Room bookings only: the periods reserved, as indices into `TIME_SLOTS`.
    * Equipment is borrowed by the day and has no slots, hence optional.
@@ -508,14 +486,6 @@ export interface MyRequest {
    * nothing more, so there is no extension to widen it later.
    */
   slots?: number[];
-}
-
-/**
- * Credit lost to a damage verdict - item weight × damage weight, the same
- * formula the credit page and the appeal flow have to agree with.
- */
-export function creditCutOf(tier: Tier, damage: DamageLevel): number {
-  return TIER_CONFIG[tier].creditWeight * DAMAGE_LEVELS[damage].weight;
 }
 
 /**
