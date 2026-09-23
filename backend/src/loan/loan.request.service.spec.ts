@@ -184,7 +184,7 @@ describe('Module 6 request validation', () => {
   it('6.10 borrower cannot cancel another borrower’s request', async () => {
     const db: any = dbFor();
     db.reservations.update = jest.fn();
-    const otherUser = { accountKey: 99, creditScore: 80 };
+    const otherUser = { accountKey: 99, role: 'borrower' as const, facultyKey: null, creditScore: 80 };
 
     await expect(
       service(db).cancel(otherUser, { reservationKey: 101 }),
