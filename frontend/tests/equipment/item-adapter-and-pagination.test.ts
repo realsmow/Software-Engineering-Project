@@ -21,6 +21,7 @@ const serverItem = {
   nextAvailableAt: sourceItem.nextAvailableAt ?? null,
   prepDays: sourceItem.prepDays,
   allowBorrow: true,
+  eligible: true,
   owner: { id: 8, name: "Engineering", type: "Faculty" as const },
 };
 

@@ -53,6 +53,7 @@ function managementHarness() {
   const tx = {
     resourceInfo: { create: jest.fn(), update: jest.fn() },
     itemIndiv: { create: jest.fn() },
+    eligibility: { findMany: jest.fn().mockResolvedValue([]), createMany: jest.fn() },
     conditionLog: {
       create: jest.fn().mockResolvedValue({ ConditionKey: 900 }),
       findUnique: jest.fn(),
@@ -69,7 +70,9 @@ function managementHarness() {
     },
     itemIndiv: {
       findFirst: jest.fn().mockResolvedValue(null),
-      findMany: jest.fn(),
+      // The first call reads the type's existing serials; the default is a
+      // type with no units yet.
+      findMany: jest.fn().mockResolvedValue([]),
       findUnique: jest.fn(),
     },
     borrowRule: { findFirst: jest.fn() },
@@ -101,6 +104,17 @@ function managementHarness() {
 }
 
 describe('Module 5 equipment management', () => {
+  it('refuses a new item type from staff attached to no department', async () => {
+    const { service, prisma, scope } = managementHarness();
+    scope.resolveGroupKeys.mockRejectedValue(
+      Object.assign(new Error('NO_MANAGEMENT_SCOPE'), { businessCode: 'NO_MANAGEMENT_SCOPE' }),
+    );
+    await expect(
+      service.createItemType(user(), { name: 'Scope', creditWeight: 1 }),
+    ).rejects.toMatchObject({ businessCode: 'NO_MANAGEMENT_SCOPE' });
+    expect(prisma.itemInfo.create).not.toHaveBeenCalled();
+  });
+
   it('registers an equipment type with its display metadata and credit weight', async () => {
     const { service, prisma, imageService } = managementHarness();
     prisma.itemInfo.create.mockResolvedValue({
@@ -112,7 +126,7 @@ describe('Module 5 equipment management', () => {
     });
 
     await expect(
-      service.createItemType({
+      service.createItemType(user(), {
         name: 'Oscilloscope',
         description: 'Four-channel scope',
         imageUrl: 'https://cdn.example/scope.png',
@@ -168,6 +182,8 @@ describe('Module 5 equipment management', () => {
         },
       }),
     ]);
+    // No units of this type yet: numbering starts at 1.
+    prisma.itemIndiv.findMany.mockResolvedValueOnce([]);
     tx.resourceInfo.create
       .mockResolvedValueOnce({ ResourceKey: 601 })
       .mockResolvedValueOnce({ ResourceKey: 602 });
@@ -217,6 +233,7 @@ describe('Module 5 equipment management', () => {
           create: jest.fn().mockResolvedValue({ ResourceKey: 501 }),
         },
         itemIndiv: { create: jest.fn() },
+    eligibility: { findMany: jest.fn().mockResolvedValue([]), createMany: jest.fn() },
         conditionLog: { create: jest.fn(), findUnique: jest.fn() },
         itemInfo: { update: jest.fn() },
       } as never),
@@ -289,8 +306,9 @@ describe('Module 5 equipment management', () => {
 
   it.each([
     [
-      'missing T1 serial',
-      { tier: 'T1', quantity: 1 },
+      // T2 only: T1 gets a generated tag, as the team decided (audit #8).
+      'missing T2 serial',
+      { tier: 'T2', quantity: 1 },
       'SERIAL_REQUIRED_FOR_TIER',
     ],
     [
@@ -502,7 +520,7 @@ describe('Module 5 borrower availability and catalogue queries', () => {
     await expect(service.getAvailability(999)).rejects.toMatchObject({
       businessCode: 'ITEM_NOT_FOUND',
     });
-    await expect(service.getById(999)).rejects.toBeInstanceOf(BusinessError);
+    await expect(service.getById({ accountKey: 1 } as never, 999)).rejects.toBeInstanceOf(BusinessError);
   });
 
   /*
@@ -607,28 +625,37 @@ describe('Equipment registration & unit increments — serial collision (Audit #
     expect(new Set(serials).size).toBe(serials.length);
   });
 
-  it('rejects T0 units if the auto-generated serial collides with an existing one', async () => {
-    const { service, prisma } = managementHarness();
+  // This used to assert SERIAL_ALREADY_IN_USE, which is the audit #8 bug
+  // itself: numbering restarted at 1, so the second delivery of jumper wires
+  // collided with the first and could never be registered.
+  it('continues T0 numbering past the units already registered', async () => {
+    const { service, prisma, tx } = managementHarness();
     prisma.itemInfo.findUnique.mockResolvedValue({
       ItemKey: 10,
       ItemName: 'Jumper Wire',
     });
     prisma.borrowRule.findFirst.mockResolvedValue({ BorrowRuleKey: 20 });
-    prisma.itemIndiv.findFirst.mockResolvedValue({
-      ItemID: 'JUMPER-WIRE-10-1',
+    prisma.itemIndiv.findMany.mockResolvedValueOnce([
+      { ItemID: 'JUMPER-WIRE-10-1' },
+      { ItemID: 'JUMPER-WIRE-10-2' },
+    ]);
+    tx.resourceInfo.create
+      .mockResolvedValueOnce({ ResourceKey: 811 })
+      .mockResolvedValueOnce({ ResourceKey: 812 });
+
+    await service.createItemUnits(user(), {
+      itemKey: 10,
+      manageGroupKey: 8,
+      tier: 'T0',
+      quantity: 2,
+      prepDays: 0,
+      lendable: true,
     });
 
-    await expect(
-      service.createItemUnits(user(), {
-        itemKey: 10,
-        manageGroupKey: 8,
-        tier: 'T0',
-        quantity: 2,
-        prepDays: 0,
-        lendable: true,
-      }),
-    ).rejects.toMatchObject({ businessCode: 'SERIAL_ALREADY_IN_USE' });
-    expect(prisma.$transaction).not.toHaveBeenCalled();
+    const serials = tx.itemIndiv.create.mock.calls.map(
+      (call: unknown[]) => (call[0] as { data: { ItemID: string } }).data.ItemID,
+    );
+    expect(serials).toEqual(['JUMPER-WIRE-10-3', 'JUMPER-WIRE-10-4']);
   });
 
   it('adds T1 units that inherit the batch serial pattern with new suffixes', async () => {
@@ -685,6 +712,8 @@ describe('Equipment registration & unit increments — serial collision (Audit #
         },
       },
     ]);
+    // No units of this type yet: numbering starts at 1.
+    prisma.itemIndiv.findMany.mockResolvedValueOnce([]);
     tx.resourceInfo.create
       .mockResolvedValueOnce({ ResourceKey: 903 })
       .mockResolvedValueOnce({ ResourceKey: 904 });

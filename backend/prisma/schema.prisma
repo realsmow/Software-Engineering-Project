@@ -478,6 +478,10 @@ model Reservations {
   ResourceKey           Int
   ReservedBy            Int
   Reason                String?
+  /// Why the request ended the way it did: a rejection's reason, or the
+  /// borrower's own note on cancelling. Separate from Reason, which is what the
+  /// borrower asked for it for; writing the decision over it lost that.
+  DecisionNote          String?
   StartTime             DateTime      @db.Timestamptz(3)
   EndTime               DateTime      @db.Timestamptz(3)
   ApproveStatus         ApproveStatus

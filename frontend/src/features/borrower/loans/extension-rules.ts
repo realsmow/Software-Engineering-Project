@@ -1,192 +1,139 @@
-import { CREDIT_BAND_POLICY } from "@/constants";
-import type { CreditBand, Tier } from "@/types/domain";
-import type { MyRequest } from "../mock-data";
-import type { ServerExtensionOptions } from "./extension.adapter";
+import { fmtDateTime } from "@/lib/datetime";
+import type { ServerExtension, ServerExtensionOptions } from "./extension.adapter";
 
 /**
- * Who grants an extension on this loan.
+ * What the extend control on a loan shows, translated from the server's answer.
  *
  * Shared by the home page and "my requests" so one loan cannot offer to extend
- * on one screen and refuse on the other.
+ * on one screen and refuse on the other. Nothing here decides a rule: the
+ * route, the quota and the furthest due date all come from
+ * `loan.extensionOptions`, which runs the same checks `loan.requestExtension`
+ * will run.
  */
 export type ExtensionMode =
-  /** The borrower extends it here and now. */
+  /** Granted the moment it is asked for. */
   | "online"
-  /** Online quota spent - staff inspect the item before granting more time. */
+  /** Staff check the item at the counter before granting it. */
   | "staff"
   /** A supervisor decides. */
   | "supervisor"
   /** Already asked; waiting on whoever has to decide. */
   | "pending"
-  /** Credit too low to extend at all; a fresh request is the only route. */
+  /** The server would refuse it; `reasonKey` says why. */
   | "blocked"
-  /** Nothing to extend - rooms are held by the hour, not by the day. */
+  /** The server has not answered yet. */
+  | "loading"
+  /** Nothing to extend: not on loan, or a room booked by the hour. */
   | "none";
-
-/**
- * Online extensions allowed per tier before staff must inspect the item.
- *
- * T0 is unlimited; T1 gets one, then alternates with an inspection; T2 always
- * goes through a supervisor; T3 is a fixed facility booked in hour slots, so
- * there is no loan period to stretch.
- */
-const ONLINE_LIMIT: Record<Tier, number> = {
-  T0: Infinity,
-  T1: 1,
-  T2: 0,
-  T3: 0,
-};
 
 export interface ExtensionState {
   mode: ExtensionMode;
-  /** The borrower can grant it themselves, right now. */
-  canExtend: boolean;
-  /** The borrower can ask someone else to grant it. */
+  /** Pressing the button would send a request the server says it accepts. */
   canRequest: boolean;
   /** True while a request is outstanding - it can be withdrawn, not repeated. */
   isPending: boolean;
   /** i18n key for the button label. */
   labelKey: string;
-  /** i18n key for the line explaining quota, or who is deciding. */
+  /** i18n key for the line explaining quota, route, or who is deciding. */
   reasonKey: string;
+  /** Interpolation values for `reasonKey` and `askNoteKey`. */
+  values: Record<string, string | number>;
   /**
    * What the borrower is agreeing to, shown between pressing "extend" and the
-   * request actually going out. Asking for an inspection slot means promising
-   * to carry the item in, so it should not happen on one stray click.
+   * request actually going out. It names the new due date and who decides, so
+   * neither is a surprise after the fact.
    */
   askNoteKey: string;
   /** i18n key for the confirm button - it names the commitment, not "OK". */
   confirmLabelKey: string;
-  /** Interpolated into `reasonKey`; "∞" when the tier has no cap. */
-  count: number | string;
+  /** The due date the request would ask for, as the server reported it. */
+  newDueAt: string | null;
 }
 
-const IDLE = {
-  canExtend: false,
+const IDLE: ExtensionState = {
+  mode: "none",
   canRequest: false,
   isPending: false,
   labelKey: "borrower.myRequests.extend",
+  reasonKey: "",
+  values: {},
   askNoteKey: "",
   confirmLabelKey: "",
-  count: 0 as number | string,
+  newDueAt: null,
+};
+
+export const NO_EXTENSION: ExtensionState = IDLE;
+
+export const EXTENSION_LOADING: ExtensionState = {
+  ...IDLE,
+  mode: "loading",
+  reasonKey: "common.loading",
 };
 
 /**
- * What extending this loan would take today.
- *
- * Every route except an outright credit block ends in a button the borrower
- * can press: either the extension happens on the spot, or a request goes to
- * whoever has to decide. Showing "you cannot" where the real answer is "ask
- * someone" would leave them with no way to try.
- *
- * Order matters: a credit block beats everything (there is no route at all), an
- * outstanding request beats the rules that produced it, a low band still
- * needing sign-off beats the tier rule, and only then does the online quota
- * decide.
+ * `blockedBy` is the BusinessError code the write path would have thrown.
+ * They are genuinely different refusals: telling an overdue borrower their
+ * credit band is the problem sends them to fix the wrong thing.
  */
-export function extensionState(row: MyRequest, band: CreditBand): ExtensionState {
-  if (row.kind === "room" || row.tier === "T3") {
-    return { ...IDLE, mode: "none", reasonKey: "borrower.myRequests.extQuotaNone" };
-  }
+const BLOCKED_REASON: Record<string, string> = {
+  CREDIT_TOO_LOW: "borrower.myRequests.extQuotaBlocked",
+  EXTENSION_QUOTA_EXCEEDED: "borrower.myRequests.extBlockedQuota",
+  WINDOW_NOT_AVAILABLE: "borrower.myRequests.extBlockedWindow",
+  INVALID_EXTENSION_WINDOW: "borrower.myRequests.extBlockedOverdue",
+  // Seen on a loan that has been set aside but not yet picked up.
+  WRONG_LOAN_STATE: "borrower.myRequests.extBlockedNotCollected",
+};
 
-  const policy = CREDIT_BAND_POLICY[band];
-  if (policy.blocked) {
-    return { ...IDLE, mode: "blocked", reasonKey: "borrower.myRequests.extQuotaBlocked" };
-  }
-
-  if (row.extensionPending) {
-    return {
-      ...IDLE,
-      mode: "pending",
-      isPending: true,
-      labelKey: "borrower.myRequests.extPending",
-      reasonKey: "borrower.myRequests.extPending",
-    };
-  }
-
-  if (policy.needsSupervisor || row.tier === "T2") {
-    return {
-      ...IDLE,
-      mode: "supervisor",
-      canRequest: true,
-      reasonKey: "borrower.myRequests.extQuotaSup",
-      askNoteKey: "borrower.myRequests.extAskSup",
-      confirmLabelKey: "borrower.myRequests.extAskYesSup",
-    };
-  }
-
-  const left = onlineLeft(row);
-  if (left <= 0) {
-    return {
-      ...IDLE,
-      mode: "staff",
-      canRequest: true,
-      reasonKey: "borrower.myRequests.extQuotaNone",
-      askNoteKey: "borrower.myRequests.extAskStaff",
-      confirmLabelKey: "borrower.myRequests.extAskYesStaff",
-    };
-  }
-
-  return {
-    ...IDLE,
-    mode: "online",
-    canExtend: true,
-    reasonKey: "borrower.myRequests.extQuota",
-    count: left === Infinity ? "∞" : left,
-  };
-}
-
-/** Online extensions still available on this loan, ignoring credit and tier gates. */
-export function onlineLeft(row: MyRequest): number {
-  const used = row.extensionsUsed ?? 0;
-  return Math.max(0, ONLINE_LIMIT[row.tier] - used);
-}
+const PENDING_REASON: Record<ServerExtension["route"], string> = {
+  // An auto request is granted inside the call, so it is never left pending.
+  auto: "borrower.myRequests.extPending",
+  staff: "borrower.myRequests.extPendingStaff",
+  supervisor: "borrower.myRequests.extPendingSup",
+};
 
 /**
- * The same state, taken from the server instead of recomputed.
+ * The state for one loan.
  *
- * `extensionState` above reimplements SRS 5.4 and 5.7 in the client so the
- * page could work before the API existed. `loan.extensionOptions` is the
- * authority on all of it, so where the server has answered this is used and
- * the local copy is only a fallback while the query is in flight.
+ * `pending` is the open request from `loan.myExtensions`, when there is one.
+ * The options only carry its key; the row says which desk it went to and what
+ * date was asked for, which is what the borrower needs to know next (carry the
+ * item in, or wait).
  */
-export function extensionStateFromServer(o: ServerExtensionOptions): ExtensionState {
+export function extensionStateFromServer(
+  o: ServerExtensionOptions,
+  pending: ServerExtension | null = null,
+): ExtensionState {
   if (o.pendingExtensionKey !== null) {
     return {
       ...IDLE,
       mode: "pending",
       isPending: true,
       labelKey: "borrower.myRequests.extPending",
-      reasonKey: "borrower.myRequests.extPending",
+      reasonKey: pending ? PENDING_REASON[pending.route] : "borrower.myRequests.extPending",
+      values: pending ? { date: fmtDateTime(pending.requestedDueAt) } : {},
     };
   }
 
   if (!o.canRequest) {
-    // `blockedBy` is the BusinessError code the write path would have thrown.
-    // They are genuinely different refusals, and the credit wording was the
-    // only one on offer - telling an overdue borrower their credit band is the
-    // problem sends them to fix the wrong thing.
-    const REASON: Record<string, string> = {
-      CREDIT_TOO_LOW: "borrower.myRequests.extQuotaBlocked",
-      EXTENSION_QUOTA_EXCEEDED: "borrower.myRequests.extBlockedQuota",
-      WINDOW_NOT_AVAILABLE: "borrower.myRequests.extBlockedWindow",
-      INVALID_EXTENSION_WINDOW: "borrower.myRequests.extBlockedOverdue",
-      // Seen on a loan that has been set aside but not yet picked up.
-      WRONG_LOAN_STATE: "borrower.myRequests.extBlockedNotCollected",
-    };
     return {
       ...IDLE,
       mode: "blocked",
-      reasonKey:
-        (o.blockedBy && REASON[o.blockedBy]) ?? "borrower.myRequests.extQuotaBlocked",
+      reasonKey: (o.blockedBy && BLOCKED_REASON[o.blockedBy]) ?? "borrower.myRequests.extBlockedOther",
     };
   }
 
+  const left = Math.max(0, o.extensionsAllowed - o.extensionsUsed);
+  const asking = {
+    ...IDLE,
+    canRequest: true,
+    values: { count: left, date: fmtDateTime(o.maxRequestedDueAt) },
+    newDueAt: o.maxRequestedDueAt,
+  };
+
   if (o.route === "supervisor") {
     return {
-      ...IDLE,
+      ...asking,
       mode: "supervisor",
-      canRequest: true,
       reasonKey: "borrower.myRequests.extQuotaSup",
       askNoteKey: "borrower.myRequests.extAskSup",
       confirmLabelKey: "borrower.myRequests.extAskYesSup",
@@ -195,9 +142,8 @@ export function extensionStateFromServer(o: ServerExtensionOptions): ExtensionSt
 
   if (o.route === "staff") {
     return {
-      ...IDLE,
+      ...asking,
       mode: "staff",
-      canRequest: true,
       reasonKey: "borrower.myRequests.extQuotaNone",
       askNoteKey: "borrower.myRequests.extAskStaff",
       confirmLabelKey: "borrower.myRequests.extAskYesStaff",
@@ -205,12 +151,11 @@ export function extensionStateFromServer(o: ServerExtensionOptions): ExtensionSt
   }
 
   // route === "auto": granted the moment it is asked for.
-  const left = Math.max(0, o.extensionsAllowed - o.extensionsUsed);
   return {
-    ...IDLE,
+    ...asking,
     mode: "online",
-    canExtend: true,
-    reasonKey: "borrower.myRequests.extQuota",
-    count: left,
+    reasonKey: "borrower.myRequests.extAuto",
+    askNoteKey: "borrower.myRequests.extAskAuto",
+    confirmLabelKey: "borrower.myRequests.extAskYesAuto",
   };
 }

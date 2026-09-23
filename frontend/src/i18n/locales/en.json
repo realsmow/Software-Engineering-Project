@@ -518,15 +518,16 @@
       "collapse": "Collapse",
       "expand": "Expand",
       "noNotices": "No notifications",
-      "dueToday": "Due today"
+      "dueToday": "Due today",
+      "extendNote": "Whether an extension is granted at once or needs staff or a supervisor, and how far the due date moves, depends on the item, your credit band and the next booking. Both are shown before you confirm."
     },
     "appeals": {
-      "subtitle": "Appeal a damage assessment",
-      "intro": "If you disagree with the damage level staff assessed, you have 7 days from the verdict to appeal. A supervisor decides - never the person who inspected it.",
-      "pickTitle": "Choose the loan to appeal",
-      "pickHelp": "Only loans that lost credit to an inspection are listed.",
+      "subtitle": "Appeal a credit deduction",
+      "intro": "If you think a credit deduction is wrong - for damage, a late return or a loss - you can appeal it within 7 days of the deduction. A supervisor decides, never the person who inspected the item, and can cancel the penalty, reduce it, or let it stand.",
+      "pickTitle": "Choose the deduction to appeal",
+      "pickHelp": "Only deductions still inside their 7-day window are listed. A late return and damage on the same loan are separate deductions, appealed separately.",
       "noneTitle": "Nothing to appeal",
-      "noneBody": "Verdicts that cost you credit appear here.",
+      "noneBody": "Credit deductions you can still appeal appear here.",
       "colDmg": "Level given",
       "colCut": "Credit lost",
       "colWhen": "Verdict date",
@@ -546,12 +547,28 @@
       "sumDmg": "Level contested",
       "sumCut": "Credit claimed back",
       "send": "Submit appeal",
-      "needPick": "Choose a loan to appeal first.",
+      "needPick": "Choose a deduction to appeal first.",
       "needWhy": "Write the reason you are contesting it.",
       "needShot": "Attach one supporting photo.",
-      "sentNote": "Sent to a supervisor. You will hear back within 7 working days · it cannot be withdrawn.",
+      "sentNote": "Sent to a supervisor. You will be notified of the decision · an appeal cannot be withdrawn.",
       "photoTooLarge": "File is larger than {{max}} MB - retake it or shrink it first.",
-      "photoBadType": "Only JPG or PNG images are accepted."
+      "photoBadType": "Only JPG or PNG images are accepted.",
+      "mineTitle": "Your appeals",
+      "status_pending": "Awaiting decision",
+      "status_approved": "Approved",
+      "status_rejected": "Rejected",
+      "restored": "{{count}} credit returned",
+      "reducedTo": "penalty reduced to {{count}}",
+      "filedOn": "Filed {{date}}",
+      "until": "Appeal by {{date}}",
+      "colReason": "Reason",
+      "colIssued": "Deducted on",
+      "sumReason": "Deduction",
+      "sumUntil": "Appeal by",
+      "evidenceTitle": "Photos on file for this loan",
+      "evidenceHelp": "The supervisor sees the same photos. An appeal cannot carry new ones, so refer to these in your reason.",
+      "evidenceNone": "No photos on file for this loan.",
+      "noLoan": "Not from a loan"
     },
     "filters": {
       "title": "Filters",
@@ -604,7 +621,9 @@
       "emptyDesc": "Try removing a filter or searching for something else",
       "photoPlaceholder": "Photo",
       "tierUnknown": "Unclassified",
-      "tierNoteUnknown": "No borrowing tier assigned yet"
+      "tierNoteUnknown": "No borrowing tier assigned yet",
+      "notEligible": "Not open to you",
+      "notEligibleHint": "Your department or role isn't on this item's borrowing list. Staff decide who may borrow it."
     },
     "detail": {
       "back": "Back to catalog",
@@ -638,11 +657,13 @@
       "perSlot": "Per booked slot",
       "days": "{{count}} days",
       "notFound": "Equipment not found",
-      "notFoundDesc": "This item may have been removed from the system. Try finding it again from the catalog."
+      "notFoundDesc": "This item may have been removed from the system. Try finding it again from the catalog.",
+      "freeForPeriod": "Free for your dates",
+      "takenForPeriod": "Taken for your dates"
     },
     "rooms": {
       "subtitle": "Browse labs, meeting rooms, and shared spaces across the faculty. Check today's free slots and book one.",
-      "searchPlaceholder": "Search room name or code",
+      "searchPlaceholder": "Search room name or location",
       "note": "Room booking is separate from equipment borrowing. If you also need equipment in the room, create a separate equipment request.",
       "colRoom": "Room",
       "colLocation": "Location",
@@ -781,10 +802,11 @@
       "stageBefore": "At pickup",
       "stageAfter": "At return",
       "stageInspection": "Inspection",
-      "removePhoto": "Remove photo"
+      "removePhoto": "Remove photo",
+      "swapAtCounter": "Want a different unit? Ask staff at the counter before you photograph this one - they make the swap."
     },
     "booking": {
-      "subtitle": "Pick the date and time slots you need, say how many people are coming and why, then submit.",
+      "subtitle": "Pick the time slots you need today, say what the room is for, then submit.",
       "step1": "Choose room",
       "step2": "Pick date & time",
       "step3": "Confirm booking",
@@ -817,7 +839,10 @@
       "autoNote": "Submit and wait for staff approval · photograph the room before and after use · one booking at a time.",
       "submit": "Submit booking request",
       "saveDraft": "Save draft",
-      "heldWarn": "You already hold a booking for {{name}}. One room at a time - cancel it or finish using it first."
+      "heldWarn": "You already hold a booking for {{name}}. One room at a time - cancel it or finish using it first.",
+      "reason": "What it is for (optional)",
+      "reasonPlaceholder": "e.g. project meeting, lab session",
+      "closedWarn": "This room is closed for booking right now."
     },
     "roomUse": {
       "subtitle": "Check in and use the rooms you booked",
@@ -831,7 +856,7 @@
       "shotDone": "Photo taken",
       "needBefore": "Photograph the room before you can check in.",
       "waitStaff": "The room is held for you. Staff approve the booking before you can photograph it and go in.",
-      "needAfter": "Photograph the room after use before you can check out.",
+      "needAfter": "Photograph the room after use before you hand it back.",
       "checkIn": "Check in",
       "checkOut": "Check out and hand back",
       "cancel": "Cancel booking",
@@ -848,7 +873,10 @@
       "noneBody": "Once a booking is confirmed the room appears here, ready to check in.",
       "goRooms": "Browse rooms",
       "photoTooLarge": "File is larger than {{max}} MB - retake it or shrink it first.",
-      "photoBadType": "Only JPG or PNG images are accepted."
+      "photoBadType": "Only JPG or PNG images are accepted.",
+      "stReturned": "Waiting for staff check",
+      "handBack": "When you are done, photograph the room as you leave it and hand it back to staff. Staff close the booking after comparing the two photos.",
+      "staffChecking": "Handed back. Staff are checking the room against your photos and will close the booking."
     },
     "myRequests": {
       "subtitle": "Track your borrow requests and room bookings, from submission through return and inspection.",
@@ -863,7 +891,7 @@
       "stPreparing": "Being prepared",
       "stReady": "Ready for pickup",
       "stInUse": "On loan",
-      "stReturned": "Returned",
+      "stReturned": "Returned · awaiting inspection",
       "stInspecting": "Awaiting inspection",
       "stDone": "Completed",
       "stRejected": "Rejected",
@@ -879,21 +907,21 @@
       "stepRoomUse": "Room in use",
       "stepPhotoAfter": "Photo after",
       "noteWaitSup": "This is a T2 item, so it waits for your supervisor.",
-      "noteInspecting": "Staff are inspecting it. You will get the verdict and your appeal window within one working day.",
-      "noteRejected": "Reason: the requested period clashes with a scheduled class.",
+      "noteInspecting": "Back at the counter and waiting for staff to inspect it. If the inspection costs you credit, you will be notified and can appeal within 7 days.",
+      "noteRejected": "This request was not approved.",
       "noteCancelled": "Cancelled - the slot has been released to other borrowers.",
       "noteAutoApproved": "Entitlements checked and approved automatically. Staff are preparing your items.",
       "extDaysLeft": "{{count}} days left",
       "extOverdue": "{{count}} days overdue",
       "extUsed": "extended {{count}} time(s)",
       "extQuota": "{{count}} online extension(s) left",
-      "extQuotaNone": "No online extensions left - bring the item in for inspection",
+      "extQuotaNone": "This extension needs staff to check the item at the counter",
       "extQuotaSup": "Extensions need supervisor approval",
       "extQuotaBlocked": "Credit band D3 cannot extend - send a new request instead",
       "extPending": "Extension requested - awaiting a decision",
       "extend": "Request extension",
       "extAskTitle": "Request an extension",
-      "extAskStaff": "Your online extensions are used up - this time the item must be inspected by staff first. Confirm when you are ready to bring it in.",
+      "extAskStaff": "Staff must check the item at the counter before granting this extension. Confirm when you are ready to bring it in.",
       "extAskSup": "This extension is a supervisor’s decision, not yours to grant. Confirm to send the request.",
       "extAskYesStaff": "Confirm - request an inspection",
       "extAskYesSup": "Confirm - send to supervisor",
@@ -923,7 +951,25 @@
       "extBlockedOverdue": "This loan is too far overdue to extend - return the item, or send a new request",
       "extBlockedWindow": "Someone else is booked on this item - it cannot be held any longer",
       "extBlockedQuota": "No extensions left on this loan",
-      "extBlockedNotCollected": "Collect this item before asking for more time"
+      "extBlockedNotCollected": "Collect this item before asking for more time",
+      "extAuto": "Granted straight away · {{count}} extension(s) left on this loan",
+      "extAskAuto": "This extension is granted straight away - nobody else has to approve it.",
+      "extAskYesAuto": "Confirm - extend now",
+      "extNewDue": "New due date: {{date}}",
+      "extPendingStaff": "Extension to {{date}} requested - bring the item to the counter for staff to check",
+      "extPendingSup": "Extension to {{date}} requested - waiting for the supervisor's decision",
+      "extBlockedOther": "This loan cannot be extended right now",
+      "penaltyLine": "{{reason}} · {{credit}} credit deducted · {{date}}",
+      "penaltyCredit": "{{credit}} credit deducted",
+      "decisionNote": "Reason given: {{note}}"
+    },
+    "penalty": {
+      "noReason": "Credit penalty",
+      "reasonDamagedItem": "Damaged",
+      "reasonBrokenItem": "Broken",
+      "reasonLostItem": "Lost",
+      "reasonDidntReturn": "Not returned",
+      "reasonReturnLate": "Returned late"
     }
   },
   "staff": {
@@ -970,7 +1016,10 @@
       "extEmptyTitle": "No extensions waiting",
       "extEmptyDesc": "Extension requests that need a condition check before approval appear here.",
       "doneExtApprove": "Approved the extension for {{item}}",
-      "doneExtReject": "Rejected the extension for {{item}}"
+      "doneExtReject": "Rejected the extension for {{item}}",
+      "returnPhoto": "Photo on return",
+      "returnPhotoDone": "Photo taken",
+      "returnPhotoBad": "Use a JPG or PNG under the size limit."
     },
     "handover": {
       "subtitle": "One loan, in full",
@@ -1093,9 +1142,11 @@
       "doneLifted": "Restored borrowing for {{who}}",
       "viewBans": "Borrowing bans",
       "viewEligibility": "Equipment eligibility",
-      "pickType": "Equipment type",
-      "pickTypePlaceholder": "Select an equipment type",
-      "pickTypeHint": "Pick an equipment type above to view and edit who may borrow it",
+      "pickTarget": "Equipment type or room",
+      "pickTargetPlaceholder": "Select an equipment type or room",
+      "pickTargetHint": "Pick an equipment type or room above to view and edit who may borrow or book it",
+      "groupTypes": "Equipment types",
+      "groupRooms": "Rooms",
       "colGroup": "Group / department",
       "colRole": "Role",
       "pickGroup": "Select a group or department",
@@ -1103,6 +1154,7 @@
       "addRule": "Add rule",
       "removeRule": "Remove",
       "noRules": "No rules yet - this type cannot be borrowed until at least one is added",
+      "noRoomRules": "No rules yet - this room cannot be booked until at least one is added",
       "unknownGroup": "Unknown group",
       "appliesToUnits": "Applies to {{count}} units",
       "saveRules": "Save eligibility",
@@ -1251,5 +1303,18 @@
     "B1": "Minor damage beyond normal use",
     "B2": "Moderate damage beyond normal use",
     "B3": "Severe damage beyond normal use"
+  },
+  "reports": {
+    "export": {
+      "subtitle": "Download the lending report as spreadsheet files",
+      "failed": "The report could not be loaded.",
+      "departmentsTitle": "Departments",
+      "departmentsDesc": "Loans, overdue and utilisation for {{count}} departments",
+      "equipmentTitle": "Most borrowed equipment",
+      "equipmentDesc": "{{count}} equipment types by times borrowed",
+      "download": "Download CSV",
+      "scopeAll": "Covers the whole university.",
+      "scopeMine": "Covers only the departments you manage."
+    }
   }
 }

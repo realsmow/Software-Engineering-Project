@@ -39,11 +39,17 @@ function dbFor(resource = baseResource) {
   };
 }
 
-function service(db: any, eligibility: any = { assertMayBorrow: jest.fn().mockResolvedValue({ maxBorrowDays: 7 }) }, creditTier = 'D0') {
+function service(
+  db: any,
+  eligibility: any = { assertMayBorrow: jest.fn().mockResolvedValue({ maxBorrowDays: 7 }) },
+  creditTier = 'D0',
+  audit: any = { record: jest.fn() },
+) {
   return new LoanRequestService(
     db,
     { resolveTier: jest.fn().mockResolvedValue({ creditTierKey: 1, creditTier }), tierMapper: jest.fn().mockResolvedValue(() => creditTier) } as any,
     eligibility as any,
+    audit as any,
   );
 }
 
@@ -200,5 +206,91 @@ describe('Module 6 request validation', () => {
     const eligibility = { assertMayBorrow: jest.fn().mockRejectedValue(new BusinessError('NOT_ELIGIBLE')) };
     const result = await service(db, eligibility as any).create(user, future as any);
     expect(result.created).toHaveLength(0); expect(result.rejected[0].code).toBe('NOT_ELIGIBLE');
+  });
+});
+
+describe('one room held at a time', () => {
+  // Rooms are same-day only, so the clock is pinned to the morning of the
+  // fixture's day and the window is 09:00-10:00 Bangkok, on the slot grid.
+  const roomWindow = { startTime: '2099-01-10T02:00:00.000Z', endTime: '2099-01-10T03:00:00.000Z', lines: [{ resourceKey: 7 }] };
+  beforeEach(() => jest.useFakeTimers({ now: new Date('2099-01-10T01:00:00Z'), doNotFake: ['nextTick', 'setImmediate'] }));
+  afterEach(() => jest.useRealTimers());
+
+  // Sent straight to loan.create on purpose: the limit has to hold on every
+  // path that can book a room, not only the one the room page uses.
+  const room = {
+    ...baseResource,
+    BorrowRuleInfo: { RuleName: 'T3' },
+    Item: null,
+    Room: { RoomName: 'Lab 2', CreditWeight: 0 },
+  };
+
+  function holding(count: number) {
+    const db = dbFor(room as any);
+    const tx = (db.$transaction as jest.Mock);
+    // First count is the window clash, second is what this borrower holds.
+    tx.mockImplementation(async (arg: any) => {
+      const inner = { reservations: { count: jest.fn().mockResolvedValueOnce(0).mockResolvedValueOnce(count), create: jest.fn().mockResolvedValue({ ReservationKey: 101 }) } };
+      return Array.isArray(arg) ? Promise.all(arg) : arg(inner);
+    });
+    return db;
+  }
+
+  it('refuses a second room while one is still held', async () => {
+    const result = await service(holding(1)).create(user, roomWindow as any);
+    expect(result.created).toHaveLength(0);
+    expect(result.rejected[0].code).toBe('ROOM_BOOKING_LIMIT_REACHED');
+  });
+
+  it('books the first one', async () => {
+    const result = await service(holding(0)).create(user, roomWindow as any);
+    expect(result.created).toHaveLength(1);
+  });
+
+  it('leaves equipment alone', async () => {
+    const db = dbFor();
+    const result = await service(db).create(user, future as any);
+    expect(result.created).toHaveLength(1);
+  });
+});
+
+describe('room windows sent as raw instants', () => {
+  const room = { ...baseResource, BorrowRuleInfo: { RuleName: 'T3' }, Item: null, Room: { RoomName: 'Lab 2', CreditWeight: 0 } };
+  beforeEach(() => jest.useFakeTimers({ now: new Date('2099-01-10T01:00:00Z'), doNotFake: ['nextTick', 'setImmediate'] }));
+  afterEach(() => jest.useRealTimers());
+  const at = (s: string, e: string) => ({ startTime: `2099-01-10T${s}:00.000Z`, endTime: `2099-01-10T${e}:00.000Z`, lines: [{ resourceKey: 7 }] });
+
+  it.each([
+    ['off the grid (13:10-13:40)', at('06:10', '06:40'), 'ROOM_SLOT_OUT_OF_RANGE'],
+    ['seven slots', at('07:00', '10:30'), 'ROOM_SLOT_LIMIT_EXCEEDED'],
+    ['across lunch', at('04:30', '06:30'), 'ROOM_SLOTS_NOT_CONTIGUOUS'],
+    ['another day', { startTime: '2099-01-15T02:00:00.000Z', endTime: '2099-01-15T03:00:00.000Z', lines: [{ resourceKey: 7 }] }, 'ROOM_BOOKING_SAME_DAY_ONLY'],
+  ])('refuses %s', async (_l, input, code) => {
+    const result = await service(dbFor(room as any)).create(user, input as any);
+    expect(result.created).toHaveLength(0);
+    expect(result.rejected[0].code).toBe(code);
+  });
+});
+
+describe('audit trail', () => {
+  it('records a create row for each reservation opened', async () => {
+    const db = dbFor();
+    const audit = { record: jest.fn() };
+    const result = await service(db, undefined, 'D0', audit).create(user, future as any);
+
+    expect(audit.record).toHaveBeenCalledWith(
+      { accountKey: user.accountKey },
+      'create',
+      `reservation/${result.created[0].reservationKey}`,
+      expect.any(String),
+    );
+  });
+
+  it('does not record anything when every line is rejected', async () => {
+    const db = dbFor({ ...baseResource, AllowBorrow: false });
+    const audit = { record: jest.fn() };
+    await service(db, undefined, 'D0', audit).create(user, future as any);
+
+    expect(audit.record).not.toHaveBeenCalled();
   });
 });

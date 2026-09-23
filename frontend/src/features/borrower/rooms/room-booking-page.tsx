@@ -6,20 +6,14 @@ import { PageHeader } from "@/components/shared/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { BUSINESS, ROUTES } from "@/constants";
+import { ImageThumb } from "@/components/shared/image-thumb";
 import { fmtDate, todayLocalDayKey } from "@/lib/datetime";
+import { getErrorMessage } from "@/lib/error-messages";
 import { cn } from "@/lib/utils";
-import {
-  ROOM_TYPES,
-  TIME_SLOTS,
-  activeRoomBookings,
-  buildingName,
-  slotsAdjacent,
-  takenSlotsOf,
-  type Room,
-} from "../mock-data";
-import { useSubmittedRequests } from "../loans/submitted-requests.store";
+import { activeRoomBookings } from "../mock-data";
 import { useMyRequests } from "../loans/use-my-requests";
-import { useRoom } from "./use-rooms";
+import type { Room, RoomSlot } from "./room.adapter";
+import { useCreateRoomBooking, useRoom, useRoomDay } from "./use-rooms";
 
 /**
  * Room booking request - reached from a room-list row. The room comes from the
@@ -29,24 +23,33 @@ import { useRoom } from "./use-rooms";
  * Layout follows the reference mockup: a content column (steps → chosen room →
  * date & slots) beside a sticky summary rail.
  *
- * T3 facilities are entitlement-checked and confirmed automatically - no
- * supervisor step, which is why the rail has no approval gate.
+ * T3 goes to staff for approval, not to a supervisor: what makes a room T3 is
+ * that it cannot be carried away (approval-policy.ts). Sending the request
+ * holds the slots straight away, pending or not.
+ *
+ * The chips come from `item.roomAvailability`, so a slot somebody else took,
+ * or one that has already passed, is greyed out by the same rule the booking
+ * is checked against on the server.
  */
 export default function RoomBookingPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
+  const today = todayLocalDayKey();
   const { data: room, isLoading } = useRoom(id);
-  const addRoomBooking = useSubmittedRequests((s) => s.addRoomBooking);
+  const { data: day } = useRoomDay(id, today);
+  const create = useCreateRoomBooking();
   const { requests } = useMyRequests();
 
   const [picked, setPicked] = useState<Set<number>>(new Set());
+  const [reason, setReason] = useState("");
+  const [error, setError] = useState<string | null>(null);
 
-  // Time slots already spoken for, live bookings included - sending a request holds
-  // the room straight away, so a slot someone took is gone before approval.
+  const slots: RoomSlot[] = useMemo(() => day?.slots ?? [], [day]);
+  // Taken by someone else, or already in the past.
   const booked = useMemo(
-    () => (room ? takenSlotsOf(room, requests) : new Set<number>()),
-    [room, requests],
+    () => new Set(slots.filter((s) => !s.available).map((s) => s.index)),
+    [slots],
   );
 
   // One room at a time: a booking already in flight closes this form.
@@ -75,9 +78,23 @@ export default function RoomBookingPage() {
     );
   }
 
-  const maxSlots = BUSINESS.MAX_ROOM_BOOKING_SLOTS;
+  const maxSlots = day?.maxSlotsPerBooking ?? BUSINESS.MAX_ROOM_BOOKING_SLOTS;
+  const slotMinutes = day?.slotMinutes ?? BUSINESS.ROOM_SLOT_MINUTES;
+  // Derived from the server's cap, so the copy and the limit it describes move together.
+  const maxHours = (maxSlots * slotMinutes) / 60;
   const pickedIdx = [...picked].sort((a, b) => a - b);
-  const roomFull = booked.size >= TIME_SLOTS.length;
+  const roomFull = slots.length > 0 && booked.size >= slots.length;
+  const byIndex = new Map(slots.map((s) => [s.index, s]));
+
+  /**
+   * By clock time, not by position: 11:30 and 13:00 sit next to each other in
+   * the list and an hour apart on the clock, so a booking may not span lunch.
+   */
+  function adjacent(a: number, b: number): boolean {
+    const x = byIndex.get(a);
+    const y = byIndex.get(b);
+    return Boolean(x && y && (x.end === y.start || y.end === x.start));
+  }
 
   /**
    * A slot is locked when it is already booked, when the quota is used up, or
@@ -94,7 +111,7 @@ export default function RoomBookingPage() {
       return picked.size > 1 && i !== first && i !== last ? "gap" : null;
     }
     if (picked.size >= maxSlots) return "quota";
-    if (picked.size > 0 && !pickedIdx.some((j) => slotsAdjacent(i, j))) return "gap";
+    if (picked.size > 0 && !pickedIdx.some((j) => adjacent(i, j))) return "gap";
     return null;
   }
 
@@ -107,24 +124,34 @@ export default function RoomBookingPage() {
     });
   }
 
-  const canSubmit = picked.size > 0 && !roomFull && heldBooking === null;
+  const canSubmit =
+    room.bookable && picked.size > 0 && !roomFull && heldBooking === null && !create.isPending;
 
   const timeLabel =
     pickedIdx.length === 0
       ? t("borrower.booking.noSlot")
-      : `${TIME_SLOTS[pickedIdx[0]].start}–${TIME_SLOTS[pickedIdx[pickedIdx.length - 1]].end}`;
+      : `${byIndex.get(pickedIdx[0])?.start}–${byIndex.get(pickedIdx[pickedIdx.length - 1])?.end}`;
 
-  function submit() {
+  async function submit() {
     if (!canSubmit || !room) return;
-    // TODO: POST /facilities/:id/bookings with { date, slots }. Until then the
-    // booking is pushed to the session store so it shows up under "my requests".
-    addRoomBooking({ room, date: todayIso(), slots: pickedIdx });
-    navigate(ROUTES.MY_LOANS);
-  }
-
-  function saveDraft() {
-    // Nothing to persist yet. TODO: POST as status "draft".
-    navigate(ROUTES.MY_LOANS);
+    setError(null);
+    try {
+      const result = await create.mutateAsync({
+        roomKey: Number(room.id),
+        date: today,
+        slots: pickedIdx,
+        reason: reason.trim() || undefined,
+      });
+      // A clash comes back as a rejected line, not a thrown error.
+      if (result.created.length === 0) {
+        setError(getErrorMessage(result.rejected[0]?.code ?? "UNKNOWN_ERROR"));
+        setPicked(new Set());
+        return;
+      }
+      navigate(ROUTES.MY_LOANS);
+    } catch (e) {
+      setError(getErrorMessage(e));
+    }
   }
 
   return (
@@ -158,8 +185,8 @@ export default function RoomBookingPage() {
               </div>
               <p className="mb-3 mt-1 text-xs leading-relaxed text-t3">
                 {t("borrower.booking.dateHelp", {
-                  minutes: BUSINESS.ROOM_SLOT_MINUTES,
-                  hours: BUSINESS.MAX_ROOM_BOOKING_HOURS,
+                  minutes: slotMinutes,
+                  hours: maxHours,
                 })}
               </p>
 
@@ -170,7 +197,7 @@ export default function RoomBookingPage() {
                   </span>
                   {/* Same-day only: locked rather than hidden so the borrower can
                       still read which date the booking lands on. */}
-                  <Input type="date" className="font-mono" value={todayIso()} readOnly disabled />
+                  <Input type="date" className="font-mono" value={today} readOnly disabled />
                 </label>
                 <p className="mt-1.5 text-[11.5px] text-t4">{t("borrower.booking.sameDay")}</p>
               </div>
@@ -181,29 +208,30 @@ export default function RoomBookingPage() {
               <p className="mt-1 text-xs leading-relaxed text-t3">
                 {t("borrower.booking.slotHelp", {
                   max: maxSlots,
-                  hours: BUSINESS.MAX_ROOM_BOOKING_HOURS,
+                  hours: maxHours,
                 })}
               </p>
 
               <div className="mt-2.5 overflow-x-auto pb-1">
                 <div className="grid min-w-[730px] grid-cols-10 gap-1.5">
-                  {TIME_SLOTS.map((slot, i) => {
+                  {slots.map((slot) => {
+                    const i = slot.index;
                     const isPicked = picked.has(i);
-                    const reason = lockedReason(i);
+                    const locked = lockedReason(i);
                     return (
                       <button
                         key={slot.start}
                         type="button"
-                        disabled={reason !== null}
+                        disabled={locked !== null}
                         aria-pressed={isPicked}
                         onClick={() => toggleSlot(i)}
                         className={cn(
                           "inline-flex min-h-[34px] min-w-[68px] items-center justify-center rounded border px-2.5 font-mono text-xs font-medium transition-colors",
                           isPicked && "border-accent bg-accent text-white",
-                          !isPicked && reason === "booked" && "border-border bg-surface-inset text-t4",
-                          !isPicked && reason !== "booked" && reason !== null && "border-border bg-card text-t4 opacity-50",
-                          !isPicked && reason === null && "border-border bg-card text-t2 hover:border-line-strong hover:text-foreground",
-                          reason !== null && "cursor-not-allowed",
+                          !isPicked && locked === "booked" && "border-border bg-surface-inset text-t4",
+                          !isPicked && locked !== "booked" && locked !== null && "border-border bg-card text-t4 opacity-50",
+                          !isPicked && locked === null && "border-border bg-card text-t2 hover:border-line-strong hover:text-foreground",
+                          locked !== null && "cursor-not-allowed",
                         )}
                       >
                         {slot.start}
@@ -226,7 +254,23 @@ export default function RoomBookingPage() {
                 />
               </div>
 
-              {heldBooking ? (
+              <label className="mt-4 block">
+                <span className="mb-1.5 block text-xs font-medium text-t2">
+                  {t("borrower.booking.reason")}
+                </span>
+                <Input
+                  value={reason}
+                  maxLength={500}
+                  onChange={(e) => setReason(e.target.value)}
+                  placeholder={t("borrower.booking.reasonPlaceholder")}
+                />
+              </label>
+
+              {error ? <Notice tone="alert">{error}</Notice> : null}
+
+              {!room.bookable ? (
+                <Notice tone="alert">{t("borrower.booking.closedWarn")}</Notice>
+              ) : heldBooking ? (
                 <Notice tone="alert">
                   {t("borrower.booking.heldWarn", { name: heldBooking.name })}
                 </Notice>
@@ -256,7 +300,7 @@ export default function RoomBookingPage() {
               <SumRow label={t("borrower.booking.sumTime")}>{timeLabel}</SumRow>
               <SumRow label={t("borrower.booking.sumHours")}>
                 {t("borrower.booking.hours", {
-                  count: (picked.size * BUSINESS.ROOM_SLOT_MINUTES) / 60,
+                  count: (picked.size * slotMinutes) / 60,
                 })}
               </SumRow>
             </div>
@@ -266,17 +310,8 @@ export default function RoomBookingPage() {
             </div>
 
             <div className="flex flex-col gap-2 border-t border-border px-3.5 py-3">
-              <Button type="button" className="h-10" disabled={!canSubmit} onClick={submit}>
-                {t("borrower.booking.submit")}
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                className="h-9"
-                disabled={!canSubmit}
-                onClick={saveDraft}
-              >
-                {t("borrower.booking.saveDraft")}
+              <Button type="button" className="h-10" disabled={!canSubmit} onClick={() => void submit()}>
+                {create.isPending ? t("common.loading") : t("borrower.booking.submit")}
               </Button>
             </div>
           </Panel>
@@ -339,22 +374,21 @@ function StepsBar() {
 
 function RoomCard({ room }: { room: Room }) {
   const { t } = useTranslation();
-  const typeDef = ROOM_TYPES.find((rt) => rt.id === room.type);
+  const facts = [
+    room.location,
+    room.capacity !== null ? t("borrower.booking.seats", { count: room.capacity }) : null,
+  ].filter(Boolean);
   return (
     <div className="flex items-start gap-3">
-      <div
-        className="flex h-16 w-16 shrink-0 items-center justify-center rounded-md border border-border bg-surface-inset text-t4"
-        aria-hidden
-      >
-        <Building2 size={24} strokeWidth={1.5} />
-      </div>
+      <ImageThumb src={room.imageUrl} alt={room.name} size={64} icon={Building2} />
       <div className="min-w-0">
         <div className="text-[15px] font-semibold leading-snug text-foreground">{room.name}</div>
-        <div className="mt-1 font-mono text-[11px] text-t4">{room.code}</div>
-        <div className="mt-1.5 text-xs text-t3">
-          {t(`borrower.rooms.${typeDef?.labelKey ?? "typeLab"}`)} ·{" "}
-          {buildingName(room.buildingId)} · {t("borrower.booking.seats", { count: room.capacity })}
-        </div>
+        {room.description ? (
+          <div className="mt-1 text-[11px] text-t4">{room.description}</div>
+        ) : null}
+        {facts.length > 0 ? (
+          <div className="mt-1.5 text-xs text-t3">{facts.join(" · ")}</div>
+        ) : null}
       </div>
     </div>
   );
@@ -420,11 +454,6 @@ function SumRow({
       </span>
     </div>
   );
-}
-
-/** Today at the counter. A browser west of Bangkok would otherwise offer yesterday. */
-function todayIso(): string {
-  return todayLocalDayKey();
 }
 
 /** "12 ส.ค. 2569" / "12 Aug 2026" - the booking date, spelled out for the summary. */

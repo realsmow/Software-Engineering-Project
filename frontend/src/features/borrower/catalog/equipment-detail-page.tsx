@@ -21,6 +21,7 @@ import type { StockStatus, UnitCondition, UnitState } from "../mock-data";
 import { fmtDateTime } from "../format";
 import { remainingUnits, useRequestDraft } from "../request/request-draft.store";
 import { AddButton } from "./add-button";
+import { toAvailabilityWindow } from "./availability-window";
 import { useEquipmentType } from "./use-equipment-types";
 import { useMyCredit } from "@/features/account/use-my-credit";
 
@@ -44,7 +45,14 @@ export default function EquipmentDetailPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-  const { data: item, isLoading } = useEquipmentType(id);
+  // The same period the catalogue filtered by, so the count here matches the
+  // row the borrower clicked on and the Add cap is for the dates they asked for.
+  const startDate = useRequestDraft((s) => s.startDate);
+  const pickupTime = useRequestDraft((s) => s.pickupTime);
+  const endDate = useRequestDraft((s) => s.endDate);
+  const returnTime = useRequestDraft((s) => s.returnTime);
+  const availabilityWindow = toAvailabilityWindow(startDate, pickupTime, endDate, returnTime);
+  const { data: item, isLoading } = useEquipmentType(id, availabilityWindow);
   const { data: credit } = useMyCredit();
   const creditBand = useAuthStore((s) => s.user?.creditBand) ?? "D0";
 
@@ -162,6 +170,7 @@ export default function EquipmentDetailPage() {
               className="h-11 w-full"
               qty={qty}
               capped={atCap}
+              blocked={!item.eligible}
               variant="default"
               onAdd={() => addItem(item.id, availableUnits)}
               onDecrease={decreaseItem}
@@ -221,12 +230,16 @@ export default function EquipmentDetailPage() {
                   </TableCell>
                   <TableCell>
                     <Badge tone={UNIT_TONE[u.state]}>
-                      {t(`borrower.detail.unit${cap(u.state)}`)}
+                      {/* With a period chosen, "out" means taken for those
+                          dates, which may be a booking rather than a loan. */}
+                      {availabilityWindow && u.state === "out"
+                        ? t("borrower.detail.takenForPeriod")
+                        : t(`borrower.detail.unit${cap(u.state)}`)}
                     </Badge>
                   </TableCell>
                   <TableCell className="whitespace-nowrap text-xs text-t2">
                     {u.state === "free"
-                      ? t("borrower.detail.availableNow")
+                      ? t(availabilityWindow ? "borrower.detail.freeForPeriod" : "borrower.detail.availableNow")
                       : <span className="font-mono">{fmtDateTime(u.nextAvailableAt)}</span>}
                   </TableCell>
                 </TableRow>
@@ -252,6 +265,7 @@ export default function EquipmentDetailPage() {
               className="h-10"
               qty={qty}
               capped={atCap}
+              blocked={!item.eligible}
               variant="default"
               onAdd={() => addItem(item.id, availableUnits)}
               onDecrease={decreaseItem}

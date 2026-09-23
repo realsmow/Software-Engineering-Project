@@ -1,5 +1,5 @@
 import { BusinessError } from '../errors/business-error';
-import { localTimeToUtc } from '../schemas/datetime.schema';
+import { localTimeToUtc, toLocalDayKey } from '../schemas/datetime.schema';
 
 /**
  * The bookable half-hours of a room's day (T3).
@@ -29,6 +29,18 @@ export const ROOM_SLOT_MINUTES = 30;
  * limit. What it stops is one person taking the room from opening to closing.
  */
 export const MAX_ROOM_BOOKING_SLOTS = 6;
+
+/**
+ * Matches the frontend's `BUSINESS.MAX_T3_ACTIVE_BOOKINGS`: one room held at a
+ * time, pending or approved, until its window has passed.
+ *
+ * The frontend closed every "book" button past this, and nothing on the
+ * server agreed, so anyone sending the request directly could hold every room
+ * in the faculty. The check now lives in LoanRequestService.createOne, inside
+ * the booking's own transaction, so it covers loan.create as well as
+ * createRoomBooking and two requests sent together cannot both pass.
+ */
+export const MAX_ACTIVE_ROOM_BOOKINGS = 1;
 
 /**
  * When the counter is open, in local time, as half-open `[from, to)` periods.
@@ -198,4 +210,36 @@ export function markSlots(
     );
     return { ...slot, index, available: !taken };
   });
+}
+
+/**
+ * A window someone sent as two instants, checked against the slot grid.
+ *
+ * `loan.create` takes instants, and a room is a resource like any other, so
+ * without this a room could be booked 13:10-13:40, 22:00-01:00, for seven
+ * slots, or five days out: the grid, the three-hour cap and the same-day rule
+ * lived only on the booking screen. This maps the window back onto the slots
+ * and runs it through `slotsToWindow`, so both entry points share one rule.
+ */
+export function assertRoomWindow(startTime: Date, endTime: Date, now = new Date()): void {
+  const dayKey = toLocalDayKey(startTime);
+  if (dayKey !== toLocalDayKey(now)) {
+    throw new BusinessError('ROOM_BOOKING_SAME_DAY_ONLY', { date: dayKey });
+  }
+  const first = ROOM_SLOTS.findIndex(
+    (s) => localTimeToUtc(dayKey, s.start).getTime() === startTime.getTime(),
+  );
+  const last = ROOM_SLOTS.findIndex(
+    (s) => localTimeToUtc(dayKey, s.end).getTime() === endTime.getTime(),
+  );
+  if (first === -1 || last === -1 || last < first) {
+    throw new BusinessError('ROOM_SLOT_OUT_OF_RANGE', {
+      startTime: startTime.toISOString(),
+      endTime: endTime.toISOString(),
+    });
+  }
+  slotsToWindow(
+    dayKey,
+    Array.from({ length: last - first + 1 }, (_, i) => first + i),
+  );
 }
