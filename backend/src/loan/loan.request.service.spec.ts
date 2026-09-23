@@ -180,7 +180,9 @@ describe('Module 6 request validation', () => {
       where: { ReservationKey: 101 },
       data: expect.objectContaining({
         ApproveStatus: 'Canceled',
-        Reason: 'เปลี่ยนแผนการใช้งาน',
+        // The cancel note goes to DecisionNote; Reason keeps what the
+        // borrower originally asked for it for.
+        DecisionNote: 'เปลี่ยนแผนการใช้งาน',
       }),
     }));
     expect(result.status).toBe('cancelled');
