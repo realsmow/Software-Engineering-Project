@@ -88,10 +88,10 @@
 | 1.2.5 | Logout clears the cookie with identical attributes (path, sameSite, httpOnly) | BE | FR-AUTH | [CONNECTED] | [HAS TESTS] | Covered in spec Test evidence: backend/src/auth/session.service.spec.ts. |
 | 1.2.6 | Missing `SESSION_SECRET` in production throws startup error | BE | NFR-SEC | [CONNECTED] | [HAS TESTS] | Covered in spec Test evidence: backend/src/auth/session.service.spec.ts. |
 | 1.2.7 | `auth.me` procedure returns full user profile including credit tier + borrow limits | BE | FR-AUTH | [CONNECTED] | [HAS TESTS] | `getProfile()` in `auth.service.spec` Test evidence: backend/src/auth/auth.service.spec.ts. |
-| 1.2.8 | Unauthenticated request to protected route returns `NOT_AUTHENTICATED` | BE | NFR-SEC | [CONNECTED] | [READY] | [`auth.middleware.ts`](file:///C:/Users/veerasak/.gemini/antigravity-ide/scratch/Software-Engineering-Project/backend/src/trpc/auth.middleware.ts) |
-| 1.2.9 | Borrower calling a Staff-only route returns `ROLE_NOT_ALLOWED` | BE | SRS §3.1 | [CONNECTED] | [READY] | `StaffMiddleware` = staff + admin only |
-| 1.2.10 | Staff cannot access Supervisor-only approvals | BE | SRS §3.5 | [CONNECTED] | [READY] | `SupervisorMiddleware` = supervisor + admin only |
-| 1.2.11 | Admin role has access to all routes | BE | SRS §3.1 | [CONNECTED] | [READY] | `AdminMiddleware` / `requireRole` check |
+| 1.2.8 | Unauthenticated request to protected route returns `NOT_AUTHENTICATED` | BE | NFR-SEC | [CONNECTED] | [HAS TESTS] | Test evidence: backend/src/auth/auth.middleware.spec.ts |
+| 1.2.9 | Borrower calling a Staff-only route returns `ROLE_NOT_ALLOWED` | BE | SRS §3.1 | [CONNECTED] | [HAS TESTS] | Test evidence: backend/src/auth/auth.middleware.spec.ts |
+| 1.2.10 | Staff cannot access Supervisor-only approvals | BE | SRS §3.5 | [CONNECTED] | [HAS TESTS] | Test evidence: backend/src/auth/auth.middleware.spec.ts |
+| 1.2.11 | Admin role has access to all routes | BE | SRS §3.1 | [CONNECTED] | [HAS TESTS] | Test evidence: backend/src/auth/auth.middleware.spec.ts |
 
 ### 1.3 Frontend Login UI & Form Validation [FE]
 | # | Test Item | Layer | SRS Req. | Impl. | Test Readiness | Notes |
