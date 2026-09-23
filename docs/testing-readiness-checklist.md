@@ -303,7 +303,7 @@
 | 11.4 | getConfig returns read-only deployed technical configuration | BE | NFR-MNT | [CONNECTED] | [HAS TESTS] | Read-only technical config is implemented; updateConfig remains intentionally unsupported. Test evidence: tests/e2e/admin/admin-console-pages.spec.ts. |
 | 11.5 | listAudit and getAuditById return audit records | BE | NFR-REL-04 | [CONNECTED] | [HAS TESTS] | Audit list/detail are implemented through AuditService. Test evidence: tests/e2e/admin/admin-console-pages.spec.ts. |
 | 11.6 | Status dashboard UI renders live status, cron, audit, and service data | FE | SRS §5.1 | [CONNECTED] | [HAS TESTS] | Status/dashboard pages consume live hooks; unsupported actions show typed errors. Test evidence: tests/e2e/admin/admin-console-pages.spec.ts. |
-| 11.7 | Status dashboard calls the admin system-status procedure | INT/E2E | NFR-REL | [CONNECTED] | [HAS TESTS] | System status hook calls the backend procedure. Test evidence: tests/e2e/admin/admin-console-pages.spec.ts. |
+| 11.7 | Status dashboard calls the admin system-status procedure | INT/E2E | NFR-REL | [CONNECTED] | [HAS TESTS] | `frontend/tests/admin/system-status.test.tsx` verifies `useSystemStatus` calls `trpc.admin.getSystemStatus.query()` and polls; 2/2 passed. |
 
 ---
 
