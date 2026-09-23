@@ -1,8 +1,15 @@
 import { Injectable } from '@nestjs/common';
 import type { Prisma } from '../generated/prisma/client';
 import { PrismaService } from '../prisma.service';
+import {
+  heldPairs,
+  matchingRules,
+  type GroupRole,
+} from '../common/authority/eligibility.service';
+import type { TrpcUser } from '../trpc/context';
 import { BusinessError } from '../common/errors/business-error';
 import {
+  freeInWindowPredicate,
   isUnitAvailable,
   nextAvailableAt,
   toItemDetail,
@@ -10,7 +17,10 @@ import {
   toRoomSummary,
   type ItemTypeRow,
 } from '../common/mappers/item.mapper';
-import { HOLDING_APPROVE_STATES } from '../common/booking/booking-window';
+import {
+  HOLDING_APPROVE_STATES,
+  resourcesFreeInWindow,
+} from '../common/booking/booking-window';
 import {
   MAX_ROOM_BOOKING_SLOTS,
   ROOM_SLOT_MINUTES,
@@ -23,6 +33,7 @@ import { toPage, toSkipTake } from '../common/schemas/pagination.schema';
 import type {
   ItemSummary,
   ListItemsInput,
+  ListUnitsInput,
   ListRoomsInput,
   RoomAvailabilityInput,
 } from './item.schema';
@@ -66,7 +77,7 @@ export class ItemService {
    * queries already answer correctly, and a stale column is worse than a slow
    * one.
    */
-  async list(input: ListItemsInput) {
+  async list(user: TrpcUser, input: ListItemsInput) {
     const rows = await this.prisma.itemInfo.findMany({
       where: this.itemWhere(input),
       select: {
@@ -97,6 +108,7 @@ export class ItemService {
                 },
                 CurrentCondition: { select: { Condition: true } },
                 UsageLogs: CURRENT_LOAN_SELECT,
+                Eligibilities: { select: { GroupKey: true, RoleKey: true } },
               },
             },
           },
@@ -104,14 +116,42 @@ export class ItemService {
       },
     });
 
-    const summaries = rows.map((row) => toItemSummary(row));
+    const window = parseWindow(input);
+    const free = window
+      ? await resourcesFreeInWindow(
+          this.prisma,
+          rows.flatMap((row) =>
+            row.Items.map((unit) => ({
+              ResourceKey: unit.ResourceKey,
+              BufferTime: unit.Resource.BufferTime,
+            })),
+          ),
+          window.startTime,
+          window.endTime,
+        )
+      : null;
+
+    const held = await heldPairs(this.prisma, user.accountKey);
+    let summaries = rows.map((row) => ({
+      ...(free ? toItemSummary(row, freeInWindowPredicate(free)) : toItemSummary(row)),
+      eligible: mayBorrowAny(row.Items, held),
+    }));
+    // With a window, "available only" means available for that period, which
+    // SQL cannot answer; itemWhere leaves the filter to here in that case.
+    if (window && input.availableOnly) {
+      summaries = summaries.filter((s) => s.availableUnits > 0);
+    }
+    // "Available" to a borrower means available to them.
+    if (input.availableOnly) {
+      summaries = summaries.filter((s) => s.eligible);
+    }
     sortItems(summaries, input.sort);
 
     const { skip, take } = toSkipTake(input);
     return toPage(summaries.slice(skip, skip + take), summaries.length, input);
   }
 
-  async getById(itemKey: number) {
+  async getById(user: TrpcUser, itemKey: number, window?: ListUnitsInput) {
     const row = await this.prisma.itemInfo.findUnique({
       where: { ItemKey: itemKey },
       select: {
@@ -143,6 +183,7 @@ export class ItemService {
                 },
                 CurrentCondition: { select: { Condition: true } },
                 UsageLogs: CURRENT_LOAN_SELECT,
+                Eligibilities: { select: { GroupKey: true, RoleKey: true } },
               },
             },
           },
@@ -151,7 +192,21 @@ export class ItemService {
     });
 
     if (!row) throw new BusinessError('ITEM_NOT_FOUND', { id: itemKey });
-    return toItemDetail(row);
+
+    const eligible = mayBorrowAny(row.Items, await heldPairs(this.prisma, user.accountKey));
+    const period = window ? parseWindow(window) : null;
+    if (!period) return { ...toItemDetail(row), eligible };
+
+    const free = await resourcesFreeInWindow(
+      this.prisma,
+      row.Items.map((unit) => ({
+        ResourceKey: unit.ResourceKey,
+        BufferTime: unit.Resource.BufferTime,
+      })),
+      period.startTime,
+      period.endTime,
+    );
+    return { ...toItemDetail(row, free), eligible };
   }
 
   /**
@@ -191,8 +246,8 @@ export class ItemService {
   }
 
   /** The units of one type — the same list `getById` returns, without the type. */
-  async listUnits(itemKey: number) {
-    return (await this.getById(itemKey)).units;
+  async listUnits(user: TrpcUser, input: ListUnitsInput) {
+    return (await this.getById(user, input.id, input)).units;
   }
 
   /**
@@ -399,7 +454,7 @@ export class ItemService {
       });
     }
 
-    if (input.availableOnly) {
+    if (input.availableOnly && !input.startTime) {
       and.push({
         Items: {
           some: {
@@ -495,4 +550,37 @@ export function sortItems(
       items.sort(byName);
       break;
   }
+}
+
+/**
+ * A requested period, or null when none was given. Both ends or neither, and
+ * the end after the start, with the same code loan.create answers for a bad
+ * window so the two surfaces refuse the same input the same way.
+ */
+function parseWindow(input: {
+  startTime?: string;
+  endTime?: string;
+}): { startTime: Date; endTime: Date } | null {
+  if (!input.startTime && !input.endTime) return null;
+  if (!input.startTime || !input.endTime) {
+    throw new BusinessError('INVALID_BORROW_WINDOW', {
+      reason: 'BOTH_ENDS_REQUIRED',
+    });
+  }
+  const startTime = new Date(input.startTime);
+  const endTime = new Date(input.endTime);
+  if (endTime <= startTime) {
+    throw new BusinessError('INVALID_BORROW_WINDOW', {
+      reason: 'END_BEFORE_START',
+    });
+  }
+  return { startTime, endTime };
+}
+
+/** Any unit of this type whose rules name a (group, role) pair the caller holds. */
+function mayBorrowAny(
+  units: { Resource: { Eligibilities: GroupRole[] } }[],
+  held: GroupRole[],
+): boolean {
+  return units.some((unit) => matchingRules(unit.Resource.Eligibilities, held).length > 0);
 }

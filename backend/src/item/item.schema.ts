@@ -287,26 +287,44 @@ export const eligibilityRule = z.object({
   groupName: z.string().nullable(),
   authorityRoleKey: z.number().int(),
   authorityRoleName: z.string(),
-  /** How many of the type's units carry this rule — should equal totalUnits. */
+  /**
+   * How many of the type's units carry this rule, which should equal
+   * totalUnits. Always 1 for a room, which is a single resource.
+   */
   appliesToUnits: z.number().int().min(0),
 });
 
-export const setTypeEligibilityInput = itemTypeIdInput.extend({
-  /**
-   * The complete rule set for this type. Rules missing from the list are
-   * removed, so sending an empty array closes the type to everyone — which is
-   * a real thing staff want, and the reason this is not a partial update.
-   */
-  rules: z
-    .array(
-      z.object({
-        groupKey: dbId,
-        authorityRoleKey: dbId,
-      }),
-    )
-    .max(200),
-});
-export type SetTypeEligibilityInput = z.infer<typeof setTypeEligibilityInput>;
+/**
+ * What a rule set is attached to: every in-scope unit of an item type, or one
+ * room (RoomInfo.RoomKey, the same key `roomAvailability` takes).
+ *
+ * `xor` rather than two optional keys, so a call naming both, or neither, is
+ * refused instead of quietly picking one.
+ */
+const roomKeyInput = z.object({ roomKey: dbId });
+
+export const eligibilityTargetInput = z.xor([itemTypeIdInput, roomKeyInput]);
+export type EligibilityTargetInput = z.infer<typeof eligibilityTargetInput>;
+
+/**
+ * The complete rule set for the target. Rules missing from the list are
+ * removed, so sending an empty array closes the type or room to everyone,
+ * which is a real thing staff want and the reason this is not a partial update.
+ */
+const eligibilityRulesInput = z
+  .array(
+    z.object({
+      groupKey: dbId,
+      authorityRoleKey: dbId,
+    }),
+  )
+  .max(200);
+
+export const setEligibilityInput = z.xor([
+  itemTypeIdInput.extend({ rules: eligibilityRulesInput }),
+  roomKeyInput.extend({ rules: eligibilityRulesInput }),
+]);
+export type SetEligibilityInput = z.infer<typeof setEligibilityInput>;
 
 /** BorrowRule rows that map to T0–T3, for the tier picker. */
 export const tierOptionOutput = z.object({
@@ -335,7 +353,24 @@ export const authorityRoleOptionOutput = z.object({
 // `getManagedById` above.
 // ===========================================================================
 
+/**
+ * The period a borrower is shopping for. Both or neither: availability for a
+ * window with only one end is not a question anybody is asking.
+ *
+ * Optional, and absent means "right now", which is what the catalogue meant
+ * before a borrower could pick dates. Checked against end > start in the
+ * service, where the error can carry the business code.
+ */
+export const availabilityWindow = z.object({
+  startTime: isoDateTime.optional(),
+  endTime: isoDateTime.optional(),
+});
+
 export const itemIdInput = z.object({ id: dbId });
+
+/** One item's units, optionally judged against a requested period. */
+export const listUnitsInput = itemIdInput.extend(availabilityWindow.shape);
+export type ListUnitsInput = z.infer<typeof listUnitsInput>;
 export const roomIdInput = z.object({ id: dbId });
 
 /**
@@ -388,6 +423,18 @@ export const itemSummary = z.object({
   /** False when no unit is open for borrowing (ResourceInfo.AllowBorrow). */
   allowBorrow: z.boolean(),
 
+  /**
+   * Whether the caller may borrow this at all: they hold a (group, role) pair
+   * that an Eligibility rule on at least one unit names. The same comparison
+   * loan.create makes, so the catalogue stops offering what a request would
+   * refuse with NOT_ELIGIBLE.
+   *
+   * Not the seniority floor (MinimumAuthorityLevel). That depends on the
+   * borrower's credit tier against each unit's BorrowRule, and a request can
+   * still be refused for it with reason AUTHORITY_LEVEL_TOO_LOW.
+   */
+  eligible: z.boolean(),
+
   owner: ownerGroup.nullable(),
 });
 
@@ -404,6 +451,17 @@ export const itemUnit = z.object({
   condition: conditionType.nullable(),
   /** Due date of the loan holding this unit, when it is out */
   dueAt: z.iso.datetime().nullable(),
+  /**
+   * When this unit can go out again: its due date plus the prep days staff
+   * need (ResourceInfo.BufferTime), per proposal 5.5. Null while it is on the
+   * shelf. Without this a unit out on loan read as "available now".
+   */
+  nextAvailableAt: z.iso.datetime().nullable(),
+  /**
+   * Present only when a window was asked for: whether this unit could be
+   * booked for it, by the same rule loan.create enforces.
+   */
+  availableForWindow: z.boolean().optional(),
 });
 
 export const itemDetail = itemSummary.extend({
@@ -444,9 +502,10 @@ export const listItemsInput = paginationInput
     tier: resourceTier.optional(),
     /** ManagementGroup.ManageGroupKey — the owning department or club */
     ownerGroupKey: dbId.optional(),
-    /** Hide anything with no unit free right now. */
+    /** Hide anything with no unit free right now, or in the window when given. */
     availableOnly: z.boolean().default(false),
-  });
+  })
+  .extend(availabilityWindow.shape);
 
 export const paginatedItems = paginated(itemSummary);
 

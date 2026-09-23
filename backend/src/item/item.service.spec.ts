@@ -21,6 +21,7 @@ function item(
     nextAvailableAt: null,
     prepDays: 0,
     allowBorrow: true,
+    eligible: true,
     owner: null,
   };
 }

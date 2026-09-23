@@ -158,3 +158,42 @@ describe('Module 6 request validation', () => {
     expect(result.created).toHaveLength(0); expect(result.rejected[0].code).toBe('NOT_ELIGIBLE');
   });
 });
+
+describe('one room held at a time', () => {
+  // Sent straight to loan.create on purpose: the limit has to hold on every
+  // path that can book a room, not only the one the room page uses.
+  const room = {
+    ...baseResource,
+    BorrowRuleInfo: { RuleName: 'T3' },
+    Item: null,
+    Room: { RoomName: 'Lab 2', CreditWeight: 0 },
+  };
+
+  function holding(count: number) {
+    const db = dbFor(room as any);
+    const tx = (db.$transaction as jest.Mock);
+    // First count is the window clash, second is what this borrower holds.
+    tx.mockImplementation(async (arg: any) => {
+      const inner = { reservations: { count: jest.fn().mockResolvedValueOnce(0).mockResolvedValueOnce(count), create: jest.fn().mockResolvedValue({ ReservationKey: 101 }) } };
+      return Array.isArray(arg) ? Promise.all(arg) : arg(inner);
+    });
+    return db;
+  }
+
+  it('refuses a second room while one is still held', async () => {
+    const result = await service(holding(1)).create(user, future as any);
+    expect(result.created).toHaveLength(0);
+    expect(result.rejected[0].code).toBe('ROOM_BOOKING_LIMIT_REACHED');
+  });
+
+  it('books the first one', async () => {
+    const result = await service(holding(0)).create(user, future as any);
+    expect(result.created).toHaveLength(1);
+  });
+
+  it('leaves equipment alone', async () => {
+    const db = dbFor();
+    const result = await service(db).create(user, future as any);
+    expect(result.created).toHaveLength(1);
+  });
+});

@@ -110,6 +110,8 @@ export const BUSINESS_ERROR_CODES = {
   /** The chosen unit is a different type, or a different department, than the request */
   UNIT_DOES_NOT_MATCH_REQUEST: 'BAD_REQUEST',
   EXTENSION_NOT_FOUND: 'NOT_FOUND',
+  /** Already holding a room; `cause.limit` says how many may be held at once. */
+  ROOM_BOOKING_LIMIT_REACHED: 'CONFLICT',
   /** T2 extensions are the supervisor's call, not the counter's (§5.4) */
   EXTENSION_NEEDS_SUPERVISOR: 'FORBIDDEN',
   /**

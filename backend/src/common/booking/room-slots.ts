@@ -31,6 +31,18 @@ export const ROOM_SLOT_MINUTES = 30;
 export const MAX_ROOM_BOOKING_SLOTS = 6;
 
 /**
+ * Matches the frontend's `BUSINESS.MAX_T3_ACTIVE_BOOKINGS`: one room held at a
+ * time, pending or approved, until its window has passed.
+ *
+ * The frontend closed every "book" button past this, and nothing on the
+ * server agreed, so anyone sending the request directly could hold every room
+ * in the faculty. The check now lives in LoanRequestService.createOne, inside
+ * the booking's own transaction, so it covers loan.create as well as
+ * createRoomBooking and two requests sent together cannot both pass.
+ */
+export const MAX_ACTIVE_ROOM_BOOKINGS = 1;
+
+/**
  * When the counter is open, in local time, as half-open `[from, to)` periods.
  *
  * 12:00–13:00 is missing because it is the lunch break, and that gap is the

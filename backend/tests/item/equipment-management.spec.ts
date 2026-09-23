@@ -502,7 +502,7 @@ describe('Module 5 borrower availability and catalogue queries', () => {
     await expect(service.getAvailability(999)).rejects.toMatchObject({
       businessCode: 'ITEM_NOT_FOUND',
     });
-    await expect(service.getById(999)).rejects.toBeInstanceOf(BusinessError);
+    await expect(service.getById({ accountKey: 1 } as never, 999)).rejects.toBeInstanceOf(BusinessError);
   });
 
   /*

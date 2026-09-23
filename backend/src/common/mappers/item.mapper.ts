@@ -120,7 +120,7 @@ export function isUnitAvailable(unit: AvailabilityUnitRow): boolean {
 }
 
 /** Could be borrowed eventually — excludes units that are lost or switched off. */
-function isBorrowable(unit: ItemUnitRow): boolean {
+function isBorrowable(unit: AvailabilityUnitRow): boolean {
   return (
     unit.Resource.ResourceStatus !== 'Missing' && unit.Resource.AllowBorrow
   );
@@ -142,25 +142,37 @@ const DAY_MS = 24 * 60 * 60 * 1000;
  * on Friday" are different answers, and a date shown next to a positive
  * availability count reads as though the item were unavailable.
  */
-export function nextAvailableAt(units: AvailabilityUnitRow[]): string | null {
-  if (units.some(isUnitAvailable)) return null;
+export function nextAvailableAt<U extends AvailabilityUnitRow>(
+  units: U[],
+  isAvailable: (unit: U) => boolean = isUnitAvailable,
+): string | null {
+  if (units.some(isAvailable)) return null;
 
   const readyAt = units
-    .map((unit) => {
-      const due = unit.Resource.UsageLogs[0]?.DueTime;
-      return due == null
-        ? null
-        : due.getTime() + unit.Resource.BufferTime * DAY_MS;
-    })
+    .map(unitReadyAt)
     .filter((at): at is number => at !== null);
 
   if (readyAt.length === 0) return null;
   return new Date(Math.min(...readyAt)).toISOString();
 }
 
-export function toItemSummary(row: ItemTypeRow): ItemSummary {
+/** Due date plus this unit's prep days, or null when it is not out on loan. */
+function unitReadyAt(unit: AvailabilityUnitRow): number | null {
+  const due = unit.Resource.UsageLogs[0]?.DueTime;
+  return due == null ? null : due.getTime() + unit.Resource.BufferTime * DAY_MS;
+}
+
+/**
+ * `isAvailable` defaults to "free right now". The catalogue passes a window
+ * check instead when the borrower has picked dates, so the count, the stock
+ * status and the next-available date all answer for that period together.
+ */
+export function toItemSummary(
+  row: ItemTypeRow,
+  isAvailable: (unit: ItemUnitRow) => boolean = isUnitAvailable,
+): Omit<ItemSummary, 'eligible'> {
   const units = row.Items;
-  const availableUnits = units.filter(isUnitAvailable).length;
+  const availableUnits = units.filter(isAvailable).length;
   const borrowableUnits = units.filter(isBorrowable).length;
   const first = units[0];
 
@@ -180,7 +192,7 @@ export function toItemSummary(row: ItemTypeRow): ItemSummary {
     stockStatus:
       availableUnits > 0 ? 'ok' : borrowableUnits > 0 ? 'queue' : 'maintenance',
 
-    nextAvailableAt: nextAvailableAt(units),
+    nextAvailableAt: nextAvailableAt(units, isAvailable),
 
     prepDays: first?.Resource.BufferTime ?? 0,
     allowBorrow: borrowableUnits > 0,
@@ -189,9 +201,21 @@ export function toItemSummary(row: ItemTypeRow): ItemSummary {
   };
 }
 
-export function toItemDetail(row: ItemTypeRow): ItemDetail {
+/**
+ * `freeInWindow` is the set of resource keys free for a requested period, or
+ * undefined when none was asked for. Only then does each unit carry
+ * `availableForWindow`, so a client can tell "not asked" from "not free".
+ */
+export function toItemDetail(
+  row: ItemTypeRow,
+  freeInWindow?: Set<number>,
+): Omit<ItemDetail, 'eligible'> {
+  const isAvailable = freeInWindow
+    ? freeInWindowPredicate(freeInWindow)
+    : isUnitAvailable;
+
   return {
-    ...toItemSummary(row),
+    ...toItemSummary(row, isAvailable),
     units: row.Items.map((unit) => ({
       id: unit.IndivKey,
       resourceKey: unit.ResourceKey,
@@ -201,8 +225,27 @@ export function toItemDetail(row: ItemTypeRow): ItemDetail {
       allowBorrow: unit.Resource.AllowBorrow,
       condition: unit.Resource.CurrentCondition?.Condition ?? null,
       dueAt: unit.Resource.UsageLogs[0]?.DueTime.toISOString() ?? null,
+      nextAvailableAt: readyAtIso(unit),
+      ...(freeInWindow
+        ? { availableForWindow: isAvailable(unit) }
+        : {}),
     })),
   };
+}
+
+function readyAtIso(unit: AvailabilityUnitRow): string | null {
+  const at = unitReadyAt(unit);
+  return at === null ? null : new Date(at).toISOString();
+}
+
+/**
+ * "Free for this window": lendable at all (a window cannot fix a lost or
+ * switched-off unit) and not blocked by a booking or a loan in the period.
+ */
+export function freeInWindowPredicate(
+  freeInWindow: Set<number>,
+): (unit: ItemUnitRow) => boolean {
+  return (unit) => isBorrowable(unit) && freeInWindow.has(unit.ResourceKey);
 }
 
 export function toRoomSummary(row: RoomRow): RoomSummary {

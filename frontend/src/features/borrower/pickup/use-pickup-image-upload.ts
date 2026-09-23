@@ -6,6 +6,11 @@ import type { PreparedBorrowerImage } from "../uploads/prepared-image";
 interface UploadPickupImageInput {
   usageKey: number;
   image: PreparedBorrowerImage;
+  /**
+   * Which moment the photo is evidence of. Pickup files `before`; a room
+   * booking also files `after`, the room as it was left.
+   */
+  stage?: "before" | "after";
 }
 
 /** One photo on file against a loan (`usagePhotoOutput` in backend/src/image/image.schema.ts). */
@@ -42,7 +47,7 @@ export function usePickupImageUpload() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ usageKey, image }: UploadPickupImageInput) => {
+    mutationFn: async ({ usageKey, image, stage = "before" }: UploadPickupImageInput) => {
       // Not `image.requestUpload`: that one is staff-only, so a borrower
       // standing at the counter could never get a URL from it. This one checks
       // the loan is theirs and fixes the purpose server-side.
@@ -56,7 +61,7 @@ export function usePickupImageUpload() {
 
       const attached = await trpc.image.attachUsagePhotos.mutate({
         usageKey,
-        stage: "before",
+        stage,
         imageUrls: [ticket.imageUrl],
       });
 
@@ -69,8 +74,8 @@ export function usePickupImageUpload() {
       // `attachUsagePhotos` answers with every photo on the loan, grouped by
       // stage, not with the row it just wrote. Pick ours back out by URL.
       const evidence =
-        attached.before.find((photo) => photo.imageUrl === ticket.imageUrl) ??
-        attached.before[attached.before.length - 1];
+        attached[stage].find((photo) => photo.imageUrl === ticket.imageUrl) ??
+        attached[stage][attached[stage].length - 1];
 
       return {
         evidence,

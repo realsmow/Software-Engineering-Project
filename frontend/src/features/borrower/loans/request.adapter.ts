@@ -1,6 +1,6 @@
 import { fmtTime, toLocalDayKey } from "@/lib/datetime";
 import type { Tier } from "@/types/domain";
-import type { MyRequest, MyRequestStatus } from "../mock-data";
+import { TIME_SLOTS, type MyRequest, type MyRequestStatus } from "../mock-data";
 
 /**
  * `loan.list` rows, and the conversion to what the request pages render.
@@ -81,7 +81,22 @@ export function toBorrowerRequest(s: ServerRequest): BorrowerRequest {
     returnTime: fmtTime(s.dueAt ?? s.endTime),
     dueAt: dueDate,
     daysLeft: dueDate ? calendarDayDifference(dueDate, toLocalDayKey(new Date())) : undefined,
+    ...(s.resource.kind === "room" ? { slots: slotsOf(s.startTime, s.endTime) } : {}),
   };
+}
+
+/**
+ * A room booking's chips, recovered from its window.
+ *
+ * The server stores a start and an end, not the chips that were tapped, so the
+ * room pages get them back by wall-clock time: a slot belongs to the booking
+ * when it starts at or after the start and ends at or before the end. A booking
+ * never spans lunch, so no slot inside that range is one it skipped.
+ */
+function slotsOf(startTime: string, endTime: string): number[] {
+  const from = fmtTime(startTime);
+  const to = fmtTime(endTime);
+  return TIME_SLOTS.flatMap((slot, i) => (slot.start >= from && slot.end <= to ? [i] : []));
 }
 
 /** Difference between YYYY-MM-DD values without depending on the browser timezone. */

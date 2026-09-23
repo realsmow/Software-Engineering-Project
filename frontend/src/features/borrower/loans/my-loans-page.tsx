@@ -73,7 +73,6 @@ export default function MyLoansPage() {
   const [cancelTarget, setCancelTarget] = useState<MyRequest | null>(null);
 
   const { requests, draft, countByTab } = useMyRequests();
-  const cancelLocalRequest = useSubmittedRequests((s) => s.cancel);
   const cancelRequest = useCancelRequest();
   const clearDraft = useRequestDraft((s) => s.clear);
 
@@ -88,17 +87,10 @@ export default function MyLoansPage() {
   }
 
   async function confirmCancellation() {
-    if (!cancelTarget) return;
+    // Every listed row comes from loan.list and carries its key.
+    if (!cancelTarget || cancelTarget.reservationKey === undefined) return;
 
     setCancelError(null);
-
-    // Room bookings are still session-only. Requests returned by loan.list
-    // carry ReservationKey and must be cancelled server-side.
-    if (cancelTarget.reservationKey === undefined) {
-      cancelLocalRequest(cancelTarget.id);
-      setCancelTarget(null);
-      return;
-    }
 
     try {
       await cancelRequest.mutateAsync({ reservationKey: cancelTarget.reservationKey });

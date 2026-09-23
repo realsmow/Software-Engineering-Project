@@ -52,11 +52,11 @@ export function useEquipmentTypes(window?: EquipmentAvailabilityWindow) {
  * and next-available dates, so the detail is refreshed on the same interval as
  * the catalogue availability count.
  */
-export function useEquipmentType(id: string | undefined) {
+export function useEquipmentType(id: string | undefined, window?: EquipmentAvailabilityWindow) {
   const trpc = useTRPCClient();
 
   return useQuery({
-    queryKey: queryKeys.equipmentType(id ?? ""),
+    queryKey: queryKeys.equipmentType(id ?? "", window),
     queryFn: async (): Promise<CatalogItemDetail | null> => {
       const numericId = itemKey(id);
       if (numericId === null) return null;
@@ -64,42 +64,13 @@ export function useEquipmentType(id: string | undefined) {
       try {
         // `item.getById` answers itemDetail - the summary *and* every unit -
         // so the units table below costs no second request.
-        return toCatalogItemDetail(await trpc.item.getById.query({ id: numericId }));
+        return toCatalogItemDetail(await trpc.item.getById.query({ id: numericId, ...window }));
       } catch {
         return null;
       }
     },
     enabled: Boolean(id),
     refetchInterval: POLLING.AVAILABILITY,
-    staleTime: 0,
-  });
-}
-
-/**
- * useEquipmentAvailability - live stock for one item, refreshed while the
- * detail page is open.
- *
- * Separate from useEquipmentType because the two have different lifetimes: the
- * name, tier and unit list of an item change about never, while how many are
- * free changes every time somebody walks up to the counter. Refetching the
- * whole detail on a timer would re-render the page to change one number.
- *
- * `item.getAvailability` is built for this: three numbers, no unit list.
- */
-export function useEquipmentAvailability(id: string | undefined) {
-  const trpc = useTRPCClient();
-
-  return useQuery({
-    queryKey: queryKeys.equipmentAvailability(id ?? ""),
-    queryFn: async () => {
-      const numericId = itemKey(id);
-      if (numericId === null) return null;
-      return trpc.item.getAvailability.query({ id: numericId });
-    },
-    enabled: Boolean(id),
-    refetchInterval: POLLING.AVAILABILITY,
-    // A stale count is worse than a brief flicker: it decides whether the
-    // "add to request" button is enabled.
     staleTime: 0,
   });
 }

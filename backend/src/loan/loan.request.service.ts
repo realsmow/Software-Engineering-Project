@@ -10,17 +10,21 @@ import {
   type ApprovalRoute,
 } from '../common/approval/approval-policy';
 import {
+  HOLDING_APPROVE_STATES,
   clashingWindowFilter,
+  heldUsageFilter,
   runSerializable,
   withBuffer,
 } from '../common/booking/booking-window';
-import { slotsToWindow } from '../common/booking/room-slots';
+import {
+  MAX_ACTIVE_ROOM_BOOKINGS,
+  slotsToWindow,
+} from '../common/booking/room-slots';
 import { BusinessError } from '../common/errors/business-error';
 import { activeBanWhere } from '../common/schemas/penalty.schema';
 import { addDays, daysBetween, toIso } from '../common/schemas/datetime.schema';
 import { toPage, toSkipTake } from '../common/schemas/pagination.schema';
 import { tryMapTier, type CreditTier } from '../common/schemas/status.schema';
-import { UNAVAILABLE_USAGE_STATES } from '../common/usage/usage-states';
 import type { TrpcUser } from '../trpc/context';
 import type {
   CancelRequestInput,
@@ -286,6 +290,23 @@ export class LoanRequestService {
           from: toIso(from),
           to: toIso(to),
         });
+      }
+
+      if (resource.Room) {
+        const holding = await tx.reservations.count({
+          where: {
+            ReservedBy: user.accountKey,
+            ApproveStatus: { in: [...HOLDING_APPROVE_STATES] },
+            EndTime: { gt: new Date() },
+            Resource: { ResourceType: 'Room' },
+          },
+        });
+        if (holding >= MAX_ACTIVE_ROOM_BOOKINGS) {
+          throw new BusinessError('ROOM_BOOKING_LIMIT_REACHED', {
+            limit: MAX_ACTIVE_ROOM_BOOKINGS,
+            holding,
+          });
+        }
       }
 
       const row = await tx.reservations.create({
@@ -590,11 +611,7 @@ export class LoanRequestService {
     // even with no reservation row behind it - a walk-in loan recorded at the
     // counter is exactly that case.
     const held = await this.prisma.usageLog.findFirst({
-      where: {
-        ResourceKey: resource.ResourceKey,
-        CurrentStatus: { in: UNAVAILABLE_USAGE_STATES },
-        DueTime: { gt: from },
-      },
+      where: heldUsageFilter(resource.ResourceKey, from),
       orderBy: { DueTime: 'asc' },
       select: { UsageKey: true, DueTime: true },
     });

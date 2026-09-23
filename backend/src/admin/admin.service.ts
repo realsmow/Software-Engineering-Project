@@ -18,7 +18,10 @@ import {
   toAdminUserSummary,
   type AdminAccountRow,
 } from '../common/mappers/admin-user.mapper';
-import { activePenaltyWhere } from '../common/schemas/penalty.schema';
+import {
+  activeBanWhere,
+  activePenaltyWhere,
+} from '../common/schemas/penalty.schema';
 import { MAX_UPLOAD_BYTES } from '../common/schemas/image.schema';
 import { ALLOWED_ORIGINS } from '../bootstrap';
 import {
@@ -92,6 +95,7 @@ const AUTHORITY_SELECT = {
 const PENALTY_SELECT = {
   PenaltyKey: true,
   Reason: true,
+  UsageKey: true,
   CreditDeducted: true,
   ActionTime: true,
   ExpirationTime: true,
@@ -251,7 +255,8 @@ export class AdminService {
     }
 
     if (input.status) {
-      const active = activePenaltyWhere();
+      // A ban, not any penalty: see activeBanWhere.
+      const active = activeBanWhere();
       where.Penalties =
         input.status === 'suspended' ? { some: active } : { none: active };
     }
@@ -277,7 +282,9 @@ export class AdminService {
           Authorities: { take: 1, select: AUTHORITY_SELECT },
           Penalties: {
             // Existence is all the summary needs - one row answers "suspended?".
-            where: activePenaltyWhere(),
+            // Bans only: with take: 1 over every live penalty, a credit
+            // deduction could be the row returned and a real ban be missed.
+            where: activeBanWhere(),
             take: 1,
             select: PENALTY_SELECT,
           },
@@ -443,7 +450,10 @@ export class AdminService {
     if (!input.banned) {
       // Lift, don't delete: the row is the record that the ban happened.
       await this.prisma.penaltyInfo.updateMany({
-        where: { AccountKey: input.id, ...activePenaltyWhere() },
+        // Bans only. Lifting over every live penalty also cancelled any
+        // damage or late penalty the borrower was carrying, which staff never
+        // asked for and which an appeal is the only proper route to.
+        where: { AccountKey: input.id, ...activeBanWhere() },
         data: { InEffect: false },
       });
 

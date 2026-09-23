@@ -20,6 +20,7 @@ const ERROR_MESSAGES: Record<string, string> = {
   // Booking / Reservation
   SLOT_UNAVAILABLE: "ช่วงเวลานี้ไม่ว่างแล้ว",
   RESERVATION_TOO_FAR: "จองล่วงหน้าได้ไม่เกิน 3 เดือน",
+  ROOM_BOOKING_LIMIT_REACHED: "คุณจองห้องไว้แล้วหนึ่งรายการ ยกเลิกหรือใช้งานให้เสร็จก่อนจึงจะจองห้องอื่นได้",
 
   // Renewal
   RENEWAL_LIMIT_REACHED: "คุณต่ออายุออนไลน์ครบแล้ว ต้องนำอุปกรณ์มาให้เจ้าหน้าที่ตรวจ",

@@ -24,10 +24,11 @@ import type {
   CreateItemTypeInput,
   CreateItemUnitInput,
   CreateRoomInput,
+  EligibilityTargetInput,
   ListManagedItemsInput,
   ListManagedRoomsInput,
   ListManagedUnitsInput,
-  SetTypeEligibilityInput,
+  SetEligibilityInput,
   SetUnitConditionInput,
   SetUnitLendableInput,
   UpdateItemTypeInput,
@@ -325,6 +326,25 @@ export class ItemManagementService {
     const created = await this.prisma.$transaction(async (tx) => {
       const keys: number[] = [];
 
+      // Who may already borrow this type here. Rules hang off each unit rather
+      // than the type, so without this a unit added to a type staff had
+      // already opened would be closed to everyone, and nothing would say so:
+      // the editor shows the type's rules, which the new unit silently lacks.
+      //
+      // Same department only. A type can have units in several departments
+      // with different rules, and inheriting across them would open this
+      // department's new unit to another department's students.
+      const inherited = await tx.eligibility.findMany({
+        where: {
+          Resource: {
+            ManagedBy: input.manageGroupKey,
+            Item: { is: { ItemKey: input.itemKey } },
+          },
+        },
+        select: { GroupKey: true, RoleKey: true },
+        distinct: ['GroupKey', 'RoleKey'],
+      });
+
       for (const serial of serials) {
         const resource = await tx.resourceInfo.create({
           data: {
@@ -348,6 +368,15 @@ export class ItemManagementService {
         });
 
         keys.push(resource.ResourceKey);
+      }
+
+      if (inherited.length > 0) {
+        await tx.eligibility.createMany({
+          data: keys.flatMap((ResourceKey) =>
+            inherited.map((rule) => ({ ResourceKey, ...rule })),
+          ),
+          skipDuplicates: true,
+        });
       }
 
       return keys;
@@ -648,8 +677,8 @@ export class ItemManagementService {
   // Eligibility and reference data
   // =========================================================================
 
-  async listTypeEligibility(user: TrpcUser, itemKey: number) {
-    const resourceKeys = await this.scopedResourceKeysOfType(user, itemKey);
+  async listEligibility(user: TrpcUser, target: EligibilityTargetInput) {
+    const resourceKeys = await this.scopedResourceKeysOfTarget(user, target);
 
     const rules = await this.prisma.eligibility.findMany({
       where: { ResourceKey: { in: resourceKeys } },
@@ -667,7 +696,8 @@ export class ItemManagementService {
     });
 
     // Collapse per-unit rows back into the per-type rule staff think in terms
-    // of, keeping the unit count so a partially applied rule is visible.
+    // of, keeping the unit count so a partially applied rule is visible. A
+    // room is one resource, so each of its rules collapses to a count of 1.
     const byRule = new Map<string, ReturnType<typeof buildRule>>();
     function buildRule(row: (typeof rules)[number]) {
       return {
@@ -690,12 +720,12 @@ export class ItemManagementService {
     return [...byRule.values()];
   }
 
-  /** Replaces the whole rule set for a type, across every unit in scope. */
-  async setTypeEligibility(user: TrpcUser, input: SetTypeEligibilityInput) {
-    const resourceKeys = await this.scopedResourceKeysOfType(
-      user,
-      input.itemKey,
-    );
+  /**
+   * Replaces the whole rule set for a type, across every unit in scope, or for
+   * one room.
+   */
+  async setEligibility(user: TrpcUser, input: SetEligibilityInput) {
+    const resourceKeys = await this.scopedResourceKeysOfTarget(user, input);
 
     // One transaction, because the delete on its own leaves the type open to
     // nobody — a failure between the two halves would silently withdraw an
@@ -719,7 +749,7 @@ export class ItemManagementService {
       });
     });
 
-    return this.listTypeEligibility(user, input.itemKey);
+    return this.listEligibility(user, input);
   }
 
   /** BorrowRule rows that map to T0–T3, for the tier picker in the forms. */
@@ -844,6 +874,39 @@ export class ItemManagementService {
     }
 
     return [];
+  }
+
+  /**
+   * The room's own ResourceKey, once the caller is allowed to touch it.
+   *
+   * Unlike a type, a room is a single ResourceInfo with a ManagedBy of its
+   * own, so there is no "nobody owns it yet" case: the ordinary one-resource
+   * scope check is the whole answer.
+   */
+  private async scopedResourceKeysOfRoom(
+    user: TrpcUser,
+    roomKey: number,
+  ): Promise<number[]> {
+    const room = await this.prisma.roomInfo.findUnique({
+      where: { RoomKey: roomKey },
+      select: { ResourceKey: true },
+    });
+
+    if (!room) {
+      throw new BusinessError('ROOM_NOT_FOUND', { roomKey });
+    }
+    await this.scope.assertResourceInScope(user, room.ResourceKey);
+
+    return [room.ResourceKey];
+  }
+
+  private scopedResourceKeysOfTarget(
+    user: TrpcUser,
+    target: EligibilityTargetInput,
+  ): Promise<number[]> {
+    return 'roomKey' in target
+      ? this.scopedResourceKeysOfRoom(user, target.roomKey)
+      : this.scopedResourceKeysOfType(user, target.itemKey);
   }
 
   /** BorrowRule row for a tier label. */

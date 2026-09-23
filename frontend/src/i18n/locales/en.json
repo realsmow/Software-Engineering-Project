@@ -604,7 +604,9 @@
       "emptyDesc": "Try removing a filter or searching for something else",
       "photoPlaceholder": "Photo",
       "tierUnknown": "Unclassified",
-      "tierNoteUnknown": "No borrowing tier assigned yet"
+      "tierNoteUnknown": "No borrowing tier assigned yet",
+      "notEligible": "Not open to you",
+      "notEligibleHint": "Your department or role isn't on this item's borrowing list. Staff decide who may borrow it."
     },
     "detail": {
       "back": "Back to catalog",
@@ -638,11 +640,13 @@
       "perSlot": "Per booked slot",
       "days": "{{count}} days",
       "notFound": "Equipment not found",
-      "notFoundDesc": "This item may have been removed from the system. Try finding it again from the catalog."
+      "notFoundDesc": "This item may have been removed from the system. Try finding it again from the catalog.",
+      "freeForPeriod": "Free for your dates",
+      "takenForPeriod": "Taken for your dates"
     },
     "rooms": {
       "subtitle": "Browse labs, meeting rooms, and shared spaces across the faculty. Check today's free slots and book one.",
-      "searchPlaceholder": "Search room name or code",
+      "searchPlaceholder": "Search room name or location",
       "note": "Room booking is separate from equipment borrowing. If you also need equipment in the room, create a separate equipment request.",
       "colRoom": "Room",
       "colLocation": "Location",
@@ -784,7 +788,7 @@
       "removePhoto": "Remove photo"
     },
     "booking": {
-      "subtitle": "Pick the date and time slots you need, say how many people are coming and why, then submit.",
+      "subtitle": "Pick the time slots you need today, say what the room is for, then submit.",
       "step1": "Choose room",
       "step2": "Pick date & time",
       "step3": "Confirm booking",
@@ -817,7 +821,10 @@
       "autoNote": "Submit and wait for staff approval · photograph the room before and after use · one booking at a time.",
       "submit": "Submit booking request",
       "saveDraft": "Save draft",
-      "heldWarn": "You already hold a booking for {{name}}. One room at a time - cancel it or finish using it first."
+      "heldWarn": "You already hold a booking for {{name}}. One room at a time - cancel it or finish using it first.",
+      "reason": "What it is for (optional)",
+      "reasonPlaceholder": "e.g. project meeting, lab session",
+      "closedWarn": "This room is closed for booking right now."
     },
     "roomUse": {
       "subtitle": "Check in and use the rooms you booked",
@@ -831,7 +838,7 @@
       "shotDone": "Photo taken",
       "needBefore": "Photograph the room before you can check in.",
       "waitStaff": "The room is held for you. Staff approve the booking before you can photograph it and go in.",
-      "needAfter": "Photograph the room after use before you can check out.",
+      "needAfter": "Photograph the room after use before you hand it back.",
       "checkIn": "Check in",
       "checkOut": "Check out and hand back",
       "cancel": "Cancel booking",
@@ -848,7 +855,10 @@
       "noneBody": "Once a booking is confirmed the room appears here, ready to check in.",
       "goRooms": "Browse rooms",
       "photoTooLarge": "File is larger than {{max}} MB - retake it or shrink it first.",
-      "photoBadType": "Only JPG or PNG images are accepted."
+      "photoBadType": "Only JPG or PNG images are accepted.",
+      "stReturned": "Waiting for staff check",
+      "handBack": "When you are done, photograph the room as you leave it and hand it back to staff. Staff close the booking after comparing the two photos.",
+      "staffChecking": "Handed back. Staff are checking the room against your photos and will close the booking."
     },
     "myRequests": {
       "subtitle": "Track your borrow requests and room bookings, from submission through return and inspection.",
@@ -1093,9 +1103,11 @@
       "doneLifted": "Restored borrowing for {{who}}",
       "viewBans": "Borrowing bans",
       "viewEligibility": "Equipment eligibility",
-      "pickType": "Equipment type",
-      "pickTypePlaceholder": "Select an equipment type",
-      "pickTypeHint": "Pick an equipment type above to view and edit who may borrow it",
+      "pickTarget": "Equipment type or room",
+      "pickTargetPlaceholder": "Select an equipment type or room",
+      "pickTargetHint": "Pick an equipment type or room above to view and edit who may borrow or book it",
+      "groupTypes": "Equipment types",
+      "groupRooms": "Rooms",
       "colGroup": "Group / department",
       "colRole": "Role",
       "pickGroup": "Select a group or department",
@@ -1103,6 +1115,7 @@
       "addRule": "Add rule",
       "removeRule": "Remove",
       "noRules": "No rules yet - this type cannot be borrowed until at least one is added",
+      "noRoomRules": "No rules yet - this room cannot be booked until at least one is added",
       "unknownGroup": "Unknown group",
       "appliesToUnits": "Applies to {{count}} units",
       "saveRules": "Save eligibility",
