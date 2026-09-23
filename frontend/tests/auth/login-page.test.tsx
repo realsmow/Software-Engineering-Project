@@ -59,7 +59,7 @@ describe("Authentication form validation — Module 1.3", () => {
   describe("1.3.5 login method accordion", () => {
     it("opens one method and closes the other through the page toggle behavior", () => {
       const onSubmit = vi.fn();
-      let open: "ku" | "local" | null = "ku";
+      let open: string | null = "ku";
       const { rerender } = render(
         <div>
           <LoginMethodKu open={open === "ku"} onToggle={() => { open = open === "ku" ? null : "ku"; }} onSubmit={onSubmit} />

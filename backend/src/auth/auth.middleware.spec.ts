@@ -38,6 +38,8 @@ describe('Auth and role middleware — Module 1.2.8–1.2.11', () => {
         ctx: ctxWith({
           accountKey: 101,
           role: 'borrower',
+          facultyKey: null,
+          creditScore: 100,
         }),
         next,
       } as any),
@@ -47,7 +49,7 @@ describe('Auth and role middleware — Module 1.2.8–1.2.11', () => {
 
     try {
       await middleware.use({
-        ctx: ctxWith({ accountKey: 101, role: 'borrower' }),
+        ctx: ctxWith({ accountKey: 101, role: 'borrower', facultyKey: null, creditScore: 100 }),
         next,
       } as any);
     } catch (error) {
@@ -67,7 +69,7 @@ describe('Auth and role middleware — Module 1.2.8–1.2.11', () => {
 
     await expect(
       middleware.use({
-        ctx: ctxWith({ accountKey: 102, role: 'staff' }),
+        ctx: ctxWith({ accountKey: 102, role: 'staff', facultyKey: null, creditScore: 100 }),
         next,
       } as any),
     ).rejects.toMatchObject({
@@ -78,7 +80,12 @@ describe('Auth and role middleware — Module 1.2.8–1.2.11', () => {
   });
 
   it('1.2.11 admin is accepted by all role-gated middleware', async () => {
-    const user = { accountKey: 103, role: 'admin' } as TrpcUser;
+    const user = {
+      accountKey: 103,
+      role: 'admin',
+      facultyKey: null,
+      creditScore: 100,
+    } as TrpcUser;
 
     for (const Middleware of [
       StaffMiddleware,
