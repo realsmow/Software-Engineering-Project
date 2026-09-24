@@ -14,6 +14,7 @@ import {
 import { extractErrorCode } from "@/lib/error-messages";
 import { useAppeals, useDecideAppeal } from "./use-appeals";
 import type { AppealOutput, AppealStatus } from "./appeal.types";
+import { penaltyReasonText } from "@/features/borrower/appeals/penalty-reason";
 
 /**
  * The appeal desk (§5.8 "ขออุทธรณ์"): a borrower disputes a credit penalty and
@@ -151,7 +152,9 @@ function AppealCard({
     <section className="overflow-hidden rounded-lg border border-border bg-card">
       <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-border px-3.5 py-2.5">
         <div className="text-sm font-semibold text-foreground">
-          {appeal.penalty.reason ?? t("supervisor.appeals.noStaffNote")}
+          {appeal.penalty.reason
+            ? penaltyReasonText(appeal.penalty.reason, t)
+            : t("supervisor.appeals.noStaffNote")}
         </div>
         <div className="font-mono text-[11px] text-t4">
           {appeal.filedBy.firstName} {appeal.filedBy.lastName} · {appeal.filedBy.studentId} ·{" "}

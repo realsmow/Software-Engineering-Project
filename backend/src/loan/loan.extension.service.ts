@@ -171,9 +171,6 @@ export class LoanExtensionService {
     });
 
     if (usage.CurrentStatus !== 'Lended') return blocked('WRONG_LOAN_STATE');
-    if (usage.PendingExtension !== null) {
-      return blocked('EXTENSION_ALREADY_PENDING');
-    }
 
     let allowance: ExtensionAllowance;
     try {
@@ -184,6 +181,16 @@ export class LoanExtensionService {
       // with the code beside it.
       if (!(error instanceof BusinessError)) throw error;
       return blocked(error.businessCode);
+    }
+
+    // After the allowance, not before: a borrower waiting on a decision still
+    // wants to see how many extensions they have used, and answering 0 of 0
+    // here made the page read as if they had none at all.
+    if (usage.PendingExtension !== null) {
+      return blocked('EXTENSION_ALREADY_PENDING', {
+        used: allowance.used,
+        allowed: allowance.allowed,
+      });
     }
 
     const route = extensionRouteFor({

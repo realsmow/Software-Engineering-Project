@@ -13,6 +13,7 @@ import {
 import {
   HOLDING_APPROVE_STATES,
   clashingWindowFilter,
+  collectDeadline,
   heldUsageFilter,
   runSerializable,
   withBuffer,
@@ -35,16 +36,6 @@ import type {
   ListMyRequestsInput,
   RequestStatus,
 } from './loan.schema';
-
-/**
- * How long an approved request is held before the borrower loses it.
- *
- * §5.9: a request not collected within a day is cancelled. Written into
- * `Reservations.ReservationExpiration` at approval time rather than left for
- * the cron job to compute, so the borrower's card can show the deadline the
- * moment it is approved.
- */
-const COLLECT_WITHIN_DAYS = 1;
 
 /** Which tab of "คำขอของฉัน" each status belongs to (mock-data.ts STATUS_TAB). */
 const STATUS_TAB: Record<RequestStatus, 'active' | 'using' | 'history'> = {
@@ -331,7 +322,7 @@ export class LoanRequestService {
           ApprovedAt: approved ? now : null,
           ActionTime: now,
           ReservationExpiration: approved
-            ? addDays(now, COLLECT_WITHIN_DAYS)
+            ? collectDeadline(startTime, now)
             : // Nothing is being held yet, so the field carries the end of the
               // requested window rather than a collection deadline.
               endTime,

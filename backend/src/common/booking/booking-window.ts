@@ -13,6 +13,20 @@ import { UNAVAILABLE_USAGE_STATES } from '../usage/usage-states';
 export const HOLDING_APPROVE_STATES = ['Pending', 'Approved'] as const;
 
 /**
+ * When an approved request stops being held for its borrower.
+ *
+ * §5.9: a request not collected within a day is cancelled. The day starts when
+ * the borrow window opens, not at approval: a request approved today for next
+ * month cannot be collected before next month, and a hold counted from today
+ * would let the expiry job cancel it first.
+ */
+export const COLLECT_WITHIN_DAYS = 1;
+
+export function collectDeadline(startTime: Date, now: Date): Date {
+  return addDays(startTime > now ? startTime : now, COLLECT_WITHIN_DAYS);
+}
+
+/**
  * Turns a requested window into the range that must be free.
  *
  * `ResourceInfo.BufferTime` is the days staff need around a loan — checking a

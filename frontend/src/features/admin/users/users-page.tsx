@@ -41,6 +41,7 @@ import {
   useUpdateUser,
   useUserDetail,
 } from "./use-admin-users";
+import { penaltyReasonText } from "@/features/borrower/appeals/penalty-reason";
 
 /**
  * Turns a failed mutation into something readable.
@@ -762,7 +763,7 @@ export default function AdminUsersPage() {
                       {detail.activePenalties.map((pen) => (
                         <li key={pen.id} className="text-[13px]">
                           <div className="flex items-center justify-between gap-3">
-                            <span className="text-foreground">{pen.reason ?? "-"}</span>
+                            <span className="text-foreground">{pen.reason ? penaltyReasonText(pen.reason, t) : "-"}</span>
                             {pen.creditDeducted !== null && (
                               <span className="mono text-xs text-muted-foreground">
                                 {t("admin.users.penaltyCost", { n: pen.creditDeducted })}

@@ -19,6 +19,8 @@ export const activePenalty = z.object({
    * incident), so there is no reliable code to return here.
    */
   reason: z.string().nullable(),
+  /** The loan it came from, so a page can show it beside that loan. Null for a ban. */
+  usageKey: z.number().int().nullable(),
   creditDeducted: z.number().int().nullable(),
   issuedAt: z.iso.datetime().nullable(),
   expiresAt: z.iso.datetime(),
@@ -43,6 +45,7 @@ export function toActivePenalty(row: PenaltyRow): ActivePenalty {
   return {
     id: row.PenaltyKey,
     reason: row.Reason,
+    usageKey: row.UsageKey,
     creditDeducted: row.CreditDeducted,
     issuedAt: row.ActionTime?.toISOString() ?? null,
     expiresAt: row.ExpirationTime.toISOString(),

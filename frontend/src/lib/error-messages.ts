@@ -123,6 +123,14 @@ const ERROR_MESSAGES: Record<string, string> = {
   // Inspection
   INSPECTION_NOT_FOUND: "ไม่พบผลการตรวจสภาพนี้",
   ALREADY_INSPECTED: "รายการนี้ถูกตรวจสภาพไปแล้ว หากไม่เห็นด้วยต้องยื่นอุทธรณ์",
+  CANNOT_INSPECT_OWN_PREPARATION: "คุณเป็นผู้เตรียมอุปกรณ์ชิ้นนี้ จึงตรวจสภาพเองไม่ได้ กรุณาให้เจ้าหน้าที่คนอื่นตรวจ",
+
+  // Appeals
+  APPEAL_NOT_FOUND: "ไม่พบคำอุทธรณ์นี้",
+  APPEAL_ALREADY_RESOLVED: "คำอุทธรณ์นี้ได้รับการตัดสินไปแล้ว กรุณารีเฟรชรายการ",
+  CANNOT_DECIDE_OWN_APPEAL: "คุณตัดสินคำอุทธรณ์ของตัวเองไม่ได้",
+  CANNOT_DECIDE_OWN_INSPECTION: "คุณเป็นผู้ตรวจสภาพรายการนี้ จึงตัดสินคำอุทธรณ์นี้ไม่ได้ กรุณาให้ผู้อื่นตัดสิน",
+  INVALID_APPEAL_REDUCTION: "จำนวนเครดิตที่ลดต้องน้อยกว่าที่หักไว้เดิม ถ้าไม่ลดเลยให้เลือกปฏิเสธ",
 
   // Approval queue
   ALREADY_AUTO_APPROVED: "ระบบอนุมัติคำขอนี้ให้อัตโนมัติแล้ว ไม่ต้องตัดสินอีก",
@@ -137,6 +145,7 @@ const ERROR_MESSAGES: Record<string, string> = {
   UPLOAD_EMPTY: "ไฟล์ว่างเปล่า",
   UPLOAD_ALREADY_STORED: "ไฟล์นี้ถูกอัปโหลดไปแล้ว",
   UPLOAD_NOT_STORED: "ยังไม่พบไฟล์ที่อัปโหลด กรุณาลองส่งรูปอีกครั้ง",
+  TOO_MANY_PHOTOS: "แนบรูปในขั้นตอนนี้ครบจำนวนสูงสุดแล้ว",
   UPLOAD_NOT_AN_IMAGE: "ไฟล์นี้ไม่ใช่รูปภาพ",
   UPLOAD_REJECTED: "อัปโหลดไม่สำเร็จ กรุณาลองใหม่",
 

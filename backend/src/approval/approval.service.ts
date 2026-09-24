@@ -12,12 +12,12 @@ import {
 } from '../common/approval/approval-policy';
 import {
   clashingWindowFilter,
+  collectDeadline,
   runSerializable,
   withBuffer,
 } from '../common/booking/booking-window';
 import { BusinessError } from '../common/errors/business-error';
 import {
-  addDays,
   daysBetween,
   startOfLocalDay,
   toIso,
@@ -34,9 +34,6 @@ import type {
   DecideApprovalInput,
   ListApprovalQueueInput,
 } from './approval.schema';
-
-/** Matches COLLECT_WITHIN_DAYS in loan.request.service.ts (§5.9). */
-const COLLECT_WITHIN_DAYS = 1;
 
 const BORROWER_SELECT = {
   AccountKey: true,
@@ -326,8 +323,7 @@ export class ApprovalService {
         });
       }
 
-      // The clock on collecting it starts now, not when it was asked for.
-      const collectBy = addDays(now, COLLECT_WITHIN_DAYS);
+      const collectBy = collectDeadline(row.StartTime, now);
 
       await tx.reservations.update({
         where: { ReservationKey: row.ReservationKey },

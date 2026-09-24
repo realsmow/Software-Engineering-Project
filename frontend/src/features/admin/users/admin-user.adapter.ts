@@ -71,6 +71,8 @@ export interface ServerAuthorityGrant {
 export interface ServerActivePenalty {
   id: number;
   reason: string | null;
+  /** The loan it came from; null for a ban. */
+  usageKey: number | null;
   creditDeducted: number | null;
   issuedAt: string | null;
   expiresAt: string;
