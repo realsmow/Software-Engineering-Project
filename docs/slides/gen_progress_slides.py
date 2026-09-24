@@ -473,13 +473,17 @@ def slide_curve() -> str:
     lw, lp = D.ACTUAL_CURVE[-1]
     o.append(f'<circle cx="{px(lw):.1f}" cy="{py(lp):.1f}" r="11" fill="none" '
              f'stroke="{BRAND}" stroke-width="2.5"/>')
-    o += [txt(px(lw) + 26, py(lp) + 48, D.MEETING["date_short"], 18,
-              weight="bold", fill=BRAND),
-          txt(px(lw) + 26, py(lp) + 74, f'ผลจริง {D.MEETING["actual"]}% '
-              f'เทียบแผน {D.MEETING["plan"]}%', 18, fill=INK),
-          f'<line x1="{px(lw)+16:.1f}" y1="{py(lp)+34:.1f}" '
-          f'x2="{px(lw)+6:.1f}" y2="{py(lp)+14:.1f}" stroke="{BRAND}" '
-          f'stroke-width="1.5"/>']
+    # ตั้งแต่รอบที่ 5 แกนยาวถึง 8 ต.ค. จุดปัจจุบันจึงไม่ได้อยู่ท้ายแกนอีก
+    # วางป้ายทางขวาจะชนการ์ดข้อสังเกต วางชิดจุดจะทับเส้นผลจริงที่ไต่ขึ้นมา
+    # จึงวางลงมาในที่ว่างใต้เส้น แล้วลากเส้นชี้กลับขึ้นไปที่จุด
+    lab_x, lab_y = px(lw) + 100, py(lp) + 150
+    o += [f'<line x1="{px(lw):.1f}" y1="{py(lp)+14:.1f}" '
+          f'x2="{px(lw):.1f}" y2="{lab_y-34:.1f}" stroke="{BRAND}" '
+          f'stroke-width="1.2" opacity="0.5"/>',
+          txt(lab_x, lab_y, D.MEETING["date_short"], 18,
+              weight="bold", fill=BRAND, anchor="end"),
+          txt(lab_x, lab_y + 26, f'ผลจริง {D.MEETING["actual"]}% '
+              f'เทียบแผน {D.MEETING["plan"]}%', 18, fill=INK, anchor="end")]
 
     lx, ly = 700, 660
     o.append(rect(lx, ly, 330, 74, fill="#FFFFFF", rx=10, stroke=LINE))
@@ -511,7 +515,8 @@ def slide_review() -> str:
     เพิ่มในรอบที่ 3 — รายงานครั้งที่ 2 สัญญาไว้ว่าจะทบทวน Sprint 4 ถ้าจุดวัดไม่ผ่าน
     หน้านี้คือการทำตามสัญญานั้น จึงวางผลไว้บน การตัดสินใจไว้ล่าง
     """
-    o = deco() + chrome("Checkpoint Review", "ผลของจุดวัดที่รายงานครั้งที่ 3 ตั้งไว้",
+    o = deco() + chrome("Checkpoint Review",
+                        f"ผลของจุดวัดที่รายงานครั้งที่ {D.MEETING['no'] - 1} ตั้งไว้",
                         D.SECTIONS["review"])
     o.append(txt(PAD, BODY + 22, D.REVIEW_INTRO, 20, fill=MUTED))
 
@@ -525,7 +530,10 @@ def slide_review() -> str:
         o.append(txt(x, hy + 29, label, 18, weight="bold", fill="#FFFFFF"))
 
     # ส้ม = ไม่ผ่าน · เทา = ยังไม่ถึงกำหนด (ไม่ใช้เขียว เพราะยังไม่มีข้อไหนผ่าน)
-    tone_style = {"weak": (tint(ACCENT, 0.88), ACCENT),
+    # "strong" มาใช้ครั้งแรกในรอบที่ 5 ซึ่งเป็นรอบแรกที่มีจุดวัดผ่าน
+    # ใช้คู่สีเดียวกับสไลด์ระดับหลักฐาน เพื่อให้ป้าย "ผ่าน" อ่านเหมือนกันทั้งเด็ค
+    tone_style = {"strong": (BRAND, "#FFFFFF"),
+                  "weak": (tint(ACCENT, 0.88), ACCENT),
                   "neutral": (tint(MUTED, 0.85), INK)}
 
     y = hy + 44
@@ -582,7 +590,7 @@ def slide_review() -> str:
     rx = PAD + cw + gap
     o.append(rect(rx, top, cw, bot - top, fill="#FFFFFF", rx=14, stroke=BRAND,
                   sw=1.6))
-    o.append(txt(rx + 24, top + 38, "จุดวัดของ Sprint 4", 21, weight="bold",
+    o.append(txt(rx + 24, top + 38, D.NEXT_CHECKPOINT_TITLE, 21, weight="bold",
                  fill=BRAND))
     ty = top + 76
     for due, item in D.NEXT_CHECKPOINTS:
@@ -600,6 +608,86 @@ def slide_review() -> str:
     for j, line in enumerate(fb):
         o.append(txt(rx + 24, fy + j * 23, line, 16, weight="bold" if j == 0
                      else "regular", fill=ACCENT))
+    return svg(o)
+
+
+# ================================ §7 ผลตรวจหน้าจอด้วยมือ และการหักความก้าวหน้า
+def slide_ui_review() -> str:
+    """บัญชีข้อบกพร่องจากการตรวจหน้าจอ 19 ก.ย. และการหักที่เกิดจากมัน
+
+    เพิ่มในรอบที่ 5 — เป็นรอบแรกที่ค่าความก้าวหน้าถูกหักด้วยคุณภาพของหน้าจอ
+    ไม่ได้คิดจากการนับของที่สร้างเสร็จอย่างเดียว หน้านี้จึงต้องตอบให้ได้ว่า
+    หักเท่าไร และหักจากอะไร
+    """
+    o = deco() + chrome("UI Review", "ผลตรวจหน้าจอด้วยมือ และการหักความก้าวหน้า",
+                        D.SECTIONS["uireview"])
+    o.append(txt(PAD, BODY + 22, D.UI_REVIEW_INTRO, 20, fill=MUTED))
+
+    tone_style = {"strong": (BRAND, "#FFFFFF"),
+                  "soft": (tint(BRAND, 0.84), BRAND),
+                  "weak": (tint(ACCENT, 0.88), ACCENT),
+                  "neutral": (tint(MUTED, 0.85), INK)}
+
+    # ---- แถวตัวเลขสรุป 4 ช่อง ----
+    ty, th = BODY + 52, 128
+    gap = 20
+    tw = (W - 2 * PAD - 3 * gap) / 4
+    for i, (label, n, tone) in enumerate(D.UI_TALLY):
+        x = PAD + i * (tw + gap)
+        bg, fg = tone_style[tone]
+        o.append(rect(x, ty, tw, th, fill=bg, rx=14))
+        o.append(txt(x + tw / 2, ty + 74, str(n), 54, weight="bold", fill=fg,
+                     anchor="middle"))
+        for j, line in enumerate(wrap(label, 17, tw - 28)):
+            o.append(txt(x + tw / 2, ty + 102 + j * 22, line, 17, fill=fg,
+                         anchor="middle", opacity=0.92))
+
+    # ---- การ์ดล่างสองใบ: ข้อที่ยังไม่แก้ | การหักรายมิติ ----
+    top = ty + th + 26
+    bot = RULE_Y - 62
+    cw = (W - 2 * PAD - 30) / 2
+
+    # ซ้าย — เก้าข้อที่ยังค้าง
+    o.append(rect(PAD, top, cw, bot - top, fill="#FFFFFF", rx=14,
+                  stroke=ACCENT, sw=1.6))
+    o.append(txt(PAD + 24, top + 38, "9 ข้อที่ยังไม่แก้", 21, weight="bold",
+                 fill=ACCENT))
+    iy = top + 74
+    for item in D.UI_OPEN:
+        o.append(bullet(PAD + 32, iy - 6, 3.5, ACCENT))
+        o.append(txt(PAD + 48, iy, item, 17, fill=INK))
+        iy += 26
+
+    # ขวา — หักจากมิติไหนเท่าไร
+    rx = PAD + cw + 30
+    o.append(rect(rx, top, cw, bot - top, fill=CARD_BG, rx=14))
+    o.append(txt(rx + 24, top + 38, "หักจากมิติไหน", 21, weight="bold",
+                 fill=BRAND))
+    hx1, hx2, hx3 = rx + 24, rx + cw - 150, rx + cw - 40
+    o.append(txt(hx2, top + 68, "นับล้วน", 15, fill=MUTED, anchor="middle"))
+    o.append(txt(hx3, top + 68, "หลังหัก", 15, fill=MUTED, anchor="middle"))
+    ry = top + 96
+    for name, raw, net in D.UI_DISCOUNT:
+        cut = net - raw
+        o.append(txt(hx1, ry, name, 17, fill=INK))
+        o.append(txt(hx2, ry, str(raw), 17, fill=MUTED, anchor="middle"))
+        o.append(txt(hx3, ry, str(net), 17, weight="bold",
+                     fill=ACCENT if cut else INK, anchor="middle"))
+        ry += 27
+    o.append(f'<line x1="{hx1}" y1="{ry - 6}" x2="{rx + cw - 24}" y2="{ry - 6}" '
+             f'stroke="{LINE}" stroke-width="1.2"/>')
+    ry += 22
+    o.append(txt(hx1, ry, "รวมถ่วงน้ำหนัก", 18, weight="bold", fill=BRAND))
+    o.append(txt(hx2, ry, "90", 18, weight="bold", fill=MUTED, anchor="middle"))
+    o.append(txt(hx3, ry, str(D.MEETING["actual"]), 18, weight="bold",
+                 fill=ACCENT, anchor="middle"))
+
+    # ---- หมายเหตุท้ายสไลด์ ----
+    nl = wrap(D.UI_NOTE, 17, W - 2 * PAD - 30)
+    ny = bot + 20
+    o.append(rect(PAD, ny, 5, len(nl) * 24 + 4, fill=ACCENT, rx=2.5))
+    for j, line in enumerate(nl):
+        o.append(txt(PAD + 20, ny + 18 + j * 24, line, 17, fill=INK))
     return svg(o)
 
 
@@ -909,12 +997,13 @@ SLIDES = [
     ("03-dimension-table", slide_dimension_table),
     ("04-plan-vs-actual", slide_curve),
     ("05-checkpoint-review", slide_review),
-    ("06-delivered-overview", slide_delivered_overview),
-    ("07-delivered-backend", slide_backend),
-    ("08-delivered-frontend", slide_frontend),
-    ("09-delivered-tooling-docs", slide_tooling_docs),
-    ("10-evidence-level", slide_evidence),
-    ("11-backend-evidence", slide_backend_evidence),
+    ("06-ui-review", slide_ui_review),
+    ("07-delivered-overview", slide_delivered_overview),
+    ("08-delivered-backend", slide_backend),
+    ("09-delivered-frontend", slide_frontend),
+    ("10-delivered-tooling-docs", slide_tooling_docs),
+    ("11-evidence-level", slide_evidence),
+    ("12-backend-evidence", slide_backend_evidence),
 ]
 
 

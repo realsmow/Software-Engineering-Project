@@ -54,6 +54,12 @@ slides/screens/
 # SVG ของสไลด์สาธิตก็ฝังภาพหน้าจอเหมือนกัน หนัก 3.3 MB
 # สร้างใหม่ได้ด้วย gen_demo_slides.py จาก demo_data.py + demo-screens/
 slides/demo-slides/
+# รอบที่ 2 (17 ก.ย.) สร้างใหม่ด้วย --data demo_data_02 จาก demo-screens-02/
+slides/demo-slides-02/
+# รอบที่ 3 (25 ก.ย.) รวม .pptx สำหรับ Canva สร้างใหม่ได้ด้วย gen_demo_slides.py + svg_to_pptx.py
+slides/demo-slides-03/
+# venv สำหรับ python-pptx ของ svg_to_pptx.py
+slides/.venv/
 
 # ผัง BPMN - เก็บ .bpmn (ต้นฉบับ), svg และ pdf ไว้ ตัด png ออก (2.3 MB)
 bpmn/png/

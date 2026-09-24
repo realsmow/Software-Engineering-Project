@@ -1,0 +1,427 @@
+{
+ "created_at": "2026-09-25T04:56:15+07:00",
+ "database": "ulms_demo5",
+ "password_for_generated_accounts": "demo1234",
+ "queue_counts": {
+  "toPrepare": 10,
+  "toHandover": 5,
+  "onLoan": 18,
+  "overdue": 4,
+  "toInspect": 4,
+  "extensionsToInspect": 0
+ },
+ "live": {
+  "on_loan": [
+   {
+    "student": "6610500004",
+    "serial": "IE-TAB-002",
+    "due_in_days": 4
+   },
+   {
+    "student": "6610500005",
+    "serial": "EE-PSU-003",
+    "due_in_days": 1
+   },
+   {
+    "student": "6610500006",
+    "serial": "IE-STW-001",
+    "due_in_days": 2
+   },
+   {
+    "student": "6610500007",
+    "serial": "EE-JMP-002",
+    "due_in_days": -2
+   },
+   {
+    "student": "6610500008",
+    "serial": "CHE-PH-003",
+    "due_in_days": -3
+   },
+   {
+    "student": "6610500009",
+    "serial": "CPE-ARD-007",
+    "due_in_days": 2
+   },
+   {
+    "student": "6610500010",
+    "serial": "ME-CAL-002",
+    "due_in_days": 1
+   },
+   {
+    "student": "6610500011",
+    "serial": "ME-MIC-001",
+    "due_in_days": 6
+   },
+   {
+    "student": "6610500012",
+    "serial": "EE-DMM-008",
+    "due_in_days": -3
+   },
+   {
+    "student": "6610500013",
+    "serial": "ME-DRL-004",
+    "due_in_days": -1
+   },
+   {
+    "student": "6610500014",
+    "serial": "CE-LVL-001",
+    "due_in_days": 4
+   },
+   {
+    "student": "6610500015",
+    "serial": "CPE-RPI-005",
+    "due_in_days": 2
+   },
+   {
+    "student": "6610500016",
+    "serial": "IE-TAB-003",
+    "due_in_days": 5
+   },
+   {
+    "student": "6610500017",
+    "serial": "ME-MIC-002",
+    "due_in_days": 7
+   },
+   {
+    "student": "6610500018",
+    "serial": "IE-STW-005",
+    "due_in_days": 2
+   },
+   {
+    "student": "6610500019",
+    "serial": "CPE-NB-004",
+    "due_in_days": 2
+   }
+  ],
+  "extend_instant": "EE-DMM-005",
+  "extend_to_supervisor": "EE-OSC-001",
+  "to_inspect": [
+   {
+    "student": "6610500001",
+    "serial": "CPE-NB-002",
+    "tier": "T2"
+   },
+   {
+    "student": "6610500022",
+    "serial": "CPE-RPI-006",
+    "tier": "T1"
+   },
+   {
+    "student": "6610500023",
+    "serial": "CHE-PH-004",
+    "tier": "T1"
+   },
+   {
+    "student": "6610500024",
+    "serial": "EE-DMM-007",
+    "tier": "T0"
+   }
+  ],
+  "to_hand_over": [
+   {
+    "student": "test_borrower",
+    "serial": "MM-CAM-003",
+    "tier": "T1"
+   },
+   {
+    "student": "test_borrower",
+    "serial": "EE-JMP-005",
+    "tier": "T0"
+   },
+   {
+    "student": "6610500002",
+    "serial": "CPE-RPI-004",
+    "tier": "T1",
+    "swap_to_serial": "CPE-RPI-002",
+    "swap_to_resource_key": 17
+   },
+   {
+    "student": "6610500010",
+    "serial": "CHE-BAL-002",
+    "tier": "T0"
+   },
+   {
+    "student": "6610500011",
+    "serial": "ME-DRL-001",
+    "tier": "T1"
+   }
+  ],
+  "to_prepare": [
+   {
+    "student": "6610500013",
+    "serial": "CE-LSR-004"
+   },
+   {
+    "student": "6610500014",
+    "serial": "IE-TAB-004"
+   },
+   {
+    "student": "6610500015",
+    "serial": "EE-DMM-003"
+   },
+   {
+    "student": "6610500016",
+    "serial": "ME-CAL-004"
+   },
+   {
+    "student": "6610500017",
+    "serial": "IE-TAB-001"
+   },
+   {
+    "student": "6610500018",
+    "serial": "CPE-RPI-007"
+   },
+   {
+    "student": "6610500019",
+    "serial": "EE-JMP-001"
+   }
+  ],
+  "pending_approval": [
+   {
+    "student": "6610500002",
+    "serial": "EE-FGN-001",
+    "reservation": 140
+   },
+   {
+    "student": "6610500007",
+    "serial": "CPE-NB-001",
+    "reservation": 141
+   },
+   {
+    "student": "6610500009",
+    "serial": "ME-3DP-002",
+    "reservation": 142
+   },
+   {
+    "student": "6610500014",
+    "serial": "EE-FGN-002",
+    "reservation": 143
+   },
+   {
+    "student": "6610500019",
+    "serial": "CPE-NB-003",
+    "reservation": 144
+   }
+  ],
+  "pending_extensions": [
+   "CPE-NB-004"
+  ]
+ },
+ "side": {
+  "borrower_appealable_penalty": 29,
+  "appeals_pending": 3,
+  "repairs_open": 3,
+  "room_bookings_today": 6,
+  "suspended": "6610500030"
+ },
+ "credit_bands_set_by_script": {
+  "6610500025": 84,
+  "6610500026": 72,
+  "6610500027": 61,
+  "6610500028": 44
+ },
+ "history_loans": 105,
+ "accounts": {
+  "student": [
+   {
+    "user": "6610500001",
+    "name": "ณัฐวุฒิ ศรีสุข",
+    "dept": "cpe"
+   },
+   {
+    "user": "6610500002",
+    "name": "พิมพ์ชนก วงศ์ทอง",
+    "dept": "ee"
+   },
+   {
+    "user": "6610500003",
+    "name": "ธนกฤต แก้วประเสริฐ",
+    "dept": "me"
+   },
+   {
+    "user": "6610500004",
+    "name": "กมลชนก จันทร์เพ็ญ",
+    "dept": "ce"
+   },
+   {
+    "user": "6610500005",
+    "name": "ภูริณัฐ บุญมา",
+    "dept": "che"
+   },
+   {
+    "user": "6610500006",
+    "name": "ศิริกาญจน์ ทองดี",
+    "dept": "ie"
+   },
+   {
+    "user": "6610500007",
+    "name": "วรเมธ สายสุวรรณ",
+    "dept": "cpe"
+   },
+   {
+    "user": "6610500008",
+    "name": "ชนิดาภา พรหมวงศ์",
+    "dept": "ee"
+   },
+   {
+    "user": "6610500009",
+    "name": "ปัณณวิชญ์ รุ่งเรือง",
+    "dept": "me"
+   },
+   {
+    "user": "6610500010",
+    "name": "อรปรียา ชัยมงคล",
+    "dept": "ce"
+   },
+   {
+    "user": "6610500011",
+    "name": "ธีรภัทร ประเสริฐศักดิ์",
+    "dept": "che"
+   },
+   {
+    "user": "6610500012",
+    "name": "ณิชาภัทร อินทร์แก้ว",
+    "dept": "ie"
+   },
+   {
+    "user": "6610500013",
+    "name": "กิตติพัศ มณีรัตน์",
+    "dept": "cpe"
+   },
+   {
+    "user": "6610500014",
+    "name": "สุพิชชา สมบูรณ์ชัย",
+    "dept": "ee"
+   },
+   {
+    "user": "6610500015",
+    "name": "จิรายุ ศักดิ์ดี",
+    "dept": "me"
+   },
+   {
+    "user": "6610500016",
+    "name": "เบญญาภา นาคประเสริฐ",
+    "dept": "ce"
+   },
+   {
+    "user": "6610500017",
+    "name": "พีรพล เพชรรัตน์",
+    "dept": "che"
+   },
+   {
+    "user": "6610500018",
+    "name": "ปวีณ์ธิดา วัฒนากุล",
+    "dept": "ie"
+   },
+   {
+    "user": "6610500019",
+    "name": "อชิตะ ธรรมรักษ์",
+    "dept": "cpe"
+   },
+   {
+    "user": "6610500020",
+    "name": "มนัสนันท์ สุวรรณภูมิ",
+    "dept": "ee"
+   },
+   {
+    "user": "6610500021",
+    "name": "ศุภวิชญ์ กาญจนวงศ์",
+    "dept": "me"
+   },
+   {
+    "user": "6610500022",
+    "name": "ญาณิศา เจริญผล",
+    "dept": "ce"
+   },
+   {
+    "user": "6610500023",
+    "name": "ธนภัทร อุดมสุข",
+    "dept": "che"
+   },
+   {
+    "user": "6610500024",
+    "name": "วริศรา พึ่งทอง",
+    "dept": "ie"
+   },
+   {
+    "user": "6610500025",
+    "name": "ภาคิน ใจดี",
+    "dept": "cpe"
+   },
+   {
+    "user": "6610500026",
+    "name": "ชญานิศ คงสวัสดิ์",
+    "dept": "ee"
+   },
+   {
+    "user": "6610500027",
+    "name": "รัชชานนท์ ศรีวงศ์",
+    "dept": "me"
+   },
+   {
+    "user": "6610500028",
+    "name": "กัญญาณัฐ บุญญาศิริ",
+    "dept": "ce"
+   },
+   {
+    "user": "6610500029",
+    "name": "นนทพัทธ์ มีสุข",
+    "dept": "che"
+   },
+   {
+    "user": "6610500030",
+    "name": "ปาริชาติ ทรัพย์สมบูรณ์",
+    "dept": "ie"
+   }
+  ],
+  "staff": [
+   {
+    "user": "staff.cpe",
+    "name": "สมศักดิ์ ใจเย็น",
+    "dept": "cpe"
+   },
+   {
+    "user": "staff.ee",
+    "name": "วิภาวรรณ ตั้งมั่น",
+    "dept": "ee"
+   },
+   {
+    "user": "staff.me",
+    "name": "ประยุทธ ช่างคิด",
+    "dept": "me"
+   },
+   {
+    "user": "staff.ce",
+    "name": "สุนทร แม่นยำ",
+    "dept": "ce"
+   },
+   {
+    "user": "staff.che",
+    "name": "จันทร์จิรา สะอาดดี",
+    "dept": "che"
+   },
+   {
+    "user": "staff.ie",
+    "name": "อนุชา เป็นระบบ",
+    "dept": "ie"
+   }
+  ],
+  "supervisor": [
+   {
+    "user": "sup.cpe",
+    "name": "ผศ.ดร.กฤษดา วิเศษศักดิ์",
+    "dept": "cpe"
+   },
+   {
+    "user": "sup.ee",
+    "name": "รศ.ดร.นภาพร แสงทอง",
+    "dept": "ee"
+   },
+   {
+    "user": "sup.me",
+    "name": "อ.ดร.ชัยวัฒน์ พลังงาน",
+    "dept": "me"
+   }
+  ]
+ }
+}

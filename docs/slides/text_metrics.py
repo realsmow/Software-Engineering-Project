@@ -30,6 +30,10 @@ PATTERNS = {
     ("thai", "bold"): "Laksaman:bold",
     ("mono", "regular"): "DejaVu Sans Mono",
     ("mono", "bold"): "DejaVu Sans Mono:bold",
+    # The demo deck uses Sarabun because Canva has it, so an imported .pptx
+    # renders with the same widths we wrapped to (Laksaman is not in Canva).
+    ("sarabun", "regular"): "Sarabun",
+    ("sarabun", "bold"): "Sarabun:bold",
 }
 
 

@@ -1,0 +1,73 @@
+{
+  "created_at": "2026-09-18T13:12:05+07:00",
+  "steps": {
+    "L1 active loan": {
+      "reservationKey": 1,
+      "usageKey": 1,
+      "unit": null
+    },
+    "L2 awaiting approval": {
+      "reservationKey": 2,
+      "status": "pending"
+    },
+    "L3 to prepare": {
+      "reservationKey": 3
+    },
+    "L4 to hand over": {
+      "reservationKey": 4,
+      "usageKey": 2
+    },
+    "L5 to inspect": {
+      "reservationKey": 5,
+      "usageKey": 3
+    },
+    "L6 penalty + appeal": {
+      "usageKey": 4,
+      "creditNow": 91,
+      "appealKey": 1
+    },
+    "R1 room": {
+      "roomKey": 1,
+      "resourceKey": 16,
+      "date": "2026-09-19",
+      "slots": [
+        6,
+        7
+      ],
+      "booked": true
+    },
+    "X1 extension": {
+      "usageKey": 1,
+      "requestedDueAt": "2026-09-24T10:00:00Z",
+      "outcome": {
+        "status": "Approved",
+        "route": "auto",
+        "dueAt": "2026-09-24T10:00:00.000Z"
+      }
+    },
+    "X2 T2 loan + extension": {
+      "usageKey": 5,
+      "extension": {
+        "status": "Pending",
+        "route": "supervisor"
+      }
+    }
+  },
+  "queues": {
+    "staff": {
+      "toPrepare": 1,
+      "toHandover": 1,
+      "onLoan": 2,
+      "overdue": 0,
+      "toInspect": 1,
+      "extensionsToInspect": 0
+    },
+    "approval": {
+      "staff": 1,
+      "supervisor": 1,
+      "overdueToDecide": 0,
+      "autoApprovedToday": 5,
+      "asOf": "2026-09-18T06:12:05.771Z"
+    }
+  }
+}
