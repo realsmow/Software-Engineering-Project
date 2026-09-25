@@ -91,7 +91,10 @@ function service(
   },
   creditTier = 'D0',
   audit: any = { record: jest.fn() },
-  notifications: any = { requestNeedsSupervisor: jest.fn() },
+  notifications: any = {
+    requestNeedsSupervisor: jest.fn(),
+    itemToPrepare: jest.fn(),
+  },
 ) {
   return new LoanRequestService(
     db,

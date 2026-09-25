@@ -31,4 +31,5 @@ export const NOTIFICATION_META: Record<
   retirement_decided: { icon: "package", tone: "info" },
   supervisor_approval_needed: { icon: "inbox", tone: "warn" },
   appeal_filed: { icon: "shield", tone: "warn" },
+  staff_task: { icon: "inbox", tone: "info" },
 };

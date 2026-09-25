@@ -241,12 +241,17 @@ export type Notification = Prisma.NotificationModel
  */
 export type RepairLog = Prisma.RepairLogModel
 /**
- * Model CronRunLog
+ * Model SystemSetting
  * One run of one scheduled job (SRS 5.3).
  * 
  * Without this table a manual run has nowhere to record its outcome, which is
  * why `admin.runCronJob` refused before it existed: a job you can trigger but
  * cannot observe is not operable. The status page reads the newest row per
  * job to show when it last ran and whether it worked.
+ */
+export type SystemSetting = Prisma.SystemSettingModel
+/**
+ * Model CronRunLog
+ * 
  */
 export type CronRunLog = Prisma.CronRunLogModel

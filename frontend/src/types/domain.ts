@@ -169,7 +169,9 @@ export type NotificationType =
   // FR-NTF-04: a T2/low-credit request or extension landed on a supervisor's
   // desk, or an appeal was filed and is awaiting their decision.
   | "supervisor_approval_needed"
-  | "appeal_filed";
+  | "appeal_filed"
+  // FR-NTF-03: counter work for staff (prepare, receive, room check).
+  | "staff_task";
 
 export interface Notification {
   id: string;

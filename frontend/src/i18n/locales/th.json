@@ -237,7 +237,17 @@
       "lastName": "นามสกุล",
       "email": "อีเมล",
       "detailsSaved": "บันทึกข้อมูลแล้ว",
-      "loadingDetail": "กำลังโหลดข้อมูล"
+      "loadingDetail": "กำลังโหลดข้อมูล",
+      "loanHistory": "ประวัติการยืม",
+      "noLoans": "ยังไม่เคยยืม",
+      "loanDue": "กำหนดคืน {{date}}",
+      "loanStatus": {
+        "Pending": "รอดำเนินการ",
+        "Prepared": "เตรียมแล้ว",
+        "Lended": "กำลังยืม",
+        "Returned": "คืนแล้ว",
+        "Inspected": "ตรวจแล้ว"
+      }
     },
     "status": {
       "subtitle": "สถานะระบบและงานตามกำหนดเวลา อัปเดตทุก 30 วินาที",
@@ -330,7 +340,12 @@
       "pollNotifications": "การแจ้งเตือน",
       "minutes": "{{count}} นาที",
       "megabytes": "{{count}} MB",
-      "seconds": "{{count}} วินาที"
+      "seconds": "{{count}} วินาที",
+      "workHours": "เวลาทำการ",
+      "workHoursHint": "เวลาทำการของเคาน์เตอร์ (เวลาไทย) กำหนดคืนคือเวลาปิด",
+      "work_start": "เวลาเปิด",
+      "work_end": "เวลาปิด",
+      "workHoursError": "บันทึกไม่สำเร็จ"
     },
     "reports": {
       "subtitle": "สรุปการยืมจากข้อมูลจริง นับ ณ เวลาที่เปิดหน้านี้",
@@ -350,7 +365,17 @@
       "colUtilization": "อัตราการใช้",
       "unnamedGroup": "(ไม่มีชื่อหน่วยงาน)",
       "mostBorrowed": "อุปกรณ์ที่ถูกยืมมากที่สุด",
-      "noBorrowing": "ยังไม่มีการยืมในขอบเขตนี้"
+      "noBorrowing": "ยังไม่มีการยืมในขอบเขตนี้",
+      "last30": "30 วันล่าสุด: ผลตรวจรับคืนและการใช้ห้อง",
+      "roomUtilization": "อัตราการใช้ห้อง (%)",
+      "roomHours": "{{booked}} / {{open}} ชม.",
+      "condition": {
+        "Normal": "คืนในสภาพปกติ",
+        "MinorDamage": "เสียหายเล็กน้อย",
+        "MajorDamage": "เสียหายมาก",
+        "Broken": "ชำรุด",
+        "Missing": "สูญหาย"
+      }
     },
     "overview": {
       "subtitle": "สถานะระบบและบันทึกการเปลี่ยนแปลง ทุกตัวเลขในหน้านี้อ่านจากเซิร์ฟเวอร์โดยตรง",

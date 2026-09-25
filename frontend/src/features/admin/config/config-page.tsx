@@ -1,7 +1,10 @@
 import { useTranslation } from "react-i18next";
 import { PageHeader } from "@/components/shared/page-header";
 import { Badge } from "@/components/ui/badge";
-import { useTechnicalConfig } from "./use-config";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { useTechnicalConfig, useUpdateWorkHours, useWorkHours } from "./use-config";
 
 /**
  * What this server instance is deployed with.
@@ -28,6 +31,7 @@ export default function AdminConfigPage() {
   return (
     <div className="mx-auto max-w-3xl">
       <PageHeader title={t("nav.technicalConfig")} subtitle={t("admin.config.subtitle")} />
+      <WorkHoursCard />
 
       {isLoading ? (
         <p className="py-16 text-center text-sm text-t3">{t("common.loading")}</p>
@@ -181,5 +185,45 @@ function Line({
         <span className="break-all text-right font-mono text-[13px] text-foreground">{value}</span>
       )}
     </div>
+  );
+}
+
+function WorkHoursCard() {
+  const { t } = useTranslation();
+  const { data } = useWorkHours();
+  const save = useUpdateWorkHours();
+  const [draft, setDraft] = useState<{ start: number; end: number } | null>(null);
+  const hours = draft ?? data;
+  if (!hours) return null;
+  const valid = hours.start >= 0 && hours.end <= 23 && hours.start < hours.end;
+
+  return (
+    <section className="mb-5 rounded-lg border border-border bg-card px-3.5 py-3">
+      <h2 className="text-sm font-semibold text-foreground">{t("admin.config.workHours")}</h2>
+      <p className="mt-0.5 text-xs text-t3">{t("admin.config.workHoursHint")}</p>
+      <div className="mt-2.5 flex flex-wrap items-center gap-2">
+        {(["start", "end"] as const).map((k) => (
+          <Input
+            key={k}
+            type="number"
+            min={0}
+            max={23}
+            className="w-20"
+            aria-label={t(`admin.config.work_${k}`)}
+            value={hours[k]}
+            onChange={(e) => setDraft({ ...hours, [k]: Number(e.target.value) })}
+          />
+        ))}
+        <span className="text-xs text-t3">:00</span>
+        <Button
+          type="button"
+          disabled={!draft || !valid || save.isPending}
+          onClick={() => save.mutate(hours, { onSuccess: () => setDraft(null) })}
+        >
+          {t("common.save")}
+        </Button>
+        {save.isError && <span className="text-xs text-[var(--s-alert-t)]">{t("admin.config.workHoursError")}</span>}
+      </div>
+    </section>
   );
 }

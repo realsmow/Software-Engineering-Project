@@ -1,7 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { PenaltyService } from '../common/penalty/penalty.service';
-import { NotificationService } from '../notification/notification.service';
+import {
+  NotificationService,
+  resourceName,
+} from '../notification/notification.service';
 import { recomputeCredit } from '../common/credit/recompute-credit';
 
 /** The six jobs in SRS §5.3 that this system runs. */
@@ -306,6 +309,33 @@ export class CronService {
       await this.notifications.syncDueReminders(a.AccountKey);
     }
 
+    // FR-NTF-03: staff hear about returns due within a day, or already late.
+    const dueBack = await this.prisma.usageLog.findMany({
+      where: {
+        CurrentStatus: 'Lended',
+        DueTime: { lt: new Date(Date.now() + 86_400_000) },
+      },
+      select: {
+        UsageKey: true,
+        DueTime: true,
+        Resource: {
+          select: {
+            ManagedBy: true,
+            Item: { select: { Item: { select: { ItemName: true } } } },
+            Room: { select: { RoomName: true } },
+          },
+        },
+      },
+    });
+    for (const loan of dueBack) {
+      await this.notifications.returnToReceive(this.prisma, {
+        manageGroupKey: loan.Resource.ManagedBy,
+        usageKey: loan.UsageKey,
+        itemName: resourceName(loan.Resource),
+        due: loan.DueTime,
+      });
+    }
+
     return {
       affected: accounts.length,
       detail: `reminders synced for ${accounts.length} borrower(s) with open loans`,
@@ -344,6 +374,8 @@ export class CronService {
       where: { ResourceType: 'Room', AllowBorrow: true },
       select: {
         ResourceKey: true,
+        ManagedBy: true,
+        Room: { select: { RoomName: true } },
         CheckRounds: {
           orderBy: { OpenedAt: 'desc' },
           take: 1,
@@ -377,6 +409,15 @@ export class CronService {
       // the whole job.
       skipDuplicates: true,
     });
+
+    for (const room of due) {
+      await this.notifications.roomToCheck(this.prisma, {
+        manageGroupKey: room.ManagedBy,
+        resourceKey: room.ResourceKey,
+        roomName: room.Room?.RoomName ?? `room ${room.ResourceKey}`,
+        dueAt,
+      });
+    }
 
     return {
       affected: count,

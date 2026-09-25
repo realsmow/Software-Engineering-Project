@@ -89,7 +89,8 @@ export const NotificationType = {
   RetirementRequested: 'RetirementRequested',
   RetirementDecided: 'RetirementDecided',
   SupervisorApprovalNeeded: 'SupervisorApprovalNeeded',
-  AppealFiled: 'AppealFiled'
+  AppealFiled: 'AppealFiled',
+  StaffTask: 'StaffTask'
 } as const
 
 export type NotificationType = (typeof NotificationType)[keyof typeof NotificationType]

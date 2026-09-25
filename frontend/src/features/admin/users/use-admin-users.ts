@@ -50,6 +50,17 @@ export function useUserDetail(id: string | null) {
   });
 }
 
+/** FR-ADM-01: the account's loans, newest first. */
+export function useUserLoans(id: string | null) {
+  const trpc = useTRPCClient();
+
+  return useQuery({
+    queryKey: [...ADMIN_USERS_KEY, "loans", id],
+    enabled: id !== null,
+    queryFn: () => trpc.admin.getUserLoans.query({ id: Number(id) }),
+  });
+}
+
 /** Shared by every mutation below: refetch the list once the server has spoken. */
 function useInvalidateUsers() {
   const queryClient = useQueryClient();

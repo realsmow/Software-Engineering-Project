@@ -49,6 +49,8 @@ function service(options: {
       groupBy: jest.fn().mockResolvedValue(options.usageCounts ?? []),
     },
     itemIndiv: { findMany: jest.fn().mockResolvedValue(options.units ?? []) },
+    inspection: { findMany: jest.fn().mockResolvedValue([]) },
+    reservations: { findMany: jest.fn().mockResolvedValue([]) },
   } as unknown as PrismaService;
 
   const staffScope = {

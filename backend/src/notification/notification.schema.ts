@@ -26,6 +26,7 @@ export const notificationType = z.enum([
   'retirement_decided',
   'supervisor_approval_needed',
   'appeal_filed',
+  'staff_task',
 ]);
 
 export type NotificationTypeWire = z.infer<typeof notificationType>;
@@ -50,6 +51,7 @@ const TO_WIRE: Record<DbNotificationType, NotificationTypeWire> = {
   RetirementDecided: 'retirement_decided',
   SupervisorApprovalNeeded: 'supervisor_approval_needed',
   AppealFiled: 'appeal_filed',
+  StaffTask: 'staff_task',
 };
 
 export function toWireType(type: DbNotificationType): NotificationTypeWire {

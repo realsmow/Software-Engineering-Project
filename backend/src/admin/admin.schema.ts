@@ -10,6 +10,18 @@ import { creditTier, userRole } from '../common/schemas/status.schema';
 /** Every admin procedure that addresses one account takes this. */
 export const accountIdInput = z.object({ id: dbId });
 
+/** FR-ADM-01: one account's loans, newest first. */
+export const userLoanHistory = z.array(
+  z.object({
+    id: z.number().int(),
+    itemName: z.string(),
+    status: z.string(),
+    checkoutTime: z.string(),
+    dueTime: z.string(),
+    checkInTime: z.string().nullable(),
+  }),
+);
+
 /**
  * Account status.
  *
@@ -169,7 +181,17 @@ export const borrowRuleSetting = z.object({
   penalties: z.array(penaltyRuleSetting),
 });
 
+/** FR-ADM-04: the counter's day in Bangkok hours; loans fall due at `end`. */
+export const workHoursSetting = z
+  .object({
+    start: z.number().int().min(0).max(23),
+    end: z.number().int().min(1).max(23),
+  })
+  .refine((h) => h.start < h.end, { message: 'start must be before end' });
+export type WorkHoursSetting = z.infer<typeof workHoursSetting>;
+
 export const lendingSettingsOutput = z.object({
+  workHours: workHoursSetting,
   creditTiers: z.array(creditTierSetting),
   borrowRules: z.array(borrowRuleSetting),
 });
