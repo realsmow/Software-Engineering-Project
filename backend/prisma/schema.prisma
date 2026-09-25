@@ -627,6 +627,8 @@ model UsageLog {
   /// the catalogue's aggregate query; unindexed it is a seq scan of UsageLog
   /// (100k+ rows under the load-test dataset) every time.
   @@index([ResourceKey, CurrentStatus])
+
+  @@index([CurrentStatus])
 }
 
 model ExtensionRequest {

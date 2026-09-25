@@ -2,6 +2,7 @@ import { ItemService } from './item.service';
 import { matchingRules } from '../common/authority/eligibility.service';
 import type { PrismaService } from '../prisma.service';
 import type { TrpcUser } from '../trpc/context';
+import { sqlAggregates } from './light-row.testing';
 
 /**
  * The catalogue used to list a type as "5 available" while every request for
@@ -99,6 +100,7 @@ function lightRows() {
     id: row.ItemKey,
     name: row.ItemName,
     creditWeight: row.CreditWeight,
+    ...sqlAggregates(row.Items),
     totalUnits: row.Items.length,
     availableUnits: row.Items.filter(
       (u) =>

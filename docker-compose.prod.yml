@@ -1,0 +1,76 @@
+# Production deployment. Not for local development - see backend/docker-compose.yml
+# for the dev stack (postgres/mongodb/mailhog).
+#
+# No mongodb: nothing in the codebase uses it.
+#
+# Usage: docker compose -f docker-compose.prod.yml up -d --build
+# See docs/deploy.md.
+
+services:
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      POSTGRES_DB: app
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    # No published port: only the backend container talks to postgres.
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+    restart: unless-stopped
+    env_file:
+      - backend/.env.production
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - backend_media:/app/media
+    # Cron jobs run in-process (cron.service.ts) - exactly one replica, or
+    # scheduled jobs fire once per replica instead of once per schedule.
+    deploy:
+      replicas: 1
+
+  # NFR-REL-03: database + uploaded photos backed up every day at 03:00
+  # (Bangkok). Files land in BACKUP_DIR on the host so they can be copied
+  # off the server. First check after deploying:
+  #   docker compose -f docker-compose.prod.yml run --rm backup now
+  backup:
+    image: postgres:16
+    restart: unless-stopped
+    entrypoint: ["/bin/sh", "/scripts/backup.sh"]
+    environment:
+      PGHOST: postgres
+      PGUSER: postgres
+      PGPASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      PGDATABASE: app
+      BACKUP_KEEP_DAYS: ${BACKUP_KEEP_DAYS:-14}
+      TZ: Asia/Bangkok
+    volumes:
+      - ./scripts/backup.sh:/scripts/backup.sh:ro
+      - backend_media:/media:ro
+      - ${BACKUP_DIR:-./backups}:/backups
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
+  backend_media:

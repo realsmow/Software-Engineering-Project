@@ -70,7 +70,7 @@ export interface RoomRow {
   Resource: ResourceRow;
 }
 
-function toOwner(group: ManagementGroupRow) {
+export function toOwner(group: ManagementGroupRow) {
   return {
     id: group.ManageGroupKey,
     name: group.Branch?.BranchName ?? group.Club?.ClubName ?? null,

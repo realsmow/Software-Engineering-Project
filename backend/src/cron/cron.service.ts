@@ -394,19 +394,45 @@ export class CronService {
       },
       select: { ReservationKey: true },
     });
-    if (stale.length === 0) {
-      return { affected: 0, detail: 'no uncollected requests past their hold' };
+    const keys = stale.map((r) => r.ReservationKey);
+    if (keys.length > 0) {
+      await this.prisma.reservations.updateMany({
+        where: { ReservationKey: { in: keys } },
+        data: { ApproveStatus: 'Canceled' },
+      });
     }
 
-    const keys = stale.map((r) => r.ReservationKey);
-    await this.prisma.reservations.updateMany({
-      where: { ReservationKey: { in: keys } },
-      data: { ApproveStatus: 'Canceled' },
+    // FR-PKP-05: a unit already set aside for a no-show is released too. The
+    // Prepared row never left the counter, so it is removed (with any pickup
+    // photo taken for it) rather than kept as a loan that never happened.
+    const noShows = await this.prisma.usageLog.findMany({
+      where: {
+        CurrentStatus: 'Prepared',
+        Reservation: {
+          ApproveStatus: 'Approved',
+          ReservationExpiration: { lt: now },
+        },
+      },
+      select: { UsageKey: true, ReservationKey: true },
     });
+    for (const usage of noShows) {
+      await this.prisma.$transaction([
+        this.prisma.images.deleteMany({ where: { UsageKey: usage.UsageKey } }),
+        this.prisma.usageLog.delete({ where: { UsageKey: usage.UsageKey } }),
+        this.prisma.reservations.update({
+          where: { ReservationKey: usage.ReservationKey! },
+          data: { ApproveStatus: 'Canceled' },
+        }),
+      ]);
+    }
 
+    const released = keys.length + noShows.length;
     return {
-      affected: keys.length,
-      detail: `${keys.length} uncollected request(s) released back to the pool`,
+      affected: released,
+      detail:
+        released === 0
+          ? 'no uncollected requests past their hold'
+          : `${keys.length} uncollected request(s) and ${noShows.length} prepared no-show(s) released back to the pool`,
     };
   }
 
