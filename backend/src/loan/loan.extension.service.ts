@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import type { Prisma } from '../generated/prisma/client';
 import { PrismaService } from '../prisma.service';
+import { AuditService } from '../common/audit/audit.service';
 import { StaffScopeService } from '../common/authority/staff-scope.service';
 import { CreditTierService } from '../common/credit/credit-tier.service';
 import { EligibilityService } from '../common/authority/eligibility.service';
@@ -126,6 +127,7 @@ export class LoanExtensionService {
     private readonly creditTiers: CreditTierService,
     private readonly eligibility: EligibilityService,
     private readonly notifications: NotificationService,
+    private readonly audit: AuditService,
   ) {}
 
   // =========================================================================
@@ -352,6 +354,13 @@ export class LoanExtensionService {
       return row.ExtensionKey;
     });
 
+    await this.audit.record(
+      { accountKey: user.accountKey },
+      'create',
+      `extension/${extensionKey}`,
+      `Requested extension to ${requestedDue.toISOString()} on loan/${usage.UsageKey}${approved ? ', auto-approved' : ''}`,
+    );
+
     return this.renderOne(extensionKey);
   }
 
@@ -408,6 +417,13 @@ export class LoanExtensionService {
       });
       await this.clearPendingPointer(tx, row);
     });
+
+    await this.audit.record(
+      { accountKey: user.accountKey },
+      'update',
+      `extension/${input.extensionKey}`,
+      'Borrower withdrew the pending extension request',
+    );
 
     return this.renderOne(input.extensionKey);
   }
@@ -594,6 +610,13 @@ export class LoanExtensionService {
         });
       }
     });
+
+    await this.audit.record(
+      { accountKey: user.accountKey },
+      'update',
+      `extension/${input.extensionKey}`,
+      `${approved ? 'Approved' : 'Rejected'} extension on loan/${row.UsageKey}, condition ${input.condition}${input.note ? `: ${input.note}` : ''}`,
+    );
 
     return this.renderOne(input.extensionKey);
   }

@@ -8,24 +8,27 @@ import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { DataTable, type Column } from "@/components/ui/data-table";
 import { BUSINESS, ROUTES } from "@/constants";
+import { ImageThumb } from "@/components/shared/image-thumb";
+import { todayLocalDayKey } from "@/lib/datetime";
 import { cn } from "@/lib/utils";
 import {
-  BUILDINGS,
   CAPACITY_BANDS,
-  ROOM_TYPES,
+  TIME_SLOTS,
   activeRoomBookings,
-  buildingName,
   capacityBand,
-  takenSlotsOf,
   type MyRequest,
-  type Room,
 } from "../mock-data";
 import { FacetFilters, type FilterGroup } from "../facet-filters";
 import { useMyRequests } from "../loans/use-my-requests";
-import { useRooms } from "./use-rooms";
+import type { Room } from "./room.adapter";
+import { useFreeSlots, useRooms } from "./use-rooms";
 
-/** Facet groups, in rail order. Keys namespace the option keys ("type:lab"). */
-const GROUP_KEYS = ["bld", "cap"] as const;
+/**
+ * Facet groups, in rail order. Capacity only: the building and room-type
+ * facets the mock had sat on columns RoomInfo does not have, and location is
+ * free text, so it is matched by the search box instead.
+ */
+const GROUP_KEYS = ["cap"] as const;
 type GroupKey = (typeof GROUP_KEYS)[number];
 
 /** Matches the equipment catalog so both browse pages page identically. */
@@ -47,17 +50,15 @@ export default function RoomListPage() {
   const { requests } = useMyRequests();
 
   /**
-   * Hours left today, counted against live bookings rather than read off the
-   * seeded `freeSlots`. Sending a request holds the room immediately, so the
-   * count has to drop the moment a booking is made - otherwise the list keeps
-   * advertising hours the booking page will refuse.
+   * Slots still open today, from the server. A pending booking already holds
+   * its slots there, so the count drops the moment one is sent without this
+   * page having to know about it. Null until that room's day has loaded, so
+   * nothing reads "fully booked" before it is known; zero for a room that is
+   * closed, whatever its slots say.
    */
-  const freeOf = useMemo(() => {
-    const byRoom = new Map(
-      rooms.map((r) => [r.id, r.totalSlots - takenSlotsOf(r, requests).size] as const),
-    );
-    return (room: Room) => byRoom.get(room.id) ?? room.freeSlots;
-  }, [rooms, requests]);
+  const freeByRoom = useFreeSlots(rooms, todayLocalDayKey());
+  const freeOf = (room: Room): number | null =>
+    room.bookable ? (freeByRoom.get(room.id) ?? null) : 0;
 
   /**
    * The booking already holding a room, once the borrower is at their limit.
@@ -73,19 +74,10 @@ export default function RoomListPage() {
   const [filtersOpen, setFiltersOpen] = useState(false);
 
   const groups = useMemo<FilterGroup[]>(() => {
-    const countBy = (group: GroupKey, id: string) =>
-      rooms.filter((r) => facetOf(r, group) === id).length;
+    const countBy = (_group: GroupKey, id: string) =>
+      rooms.filter((r) => facetOf(r) === id).length;
 
     return [
-      {
-        key: "bld",
-        label: t("borrower.rooms.fLocation"),
-        options: BUILDINGS.map((b) => ({
-          key: `bld:${b.id}`,
-          label: b.name,
-          count: countBy("bld", b.id),
-        })),
-      },
       {
         key: "cap",
         label: t("borrower.rooms.fCapacity"),
@@ -107,15 +99,12 @@ export default function RoomListPage() {
     })).filter((p) => p.keys.length > 0);
 
     const matched = rooms.filter((r) => {
-      if (q && !`${r.name} ${r.code}`.toLowerCase().includes(q)) return false;
-      return picked.every((p) => p.keys.includes(`${p.group}:${facetOf(r, p.group)}`));
+      if (q && !`${r.name} ${r.location ?? ""}`.toLowerCase().includes(q)) return false;
+      return picked.every((p) => p.keys.includes(`${p.group}:${facetOf(r)}`));
     });
 
-    // Bookable rooms first, then the ones with the most slots left today.
-    return [...matched].sort(
-      (a, b) =>
-        Number(freeOf(b) > 0) - Number(freeOf(a) > 0) || freeOf(b) - freeOf(a),
-    );
+    // Rooms with slots left first, most first; unknown counts sort last.
+    return [...matched].sort((a, b) => (freeOf(b) ?? -1) - (freeOf(a) ?? -1));
   }, [rooms, query, selected, freeOf]);
 
   const chips = useMemo(
@@ -148,10 +137,12 @@ export default function RoomListPage() {
       header: t("borrower.rooms.colRoom"),
       render: (r) => (
         <div className="flex items-center gap-3">
-          <Thumb />
+          <ImageThumb src={r.imageUrl} alt={r.name} size={44} icon={Building2} />
           <div className="min-w-0">
             <div className="font-medium text-foreground">{r.name}</div>
-            <div className="mt-0.5 font-mono text-[11px] text-t4">{r.code}</div>
+            {r.description ? (
+              <div className="mt-0.5 truncate text-[11px] text-t4">{r.description}</div>
+            ) : null}
           </div>
         </div>
       ),
@@ -160,21 +151,21 @@ export default function RoomListPage() {
       key: "bld",
       header: t("borrower.rooms.colLocation"),
       className: "whitespace-nowrap",
-      render: (r) => <span className="text-t2">{buildingName(r.buildingId)}</span>,
+      render: (r) => <span className="text-t2">{r.location ?? "-"}</span>,
     },
     {
       key: "cap",
       header: t("borrower.rooms.colCap"),
       align: "right",
       className: "whitespace-nowrap",
-      render: (r) => <span className="font-mono text-xs text-t2">{r.capacity}</span>,
+      render: (r) => <span className="font-mono text-xs text-t2">{r.capacity ?? "-"}</span>,
     },
     {
       key: "slots",
       header: t("borrower.rooms.colSlotFree"),
       align: "right",
       className: "whitespace-nowrap",
-      render: (r) => <SlotCount room={r} free={freeOf(r)} />,
+      render: (r) => <SlotCount free={freeOf(r)} />,
     },
     {
       key: "book",
@@ -452,7 +443,7 @@ function RoomCard({
   onBook,
 }: {
   room: Room;
-  free: number;
+  free: number | null;
   held: boolean;
   onBook: () => void;
 }) {
@@ -460,20 +451,22 @@ function RoomCard({
   return (
     <div className="rounded-lg border border-border bg-card p-3.5 shadow-sm">
       <div className="flex items-start gap-3">
-        <Thumb size={64} />
+        <ImageThumb src={room.imageUrl} alt={room.name} size={64} icon={Building2} />
         <div className="min-w-0">
           <div className="text-sm font-semibold leading-snug text-foreground">{room.name}</div>
-          <div className="mt-1 font-mono text-[11px] text-t4">
-            {room.code} · {buildingName(room.buildingId)}
-          </div>
-          <div className="mt-1 text-xs text-t3">
-            {t(roomTypeKey(room))} · {t("borrower.rooms.seats", { count: room.capacity })}
-          </div>
+          {room.location ? (
+            <div className="mt-1 text-[11px] text-t4">{room.location}</div>
+          ) : null}
+          {room.capacity !== null ? (
+            <div className="mt-1 text-xs text-t3">
+              {t("borrower.rooms.seats", { count: room.capacity })}
+            </div>
+          ) : null}
         </div>
       </div>
 
       <div className="mt-2.5 text-xs">
-        <SlotCount room={room} free={free} />
+        <SlotCount free={free} />
       </div>
 
       <BookButton free={free} held={held} className="mt-3 h-11 w-full" onBook={onBook} />
@@ -488,8 +481,8 @@ function BookButton({
   className,
   onBook,
 }: {
-  /** Hours still open today. */
-  free: number;
+  /** Slots still open today; null while it is loading. */
+  free: number | null;
   /** True when another booking already holds this borrower's one slot. */
   held: boolean;
   size?: "sm";
@@ -511,7 +504,7 @@ function BookButton({
       size={size}
       variant={size === "sm" ? "outline" : "default"}
       className={className}
-      disabled={full || held}
+      disabled={full || held || free === null}
       onClick={onBook}
     >
       {label}
@@ -520,8 +513,9 @@ function BookButton({
 }
 
 /** Free slots today, dimmed once the room is fully booked. */
-function SlotCount({ room, free }: { room: Room; free: number }) {
+function SlotCount({ free }: { free: number | null }) {
   const { t } = useTranslation();
+  if (free === null) return <span className="font-mono text-xs text-t4">-</span>;
   return (
     <span
       className={cn(
@@ -529,7 +523,7 @@ function SlotCount({ room, free }: { room: Room; free: number }) {
         free === 0 ? "text-t4" : "text-foreground",
       )}
     >
-      {t("borrower.rooms.slots", { free, total: room.totalSlots })}
+      {t("borrower.rooms.slots", { free, total: TIME_SLOTS.length })}
     </span>
   );
 }
@@ -549,25 +543,7 @@ function EmptyState({ onClear }: { onClear: () => void }) {
   );
 }
 
-/** Photo placeholder - room images land with the upload feature. */
-function Thumb({ size = 44 }: { size?: number }) {
-  return (
-    <div
-      className="flex shrink-0 items-center justify-center rounded border border-border bg-surface-inset text-t4"
-      style={{ width: size, height: size }}
-      aria-hidden
-    >
-      <Building2 size={size < 56 ? 18 : 24} strokeWidth={1.6} />
-    </div>
-  );
-}
-
-function roomTypeKey(room: Room): string {
-  const def = ROOM_TYPES.find((rt) => rt.id === room.type);
-  return `borrower.rooms.${def?.labelKey ?? "typeLab"}`;
-}
-
-function facetOf(room: Room, group: GroupKey): string {
-  if (group === "bld") return room.buildingId;
-  return capacityBand(room.capacity);
+/** A room nobody has measured has no band, so no capacity filter matches it. */
+function facetOf(room: Room): string | null {
+  return room.capacity === null ? null : capacityBand(room.capacity);
 }

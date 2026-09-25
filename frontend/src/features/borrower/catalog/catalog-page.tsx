@@ -159,7 +159,8 @@ export default function CatalogPage() {
 
     const list = items.filter((it) => {
       if (q && !`${it.name} ${it.code}`.toLowerCase().includes(q)) return false;
-      if (availableOnly && it.availableUnits === 0) return false;
+      // Available to this borrower: in stock and something they may borrow.
+      if (availableOnly && (it.availableUnits === 0 || !it.eligible)) return false;
       return picked.every((p) => p.keys.includes(`${p.group}:${facetOf(it, p.group)}`));
     });
 
@@ -261,12 +262,19 @@ export default function CatalogPage() {
         // it is where the tooltip has to live for the same reason.
         <span
           className="inline-flex"
-          title={atCap(e) ? t("borrower.catalog.addCapped") : undefined}
+          title={
+            !e.eligible
+              ? t("borrower.catalog.notEligibleHint")
+              : atCap(e)
+                ? t("borrower.catalog.addCapped")
+                : undefined
+          }
           onClick={(ev) => ev.stopPropagation()}
         >
           <AddButton
             qty={qtyOf(e.id)}
             capped={atCap(e)}
+            blocked={!e.eligible}
             size="sm"
             onDecrease={() => decreaseItem(e)}
             onAdd={(ev) => {
@@ -713,6 +721,7 @@ function ItemCard({
         <AddButton
           qty={qty}
           capped={capped}
+          blocked={!item.eligible}
           variant="default"
           className="h-10 flex-1"
           onAdd={onAdd}

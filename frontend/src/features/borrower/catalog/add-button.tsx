@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 export function AddButton({
   qty,
   capped,
+  blocked = false,
   size,
   variant = "outline",
   className,
@@ -21,6 +22,11 @@ export function AddButton({
 }: {
   qty: number;
   capped: boolean;
+  /**
+   * The borrower may not borrow this at all. Closed, and says so, rather than
+   * letting them fill a request the server will refuse with NOT_ELIGIBLE.
+   */
+  blocked?: boolean;
   size?: "sm";
   /** Look to use before anything is selected; the selected look is fixed. */
   variant?: "outline" | "default";
@@ -65,15 +71,19 @@ export function AddButton({
           selected &&
             "rounded-l-none border-accent border-l-0 bg-transparent text-accent hover:bg-accent hover:text-white",
         )}
-        disabled={capped}
+        disabled={capped || blocked}
         onClick={onAdd}
       >
-        {selected ? (
+        {blocked ? null : selected ? (
           <Check size={icon} strokeWidth={2.6} />
         ) : (
           <Plus size={icon} strokeWidth={2.2} />
         )}
-        {selected ? t("borrower.catalog.selected", { count: qty }) : t("borrower.catalog.add")}
+        {blocked
+          ? t("borrower.catalog.notEligible")
+          : selected
+            ? t("borrower.catalog.selected", { count: qty })
+            : t("borrower.catalog.add")}
       </Button>
     </span>
   );

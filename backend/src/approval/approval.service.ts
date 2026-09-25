@@ -2,6 +2,7 @@ import { toBorrowerRef } from '../loan/loan.schema';
 import { Injectable } from '@nestjs/common';
 import type { Prisma } from '../generated/prisma/client';
 import { PrismaService } from '../prisma.service';
+import { AuditService } from '../common/audit/audit.service';
 import { StaffScopeService } from '../common/authority/staff-scope.service';
 import { CreditTierService } from '../common/credit/credit-tier.service';
 import {
@@ -90,6 +91,7 @@ export class ApprovalService {
     private readonly creditTiers: CreditTierService,
     private readonly requests: LoanRequestService,
     private readonly notifications: NotificationService,
+    private readonly audit: AuditService,
   ) {}
 
   // =========================================================================
@@ -250,7 +252,8 @@ export class ApprovalService {
             ApprovedBy: user.accountKey,
             ApprovedAt: now,
             ResolvedAt: now,
-            Reason: input.reason ?? row.Reason,
+            // The borrower's Reason stays; the decider's goes beside it.
+            DecisionNote: input.reason ?? null,
           },
         });
 
@@ -261,6 +264,13 @@ export class ApprovalService {
           reason: input.reason,
         });
       });
+
+      await this.audit.record(
+        { accountKey: user.accountKey },
+        'update',
+        `reservation/${input.reservationKey}`,
+        `Rejected request${input.reason ? `: ${input.reason}` : ''}`,
+      );
 
       return {
         request: await this.requests.getAsDecider(input.reservationKey),
@@ -366,6 +376,13 @@ export class ApprovalService {
 
       return clashes;
     });
+
+    await this.audit.record(
+      { accountKey: user.accountKey },
+      'update',
+      `reservation/${input.reservationKey}`,
+      `Approved request${cancelled.length > 0 ? `, cancelled ${cancelled.length} clashing request(s)` : ''}`,
+    );
 
     return {
       request: await this.requests.getAsDecider(input.reservationKey),

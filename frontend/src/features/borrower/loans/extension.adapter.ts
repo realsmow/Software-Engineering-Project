@@ -1,3 +1,5 @@
+import type { Tier } from "@/types/domain";
+
 /**
  * The extension shapes the server sends (`extensionOptionsOutput` and
  * `extensionOutput` in backend/src/loan/loan.schema.ts).
@@ -9,7 +11,8 @@
  * now answers and this file only translates.
  */
 export type ExtensionRoute = "auto" | "staff" | "supervisor";
-export type ApproveStatus = "Pending" | "Approved" | "Rejected" | "Canceled" | "Expired";
+/** `approveStatus` in backend/src/common/schemas/status.schema.ts. */
+export type ApproveStatus = "Pending" | "Approved" | "Rejected" | "Canceled";
 
 export interface ServerExtensionOptions {
   usageKey: number;
@@ -35,4 +38,15 @@ export interface ServerExtension {
   requiresInspection: boolean;
   autoApproved: boolean;
   extendNo: number | null;
+  previousDueAt: string;
+  requestedDueAt: string;
+  /** The loan's due date now; already moved when the request was auto-granted. */
+  dueAt: string;
+  requestedAt: string;
+  resolvedAt: string | null;
+  itemName: string | null;
+  serialNo: string | null;
+  tier: Tier | null;
+  extensionsUsed: number;
+  extensionsAllowed: number;
 }

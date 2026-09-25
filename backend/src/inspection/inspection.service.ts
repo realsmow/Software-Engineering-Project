@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import type { Prisma } from '../generated/prisma/client';
 import { PrismaService } from '../prisma.service';
+import { AuditService } from '../common/audit/audit.service';
 import { StaffScopeService } from '../common/authority/staff-scope.service';
 import { ImageService } from '../image/image.service';
 import { PenaltyService } from '../common/penalty/penalty.service';
@@ -98,6 +99,7 @@ export class InspectionService {
     // Evidence photos are stored relative and served absolute, same as the
     // catalogue ones — see image.schema.ts.
     private readonly images: ImageService,
+    private readonly audit: AuditService,
   ) {}
 
   // =========================================================================
@@ -366,6 +368,13 @@ export class InspectionService {
       return inspection.InspectionKey;
     });
 
+    await this.audit.record(
+      { accountKey: user.accountKey },
+      'update',
+      `inspection/${inspectionKey}`,
+      `Graded loan/${usage.UsageKey} as ${condition}, penalty ${quote.amount} credit${input.note ? `: ${input.note}` : ''}`,
+    );
+
     return this.readInspectionOutput(inspectionKey, !unusable);
   }
 
@@ -471,6 +480,13 @@ export class InspectionService {
 
       return log.ConditionKey;
     });
+
+    await this.audit.record(
+      { accountKey: user.accountKey },
+      'update',
+      `room/${input.resourceKey}`,
+      `Recorded room check, condition ${input.condition}${input.note ? `: ${input.note}` : ''}`,
+    );
 
     return {
       resourceKey: input.resourceKey,
@@ -640,6 +656,13 @@ export class InspectionService {
       return repair.RepairKey;
     });
 
+    await this.audit.record(
+      { accountKey: user.accountKey },
+      'update',
+      `unit/${input.resourceKey}`,
+      `Sent to repair (repair/${repairKey})${input.note ? `: ${input.note}` : ''}`,
+    );
+
     return this.readRepair(repairKey);
   }
 
@@ -692,6 +715,13 @@ export class InspectionService {
         },
       });
     });
+
+    await this.audit.record(
+      { accountKey: user.accountKey },
+      'update',
+      `unit/${repair.ResourceKey}`,
+      `Finished repair/${input.repairKey}, condition ${input.condition}${input.note ? `: ${input.note}` : ''}`,
+    );
 
     return this.readRepair(input.repairKey);
   }

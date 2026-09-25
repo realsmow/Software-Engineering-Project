@@ -7,6 +7,11 @@ import {
   type ItemUnitRow,
 } from './item.mapper';
 
+// The mapper builds everything but `eligible`, which depends on who is asking
+// and is added by ItemService; these are the shapes it is responsible for.
+const mappedSummary = itemSummary.omit({ eligible: true });
+const mappedDetail = itemDetail.omit({ eligible: true });
+
 const GROUP = {
   ManageGroupKey: 7,
   GroupType: 'Faculty' as const,
@@ -36,7 +41,7 @@ function unit(overrides: {
       },
       ManagementGroup: GROUP,
       CurrentCondition: { Condition: 'Normal' },
-      UsageLogs: overrides.dueAt ? [{ DueTime: overrides.dueAt }] : [],
+      UsageLogs: overrides.dueAt ? [{ DueTime: overrides.dueAt, CurrentStatus: 'Lended' as const }] : [],
     },
   };
 }
@@ -55,7 +60,7 @@ function itemRow(units: ItemUnitRow[], creditWeight = 5): ItemTypeRow {
 describe('toItemSummary', () => {
   it('produces a schema-valid summary', () => {
     expect(
-      itemSummary.safeParse(toItemSummary(itemRow([unit({})]))).success,
+      mappedSummary.safeParse(toItemSummary(itemRow([unit({})]))).success,
     ).toBe(true);
   });
 
@@ -209,7 +214,7 @@ describe('toItemDetail', () => {
       ]),
     );
 
-    expect(itemDetail.safeParse(detail).success).toBe(true);
+    expect(mappedDetail.safeParse(detail).success).toBe(true);
     expect(detail.units).toHaveLength(2);
     expect(detail.units[1]).toMatchObject({
       resourceKey: 101,
@@ -225,6 +230,50 @@ describe('toItemDetail', () => {
     noCondition.Resource.CurrentCondition = null;
 
     expect(toItemDetail(itemRow([noCondition])).units[0].condition).toBeNull();
+  });
+});
+
+describe('per-unit availability', () => {
+  const DAY = 86_400_000;
+
+  it('dates a unit out on loan by its due date plus its prep days', () => {
+    const due = new Date('2099-01-10T00:00:00Z');
+    const [out] = toItemDetail(itemRow([unit({ status: 'Lended', dueAt: due, prepDays: 2 })])).units;
+    // Before this field existed a lent unit had no date at all, and the detail
+    // page read the missing value as "available now".
+    expect(out.nextAvailableAt).toBe(new Date(due.getTime() + 2 * DAY).toISOString());
+  });
+
+  it('gives a unit on the shelf no ready date', () => {
+    const [free] = toItemDetail(itemRow([unit({})])).units;
+    expect(free.nextAvailableAt).toBeNull();
+  });
+
+  it('says nothing about a window nobody asked about', () => {
+    const [u] = toItemDetail(itemRow([unit({})])).units;
+    expect('availableForWindow' in u).toBe(false);
+  });
+
+  it('judges each unit against the window when one is given', () => {
+    const row = itemRow([
+      { ...unit({ tag: 'A' }), ResourceKey: 1 },
+      { ...unit({ tag: 'B' }), ResourceKey: 2 },
+      { ...unit({ tag: 'C', allowBorrow: false }), ResourceKey: 3 },
+    ]);
+    // 3 is "free" by the booking check but switched off, which no window fixes.
+    const detail = toItemDetail(row, new Set([1, 3]));
+
+    expect(detail.units.map((u) => u.availableForWindow)).toEqual([true, false, false]);
+    expect(detail.availableUnits).toBe(1);
+    expect(mappedDetail.safeParse(detail).success).toBe(true);
+  });
+
+  it('counts a unit out today as available for a later window it is back for', () => {
+    const lentNow = { ...unit({ status: 'Lended', dueAt: new Date('2099-01-01T00:00:00Z') }), ResourceKey: 9 };
+    const row = itemRow([lentNow]);
+
+    expect(toItemSummary(row).availableUnits).toBe(0);
+    expect(toItemDetail(row, new Set([9])).availableUnits).toBe(1);
   });
 });
 
@@ -263,5 +312,30 @@ describe('toRoomSummary', () => {
 
     const closed = { ...room, Resource: unit({ allowBorrow: false }).Resource };
     expect(toRoomSummary(closed).bookable).toBe(false);
+  });
+});
+
+describe('availability counts every active loan, as staff inventory does (audit #2)', () => {
+  const held = (status: 'Pending' | 'Prepared' | 'Lended' | 'Returned') => ({
+    ...unit({}),
+    Resource: {
+      ...unit({}).Resource,
+      UsageLogs: [{ DueTime: new Date('2099-01-10T00:00:00Z'), CurrentStatus: status }],
+    },
+  });
+
+  it.each(['Pending', 'Prepared', 'Lended', 'Returned'] as const)(
+    'a unit whose loan is %s is not available',
+    (status) => {
+      expect(toItemSummary(itemRow([held(status)])).availableUnits).toBe(0);
+    },
+  );
+
+  it('gives an ungraded return no ready date, and only a lent unit a due date', () => {
+    const [returned] = toItemDetail(itemRow([held('Returned')])).units;
+    expect(returned.nextAvailableAt).toBeNull();
+    expect(returned.dueAt).toBeNull();
+    const [prepared] = toItemDetail(itemRow([held('Prepared')])).units;
+    expect(prepared.dueAt).toBeNull();
   });
 });

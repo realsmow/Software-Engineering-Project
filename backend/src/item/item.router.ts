@@ -16,11 +16,13 @@ import {
   createItemUnitInput,
   createRoomInput,
   eligibilityRule,
+  eligibilityTargetInput,
   itemDetail,
   itemIdInput,
   itemTypeDetail,
   itemTypeIdInput,
   itemUnit,
+  listUnitsInput,
   itemUnitOutput,
   listItemsInput,
   listManagedItemsInput,
@@ -37,7 +39,7 @@ import {
   roomIdInput,
   roomOutput,
   roomSummary,
-  setTypeEligibilityInput,
+  setEligibilityInput,
   setUnitConditionInput,
   setUnitLendableInput,
   tierOptionOutput,
@@ -47,13 +49,15 @@ import {
   type CreateItemTypeInput,
   type CreateItemUnitInput,
   type CreateRoomInput,
+  type EligibilityTargetInput,
   type ListItemsInput,
+  type ListUnitsInput,
   type ListManagedItemsInput,
   type ListManagedRoomsInput,
   type ListManagedUnitsInput,
   type ListRoomsInput,
   type RoomAvailabilityInput,
-  type SetTypeEligibilityInput,
+  type SetEligibilityInput,
   type SetUnitConditionInput,
   type SetUnitLendableInput,
   type UpdateItemTypeInput,
@@ -104,15 +108,20 @@ export class ItemRouter {
    */
   @UseMiddlewares(AuthMiddleware)
   @Query({ input: listItemsInput, output: paginatedItems })
-  list(@Input() input: ListItemsInput) {
-    return this.itemService.list(input);
+  list(@Input() input: ListItemsInput, @Ctx() ctx: TrpcContext) {
+    return this.itemService.list(ctx.user!, input);
   }
 
   /** One equipment type with every unit, its condition and its due date. */
   @UseMiddlewares(AuthMiddleware)
-  @Query({ input: itemIdInput, output: itemDetail })
-  getById(@Input() input: { id: number }) {
-    return this.itemService.getById(input.id);
+  /**
+   * The item and every unit. Given the borrower's period, units and the count
+   * answer for that period, so the detail page agrees with the catalogue row
+   * the borrower clicked on.
+   */
+  @Query({ input: listUnitsInput, output: itemDetail })
+  getById(@Input() input: ListUnitsInput, @Ctx() ctx: TrpcContext) {
+    return this.itemService.getById(ctx.user!, input.id, input);
   }
 
   /**
@@ -127,13 +136,11 @@ export class ItemRouter {
 
   /** Units of one type — serial numbers, condition, and what is due back when. */
   @UseMiddlewares(AuthMiddleware)
-  @Query({ input: itemIdInput, output: z.array(itemUnit) })
-  listUnits(@Input() input: { id: number }) {
-    return this.itemService.listUnits(input.id);
+  @Query({ input: listUnitsInput, output: z.array(itemUnit) })
+  listUnits(@Input() input: ListUnitsInput, @Ctx() ctx: TrpcContext) {
+    return this.itemService.listUnits(ctx.user!, input);
   }
 
-  /** Not implemented — equipment has no category column or table. */
-  @UseMiddlewares(AuthMiddleware)
   /** Room and facility search. `q` matches name, description and location. */
   @UseMiddlewares(AuthMiddleware)
   @Query({ input: listRoomsInput, output: paginatedRooms })
@@ -186,8 +193,8 @@ export class ItemRouter {
    */
   @UseMiddlewares(StaffMiddleware)
   @Mutation({ input: createItemTypeInput, output: itemTypeDetail })
-  createType(@Input() input: CreateItemTypeInput) {
-    return this.management.createItemType(input);
+  createType(@Input() input: CreateItemTypeInput, @Ctx() ctx: TrpcContext) {
+    return this.management.createItemType(ctx.user!, input);
   }
 
   @UseMiddlewares(StaffMiddleware)
@@ -270,26 +277,24 @@ export class ItemRouter {
 
   // ── Eligibility ─────────────────────────────────────────────────────────
 
+  /** Takes exactly one of `itemKey` (a type) or `roomKey` (a room). */
   @UseMiddlewares(StaffMiddleware)
-  @Query({ input: itemTypeIdInput, output: z.array(eligibilityRule) })
+  @Query({ input: eligibilityTargetInput, output: z.array(eligibilityRule) })
   listEligibility(
-    @Input() input: { itemKey: number },
+    @Input() input: EligibilityTargetInput,
     @Ctx() ctx: TrpcContext,
   ) {
-    return this.management.listTypeEligibility(ctx.user!, input.itemKey);
+    return this.management.listEligibility(ctx.user!, input);
   }
 
-  /** Replaces the rule set wholesale — an empty list closes the type to everyone. */
+  /** Replaces the rule set wholesale. An empty list closes the type or room to everyone. */
   @UseMiddlewares(StaffMiddleware)
   @Mutation({
-    input: setTypeEligibilityInput,
+    input: setEligibilityInput,
     output: z.array(eligibilityRule),
   })
-  setEligibility(
-    @Input() input: SetTypeEligibilityInput,
-    @Ctx() ctx: TrpcContext,
-  ) {
-    return this.management.setTypeEligibility(ctx.user!, input);
+  setEligibility(@Input() input: SetEligibilityInput, @Ctx() ctx: TrpcContext) {
+    return this.management.setEligibility(ctx.user!, input);
   }
 
   // ── Reference data for the forms ────────────────────────────────────────

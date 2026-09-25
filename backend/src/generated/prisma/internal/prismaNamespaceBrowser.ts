@@ -362,6 +362,7 @@ export const ReservationsScalarFieldEnum = {
   ResourceKey: 'ResourceKey',
   ReservedBy: 'ReservedBy',
   Reason: 'Reason',
+  DecisionNote: 'DecisionNote',
   StartTime: 'StartTime',
   EndTime: 'EndTime',
   ApproveStatus: 'ApproveStatus',

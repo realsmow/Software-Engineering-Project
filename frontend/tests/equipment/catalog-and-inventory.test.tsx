@@ -106,6 +106,33 @@ describe("Module 5 borrower catalogue", () => {
     ]);
   });
 
+  it("closes the Add button on something the borrower may not borrow, and hides it from available-only", () => {
+    // The server used to list a type with no rules as available, and every
+    // request for it came back NOT_ELIGIBLE.
+    const closed = { ...AVAILABLE_ITEM, id: "closed-1", name: "Closed to this borrower", eligible: false };
+    vi.mocked(catalogHooks.useEquipmentTypes).mockReturnValue({
+      data: [closed, AVAILABLE_ITEM],
+      isLoading: false,
+    } as never);
+    render(
+      <MemoryRouter>
+        <CatalogPage />
+      </MemoryRouter>
+    );
+
+    // Available-only is on by default, and "available" means available to them.
+    expect(screen.queryByText(closed.name)).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getAllByLabelText(i18n.t("borrower.catalog.availableOnly"))[0]);
+    expect(screen.getAllByText(closed.name).length).toBeGreaterThan(0);
+
+    const blocked = screen.getAllByRole("button", { name: i18n.t("borrower.catalog.notEligible") });
+    expect(blocked.length).toBeGreaterThan(0);
+    blocked.forEach((button) => expect(button).toBeDisabled());
+    fireEvent.click(blocked[0]);
+    expect(useRequestDraft.getState().lines).toEqual([]);
+  });
+
   it("shows an empty state when an API result is loaded but no item matches", () => {
     vi.mocked(catalogHooks.useEquipmentTypes).mockReturnValue({
       data: [],

@@ -1,6 +1,7 @@
 import type { Prisma } from '../../generated/prisma/client';
 import { BusinessError } from '../errors/business-error';
 import { addDays } from '../schemas/datetime.schema';
+import { UNAVAILABLE_USAGE_STATES } from '../usage/usage-states';
 
 /**
  * Which reservation states still hold a unit.
@@ -57,6 +58,87 @@ export function clashingWindowFilter(
       ? {}
       : { ReservationKey: { not: excludeReservationKey } }),
   };
+}
+
+/**
+ * A Prisma filter for "a loan on this unit that is still out past `from`".
+ *
+ * The second half of the rule `loan.create` enforces: a unit physically out on
+ * an older loan blocks the window even with no reservation behind it, which is
+ * what a walk-in loan recorded at the counter looks like.
+ */
+export function heldUsageFilter(
+  resourceKey: number,
+  from: Date,
+): Prisma.UsageLogWhereInput {
+  return {
+    ResourceKey: resourceKey,
+    OR: [
+      {
+        CurrentStatus: {
+          in: UNAVAILABLE_USAGE_STATES.filter((s) => s !== 'Returned'),
+        },
+        DueTime: { gt: from },
+      },
+      // Back and not yet graded: nobody knows yet whether it can go out again,
+      // so it holds every window until staff have looked at it. Keyed on the
+      // due date instead, it read as free the moment it was handed back.
+      { CurrentStatus: 'Returned' },
+    ],
+  };
+}
+
+/** The Prisma calls `resourcesFreeInWindow` needs, and nothing else. */
+interface WindowReader {
+  reservations: {
+    findMany(args: {
+      where: Prisma.ReservationsWhereInput;
+      select: { ResourceKey: true };
+    }): Promise<{ ResourceKey: number }[]>;
+  };
+  usageLog: {
+    findMany(args: {
+      where: Prisma.UsageLogWhereInput;
+      select: { ResourceKey: true };
+    }): Promise<{ ResourceKey: number }[]>;
+  };
+}
+
+/**
+ * Which of these resources could be booked for `[startTime, endTime)`.
+ *
+ * The catalogue's answer to the same question `loan.create` asks one resource
+ * at a time, asked for many in two queries. It is built from the same two
+ * filters, clashingWindowFilter and heldUsageFilter, with each resource's own
+ * buffer, so the catalogue cannot offer a unit for a period that the request
+ * would then refuse.
+ */
+export async function resourcesFreeInWindow(
+  prisma: WindowReader,
+  resources: { ResourceKey: number; BufferTime: number }[],
+  startTime: Date,
+  endTime: Date,
+): Promise<Set<number>> {
+  if (resources.length === 0) return new Set();
+
+  const windows = resources.map((r) => ({
+    key: r.ResourceKey,
+    ...withBuffer(startTime, endTime, r.BufferTime),
+  }));
+
+  const [reserved, held] = await Promise.all([
+    prisma.reservations.findMany({
+      where: { OR: windows.map((w) => clashingWindowFilter(w.key, w.from, w.to)) },
+      select: { ResourceKey: true },
+    }),
+    prisma.usageLog.findMany({
+      where: { OR: windows.map((w) => heldUsageFilter(w.key, w.from)) },
+      select: { ResourceKey: true },
+    }),
+  ]);
+
+  const blocked = new Set([...reserved, ...held].map((row) => row.ResourceKey));
+  return new Set(windows.map((w) => w.key).filter((key) => !blocked.has(key)));
 }
 
 /**
