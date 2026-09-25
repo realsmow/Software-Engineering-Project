@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "test": "playwright test",
+    "test:traceability": "node scripts/check-test-traceability.mjs",
     "test:ui": "playwright test --ui",
     "test:report": "playwright show-report"
   },
