@@ -1,8 +1,22 @@
 import { NotificationService } from '../../src/notification/notification.service';
 
+function objectContaining(value: Record<string, unknown>): unknown {
+  return expect.objectContaining(value);
+}
+
+function stringMatching(pattern: RegExp): unknown {
+  return expect.stringMatching(pattern);
+}
+
+function stringContaining(value: string): unknown {
+  return expect.stringContaining(value);
+}
+
 describe('status notifications', () => {
   it('persists an approval notification for its borrower', async () => {
-    const upsert = jest.fn().mockResolvedValue(undefined);
+    const upsert = jest.fn((_args: unknown): Promise<void> =>
+      Promise.resolve(),
+    );
     const prisma = { notification: { upsert } };
     const service = new NotificationService(prisma as never);
 
@@ -21,11 +35,11 @@ describe('status notifications', () => {
           DedupeKey: 'reservation:77',
         },
       },
-      create: expect.objectContaining({
+      create: objectContaining({
         AccountKey: 42,
         NotificationType: 'RequestApproved',
-        Title: expect.stringMatching(/ได้รับการอนุมัติ/),
-        Body: expect.stringContaining('Laptop'),
+        Title: stringMatching(/ได้รับการอนุมัติ/),
+        Body: stringContaining('Laptop'),
         LinkTo: '/pickup',
         DedupeKey: 'reservation:77',
       }),

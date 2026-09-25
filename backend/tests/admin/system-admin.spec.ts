@@ -154,7 +154,11 @@ describe('IT admin system status, cron, config, and audit procedures', () => {
   });
 
   it('no longer accepts the removed jobs, or an unknown one', () => {
-    for (const job of ['rollupDailyStats', 'computeAvailability', 'unknownJob']) {
+    for (const job of [
+      'rollupDailyStats',
+      'computeAvailability',
+      'unknownJob',
+    ]) {
       expect(() => runCronJobInput.parse({ job })).toThrow();
     }
   });
@@ -201,8 +205,8 @@ describe('IT admin system status, cron, config, and audit procedures', () => {
 
     expect('updateConfig' in service).toBe(false);
     expect(
-      Object.getOwnPropertyNames(Object.getPrototypeOf(service)).filter((name) =>
-        /^(update|set|save|write).*Config$/i.test(name),
+      Object.getOwnPropertyNames(Object.getPrototypeOf(service)).filter(
+        (name) => /^(update|set|save|write).*Config$/i.test(name),
       ),
     ).toEqual([]);
   });

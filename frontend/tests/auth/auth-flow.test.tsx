@@ -1,6 +1,8 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, beforeEach, it, vi } from "vitest";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
+import type { KuLoginValues, LocalLoginValues } from "@/features/auth/login.schema";
+import { toClientUser, type ServerUser } from "@/features/auth/user.adapter";
 
 const mocks = vi.hoisted(() => ({
   login: vi.fn(),
@@ -43,7 +45,15 @@ vi.mock("react-i18next", () => ({
 }));
 
 vi.mock("@/features/auth/login-method-ku", () => ({
-  LoginMethodKu: ({ open, onToggle, onSubmit }: any) => (
+  LoginMethodKu: ({
+    open,
+    onToggle,
+    onSubmit,
+  }: {
+    open: boolean;
+    onToggle: () => void;
+    onSubmit: (values: KuLoginValues) => Promise<string | null | void> | string | null | void;
+  }) => (
     <>
       <button onClick={onToggle}>KU method</button>
       {open && <button onClick={() => onSubmit({ email: "student@ku.ac.th", password: "secret" })}>KU submit</button>}
@@ -51,7 +61,15 @@ vi.mock("@/features/auth/login-method-ku", () => ({
   ),
 }));
 vi.mock("@/features/auth/login-method-local", () => ({
-  LoginMethodLocal: ({ open, onToggle, onSubmit }: any) => (
+  LoginMethodLocal: ({
+    open,
+    onToggle,
+    onSubmit,
+  }: {
+    open: boolean;
+    onToggle: () => void;
+    onSubmit: (values: LocalLoginValues) => Promise<string | null | void> | string | null | void;
+  }) => (
     <>
       <button onClick={onToggle}>Local method</button>
       {open && <button onClick={() => onSubmit({ username: "staff01", password: "secret" })}>Local submit</button>}
@@ -66,10 +84,18 @@ import { ProtectedRoute } from "@/features/auth/protected-route";
 import { Sidebar } from "@/components/layout/sidebar";
 
 describe("Authentication flow — Module 1.4", () => {
-  const borrower = {
-    id: "1", studentId: "6410501234", firstName: "Test", lastName: "Student", name: "Test Student",
-    email: "student@ku.ac.th", role: "borrower" as const, facultyName: "CPE",
-    creditScore: 80, creditTier: "T1" as const, maxBorrowDays: 7, maxExtendTimes: 1,
+  const borrower: ServerUser = {
+    id: 1,
+    studentId: "6410501234",
+    firstName: "Test",
+    lastName: "Student",
+    email: "student@ku.ac.th",
+    role: "borrower",
+    facultyName: "CPE",
+    creditScore: 80,
+    creditTier: "D1",
+    maxBorrowDays: 7,
+    maxExtendTimes: 1,
   };
   const staff = { ...borrower, role: "staff" as const };
 
@@ -113,14 +139,14 @@ describe("Authentication flow — Module 1.4", () => {
   });
 
   it("1.4.5 auth.me failure clears the store for a signed-out session", async () => {
-    useAuthStore.setState({ user: { id: "1" } as any, isLoading: false });
+    useAuthStore.setState({ user: toClientUser(borrower), isLoading: false });
     mocks.me.mockRejectedValue(new Error("NOT_AUTHENTICATED"));
     render(<App />);
     await waitFor(() => expect(useAuthStore.getState().user).toBeNull());
   });
 
   it("1.4.6 logout calls auth.logout, clears store, and leaves authenticated state", async () => {
-    useAuthStore.setState({ user: borrower as any, isLoading: false });
+    useAuthStore.setState({ user: toClientUser(borrower), isLoading: false });
     render(<MemoryRouter initialEntries={["/home"]}><Sidebar /></MemoryRouter>);
     fireEvent.click(screen.getByRole("button", { name: "common.signOut" }));
     await waitFor(() => expect(mocks.logout).toHaveBeenCalledTimes(1));
@@ -143,7 +169,7 @@ describe("Authentication flow — Module 1.4", () => {
   });
 
   it("1.4.8 insufficient role is redirected away from role-protected content", () => {
-    useAuthStore.setState({ user: borrower as any, isLoading: false });
+    useAuthStore.setState({ user: toClientUser(borrower), isLoading: false });
     render(<MemoryRouter initialEntries={["/admin"]}><ProtectedRoute allowedRoles={["admin"]}><div>admin</div></ProtectedRoute></MemoryRouter>);
     expect(screen.queryByText("admin")).not.toBeInTheDocument();
   });

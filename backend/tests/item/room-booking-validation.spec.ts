@@ -1,4 +1,3 @@
-import { BusinessError } from '../../src/common/errors/business-error';
 import type { TrpcUser } from '../../src/trpc/context';
 import { ItemManagementService } from '../../src/item/item.management.service';
 
@@ -6,6 +5,10 @@ const ROOM_SLOT_MINUTES = 30;
 const MAX_ROOM_BOOKING_SLOTS = 6; // 3 hours
 const OPERATING_START_HOUR = 7; // 07:00
 const OPERATING_END_HOUR = 18; // 18:00 (last slot starts at 17:30)
+
+function objectContaining(value: Record<string, unknown>): unknown {
+  return expect.objectContaining(value);
+}
 
 function user(overrides: Partial<TrpcUser> = {}): TrpcUser {
   return {
@@ -62,9 +65,7 @@ function managementHarness() {
       createMany: jest.fn(),
       deleteMany: jest.fn(),
     },
-    $transaction: jest.fn(async (work: (client: typeof tx) => unknown) =>
-      work(tx),
-    ),
+    $transaction: jest.fn((work: (client: typeof tx) => unknown) => work(tx)),
   };
   const scope = {
     assertGroupInScope: jest.fn().mockResolvedValue(undefined),
@@ -121,9 +122,7 @@ function bookingSlots(startIndex: number, count: number): number[] {
 describe('Room booking validation — 30-minute grid & operating hours', () => {
   it('recognises valid 30-minute grid times within operating hours', () => {
     const slots = validGridSlots();
-    expect(slots.length).toBe(
-      (OPERATING_END_HOUR - OPERATING_START_HOUR) * 2,
-    );
+    expect(slots.length).toBe((OPERATING_END_HOUR - OPERATING_START_HOUR) * 2);
     expect(slots[0]).toBe('07:00');
     expect(slots[slots.length - 1]).toBe('17:30');
 
@@ -264,8 +263,8 @@ describe('Dynamic room eligibility after item.createRoom', () => {
 
     // The ResourceInfo row must be created with AllowBorrow: true
     expect(tx.resourceInfo.create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({
+      objectContaining({
+        data: objectContaining({
           AllowBorrow: true,
           ResourceType: 'Room',
           BorrowRule: 23,
@@ -313,10 +312,9 @@ describe('Dynamic room eligibility after item.createRoom', () => {
       tier: 'T3',
     });
     expect(tx.resourceInfo.create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({ AllowBorrow: false }),
+      objectContaining({
+        data: objectContaining({ AllowBorrow: false }),
       }),
     );
   });
 });
-

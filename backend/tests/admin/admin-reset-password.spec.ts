@@ -1,10 +1,17 @@
 import { AdminService } from '../../src/admin/admin.service';
 import { verifyPassword } from '../../src/common/crypto/password';
 
+type AccountUpdateArgs = {
+  where: { AccountKey: number };
+  data: { HashedPassword: string };
+};
+
 function buildService() {
   const prisma = {
     accountInfo: {
-      update: jest.fn(async (args) => ({ AccountKey: args.where.AccountKey })),
+      update: jest.fn((args: AccountUpdateArgs) => ({
+        AccountKey: args.where.AccountKey,
+      })),
     },
   };
   const sessions = { revokeAllForAccount: jest.fn().mockResolvedValue(true) };
@@ -18,7 +25,9 @@ function buildService() {
     null as never,
     null as never,
   );
-  jest.spyOn(service as any, 'assertAccountExists').mockResolvedValue(undefined);
+  jest
+    .spyOn(service as any, 'assertAccountExists')
+    .mockResolvedValue(undefined);
 
   return { service, prisma, sessions, audit };
 }

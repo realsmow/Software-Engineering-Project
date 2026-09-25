@@ -132,7 +132,10 @@ describe('AdminService user management', () => {
     });
 
     const authorityRole = await prisma.authorityRole.create({
-      data: { AuthorityName: unique('user-management-authority'), AuthorityLevel: 2 },
+      data: {
+        AuthorityName: unique('user-management-authority'),
+        AuthorityLevel: 2,
+      },
     });
     coverageAuthorityRoleKeys.add(authorityRole.AuthorityRoleKey);
 
@@ -377,16 +380,25 @@ describe('AdminService user management', () => {
 
   it('returns a typed not-found error for mutations targeting an unknown account', async () => {
     await expect(
-      adminService.updateUser({ id: 999_999_999, firstName: 'Nobody' }, adminActor),
+      adminService.updateUser(
+        { id: 999_999_999, firstName: 'Nobody' },
+        adminActor,
+      ),
     ).rejects.toMatchObject({ businessCode: 'USER_NOT_FOUND' });
     await expect(
       adminService.resetPassword({ id: 999_999_999 }, adminActor),
     ).rejects.toMatchObject({ businessCode: 'USER_NOT_FOUND' });
     await expect(
-      adminService.setUserBan({ id: 999_999_999, banned: true, days: 7 }, staffActor),
+      adminService.setUserBan(
+        { id: 999_999_999, banned: true, days: 7 },
+        staffActor,
+      ),
     ).rejects.toMatchObject({ businessCode: 'USER_NOT_FOUND' });
     await expect(
-      adminService.setUserActive({ id: 999_999_999, active: false }, adminActor),
+      adminService.setUserActive(
+        { id: 999_999_999, active: false },
+        adminActor,
+      ),
     ).rejects.toMatchObject({ businessCode: 'USER_NOT_FOUND' });
   });
 
@@ -429,10 +441,12 @@ describe('AdminService user management', () => {
       ],
     });
     expect(
-      (await prisma.accountInfo.findUnique({
-        where: { AccountKey: seededStaffKey },
-        select: { RoleKey: true },
-      }))?.RoleKey,
+      (
+        await prisma.accountInfo.findUnique({
+          where: { AccountKey: seededStaffKey },
+          select: { RoleKey: true },
+        })
+      )?.RoleKey,
     ).toBe(staffRoleKey);
   });
 
@@ -525,7 +539,10 @@ describe('AdminService user management', () => {
 
   it('prevents an administrator from disabling their own account', async () => {
     await expect(
-      adminService.setUserActive({ id: seededAdminKey, active: false }, adminActor),
+      adminService.setUserActive(
+        { id: seededAdminKey, active: false },
+        adminActor,
+      ),
     ).rejects.toMatchObject({ businessCode: 'CANNOT_MODIFY_SELF' });
   });
 
@@ -541,13 +558,17 @@ describe('AdminService user management', () => {
     expect(error.details).toMatchObject({
       accountKey: seededStaffKey,
       from: 'staff',
-      groups: [expect.objectContaining({ manageGroupKey: groupKey, losing: 'staff' })],
+      groups: [
+        expect.objectContaining({ manageGroupKey: groupKey, losing: 'staff' }),
+      ],
     });
     expect(
-      (await prisma.accountInfo.findUnique({
-        where: { AccountKey: seededStaffKey },
-        select: { IsActive: true },
-      }))?.IsActive,
+      (
+        await prisma.accountInfo.findUnique({
+          where: { AccountKey: seededStaffKey },
+          select: { IsActive: true },
+        })
+      )?.IsActive,
     ).toBe(true);
   });
 
@@ -555,17 +576,27 @@ describe('AdminService user management', () => {
     const { result } = await createBorrower();
 
     await expect(
-      adminService.setUserActive({ id: result.user.id, active: false }, adminActor),
+      adminService.setUserActive(
+        { id: result.user.id, active: false },
+        adminActor,
+      ),
     ).resolves.toEqual({ ok: true });
-    await expect(adminService.getUserById(result.user.id)).resolves.toMatchObject({
+    await expect(
+      adminService.getUserById(result.user.id),
+    ).resolves.toMatchObject({
       id: result.user.id,
       status: 'disabled',
     });
 
     await expect(
-      adminService.setUserActive({ id: result.user.id, active: true }, adminActor),
+      adminService.setUserActive(
+        { id: result.user.id, active: true },
+        adminActor,
+      ),
     ).resolves.toEqual({ ok: true });
-    await expect(adminService.getUserById(result.user.id)).resolves.toMatchObject({
+    await expect(
+      adminService.getUserById(result.user.id),
+    ).resolves.toMatchObject({
       id: result.user.id,
       status: 'active',
     });

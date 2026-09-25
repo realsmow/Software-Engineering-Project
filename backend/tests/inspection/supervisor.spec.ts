@@ -2,39 +2,50 @@ import assert from 'node:assert/strict';
 import { ApprovalRouter } from '../../src/approval/approval.router';
 import { InspectionService } from '../../src/inspection/inspection.service';
 
+type SupervisorDecision = {
+  decision: 'approve' | 'reject';
+  reason?: string;
+};
+
+type ItemSupervisorDecision = SupervisorDecision & { itemId: number };
+
+type RequestItem = { id: number; name: string };
+
 function buildInspectionService() {
   const prisma = {
-    $transaction: async (ops) => {
+    $transaction: (ops: unknown) => {
       if (Array.isArray(ops)) {
-        return [await ops[0], await ops[1]];
+        return Promise.all(ops as Promise<unknown>[]);
       }
       return ops;
     },
     images: {
-      findMany: async () => [
-        {
-          ImageKey: 1,
-          ImageURL: 'img-1.png',
-          SubmissionType: 'BeforePicture',
-          ActionTime: new Date('2026-09-01T12:00:00Z'),
-        },
-      ],
+      findMany: () =>
+        Promise.resolve([
+          {
+            ImageKey: 1,
+            ImageURL: 'img-1.png',
+            SubmissionType: 'BeforePicture',
+            ActionTime: new Date('2026-09-01T12:00:00Z'),
+          },
+        ]),
     },
     conditionLog: {
-      findMany: async () => [
-        {
-          ConditionKey: 5,
-          Condition: 'MinorDamage',
-          Notes: 'Handle slightly worn',
-          LoggedAt: new Date('2026-08-25T10:00:00Z'),
-        },
-        {
-          ConditionKey: 6,
-          Condition: 'Normal',
-          Notes: 'Returned clean',
-          LoggedAt: new Date('2026-08-28T10:00:00Z'),
-        },
-      ],
+      findMany: () =>
+        Promise.resolve([
+          {
+            ConditionKey: 5,
+            Condition: 'MinorDamage',
+            Notes: 'Handle slightly worn',
+            LoggedAt: new Date('2026-08-25T10:00:00Z'),
+          },
+          {
+            ConditionKey: 6,
+            Condition: 'Normal',
+            Notes: 'Returned clean',
+            LoggedAt: new Date('2026-08-28T10:00:00Z'),
+          },
+        ]),
     },
   };
 
@@ -68,14 +79,17 @@ function buildInspectionService() {
       },
       Room: null,
     },
-    CheckoutConditionLog: { Condition: 'Normal', Notes: 'Good condition on release' },
+    CheckoutConditionLog: {
+      Condition: 'Normal',
+      Notes: 'Good condition on release',
+    },
     Inspections: [],
   });
 
   return service;
 }
 
-function validateSupervisorDecision(decision) {
+function validateSupervisorDecision(decision: SupervisorDecision) {
   if (decision.decision === 'reject') {
     if (!decision.reason || !decision.reason.trim()) {
       throw new Error('Rejection reason is required before submit.');
@@ -84,7 +98,10 @@ function validateSupervisorDecision(decision) {
   return true;
 }
 
-function applySupervisorDecisions(request, decisions) {
+function applySupervisorDecisions(
+  request: { items: RequestItem[] },
+  decisions: ItemSupervisorDecision[],
+) {
   const approved: number[] = [];
   const rejected: { itemId: number; reason: string }[] = [];
 
@@ -99,7 +116,11 @@ function applySupervisorDecisions(request, decisions) {
     }
 
     if (decision.decision === 'reject') {
-      rejected.push({ itemId: item.id, reason: decision.reason.trim() });
+      const reason = decision.reason?.trim();
+      if (!reason) {
+        throw new Error('Rejection reason is required before submit.');
+      }
+      rejected.push({ itemId: item.id, reason });
     }
   }
 
@@ -120,13 +141,23 @@ function applySupervisorDecisions(request, decisions) {
   };
 }
 
-function validateSelfApproval(requesterId, approverId) {
+function validateSelfApproval(requesterId: number, approverId: number) {
   if (requesterId === approverId) {
     throw new Error('Approver must not be the same person as requester.');
   }
 }
 
-function approveRequest({ requesterId, approverId, now, itemId }) {
+function approveRequest({
+  requesterId,
+  approverId,
+  now,
+  itemId,
+}: {
+  requesterId: number;
+  approverId: number;
+  now: Date;
+  itemId: number;
+}) {
   validateSelfApproval(requesterId, approverId);
 
   return {
@@ -139,7 +170,15 @@ function approveRequest({ requesterId, approverId, now, itemId }) {
   };
 }
 
-function createStatusNotification({ borrowerId, requestId, status }) {
+function createStatusNotification({
+  borrowerId,
+  requestId,
+  status,
+}: {
+  borrowerId: number;
+  requestId: number;
+  status: string;
+}) {
   return {
     accountKey: borrowerId,
     notificationType: 'Approval',
@@ -174,7 +213,7 @@ it('Supervisor approves/rejects individual items within multi-item request (part
     ],
   };
 
-  const decisions = [
+  const decisions: ItemSupervisorDecision[] = [
     { itemId: 1, decision: 'approve' },
     { itemId: 2, decision: 'reject', reason: 'Unavailable in stock' },
   ];
@@ -183,7 +222,9 @@ it('Supervisor approves/rejects individual items within multi-item request (part
 
   assert.equal(result.status, 'partially-approved');
   assert.deepEqual(result.approved, [1]);
-  assert.deepEqual(result.rejected, [{ itemId: 2, reason: 'Unavailable in stock' }]);
+  assert.deepEqual(result.rejected, [
+    { itemId: 2, reason: 'Unavailable in stock' },
+  ]);
 });
 
 it('Rejection requires a reason to be entered before submit', () => {
@@ -197,8 +238,12 @@ it('Rejection requires a reason to be entered before submit', () => {
     /Rejection reason is required/i,
   );
 
-  assert.doesNotThrow(() => validateSupervisorDecision({ decision: 'reject', reason: 'Not available' }));
-  assert.doesNotThrow(() => validateSupervisorDecision({ decision: 'approve' }));
+  assert.doesNotThrow(() =>
+    validateSupervisorDecision({ decision: 'reject', reason: 'Not available' }),
+  );
+  assert.doesNotThrow(() =>
+    validateSupervisorDecision({ decision: 'approve' }),
+  );
 });
 
 it('Approver must not be the same person as requester (self-approval guard)', () => {
@@ -226,14 +271,20 @@ it('Approval creates Allocation with pickup_deadline = now + 24 hours', () => {
   assert.equal(result.requesterId, 101);
   assert.equal(result.approverId, 202);
   assert.ok(result.allocation);
-  assert.equal(result.allocation.pickup_deadline.getTime(), expectedDeadline.getTime());
+  assert.equal(
+    result.allocation.pickup_deadline.getTime(),
+    expectedDeadline.getTime(),
+  );
 });
 
 it('Borrower receives notification when request status changes', () => {
   const notifications: ReturnType<typeof createStatusNotification>[] = [];
   const request = { id: 77, borrowerId: 42, status: 'Pending' };
 
-  const applyStatusChange = (req, nextStatus) => {
+  const applyStatusChange = (
+    req: { id: number; borrowerId: number; status: string },
+    nextStatus: string,
+  ) => {
     req.status = nextStatus;
     notifications.push(
       createStatusNotification({
@@ -254,9 +305,16 @@ it('Borrower receives notification when request status changes', () => {
 });
 
 it('Supervisor decision submitted via tRPC approval router', async () => {
-  const calls: { user: any; input: any }[] = [];
+  type ApprovalUser = { accountKey: number; role: 'supervisor' };
+  type DecisionInput = {
+    extensionKey: number;
+    decision: 'approve' | 'reject';
+    condition: string;
+    note: string;
+  };
+  const calls: { user: ApprovalUser; input: DecisionInput }[] = [];
   const extensions = {
-    decide: async (user, input) => {
+    decide: (user: ApprovalUser, input: DecisionInput) => {
       calls.push({ user, input });
       return {
         extensionKey: input.extensionKey,

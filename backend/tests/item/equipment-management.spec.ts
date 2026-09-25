@@ -2,7 +2,10 @@ import { BusinessError } from '../../src/common/errors/business-error';
 import type { TrpcUser } from '../../src/trpc/context';
 import { ItemManagementService } from '../../src/item/item.management.service';
 import { ItemService } from '../../src/item/item.service';
-import { InspectionService } from '../../src/inspection/inspection.service';
+
+function objectContaining(value: Record<string, unknown>): unknown {
+  return expect.objectContaining(value);
+}
 
 function user(overrides: Partial<TrpcUser> = {}): TrpcUser {
   return {
@@ -53,7 +56,10 @@ function managementHarness() {
   const tx = {
     resourceInfo: { create: jest.fn(), update: jest.fn() },
     itemIndiv: { create: jest.fn() },
-    eligibility: { findMany: jest.fn().mockResolvedValue([]), createMany: jest.fn() },
+    eligibility: {
+      findMany: jest.fn().mockResolvedValue([]),
+      createMany: jest.fn(),
+    },
     conditionLog: {
       create: jest.fn().mockResolvedValue({ ConditionKey: 900 }),
       findUnique: jest.fn(),
@@ -78,9 +84,7 @@ function managementHarness() {
     borrowRule: { findFirst: jest.fn() },
     resourceInfo: { findUnique: jest.fn(), update: jest.fn() },
     roomInfo: { findUnique: jest.fn() },
-    $transaction: jest.fn(async (work: (client: typeof tx) => unknown) =>
-      work(tx),
-    ),
+    $transaction: jest.fn((work: (client: typeof tx) => unknown) => work(tx)),
   };
   const scope = {
     assertGroupInScope: jest.fn().mockResolvedValue(undefined),
@@ -110,7 +114,9 @@ describe('Module 5 equipment management', () => {
   it('refuses a new item type from staff attached to no department', async () => {
     const { service, prisma, scope } = managementHarness();
     scope.resolveGroupKeys.mockRejectedValue(
-      Object.assign(new Error('NO_MANAGEMENT_SCOPE'), { businessCode: 'NO_MANAGEMENT_SCOPE' }),
+      Object.assign(new Error('NO_MANAGEMENT_SCOPE'), {
+        businessCode: 'NO_MANAGEMENT_SCOPE',
+      }),
     );
     await expect(
       service.createItemType(user(), { name: 'Scope', creditWeight: 1 }),
@@ -149,8 +155,8 @@ describe('Module 5 equipment management', () => {
       'https://cdn.example/scope.png',
     );
     expect(prisma.itemInfo.create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({
+      objectContaining({
+        data: objectContaining({
           ItemName: 'Oscilloscope',
           ItemDesc: 'Four-channel scope',
           CreditWeight: 10,
@@ -204,20 +210,20 @@ describe('Module 5 equipment management', () => {
     expect(result).toHaveLength(2);
     expect(tx.resourceInfo.create).toHaveBeenNthCalledWith(
       1,
-      expect.objectContaining({
-        data: expect.objectContaining({ BorrowRule: 21, BufferTime: 3 }),
+      objectContaining({
+        data: objectContaining({ BorrowRule: 21, BufferTime: 3 }),
       }),
     );
     expect(tx.itemIndiv.create).toHaveBeenNthCalledWith(
       1,
-      expect.objectContaining({
-        data: expect.objectContaining({ ItemID: 'SG-001-1' }),
+      objectContaining({
+        data: objectContaining({ ItemID: 'SG-001-1' }),
       }),
     );
     expect(tx.itemIndiv.create).toHaveBeenNthCalledWith(
       2,
-      expect.objectContaining({
-        data: expect.objectContaining({ ItemID: 'SG-001-2' }),
+      objectContaining({
+        data: objectContaining({ ItemID: 'SG-001-2' }),
       }),
     );
   });
@@ -230,13 +236,16 @@ describe('Module 5 equipment management', () => {
     });
     prisma.borrowRule.findFirst.mockResolvedValue({ BorrowRuleKey: 22 });
     prisma.itemIndiv.findMany.mockResolvedValue([unitRow()]);
-    prisma.$transaction.mockImplementation(async (work) =>
+    prisma.$transaction.mockImplementation((work) =>
       work({
         resourceInfo: {
           create: jest.fn().mockResolvedValue({ ResourceKey: 501 }),
         },
         itemIndiv: { create: jest.fn() },
-    eligibility: { findMany: jest.fn().mockResolvedValue([]), createMany: jest.fn() },
+        eligibility: {
+          findMany: jest.fn().mockResolvedValue([]),
+          createMany: jest.fn(),
+        },
         conditionLog: { create: jest.fn(), findUnique: jest.fn() },
         itemInfo: { update: jest.fn() },
       } as never),
@@ -297,8 +306,8 @@ describe('Module 5 equipment management', () => {
     });
 
     expect(tx.resourceInfo.create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({
+      objectContaining({
+        data: objectContaining({
           BorrowRule: 23,
           ResourceType: 'Room',
           BufferTime: 0,
@@ -401,8 +410,8 @@ describe('Module 5 equipment management', () => {
       data: { AllowBorrow: false },
     });
     expect(tx.conditionLog.create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({
+      objectContaining({
+        data: objectContaining({
           ResourceKey: 501,
           LoggedBy: 11,
           Condition: 'Normal',
@@ -432,8 +441,8 @@ describe('Module 5 equipment management', () => {
     });
 
     expect(tx.conditionLog.create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({
+      objectContaining({
+        data: objectContaining({
           Condition: 'Missing',
           Notes: 'Lost during field work',
         }),
@@ -441,7 +450,7 @@ describe('Module 5 equipment management', () => {
     );
     expect(tx.resourceInfo.update).toHaveBeenCalledWith({
       where: { ResourceKey: 501 },
-      data: expect.objectContaining({
+      data: objectContaining({
         ConditionKey: 900,
         ResourceStatus: 'Missing',
         AllowBorrow: false,
@@ -465,7 +474,7 @@ describe('Module 5 equipment management', () => {
     const service = new ItemService({} as never);
 
     expect(() => service.listCategories()).toThrow(
-      expect.objectContaining({ businessCode: 'NOT_IMPLEMENTED' }),
+      objectContaining({ businessCode: 'NOT_IMPLEMENTED' }),
     );
   });
   */
@@ -523,7 +532,9 @@ describe('Module 5 borrower availability and catalogue queries', () => {
     await expect(service.getAvailability(999)).rejects.toMatchObject({
       businessCode: 'ITEM_NOT_FOUND',
     });
-    await expect(service.getById({ accountKey: 1 } as never, 999)).rejects.toBeInstanceOf(BusinessError);
+    await expect(
+      service.getById({ accountKey: 1 } as never, 999),
+    ).rejects.toBeInstanceOf(BusinessError);
   });
 
   /*
@@ -543,7 +554,7 @@ describe('Module 5 borrower availability and catalogue queries', () => {
       }),
     ).rejects.toMatchObject({
       businessCode: 'NOT_IMPLEMENTED',
-      details: expect.objectContaining({ missing: expect.any(Array) }),
+      details: objectContaining({ missing: expect.any(Array) }),
     });
     expect(scope.assertResourceInScope).toHaveBeenCalledWith(user(), 501);
   });
@@ -623,7 +634,8 @@ describe('Equipment registration & unit increments — serial collision (Audit #
     expect(result).toHaveLength(2); // from findMany mock
     expect(tx.itemIndiv.create).toHaveBeenCalledTimes(3);
     const serials = tx.itemIndiv.create.mock.calls.map(
-      (call: unknown[]) => (call[0] as { data: { ItemID: string } }).data.ItemID,
+      (call: unknown[]) =>
+        (call[0] as { data: { ItemID: string } }).data.ItemID,
     );
     expect(new Set(serials).size).toBe(serials.length);
   });
@@ -656,7 +668,8 @@ describe('Equipment registration & unit increments — serial collision (Audit #
     });
 
     const serials = tx.itemIndiv.create.mock.calls.map(
-      (call: unknown[]) => (call[0] as { data: { ItemID: string } }).data.ItemID,
+      (call: unknown[]) =>
+        (call[0] as { data: { ItemID: string } }).data.ItemID,
     );
     expect(serials).toEqual(['JUMPER-WIRE-10-3', 'JUMPER-WIRE-10-4']);
   });
@@ -734,20 +747,20 @@ describe('Equipment registration & unit increments — serial collision (Audit #
     expect(result).toHaveLength(2);
     expect(tx.resourceInfo.create).toHaveBeenNthCalledWith(
       1,
-      expect.objectContaining({
-        data: expect.objectContaining({ BorrowRule: 21, BufferTime: 1 }),
+      objectContaining({
+        data: objectContaining({ BorrowRule: 21, BufferTime: 1 }),
       }),
     );
     expect(tx.itemIndiv.create).toHaveBeenNthCalledWith(
       1,
-      expect.objectContaining({
-        data: expect.objectContaining({ ItemID: 'ARD-MEGA-1' }),
+      objectContaining({
+        data: objectContaining({ ItemID: 'ARD-MEGA-1' }),
       }),
     );
     expect(tx.itemIndiv.create).toHaveBeenNthCalledWith(
       2,
-      expect.objectContaining({
-        data: expect.objectContaining({ ItemID: 'ARD-MEGA-2' }),
+      objectContaining({
+        data: objectContaining({ ItemID: 'ARD-MEGA-2' }),
       }),
     );
   });
@@ -853,9 +866,7 @@ describe('Department isolation — staff scope checks (Audit #17 / FR-AUTH-05)',
       _count: { Items: 5 },
     });
 
-    await expect(
-      service.getManagedItemById(user(), 50),
-    ).rejects.toMatchObject({
+    await expect(service.getManagedItemById(user(), 50)).rejects.toMatchObject({
       businessCode: 'OUT_OF_MANAGEMENT_SCOPE',
     });
   });
