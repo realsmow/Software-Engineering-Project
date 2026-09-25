@@ -51,9 +51,40 @@ describe('AdminService user management', () => {
     return created.RoleKey;
   }
 
+  async function ensureCreditTier() {
+    const existing = await prisma.creditTier.findFirst({
+      where: {
+        CreditMin: { lte: 100 },
+        CreditMax: { gte: 100 },
+      },
+    });
+    if (!existing) {
+      const tier = await prisma.creditTier.create({
+        data: { CreditTierName: 'D0', CreditMin: 0, CreditMax: 100 },
+      });
+      createdTierKeys.add(tier.CreditTierKey);
+      return tier.CreditTierKey;
+    }
+    return existing.CreditTierKey;
+  }
+
+  async function ensureBorrowerRole() {
+    const existing = await prisma.roleInfo.findFirst({
+      where: { RoleName: { in: ['Student', 'Borrower'] } },
+    });
+    if (!existing) {
+      const created = await prisma.roleInfo.create({
+        data: { RoleName: 'Student' },
+      });
+      createdRoleKeys.add(created.RoleKey);
+    }
+  }
+
   async function createBorrower(
     overrides: Partial<{ firstName: string; lastName: string }> = {},
   ) {
+    await ensureCreditTier();
+    await ensureBorrowerRole();
     const token = unique('admin-user-spec');
     const input = createUserInput.parse({
       email: `${token}@ku.th`,
@@ -64,10 +95,21 @@ describe('AdminService user management', () => {
       password: 'Password123!',
       initialCredit: 100,
     });
-    const result = await adminService.createUser(input, adminActor);
-    createdUserKeys.add(result.user.id);
-    expect(createUserOutput.safeParse(result).success).toBe(true);
-    return { input, result };
+    try {
+      const result = await adminService.createUser(input, adminActor);
+      createdUserKeys.add(result.user.id);
+      expect(createUserOutput.safeParse(result).success).toBe(true);
+      return { input, result };
+    } catch (error) {
+      const leaked = await prisma.accountInfo.findUnique({
+        where: { Email: input.email },
+        select: { AccountKey: true },
+      });
+      if (leaked) {
+        createdUserKeys.add(leaked.AccountKey);
+      }
+      throw error;
+    }
   }
 
   async function attachCoverageGroup(accountKey: number) {
@@ -162,25 +204,9 @@ describe('AdminService user management', () => {
     adminRoleKey = await roleKey('Admin');
     staffRoleKey = await roleKey('Staff');
 
-    const existingBorrowerRole = await prisma.roleInfo.findFirst({
-      where: { RoleName: { in: ['Student', 'Borrower'] } },
-    });
-    if (!existingBorrowerRole) {
-      await roleKey('Student');
-    }
+    await ensureBorrowerRole();
 
-    const existingTier = await prisma.creditTier.findFirst({
-      where: {
-        CreditMin: { lte: 100 },
-        CreditMax: { gte: 100 },
-      },
-    });
-    if (!existingTier) {
-      const tier = await prisma.creditTier.create({
-        data: { CreditTierName: 'D0', CreditMin: 0, CreditMax: 100 },
-      });
-      createdTierKeys.add(tier.CreditTierKey);
-    }
+    await ensureCreditTier();
 
     const [admin, staff] = await Promise.all([
       prisma.accountInfo.create({
@@ -212,6 +238,10 @@ describe('AdminService user management', () => {
     staffActor = { accountKey: seededStaffKey };
   }, 30_000);
 
+  beforeEach(async () => {
+    await ensureCreditTier();
+  });
+
   afterEach(async () => {
     await removeCoverageGroups();
     await removeCreatedUsers();
@@ -237,12 +267,18 @@ describe('AdminService user management', () => {
       }
       if (createdRoleKeys.size > 0) {
         await prisma.roleInfo.deleteMany({
-          where: { RoleKey: { in: [...createdRoleKeys] } },
+          where: {
+            RoleKey: { in: [...createdRoleKeys] },
+            RoleName: { notIn: ['Admin', 'Staff', 'Student', 'Borrower', 'Supervisor'] },
+          },
         });
       }
       if (createdTierKeys.size > 0) {
         await prisma.creditTier.deleteMany({
-          where: { CreditTierKey: { in: [...createdTierKeys] } },
+          where: {
+            CreditTierKey: { in: [...createdTierKeys] },
+            CreditTierName: { notIn: ['D0', 'D1', 'D2', 'D3'] },
+          },
         });
       }
     } finally {

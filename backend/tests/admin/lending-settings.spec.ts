@@ -35,13 +35,13 @@ describe('AdminService lending settings', () => {
     prisma = module.get(PrismaService);
 
     const existingRole = await prisma.roleInfo.findFirst({
-      where: { RoleName: { in: ['Admin', 'Staff'] } },
+      where: { RoleName: { in: ['Admin', 'Staff', 'admin', 'staff'] } },
     });
     if (existingRole) {
       roleKey = existingRole.RoleKey;
     } else {
       const createdRole = await prisma.roleInfo.create({
-        data: { RoleName: unique('module4-role') },
+        data: { RoleName: 'Admin' },
       });
       roleKey = createdRole.RoleKey;
       createdRoleKeys.add(roleKey);
@@ -61,14 +61,21 @@ describe('AdminService lending settings', () => {
     actorKey = createdActor.AccountKey;
     actorKeys.add(actorKey);
 
-    const tier = await prisma.creditTier.create({
-      data: {
-        CreditTierName: unique('module4-tier'),
-        CreditMin: 0,
-        CreditMax: 100,
-      },
+    const existingTier = await prisma.creditTier.findFirst({
+      where: { CreditTierName: 'D0' },
     });
-    creditTierKey = tier.CreditTierKey;
+    if (existingTier) {
+      creditTierKey = existingTier.CreditTierKey;
+    } else {
+      const tier = await prisma.creditTier.create({
+        data: {
+          CreditTierName: 'D0',
+          CreditMin: 0,
+          CreditMax: 100,
+        },
+      });
+      creditTierKey = tier.CreditTierKey;
+    }
 
     const rule = await prisma.borrowRule.create({
       data: { RuleName: unique('module4-rule') },
@@ -86,14 +93,18 @@ describe('AdminService lending settings', () => {
       await prisma.penaltyRule.deleteMany({ where: { BorrowRuleKey: borrowRuleKey } });
       await prisma.borrowConstraints.deleteMany({ where: { BorrowRuleKey: borrowRuleKey } });
       await prisma.borrowRule.deleteMany({ where: { BorrowRuleKey: borrowRuleKey } });
-      await prisma.creditTier.deleteMany({ where: { CreditTierKey: creditTierKey } });
 
       if (actorKeys.size > 0) {
         await prisma.auditLog.deleteMany({ where: { ActorKey: { in: [...actorKeys] } } });
         await prisma.accountInfo.deleteMany({ where: { AccountKey: { in: [...actorKeys] } } });
       }
       if (createdRoleKeys.size > 0) {
-        await prisma.roleInfo.deleteMany({ where: { RoleKey: { in: [...createdRoleKeys] } } });
+        await prisma.roleInfo.deleteMany({
+          where: {
+            RoleKey: { in: [...createdRoleKeys] },
+            RoleName: { notIn: ['Admin', 'Staff', 'Student', 'Borrower', 'Supervisor'] },
+          },
+        });
       }
     } finally {
       await prisma?.$disconnect();

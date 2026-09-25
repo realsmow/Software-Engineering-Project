@@ -21,7 +21,7 @@
     "start:dev": "nest start --watch",
     "start:prod": "node dist/main",
     "test": "cross-env NODE_OPTIONS=--experimental-vm-modules jest",
-    "test:admin": "cross-env NODE_OPTIONS=--experimental-vm-modules jest --config tests/jest-admin.json",
+    "test:admin": "cross-env NODE_OPTIONS=--experimental-vm-modules jest --config tests/jest-admin.json --runInBand",
     "test:item": "cross-env NODE_OPTIONS=--experimental-vm-modules jest --config tests/jest-item.json",
     "test:cov": "cross-env NODE_OPTIONS=--experimental-vm-modules jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
@@ -86,7 +86,11 @@
       "json",
       "ts"
     ],
-    "rootDir": "src",
+    "rootDir": ".",
+    "roots": [
+      "<rootDir>/src",
+      "<rootDir>/tests"
+    ],
     "testRegex": ".*\\.spec\\.ts$",
     "transform": {
       "^.+\\.(t|j)s$": "ts-jest"
@@ -95,12 +99,12 @@
       "^(\\.{1,2}/.*)\\.js$": "$1"
     },
     "setupFiles": [
-      "<rootDir>/../jest.setup.js"
+      "<rootDir>/jest.setup.js"
     ],
     "collectCoverageFrom": [
-      "**/*.(t|j)s"
+      "src/**/*.(t|j)s"
     ],
-    "coverageDirectory": "../coverage",
+    "coverageDirectory": "coverage",
     "testEnvironment": "node"
   },
   "allowScripts": {
