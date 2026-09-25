@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { fmtDayMonth, fmtDayNum } from "@/lib/datetime";
+import { fmtDate, fmtDayMonth, fmtDayNum } from "@/lib/datetime";
 import { useNavigate } from "react-router-dom";
 import { Download, FileText } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
@@ -13,20 +13,18 @@ import { getErrorMessage } from "@/lib/error-messages";
 import { cn } from "@/lib/utils";
 import {
   REQUEST_TABS,
-  creditCutOf,
   stepAt,
   stepsOf,
   type MyRequest,
   type MyRequestStatus,
   type RequestTab,
 } from "../mock-data";
-import { useAuthStore } from "@/features/auth/auth.store";
 import { useRequestDraft } from "../request/request-draft.store";
-import { extensionState, extensionStateFromServer } from "./extension-rules";
-import { useCancelExtension, useExtensionOptions, useRequestExtension } from "./use-extensions";
-import { useMyRequests, requestsInTab, type DraftSummary, type LoanRow } from "./use-my-requests";
+import { penaltyReasonText } from "../appeals/penalty-reason";
+import { usePenaltiesByUsage, type LoanPenalty } from "../appeals/use-my-appeals";
+import { useLoanExtension, type LoanExtension } from "./use-extensions";
+import { useMyRequests, requestsInTab, type DraftSummary } from "./use-my-requests";
 import { useCancelRequest } from "./use-my-requests-api";
-import { useSubmittedRequests } from "./submitted-requests.store";
 
 const STATUS_TONE: Record<MyRequestStatus, BadgeTone> = {
   pending: "warn",
@@ -35,7 +33,6 @@ const STATUS_TONE: Record<MyRequestStatus, BadgeTone> = {
   ready: "info",
   inUse: "ok",
   returned: "neutral",
-  inspecting: "neutral",
   done: "neutral",
   rejected: "alert",
   cancelled: "neutral",
@@ -44,7 +41,8 @@ const STATUS_TONE: Record<MyRequestStatus, BadgeTone> = {
 /** Statuses that carry a standing explanation under the progress track. */
 const STATUS_NOTE: Partial<Record<MyRequestStatus, string>> = {
   approved: "borrower.myRequests.noteAutoApproved",
-  inspecting: "borrower.myRequests.noteInspecting",
+  // `returned` is the server's "back, not yet graded".
+  returned: "borrower.myRequests.noteInspecting",
   rejected: "borrower.myRequests.noteRejected",
   cancelled: "borrower.myRequests.noteCancelled",
 };
@@ -62,8 +60,8 @@ const TAB_LABEL: Record<RequestTab, string> = {
  * item can sit waiting for a supervisor while the T0 item sent alongside it is
  * already collected. Each gets its own card and its own progress track.
  *
- * Three sources feed the list (see `useMyRequests`): seeded history, whatever
- * was submitted this session, and the open draft.
+ * Two sources feed the list (see `useMyRequests`): the server's `loan.list`,
+ * and the open draft that has not been sent yet.
  */
 export default function MyLoansPage() {
   const { t } = useTranslation();
@@ -73,7 +71,7 @@ export default function MyLoansPage() {
   const [cancelTarget, setCancelTarget] = useState<MyRequest | null>(null);
 
   const { requests, draft, countByTab } = useMyRequests();
-  const cancelLocalRequest = useSubmittedRequests((s) => s.cancel);
+  const penaltiesByUsage = usePenaltiesByUsage();
   const cancelRequest = useCancelRequest();
   const clearDraft = useRequestDraft((s) => s.clear);
 
@@ -88,17 +86,10 @@ export default function MyLoansPage() {
   }
 
   async function confirmCancellation() {
-    if (!cancelTarget) return;
+    // Every listed row comes from loan.list and carries its key.
+    if (!cancelTarget || cancelTarget.reservationKey === undefined) return;
 
     setCancelError(null);
-
-    // Room bookings are still session-only. Requests returned by loan.list
-    // carry ReservationKey and must be cancelled server-side.
-    if (cancelTarget.reservationKey === undefined) {
-      cancelLocalRequest(cancelTarget.id);
-      setCancelTarget(null);
-      return;
-    }
 
     try {
       await cancelRequest.mutateAsync({ reservationKey: cancelTarget.reservationKey });
@@ -160,6 +151,7 @@ export default function MyLoansPage() {
             <RequestCard
               key={row.id}
               row={row}
+              penalties={row.usageKey != null ? (penaltiesByUsage.get(row.usageKey) ?? []) : []}
               cancelling={
                 cancelRequest.isPending &&
                 cancelRequest.variables?.reservationKey === row.reservationKey
@@ -221,14 +213,17 @@ export default function MyLoansPage() {
 
 function RequestCard({
   row,
+  penalties,
   cancelling,
   onCancel,
 }: {
   row: MyRequest;
+  penalties: LoanPenalty[];
   cancelling: boolean;
   onCancel: () => void;
 }) {
   const { t } = useTranslation();
+  const extension = useLoanExtension(row);
   const steps = stepsOf(row.kind);
   const at = stepAt(row.status, row.kind);
   // Who is being waited on differs by kind: a room waits on the counter staff,
@@ -260,7 +255,7 @@ function RequestCard({
           <span className="font-mono text-xs text-t3">{row.id}</span>
           <span className="inline-flex items-center gap-1.5 rounded bg-surface-inset px-1.5 py-0.5 text-[10.5px] font-semibold text-t3">
             <TierDot tier={row.tier} />
-            {row.tier}
+            {row.tier ?? t("borrower.catalog.tierUnknown")}
           </span>
         </span>
         <Badge tone={STATUS_TONE[row.status]}>{t(statusKey(row.status))}</Badge>
@@ -273,8 +268,12 @@ function RequestCard({
 
       {/* Due dates are counted in days, which a room booked by the hour has
           none of - it would read "0 days left" on every booking. */}
-      {row.status === "inUse" && row.kind === "equipment" ? <LoanInfo row={row} /> : null}
-      {row.inspection ? <InspectionLine row={row} /> : null}
+      {row.status === "inUse" && row.kind === "equipment" ? (
+        <LoanInfo row={row} extension={extension} />
+      ) : null}
+      {penalties.map((p) => (
+        <PenaltyLine key={p.penaltyKey} penalty={p} />
+      ))}
 
       <ProgressTrack steps={steps} at={at} stalled={isStalled(row.status)} />
 
@@ -283,26 +282,37 @@ function RequestCard({
           {t(noteKey)}
         </p>
       ) : null}
+      {row.decisionNote && isStalled(row.status) ? (
+        <p className="mt-1.5 text-xs leading-relaxed text-t2">
+          {t("borrower.myRequests.decisionNote", { note: row.decisionNote })}
+        </p>
+      ) : null}
 
-      <Actions row={row} canCancel={canCancel} cancelling={cancelling} onCancel={onCancel} />
+      <Actions
+        row={row}
+        extension={extension}
+        penalties={penalties}
+        canCancel={canCancel}
+        cancelling={cancelling}
+        onCancel={onCancel}
+      />
     </article>
   );
 }
 
-/** Days left, extensions used, and what quota remains - the mockup's ext line. */
-function LoanInfo({ row }: { row: MyRequest }) {
+/** Days left, extensions used, and what the server says about extending. */
+function LoanInfo({ row, extension }: { row: MyRequest; extension: LoanExtension }) {
   const { t } = useTranslation();
-  const band = useAuthStore((s) => s.user?.creditBand) ?? "D0";
   const left = row.daysLeft ?? 0;
-  const used = row.extensionsUsed ?? 0;
-  const quota = extensionState(row, band);
+  const used = extension.extensionsUsed;
+  const { reasonKey, values } = extension.state;
 
   const parts = [
     left < 0
       ? t("borrower.myRequests.extOverdue", { count: Math.abs(left) })
       : t("borrower.myRequests.extDaysLeft", { count: left }),
     used > 0 ? t("borrower.myRequests.extUsed", { count: used }) : null,
-    t(quota.reasonKey, { count: quota.count }),
+    reasonKey ? t(reasonKey, values) : null,
   ].filter(Boolean);
 
   return (
@@ -312,42 +322,30 @@ function LoanInfo({ row }: { row: MyRequest }) {
   );
 }
 
-function InspectionLine({ row }: { row: MyRequest }) {
+/**
+ * One penalty this loan produced, with the amount the server actually
+ * deducted. A late return and a damage grade are separate penalties and are
+ * appealed separately, so each gets its own line.
+ */
+function PenaltyLine({ penalty }: { penalty: LoanPenalty }) {
   const { t } = useTranslation();
-  const insp = row.inspection;
-  if (!insp) return null;
+  const appeal = penalty.appeal;
 
-  const clean = insp.damage === "B0";
-  const cut = creditCutOf(row.tier, insp.damage);
-  const date = fmtDay(insp.inspectedAt);
+  const status = appeal
+    ? t(`borrower.appeals.status_${appeal.status}`)
+    : penalty.appealableUntil
+      ? t("borrower.appeals.until", { date: fmtDate(penalty.appealableUntil) })
+      : null;
 
   return (
-    <>
-      <p
-        className={cn(
-          "mt-2.5 rounded px-3 py-2 text-xs font-medium leading-relaxed",
-          clean
-            ? "bg-[var(--s-ok-bg)] text-[var(--s-ok-t)]"
-            : "bg-[var(--s-warn-bg)] text-[var(--s-warn-t)]",
-        )}
-      >
-        {clean
-          ? t("borrower.myRequests.inspClean", { damage: insp.damage, date })
-          : t("borrower.myRequests.inspDamaged", { damage: insp.damage, cut, date })}
-        {!clean
-          ? ` · ${
-              insp.appealDaysLeft > 0
-                ? t("borrower.myRequests.appealLeft", { count: insp.appealDaysLeft })
-                : t("borrower.myRequests.appealClosed")
-            }`
-          : ""}
-      </p>
-      {insp.reason ? (
-        <p className="mt-1.5 text-xs leading-relaxed text-t3">
-          {t("borrower.myRequests.inspBy", { name: insp.inspectedBy })} - {insp.reason}
-        </p>
-      ) : null}
-    </>
+    <p className="mt-2.5 rounded bg-[var(--s-warn-bg)] px-3 py-2 text-xs font-medium leading-relaxed text-[var(--s-warn-t)]">
+      {t("borrower.myRequests.penaltyLine", {
+        reason: penaltyReasonText(penalty.reason, t),
+        credit: penalty.creditDeducted ?? 0,
+        date: fmtDate(penalty.issuedAt),
+      })}
+      {status ? ` · ${status}` : ""}
+    </p>
   );
 }
 
@@ -398,73 +396,30 @@ function ProgressTrack({
 
 function Actions({
   row,
+  extension,
+  penalties,
   canCancel,
   cancelling,
   onCancel,
 }: {
-  row: LoanRow;
+  row: MyRequest;
+  extension: LoanExtension;
+  penalties: LoanPenalty[];
   canCancel: boolean;
   cancelling: boolean;
   onCancel: () => void;
 }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const insp = row.inspection;
-  const canAppeal = insp && insp.damage !== "B0" && insp.appealDaysLeft > 0;
-  const band = useAuthStore((s) => s.user?.creditBand) ?? "D0";
-  const extendLoan = useSubmittedRequests((s) => s.extendLoan);
-  const storeRequestExtension = useSubmittedRequests((s) => s.requestExtension);
-  const cancelExtensionRequest = useSubmittedRequests((s) => s.cancelExtensionRequest);
-
-  // The server decides whether an extension is possible and who signs it. The
-  // local rules stay as a fallback for rows it does not know about: a room
-  // booking has no loan behind it, and a freshly submitted request has no unit
-  // set aside yet, so neither has a usageKey to ask about.
-  const { data: extOptions } = useExtensionOptions(row.usageKey ?? null);
-  const requestExtension = useRequestExtension();
-  const cancelExtension = useCancelExtension();
-  const ext = extOptions ? extensionStateFromServer(extOptions) : extensionState(row, band);
-
-  /**
-   * One call for every route. `extensionOptions` already said whether this is
-   * granted on the spot or lands on somebody's desk, and the server applies
-   * that same rule again when it writes - so the button does not need to know.
-   * The due date is echoed back exactly as the server reported it.
-   */
-  const askForExtension = (mode: "staff" | "supervisor") => {
-    if (!extOptions) {
-      storeRequestExtension(row, mode);
-      return;
-    }
-    requestExtension.mutate({
-      usageKey: extOptions.usageKey,
-      requestedDueAt: extOptions.maxRequestedDueAt,
-    });
-  };
-
-  const takeExtension = () => {
-    if (!extOptions) {
-      extendLoan(row);
-      return;
-    }
-    requestExtension.mutate({
-      usageKey: extOptions.usageKey,
-      requestedDueAt: extOptions.maxRequestedDueAt,
-    });
-  };
-
-  const withdrawExtension = () => {
-    const key = extOptions?.pendingExtensionKey;
-    if (key == null) {
-      cancelExtensionRequest(row.id);
-      return;
-    }
-    cancelExtension.mutate({ extensionKey: key });
-  };
+  const ext = extension.state;
+  // The appeal page opens on the penalty rather than making the borrower find
+  // it again. A loan with two open penalties opens on the first; both are
+  // listed there.
+  const appealable = penalties.find((p) => p.appealableUntil !== null);
   const onLoan = row.status === "inUse";
   const onUseRoom = () => navigate(ROUTES.ROOM_USE);
-  // Between pressing "extend" and the request going out: the borrower is
-  // committing to carry the item in, so they get to read that and back out.
+  // Between pressing "extend" and the request going out: the borrower sees
+  // the new due date and who decides, and can back out.
   const [asking, setAsking] = useState(false);
 
   const buttons: ReactNode[] = [];
@@ -489,9 +444,10 @@ function Actions({
         key="extend-yes"
         type="button"
         size="sm"
+        disabled={extension.busy}
         onClick={() => {
           setAsking(false);
-          askForExtension(ext.mode === "supervisor" ? "supervisor" : "staff");
+          extension.request();
         }}
       >
         {t(ext.confirmLabelKey)}
@@ -506,19 +462,18 @@ function Actions({
         {t("borrower.myRequests.extAskNo")}
       </Button>,
     );
-  } else if (onLoan && (ext.canExtend || ext.canRequest)) {
+  } else if (onLoan && ext.canRequest) {
     buttons.push(
-      // TODO: POST /loans/:id/extend once the endpoint exists; the store keeps
-      // the new due date in the meantime.
       <Button
         key="extend"
         type="button"
         variant="outline"
         size="sm"
-        title={t(ext.reasonKey, { count: ext.count })}
-        onClick={() => (ext.canExtend ? takeExtension() : setAsking(true))}
+        disabled={extension.busy}
+        title={t(ext.reasonKey, ext.values)}
+        onClick={() => setAsking(true)}
       >
-        {t(ext.labelKey)}
+        {extension.busy ? t("common.loading") : t(ext.labelKey)}
       </Button>,
     );
   }
@@ -529,30 +484,23 @@ function Actions({
         type="button"
         variant="outline"
         size="sm"
-        onClick={withdrawExtension}
+        disabled={extension.busy}
+        onClick={extension.withdraw}
       >
         {t("borrower.myRequests.cancelExt")}
       </Button>,
     );
   }
-  if (canAppeal) {
+  if (appealable) {
     buttons.push(
-      row.appealSent ? (
-        <Button key="appeal" type="button" size="sm" disabled>
-          {t("borrower.appeals.sentTag")}
-        </Button>
-      ) : (
-        // The appeal page opens on this row rather than making the borrower
-        // find it again in a list of verdicts.
-        <Button
-          key="appeal"
-          type="button"
-          size="sm"
-          onClick={() => navigate(`${ROUTES.APPEALS}?request=${encodeURIComponent(row.id)}`)}
-        >
-          {t("borrower.myRequests.appeal")}
-        </Button>
-      ),
+      <Button
+        key="appeal"
+        type="button"
+        size="sm"
+        onClick={() => navigate(`${ROUTES.APPEALS}?penalty=${appealable.penaltyKey}`)}
+      >
+        {t("borrower.myRequests.appeal")}
+      </Button>,
     );
   }
   // Last, so the action the borrower came for leads and the destructive one
@@ -575,15 +523,24 @@ function Actions({
     );
   }
 
-  if (buttons.length === 0) return null;
+  const error = extension.error ? getErrorMessage(extension.error) : null;
+  if (buttons.length === 0 && !error) return null;
   return (
     <>
       {asking && ext.canRequest ? (
         <p className="mt-3 rounded border border-l-[3px] border-border border-l-accent-orange bg-[var(--s-hot-bg)] px-3 py-2 text-xs leading-relaxed text-[var(--s-hot-t)]">
-          {t(ext.askNoteKey)}
+          {t(ext.askNoteKey, ext.values)} {t("borrower.myRequests.extNewDue", ext.values)}
         </p>
       ) : null}
-      <div className="mt-3 flex flex-wrap gap-2">{buttons}</div>
+      {error ? (
+        <p
+          role="alert"
+          className="mt-3 rounded border border-[var(--s-alert-b)] bg-[var(--s-alert-bg)] px-3 py-2 text-xs leading-relaxed text-[var(--s-alert-t)]"
+        >
+          {error}
+        </p>
+      ) : null}
+      {buttons.length > 0 ? <div className="mt-3 flex flex-wrap gap-2">{buttons}</div> : null}
     </>
   );
 }
@@ -706,7 +663,7 @@ function requestWindow(row: MyRequest, t: (key: string, values?: Record<string, 
 function exportCsv(requests: MyRequest[]): void {
   const header = ["requestId", "kind", "tier", "name", "serial", "status", "start", "end"];
   const rows = requests.map((r) =>
-    [r.id, r.kind, r.tier, r.name, r.serial, r.status, r.startDate, dueDateOf(r)]
+    [r.id, r.kind, r.tier ?? "", r.name, r.serial, r.status, r.startDate, dueDateOf(r)]
       .map((v) => `"${String(v).replace(/"/g, '""')}"`)
       .join(","),
   );

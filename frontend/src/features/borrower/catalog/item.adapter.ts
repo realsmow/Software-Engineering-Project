@@ -28,6 +28,8 @@ export interface ServerItem {
   nextAvailableAt: string | null;
   prepDays: number;
   allowBorrow: boolean;
+  /** Whether the caller holds a (group, role) pair a rule on some unit names. */
+  eligible: boolean;
   owner: { id: number; name: string | null; type: "Faculty" | "Club" } | null;
 }
 
@@ -48,6 +50,7 @@ export function toCatalogItem(s: ServerItem): CatalogItem {
     availableUnits: s.availableUnits,
     nextAvailableAt: s.nextAvailableAt ?? undefined,
     allowBorrow: s.allowBorrow,
+    eligible: s.eligible,
     // Asset tags live on the individual unit (ItemIndiv.ItemID), not on the
     // type, so a list row has no single code to show. item.listUnits has them
     // for the detail page.

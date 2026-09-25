@@ -31,6 +31,8 @@ export type ActivePenalty = z.infer<typeof activePenalty>;
 export interface PenaltyRow {
   PenaltyKey: number;
   Reason: string | null;
+  /** Null for a ban, which came from no particular loan. */
+  UsageKey: number | null;
   CreditDeducted: number | null;
   ActionTime: Date | null;
   ExpirationTime: Date;
@@ -71,4 +73,12 @@ export function activePenaltyWhere() {
  */
 export function activeBanWhere() {
   return { ...activePenaltyWhere(), UsageKey: null, CreditDeducted: null };
+}
+
+/**
+ * The same test as activeBanWhere, for a row already loaded. Kept beside it
+ * so the query and the in-memory check cannot come to mean different things.
+ */
+export function isBan(row: Pick<PenaltyRow, 'UsageKey' | 'CreditDeducted'>): boolean {
+  return row.UsageKey === null && row.CreditDeducted === null;
 }

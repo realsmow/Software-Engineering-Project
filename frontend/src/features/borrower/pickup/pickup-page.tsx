@@ -5,7 +5,6 @@ import { useNavigate } from "react-router-dom";
 import { Camera, Check, Package, TriangleAlert, X } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { Button } from "@/components/ui/button";
-import { Modal } from "@/components/ui/modal";
 import { ImageThumb } from "@/components/shared/image-thumb";
 import { BUSINESS, ROUTES, UPLOAD } from "@/constants";
 import { getErrorMessage } from "@/lib/error-messages";
@@ -13,7 +12,6 @@ import { cn } from "@/lib/utils";
 import { uploadAcceptAttr, validateUploadFile } from "@/lib/upload-validation";
 import type { MyRequest } from "../mock-data";
 import { useMyRequests } from "../loans/use-my-requests";
-import { useSubmittedRequests } from "../loans/submitted-requests.store";
 import {
   prepareBorrowerImage,
   releaseBorrowerImage,
@@ -265,11 +263,13 @@ export default function PickupPage() {
 }
 
 /**
- * One row waiting at the counter: tick to take it, or ask for a different unit.
+ * One row waiting at the counter: tick to take it.
  *
  * Swapping is a T1 affair. T0 items are interchangeable stock with nothing to
  * choose between, and a T2 unit was approved by a supervisor as *that* unit -
- * picking a different one afterwards would step around the approval.
+ * picking a different one afterwards would step around the approval. The swap
+ * itself is staff's (`loan.swapUnit`, with no borrower procedure), so the row
+ * says who to ask rather than offering a button.
  */
 function PickRow({
   row,
@@ -283,8 +283,6 @@ function PickRow({
   onToggle: () => void;
 }) {
   const { t } = useTranslation();
-  const patch = useSubmittedRequests((s) => s.patch);
-  const [asking, setAsking] = useState(false);
 
   const canSwap = row.tier === "T1";
 
@@ -307,7 +305,7 @@ function PickRow({
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
           <span className="text-sm font-medium text-foreground">{row.name}</span>
           <span className="rounded bg-surface-inset px-1.5 py-0.5 text-[10.5px] font-semibold text-t3">
-            {row.tier}
+            {row.tier ?? t("borrower.catalog.tierUnknown")}
           </span>
         </div>
         <div className="mt-1 font-mono text-xs text-t3">
@@ -315,52 +313,11 @@ function PickRow({
         </div>
 
         {canSwap ? (
-          <>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="mt-2 h-7 text-[11.5px]"
-              disabled={photographed}
-              onClick={() => setAsking(true)}
-            >
-              {photographed ? t("borrower.pickup.swapLocked") : t("borrower.pickup.swapAsk")}
-            </Button>
-            {photographed ? (
-              <p className="mt-1.5 text-[11.5px] leading-relaxed text-t4">
-                {t("borrower.pickup.swapNote")}
-              </p>
-            ) : null}
-          </>
+          <p className="mt-1.5 text-[11.5px] leading-relaxed text-t4">
+            {photographed ? t("borrower.pickup.swapNote") : t("borrower.pickup.swapAtCounter")}
+          </p>
         ) : null}
       </div>
-
-      <Modal
-        open={asking}
-        onClose={() => setAsking(false)}
-        title={t("borrower.pickup.swapConfirmTitle")}
-        footer={
-          <>
-            <Button type="button" variant="outline" onClick={() => setAsking(false)}>
-              {t("common.cancel")}
-            </Button>
-            <Button
-              type="button"
-              onClick={() => {
-                setAsking(false);
-                // Back to the staff bench - they have another unit to find.
-                patch(row.id, { status: "preparing" });
-              }}
-            >
-              {t("borrower.pickup.swapConfirmYes")}
-            </Button>
-          </>
-        }
-      >
-        <p className="text-[13px] leading-relaxed text-t2">
-          {t("borrower.pickup.swapConfirmBody", { name: row.name, serial: row.serial })}
-        </p>
-      </Modal>
     </div>
   );
 }

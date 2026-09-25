@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Segmented } from "@/components/ui/segmented";
 import { getErrorMessage } from "@/lib/error-messages";
-import { useManagedItems } from "../inventory/use-inventory";
+import { useManagedItems, useManagedRooms } from "../inventory/use-inventory";
 import {
   useDepartmentUsers,
   useSetUserBan,
@@ -19,7 +19,7 @@ import {
   useManagementGroups,
   useSetEligibility,
 } from "./use-eligibility";
-import type { EligibilityRule } from "./permissions.types";
+import type { EligibilityRule, EligibilityTarget } from "./permissions.types";
 
 /** Default ban length, matching the server's own default for `days`. */
 const DEFAULT_BAN_DAYS = 30;
@@ -180,22 +180,39 @@ export default function StaffPermissionsPage() {
   );
 }
 
+/** The picker's option value, "type:7" or "room:1": a type and a room can share a key. */
+function targetValue(target: EligibilityTarget | null): string {
+  if (target === null) return "";
+  return "roomKey" in target ? `room:${target.roomKey}` : `type:${target.itemKey}`;
+}
+
+function parseTargetValue(value: string): EligibilityTarget | null {
+  const [kind, key] = value.split(":");
+  if (kind === "type") return { itemKey: Number(key) };
+  if (kind === "room") return { roomKey: Number(key) };
+  return null;
+}
+
 /**
- * Who may borrow which catalogue type (proposal §5.9 "กำหนดสิทธิ์การยืม").
+ * Who may borrow which catalogue type, or book which room (proposal §5.9
+ * "กำหนดสิทธิ์การยืม").
  *
  * A rule set belongs to a type but the server keys it per unit, so saving
  * always sends the complete array for the type - an empty save closes it to
  * everyone, which is a real thing staff want and the reason there is no
- * partial "add one rule" call.
+ * partial "add one rule" call. A room is a single resource with the same
+ * semantics, and one with no rules cannot be booked at all.
  */
 function EligibilityPanel() {
   const { t } = useTranslation();
   const { data: items, isLoading: itemsLoading } = useManagedItems();
+  const { data: rooms, isLoading: roomsLoading } = useManagedRooms();
   const { data: groups } = useManagementGroups();
   const { data: roles } = useAuthorityRoles();
 
-  const [itemKey, setItemKey] = useState<number | null>(null);
-  const { data: savedRules, isLoading: rulesLoading } = useEligibility(itemKey);
+  const [target, setTarget] = useState<EligibilityTarget | null>(null);
+  const isRoom = target !== null && "roomKey" in target;
+  const { data: savedRules, isLoading: rulesLoading } = useEligibility(target);
   const setEligibility = useSetEligibility();
 
   const [draft, setDraft] = useState<EligibilityRule[]>([]);
@@ -203,12 +220,12 @@ function EligibilityPanel() {
   const [roleKey, setRoleKey] = useState<number | "">("");
   const [result, setResult] = useState<{ tone: "ok" | "bad"; text: string } | null>(null);
 
-  // The draft mirrors what the server has whenever the type changes or a fresh
-  // load comes in - editing never starts from stale rules.
+  // The draft mirrors what the server has whenever the target changes or a
+  // fresh load comes in - editing never starts from stale rules.
   useEffect(() => {
     setDraft(savedRules ?? []);
     setResult(null);
-  }, [itemKey, savedRules]);
+  }, [target, savedRules]);
 
   const dirty =
     draft.length !== (savedRules ?? []).length ||
@@ -244,11 +261,11 @@ function EligibilityPanel() {
   }
 
   async function save() {
-    if (itemKey === null) return;
+    if (target === null) return;
     setResult(null);
     try {
       await setEligibility.mutateAsync({
-        itemKey,
+        ...target,
         rules: draft.map((r) => ({ groupKey: r.groupKey, authorityRoleKey: r.authorityRoleKey })),
       });
       setResult({ tone: "ok", text: t("staff.permissions.eligibilitySaved") });
@@ -260,28 +277,41 @@ function EligibilityPanel() {
   return (
     <div>
       <div className="mb-3 flex flex-wrap items-center gap-2">
-        <label className="text-xs font-medium text-t3" htmlFor="eligibility-item">
-          {t("staff.permissions.pickType")}
+        <label className="text-xs font-medium text-t3" htmlFor="eligibility-target">
+          {t("staff.permissions.pickTarget")}
         </label>
         <select
-          id="eligibility-item"
+          id="eligibility-target"
           className="h-9 max-w-xs rounded-md border border-border bg-card px-3 text-sm text-foreground"
-          value={itemKey ?? ""}
-          disabled={itemsLoading}
-          onChange={(e) => setItemKey(e.target.value === "" ? null : Number(e.target.value))}
+          value={targetValue(target)}
+          disabled={itemsLoading || roomsLoading}
+          onChange={(e) => setTarget(parseTargetValue(e.target.value))}
         >
-          <option value="">{t("staff.permissions.pickTypePlaceholder")}</option>
-          {(items ?? []).map((item) => (
-            <option key={item.id} value={item.id}>
-              {item.name ?? "-"}
-            </option>
-          ))}
+          <option value="">{t("staff.permissions.pickTargetPlaceholder")}</option>
+          {items && items.length > 0 ? (
+            <optgroup label={t("staff.permissions.groupTypes")}>
+              {items.map((item) => (
+                <option key={item.id} value={targetValue({ itemKey: item.id })}>
+                  {item.name ?? "-"}
+                </option>
+              ))}
+            </optgroup>
+          ) : null}
+          {rooms && rooms.length > 0 ? (
+            <optgroup label={t("staff.permissions.groupRooms")}>
+              {rooms.map((room) => (
+                <option key={room.roomKey} value={targetValue({ roomKey: room.roomKey })}>
+                  {room.name ?? "-"}
+                </option>
+              ))}
+            </optgroup>
+          ) : null}
         </select>
       </div>
 
-      {itemKey === null ? (
+      {target === null ? (
         <div className="rounded-lg border border-border bg-card px-4 py-10 text-center text-sm text-t3">
-          {t("staff.permissions.pickTypeHint")}
+          {t("staff.permissions.pickTargetHint")}
         </div>
       ) : (
         <div className="rounded-lg border border-border bg-card">
@@ -340,7 +370,7 @@ function EligibilityPanel() {
             <div className="px-3.5 py-8 text-center text-sm text-t3">{t("common.loading")}</div>
           ) : draft.length === 0 ? (
             <div className="px-3.5 py-8 text-center text-sm text-t3">
-              {t("staff.permissions.noRules")}
+              {isRoom ? t("staff.permissions.noRoomRules") : t("staff.permissions.noRules")}
             </div>
           ) : (
             <ul className="divide-y divide-border">
@@ -354,7 +384,7 @@ function EligibilityPanel() {
                       {r.groupName ?? t("staff.permissions.unknownGroup")}
                     </span>
                     <Badge tone="neutral">{r.authorityRoleName}</Badge>
-                    {r.appliesToUnits > 0 ? (
+                    {!isRoom && r.appliesToUnits > 0 ? (
                       <span className="text-[11px] text-t4">
                         {t("staff.permissions.appliesToUnits", { count: r.appliesToUnits })}
                       </span>

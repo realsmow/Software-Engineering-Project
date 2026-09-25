@@ -83,7 +83,7 @@ export class AuditService {
 
       await this.prisma.auditLog.create({
         data: {
-          ActorKey: actor.accountKey,
+          ActorKey: account ? actor.accountKey : null,
           ActorName: account
             ? `${account.UserFName} ${account.UserLName}`.trim()
             : `account:${actor.accountKey}`,

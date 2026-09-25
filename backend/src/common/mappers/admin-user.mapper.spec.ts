@@ -48,13 +48,24 @@ const clubAuthority = {
   AuthorityRole: { AuthorityName: 'Club officer', AuthorityLevel: null },
 };
 
+/** A late-return deduction: it came from a loan and took points. */
 const activePenalty = {
   PenaltyKey: 100,
   Reason: 'คืนของช้า',
+  UsageKey: 7,
   CreditDeducted: 10,
   ActionTime: new Date('2026-08-01T03:00:00.000Z'),
   ExpirationTime: new Date('2026-09-01T03:00:00.000Z'),
   Appealed: false,
+};
+
+/** An administrative ban: from no loan, and no points taken. */
+const activeBan = {
+  ...activePenalty,
+  PenaltyKey: 101,
+  Reason: 'ห้ามยืมชั่วคราว',
+  UsageKey: null,
+  CreditDeducted: null,
 };
 
 describe('toAdminUserSummary', () => {
@@ -94,9 +105,24 @@ describe('toAdminUserSummary', () => {
       expect(toAdminUserSummary(accountRow()).status).toBe('active');
     });
 
-    it('is suspended when one is', () => {
+    it('is suspended under a ban', () => {
+      expect(
+        toAdminUserSummary(accountRow({ Penalties: [activeBan] })).status,
+      ).toBe('suspended');
+    });
+
+    // loan.create lets this borrower borrow (the lower score does the
+    // limiting), so the screen must not say they cannot.
+    it('stays active under a credit deduction alone', () => {
       expect(
         toAdminUserSummary(accountRow({ Penalties: [activePenalty] })).status,
+      ).toBe('active');
+    });
+
+    it('is suspended when a ban sits beside a credit deduction', () => {
+      expect(
+        toAdminUserSummary(accountRow({ Penalties: [activePenalty, activeBan] }))
+          .status,
       ).toBe('suspended');
     });
   });

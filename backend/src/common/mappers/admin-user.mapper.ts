@@ -1,5 +1,5 @@
 import { mapUserRole } from '../schemas/status.schema';
-import { toActivePenalty, type PenaltyRow } from '../schemas/penalty.schema';
+import { isBan, toActivePenalty, type PenaltyRow } from '../schemas/penalty.schema';
 import type { BorrowLimits } from '../credit/credit-tier.service';
 import type {
   AdminUserDetail,
@@ -66,9 +66,14 @@ export function toAdminUserSummary(row: AdminAccountRow): AdminUserSummary {
     role: mapUserRole(row.Role.RoleName),
     // Order matters: disabled outranks suspended, since it is the stronger
     // statement about what the account can do.
+    //
+    // Suspended means banned, not penalised. A credit deduction for damage or
+    // lateness leaves the borrower able to borrow (the lower score does the
+    // limiting), and calling that "suspended" told staff the opposite of what
+    // loan.create would do.
     status: !row.IsActive
       ? 'disabled'
-      : row.Penalties.length > 0
+      : row.Penalties.some(isBan)
         ? 'suspended'
         : 'active',
     creditScore: row.UserCredit,

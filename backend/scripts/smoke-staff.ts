@@ -136,7 +136,7 @@ async function main() {
 
   // ── 3. register an item type ──────────────────────────────────────────────
   step('3. ลงทะเบียนประเภทอุปกรณ์ (item.createType)');
-  const type = await items.createItemType({
+  const type = await items.createItemType(staff, {
     name: `Arduino Uno R3 (smoke ${Date.now() % 100000})`,
     description: 'บอร์ดไมโครคอนโทรลเลอร์สำหรับวิชาปฏิบัติการ',
     imageUrl: ticket.imageUrl,

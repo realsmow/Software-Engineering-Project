@@ -7,7 +7,7 @@ import { NavIcon } from "@/components/layout/nav-icon";
 import { Badge, type BadgeTone } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
-import { BUSINESS, ROUTES } from "@/constants";
+import { ROUTES } from "@/constants";
 import { useAuthStore } from "@/features/auth/auth.store";
 import { NOTIFICATION_META } from "@/features/notifications/notification.meta";
 import {
@@ -18,11 +18,11 @@ import {
 // Explicitly the domain type: a bare `Notification` resolves to the DOM's own
 // Notification interface, which type-checks and then fails at every field.
 import type { Notification } from "@/types/domain";
+import { getErrorMessage } from "@/lib/error-messages";
 import { cn } from "@/lib/utils";
 import { STATUS_TAB, type MyRequest, type MyRequestStatus } from "../mock-data";
-import { extensionState } from "../loans/extension-rules";
+import { useLoanExtension } from "../loans/use-extensions";
 import { useMyRequests } from "../loans/use-my-requests";
-import { useSubmittedRequests } from "../loans/submitted-requests.store";
 
 /**
  * Borrower home - what needs attention today, and the two doors out of it.
@@ -33,7 +33,9 @@ import { useSubmittedRequests } from "../loans/submitted-requests.store";
  *
  * There is no "return item" action. Returning happens at the counter, where
  * staff photograph and inspect the item in the same visit - the borrower has
- * nothing to press here. Extending, on the other hand, is theirs to do.
+ * nothing to press here. Extending, on the other hand, is theirs to do, and it
+ * goes to the server: `loan.requestExtension`, with the route and new due date
+ * `loan.extensionOptions` reported.
  */
 export default function HomePage() {
   const { t } = useTranslation();
@@ -74,7 +76,7 @@ export default function HomePage() {
         <Panel title={t("borrower.home.currentLoans")}>
           <LoansTable rows={loans} />
           <p className="border-t border-border bg-secondary px-3.5 py-2.5 text-xs leading-relaxed text-t3">
-            {t("borrower.home.extendHint", { days: BUSINESS.EXTENSION_DAYS })}
+            {t("borrower.home.extendNote")}
           </p>
         </Panel>
 
@@ -230,14 +232,12 @@ function LoansTable({ rows }: { rows: MyRequest[] }) {
 
 function LoanRow({ row }: { row: MyRequest }) {
   const { t } = useTranslation();
-  const band = useAuthStore((s) => s.user?.creditBand) ?? "D0";
-  const extendLoan = useSubmittedRequests((s) => s.extendLoan);
-  const requestExtension = useSubmittedRequests((s) => s.requestExtension);
-  const cancelExtensionRequest = useSubmittedRequests((s) => s.cancelExtensionRequest);
-  const ext = extensionState(row, band);
+  const extension = useLoanExtension(row);
+  const ext = extension.state;
   const [asking, setAsking] = useState(false);
 
   const left = row.daysLeft ?? 0;
+  const error = extension.error ? getErrorMessage(extension.error) : null;
 
   return (
     <tr className="border-b border-border last:border-b-0">
@@ -254,18 +254,17 @@ function LoanRow({ row }: { row: MyRequest }) {
       <td className="whitespace-nowrap px-3.5 py-2 text-right">
         <span className="inline-flex justify-end gap-1.5">
           {/* Shown even when someone else has to grant it: pressing sends the
-              request. Only a credit block leaves nothing to press, and then the
-              tooltip says why. */}
+              request. When the server would refuse, the tooltip says why. */}
           <Button
             type="button"
             variant="outline"
             size="sm"
             className="h-7 text-xs"
-            disabled={!ext.canExtend && !ext.canRequest}
-            title={t(ext.reasonKey, { count: ext.count })}
-            onClick={() => (ext.canExtend ? extendLoan(row) : setAsking(true))}
+            disabled={!ext.canRequest || extension.busy}
+            title={ext.reasonKey ? t(ext.reasonKey, ext.values) : undefined}
+            onClick={() => setAsking(true)}
           >
-            {t(ext.labelKey)}
+            {extension.busy ? t("common.loading") : t(ext.labelKey)}
           </Button>
           {ext.isPending ? (
             <Button
@@ -273,12 +272,21 @@ function LoanRow({ row }: { row: MyRequest }) {
               variant="outline"
               size="sm"
               className="h-7 text-xs"
-              onClick={() => cancelExtensionRequest(row.id)}
+              disabled={extension.busy}
+              onClick={extension.withdraw}
             >
               {t("borrower.myRequests.cancelExt")}
             </Button>
           ) : null}
         </span>
+        {error ? (
+          <p
+            role="alert"
+            className="mt-1 whitespace-normal text-right text-[11.5px] leading-relaxed text-[var(--s-alert-t)]"
+          >
+            {error}
+          </p>
+        ) : null}
 
         {/* Same decision as the card on "my requests", in a dialog: a table
             cell has no room for the note explaining what is being agreed to. */}
@@ -294,19 +302,25 @@ function LoanRow({ row }: { row: MyRequest }) {
               </Button>
               <Button
                 type="button"
+                disabled={!ext.canRequest}
                 onClick={() => {
                   setAsking(false);
-                  requestExtension(row, ext.mode === "supervisor" ? "supervisor" : "staff");
+                  extension.request();
                 }}
               >
-                {t(ext.confirmLabelKey)}
+                {ext.confirmLabelKey ? t(ext.confirmLabelKey) : t("borrower.myRequests.extend")}
               </Button>
             </>
           }
         >
-          <p className="text-[13px] leading-relaxed text-t2">
-            {ext.askNoteKey ? t(ext.askNoteKey) : null}
+          <p className="whitespace-normal text-[13px] leading-relaxed text-t2">
+            {ext.askNoteKey ? t(ext.askNoteKey, ext.values) : null}
           </p>
+          {ext.newDueAt ? (
+            <p className="mt-2 text-[13px] font-medium text-foreground">
+              {t("borrower.myRequests.extNewDue", ext.values)}
+            </p>
+          ) : null}
         </Modal>
       </td>
     </tr>
@@ -508,7 +522,6 @@ const STATUS_TONE: Record<MyRequestStatus, BadgeTone> = {
   ready: "info",
   inUse: "ok",
   returned: "neutral",
-  inspecting: "neutral",
   done: "neutral",
   rejected: "alert",
   cancelled: "neutral",

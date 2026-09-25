@@ -57,6 +57,7 @@ import type {
   RoomCheckResult,
   RoomCheckRound,
 } from "@/features/staff/repairs/repairs.types";
+import type { RoomDay, ServerRoom } from "@/features/borrower/rooms/room.adapter";
 import type {
   ManagedItemDetail,
   ManagedItemType,
@@ -87,11 +88,7 @@ import type { ServerAuditEvent } from "@/features/admin/audit/audit-event.adapte
 import type { CronJob, SystemStatus } from "@/features/admin/status/status.types";
 import type { ReportSummary } from "@/features/admin/reports/report.types";
 import type { TechnicalConfig } from "@/features/admin/config/config.types";
-import type {
-  EquipmentType,
-  EquipmentUnit,
-  Notification,
-} from "@/types/domain";
+import type { Notification } from "@/types/domain";
 import type {
   AppealOutput,
   AppealablePenalty,
@@ -181,7 +178,16 @@ export const appRouter = t.router({
       .query(() => as<Paginated<ServerItem>>()),
     // getById answers `itemDetail` - the summary plus every unit, so the detail
     // page needs one round trip, not two.
-    getById: proc.input(numericIdInput).query(() => as<ServerItemDetail>()),
+    // With a period, the count and each unit's availableForWindow answer for
+    // it; without one, for right now.
+    getById: proc
+      .input(
+        numericIdInput.extend({
+          startTime: z.string().datetime().optional(),
+          endTime: z.string().datetime().optional(),
+        }),
+      )
+      .query(() => as<ServerItemDetail>()),
     // Polled every 15s by the detail page. Deliberately small: three numbers,
     // no units and no history.
     getAvailability: proc.input(numericIdInput).query(() =>
@@ -232,6 +238,17 @@ export const appRouter = t.router({
         }),
       )
       .mutation(() => as<ManagedUnit>()),
+    // ── rooms (T3) ────────────────────────────────────
+    // Typed against roomSummary / roomAvailabilityOutput in item.schema.ts.
+    // Free slots are not on the room: they come from roomAvailability, one
+    // room and one Bangkok day at a time.
+    listRooms: proc
+      .input(pageInput.extend({ bookableOnly: z.boolean().optional() }))
+      .query(() => as<ServerPaginated<ServerRoom>>()),
+    getRoomById: proc.input(numericIdInput).query(() => as<ServerRoom>()),
+    roomAvailability: proc
+      .input(z.object({ roomKey: z.number(), date: z.string() }))
+      .query(() => as<RoomDay>()),
     listUnits: proc
       .input(
         numericIdInput.extend({
@@ -240,13 +257,6 @@ export const appRouter = t.router({
         }),
       )
       .query(() => as<ServerItemUnit[]>()),
-    create: proc.input(z.object({}).passthrough()).mutation(() => as<EquipmentType>()),
-    update: proc
-      .input(z.object({ id: z.string() }).passthrough())
-      .mutation(() => as<EquipmentType>()),
-    updateUnitStatus: proc
-      .input(z.object({ unitId: z.string(), status: z.string() }))
-      .mutation(() => as<EquipmentUnit>()),
     createType: proc
       .input(
         z.object({
@@ -319,15 +329,23 @@ export const appRouter = t.router({
       )
       .mutation(() => as<ManagedRoom>()),
     // ── Eligibility (who may borrow a type) ────────────
+    // Also rooms: exactly one of itemKey or roomKey (RoomInfo.RoomKey), as
+    // z.xor in eligibilityTargetInput / setEligibilityInput. Naming both is refused.
     listEligibility: proc
-      .input(z.object({ itemKey: z.number() }))
+      .input(z.xor([z.object({ itemKey: z.number() }), z.object({ roomKey: z.number() })]))
       .query(() => as<EligibilityRule[]>()),
     setEligibility: proc
       .input(
-        z.object({
-          itemKey: z.number(),
-          rules: z.array(z.object({ groupKey: z.number(), authorityRoleKey: z.number() })).max(200),
-        }),
+        z.xor([
+          z.object({
+            itemKey: z.number(),
+            rules: z.array(z.object({ groupKey: z.number(), authorityRoleKey: z.number() })).max(200),
+          }),
+          z.object({
+            roomKey: z.number(),
+            rules: z.array(z.object({ groupKey: z.number(), authorityRoleKey: z.number() })).max(200),
+          }),
+        ]),
       )
       .mutation(() => as<EligibilityRule[]>()),
     listManagementGroups: proc.query(() => as<EligibilityGroupOption[]>()),
@@ -362,6 +380,24 @@ export const appRouter = t.router({
           rejected: { resourceKey: number; code: string; detail: Record<string, unknown> | null }[];
         }>(),
       ),
+    // Same pipeline and same answer shape as `create`: a slot run that clashes
+    // comes back in `rejected`, not as a thrown error, so the caller must read
+    // both arrays rather than assume success.
+    createRoomBooking: proc
+      .input(
+        z.object({
+          roomKey: z.number(),
+          date: z.string(),
+          slots: z.array(z.number()),
+          reason: z.string().optional(),
+        }),
+      )
+      .mutation(() =>
+        as<{
+          created: ServerRequest[];
+          rejected: { resourceKey: number; code: string; detail: Record<string, unknown> | null }[];
+        }>(),
+      ),
     // ── extensions (SRS 5.4) ──────────────────────────
     // extensionOptions is a dry run of requestExtension: same checks, no
     // writes, so the screen can offer or withhold the button without asking
@@ -379,7 +415,11 @@ export const appRouter = t.router({
       )
       .mutation(() => as<ServerExtension>()),
     myExtensions: proc
-      .input(pageInput.extend({ status: z.string().optional() }))
+      .input(
+        pageInput.extend({
+          status: z.enum(["Pending", "Approved", "Rejected", "Canceled"]).optional(),
+        }),
+      )
       .query(() => as<Paginated<ServerExtension>>()),
     cancelExtension: proc
       .input(z.object({ extensionKey: z.number() }))
@@ -552,14 +592,6 @@ export const appRouter = t.router({
   }),
 
   // ── reservation ───────────────────────────────────────
-  reservation: t.router({
-    list: proc.input(pageInput).query(() => as<Paginated<unknown>>()),
-    getSlots: proc
-      .input(z.object({ roomId: z.string(), date: z.string() }))
-      .query(() => as<{ start: string; end: string; taken: boolean }[]>()),
-    create: proc.input(z.object({}).passthrough()).mutation(() => as<{ id: string }>()),
-    cancel: proc.input(idInput).mutation(() => as<{ ok: true }>()),
-  }),
 
   // ── appeal ────────────────────────────────────────────
   // Typed against backend/src/appeal/appeal.schema.ts. Every entry here was
