@@ -66,38 +66,42 @@ test.describe("Module 6 loan request submission", () => {
   test("6.1: adds two items and opens one combined request draft", async ({ page }) => {
     await addSeedT0Items(page);
 
-    await expect(page.getByRole("heading", { name: CALIPER, exact: true })).toBeVisible();
-    await expect(page.getByRole("heading", { name: JUMPER_WIRES, exact: true })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Submit request" })).toBeDisabled();
+    const draftRows = page.getByRole("row");
+    await expect(draftRows.filter({ hasText: CALIPER })).toBeVisible();
+    await expect(draftRows.filter({ hasText: JUMPER_WIRES })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Submit request" })).toBeEnabled();
   });
 
   test("6.2: requires a valid pickup/return period within the allowed range", async ({ page }) => {
     await addSeedT0Items(page);
 
     const submit = page.getByRole("button", { name: "Submit request" });
-    await expect(submit).toBeDisabled();
-
-    await page.getByLabel("Pickup date").fill(e2eRequestDate());
-    await page.getByLabel("Return date").fill(e2eReturnDate(14));
-    await page.getByRole("button", { name: "13:00" }).first().click();
+    // The draft starts with today's valid period, so it can be submitted
+    // immediately. A 15-day inclusive period exceeds the seeded D0 allowance.
     await expect(submit).toBeEnabled();
 
-    // A 15-day span exceeds the default D0 allowance of 14 days.
-    await page.getByLabel("Return date").fill(e2eReturnDate(15));
+    await page.getByLabel("Pickup date", { exact: true }).fill(e2eRequestDate());
+    await page.getByLabel("Return date", { exact: true }).fill(e2eReturnDate(14));
+    await page.getByRole("button", { name: "13:00" }).first().click();
     await expect(submit).toBeDisabled();
+
+    // A 14-day inclusive span remains within the default D0 allowance.
+    await page.getByLabel("Return date", { exact: true }).fill(e2eReturnDate(13));
+    await expect(submit).toBeEnabled();
   });
 
   test("6.11: submits the request through loan.create and shows both requested items", async ({ page }) => {
     await addSeedT0Items(page);
 
-    await page.getByLabel("Pickup date").fill(e2eRequestDate());
-    await page.getByLabel("Return date").fill(e2eReturnDate(1));
+    await page.getByLabel("Pickup date", { exact: true }).fill(e2eRequestDate());
+    await page.getByLabel("Return date", { exact: true }).fill(e2eReturnDate(1));
     await page.getByRole("button", { name: "13:00" }).first().click();
 
     const create = mutationResponse(page, "loan.create");
     await page.getByRole("button", { name: "Submit request" }).click();
 
-    expect((await create).ok()).toBeTruthy();
+    const createResponse = await create;
+    expect(createResponse.ok(), await createResponse.text()).toBeTruthy();
     await expect(page).toHaveURL("/my/loans");
     await expect(page.getByRole("heading", { name: CALIPER, exact: true }).first()).toBeVisible();
     await expect(page.getByRole("heading", { name: JUMPER_WIRES, exact: true }).first()).toBeVisible();

@@ -25,6 +25,99 @@ function trpcResponse(page: Page, procedure: string) {
   });
 }
 
+const ROOM_FIXTURE = {
+  id: 999_999,
+  name: "E2E Engineering Lab",
+  description: "Room fixture for the same-day booking screen.",
+  location: "Engineering Building",
+  imageUrl: null,
+  capacity: 24,
+  tier: "T3",
+  creditWeight: 1,
+  status: "InStorage",
+  allowBorrow: true,
+  bookable: true,
+  owner: null,
+};
+
+type TrpcResult = {
+  result?: { data?: unknown };
+  [key: string]: unknown;
+};
+
+function roomAvailability(date: string) {
+  const starts = [
+    ...Array.from({ length: 10 }, (_, index) => 420 + index * 30),
+    ...Array.from({ length: 10 }, (_, index) => 780 + index * 30),
+  ];
+
+  return {
+    roomKey: ROOM_FIXTURE.id,
+    date,
+    slots: starts.map((minutes, index) => {
+      const start = `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
+      const endMinutes = minutes + 30;
+      const end = `${String(Math.floor(endMinutes / 60)).padStart(2, "0")}:${String(endMinutes % 60).padStart(2, "0")}`;
+
+      return {
+        index,
+        start,
+        end,
+        startTime: new Date(`${date}T${start}:00+07:00`).toISOString(),
+        endTime: new Date(`${date}T${end}:00+07:00`).toISOString(),
+        available: true,
+      };
+    }),
+    maxSlotsPerBooking: 6,
+    slotMinutes: 30,
+  };
+}
+
+async function installRoomFixtures(page: Page) {
+  await page.route("**/trpc/**", async (route) => {
+    const url = new URL(route.request().url());
+    const procedures = url.pathname.split("/trpc/")[1]?.split(",") ?? [];
+    if (!procedures.some((procedure) => ["item.listRooms", "item.getRoomById", "item.roomAvailability"].includes(procedure))) {
+      await route.continue();
+      return;
+    }
+
+    // Keep unrelated procedures in the same tRPC batch connected to the real
+    // backend; replace only the room responses that need deterministic data.
+    const upstream = await route.fetch();
+    const encodedInput = url.searchParams.get("input");
+    const inputs = encodedInput
+      ? (JSON.parse(encodedInput) as Record<string, { date?: string }>)
+      : {};
+    const rawResults: unknown = await upstream.json();
+    const results: TrpcResult[] = Array.isArray(rawResults)
+      ? (rawResults as TrpcResult[])
+      : [rawResults as TrpcResult];
+    procedures.forEach((procedure, index) => {
+      if (procedure === "item.listRooms") {
+        results[index] = {
+          result: { data: {
+            items: [ROOM_FIXTURE],
+            total: 1,
+            page: 1,
+            pageSize: 100,
+          } },
+        };
+      } else if (procedure === "item.getRoomById") {
+        results[index] = { result: { data: ROOM_FIXTURE } };
+      } else if (procedure === "item.roomAvailability") {
+        const date = inputs[String(index)]?.date ?? new Date().toISOString().slice(0, 10);
+        results[index] = { result: { data: roomAvailability(date) } };
+      }
+    });
+
+    await route.fulfill({
+      response: upstream,
+      body: JSON.stringify(url.searchParams.has("batch") ? results : results[0]),
+    });
+  });
+}
+
 test.describe("Module 5 equipment browser flows", () => {
   test.beforeEach(async ({ page }) => {
     await signInAsAdmin(page);
@@ -64,7 +157,7 @@ test.describe("Module 5 equipment browser flows", () => {
     }
   });
 
-  test("opens equipment detail and requests the live availability endpoint", async ({
+  test("opens equipment detail and shows live unit availability", async ({
     page,
   }) => {
     const list = trpcResponse(page, "item.list");
@@ -80,16 +173,17 @@ test.describe("Module 5 equipment browser flows", () => {
     );
 
     const detail = trpcResponse(page, "item.getById");
-    const availability = trpcResponse(page, "item.getAvailability");
     await opener.click();
     expect((await detail).ok()).toBeTruthy();
-    await expect(page.getByText("Availability, next 14 days")).toBeVisible();
-    expect((await availability).ok()).toBeTruthy();
+    await expect(page.getByRole("columnheader", { name: "Unit serial" })).toBeVisible();
+    await expect(page.locator("tbody tr").first()).toBeVisible();
+    await expect(page.getByText("Free for your dates").first()).toBeVisible();
   });
 
   test("opens a T3 facility and shows its capacity and same-day slot calendar", async ({
     page,
   }) => {
+    await installRoomFixtures(page);
     await page.goto("/rooms");
 
     await expect(page.getByRole("heading", { name: "Room list" })).toBeVisible();

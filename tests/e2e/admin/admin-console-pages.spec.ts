@@ -106,18 +106,16 @@ test.describe("Admin console pages", () => {
     await expect(page.getByRole("heading", { name: "Security" })).toBeVisible();
   });
 
-  test("surfaces the unavailable cron job response instead of a blank failure", async ({
+  test("lists the registered scheduled jobs without removed jobs", async ({
     page,
   }) => {
     await page.goto("/admin/status");
     await expect(page.getByRole("columnheader", { name: "Job" })).toBeVisible();
-    const row = page
-      .locator("tbody tr")
-      .filter({ hasText: "computeAvailability" });
+    const rows = page.locator("tbody tr");
 
-    await expect(row).toBeVisible();
-    await row.getByRole("button", { name: "Run now" }).click();
-    await expect(row.locator("td").last().locator("div").last()).toBeVisible();
-    await expect(row).not.toContainText("Error:");
+    await expect(rows).toHaveCount(6);
+    await expect(rows.filter({ hasText: "openT3InspectionRounds" })).toBeVisible();
+    await expect(rows.filter({ hasText: "computeAvailability" })).toHaveCount(0);
+    await expect(rows.filter({ hasText: "rollupDailyStats" })).toHaveCount(0);
   });
 });
