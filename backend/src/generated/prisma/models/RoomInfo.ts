@@ -31,6 +31,10 @@ export type RoomInfoAvgAggregateOutputType = {
   ResourceKey: number | null
   CreditWeight: number | null
   Capacity: number | null
+  OpenTime: number | null
+  CloseTime: number | null
+  BreakStart: number | null
+  BreakEnd: number | null
 }
 
 export type RoomInfoSumAggregateOutputType = {
@@ -38,6 +42,10 @@ export type RoomInfoSumAggregateOutputType = {
   ResourceKey: number | null
   CreditWeight: number | null
   Capacity: number | null
+  OpenTime: number | null
+  CloseTime: number | null
+  BreakStart: number | null
+  BreakEnd: number | null
 }
 
 export type RoomInfoMinAggregateOutputType = {
@@ -49,6 +57,10 @@ export type RoomInfoMinAggregateOutputType = {
   ImageURL: string | null
   CreditWeight: number | null
   Capacity: number | null
+  OpenTime: number | null
+  CloseTime: number | null
+  BreakStart: number | null
+  BreakEnd: number | null
 }
 
 export type RoomInfoMaxAggregateOutputType = {
@@ -60,6 +72,10 @@ export type RoomInfoMaxAggregateOutputType = {
   ImageURL: string | null
   CreditWeight: number | null
   Capacity: number | null
+  OpenTime: number | null
+  CloseTime: number | null
+  BreakStart: number | null
+  BreakEnd: number | null
 }
 
 export type RoomInfoCountAggregateOutputType = {
@@ -71,6 +87,10 @@ export type RoomInfoCountAggregateOutputType = {
   ImageURL: number
   CreditWeight: number
   Capacity: number
+  OpenTime: number
+  CloseTime: number
+  BreakStart: number
+  BreakEnd: number
   _all: number
 }
 
@@ -80,6 +100,10 @@ export type RoomInfoAvgAggregateInputType = {
   ResourceKey?: true
   CreditWeight?: true
   Capacity?: true
+  OpenTime?: true
+  CloseTime?: true
+  BreakStart?: true
+  BreakEnd?: true
 }
 
 export type RoomInfoSumAggregateInputType = {
@@ -87,6 +111,10 @@ export type RoomInfoSumAggregateInputType = {
   ResourceKey?: true
   CreditWeight?: true
   Capacity?: true
+  OpenTime?: true
+  CloseTime?: true
+  BreakStart?: true
+  BreakEnd?: true
 }
 
 export type RoomInfoMinAggregateInputType = {
@@ -98,6 +126,10 @@ export type RoomInfoMinAggregateInputType = {
   ImageURL?: true
   CreditWeight?: true
   Capacity?: true
+  OpenTime?: true
+  CloseTime?: true
+  BreakStart?: true
+  BreakEnd?: true
 }
 
 export type RoomInfoMaxAggregateInputType = {
@@ -109,6 +141,10 @@ export type RoomInfoMaxAggregateInputType = {
   ImageURL?: true
   CreditWeight?: true
   Capacity?: true
+  OpenTime?: true
+  CloseTime?: true
+  BreakStart?: true
+  BreakEnd?: true
 }
 
 export type RoomInfoCountAggregateInputType = {
@@ -120,6 +156,10 @@ export type RoomInfoCountAggregateInputType = {
   ImageURL?: true
   CreditWeight?: true
   Capacity?: true
+  OpenTime?: true
+  CloseTime?: true
+  BreakStart?: true
+  BreakEnd?: true
   _all?: true
 }
 
@@ -218,6 +258,10 @@ export type RoomInfoGroupByOutputType = {
   ImageURL: string | null
   CreditWeight: number
   Capacity: number | null
+  OpenTime: number
+  CloseTime: number
+  BreakStart: number | null
+  BreakEnd: number | null
   _count: RoomInfoCountAggregateOutputType | null
   _avg: RoomInfoAvgAggregateOutputType | null
   _sum: RoomInfoSumAggregateOutputType | null
@@ -252,6 +296,10 @@ export type RoomInfoWhereInput = {
   ImageURL?: Prisma.StringNullableFilter<"RoomInfo"> | string | null
   CreditWeight?: Prisma.FloatFilter<"RoomInfo"> | number
   Capacity?: Prisma.IntNullableFilter<"RoomInfo"> | number | null
+  OpenTime?: Prisma.IntFilter<"RoomInfo"> | number
+  CloseTime?: Prisma.IntFilter<"RoomInfo"> | number
+  BreakStart?: Prisma.IntNullableFilter<"RoomInfo"> | number | null
+  BreakEnd?: Prisma.IntNullableFilter<"RoomInfo"> | number | null
   Resource?: Prisma.XOR<Prisma.ResourceInfoScalarRelationFilter, Prisma.ResourceInfoWhereInput>
 }
 
@@ -264,6 +312,10 @@ export type RoomInfoOrderByWithRelationInput = {
   ImageURL?: Prisma.SortOrderInput | Prisma.SortOrder
   CreditWeight?: Prisma.SortOrder
   Capacity?: Prisma.SortOrderInput | Prisma.SortOrder
+  OpenTime?: Prisma.SortOrder
+  CloseTime?: Prisma.SortOrder
+  BreakStart?: Prisma.SortOrderInput | Prisma.SortOrder
+  BreakEnd?: Prisma.SortOrderInput | Prisma.SortOrder
   Resource?: Prisma.ResourceInfoOrderByWithRelationInput
 }
 
@@ -279,6 +331,10 @@ export type RoomInfoWhereUniqueInput = Prisma.AtLeast<{
   ImageURL?: Prisma.StringNullableFilter<"RoomInfo"> | string | null
   CreditWeight?: Prisma.FloatFilter<"RoomInfo"> | number
   Capacity?: Prisma.IntNullableFilter<"RoomInfo"> | number | null
+  OpenTime?: Prisma.IntFilter<"RoomInfo"> | number
+  CloseTime?: Prisma.IntFilter<"RoomInfo"> | number
+  BreakStart?: Prisma.IntNullableFilter<"RoomInfo"> | number | null
+  BreakEnd?: Prisma.IntNullableFilter<"RoomInfo"> | number | null
   Resource?: Prisma.XOR<Prisma.ResourceInfoScalarRelationFilter, Prisma.ResourceInfoWhereInput>
 }, "RoomKey" | "ResourceKey">
 
@@ -291,6 +347,10 @@ export type RoomInfoOrderByWithAggregationInput = {
   ImageURL?: Prisma.SortOrderInput | Prisma.SortOrder
   CreditWeight?: Prisma.SortOrder
   Capacity?: Prisma.SortOrderInput | Prisma.SortOrder
+  OpenTime?: Prisma.SortOrder
+  CloseTime?: Prisma.SortOrder
+  BreakStart?: Prisma.SortOrderInput | Prisma.SortOrder
+  BreakEnd?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.RoomInfoCountOrderByAggregateInput
   _avg?: Prisma.RoomInfoAvgOrderByAggregateInput
   _max?: Prisma.RoomInfoMaxOrderByAggregateInput
@@ -310,6 +370,10 @@ export type RoomInfoScalarWhereWithAggregatesInput = {
   ImageURL?: Prisma.StringNullableWithAggregatesFilter<"RoomInfo"> | string | null
   CreditWeight?: Prisma.FloatWithAggregatesFilter<"RoomInfo"> | number
   Capacity?: Prisma.IntNullableWithAggregatesFilter<"RoomInfo"> | number | null
+  OpenTime?: Prisma.IntWithAggregatesFilter<"RoomInfo"> | number
+  CloseTime?: Prisma.IntWithAggregatesFilter<"RoomInfo"> | number
+  BreakStart?: Prisma.IntNullableWithAggregatesFilter<"RoomInfo"> | number | null
+  BreakEnd?: Prisma.IntNullableWithAggregatesFilter<"RoomInfo"> | number | null
 }
 
 export type RoomInfoCreateInput = {
@@ -319,6 +383,10 @@ export type RoomInfoCreateInput = {
   ImageURL?: string | null
   CreditWeight: number
   Capacity?: number | null
+  OpenTime?: number
+  CloseTime?: number
+  BreakStart?: number | null
+  BreakEnd?: number | null
   Resource: Prisma.ResourceInfoCreateNestedOneWithoutRoomInput
 }
 
@@ -331,6 +399,10 @@ export type RoomInfoUncheckedCreateInput = {
   ImageURL?: string | null
   CreditWeight: number
   Capacity?: number | null
+  OpenTime?: number
+  CloseTime?: number
+  BreakStart?: number | null
+  BreakEnd?: number | null
 }
 
 export type RoomInfoUpdateInput = {
@@ -340,6 +412,10 @@ export type RoomInfoUpdateInput = {
   ImageURL?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   CreditWeight?: Prisma.FloatFieldUpdateOperationsInput | number
   Capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  OpenTime?: Prisma.IntFieldUpdateOperationsInput | number
+  CloseTime?: Prisma.IntFieldUpdateOperationsInput | number
+  BreakStart?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  BreakEnd?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   Resource?: Prisma.ResourceInfoUpdateOneRequiredWithoutRoomNestedInput
 }
 
@@ -352,6 +428,10 @@ export type RoomInfoUncheckedUpdateInput = {
   ImageURL?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   CreditWeight?: Prisma.FloatFieldUpdateOperationsInput | number
   Capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  OpenTime?: Prisma.IntFieldUpdateOperationsInput | number
+  CloseTime?: Prisma.IntFieldUpdateOperationsInput | number
+  BreakStart?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  BreakEnd?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
 }
 
 export type RoomInfoCreateManyInput = {
@@ -363,6 +443,10 @@ export type RoomInfoCreateManyInput = {
   ImageURL?: string | null
   CreditWeight: number
   Capacity?: number | null
+  OpenTime?: number
+  CloseTime?: number
+  BreakStart?: number | null
+  BreakEnd?: number | null
 }
 
 export type RoomInfoUpdateManyMutationInput = {
@@ -372,6 +456,10 @@ export type RoomInfoUpdateManyMutationInput = {
   ImageURL?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   CreditWeight?: Prisma.FloatFieldUpdateOperationsInput | number
   Capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  OpenTime?: Prisma.IntFieldUpdateOperationsInput | number
+  CloseTime?: Prisma.IntFieldUpdateOperationsInput | number
+  BreakStart?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  BreakEnd?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
 }
 
 export type RoomInfoUncheckedUpdateManyInput = {
@@ -383,6 +471,10 @@ export type RoomInfoUncheckedUpdateManyInput = {
   ImageURL?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   CreditWeight?: Prisma.FloatFieldUpdateOperationsInput | number
   Capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  OpenTime?: Prisma.IntFieldUpdateOperationsInput | number
+  CloseTime?: Prisma.IntFieldUpdateOperationsInput | number
+  BreakStart?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  BreakEnd?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
 }
 
 export type RoomInfoCountOrderByAggregateInput = {
@@ -394,6 +486,10 @@ export type RoomInfoCountOrderByAggregateInput = {
   ImageURL?: Prisma.SortOrder
   CreditWeight?: Prisma.SortOrder
   Capacity?: Prisma.SortOrder
+  OpenTime?: Prisma.SortOrder
+  CloseTime?: Prisma.SortOrder
+  BreakStart?: Prisma.SortOrder
+  BreakEnd?: Prisma.SortOrder
 }
 
 export type RoomInfoAvgOrderByAggregateInput = {
@@ -401,6 +497,10 @@ export type RoomInfoAvgOrderByAggregateInput = {
   ResourceKey?: Prisma.SortOrder
   CreditWeight?: Prisma.SortOrder
   Capacity?: Prisma.SortOrder
+  OpenTime?: Prisma.SortOrder
+  CloseTime?: Prisma.SortOrder
+  BreakStart?: Prisma.SortOrder
+  BreakEnd?: Prisma.SortOrder
 }
 
 export type RoomInfoMaxOrderByAggregateInput = {
@@ -412,6 +512,10 @@ export type RoomInfoMaxOrderByAggregateInput = {
   ImageURL?: Prisma.SortOrder
   CreditWeight?: Prisma.SortOrder
   Capacity?: Prisma.SortOrder
+  OpenTime?: Prisma.SortOrder
+  CloseTime?: Prisma.SortOrder
+  BreakStart?: Prisma.SortOrder
+  BreakEnd?: Prisma.SortOrder
 }
 
 export type RoomInfoMinOrderByAggregateInput = {
@@ -423,6 +527,10 @@ export type RoomInfoMinOrderByAggregateInput = {
   ImageURL?: Prisma.SortOrder
   CreditWeight?: Prisma.SortOrder
   Capacity?: Prisma.SortOrder
+  OpenTime?: Prisma.SortOrder
+  CloseTime?: Prisma.SortOrder
+  BreakStart?: Prisma.SortOrder
+  BreakEnd?: Prisma.SortOrder
 }
 
 export type RoomInfoSumOrderByAggregateInput = {
@@ -430,6 +538,10 @@ export type RoomInfoSumOrderByAggregateInput = {
   ResourceKey?: Prisma.SortOrder
   CreditWeight?: Prisma.SortOrder
   Capacity?: Prisma.SortOrder
+  OpenTime?: Prisma.SortOrder
+  CloseTime?: Prisma.SortOrder
+  BreakStart?: Prisma.SortOrder
+  BreakEnd?: Prisma.SortOrder
 }
 
 export type RoomInfoNullableScalarRelationFilter = {
@@ -476,6 +588,10 @@ export type RoomInfoCreateWithoutResourceInput = {
   ImageURL?: string | null
   CreditWeight: number
   Capacity?: number | null
+  OpenTime?: number
+  CloseTime?: number
+  BreakStart?: number | null
+  BreakEnd?: number | null
 }
 
 export type RoomInfoUncheckedCreateWithoutResourceInput = {
@@ -486,6 +602,10 @@ export type RoomInfoUncheckedCreateWithoutResourceInput = {
   ImageURL?: string | null
   CreditWeight: number
   Capacity?: number | null
+  OpenTime?: number
+  CloseTime?: number
+  BreakStart?: number | null
+  BreakEnd?: number | null
 }
 
 export type RoomInfoCreateOrConnectWithoutResourceInput = {
@@ -511,6 +631,10 @@ export type RoomInfoUpdateWithoutResourceInput = {
   ImageURL?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   CreditWeight?: Prisma.FloatFieldUpdateOperationsInput | number
   Capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  OpenTime?: Prisma.IntFieldUpdateOperationsInput | number
+  CloseTime?: Prisma.IntFieldUpdateOperationsInput | number
+  BreakStart?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  BreakEnd?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
 }
 
 export type RoomInfoUncheckedUpdateWithoutResourceInput = {
@@ -521,6 +645,10 @@ export type RoomInfoUncheckedUpdateWithoutResourceInput = {
   ImageURL?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   CreditWeight?: Prisma.FloatFieldUpdateOperationsInput | number
   Capacity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  OpenTime?: Prisma.IntFieldUpdateOperationsInput | number
+  CloseTime?: Prisma.IntFieldUpdateOperationsInput | number
+  BreakStart?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  BreakEnd?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
 }
 
 
@@ -534,6 +662,10 @@ export type RoomInfoSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs
   ImageURL?: boolean
   CreditWeight?: boolean
   Capacity?: boolean
+  OpenTime?: boolean
+  CloseTime?: boolean
+  BreakStart?: boolean
+  BreakEnd?: boolean
   Resource?: boolean | Prisma.ResourceInfoDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["roomInfo"]>
 
@@ -546,6 +678,10 @@ export type RoomInfoSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Exte
   ImageURL?: boolean
   CreditWeight?: boolean
   Capacity?: boolean
+  OpenTime?: boolean
+  CloseTime?: boolean
+  BreakStart?: boolean
+  BreakEnd?: boolean
   Resource?: boolean | Prisma.ResourceInfoDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["roomInfo"]>
 
@@ -558,6 +694,10 @@ export type RoomInfoSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Exte
   ImageURL?: boolean
   CreditWeight?: boolean
   Capacity?: boolean
+  OpenTime?: boolean
+  CloseTime?: boolean
+  BreakStart?: boolean
+  BreakEnd?: boolean
   Resource?: boolean | Prisma.ResourceInfoDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["roomInfo"]>
 
@@ -570,9 +710,13 @@ export type RoomInfoSelectScalar = {
   ImageURL?: boolean
   CreditWeight?: boolean
   Capacity?: boolean
+  OpenTime?: boolean
+  CloseTime?: boolean
+  BreakStart?: boolean
+  BreakEnd?: boolean
 }
 
-export type RoomInfoOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"RoomKey" | "ResourceKey" | "RoomName" | "RoomDesc" | "RoomLocation" | "ImageURL" | "CreditWeight" | "Capacity", ExtArgs["result"]["roomInfo"]>
+export type RoomInfoOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"RoomKey" | "ResourceKey" | "RoomName" | "RoomDesc" | "RoomLocation" | "ImageURL" | "CreditWeight" | "Capacity" | "OpenTime" | "CloseTime" | "BreakStart" | "BreakEnd", ExtArgs["result"]["roomInfo"]>
 export type RoomInfoInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   Resource?: boolean | Prisma.ResourceInfoDefaultArgs<ExtArgs>
 }
@@ -604,6 +748,17 @@ export type $RoomInfoPayload<ExtArgs extends runtime.Types.Extensions.InternalAr
      * migration holds that, since Prisma cannot express it.
      */
     Capacity: number | null
+    /**
+     * Opening hours, FR-EQP-04, minutes past local midnight (420 = 07:00).
+     * Defaults reproduce the grid every room used before this column existed
+     * (07:00-12:00, 13:00-18:00), so an unedited room behaves exactly as
+     * before. BreakStart/BreakEnd are both null or both set - see
+     * room-slots.ts assertValidRoomHours.
+     */
+    OpenTime: number
+    CloseTime: number
+    BreakStart: number | null
+    BreakEnd: number | null
   }, ExtArgs["result"]["roomInfo"]>
   composites: {}
 }
@@ -1036,6 +1191,10 @@ export interface RoomInfoFieldRefs {
   readonly ImageURL: Prisma.FieldRef<"RoomInfo", 'String'>
   readonly CreditWeight: Prisma.FieldRef<"RoomInfo", 'Float'>
   readonly Capacity: Prisma.FieldRef<"RoomInfo", 'Int'>
+  readonly OpenTime: Prisma.FieldRef<"RoomInfo", 'Int'>
+  readonly CloseTime: Prisma.FieldRef<"RoomInfo", 'Int'>
+  readonly BreakStart: Prisma.FieldRef<"RoomInfo", 'Int'>
+  readonly BreakEnd: Prisma.FieldRef<"RoomInfo", 'Int'>
 }
     
 

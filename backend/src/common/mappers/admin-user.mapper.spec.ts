@@ -59,15 +59,6 @@ const activePenalty = {
   Appealed: false,
 };
 
-/** An administrative ban: from no loan, and no points taken. */
-const activeBan = {
-  ...activePenalty,
-  PenaltyKey: 101,
-  Reason: 'ห้ามยืมชั่วคราว',
-  UsageKey: null,
-  CreditDeducted: null,
-};
-
 describe('toAdminUserSummary', () => {
   it('produces a schema-valid summary', () => {
     expect(
@@ -101,29 +92,22 @@ describe('toAdminUserSummary', () => {
   });
 
   describe('status', () => {
-    it('is active when no penalty is in force', () => {
+    it('is active while the account can sign in', () => {
       expect(toAdminUserSummary(accountRow()).status).toBe('active');
     });
 
-    it('is suspended under a ban', () => {
-      expect(
-        toAdminUserSummary(accountRow({ Penalties: [activeBan] })).status,
-      ).toBe('suspended');
-    });
-
-    // loan.create lets this borrower borrow (the lower score does the
-    // limiting), so the screen must not say they cannot.
-    it('stays active under a credit deduction alone', () => {
+    // A penalty limits borrowing through the credit band; it never marks the
+    // account as anything but active (there is no borrowing ban, FR-CRD-08).
+    it('stays active under a credit deduction', () => {
       expect(
         toAdminUserSummary(accountRow({ Penalties: [activePenalty] })).status,
       ).toBe('active');
     });
 
-    it('is suspended when a ban sits beside a credit deduction', () => {
-      expect(
-        toAdminUserSummary(accountRow({ Penalties: [activePenalty, activeBan] }))
-          .status,
-      ).toBe('suspended');
+    it('is disabled when the account is switched off', () => {
+      expect(toAdminUserSummary(accountRow({ IsActive: false })).status).toBe(
+        'disabled',
+      );
     });
   });
 

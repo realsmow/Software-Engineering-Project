@@ -9,6 +9,7 @@ import type {
   DecideApprovalOutput,
   ConditionType,
   ExtensionReviewRow,
+  RetirementRequest,
 } from "./approval.types";
 
 /**
@@ -126,6 +127,43 @@ export function useDecideExtension() {
       void queryClient.invalidateQueries({ queryKey: APPROVALS_KEY });
       // The borrower's own view of this loan just changed too.
       void queryClient.invalidateQueries({ queryKey: ["borrower"] });
+    },
+  });
+}
+
+/**
+ * Pending retirement requests (FR-EQP-08), a supervisor's own desk.
+ *
+ * Same polling interval as the rest of the desk - nobody is standing in
+ * front of a supervisor waiting for this pile to move either.
+ */
+export function useRetirementQueue() {
+  const trpc = useTRPCClient();
+
+  return useQuery({
+    queryKey: [...APPROVALS_KEY, "retirements"],
+    queryFn: async (): Promise<RetirementRequest[]> =>
+      fetchAllPages((page, pageSize) => trpc.approval.retirementQueue.query({ page, pageSize })),
+    refetchInterval: POLLING.SUPERVISOR_QUEUE,
+    staleTime: 0,
+  });
+}
+
+/** Approve or reject one retirement request. Approving retires the resource. */
+export function useDecideRetirement() {
+  const trpc = useTRPCClient();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (input: {
+      requestKey: number;
+      decision: "approve" | "reject";
+      note?: string;
+    }): Promise<RetirementRequest> => trpc.approval.decideRetirement.mutate(input),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: APPROVALS_KEY });
+      // The resource's own row (lendable, status) just changed too.
+      void queryClient.invalidateQueries({ queryKey: ["staff", "inventory"] });
     },
   });
 }

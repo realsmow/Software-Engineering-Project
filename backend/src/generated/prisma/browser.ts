@@ -117,6 +117,18 @@ export type RoomInfo = Prisma.RoomInfoModel
  */
 export type ResourceInfo = Prisma.ResourceInfoModel
 /**
+ * Model RetirementRequest
+ * A staff request to retire a unit or room, decided by a supervisor
+ * (FR-EQP-08). Same "no deciding your own" shape as Reservations/AppealInfo:
+ * RequestedBy and DecidedBy cannot be the same account.
+ * 
+ * Approval is what actually sets ResourceInfo.ResourceStatus to `Retired` -
+ * this row is only the paper trail. One resource may have several rows over
+ * time (a rejected request does not block trying again), but the service
+ * refuses a second Pending one for the same resource.
+ */
+export type RetirementRequest = Prisma.RetirementRequestModel
+/**
  * Model RoomCheckRound
  * A scheduled condition check on one T3 room (SRS §5.3, §5.9).
  * 

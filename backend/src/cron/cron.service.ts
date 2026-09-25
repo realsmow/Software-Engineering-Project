@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { PenaltyService } from '../common/penalty/penalty.service';
 import { NotificationService } from '../notification/notification.service';
+import { recomputeCredit } from '../common/credit/recompute-credit';
 
 /** The six jobs in SRS §5.3 that this system runs. */
 export type CronJobId =
@@ -260,11 +261,7 @@ export class CronService {
    * Lifts penalties whose term has run out, and gives the credit back
    * (SRS §5.3 "หมดอายุบทลงโทษ + recompute credit_score").
    *
-   * The credit is restored by the amount the penalty took, rather than
-   * recomputed from scratch: PenaltyInfo.CreditDeducted is the record of what
-   * was taken, and adding it back is exactly reversible. Recomputing a score
-   * from the surviving penalty rows would quietly discard every manual
-   * adjustment an administrator has ever made.
+   * The score is recomputed from the penalties still in force (FR-CRD-06).
    */
   private async expireDemerits(): Promise<CronOutcome> {
     const now = new Date();
@@ -279,12 +276,7 @@ export class CronService {
           where: { PenaltyKey: p.PenaltyKey },
           data: { InEffect: false },
         });
-        if (p.CreditDeducted && p.CreditDeducted > 0) {
-          await tx.accountInfo.update({
-            where: { AccountKey: p.AccountKey },
-            data: { UserCredit: { increment: p.CreditDeducted } },
-          });
-        }
+        await recomputeCredit(tx, p.AccountKey);
       });
     }
 
@@ -328,7 +320,7 @@ export class CronService {
    * aside there is a UsageLog, and that is the counter's problem to settle,
    * not a job's.
    */
-/**
+  /**
    * Opens a condition-check task for every bookable room whose last check has
    * aged out (§5.3, §5.9).
    *
@@ -344,7 +336,9 @@ export class CronService {
    */
   private async openT3InspectionRounds(): Promise<CronOutcome> {
     const now = new Date();
-    const staleBefore = new Date(now.getTime() - CHECK_INTERVAL_DAYS * 86_400_000);
+    const staleBefore = new Date(
+      now.getTime() - CHECK_INTERVAL_DAYS * 86_400_000,
+    );
 
     const rooms = await this.prisma.resourceInfo.findMany({
       where: { ResourceType: 'Room', AllowBorrow: true },
@@ -366,12 +360,19 @@ export class CronService {
     });
 
     if (due.length === 0) {
-      return { affected: 0, detail: 'every bookable room has been checked recently' };
+      return {
+        affected: 0,
+        detail: 'every bookable room has been checked recently',
+      };
     }
 
     const dueAt = new Date(now.getTime() + CHECK_GRACE_DAYS * 86_400_000);
     const { count } = await this.prisma.roomCheckRound.createMany({
-      data: due.map((room) => ({ ResourceKey: room.ResourceKey, OpenedAt: now, DueAt: dueAt })),
+      data: due.map((room) => ({
+        ResourceKey: room.ResourceKey,
+        OpenedAt: now,
+        DueAt: dueAt,
+      })),
       // A concurrent run that already opened one loses here rather than failing
       // the whole job.
       skipDuplicates: true,

@@ -127,7 +127,9 @@ function serviceWith(options: {
         maxExtendTimes: 2,
       }),
     } as unknown as CreditTierService,
-    { revokeAllForAccount: jest.fn().mockResolvedValue(undefined) } as unknown as SessionService,
+    {
+      revokeAllForAccount: jest.fn().mockResolvedValue(undefined),
+    } as unknown as SessionService,
     { record } as unknown as AuditService,
     {} as StaffScopeService,
     {} as ConfigService,
@@ -358,7 +360,8 @@ describe('changeRole - moves the guard leaves alone', () => {
  * ever adds cover, so it is deliberately unchecked.
  */
 describe('setUserActive - departmental cover', () => {
-  const disable = (id: number, active: boolean) => setUserActiveInput.parse({ id, active });
+  const disable = (id: number, active: boolean) =>
+    setUserActiveInput.parse({ id, active });
 
   it('refuses disabling the last staff member of a department', async () => {
     const { service, updateAccount } = serviceWith({
@@ -367,7 +370,9 @@ describe('setUserActive - departmental cover', () => {
       peers: [],
     });
 
-    await expect(service.setUserActive(disable(7, false), ACTOR)).rejects.toThrow(BusinessError);
+    await expect(
+      service.setUserActive(disable(7, false), ACTOR),
+    ).rejects.toThrow(BusinessError);
     // Refused before the column is written, not rolled back after.
     expect(updateAccount).not.toHaveBeenCalled();
   });
@@ -385,9 +390,15 @@ describe('setUserActive - departmental cover', () => {
       .catch((e: unknown) => e as BusinessError);
 
     expect(error).toBeInstanceOf(BusinessError);
-    expect((error as BusinessError).businessCode).toBe('DISABLE_WOULD_ORPHAN_GROUP');
+    expect((error as BusinessError).businessCode).toBe(
+      'DISABLE_WOULD_ORPHAN_GROUP',
+    );
     const details = (error as BusinessError).details as {
-      groups: { groupName: string; losing: string; openWork: Record<string, number> }[];
+      groups: {
+        groupName: string;
+        losing: string;
+        openWork: Record<string, number>;
+      }[];
     };
     expect(details.groups).toHaveLength(1);
     expect(details.groups[0].groupName).toBe('ภาควิชาวิศวกรรมคอมพิวเตอร์');
@@ -402,7 +413,9 @@ describe('setUserActive - departmental cover', () => {
       peers: [{ ManageGroupKey: 4, RoleName: 'Staff' }],
     });
 
-    await expect(service.setUserActive(disable(7, false), ACTOR)).resolves.toBeDefined();
+    await expect(
+      service.setUserActive(disable(7, false), ACTOR),
+    ).resolves.toBeDefined();
     expect(updateAccount).toHaveBeenCalled();
   });
 
@@ -413,20 +426,29 @@ describe('setUserActive - departmental cover', () => {
       peers: [],
     });
 
-    await expect(service.setUserActive(disable(7, true), ACTOR)).resolves.toBeDefined();
+    await expect(
+      service.setUserActive(disable(7, true), ACTOR),
+    ).resolves.toBeDefined();
     expect(findAuthorities).not.toHaveBeenCalled();
     expect(updateAccount).toHaveBeenCalled();
   });
 
   it('allows disabling somebody attached to no department', async () => {
-    const { service, updateAccount } = serviceWith({ currentRoleName: 'Staff', held: [] });
+    const { service, updateAccount } = serviceWith({
+      currentRoleName: 'Staff',
+      held: [],
+    });
 
-    await expect(service.setUserActive(disable(7, false), ACTOR)).resolves.toBeDefined();
+    await expect(
+      service.setUserActive(disable(7, false), ACTOR),
+    ).resolves.toBeDefined();
     expect(updateAccount).toHaveBeenCalled();
   });
 
   it('still refuses self-disable before touching the database', async () => {
-    const { service, findAuthorities, updateAccount } = serviceWith({ currentRoleName: 'Admin' });
+    const { service, findAuthorities, updateAccount } = serviceWith({
+      currentRoleName: 'Admin',
+    });
 
     await expect(
       service.setUserActive(disable(ACTOR.accountKey, false), ACTOR),

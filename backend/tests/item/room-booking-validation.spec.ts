@@ -81,6 +81,7 @@ function managementHarness() {
       scope as never,
       imageService as never,
       audit as never,
+      { retirementRequested: jest.fn(), retirementDecided: jest.fn() } as never,
     ),
     prisma,
     tx,

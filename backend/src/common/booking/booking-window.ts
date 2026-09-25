@@ -27,6 +27,17 @@ export function collectDeadline(startTime: Date, now: Date): Date {
 }
 
 /**
+ * When a loan may be collected. A few minutes early is ordinary (a borrower at
+ * the counter at 08:50 for a 09:00 pickup); anything earlier is an early
+ * handover, which only staff can grant (`loan.confirmPickup` with `early`).
+ */
+export const PICKUP_GRACE_MINUTES = 15;
+
+export function pickupOpensAt(startTime: Date): Date {
+  return new Date(startTime.getTime() - PICKUP_GRACE_MINUTES * 60_000);
+}
+
+/**
  * Turns a requested window into the range that must be free.
  *
  * `ResourceInfo.BufferTime` is the days staff need around a loan — checking a
@@ -142,7 +153,9 @@ export async function resourcesFreeInWindow(
 
   const [reserved, held] = await Promise.all([
     prisma.reservations.findMany({
-      where: { OR: windows.map((w) => clashingWindowFilter(w.key, w.from, w.to)) },
+      where: {
+        OR: windows.map((w) => clashingWindowFilter(w.key, w.from, w.to)),
+      },
       select: { ResourceKey: true },
     }),
     prisma.usageLog.findMany({

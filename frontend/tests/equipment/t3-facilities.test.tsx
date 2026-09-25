@@ -3,7 +3,7 @@ import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ROUTES } from "../../src/constants";
 import i18n from "../../src/i18n";
-import { TIME_SLOTS } from "../../src/features/borrower/mock-data";
+import { TIME_SLOTS } from "../../src/features/borrower/rooms/room-slots";
 import { todayLocalDayKey } from "../../src/lib/datetime";
 import { getErrorMessage } from "../../src/lib/error-messages";
 import RoomBookingPage from "../../src/features/borrower/rooms/room-booking-page";

@@ -1,6 +1,6 @@
 import { APP_TIME_ZONE, toLocalDayKey } from "@/lib/datetime";
 import type { Role } from "@/types/domain";
-import type { AuditAction, AuditEvent } from "../mock-data";
+import type { AuditAction, AuditEvent } from "../admin-constants";
 
 /**
  * Chart data for the admin screens, derived from the audit trail the server

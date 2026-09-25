@@ -5,7 +5,7 @@ import {
   toCatalogItemDetail,
   toUnitRow,
 } from "../../src/features/borrower/catalog/item.adapter";
-import { CATALOG_ITEMS } from "../../src/features/borrower/mock-data";
+import { CATALOG_ITEMS } from "../fixtures/catalog-items";
 
 const sourceItem = CATALOG_ITEMS[1];
 const serverItem = {

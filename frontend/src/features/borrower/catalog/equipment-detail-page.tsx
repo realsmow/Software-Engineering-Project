@@ -17,7 +17,7 @@ import {
 import { CREDIT_BANDS, ROUTES } from "@/constants";
 import { useAuthStore } from "@/features/auth/auth.store";
 import { cn } from "@/lib/utils";
-import type { StockStatus, UnitCondition, UnitState } from "../mock-data";
+import type { StockStatus, UnitCondition, UnitState } from "./catalog.types";
 import { fmtDateTime } from "../format";
 import { remainingUnits, useRequestDraft } from "../request/request-draft.store";
 import { AddButton } from "./add-button";

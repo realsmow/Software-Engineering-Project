@@ -27,10 +27,7 @@ import { SlideOver } from "@/components/ui/modal";
 import { ChartCard } from "@/components/ui/chart-card";
 import { Segmented } from "@/components/ui/segmented";
 import { ChartTooltip, CHART_COLOR, CHART_SERIES, axisProps, gridProps } from "@/components/ui/chart-kit";
-import {
-  type AuditAction,
-  type AuditEvent,
-} from "../mock-data";
+import { type AuditAction, type AuditEvent } from "../admin-constants";
 import { useAuditEvents } from "./use-audit-events";
 import { activityByRole, eventsByAction, eventsByHour, ROLE_KEYS } from "./audit-stats";
 import { fmtDateTime, fmtDayShort, fmtHour } from "../format";

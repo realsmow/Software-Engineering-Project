@@ -15,6 +15,10 @@ import {
   createItemTypeInput,
   createItemUnitInput,
   createRoomInput,
+  deleteItemTypeInput,
+  deleteItemTypeOutput,
+  deleteResourceInput,
+  deleteResourceOutput,
   eligibilityRule,
   eligibilityTargetInput,
   itemDetail,
@@ -34,6 +38,9 @@ import {
   paginatedItemTypes,
   paginatedManagedRooms,
   paginatedRooms,
+  requestRetirementInput,
+  retirementRequestIdInput,
+  retirementRequestOutput,
   roomAvailabilityInput,
   roomAvailabilityOutput,
   roomIdInput,
@@ -49,6 +56,8 @@ import {
   type CreateItemTypeInput,
   type CreateItemUnitInput,
   type CreateRoomInput,
+  type DeleteItemTypeInput,
+  type DeleteResourceInput,
   type EligibilityTargetInput,
   type ListItemsInput,
   type ListUnitsInput,
@@ -56,6 +65,8 @@ import {
   type ListManagedRoomsInput,
   type ListManagedUnitsInput,
   type ListRoomsInput,
+  type RequestRetirementInput,
+  type RetirementRequestIdInput,
   type RoomAvailabilityInput,
   type SetEligibilityInput,
   type SetUnitConditionInput,
@@ -315,5 +326,53 @@ export class ItemRouter {
   @Query({ output: z.array(authorityRoleOptionOutput) })
   listAuthorityRoles() {
     return this.management.listAuthorityRoles();
+  }
+
+  // ── Delete (FR-EQP-05) — only a record with no history ─────────────────
+
+  /** Refuses with HAS_HISTORY unless every unit of the type is already gone. */
+  @UseMiddlewares(StaffMiddleware)
+  @Mutation({ input: deleteItemTypeInput, output: deleteItemTypeOutput })
+  deleteType(@Input() input: DeleteItemTypeInput, @Ctx() ctx: TrpcContext) {
+    return this.management.deleteItemType(ctx.user!, input);
+  }
+
+  /** Refuses with HAS_HISTORY if the unit has any reservation, usage log, or image. */
+  @UseMiddlewares(StaffMiddleware)
+  @Mutation({ input: deleteResourceInput, output: deleteResourceOutput })
+  deleteUnit(@Input() input: DeleteResourceInput, @Ctx() ctx: TrpcContext) {
+    return this.management.deleteItemUnit(ctx.user!, input);
+  }
+
+  /** Same rule as `deleteUnit`, for a room's ResourceKey. */
+  @UseMiddlewares(StaffMiddleware)
+  @Mutation({ input: deleteResourceInput, output: deleteResourceOutput })
+  deleteRoom(@Input() input: DeleteResourceInput, @Ctx() ctx: TrpcContext) {
+    return this.management.deleteRoom(ctx.user!, input);
+  }
+
+  // ── Retirement (FR-EQP-08) — staff requests, a supervisor decides ──────
+
+  /** Refused while the resource is lent out or has an upcoming booking. */
+  @UseMiddlewares(StaffMiddleware)
+  @Mutation({ input: requestRetirementInput, output: retirementRequestOutput })
+  requestRetirement(
+    @Input() input: RequestRetirementInput,
+    @Ctx() ctx: TrpcContext,
+  ) {
+    return this.management.requestRetirement(ctx.user!, input);
+  }
+
+  /** Withdraws a still-pending request the caller filed themselves. */
+  @UseMiddlewares(StaffMiddleware)
+  @Mutation({
+    input: retirementRequestIdInput,
+    output: retirementRequestOutput,
+  })
+  cancelRetirement(
+    @Input() input: RetirementRequestIdInput,
+    @Ctx() ctx: TrpcContext,
+  ) {
+    return this.management.cancelRetirement(ctx.user!, input);
   }
 }

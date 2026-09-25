@@ -129,7 +129,14 @@ describe('PenaltyService.apply', () => {
 
   function transactionStub() {
     return {
-      penaltyInfo: { create: jest.fn().mockResolvedValue({ PenaltyKey: 99 }) },
+      $queryRaw: jest.fn().mockResolvedValue([]),
+      penaltyInfo: {
+        create: jest.fn().mockResolvedValue({ PenaltyKey: 99 }),
+        // The new 12-point penalty is the only one in force.
+        aggregate: jest
+          .fn()
+          .mockResolvedValue({ _sum: { CreditDeducted: 12 } }),
+      },
       accountInfo: { update: jest.fn().mockResolvedValue({}) },
     };
   }
@@ -148,9 +155,9 @@ describe('PenaltyService.apply', () => {
     expect(tx.accountInfo.update).not.toHaveBeenCalled();
   });
 
-  it('decrements the score instead of overwriting it', async () => {
-    // Two penalties landing in the same moment must both bite; a read-then-write
-    // would let the second one erase the first.
+  it('recomputes the score from the penalties in force (FR-CRD-06)', async () => {
+    // The account row is locked before summing, so two penalties landing in
+    // the same moment both count.
     const tx = transactionStub();
 
     await serviceWithRule(null).apply(tx as never, quote, {
@@ -159,9 +166,10 @@ describe('PenaltyService.apply', () => {
       effectiveFrom: new Date('2569-08-20T10:00:00Z'),
     });
 
+    expect(tx.$queryRaw).toHaveBeenCalled();
     expect(tx.accountInfo.update).toHaveBeenCalledWith({
       where: { AccountKey: 1 },
-      data: { UserCredit: { decrement: 12 } },
+      data: { UserCredit: 88 },
     });
   });
 

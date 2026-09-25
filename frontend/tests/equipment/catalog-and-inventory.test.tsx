@@ -8,7 +8,7 @@ import { useRequestDraft } from "../../src/features/borrower/request/request-dra
 import * as catalogHooks from "../../src/features/borrower/catalog/use-equipment-types";
 import * as inventoryHooks from "../../src/features/staff/inventory/use-inventory";
 import * as itemImageHooks from "../../src/features/staff/inventory/use-item-image";
-import { CATALOG_ITEMS } from "../../src/features/borrower/mock-data";
+import { CATALOG_ITEMS } from "../fixtures/catalog-items";
 import type {
   ManagedItemDetail,
   ManagedItemType,
@@ -23,8 +23,21 @@ vi.mock("../../src/features/borrower/catalog/use-equipment-types", () => ({
 vi.mock("../../src/features/staff/inventory/use-inventory", () => ({
   useManagedItems: vi.fn(),
   useManagedItem: vi.fn(),
+  useManagedRooms: vi.fn(),
   useSetUnitLendable: vi.fn(),
+  useSetUnitCondition: vi.fn(),
   useUpdateItemType: vi.fn(),
+  useDeleteItemType: vi.fn(),
+  useCreateItemType: vi.fn(),
+  useCreateItemUnits: vi.fn(),
+  useUpdateUnit: vi.fn(),
+  useDeleteUnit: vi.fn(),
+  useRequestRetirement: vi.fn(),
+  useCreateRoom: vi.fn(),
+  useUpdateRoom: vi.fn(),
+  useDeleteRoom: vi.fn(),
+  useTierOptions: vi.fn(),
+  useManagementGroupOptions: vi.fn(),
 }));
 
 // The expanded type card carries a photo control. Both of its hooks reach for
@@ -45,6 +58,8 @@ const MANAGED_ITEMS: ManagedItemType[] = CATALOG_ITEMS.slice(0, 2).map((item, in
   tiers: item.tier ? [item.tier] : [],
   totalUnits: item.totalUnits,
   availableUnits: item.availableUnits,
+  price: null,
+  suggestedTier: null,
 }));
 const MANAGED_AVAILABLE_ITEM = MANAGED_ITEMS[0];
 const MANAGED_FILTER_ITEM = MANAGED_ITEMS[1];
@@ -181,6 +196,12 @@ describe("Module 5 staff inventory", () => {
       data: DETAIL,
       isLoading: false,
     } as never);
+    // The rooms section sits below the type list and always queries, even
+    // when this suite never opens it.
+    vi.mocked(inventoryHooks.useManagedRooms).mockReturnValue({
+      data: [],
+      isLoading: false,
+    } as never);
     vi.mocked(inventoryHooks.useUpdateItemType).mockReturnValue({
       mutateAsync: vi.fn(), isPending: false,
     } as never);
@@ -189,6 +210,12 @@ describe("Module 5 staff inventory", () => {
     } as never);
     vi.mocked(inventoryHooks.useSetUnitLendable).mockReturnValue({
       mutateAsync,
+      isPending: false,
+    } as never);
+    // Delete sits in the unit row's default action bar, so it renders
+    // whenever a type card is opened - even in cases that never click it.
+    vi.mocked(inventoryHooks.useDeleteUnit).mockReturnValue({
+      mutateAsync: vi.fn(),
       isPending: false,
     } as never);
   });
@@ -201,7 +228,8 @@ describe("Module 5 staff inventory", () => {
     expect(screen.getByText(String(MANAGED_ITEMS.reduce((total, item) => total + item.totalUnits, 0)))).toBeInTheDocument();
     expect(screen.getByText(String(MANAGED_ITEMS.reduce((total, item) => total + item.availableUnits, 0)))).toBeInTheDocument();
 
-    fireEvent.change(screen.getByRole("searchbox"), { target: { value: MANAGED_FILTER_ITEM.name ?? "" } });
+    // Two search boxes on this page now (types, then rooms below) - the first is types.
+    fireEvent.change(screen.getAllByRole("searchbox")[0], { target: { value: MANAGED_FILTER_ITEM.name ?? "" } });
     expect(screen.getByText(MANAGED_FILTER_ITEM.name ?? "")).toBeInTheDocument();
     expect(screen.queryByText(MANAGED_AVAILABLE_ITEM.name ?? "")).not.toBeInTheDocument();
   });

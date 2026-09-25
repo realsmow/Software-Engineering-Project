@@ -21,7 +21,15 @@ export function mailSettings(config: ConfigService): {
     mailer: createTransport({
       host: config.get<string>('SMTP_HOST') ?? 'localhost',
       port: Number(config.get<string>('SMTP_PORT') ?? 1025),
-      secure: false,
+      // true for port 465; 587 upgrades with STARTTLS on its own.
+      secure: config.get<string>('SMTP_SECURE') === 'true',
+      // MailHog needs no login; a real relay does.
+      auth: config.get<string>('SMTP_USER')
+        ? {
+            user: config.get<string>('SMTP_USER'),
+            pass: config.get<string>('SMTP_PASS'),
+          }
+        : undefined,
     }),
     from: config.get<string>('MAIL_FROM') ?? 'ULMs <no-reply@ku.th>',
     appUrl: (

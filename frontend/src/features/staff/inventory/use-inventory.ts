@@ -11,6 +11,7 @@ import type {
   ManagedUnit,
   ManagementGroupRef,
   ResourceStatus,
+  RetirementRequest,
   TierOption,
 } from "./inventory.types";
 
@@ -123,6 +124,8 @@ export function useUpdateItemType() {
       description?: string;
       imageUrl?: string;
       creditWeight?: number;
+      /** `null` clears a price set by mistake; omit to leave it alone. */
+      price?: number | null;
     }) => trpc.item.updateType.mutate(input),
     onSuccess: refresh,
   });
@@ -145,7 +148,21 @@ export function useCreateItemType() {
       description?: string;
       imageUrl?: string;
       creditWeight: number;
+      /** Baht, FR-EQP-01. Feeds the advisory `suggestedTier`. */
+      price?: number;
     }): Promise<ManagedItemDetail> => trpc.item.createType.mutate(input),
+    onSuccess: refresh,
+  });
+}
+
+/** Refuses with HAS_HISTORY unless every unit of the type is already gone. */
+export function useDeleteItemType() {
+  const trpc = useTRPCClient();
+  const refresh = useRefreshInventory();
+
+  return useMutation({
+    mutationFn: (input: { itemKey: number }): Promise<{ itemKey: number }> =>
+      trpc.item.deleteType.mutate(input),
     onSuccess: refresh,
   });
 }
@@ -223,6 +240,50 @@ export function useManagedUnits(
   });
 }
 
+/** Refuses with HAS_HISTORY if the unit has any reservation, usage log, or image. */
+export function useDeleteUnit() {
+  const trpc = useTRPCClient();
+  const refresh = useRefreshInventory();
+
+  return useMutation({
+    mutationFn: (input: { resourceKey: number }): Promise<{ resourceKey: number }> =>
+      trpc.item.deleteUnit.mutate(input),
+    onSuccess: refresh,
+  });
+}
+
+/**
+ * File a retirement request (FR-EQP-08) for a unit or room.
+ *
+ * Not a delete: the resource keeps its row and history, and a supervisor has
+ * to approve before it actually leaves the pool. Refused with
+ * RETIREMENT_ALREADY_PENDING while one request is already waiting, and with
+ * RETIREMENT_BLOCKED_BY_ACTIVITY while the resource is out or has an
+ * upcoming booking.
+ */
+export function useRequestRetirement() {
+  const trpc = useTRPCClient();
+  const refresh = useRefreshInventory();
+
+  return useMutation({
+    mutationFn: (input: { resourceKey: number; reason: string }): Promise<RetirementRequest> =>
+      trpc.item.requestRetirement.mutate(input),
+    onSuccess: refresh,
+  });
+}
+
+/** Withdraws a still-pending retirement request the caller filed themselves. */
+export function useCancelRetirement() {
+  const trpc = useTRPCClient();
+  const refresh = useRefreshInventory();
+
+  return useMutation({
+    mutationFn: (input: { requestKey: number }): Promise<RetirementRequest> =>
+      trpc.item.cancelRetirement.mutate(input),
+    onSuccess: refresh,
+  });
+}
+
 /**
  * Rooms the department owns (T3).
  *
@@ -260,7 +321,25 @@ export function useCreateRoom() {
       creditWeight?: number;
       capacity?: number;
       lendable?: boolean;
+      /** Minutes past midnight, 30-minute grid. Omit both for the 07:00-18:00 default. */
+      openMinutes?: number;
+      closeMinutes?: number;
+      /** Omit both for the default 12:00-13:00 break; both null means no break. */
+      breakStartMinutes?: number | null;
+      breakEndMinutes?: number | null;
     }): Promise<ManagedRoom> => trpc.item.createRoom.mutate(input),
+    onSuccess: refresh,
+  });
+}
+
+/** Refuses with HAS_HISTORY if the room has any reservation, usage log, or image. */
+export function useDeleteRoom() {
+  const trpc = useTRPCClient();
+  const refresh = useRefreshInventory();
+
+  return useMutation({
+    mutationFn: (input: { resourceKey: number }): Promise<{ resourceKey: number }> =>
+      trpc.item.deleteRoom.mutate(input),
     onSuccess: refresh,
   });
 }
@@ -286,6 +365,10 @@ export function useUpdateRoom() {
       imageUrl?: string;
       creditWeight?: number;
       capacity?: number | null;
+      openMinutes?: number;
+      closeMinutes?: number;
+      breakStartMinutes?: number | null;
+      breakEndMinutes?: number | null;
     }): Promise<ManagedRoom> => trpc.item.updateRoom.mutate(input),
     onSuccess: refresh,
   });

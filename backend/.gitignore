@@ -37,6 +37,10 @@ lerna-debug.log*
 
 # dotenv environment variable files
 .env
+# Real per-environment files (.env.production) hold secrets; only examples are committed.
+.env.*
+!.env.example
+!.env.*.example
 .env.development.local
 .env.test.local
 .env.production.local

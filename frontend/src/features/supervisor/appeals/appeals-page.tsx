@@ -340,6 +340,12 @@ function Evidence({ usageKey }: { usageKey: number | null }) {
     { stage: "before", label: t("supervisor.appeals.photoBefore") },
     { stage: "after", label: t("supervisor.appeals.photoAfter") },
     { stage: "inspection", label: t("supervisor.appeals.photoInspection") },
+    // FR-APL-03: the borrower's own attachment (`evidence` stage), labelled
+    // separately from the official before/after/inspection record so it
+    // reads as the borrower's account, not staff's. Including it here is
+    // also what keeps "no photos filed" from showing once evidence exists -
+    // `shown` below checks every group, this one included.
+    { stage: "evidence", label: t("supervisor.appeals.photoEvidence") },
   ];
   const shown = data ? groups.filter((g) => data[g.stage].length > 0) : [];
 

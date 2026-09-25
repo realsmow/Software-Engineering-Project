@@ -106,18 +106,20 @@ test.describe("Admin console pages", () => {
     await expect(page.getByRole("heading", { name: "Security" })).toBeVisible();
   });
 
-  test("surfaces the unavailable cron job response instead of a blank failure", async ({
+  // computeAvailability and rollupDailyStats were removed as jobs entirely
+  // (nothing left to precompute), so there is no more "not implemented"
+  // placeholder job to press. Every job in the registry now does real work,
+  // so pressing Run now should surface a real result badge, not a blank cell.
+  test("running a scheduled job surfaces a real result instead of a blank status", async ({
     page,
   }) => {
     await page.goto("/admin/status");
     await expect(page.getByRole("columnheader", { name: "Job" })).toBeVisible();
-    const row = page
-      .locator("tbody tr")
-      .filter({ hasText: "computeAvailability" });
+    const row = page.locator("tbody tr").filter({ hasText: "expireDemerits" });
 
     await expect(row).toBeVisible();
     await row.getByRole("button", { name: "Run now" }).click();
-    await expect(row.locator("td").last().locator("div").last()).toBeVisible();
+    await expect(row.getByText("Success")).toBeVisible();
     await expect(row).not.toContainText("Error:");
   });
 });

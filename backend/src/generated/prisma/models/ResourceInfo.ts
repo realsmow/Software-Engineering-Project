@@ -269,6 +269,7 @@ export type ResourceInfoWhereInput = {
   CheckRounds?: Prisma.RoomCheckRoundListRelationFilter
   Images?: Prisma.ImagesListRelationFilter
   RepairLogs?: Prisma.RepairLogListRelationFilter
+  RetirementRequests?: Prisma.RetirementRequestListRelationFilter
 }
 
 export type ResourceInfoOrderByWithRelationInput = {
@@ -293,6 +294,7 @@ export type ResourceInfoOrderByWithRelationInput = {
   CheckRounds?: Prisma.RoomCheckRoundOrderByRelationAggregateInput
   Images?: Prisma.ImagesOrderByRelationAggregateInput
   RepairLogs?: Prisma.RepairLogOrderByRelationAggregateInput
+  RetirementRequests?: Prisma.RetirementRequestOrderByRelationAggregateInput
 }
 
 export type ResourceInfoWhereUniqueInput = Prisma.AtLeast<{
@@ -320,6 +322,7 @@ export type ResourceInfoWhereUniqueInput = Prisma.AtLeast<{
   CheckRounds?: Prisma.RoomCheckRoundListRelationFilter
   Images?: Prisma.ImagesListRelationFilter
   RepairLogs?: Prisma.RepairLogListRelationFilter
+  RetirementRequests?: Prisma.RetirementRequestListRelationFilter
 }, "ResourceKey">
 
 export type ResourceInfoOrderByWithAggregationInput = {
@@ -370,6 +373,7 @@ export type ResourceInfoCreateInput = {
   CheckRounds?: Prisma.RoomCheckRoundCreateNestedManyWithoutResourceInput
   Images?: Prisma.ImagesCreateNestedManyWithoutResourceInput
   RepairLogs?: Prisma.RepairLogCreateNestedManyWithoutResourceInput
+  RetirementRequests?: Prisma.RetirementRequestCreateNestedManyWithoutResourceInput
 }
 
 export type ResourceInfoUncheckedCreateInput = {
@@ -391,6 +395,7 @@ export type ResourceInfoUncheckedCreateInput = {
   CheckRounds?: Prisma.RoomCheckRoundUncheckedCreateNestedManyWithoutResourceInput
   Images?: Prisma.ImagesUncheckedCreateNestedManyWithoutResourceInput
   RepairLogs?: Prisma.RepairLogUncheckedCreateNestedManyWithoutResourceInput
+  RetirementRequests?: Prisma.RetirementRequestUncheckedCreateNestedManyWithoutResourceInput
 }
 
 export type ResourceInfoUpdateInput = {
@@ -411,6 +416,7 @@ export type ResourceInfoUpdateInput = {
   CheckRounds?: Prisma.RoomCheckRoundUpdateManyWithoutResourceNestedInput
   Images?: Prisma.ImagesUpdateManyWithoutResourceNestedInput
   RepairLogs?: Prisma.RepairLogUpdateManyWithoutResourceNestedInput
+  RetirementRequests?: Prisma.RetirementRequestUpdateManyWithoutResourceNestedInput
 }
 
 export type ResourceInfoUncheckedUpdateInput = {
@@ -432,6 +438,7 @@ export type ResourceInfoUncheckedUpdateInput = {
   CheckRounds?: Prisma.RoomCheckRoundUncheckedUpdateManyWithoutResourceNestedInput
   Images?: Prisma.ImagesUncheckedUpdateManyWithoutResourceNestedInput
   RepairLogs?: Prisma.RepairLogUncheckedUpdateManyWithoutResourceNestedInput
+  RetirementRequests?: Prisma.RetirementRequestUncheckedUpdateManyWithoutResourceNestedInput
 }
 
 export type ResourceInfoCreateManyInput = {
@@ -603,6 +610,20 @@ export type EnumResourceStatusFieldUpdateOperationsInput = {
 
 export type EnumResourceTypeFieldUpdateOperationsInput = {
   set?: $Enums.ResourceType
+}
+
+export type ResourceInfoCreateNestedOneWithoutRetirementRequestsInput = {
+  create?: Prisma.XOR<Prisma.ResourceInfoCreateWithoutRetirementRequestsInput, Prisma.ResourceInfoUncheckedCreateWithoutRetirementRequestsInput>
+  connectOrCreate?: Prisma.ResourceInfoCreateOrConnectWithoutRetirementRequestsInput
+  connect?: Prisma.ResourceInfoWhereUniqueInput
+}
+
+export type ResourceInfoUpdateOneRequiredWithoutRetirementRequestsNestedInput = {
+  create?: Prisma.XOR<Prisma.ResourceInfoCreateWithoutRetirementRequestsInput, Prisma.ResourceInfoUncheckedCreateWithoutRetirementRequestsInput>
+  connectOrCreate?: Prisma.ResourceInfoCreateOrConnectWithoutRetirementRequestsInput
+  upsert?: Prisma.ResourceInfoUpsertWithoutRetirementRequestsInput
+  connect?: Prisma.ResourceInfoWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.ResourceInfoUpdateToOneWithWhereWithoutRetirementRequestsInput, Prisma.ResourceInfoUpdateWithoutRetirementRequestsInput>, Prisma.ResourceInfoUncheckedUpdateWithoutRetirementRequestsInput>
 }
 
 export type ResourceInfoCreateNestedOneWithoutCheckRoundsInput = {
@@ -818,6 +839,7 @@ export type ResourceInfoCreateWithoutManagementGroupInput = {
   CheckRounds?: Prisma.RoomCheckRoundCreateNestedManyWithoutResourceInput
   Images?: Prisma.ImagesCreateNestedManyWithoutResourceInput
   RepairLogs?: Prisma.RepairLogCreateNestedManyWithoutResourceInput
+  RetirementRequests?: Prisma.RetirementRequestCreateNestedManyWithoutResourceInput
 }
 
 export type ResourceInfoUncheckedCreateWithoutManagementGroupInput = {
@@ -838,6 +860,7 @@ export type ResourceInfoUncheckedCreateWithoutManagementGroupInput = {
   CheckRounds?: Prisma.RoomCheckRoundUncheckedCreateNestedManyWithoutResourceInput
   Images?: Prisma.ImagesUncheckedCreateNestedManyWithoutResourceInput
   RepairLogs?: Prisma.RepairLogUncheckedCreateNestedManyWithoutResourceInput
+  RetirementRequests?: Prisma.RetirementRequestUncheckedCreateNestedManyWithoutResourceInput
 }
 
 export type ResourceInfoCreateOrConnectWithoutManagementGroupInput = {
@@ -897,6 +920,7 @@ export type ResourceInfoCreateWithoutItemInput = {
   CheckRounds?: Prisma.RoomCheckRoundCreateNestedManyWithoutResourceInput
   Images?: Prisma.ImagesCreateNestedManyWithoutResourceInput
   RepairLogs?: Prisma.RepairLogCreateNestedManyWithoutResourceInput
+  RetirementRequests?: Prisma.RetirementRequestCreateNestedManyWithoutResourceInput
 }
 
 export type ResourceInfoUncheckedCreateWithoutItemInput = {
@@ -917,6 +941,7 @@ export type ResourceInfoUncheckedCreateWithoutItemInput = {
   CheckRounds?: Prisma.RoomCheckRoundUncheckedCreateNestedManyWithoutResourceInput
   Images?: Prisma.ImagesUncheckedCreateNestedManyWithoutResourceInput
   RepairLogs?: Prisma.RepairLogUncheckedCreateNestedManyWithoutResourceInput
+  RetirementRequests?: Prisma.RetirementRequestUncheckedCreateNestedManyWithoutResourceInput
 }
 
 export type ResourceInfoCreateOrConnectWithoutItemInput = {
@@ -952,6 +977,7 @@ export type ResourceInfoUpdateWithoutItemInput = {
   CheckRounds?: Prisma.RoomCheckRoundUpdateManyWithoutResourceNestedInput
   Images?: Prisma.ImagesUpdateManyWithoutResourceNestedInput
   RepairLogs?: Prisma.RepairLogUpdateManyWithoutResourceNestedInput
+  RetirementRequests?: Prisma.RetirementRequestUpdateManyWithoutResourceNestedInput
 }
 
 export type ResourceInfoUncheckedUpdateWithoutItemInput = {
@@ -972,6 +998,7 @@ export type ResourceInfoUncheckedUpdateWithoutItemInput = {
   CheckRounds?: Prisma.RoomCheckRoundUncheckedUpdateManyWithoutResourceNestedInput
   Images?: Prisma.ImagesUncheckedUpdateManyWithoutResourceNestedInput
   RepairLogs?: Prisma.RepairLogUncheckedUpdateManyWithoutResourceNestedInput
+  RetirementRequests?: Prisma.RetirementRequestUncheckedUpdateManyWithoutResourceNestedInput
 }
 
 export type ResourceInfoCreateWithoutRoomInput = {
@@ -991,6 +1018,7 @@ export type ResourceInfoCreateWithoutRoomInput = {
   CheckRounds?: Prisma.RoomCheckRoundCreateNestedManyWithoutResourceInput
   Images?: Prisma.ImagesCreateNestedManyWithoutResourceInput
   RepairLogs?: Prisma.RepairLogCreateNestedManyWithoutResourceInput
+  RetirementRequests?: Prisma.RetirementRequestCreateNestedManyWithoutResourceInput
 }
 
 export type ResourceInfoUncheckedCreateWithoutRoomInput = {
@@ -1011,6 +1039,7 @@ export type ResourceInfoUncheckedCreateWithoutRoomInput = {
   CheckRounds?: Prisma.RoomCheckRoundUncheckedCreateNestedManyWithoutResourceInput
   Images?: Prisma.ImagesUncheckedCreateNestedManyWithoutResourceInput
   RepairLogs?: Prisma.RepairLogUncheckedCreateNestedManyWithoutResourceInput
+  RetirementRequests?: Prisma.RetirementRequestUncheckedCreateNestedManyWithoutResourceInput
 }
 
 export type ResourceInfoCreateOrConnectWithoutRoomInput = {
@@ -1046,6 +1075,7 @@ export type ResourceInfoUpdateWithoutRoomInput = {
   CheckRounds?: Prisma.RoomCheckRoundUpdateManyWithoutResourceNestedInput
   Images?: Prisma.ImagesUpdateManyWithoutResourceNestedInput
   RepairLogs?: Prisma.RepairLogUpdateManyWithoutResourceNestedInput
+  RetirementRequests?: Prisma.RetirementRequestUpdateManyWithoutResourceNestedInput
 }
 
 export type ResourceInfoUncheckedUpdateWithoutRoomInput = {
@@ -1058,6 +1088,105 @@ export type ResourceInfoUncheckedUpdateWithoutRoomInput = {
   BufferTime?: Prisma.IntFieldUpdateOperationsInput | number
   AllowBorrow?: Prisma.BoolFieldUpdateOperationsInput | boolean
   Item?: Prisma.ItemIndivUncheckedUpdateOneWithoutResourceNestedInput
+  ConditionLogs?: Prisma.ConditionLogUncheckedUpdateManyWithoutResourceNestedInput
+  Eligibilities?: Prisma.EligibilityUncheckedUpdateManyWithoutResourceNestedInput
+  Reservations?: Prisma.ReservationsUncheckedUpdateManyWithoutResourceNestedInput
+  UsageLogs?: Prisma.UsageLogUncheckedUpdateManyWithoutResourceNestedInput
+  Inspections?: Prisma.InspectionUncheckedUpdateManyWithoutResourceNestedInput
+  CheckRounds?: Prisma.RoomCheckRoundUncheckedUpdateManyWithoutResourceNestedInput
+  Images?: Prisma.ImagesUncheckedUpdateManyWithoutResourceNestedInput
+  RepairLogs?: Prisma.RepairLogUncheckedUpdateManyWithoutResourceNestedInput
+  RetirementRequests?: Prisma.RetirementRequestUncheckedUpdateManyWithoutResourceNestedInput
+}
+
+export type ResourceInfoCreateWithoutRetirementRequestsInput = {
+  ResourceStatus: $Enums.ResourceStatus
+  ResourceType: $Enums.ResourceType
+  BufferTime: number
+  AllowBorrow?: boolean
+  ManagementGroup: Prisma.ManagementGroupCreateNestedOneWithoutResourcesInput
+  BorrowRuleInfo: Prisma.BorrowRuleCreateNestedOneWithoutResourcesInput
+  CurrentCondition?: Prisma.ConditionLogCreateNestedOneWithoutResourcesCurrentlyOnInput
+  Item?: Prisma.ItemIndivCreateNestedOneWithoutResourceInput
+  Room?: Prisma.RoomInfoCreateNestedOneWithoutResourceInput
+  ConditionLogs?: Prisma.ConditionLogCreateNestedManyWithoutResourceInput
+  Eligibilities?: Prisma.EligibilityCreateNestedManyWithoutResourceInput
+  Reservations?: Prisma.ReservationsCreateNestedManyWithoutResourceInput
+  UsageLogs?: Prisma.UsageLogCreateNestedManyWithoutResourceInput
+  Inspections?: Prisma.InspectionCreateNestedManyWithoutResourceInput
+  CheckRounds?: Prisma.RoomCheckRoundCreateNestedManyWithoutResourceInput
+  Images?: Prisma.ImagesCreateNestedManyWithoutResourceInput
+  RepairLogs?: Prisma.RepairLogCreateNestedManyWithoutResourceInput
+}
+
+export type ResourceInfoUncheckedCreateWithoutRetirementRequestsInput = {
+  ResourceKey?: number
+  ManagedBy: number
+  BorrowRule: number
+  ConditionKey?: number | null
+  ResourceStatus: $Enums.ResourceStatus
+  ResourceType: $Enums.ResourceType
+  BufferTime: number
+  AllowBorrow?: boolean
+  Item?: Prisma.ItemIndivUncheckedCreateNestedOneWithoutResourceInput
+  Room?: Prisma.RoomInfoUncheckedCreateNestedOneWithoutResourceInput
+  ConditionLogs?: Prisma.ConditionLogUncheckedCreateNestedManyWithoutResourceInput
+  Eligibilities?: Prisma.EligibilityUncheckedCreateNestedManyWithoutResourceInput
+  Reservations?: Prisma.ReservationsUncheckedCreateNestedManyWithoutResourceInput
+  UsageLogs?: Prisma.UsageLogUncheckedCreateNestedManyWithoutResourceInput
+  Inspections?: Prisma.InspectionUncheckedCreateNestedManyWithoutResourceInput
+  CheckRounds?: Prisma.RoomCheckRoundUncheckedCreateNestedManyWithoutResourceInput
+  Images?: Prisma.ImagesUncheckedCreateNestedManyWithoutResourceInput
+  RepairLogs?: Prisma.RepairLogUncheckedCreateNestedManyWithoutResourceInput
+}
+
+export type ResourceInfoCreateOrConnectWithoutRetirementRequestsInput = {
+  where: Prisma.ResourceInfoWhereUniqueInput
+  create: Prisma.XOR<Prisma.ResourceInfoCreateWithoutRetirementRequestsInput, Prisma.ResourceInfoUncheckedCreateWithoutRetirementRequestsInput>
+}
+
+export type ResourceInfoUpsertWithoutRetirementRequestsInput = {
+  update: Prisma.XOR<Prisma.ResourceInfoUpdateWithoutRetirementRequestsInput, Prisma.ResourceInfoUncheckedUpdateWithoutRetirementRequestsInput>
+  create: Prisma.XOR<Prisma.ResourceInfoCreateWithoutRetirementRequestsInput, Prisma.ResourceInfoUncheckedCreateWithoutRetirementRequestsInput>
+  where?: Prisma.ResourceInfoWhereInput
+}
+
+export type ResourceInfoUpdateToOneWithWhereWithoutRetirementRequestsInput = {
+  where?: Prisma.ResourceInfoWhereInput
+  data: Prisma.XOR<Prisma.ResourceInfoUpdateWithoutRetirementRequestsInput, Prisma.ResourceInfoUncheckedUpdateWithoutRetirementRequestsInput>
+}
+
+export type ResourceInfoUpdateWithoutRetirementRequestsInput = {
+  ResourceStatus?: Prisma.EnumResourceStatusFieldUpdateOperationsInput | $Enums.ResourceStatus
+  ResourceType?: Prisma.EnumResourceTypeFieldUpdateOperationsInput | $Enums.ResourceType
+  BufferTime?: Prisma.IntFieldUpdateOperationsInput | number
+  AllowBorrow?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  ManagementGroup?: Prisma.ManagementGroupUpdateOneRequiredWithoutResourcesNestedInput
+  BorrowRuleInfo?: Prisma.BorrowRuleUpdateOneRequiredWithoutResourcesNestedInput
+  CurrentCondition?: Prisma.ConditionLogUpdateOneWithoutResourcesCurrentlyOnNestedInput
+  Item?: Prisma.ItemIndivUpdateOneWithoutResourceNestedInput
+  Room?: Prisma.RoomInfoUpdateOneWithoutResourceNestedInput
+  ConditionLogs?: Prisma.ConditionLogUpdateManyWithoutResourceNestedInput
+  Eligibilities?: Prisma.EligibilityUpdateManyWithoutResourceNestedInput
+  Reservations?: Prisma.ReservationsUpdateManyWithoutResourceNestedInput
+  UsageLogs?: Prisma.UsageLogUpdateManyWithoutResourceNestedInput
+  Inspections?: Prisma.InspectionUpdateManyWithoutResourceNestedInput
+  CheckRounds?: Prisma.RoomCheckRoundUpdateManyWithoutResourceNestedInput
+  Images?: Prisma.ImagesUpdateManyWithoutResourceNestedInput
+  RepairLogs?: Prisma.RepairLogUpdateManyWithoutResourceNestedInput
+}
+
+export type ResourceInfoUncheckedUpdateWithoutRetirementRequestsInput = {
+  ResourceKey?: Prisma.IntFieldUpdateOperationsInput | number
+  ManagedBy?: Prisma.IntFieldUpdateOperationsInput | number
+  BorrowRule?: Prisma.IntFieldUpdateOperationsInput | number
+  ConditionKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  ResourceStatus?: Prisma.EnumResourceStatusFieldUpdateOperationsInput | $Enums.ResourceStatus
+  ResourceType?: Prisma.EnumResourceTypeFieldUpdateOperationsInput | $Enums.ResourceType
+  BufferTime?: Prisma.IntFieldUpdateOperationsInput | number
+  AllowBorrow?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  Item?: Prisma.ItemIndivUncheckedUpdateOneWithoutResourceNestedInput
+  Room?: Prisma.RoomInfoUncheckedUpdateOneWithoutResourceNestedInput
   ConditionLogs?: Prisma.ConditionLogUncheckedUpdateManyWithoutResourceNestedInput
   Eligibilities?: Prisma.EligibilityUncheckedUpdateManyWithoutResourceNestedInput
   Reservations?: Prisma.ReservationsUncheckedUpdateManyWithoutResourceNestedInput
@@ -1085,6 +1214,7 @@ export type ResourceInfoCreateWithoutCheckRoundsInput = {
   Inspections?: Prisma.InspectionCreateNestedManyWithoutResourceInput
   Images?: Prisma.ImagesCreateNestedManyWithoutResourceInput
   RepairLogs?: Prisma.RepairLogCreateNestedManyWithoutResourceInput
+  RetirementRequests?: Prisma.RetirementRequestCreateNestedManyWithoutResourceInput
 }
 
 export type ResourceInfoUncheckedCreateWithoutCheckRoundsInput = {
@@ -1105,6 +1235,7 @@ export type ResourceInfoUncheckedCreateWithoutCheckRoundsInput = {
   Inspections?: Prisma.InspectionUncheckedCreateNestedManyWithoutResourceInput
   Images?: Prisma.ImagesUncheckedCreateNestedManyWithoutResourceInput
   RepairLogs?: Prisma.RepairLogUncheckedCreateNestedManyWithoutResourceInput
+  RetirementRequests?: Prisma.RetirementRequestUncheckedCreateNestedManyWithoutResourceInput
 }
 
 export type ResourceInfoCreateOrConnectWithoutCheckRoundsInput = {
@@ -1140,6 +1271,7 @@ export type ResourceInfoUpdateWithoutCheckRoundsInput = {
   Inspections?: Prisma.InspectionUpdateManyWithoutResourceNestedInput
   Images?: Prisma.ImagesUpdateManyWithoutResourceNestedInput
   RepairLogs?: Prisma.RepairLogUpdateManyWithoutResourceNestedInput
+  RetirementRequests?: Prisma.RetirementRequestUpdateManyWithoutResourceNestedInput
 }
 
 export type ResourceInfoUncheckedUpdateWithoutCheckRoundsInput = {
@@ -1160,6 +1292,7 @@ export type ResourceInfoUncheckedUpdateWithoutCheckRoundsInput = {
   Inspections?: Prisma.InspectionUncheckedUpdateManyWithoutResourceNestedInput
   Images?: Prisma.ImagesUncheckedUpdateManyWithoutResourceNestedInput
   RepairLogs?: Prisma.RepairLogUncheckedUpdateManyWithoutResourceNestedInput
+  RetirementRequests?: Prisma.RetirementRequestUncheckedUpdateManyWithoutResourceNestedInput
 }
 
 export type ResourceInfoCreateWithoutConditionLogsInput = {
@@ -1179,6 +1312,7 @@ export type ResourceInfoCreateWithoutConditionLogsInput = {
   CheckRounds?: Prisma.RoomCheckRoundCreateNestedManyWithoutResourceInput
   Images?: Prisma.ImagesCreateNestedManyWithoutResourceInput
   RepairLogs?: Prisma.RepairLogCreateNestedManyWithoutResourceInput
+  RetirementRequests?: Prisma.RetirementRequestCreateNestedManyWithoutResourceInput
 }
 
 export type ResourceInfoUncheckedCreateWithoutConditionLogsInput = {
@@ -1199,6 +1333,7 @@ export type ResourceInfoUncheckedCreateWithoutConditionLogsInput = {
   CheckRounds?: Prisma.RoomCheckRoundUncheckedCreateNestedManyWithoutResourceInput
   Images?: Prisma.ImagesUncheckedCreateNestedManyWithoutResourceInput
   RepairLogs?: Prisma.RepairLogUncheckedCreateNestedManyWithoutResourceInput
+  RetirementRequests?: Prisma.RetirementRequestUncheckedCreateNestedManyWithoutResourceInput
 }
 
 export type ResourceInfoCreateOrConnectWithoutConditionLogsInput = {
@@ -1223,6 +1358,7 @@ export type ResourceInfoCreateWithoutCurrentConditionInput = {
   CheckRounds?: Prisma.RoomCheckRoundCreateNestedManyWithoutResourceInput
   Images?: Prisma.ImagesCreateNestedManyWithoutResourceInput
   RepairLogs?: Prisma.RepairLogCreateNestedManyWithoutResourceInput
+  RetirementRequests?: Prisma.RetirementRequestCreateNestedManyWithoutResourceInput
 }
 
 export type ResourceInfoUncheckedCreateWithoutCurrentConditionInput = {
@@ -1243,6 +1379,7 @@ export type ResourceInfoUncheckedCreateWithoutCurrentConditionInput = {
   CheckRounds?: Prisma.RoomCheckRoundUncheckedCreateNestedManyWithoutResourceInput
   Images?: Prisma.ImagesUncheckedCreateNestedManyWithoutResourceInput
   RepairLogs?: Prisma.RepairLogUncheckedCreateNestedManyWithoutResourceInput
+  RetirementRequests?: Prisma.RetirementRequestUncheckedCreateNestedManyWithoutResourceInput
 }
 
 export type ResourceInfoCreateOrConnectWithoutCurrentConditionInput = {
@@ -1283,6 +1420,7 @@ export type ResourceInfoUpdateWithoutConditionLogsInput = {
   CheckRounds?: Prisma.RoomCheckRoundUpdateManyWithoutResourceNestedInput
   Images?: Prisma.ImagesUpdateManyWithoutResourceNestedInput
   RepairLogs?: Prisma.RepairLogUpdateManyWithoutResourceNestedInput
+  RetirementRequests?: Prisma.RetirementRequestUpdateManyWithoutResourceNestedInput
 }
 
 export type ResourceInfoUncheckedUpdateWithoutConditionLogsInput = {
@@ -1303,6 +1441,7 @@ export type ResourceInfoUncheckedUpdateWithoutConditionLogsInput = {
   CheckRounds?: Prisma.RoomCheckRoundUncheckedUpdateManyWithoutResourceNestedInput
   Images?: Prisma.ImagesUncheckedUpdateManyWithoutResourceNestedInput
   RepairLogs?: Prisma.RepairLogUncheckedUpdateManyWithoutResourceNestedInput
+  RetirementRequests?: Prisma.RetirementRequestUncheckedUpdateManyWithoutResourceNestedInput
 }
 
 export type ResourceInfoUpsertWithWhereUniqueWithoutCurrentConditionInput = {
@@ -1338,6 +1477,7 @@ export type ResourceInfoCreateWithoutBorrowRuleInfoInput = {
   CheckRounds?: Prisma.RoomCheckRoundCreateNestedManyWithoutResourceInput
   Images?: Prisma.ImagesCreateNestedManyWithoutResourceInput
   RepairLogs?: Prisma.RepairLogCreateNestedManyWithoutResourceInput
+  RetirementRequests?: Prisma.RetirementRequestCreateNestedManyWithoutResourceInput
 }
 
 export type ResourceInfoUncheckedCreateWithoutBorrowRuleInfoInput = {
@@ -1358,6 +1498,7 @@ export type ResourceInfoUncheckedCreateWithoutBorrowRuleInfoInput = {
   CheckRounds?: Prisma.RoomCheckRoundUncheckedCreateNestedManyWithoutResourceInput
   Images?: Prisma.ImagesUncheckedCreateNestedManyWithoutResourceInput
   RepairLogs?: Prisma.RepairLogUncheckedCreateNestedManyWithoutResourceInput
+  RetirementRequests?: Prisma.RetirementRequestUncheckedCreateNestedManyWithoutResourceInput
 }
 
 export type ResourceInfoCreateOrConnectWithoutBorrowRuleInfoInput = {
@@ -1403,6 +1544,7 @@ export type ResourceInfoCreateWithoutEligibilitiesInput = {
   CheckRounds?: Prisma.RoomCheckRoundCreateNestedManyWithoutResourceInput
   Images?: Prisma.ImagesCreateNestedManyWithoutResourceInput
   RepairLogs?: Prisma.RepairLogCreateNestedManyWithoutResourceInput
+  RetirementRequests?: Prisma.RetirementRequestCreateNestedManyWithoutResourceInput
 }
 
 export type ResourceInfoUncheckedCreateWithoutEligibilitiesInput = {
@@ -1423,6 +1565,7 @@ export type ResourceInfoUncheckedCreateWithoutEligibilitiesInput = {
   CheckRounds?: Prisma.RoomCheckRoundUncheckedCreateNestedManyWithoutResourceInput
   Images?: Prisma.ImagesUncheckedCreateNestedManyWithoutResourceInput
   RepairLogs?: Prisma.RepairLogUncheckedCreateNestedManyWithoutResourceInput
+  RetirementRequests?: Prisma.RetirementRequestUncheckedCreateNestedManyWithoutResourceInput
 }
 
 export type ResourceInfoCreateOrConnectWithoutEligibilitiesInput = {
@@ -1458,6 +1601,7 @@ export type ResourceInfoUpdateWithoutEligibilitiesInput = {
   CheckRounds?: Prisma.RoomCheckRoundUpdateManyWithoutResourceNestedInput
   Images?: Prisma.ImagesUpdateManyWithoutResourceNestedInput
   RepairLogs?: Prisma.RepairLogUpdateManyWithoutResourceNestedInput
+  RetirementRequests?: Prisma.RetirementRequestUpdateManyWithoutResourceNestedInput
 }
 
 export type ResourceInfoUncheckedUpdateWithoutEligibilitiesInput = {
@@ -1478,6 +1622,7 @@ export type ResourceInfoUncheckedUpdateWithoutEligibilitiesInput = {
   CheckRounds?: Prisma.RoomCheckRoundUncheckedUpdateManyWithoutResourceNestedInput
   Images?: Prisma.ImagesUncheckedUpdateManyWithoutResourceNestedInput
   RepairLogs?: Prisma.RepairLogUncheckedUpdateManyWithoutResourceNestedInput
+  RetirementRequests?: Prisma.RetirementRequestUncheckedUpdateManyWithoutResourceNestedInput
 }
 
 export type ResourceInfoCreateWithoutReservationsInput = {
@@ -1497,6 +1642,7 @@ export type ResourceInfoCreateWithoutReservationsInput = {
   CheckRounds?: Prisma.RoomCheckRoundCreateNestedManyWithoutResourceInput
   Images?: Prisma.ImagesCreateNestedManyWithoutResourceInput
   RepairLogs?: Prisma.RepairLogCreateNestedManyWithoutResourceInput
+  RetirementRequests?: Prisma.RetirementRequestCreateNestedManyWithoutResourceInput
 }
 
 export type ResourceInfoUncheckedCreateWithoutReservationsInput = {
@@ -1517,6 +1663,7 @@ export type ResourceInfoUncheckedCreateWithoutReservationsInput = {
   CheckRounds?: Prisma.RoomCheckRoundUncheckedCreateNestedManyWithoutResourceInput
   Images?: Prisma.ImagesUncheckedCreateNestedManyWithoutResourceInput
   RepairLogs?: Prisma.RepairLogUncheckedCreateNestedManyWithoutResourceInput
+  RetirementRequests?: Prisma.RetirementRequestUncheckedCreateNestedManyWithoutResourceInput
 }
 
 export type ResourceInfoCreateOrConnectWithoutReservationsInput = {
@@ -1552,6 +1699,7 @@ export type ResourceInfoUpdateWithoutReservationsInput = {
   CheckRounds?: Prisma.RoomCheckRoundUpdateManyWithoutResourceNestedInput
   Images?: Prisma.ImagesUpdateManyWithoutResourceNestedInput
   RepairLogs?: Prisma.RepairLogUpdateManyWithoutResourceNestedInput
+  RetirementRequests?: Prisma.RetirementRequestUpdateManyWithoutResourceNestedInput
 }
 
 export type ResourceInfoUncheckedUpdateWithoutReservationsInput = {
@@ -1572,6 +1720,7 @@ export type ResourceInfoUncheckedUpdateWithoutReservationsInput = {
   CheckRounds?: Prisma.RoomCheckRoundUncheckedUpdateManyWithoutResourceNestedInput
   Images?: Prisma.ImagesUncheckedUpdateManyWithoutResourceNestedInput
   RepairLogs?: Prisma.RepairLogUncheckedUpdateManyWithoutResourceNestedInput
+  RetirementRequests?: Prisma.RetirementRequestUncheckedUpdateManyWithoutResourceNestedInput
 }
 
 export type ResourceInfoCreateWithoutUsageLogsInput = {
@@ -1591,6 +1740,7 @@ export type ResourceInfoCreateWithoutUsageLogsInput = {
   CheckRounds?: Prisma.RoomCheckRoundCreateNestedManyWithoutResourceInput
   Images?: Prisma.ImagesCreateNestedManyWithoutResourceInput
   RepairLogs?: Prisma.RepairLogCreateNestedManyWithoutResourceInput
+  RetirementRequests?: Prisma.RetirementRequestCreateNestedManyWithoutResourceInput
 }
 
 export type ResourceInfoUncheckedCreateWithoutUsageLogsInput = {
@@ -1611,6 +1761,7 @@ export type ResourceInfoUncheckedCreateWithoutUsageLogsInput = {
   CheckRounds?: Prisma.RoomCheckRoundUncheckedCreateNestedManyWithoutResourceInput
   Images?: Prisma.ImagesUncheckedCreateNestedManyWithoutResourceInput
   RepairLogs?: Prisma.RepairLogUncheckedCreateNestedManyWithoutResourceInput
+  RetirementRequests?: Prisma.RetirementRequestUncheckedCreateNestedManyWithoutResourceInput
 }
 
 export type ResourceInfoCreateOrConnectWithoutUsageLogsInput = {
@@ -1646,6 +1797,7 @@ export type ResourceInfoUpdateWithoutUsageLogsInput = {
   CheckRounds?: Prisma.RoomCheckRoundUpdateManyWithoutResourceNestedInput
   Images?: Prisma.ImagesUpdateManyWithoutResourceNestedInput
   RepairLogs?: Prisma.RepairLogUpdateManyWithoutResourceNestedInput
+  RetirementRequests?: Prisma.RetirementRequestUpdateManyWithoutResourceNestedInput
 }
 
 export type ResourceInfoUncheckedUpdateWithoutUsageLogsInput = {
@@ -1666,6 +1818,7 @@ export type ResourceInfoUncheckedUpdateWithoutUsageLogsInput = {
   CheckRounds?: Prisma.RoomCheckRoundUncheckedUpdateManyWithoutResourceNestedInput
   Images?: Prisma.ImagesUncheckedUpdateManyWithoutResourceNestedInput
   RepairLogs?: Prisma.RepairLogUncheckedUpdateManyWithoutResourceNestedInput
+  RetirementRequests?: Prisma.RetirementRequestUncheckedUpdateManyWithoutResourceNestedInput
 }
 
 export type ResourceInfoCreateWithoutInspectionsInput = {
@@ -1685,6 +1838,7 @@ export type ResourceInfoCreateWithoutInspectionsInput = {
   CheckRounds?: Prisma.RoomCheckRoundCreateNestedManyWithoutResourceInput
   Images?: Prisma.ImagesCreateNestedManyWithoutResourceInput
   RepairLogs?: Prisma.RepairLogCreateNestedManyWithoutResourceInput
+  RetirementRequests?: Prisma.RetirementRequestCreateNestedManyWithoutResourceInput
 }
 
 export type ResourceInfoUncheckedCreateWithoutInspectionsInput = {
@@ -1705,6 +1859,7 @@ export type ResourceInfoUncheckedCreateWithoutInspectionsInput = {
   CheckRounds?: Prisma.RoomCheckRoundUncheckedCreateNestedManyWithoutResourceInput
   Images?: Prisma.ImagesUncheckedCreateNestedManyWithoutResourceInput
   RepairLogs?: Prisma.RepairLogUncheckedCreateNestedManyWithoutResourceInput
+  RetirementRequests?: Prisma.RetirementRequestUncheckedCreateNestedManyWithoutResourceInput
 }
 
 export type ResourceInfoCreateOrConnectWithoutInspectionsInput = {
@@ -1740,6 +1895,7 @@ export type ResourceInfoUpdateWithoutInspectionsInput = {
   CheckRounds?: Prisma.RoomCheckRoundUpdateManyWithoutResourceNestedInput
   Images?: Prisma.ImagesUpdateManyWithoutResourceNestedInput
   RepairLogs?: Prisma.RepairLogUpdateManyWithoutResourceNestedInput
+  RetirementRequests?: Prisma.RetirementRequestUpdateManyWithoutResourceNestedInput
 }
 
 export type ResourceInfoUncheckedUpdateWithoutInspectionsInput = {
@@ -1760,6 +1916,7 @@ export type ResourceInfoUncheckedUpdateWithoutInspectionsInput = {
   CheckRounds?: Prisma.RoomCheckRoundUncheckedUpdateManyWithoutResourceNestedInput
   Images?: Prisma.ImagesUncheckedUpdateManyWithoutResourceNestedInput
   RepairLogs?: Prisma.RepairLogUncheckedUpdateManyWithoutResourceNestedInput
+  RetirementRequests?: Prisma.RetirementRequestUncheckedUpdateManyWithoutResourceNestedInput
 }
 
 export type ResourceInfoCreateWithoutImagesInput = {
@@ -1779,6 +1936,7 @@ export type ResourceInfoCreateWithoutImagesInput = {
   Inspections?: Prisma.InspectionCreateNestedManyWithoutResourceInput
   CheckRounds?: Prisma.RoomCheckRoundCreateNestedManyWithoutResourceInput
   RepairLogs?: Prisma.RepairLogCreateNestedManyWithoutResourceInput
+  RetirementRequests?: Prisma.RetirementRequestCreateNestedManyWithoutResourceInput
 }
 
 export type ResourceInfoUncheckedCreateWithoutImagesInput = {
@@ -1799,6 +1957,7 @@ export type ResourceInfoUncheckedCreateWithoutImagesInput = {
   Inspections?: Prisma.InspectionUncheckedCreateNestedManyWithoutResourceInput
   CheckRounds?: Prisma.RoomCheckRoundUncheckedCreateNestedManyWithoutResourceInput
   RepairLogs?: Prisma.RepairLogUncheckedCreateNestedManyWithoutResourceInput
+  RetirementRequests?: Prisma.RetirementRequestUncheckedCreateNestedManyWithoutResourceInput
 }
 
 export type ResourceInfoCreateOrConnectWithoutImagesInput = {
@@ -1834,6 +1993,7 @@ export type ResourceInfoUpdateWithoutImagesInput = {
   Inspections?: Prisma.InspectionUpdateManyWithoutResourceNestedInput
   CheckRounds?: Prisma.RoomCheckRoundUpdateManyWithoutResourceNestedInput
   RepairLogs?: Prisma.RepairLogUpdateManyWithoutResourceNestedInput
+  RetirementRequests?: Prisma.RetirementRequestUpdateManyWithoutResourceNestedInput
 }
 
 export type ResourceInfoUncheckedUpdateWithoutImagesInput = {
@@ -1854,6 +2014,7 @@ export type ResourceInfoUncheckedUpdateWithoutImagesInput = {
   Inspections?: Prisma.InspectionUncheckedUpdateManyWithoutResourceNestedInput
   CheckRounds?: Prisma.RoomCheckRoundUncheckedUpdateManyWithoutResourceNestedInput
   RepairLogs?: Prisma.RepairLogUncheckedUpdateManyWithoutResourceNestedInput
+  RetirementRequests?: Prisma.RetirementRequestUncheckedUpdateManyWithoutResourceNestedInput
 }
 
 export type ResourceInfoCreateWithoutRepairLogsInput = {
@@ -1873,6 +2034,7 @@ export type ResourceInfoCreateWithoutRepairLogsInput = {
   Inspections?: Prisma.InspectionCreateNestedManyWithoutResourceInput
   CheckRounds?: Prisma.RoomCheckRoundCreateNestedManyWithoutResourceInput
   Images?: Prisma.ImagesCreateNestedManyWithoutResourceInput
+  RetirementRequests?: Prisma.RetirementRequestCreateNestedManyWithoutResourceInput
 }
 
 export type ResourceInfoUncheckedCreateWithoutRepairLogsInput = {
@@ -1893,6 +2055,7 @@ export type ResourceInfoUncheckedCreateWithoutRepairLogsInput = {
   Inspections?: Prisma.InspectionUncheckedCreateNestedManyWithoutResourceInput
   CheckRounds?: Prisma.RoomCheckRoundUncheckedCreateNestedManyWithoutResourceInput
   Images?: Prisma.ImagesUncheckedCreateNestedManyWithoutResourceInput
+  RetirementRequests?: Prisma.RetirementRequestUncheckedCreateNestedManyWithoutResourceInput
 }
 
 export type ResourceInfoCreateOrConnectWithoutRepairLogsInput = {
@@ -1928,6 +2091,7 @@ export type ResourceInfoUpdateWithoutRepairLogsInput = {
   Inspections?: Prisma.InspectionUpdateManyWithoutResourceNestedInput
   CheckRounds?: Prisma.RoomCheckRoundUpdateManyWithoutResourceNestedInput
   Images?: Prisma.ImagesUpdateManyWithoutResourceNestedInput
+  RetirementRequests?: Prisma.RetirementRequestUpdateManyWithoutResourceNestedInput
 }
 
 export type ResourceInfoUncheckedUpdateWithoutRepairLogsInput = {
@@ -1948,6 +2112,7 @@ export type ResourceInfoUncheckedUpdateWithoutRepairLogsInput = {
   Inspections?: Prisma.InspectionUncheckedUpdateManyWithoutResourceNestedInput
   CheckRounds?: Prisma.RoomCheckRoundUncheckedUpdateManyWithoutResourceNestedInput
   Images?: Prisma.ImagesUncheckedUpdateManyWithoutResourceNestedInput
+  RetirementRequests?: Prisma.RetirementRequestUncheckedUpdateManyWithoutResourceNestedInput
 }
 
 export type ResourceInfoCreateManyManagementGroupInput = {
@@ -1977,6 +2142,7 @@ export type ResourceInfoUpdateWithoutManagementGroupInput = {
   CheckRounds?: Prisma.RoomCheckRoundUpdateManyWithoutResourceNestedInput
   Images?: Prisma.ImagesUpdateManyWithoutResourceNestedInput
   RepairLogs?: Prisma.RepairLogUpdateManyWithoutResourceNestedInput
+  RetirementRequests?: Prisma.RetirementRequestUpdateManyWithoutResourceNestedInput
 }
 
 export type ResourceInfoUncheckedUpdateWithoutManagementGroupInput = {
@@ -1997,6 +2163,7 @@ export type ResourceInfoUncheckedUpdateWithoutManagementGroupInput = {
   CheckRounds?: Prisma.RoomCheckRoundUncheckedUpdateManyWithoutResourceNestedInput
   Images?: Prisma.ImagesUncheckedUpdateManyWithoutResourceNestedInput
   RepairLogs?: Prisma.RepairLogUncheckedUpdateManyWithoutResourceNestedInput
+  RetirementRequests?: Prisma.RetirementRequestUncheckedUpdateManyWithoutResourceNestedInput
 }
 
 export type ResourceInfoUncheckedUpdateManyWithoutManagementGroupInput = {
@@ -2036,6 +2203,7 @@ export type ResourceInfoUpdateWithoutCurrentConditionInput = {
   CheckRounds?: Prisma.RoomCheckRoundUpdateManyWithoutResourceNestedInput
   Images?: Prisma.ImagesUpdateManyWithoutResourceNestedInput
   RepairLogs?: Prisma.RepairLogUpdateManyWithoutResourceNestedInput
+  RetirementRequests?: Prisma.RetirementRequestUpdateManyWithoutResourceNestedInput
 }
 
 export type ResourceInfoUncheckedUpdateWithoutCurrentConditionInput = {
@@ -2056,6 +2224,7 @@ export type ResourceInfoUncheckedUpdateWithoutCurrentConditionInput = {
   CheckRounds?: Prisma.RoomCheckRoundUncheckedUpdateManyWithoutResourceNestedInput
   Images?: Prisma.ImagesUncheckedUpdateManyWithoutResourceNestedInput
   RepairLogs?: Prisma.RepairLogUncheckedUpdateManyWithoutResourceNestedInput
+  RetirementRequests?: Prisma.RetirementRequestUncheckedUpdateManyWithoutResourceNestedInput
 }
 
 export type ResourceInfoUncheckedUpdateManyWithoutCurrentConditionInput = {
@@ -2095,6 +2264,7 @@ export type ResourceInfoUpdateWithoutBorrowRuleInfoInput = {
   CheckRounds?: Prisma.RoomCheckRoundUpdateManyWithoutResourceNestedInput
   Images?: Prisma.ImagesUpdateManyWithoutResourceNestedInput
   RepairLogs?: Prisma.RepairLogUpdateManyWithoutResourceNestedInput
+  RetirementRequests?: Prisma.RetirementRequestUpdateManyWithoutResourceNestedInput
 }
 
 export type ResourceInfoUncheckedUpdateWithoutBorrowRuleInfoInput = {
@@ -2115,6 +2285,7 @@ export type ResourceInfoUncheckedUpdateWithoutBorrowRuleInfoInput = {
   CheckRounds?: Prisma.RoomCheckRoundUncheckedUpdateManyWithoutResourceNestedInput
   Images?: Prisma.ImagesUncheckedUpdateManyWithoutResourceNestedInput
   RepairLogs?: Prisma.RepairLogUncheckedUpdateManyWithoutResourceNestedInput
+  RetirementRequests?: Prisma.RetirementRequestUncheckedUpdateManyWithoutResourceNestedInput
 }
 
 export type ResourceInfoUncheckedUpdateManyWithoutBorrowRuleInfoInput = {
@@ -2141,6 +2312,7 @@ export type ResourceInfoCountOutputType = {
   CheckRounds: number
   Images: number
   RepairLogs: number
+  RetirementRequests: number
 }
 
 export type ResourceInfoCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -2152,6 +2324,7 @@ export type ResourceInfoCountOutputTypeSelect<ExtArgs extends runtime.Types.Exte
   CheckRounds?: boolean | ResourceInfoCountOutputTypeCountCheckRoundsArgs
   Images?: boolean | ResourceInfoCountOutputTypeCountImagesArgs
   RepairLogs?: boolean | ResourceInfoCountOutputTypeCountRepairLogsArgs
+  RetirementRequests?: boolean | ResourceInfoCountOutputTypeCountRetirementRequestsArgs
 }
 
 /**
@@ -2220,6 +2393,13 @@ export type ResourceInfoCountOutputTypeCountRepairLogsArgs<ExtArgs extends runti
   where?: Prisma.RepairLogWhereInput
 }
 
+/**
+ * ResourceInfoCountOutputType without action
+ */
+export type ResourceInfoCountOutputTypeCountRetirementRequestsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.RetirementRequestWhereInput
+}
+
 
 export type ResourceInfoSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   ResourceKey?: boolean
@@ -2243,6 +2423,7 @@ export type ResourceInfoSelect<ExtArgs extends runtime.Types.Extensions.Internal
   CheckRounds?: boolean | Prisma.ResourceInfo$CheckRoundsArgs<ExtArgs>
   Images?: boolean | Prisma.ResourceInfo$ImagesArgs<ExtArgs>
   RepairLogs?: boolean | Prisma.ResourceInfo$RepairLogsArgs<ExtArgs>
+  RetirementRequests?: boolean | Prisma.ResourceInfo$RetirementRequestsArgs<ExtArgs>
   _count?: boolean | Prisma.ResourceInfoCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["resourceInfo"]>
 
@@ -2300,6 +2481,7 @@ export type ResourceInfoInclude<ExtArgs extends runtime.Types.Extensions.Interna
   CheckRounds?: boolean | Prisma.ResourceInfo$CheckRoundsArgs<ExtArgs>
   Images?: boolean | Prisma.ResourceInfo$ImagesArgs<ExtArgs>
   RepairLogs?: boolean | Prisma.ResourceInfo$RepairLogsArgs<ExtArgs>
+  RetirementRequests?: boolean | Prisma.ResourceInfo$RetirementRequestsArgs<ExtArgs>
   _count?: boolean | Prisma.ResourceInfoCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type ResourceInfoIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -2329,6 +2511,7 @@ export type $ResourceInfoPayload<ExtArgs extends runtime.Types.Extensions.Intern
     CheckRounds: Prisma.$RoomCheckRoundPayload<ExtArgs>[]
     Images: Prisma.$ImagesPayload<ExtArgs>[]
     RepairLogs: Prisma.$RepairLogPayload<ExtArgs>[]
+    RetirementRequests: Prisma.$RetirementRequestPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     ResourceKey: number
@@ -2746,6 +2929,7 @@ export interface Prisma__ResourceInfoClient<T, Null = never, ExtArgs extends run
   CheckRounds<T extends Prisma.ResourceInfo$CheckRoundsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ResourceInfo$CheckRoundsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$RoomCheckRoundPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   Images<T extends Prisma.ResourceInfo$ImagesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ResourceInfo$ImagesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ImagesPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   RepairLogs<T extends Prisma.ResourceInfo$RepairLogsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ResourceInfo$RepairLogsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$RepairLogPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  RetirementRequests<T extends Prisma.ResourceInfo$RetirementRequestsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ResourceInfo$RetirementRequestsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$RetirementRequestPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -3430,6 +3614,30 @@ export type ResourceInfo$RepairLogsArgs<ExtArgs extends runtime.Types.Extensions
   take?: number
   skip?: number
   distinct?: Prisma.RepairLogScalarFieldEnum | Prisma.RepairLogScalarFieldEnum[]
+}
+
+/**
+ * ResourceInfo.RetirementRequests
+ */
+export type ResourceInfo$RetirementRequestsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the RetirementRequest
+   */
+  select?: Prisma.RetirementRequestSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the RetirementRequest
+   */
+  omit?: Prisma.RetirementRequestOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.RetirementRequestInclude<ExtArgs> | null
+  where?: Prisma.RetirementRequestWhereInput
+  orderBy?: Prisma.RetirementRequestOrderByWithRelationInput | Prisma.RetirementRequestOrderByWithRelationInput[]
+  cursor?: Prisma.RetirementRequestWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.RetirementRequestScalarFieldEnum | Prisma.RetirementRequestScalarFieldEnum[]
 }
 
 /**

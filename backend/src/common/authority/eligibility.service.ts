@@ -55,7 +55,9 @@ export function matchingRules<R extends GroupRole>(
   held: readonly GroupRole[],
 ): R[] {
   return rules.filter((rule) =>
-    held.some((h) => h.GroupKey === rule.GroupKey && h.RoleKey === rule.RoleKey),
+    held.some(
+      (h) => h.GroupKey === rule.GroupKey && h.RoleKey === rule.RoleKey,
+    ),
   );
 }
 
@@ -97,7 +99,10 @@ export class EligibilityService {
 
     const matches = matchingRules(
       resource.Eligibilities,
-      held.map((h) => ({ GroupKey: h.ManageGroupKey, RoleKey: h.AuthorityRoleKey })),
+      held.map((h) => ({
+        GroupKey: h.ManageGroupKey,
+        RoleKey: h.AuthorityRoleKey,
+      })),
     );
 
     if (matches.length === 0) {
@@ -181,5 +186,8 @@ export async function heldPairs(
     where: { AccountKey: accountKey },
     select: { ManageGroupKey: true, AuthorityRoleKey: true },
   });
-  return rows.map((r) => ({ GroupKey: r.ManageGroupKey, RoleKey: r.AuthorityRoleKey }));
+  return rows.map((r) => ({
+    GroupKey: r.ManageGroupKey,
+    RoleKey: r.AuthorityRoleKey,
+  }));
 }

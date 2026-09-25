@@ -31,6 +31,14 @@ interface SubmitRequestInput {
   pickupTime: RequestTime;
   endDate: string;
   returnTime: RequestTime;
+  /**
+   * FR-RSV-06: the exact instant to end on, bypassing endDate/returnTime.
+   * Used when the borrower accepts the shortened window offered after a
+   * WINDOW_CROSSES_RESERVATION refusal - that instant is a reservation's
+   * start minus a buffer, which will not generally land on a REQUEST_TIMES
+   * slot.
+   */
+  endTimeOverride?: string;
 }
 
 export class RequestPreparationError extends Error {
@@ -63,7 +71,7 @@ export function useCreateEquipmentRequest() {
       }
 
       const startTime = requestInstant(input.startDate, input.pickupTime).toISOString();
-      const endTime = requestInstant(input.endDate, input.returnTime).toISOString();
+      const endTime = input.endTimeOverride ?? requestInstant(input.endDate, input.returnTime).toISOString();
       const unitsByItem = await Promise.all(
         input.rows.map(async (row) => {
           const itemKey = Number(row.itemId);

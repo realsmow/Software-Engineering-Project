@@ -14,11 +14,7 @@ import { penaltyReasonText } from "@/features/borrower/appeals/penalty-reason";
 /**
  * Department directory.
  *
- * Read-only: looking somebody up is a different job from sanctioning them, and
- * the two live behind different nav entries. Banning is on the permissions
- * page, which renders the same table with an action column. Viewing a credit
- * record stays here rather than there for the same reason: it is what staff
- * check *before* deciding whether a ban is even warranted, not part of it.
+ * Read-only: who is in the department, and their credit record.
  */
 export default function StaffUsersPage() {
   const { t } = useTranslation();

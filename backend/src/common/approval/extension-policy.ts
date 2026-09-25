@@ -34,13 +34,12 @@ export interface ExtensionContext {
 }
 
 /**
- * Bands that lose the online extension entirely (§5.7).
+ * Bands whose every extension goes to a supervisor (FR-RNW-06).
  *
- * D3 cannot get this far — `isBlockedByCredit` refuses them before the route is
- * ever computed — but it is listed anyway so the table reads as the rule does,
- * rather than relying on a check in another file to stay where it is.
+ * D3 cannot get this far (`isBlockedByCredit` refuses it an extension) but is listed
+ * so the table reads as the requirement does.
  */
-const NEEDS_INSPECTION_CREDIT_TIERS: readonly CreditTier[] = ['D2', 'D3'];
+const NEEDS_SUPERVISOR_CREDIT_TIERS: readonly CreditTier[] = ['D2', 'D3'];
 
 /**
  * The route one extension takes.
@@ -49,14 +48,13 @@ const NEEDS_INSPECTION_CREDIT_TIERS: readonly CreditTier[] = ['D2', 'D3'];
  *
  *   - **T2** is a supervisor's call whatever else is true. The same signature
  *     that released the serial in the first place releases it for longer.
- *   - **A shaky band** (D2 and below) brings the item in every time. §5.7 takes
- *     the online option away from them rather than shortening it.
+ *   - **A shaky band** (D2 and below) goes to a supervisor every time
+ *     (FR-RNW-06).
  *   - **T1 alternates** (§5.4): the first extension is online, the next needs
  *     the item on the counter, then online again. Odd `extendNo` is the online
  *     one because extensions are counted from 1.
- *   - **T3** (rooms) always goes to a person. Nobody can "bring a room in", but
- *     a room held longer collides with whoever booked the next slot, and that
- *     is a judgement the department owning it makes.
+ *   - **T3** (rooms) never reaches here: a room is not extended, the borrower
+ *     books the next free slot (ROOM_NOT_EXTENDABLE in the extension service).
  *   - **T0** is consumable-grade: nobody needs to look at it.
  *
  * An unconfigured tier goes to staff. Guessing `auto` there would hand out
@@ -68,10 +66,10 @@ export function extensionRouteFor({
   extendNo,
 }: ExtensionContext): ExtensionRoute {
   if (tier === 'T2') return 'supervisor';
-  if (NEEDS_INSPECTION_CREDIT_TIERS.includes(creditTier)) return 'staff';
+  if (NEEDS_SUPERVISOR_CREDIT_TIERS.includes(creditTier)) return 'supervisor';
   if (tier === 'T0') return 'auto';
   if (tier === 'T1') return extendNo % 2 === 1 ? 'auto' : 'staff';
-  // T3, and a tier that could not be read.
+  // A tier that could not be read.
   return 'staff';
 }
 

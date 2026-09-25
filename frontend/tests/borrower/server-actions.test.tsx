@@ -327,8 +327,9 @@ describe("appeals: filed against a penalty on the server", () => {
     const { container } = renderAt(`${ROUTES.APPEALS}?penalty=4`, <AppealsPage />);
 
     const textarea = await screen.findByPlaceholderText(i18n.t("borrower.appeals.whyPlaceholder"));
-    // appeal.create carries no images, so there is no control that would drop one.
-    expect(container.querySelector('input[type="file"]')).toBeNull();
+    // FR-APL-02: evidence photos are offered, but they go up through the loan's
+    // `evidence` photo stage, not through appeal.create (checked below).
+    expect(container.querySelector('input[type="file"]')).not.toBeNull();
 
     const summary = screen.getByText(i18n.t("borrower.appeals.sumCut")).parentElement!;
     expect(summary).toHaveTextContent("8");

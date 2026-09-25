@@ -268,8 +268,17 @@ export default function StaffQueuePage() {
         });
       } else if (bucket === "toHandover") {
         if (row.usageKey === null) return;
-        await confirmPickup.mutateAsync({ usageKey: row.usageKey });
-        setResult({ tone: "ok", text: t("staff.queue.doneHandover", { who }) });
+        const early = isBeforePickup(row);
+        // The borrower is at the counter ahead of time; handing over now
+        // moves their return date earlier, so they hear that first.
+        if (early && !window.confirm(t("staff.queue.confirmEarly", { who }))) return;
+        const loan = await confirmPickup.mutateAsync({ usageKey: row.usageKey, early });
+        setResult({
+          tone: "ok",
+          text: early
+            ? t("staff.queue.doneHandoverEarly", { who, due: fmtDateTime(loan.dueAt) })
+            : t("staff.queue.doneHandover", { who }),
+        });
       } else {
         if (row.usageKey === null) return;
         const out = await recordReturn.mutateAsync({ usageKey: row.usageKey });
@@ -386,7 +395,21 @@ export default function StaffQueuePage() {
               </Button>
             ) : null}
             {(bucket === "onLoan" || bucket === "overdue") && r.usageKey !== null ? (
-              <ReturnAction usageKey={r.usageKey} busy={busy} onReturn={() => void act(r)} />
+              <PhotoGatedAction
+                usageKey={r.usageKey}
+                stage="after"
+                busy={busy}
+                label={t("staff.queue.actionReturn")}
+                onAct={() => void act(r)}
+              />
+            ) : bucket === "toHandover" && r.usageKey !== null ? (
+              <PhotoGatedAction
+                usageKey={r.usageKey}
+                stage="before"
+                busy={busy}
+                label={t(isBeforePickup(r) ? "staff.queue.actionHandoverEarly" : ACTION_LABEL[bucket])}
+                onAct={() => void act(r)}
+              />
             ) : (
               <Button type="button" size="sm" disabled={busy} onClick={() => void act(r)}>
                 {busy ? t("common.loading") : t(ACTION_LABEL[bucket])}
@@ -571,20 +594,28 @@ function CountTile({
  * inspection screen shows it beside the borrower's pickup photo; without it a
  * damage grade had nothing to be compared against.
  */
-function ReturnAction({
+/**
+ * A counter action that needs a photo first: the handover ("before") and the
+ * return ("after"). The server refuses both without one (FR-PKP-03, FR-RTN-01).
+ */
+function PhotoGatedAction({
   usageKey,
+  stage,
   busy,
-  onReturn,
+  label,
+  onAct,
 }: {
   usageKey: number;
+  stage: "before" | "after";
   busy: boolean;
-  onReturn: () => void;
+  label: string;
+  onAct: () => void;
 }) {
   const { t } = useTranslation();
   const { data: photos } = useUsagePhotos(usageKey);
   const upload = usePickupImageUpload();
   const [error, setError] = useState<string | null>(null);
-  const hasPhoto = (photos?.after.length ?? 0) > 0;
+  const hasPhoto = (photos?.[stage].length ?? 0) > 0;
 
   async function onPick(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -597,7 +628,7 @@ function ReturnAction({
     setError(null);
     const prepared = prepareBorrowerImage(file);
     try {
-      await upload.mutateAsync({ usageKey, stage: "after", image: prepared });
+      await upload.mutateAsync({ usageKey, stage, image: prepared });
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {
@@ -628,11 +659,16 @@ function ReturnAction({
           ? t("common.loading")
           : hasPhoto
             ? t("staff.queue.returnPhotoDone")
-            : t("staff.queue.returnPhoto")}
+            : t(stage === "before" ? "staff.queue.handoverPhoto" : "staff.queue.returnPhoto")}
       </label>
-      <Button type="button" size="sm" disabled={busy || !hasPhoto} onClick={onReturn}>
-        {busy ? t("common.loading") : t("staff.queue.actionReturn")}
+      <Button type="button" size="sm" disabled={busy || !hasPhoto} onClick={onAct}>
+        {busy ? t("common.loading") : label}
       </Button>
     </div>
   );
+}
+
+/** Before the booked pickup time. The server decides how early is too early. */
+function isBeforePickup(row: StaffQueueRow): boolean {
+  return row.pickupAt !== null && new Date(row.pickupAt).getTime() > Date.now();
 }

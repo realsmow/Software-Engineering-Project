@@ -14,12 +14,15 @@ import {
   useApprovalQueue,
   useDecideApproval,
   useDecideExtension,
+  useDecideRetirement,
   useExtensionQueue,
+  useRetirementQueue,
 } from "./use-approvals";
 import type {
   ApprovalQueueRow,
   ConditionType,
   ExtensionReviewRow,
+  RetirementRequest,
 } from "./approval.types";
 
 /**
@@ -55,11 +58,14 @@ export default function SupervisorApprovalsPage() {
   const { data: rows, isLoading } = useApprovalQueue(undefined, search);
   const decide = useDecideApproval();
 
-  // Extensions are a second pile at the same desk, not a second screen: the
-  // supervisor clearing T2 requests is the person who also clears T2 extensions.
-  const [view, setView] = useState<"requests" | "extensions">("requests");
+  // Extensions and retirements are two more piles at the same desk, not
+  // separate screens: the supervisor clearing T2 requests is the person who
+  // also clears T2 extensions and FR-EQP-08 retirements.
+  const [view, setView] = useState<"requests" | "extensions" | "retirements">("requests");
   const { data: extRows, isLoading: extLoading } = useExtensionQueue(search);
   const decideExtension = useDecideExtension();
+  const { data: retirementRows, isLoading: retirementLoading } = useRetirementQueue();
+  const decideRetirement = useDecideRetirement();
   // Per row, because the condition is a fact about one item on one counter.
   const [conditions, setConditions] = useState<Record<number, ConditionType>>({});
   const conditionOf = (key: number): ConditionType => conditions[key] ?? "Normal";
@@ -95,7 +101,129 @@ export default function SupervisorApprovalsPage() {
     }
   }
 
+  async function decideRet(row: RetirementRequest, decision: "approve" | "reject") {
+    const why = reason.trim();
+    if (decision === "reject" && !why) return;
+
+    setBusyKey(row.requestKey);
+    setResult(null);
+    try {
+      await decideRetirement.mutateAsync({
+        requestKey: row.requestKey,
+        decision,
+        ...(why ? { note: why } : {}),
+      });
+      setResult({
+        tone: "ok",
+        text: t(
+          decision === "approve"
+            ? "supervisor.approvals.doneRetireApprove"
+            : "supervisor.approvals.doneRetireReject",
+          { item: row.resourceName ?? "" },
+        ),
+      });
+      setRejecting(null);
+      setReason("");
+    } catch (error) {
+      setResult({ tone: "bad", text: getErrorMessage(error) });
+    } finally {
+      setBusyKey(null);
+    }
+  }
+
   const CONDITIONS: ConditionType[] = ["Normal", "MinorDamage", "MajorDamage", "Broken"];
+
+  const retirementColumns: Column<RetirementRequest>[] = [
+    {
+      key: "resource",
+      header: t("supervisor.approvals.colResource"),
+      render: (r) => (
+        <div className="min-w-0">
+          <div className="truncate text-foreground">{r.resourceName ?? "-"}</div>
+          <div className="mt-0.5 font-mono text-[11px] text-t4">{r.serialNo ?? r.kind}</div>
+        </div>
+      ),
+    },
+    {
+      key: "reason",
+      header: t("supervisor.approvals.colReason"),
+      render: (r) => (
+        <span className="block max-w-[18rem] truncate text-t2" title={r.reason}>
+          {r.reason}
+        </span>
+      ),
+    },
+    {
+      key: "requestedBy",
+      header: t("supervisor.approvals.colRequestedBy"),
+      render: (r) => (
+        <div className="min-w-0">
+          <div className="truncate text-foreground">{r.requestedBy.name}</div>
+          <div className="mt-0.5 font-mono text-[11px] text-t4">{fmtDateTime(r.requestedAt)}</div>
+        </div>
+      ),
+    },
+    {
+      key: "act",
+      header: "",
+      align: "right",
+      className: "sticky right-0 bg-card",
+      render: (r) => {
+        const busy = busyKey === r.requestKey;
+        if (rejecting === r.requestKey) {
+          return (
+            <div className="flex items-center justify-end gap-2">
+              <Input
+                autoFocus
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                placeholder={t("supervisor.approvals.reasonPlaceholder")}
+                className="h-8 w-56"
+              />
+              <Button
+                type="button"
+                size="sm"
+                disabled={busy || reason.trim() === ""}
+                onClick={() => void decideRet(r, "reject")}
+              >
+                {t("supervisor.approvals.confirmReject")}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setRejecting(null);
+                  setReason("");
+                }}
+              >
+                {t("common.cancel")}
+              </Button>
+            </div>
+          );
+        }
+        return (
+          <div className="flex justify-end gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={busy}
+              onClick={() => {
+                setRejecting(r.requestKey);
+                setReason("");
+              }}
+            >
+              {t("supervisor.approvals.reject")}
+            </Button>
+            <Button type="button" size="sm" disabled={busy} onClick={() => void decideRet(r, "approve")}>
+              {busy ? t("common.loading") : t("supervisor.approvals.approve")}
+            </Button>
+          </div>
+        );
+      },
+    },
+  ];
 
   const extColumns: Column<ExtensionReviewRow>[] = [
     {
@@ -395,11 +523,12 @@ export default function SupervisorApprovalsPage() {
     <div>
       <PageHeader title={t("nav.approvals")} subtitle={t("supervisor.approvals.subtitle")} />
 
-      <div className="mb-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mb-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
         <Tile label={t("supervisor.approvals.tileSupervisor")} value={counts?.supervisor} />
         <Tile label={t("supervisor.approvals.tileStaff")} value={counts?.staff} />
         <Tile label={t("supervisor.approvals.tileOverdue")} value={counts?.overdueToDecide} warn />
         <Tile label={t("supervisor.approvals.tileAuto")} value={counts?.autoApprovedToday} />
+        <Tile label={t("supervisor.approvals.tileRetirement")} value={counts?.retirement} />
       </div>
 
       {result ? (
@@ -416,7 +545,7 @@ export default function SupervisorApprovalsPage() {
       ) : null}
 
       <div className="mb-3">
-        <Segmented<"requests" | "extensions">
+        <Segmented<"requests" | "extensions" | "retirements">
           value={view}
           onChange={(v) => {
             setView(v);
@@ -426,6 +555,7 @@ export default function SupervisorApprovalsPage() {
           options={[
             { value: "requests", label: t("supervisor.approvals.viewRequests") },
             { value: "extensions", label: t("supervisor.approvals.viewExtensions") },
+            { value: "retirements", label: t("supervisor.approvals.viewRetirements") },
           ]}
         />
       </div>
@@ -449,6 +579,16 @@ export default function SupervisorApprovalsPage() {
           }
           emptyTitle={extLoading ? t("common.loading") : t("supervisor.approvals.extEmptyTitle")}
           emptyDescription={extLoading ? undefined : t("supervisor.approvals.extEmptyDesc")}
+          rangeLabel={(start, end, total) => t("common.showingRange", { start, end, total })}
+        />
+      ) : view === "retirements" ? (
+        <DataTable
+          columns={retirementColumns}
+          rows={retirementRows ?? []}
+          rowKey={(r) => String(r.requestKey)}
+          pageSize={15}
+          emptyTitle={retirementLoading ? t("common.loading") : t("supervisor.approvals.retirementEmptyTitle")}
+          emptyDescription={retirementLoading ? undefined : t("supervisor.approvals.retirementEmptyDesc")}
           rangeLabel={(start, end, total) => t("common.showingRange", { start, end, total })}
         />
       ) : (

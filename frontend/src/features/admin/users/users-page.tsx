@@ -20,14 +20,11 @@ import { ChartCard } from "@/components/ui/chart-card";
 import { ChartTooltip, CHART_SERIES, axisProps, gridProps } from "@/components/ui/chart-kit";
 import type { Role } from "@/types/domain";
 import {
-  FACULTIES,
-  departmentsByFaculty,
   deptName,
   initials,
   type AccountStatus,
   type AdminUser,
-  type AuthMethod,
-} from "../mock-data";
+} from "../admin-constants";
 import { fmtDate, fmtDateTime } from "../format";
 import { useAuditEvents } from "../audit/use-audit-events";
 import { topActors } from "../audit/audit-stats";
@@ -37,7 +34,6 @@ import {
   useCreateUser,
   useResetPassword,
   useSetUserActive,
-  useSetUserBan,
   useUpdateUser,
   useUserDetail,
 } from "./use-admin-users";
@@ -122,28 +118,21 @@ const ROLE_TONE: Record<Role, BadgeTone> = {
  */
 const STATUS_TONE: Record<AccountStatus, BadgeTone> = {
   active: "ok",
-  suspended: "alert",
   disabled: "neutral",
 };
 const ROLES: Role[] = ["borrower", "staff", "supervisor", "admin"];
-const STATUSES: AccountStatus[] = ["active", "suspended", "disabled"];
+const STATUSES: AccountStatus[] = ["active", "disabled"];
 
 interface NewUserForm {
   name: string;
   email: string;
   role: Role;
-  facultyId: string;
-  departmentId: string;
-  auth: AuthMethod;
 }
 
 const EMPTY_FORM: NewUserForm = {
   name: "",
   email: "",
   role: "borrower",
-  facultyId: "eng",
-  departmentId: "cpe",
-  auth: "local",
 };
 
 /**
@@ -200,7 +189,6 @@ export default function AdminUsersPage() {
   const { t } = useTranslation();
   const { data: users = [], isLoading } = useAdminUsers();
   const setActive = useSetUserActive();
-  const setBan = useSetUserBan();
   const changeRole = useChangeRole();
   const resetPassword = useResetPassword();
   const createUser = useCreateUser();
@@ -266,7 +254,7 @@ export default function AdminUsersPage() {
 
   // Status counts for the quick-filter stat strip (whole dataset, not filtered).
   const counts = useMemo(() => {
-    const c = { all: users.length, active: 0, suspended: 0, disabled: 0 };
+    const c = { all: users.length, active: 0, disabled: 0 };
     for (const u of users) c[u.status]++;
     return c;
   }, [users]);
@@ -300,15 +288,6 @@ export default function AdminUsersPage() {
       {
         onSuccess: () => setSelected(null),
         onError: (e) => setNotice(coverageMessage(e)),
-      },
-    );
-  };
-  const ban = (id: string, banned: boolean) => {
-    setBan.mutate(
-      { id, banned },
-      {
-        onSuccess: () => setSelected(null),
-        onError: (e) => setNotice(mutationMessage(e)),
       },
     );
   };
@@ -486,13 +465,6 @@ export default function AdminUsersPage() {
           onClick={() => setStatusFilter((s) => (s === "active" ? "all" : "active"))}
         />
         <StatChip
-          label={t("admin.users.statSuspended")}
-          value={counts.suspended}
-          tone="alert"
-          active={statusFilter === "suspended"}
-          onClick={() => setStatusFilter((s) => (s === "suspended" ? "all" : "suspended"))}
-        />
-        <StatChip
           label={t("admin.users.statDisabled")}
           value={counts.disabled}
           tone="info"
@@ -613,39 +585,14 @@ export default function AdminUsersPage() {
         footer={
           selected ? (
             <>
-              {/*
-                Suspend and disable are genuinely different and the buttons say
-                so: a suspended account can still sign in and read its own
-                history, a disabled one cannot authenticate at all.
-              */}
               {selected.status === "active" && (
-                <>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => ban(selected.id, true)}
-                    disabled={setBan.isPending}
-                  >
-                    {t("admin.users.suspend")}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="destructive"
-                    onClick={() => disable(selected.id, false)}
-                    disabled={setActive.isPending}
-                  >
-                    {t("admin.users.deactivate")}
-                  </Button>
-                </>
-              )}
-              {selected.status === "suspended" && (
                 <Button
                   type="button"
-                  variant="outline"
-                  onClick={() => ban(selected.id, false)}
-                  disabled={setBan.isPending}
+                  variant="destructive"
+                  onClick={() => disable(selected.id, false)}
+                  disabled={setActive.isPending}
                 >
-                  {t("admin.users.liftSuspension")}
+                  {t("admin.users.deactivate")}
                 </Button>
               )}
               {selected.status === "disabled" && (
@@ -950,62 +897,7 @@ export default function AdminUsersPage() {
               </SelectContent>
             </Select>
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="flex flex-col gap-1.5">
-              <Label>{t("admin.users.faculty")}</Label>
-              <Select
-                value={form.facultyId}
-                disabled={FACULTIES.length <= 1}
-                onValueChange={(facultyId) => {
-                  // Reset department to the first one within the chosen faculty.
-                  const first = departmentsByFaculty(facultyId)[0]?.id ?? "";
-                  setForm({ ...form, facultyId, departmentId: first });
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {FACULTIES.map((f) => (
-                    <SelectItem key={f.id} value={f.id}>
-                      {f.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label>{t("common.department")}</Label>
-              <Select
-                value={form.departmentId}
-                onValueChange={(v) => setForm({ ...form, departmentId: v })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {departmentsByFaculty(form.facultyId).map((d) => (
-                    <SelectItem key={d.id} value={d.id}>
-                      {d.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label>{t("admin.users.authMethod")}</Label>
-            <Select value={form.auth} onValueChange={(v) => setForm({ ...form, auth: v as AuthMethod })}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="local">{t("admin.users.authLocal")}</SelectItem>
-                <SelectItem value="ku">{t("admin.users.authKu")}</SelectItem>
-              </SelectContent>
-            </Select>
-            <div className="text-xs text-muted-foreground">{t("admin.users.createUserSub")}</div>
-          </div>
+          <div className="text-xs text-muted-foreground">{t("admin.users.createUserSub")}</div>
         </div>
       </Modal>
     </div>

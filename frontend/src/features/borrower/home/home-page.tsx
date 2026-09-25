@@ -20,7 +20,7 @@ import {
 import type { Notification } from "@/types/domain";
 import { getErrorMessage } from "@/lib/error-messages";
 import { cn } from "@/lib/utils";
-import { STATUS_TAB, type MyRequest, type MyRequestStatus } from "../mock-data";
+import { STATUS_TAB, type MyRequest, type MyRequestStatus } from "../request-status";
 import { useLoanExtension } from "../loans/use-extensions";
 import { useMyRequests } from "../loans/use-my-requests";
 

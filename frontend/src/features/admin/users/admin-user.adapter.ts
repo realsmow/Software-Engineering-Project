@@ -1,5 +1,5 @@
 import type { Role } from "@/types/domain";
-import type { AccountStatus, AdminUser } from "../mock-data";
+import type { AccountStatus, AdminUser } from "../admin-constants";
 
 /**
  * The account shape the backend sends (`adminUserSummary` in

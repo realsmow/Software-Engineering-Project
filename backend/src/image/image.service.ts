@@ -4,6 +4,7 @@ import { randomBytes, randomUUID } from 'node:crypto';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname, join, normalize, resolve, sep } from 'node:path';
 import { signToken, verifyToken } from '../common/crypto/token';
+import { signMediaKey, verifyMediaKey } from '../common/security/media-url';
 import { BusinessError } from '../common/errors/business-error';
 import { toIso } from '../common/schemas/datetime.schema';
 import {
@@ -13,10 +14,25 @@ import {
   matchesMagicBytes,
   type UploadContentType,
 } from '../common/schemas/image.schema';
-import type { RequestUploadInput, UploadPurpose } from './image.schema';
+import {
+  EVIDENCE_UPLOAD_PURPOSE,
+  type RequestUploadInput,
+  type UploadPurpose,
+} from './image.schema';
 
 /** How long an upload ticket stays good. Long enough to pick a file, not to hoard. */
 const TICKET_TTL_MS = 10 * 60 * 1000;
+
+/**
+ * How long a signed evidence URL stays good (NFR-SEC-06).
+ *
+ * Long enough to load a page of photos and let a slow connection finish, not
+ * so long that a URL pasted somewhere keeps working for days. Every read
+ * mints a fresh one, so the grading screen or appeal desk re-requesting the
+ * list is the normal way a stale link gets replaced - nothing needs to renew
+ * one in place.
+ */
+const EVIDENCE_URL_TTL_MS = 15 * 60 * 1000;
 
 /** Route the browser PUTs to. Must match ImageController. */
 const UPLOAD_PATH = '/uploads';
@@ -196,13 +212,60 @@ export class ImageService {
       : value;
   }
 
-  /** What goes out to clients: relative paths become absolute, URLs pass through. */
+  /**
+   * What goes out to clients: relative paths become absolute, URLs pass
+   * through.
+   *
+   * NFR-SEC-06: a path under the evidence folder (see
+   * `EVIDENCE_UPLOAD_PURPOSE`) is never handed out plain - it comes back
+   * signed and expiring, minted fresh on every call. A catalogue path (or an
+   * external URL, already left alone above) is a public product photo and is
+   * not signed at all, since it is meant to be cacheable and permanent.
+   */
   toPublicUrl(value: string | null | undefined): string | null {
     if (value === null || value === undefined || value === '') return null;
+    if (!value.startsWith(MEDIA_PREFIX)) return value;
 
-    return value.startsWith(MEDIA_PREFIX)
-      ? `${this.publicApiUrl}${value}`
-      : value;
+    const key = value.slice(MEDIA_PREFIX.length);
+    return this.isEvidenceKey(key)
+      ? this.signEvidenceUrl(key)
+      : `${this.publicApiUrl}${value}`;
+  }
+
+  /**
+   * Verifies a signed evidence request (NFR-SEC-06): `key` is the
+   * MEDIA_PREFIX-relative storage key the caller asked for, `exp`/`sig` come
+   * from its query string. One false for "expired", "forged" and "wrong key"
+   * alike - see `verifyMediaKey`.
+   */
+  verifyEvidenceAccess(key: string, exp: number, sig: string): boolean {
+    return verifyMediaKey(key, exp, sig, this.secret);
+  }
+
+  /**
+   * Absolute path on disk for an evidence key, or null if it would resolve
+   * outside the media root. Reuses the same traversal guard `store()` writes
+   * behind - the key here comes from a request path rather than our own
+   * signature payload, so the belt-and-braces check earns its keep here more
+   * than anywhere else in this file.
+   */
+  resolveEvidenceFile(key: string): string | null {
+    try {
+      return this.resolveWithinRoot(key);
+    } catch {
+      return null;
+    }
+  }
+
+  /** Whether `key` (MEDIA_PREFIX-relative, no leading slash) is an evidence file. */
+  private isEvidenceKey(key: string): boolean {
+    return key.split('/')[0] === EVIDENCE_UPLOAD_PURPOSE;
+  }
+
+  private signEvidenceUrl(key: string): string {
+    const exp = Date.now() + EVIDENCE_URL_TTL_MS;
+    const sig = signMediaKey(key, exp, this.secret);
+    return `${this.publicApiUrl}${MEDIA_PREFIX}${key}?exp=${exp}&sig=${sig}`;
   }
 
   // =========================================================================

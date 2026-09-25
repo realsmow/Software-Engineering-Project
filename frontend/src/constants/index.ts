@@ -71,19 +71,19 @@ export const CREDIT_BANDS = [
 /**
  * What each credit band is allowed to do when opening a request.
  * - `needsSupervisor`: D2/D3 must get supervisor sign-off on T1 items too, not
- *   just the usual T2 ones.
- * - `blocked`: D3 cannot open a new request until outstanding items are cleared.
+ *   just the usual T2 ones (FR-REQ-05). D3 still borrows; it only loses
+ *   extensions (proposal §5.7).
  * Kept beside CREDIT_BANDS rather than inside it so the band table stays the
  * plain score → loan-days lookup that other screens already read.
  */
 export const CREDIT_BAND_POLICY: Record<
   CreditBand,
-  { needsSupervisor: boolean; blocked: boolean }
+  { needsSupervisor: boolean }
 > = {
-  D0: { needsSupervisor: false, blocked: false },
-  D1: { needsSupervisor: false, blocked: false },
-  D2: { needsSupervisor: true, blocked: false },
-  D3: { needsSupervisor: true, blocked: true },
+  D0: { needsSupervisor: false },
+  D1: { needsSupervisor: false },
+  D2: { needsSupervisor: true },
+  D3: { needsSupervisor: true },
 };
 
 // ==================== Damage Level Config ====================

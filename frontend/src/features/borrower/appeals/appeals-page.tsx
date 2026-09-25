@@ -1,22 +1,30 @@
-import { useState, type ReactNode } from "react";
+import { useState, type ChangeEvent, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router-dom";
-import { TriangleAlert } from "lucide-react";
+import { Camera, TriangleAlert, X } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { ImageThumb } from "@/components/shared/image-thumb";
 import { Badge, type BadgeTone } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { UPLOAD } from "@/constants";
 import { getErrorMessage } from "@/lib/error-messages";
 import { fmtDate } from "@/lib/datetime";
 import { cn } from "@/lib/utils";
+import { uploadAcceptAttr, validateUploadFile } from "@/lib/upload-validation";
 import type {
   AppealOutput,
   AppealStatus,
   AppealablePenalty,
 } from "@/features/supervisor/appeals/appeal.types";
-import type { MyRequest } from "../mock-data";
+import type { MyRequest } from "../request-status";
 import { useMyRequests } from "../loans/use-my-requests";
-import { useUsagePhotos, type UsagePhotoSet } from "../pickup/use-pickup-image-upload";
+import { prepareBorrowerImage, releaseBorrowerImage } from "../uploads/prepared-image";
+import {
+  useDetachUsagePhoto,
+  usePickupImageUpload,
+  useUsagePhotos,
+  type UsagePhotoSet,
+} from "../pickup/use-pickup-image-upload";
 import { penaltyReasonText } from "./penalty-reason";
 import { useAppealable, useCreateAppeal, useMyAppeals } from "./use-my-appeals";
 
@@ -38,9 +46,13 @@ const STATUS_TONE: Record<AppealStatus, BadgeTone> = {
  * are separate penalties, and the borrower may accept one and dispute the
  * other. A supervisor rules on it; nothing here decides anything.
  *
- * There is no photo upload: `appeal.create` takes the penalty and the
- * argument only. The loan's photos already on file are shown instead, since
- * the supervisor sees the same set.
+ * `appeal.create` still takes only the penalty and the argument (FR-APL-02's
+ * evidence photos are optional, so they are not part of the same call). The
+ * borrower may attach them to the penalty's loan any time it is still
+ * appealable, through the same `image.attachUsagePhotos` stage machinery as
+ * pickup/return photos - see the `evidence` stage in
+ * backend/src/image/usage-image.service.ts. They land under `usagePhotos`
+ * keyed by the loan, which is also what the supervisor's screen reads.
  */
 export default function AppealsPage() {
   const { t } = useTranslation();
@@ -377,6 +389,115 @@ function Evidence({ usageKey }: { usageKey: number }) {
             </div>
           ))
         : null}
+
+      <EvidenceUpload usageKey={usageKey} evidence={data?.evidence ?? []} />
+    </div>
+  );
+}
+
+/**
+ * FR-APL-02: the borrower's own photos, optional and separate from the
+ * before/after/inspection record above. Attached straight to the loan's usage
+ * key via `image.attachUsagePhotos({ stage: "evidence" })`, the same call
+ * pickup uses for `before` - the server decides whether there is still a
+ * damage penalty worth attaching evidence to (EVIDENCE_NOT_ALLOWED if not).
+ */
+function EvidenceUpload({
+  usageKey,
+  evidence,
+}: {
+  usageKey: number;
+  evidence: UsagePhotoSet["evidence"];
+}) {
+  const { t } = useTranslation();
+  const uploadEvidence = usePickupImageUpload();
+  const detachPhoto = useDetachUsagePhoto();
+  const [error, setError] = useState<string | null>(null);
+
+  function onPick(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    // Let the same file be chosen again after a rejection.
+    e.target.value = "";
+    if (!file) return;
+
+    const result = validateUploadFile(file);
+    if (!result.ok) {
+      setError(
+        result.code === "FILE_TOO_LARGE"
+          ? t("borrower.pickup.photoTooLarge", { max: UPLOAD.MAX_MB })
+          : t("borrower.pickup.photoBadType"),
+      );
+      return;
+    }
+
+    setError(null);
+    const image = prepareBorrowerImage(file);
+    uploadEvidence.mutate(
+      { usageKey, image, stage: "evidence" },
+      {
+        onSettled: () => releaseBorrowerImage(image),
+        onError: (err) => setError(getErrorMessage(err)),
+      },
+    );
+  }
+
+  function removePhoto(imageKey: number) {
+    setError(null);
+    detachPhoto.mutate(
+      { usageKey, imageKey },
+      { onError: (err) => setError(getErrorMessage(err)) },
+    );
+  }
+
+  const busy = uploadEvidence.isPending || detachPhoto.isPending;
+
+  return (
+    <div className="mt-4 border-t border-border pt-3">
+      <div className="text-[11px] font-semibold uppercase tracking-[0.05em] text-t3">
+        {t("borrower.appeals.myEvidenceTitle")}
+      </div>
+      <p className="mt-1 text-xs leading-relaxed text-t4">
+        {t("borrower.appeals.myEvidenceHelp")}
+      </p>
+
+      <div className="mt-2 flex flex-wrap items-center gap-1.5">
+        {evidence.map((photo) => (
+          <div key={photo.imageKey} className="relative">
+            <a href={photo.imageUrl} target="_blank" rel="noreferrer">
+              <ImageThumb src={photo.imageUrl} size={64} />
+            </a>
+            <button
+              type="button"
+              aria-label={t("borrower.pickup.removePhoto")}
+              disabled={busy}
+              onClick={() => removePhoto(photo.imageKey)}
+              className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full border border-border bg-card text-t3 shadow-sm disabled:opacity-50"
+            >
+              <X size={11} strokeWidth={2.6} />
+            </button>
+          </div>
+        ))}
+
+        <label
+          className={cn(
+            "flex h-16 w-16 cursor-pointer items-center justify-center rounded border border-dashed border-line-strong text-t4",
+            busy && "cursor-default opacity-60",
+          )}
+        >
+          <input
+            type="file"
+            accept={uploadAcceptAttr()}
+            disabled={busy}
+            onChange={onPick}
+            className="sr-only"
+          />
+          <Camera size={18} strokeWidth={1.5} />
+        </label>
+      </div>
+
+      {error ? (
+        <p className="mt-1.5 text-[11.5px] leading-relaxed text-[var(--s-alert-t)]">{error}</p>
+      ) : null}
     </div>
   );
 }

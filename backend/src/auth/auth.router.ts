@@ -15,6 +15,7 @@ import {
   changePasswordOutput,
   loginInput,
   loginOutput,
+  providersOutput,
   registerInput,
   requestPasswordResetInput,
   resetPasswordWithTokenInput,
@@ -31,8 +32,14 @@ import { SESSION_COOKIE, SessionService } from './session.service';
 import { LoginThrottleService } from './login-throttle.service';
 import { PasswordResetService } from './password-reset.service';
 import { RegistrationService } from './registration.service';
+import { GoogleOAuthService } from './google-oauth.service';
 import { BusinessError } from '../common/errors/business-error';
 import { AuditService } from '../common/audit/audit.service';
+import { rateLimiter } from '../common/security/rate-limiter';
+
+/** NFR-SEC-05: generous - this is a cheap read with no throttle of its own. */
+const PROVIDERS_RATE_LIMIT = 60;
+const PROVIDERS_RATE_WINDOW_MS = 60 * 1000;
 
 @Router({ alias: 'auth' })
 export class AuthRouter {
@@ -43,7 +50,28 @@ export class AuthRouter {
     private readonly audit: AuditService,
     private readonly passwordReset: PasswordResetService,
     private readonly registration: RegistrationService,
+    private readonly google: GoogleOAuthService,
   ) {}
+
+  /**
+   * FR-AUTH-01: so the login page shows the Google button only when it
+   * works. Public, so it is also the one tRPC query with no session and no
+   * login-style throttle behind it (NFR-SEC-05) - hence the limiter here.
+   */
+  @Query({ output: providersOutput })
+  providers(@Ctx() ctx: TrpcContext) {
+    const ip = ctx.req.ip ?? 'unknown';
+    if (
+      !rateLimiter.consume(
+        `providers:${ip}`,
+        PROVIDERS_RATE_LIMIT,
+        PROVIDERS_RATE_WINDOW_MS,
+      )
+    ) {
+      throw new BusinessError('TOO_MANY_REQUESTS');
+    }
+    return { google: this.google.isEnabled() };
+  }
 
   /** Own profile: role, faculty, and the borrow limits of the current credit tier */
   @UseMiddlewares(AuthMiddleware)
@@ -185,9 +213,7 @@ export class AuthRouter {
 
   /** Spend a link and set the new password. Also public, for the same reason. */
   @Mutation({ input: resetPasswordWithTokenInput, output: okOutput })
-  async resetPasswordWithToken(
-    @Input() input: ResetPasswordWithTokenInput,
-  ) {
+  async resetPasswordWithToken(@Input() input: ResetPasswordWithTokenInput) {
     await this.passwordReset.reset(input.token, input.newPassword);
     return OK;
   }

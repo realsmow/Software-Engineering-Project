@@ -41,7 +41,9 @@ function unit(overrides: {
       },
       ManagementGroup: GROUP,
       CurrentCondition: { Condition: 'Normal' },
-      UsageLogs: overrides.dueAt ? [{ DueTime: overrides.dueAt, CurrentStatus: 'Lended' as const }] : [],
+      UsageLogs: overrides.dueAt
+        ? [{ DueTime: overrides.dueAt, CurrentStatus: 'Lended' as const }]
+        : [],
     },
   };
 }
@@ -238,10 +240,14 @@ describe('per-unit availability', () => {
 
   it('dates a unit out on loan by its due date plus its prep days', () => {
     const due = new Date('2099-01-10T00:00:00Z');
-    const [out] = toItemDetail(itemRow([unit({ status: 'Lended', dueAt: due, prepDays: 2 })])).units;
+    const [out] = toItemDetail(
+      itemRow([unit({ status: 'Lended', dueAt: due, prepDays: 2 })]),
+    ).units;
     // Before this field existed a lent unit had no date at all, and the detail
     // page read the missing value as "available now".
-    expect(out.nextAvailableAt).toBe(new Date(due.getTime() + 2 * DAY).toISOString());
+    expect(out.nextAvailableAt).toBe(
+      new Date(due.getTime() + 2 * DAY).toISOString(),
+    );
   });
 
   it('gives a unit on the shelf no ready date', () => {
@@ -263,13 +269,20 @@ describe('per-unit availability', () => {
     // 3 is "free" by the booking check but switched off, which no window fixes.
     const detail = toItemDetail(row, new Set([1, 3]));
 
-    expect(detail.units.map((u) => u.availableForWindow)).toEqual([true, false, false]);
+    expect(detail.units.map((u) => u.availableForWindow)).toEqual([
+      true,
+      false,
+      false,
+    ]);
     expect(detail.availableUnits).toBe(1);
     expect(mappedDetail.safeParse(detail).success).toBe(true);
   });
 
   it('counts a unit out today as available for a later window it is back for', () => {
-    const lentNow = { ...unit({ status: 'Lended', dueAt: new Date('2099-01-01T00:00:00Z') }), ResourceKey: 9 };
+    const lentNow = {
+      ...unit({ status: 'Lended', dueAt: new Date('2099-01-01T00:00:00Z') }),
+      ResourceKey: 9,
+    };
     const row = itemRow([lentNow]);
 
     expect(toItemSummary(row).availableUnits).toBe(0);
@@ -320,7 +333,9 @@ describe('availability counts every active loan, as staff inventory does (audit 
     ...unit({}),
     Resource: {
       ...unit({}).Resource,
-      UsageLogs: [{ DueTime: new Date('2099-01-10T00:00:00Z'), CurrentStatus: status }],
+      UsageLogs: [
+        { DueTime: new Date('2099-01-10T00:00:00Z'), CurrentStatus: status },
+      ],
     },
   });
 

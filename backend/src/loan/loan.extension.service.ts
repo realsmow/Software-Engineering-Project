@@ -31,6 +31,7 @@ import { tryMapTier, type CreditTier } from '../common/schemas/status.schema';
 import {
   NotificationService,
   resourceName,
+  supervisorsForGroup,
 } from '../notification/notification.service';
 import type { TrpcUser } from '../trpc/context';
 import type {
@@ -171,6 +172,7 @@ export class LoanExtensionService {
     });
 
     if (usage.CurrentStatus !== 'Lended') return blocked('WRONG_LOAN_STATE');
+    if (usage.Resource.Room) return blocked('ROOM_NOT_EXTENDABLE');
 
     let allowance: ExtensionAllowance;
     try {
@@ -271,6 +273,13 @@ export class LoanExtensionService {
         expected: ['Lended'],
       });
     }
+    if (usage.Resource.Room) {
+      // A room is kept longer by booking the next free slot, which checks the
+      // slot grid and the 3-hour cap; an extension would check neither.
+      throw new BusinessError('ROOM_NOT_EXTENDABLE', {
+        usageKey: input.usageKey,
+      });
+    }
     if (usage.PendingExtension !== null) {
       throw new BusinessError('EXTENSION_ALREADY_PENDING', {
         usageKey: input.usageKey,
@@ -356,6 +365,24 @@ export class LoanExtensionService {
           dueAt: requestedDue,
           automatic: true,
         });
+      } else if (route === 'supervisor') {
+        // FR-NTF-04: a T2 unit, or a shaky credit band, sends this extension
+        // to a supervisor's desk — same audience as a routed request.
+        const supervisors = await supervisorsForGroup(
+          tx,
+          usage.Resource.ManagedBy,
+        );
+        await Promise.all(
+          supervisors
+            .filter((s) => s.AccountKey !== user.accountKey)
+            .map((s) =>
+              this.notifications.extensionNeedsSupervisor(tx, {
+                accountKey: s.AccountKey,
+                extensionKey: row.ExtensionKey,
+                itemName: resourceName(usage.Resource),
+              }),
+            ),
+        );
       }
 
       return row.ExtensionKey;

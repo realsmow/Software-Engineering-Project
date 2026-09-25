@@ -4,11 +4,10 @@ import type { DamageLevel } from "@/types/domain";
 /**
  * The repair workshop, mirroring backend/src/inspection/inspection.schema.ts.
  *
- * These shapes are declared here rather than taken from server/trpc-contract.ts
- * because the contract types every repair procedure as `unknown`: it was written
- * when nothing called them. Verified field by field against the backend schema
- * and against live responses from `inspection.listRepairs`, `startRepair`,
- * `finishRepair`, `listForResource` and `recordRoomCheck`.
+ * Declared here rather than read off the tRPC router because the page groups
+ * fields (Repair, RoomCheckResult, RoomCheckRound) differently than the wire
+ * shape does; use-repairs.ts calls the real, generated-router-typed
+ * procedures and relies on structural assignability into these interfaces.
  */
 
 /** ConditionType values that take a unit out of the pool (UNUSABLE_CONDITIONS). */

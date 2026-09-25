@@ -21,7 +21,7 @@ export interface ServerRoom {
   capacity: number | null;
   tier: Tier | null;
   creditWeight: number;
-  status: "InStorage" | "Lended" | "Missing";
+  status: "InStorage" | "Lended" | "Missing" | "Retired";
   allowBorrow: boolean;
   /** Open for booking right now: switched on and actually there. */
   bookable: boolean;

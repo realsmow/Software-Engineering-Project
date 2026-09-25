@@ -10,7 +10,12 @@ import type { TrpcUser } from '../trpc/context';
  * before this the new unit arrived with none and was closed to everyone while
  * the editor went on showing the type's rules as if they covered it.
  */
-const staff = { accountKey: 4, role: 'staff', facultyKey: null, creditScore: 100 } as TrpcUser;
+const staff = {
+  accountKey: 4,
+  role: 'staff',
+  facultyKey: null,
+  creditScore: 100,
+} as TrpcUser;
 
 function harness(inherited: { GroupKey: number; RoleKey: number }[]) {
   let nextKey = 100;
@@ -25,19 +30,35 @@ function harness(inherited: { GroupKey: number; RoleKey: number }[]) {
     itemIndiv: { create: jest.fn().mockResolvedValue({}) },
   };
   const prisma = {
-    itemInfo: { findUnique: jest.fn().mockResolvedValue({ ItemKey: 9, ItemName: 'LCR meter' }) },
-    borrowRule: { findFirst: jest.fn().mockResolvedValue({ BorrowRuleKey: 1 }) },
+    itemInfo: {
+      findUnique: jest
+        .fn()
+        .mockResolvedValue({ ItemKey: 9, ItemName: 'LCR meter' }),
+    },
+    borrowRule: {
+      findFirst: jest.fn().mockResolvedValue({ BorrowRuleKey: 1 }),
+    },
     itemIndiv: {
       findFirst: jest.fn().mockResolvedValue(null),
       findMany: jest.fn().mockResolvedValue([]),
     },
     $transaction: jest.fn((fn: (t: typeof tx) => unknown) => fn(tx)),
   } as unknown as PrismaService;
-  const scope = { assertGroupInScope: jest.fn() } as unknown as StaffScopeService;
-  const images = { toStoredUrl: (url?: string) => url ?? null } as unknown as ImageService;
+  const scope = {
+    assertGroupInScope: jest.fn(),
+  } as unknown as StaffScopeService;
+  const images = {
+    toStoredUrl: (url?: string) => url ?? null,
+  } as unknown as ImageService;
   const audit = { record: jest.fn() };
   return {
-    service: new ItemManagementService(prisma, scope, images, audit as never),
+    service: new ItemManagementService(
+      prisma,
+      scope,
+      images,
+      audit as never,
+      { retirementRequested: jest.fn(), retirementDecided: jest.fn() } as never,
+    ),
     tx,
     audit,
   };
@@ -52,7 +73,7 @@ const input = {
   lendable: true,
 };
 
-it("gives new units the rules their siblings in this department already have", async () => {
+it('gives new units the rules their siblings in this department already have', async () => {
   const t = harness([
     { GroupKey: 3, RoleKey: 1 },
     { GroupKey: 3, RoleKey: 2 },
@@ -75,7 +96,7 @@ it("gives new units the rules their siblings in this department already have", a
   );
 });
 
-it('reads only this type in this department, never another department\'s rules', async () => {
+it("reads only this type in this department, never another department's rules", async () => {
   const t = harness([]);
   await t.service.createItemUnits(staff, input);
 
@@ -93,12 +114,18 @@ it('leaves a type nobody has opened closed', async () => {
 describe('generated serials', () => {
   function withExisting(ids: string[]) {
     const t = harness([]);
-    const prisma = (t.service as unknown as { prisma: { itemIndiv: { findMany: jest.Mock } } }).prisma;
-    prisma.itemIndiv.findMany.mockResolvedValueOnce(ids.map((ItemID) => ({ ItemID })));
+    const prisma = (
+      t.service as unknown as { prisma: { itemIndiv: { findMany: jest.Mock } } }
+    ).prisma;
+    prisma.itemIndiv.findMany.mockResolvedValueOnce(
+      ids.map((ItemID) => ({ ItemID })),
+    );
     return t;
   }
   const serialsOf = (t: ReturnType<typeof harness>) =>
-    t.tx.itemIndiv.create.mock.calls.map((c: [{ data: { ItemID: string } }]) => c[0].data.ItemID);
+    t.tx.itemIndiv.create.mock.calls.map(
+      (c: [{ data: { ItemID: string } }]) => c[0].data.ItemID,
+    );
 
   it('carries numbering on from the last batch instead of colliding with it', async () => {
     const t = withExisting(['LCR-METER-9-1', 'LCR-METER-9-2', 'LCR-METER-9-3']);
@@ -108,14 +135,22 @@ describe('generated serials', () => {
 
   it('does not demand a serial for T1', async () => {
     const t = withExisting([]);
-    await t.service.createItemUnits(staff, { ...input, tier: 'T1' as never, quantity: 1 });
+    await t.service.createItemUnits(staff, {
+      ...input,
+      tier: 'T1',
+      quantity: 1,
+    });
     expect(serialsOf(t)).toEqual(['LCR-METER-9-1']);
   });
 
   it('still demands one for T2', async () => {
     const t = withExisting([]);
     await expect(
-      t.service.createItemUnits(staff, { ...input, tier: 'T2' as never, quantity: 1 }),
+      t.service.createItemUnits(staff, {
+        ...input,
+        tier: 'T2',
+        quantity: 1,
+      }),
     ).rejects.toMatchObject({ businessCode: 'SERIAL_REQUIRED_FOR_TIER' });
     expect(t.audit.record).not.toHaveBeenCalled();
   });

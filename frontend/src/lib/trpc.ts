@@ -1,6 +1,6 @@
 import { createTRPCClient, httpBatchLink } from "@trpc/client";
 import { createTRPCContext } from "@trpc/tanstack-react-query";
-import type { AppRouter } from "@/server/trpc-contract";
+import type { AppRouter } from "@/server/api-types";
 
 /**
  * Frontend tRPC wiring.
@@ -15,8 +15,8 @@ import type { AppRouter } from "@/server/trpc-contract";
  * backend on :3000; override with VITE_TRPC_URL). `credentials: "include"`
  * sends the auth httpOnly cookie on every request (ว-03).
  *
- * The backend has no procedures yet, so calls will fail at runtime until it
- * lands - the wiring and types are ready for that moment.
+ * Types come from `api-types.d.ts`, a generated snapshot of the backend's
+ * tRPC router (see docs/trpc-guide.tex) - never edit that file by hand.
  */
 const TRPC_URL = import.meta.env.VITE_TRPC_URL || "/trpc";
 

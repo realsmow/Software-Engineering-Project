@@ -21,14 +21,17 @@ export interface SystemStatus {
   };
 }
 
+/**
+ * `computeAvailability` and `rollupDailyStats` are not here: the backend
+ * never implemented them (availability is computed live, report.summary
+ * reads UsageLog on demand), so `admin.runCronJob` rejects both ids.
+ */
 export type CronJobId =
   | "markOverdue"
   | "markLost"
   | "expireDemerits"
   | "dueSoonReminder"
-  | "computeAvailability"
   | "openT3InspectionRounds"
-  | "rollupDailyStats"
   | "expireStaleRequests";
 
 export interface CronJob {

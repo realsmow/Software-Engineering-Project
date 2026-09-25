@@ -3,7 +3,7 @@ import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import i18n from "../../src/i18n";
 import AdminAuditPage from "../../src/features/admin/audit/audit-page";
-import type { AuditEvent } from "../../src/features/admin/mock-data";
+import type { AuditEvent } from "../../src/features/admin/admin-constants";
 
 const useAuditEventsMock = vi.hoisted(() => vi.fn());
 
