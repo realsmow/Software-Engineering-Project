@@ -9,7 +9,7 @@ import {
   toUnitRow,
   type CatalogItemDetail,
 } from "./item.adapter";
-import type { CatalogItem, UnitRow } from "../mock-data";
+import type { CatalogItem, UnitRow } from "./catalog.types";
 import type { EquipmentAvailabilityWindow } from "./availability-window";
 
 /**

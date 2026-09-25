@@ -5,7 +5,9 @@ import reactRefresh from "eslint-plugin-react-refresh";
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
-  { ignores: ["dist"] },
+  // api-types.d.ts is a generated snapshot of the backend router (see
+  // backend/scripts/export-api-types.mjs) - not hand-written, not linted.
+  { ignores: ["dist", "src/server/api-types.d.ts"] },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ["**/*.{ts,tsx}"],

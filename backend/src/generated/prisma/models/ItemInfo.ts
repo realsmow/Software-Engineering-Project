@@ -29,11 +29,13 @@ export type AggregateItemInfo = {
 export type ItemInfoAvgAggregateOutputType = {
   ItemKey: number | null
   CreditWeight: number | null
+  Price: number | null
 }
 
 export type ItemInfoSumAggregateOutputType = {
   ItemKey: number | null
   CreditWeight: number | null
+  Price: number | null
 }
 
 export type ItemInfoMinAggregateOutputType = {
@@ -42,6 +44,7 @@ export type ItemInfoMinAggregateOutputType = {
   ItemDesc: string | null
   ImageURL: string | null
   CreditWeight: number | null
+  Price: number | null
 }
 
 export type ItemInfoMaxAggregateOutputType = {
@@ -50,6 +53,7 @@ export type ItemInfoMaxAggregateOutputType = {
   ItemDesc: string | null
   ImageURL: string | null
   CreditWeight: number | null
+  Price: number | null
 }
 
 export type ItemInfoCountAggregateOutputType = {
@@ -58,6 +62,7 @@ export type ItemInfoCountAggregateOutputType = {
   ItemDesc: number
   ImageURL: number
   CreditWeight: number
+  Price: number
   _all: number
 }
 
@@ -65,11 +70,13 @@ export type ItemInfoCountAggregateOutputType = {
 export type ItemInfoAvgAggregateInputType = {
   ItemKey?: true
   CreditWeight?: true
+  Price?: true
 }
 
 export type ItemInfoSumAggregateInputType = {
   ItemKey?: true
   CreditWeight?: true
+  Price?: true
 }
 
 export type ItemInfoMinAggregateInputType = {
@@ -78,6 +85,7 @@ export type ItemInfoMinAggregateInputType = {
   ItemDesc?: true
   ImageURL?: true
   CreditWeight?: true
+  Price?: true
 }
 
 export type ItemInfoMaxAggregateInputType = {
@@ -86,6 +94,7 @@ export type ItemInfoMaxAggregateInputType = {
   ItemDesc?: true
   ImageURL?: true
   CreditWeight?: true
+  Price?: true
 }
 
 export type ItemInfoCountAggregateInputType = {
@@ -94,6 +103,7 @@ export type ItemInfoCountAggregateInputType = {
   ItemDesc?: true
   ImageURL?: true
   CreditWeight?: true
+  Price?: true
   _all?: true
 }
 
@@ -189,6 +199,7 @@ export type ItemInfoGroupByOutputType = {
   ItemDesc: string | null
   ImageURL: string | null
   CreditWeight: number
+  Price: number | null
   _count: ItemInfoCountAggregateOutputType | null
   _avg: ItemInfoAvgAggregateOutputType | null
   _sum: ItemInfoSumAggregateOutputType | null
@@ -220,6 +231,7 @@ export type ItemInfoWhereInput = {
   ItemDesc?: Prisma.StringNullableFilter<"ItemInfo"> | string | null
   ImageURL?: Prisma.StringNullableFilter<"ItemInfo"> | string | null
   CreditWeight?: Prisma.FloatFilter<"ItemInfo"> | number
+  Price?: Prisma.FloatNullableFilter<"ItemInfo"> | number | null
   Items?: Prisma.ItemIndivListRelationFilter
 }
 
@@ -229,6 +241,7 @@ export type ItemInfoOrderByWithRelationInput = {
   ItemDesc?: Prisma.SortOrderInput | Prisma.SortOrder
   ImageURL?: Prisma.SortOrderInput | Prisma.SortOrder
   CreditWeight?: Prisma.SortOrder
+  Price?: Prisma.SortOrderInput | Prisma.SortOrder
   Items?: Prisma.ItemIndivOrderByRelationAggregateInput
 }
 
@@ -241,6 +254,7 @@ export type ItemInfoWhereUniqueInput = Prisma.AtLeast<{
   ItemDesc?: Prisma.StringNullableFilter<"ItemInfo"> | string | null
   ImageURL?: Prisma.StringNullableFilter<"ItemInfo"> | string | null
   CreditWeight?: Prisma.FloatFilter<"ItemInfo"> | number
+  Price?: Prisma.FloatNullableFilter<"ItemInfo"> | number | null
   Items?: Prisma.ItemIndivListRelationFilter
 }, "ItemKey">
 
@@ -250,6 +264,7 @@ export type ItemInfoOrderByWithAggregationInput = {
   ItemDesc?: Prisma.SortOrderInput | Prisma.SortOrder
   ImageURL?: Prisma.SortOrderInput | Prisma.SortOrder
   CreditWeight?: Prisma.SortOrder
+  Price?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.ItemInfoCountOrderByAggregateInput
   _avg?: Prisma.ItemInfoAvgOrderByAggregateInput
   _max?: Prisma.ItemInfoMaxOrderByAggregateInput
@@ -266,6 +281,7 @@ export type ItemInfoScalarWhereWithAggregatesInput = {
   ItemDesc?: Prisma.StringNullableWithAggregatesFilter<"ItemInfo"> | string | null
   ImageURL?: Prisma.StringNullableWithAggregatesFilter<"ItemInfo"> | string | null
   CreditWeight?: Prisma.FloatWithAggregatesFilter<"ItemInfo"> | number
+  Price?: Prisma.FloatNullableWithAggregatesFilter<"ItemInfo"> | number | null
 }
 
 export type ItemInfoCreateInput = {
@@ -273,6 +289,7 @@ export type ItemInfoCreateInput = {
   ItemDesc?: string | null
   ImageURL?: string | null
   CreditWeight: number
+  Price?: number | null
   Items?: Prisma.ItemIndivCreateNestedManyWithoutItemInput
 }
 
@@ -282,6 +299,7 @@ export type ItemInfoUncheckedCreateInput = {
   ItemDesc?: string | null
   ImageURL?: string | null
   CreditWeight: number
+  Price?: number | null
   Items?: Prisma.ItemIndivUncheckedCreateNestedManyWithoutItemInput
 }
 
@@ -290,6 +308,7 @@ export type ItemInfoUpdateInput = {
   ItemDesc?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   ImageURL?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   CreditWeight?: Prisma.FloatFieldUpdateOperationsInput | number
+  Price?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   Items?: Prisma.ItemIndivUpdateManyWithoutItemNestedInput
 }
 
@@ -299,6 +318,7 @@ export type ItemInfoUncheckedUpdateInput = {
   ItemDesc?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   ImageURL?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   CreditWeight?: Prisma.FloatFieldUpdateOperationsInput | number
+  Price?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   Items?: Prisma.ItemIndivUncheckedUpdateManyWithoutItemNestedInput
 }
 
@@ -308,6 +328,7 @@ export type ItemInfoCreateManyInput = {
   ItemDesc?: string | null
   ImageURL?: string | null
   CreditWeight: number
+  Price?: number | null
 }
 
 export type ItemInfoUpdateManyMutationInput = {
@@ -315,6 +336,7 @@ export type ItemInfoUpdateManyMutationInput = {
   ItemDesc?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   ImageURL?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   CreditWeight?: Prisma.FloatFieldUpdateOperationsInput | number
+  Price?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
 }
 
 export type ItemInfoUncheckedUpdateManyInput = {
@@ -323,6 +345,7 @@ export type ItemInfoUncheckedUpdateManyInput = {
   ItemDesc?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   ImageURL?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   CreditWeight?: Prisma.FloatFieldUpdateOperationsInput | number
+  Price?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
 }
 
 export type ItemInfoCountOrderByAggregateInput = {
@@ -331,11 +354,13 @@ export type ItemInfoCountOrderByAggregateInput = {
   ItemDesc?: Prisma.SortOrder
   ImageURL?: Prisma.SortOrder
   CreditWeight?: Prisma.SortOrder
+  Price?: Prisma.SortOrder
 }
 
 export type ItemInfoAvgOrderByAggregateInput = {
   ItemKey?: Prisma.SortOrder
   CreditWeight?: Prisma.SortOrder
+  Price?: Prisma.SortOrder
 }
 
 export type ItemInfoMaxOrderByAggregateInput = {
@@ -344,6 +369,7 @@ export type ItemInfoMaxOrderByAggregateInput = {
   ItemDesc?: Prisma.SortOrder
   ImageURL?: Prisma.SortOrder
   CreditWeight?: Prisma.SortOrder
+  Price?: Prisma.SortOrder
 }
 
 export type ItemInfoMinOrderByAggregateInput = {
@@ -352,11 +378,13 @@ export type ItemInfoMinOrderByAggregateInput = {
   ItemDesc?: Prisma.SortOrder
   ImageURL?: Prisma.SortOrder
   CreditWeight?: Prisma.SortOrder
+  Price?: Prisma.SortOrder
 }
 
 export type ItemInfoSumOrderByAggregateInput = {
   ItemKey?: Prisma.SortOrder
   CreditWeight?: Prisma.SortOrder
+  Price?: Prisma.SortOrder
 }
 
 export type ItemInfoScalarRelationFilter = {
@@ -366,6 +394,14 @@ export type ItemInfoScalarRelationFilter = {
 
 export type FloatFieldUpdateOperationsInput = {
   set?: number
+  increment?: number
+  decrement?: number
+  multiply?: number
+  divide?: number
+}
+
+export type NullableFloatFieldUpdateOperationsInput = {
+  set?: number | null
   increment?: number
   decrement?: number
   multiply?: number
@@ -391,6 +427,7 @@ export type ItemInfoCreateWithoutItemsInput = {
   ItemDesc?: string | null
   ImageURL?: string | null
   CreditWeight: number
+  Price?: number | null
 }
 
 export type ItemInfoUncheckedCreateWithoutItemsInput = {
@@ -399,6 +436,7 @@ export type ItemInfoUncheckedCreateWithoutItemsInput = {
   ItemDesc?: string | null
   ImageURL?: string | null
   CreditWeight: number
+  Price?: number | null
 }
 
 export type ItemInfoCreateOrConnectWithoutItemsInput = {
@@ -422,6 +460,7 @@ export type ItemInfoUpdateWithoutItemsInput = {
   ItemDesc?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   ImageURL?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   CreditWeight?: Prisma.FloatFieldUpdateOperationsInput | number
+  Price?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
 }
 
 export type ItemInfoUncheckedUpdateWithoutItemsInput = {
@@ -430,6 +469,7 @@ export type ItemInfoUncheckedUpdateWithoutItemsInput = {
   ItemDesc?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   ImageURL?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   CreditWeight?: Prisma.FloatFieldUpdateOperationsInput | number
+  Price?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
 }
 
 
@@ -469,6 +509,7 @@ export type ItemInfoSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs
   ItemDesc?: boolean
   ImageURL?: boolean
   CreditWeight?: boolean
+  Price?: boolean
   Items?: boolean | Prisma.ItemInfo$ItemsArgs<ExtArgs>
   _count?: boolean | Prisma.ItemInfoCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["itemInfo"]>
@@ -479,6 +520,7 @@ export type ItemInfoSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Exte
   ItemDesc?: boolean
   ImageURL?: boolean
   CreditWeight?: boolean
+  Price?: boolean
 }, ExtArgs["result"]["itemInfo"]>
 
 export type ItemInfoSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -487,6 +529,7 @@ export type ItemInfoSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Exte
   ItemDesc?: boolean
   ImageURL?: boolean
   CreditWeight?: boolean
+  Price?: boolean
 }, ExtArgs["result"]["itemInfo"]>
 
 export type ItemInfoSelectScalar = {
@@ -495,9 +538,10 @@ export type ItemInfoSelectScalar = {
   ItemDesc?: boolean
   ImageURL?: boolean
   CreditWeight?: boolean
+  Price?: boolean
 }
 
-export type ItemInfoOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"ItemKey" | "ItemName" | "ItemDesc" | "ImageURL" | "CreditWeight", ExtArgs["result"]["itemInfo"]>
+export type ItemInfoOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"ItemKey" | "ItemName" | "ItemDesc" | "ImageURL" | "CreditWeight" | "Price", ExtArgs["result"]["itemInfo"]>
 export type ItemInfoInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   Items?: boolean | Prisma.ItemInfo$ItemsArgs<ExtArgs>
   _count?: boolean | Prisma.ItemInfoCountOutputTypeDefaultArgs<ExtArgs>
@@ -516,6 +560,13 @@ export type $ItemInfoPayload<ExtArgs extends runtime.Types.Extensions.InternalAr
     ItemDesc: string | null
     ImageURL: string | null
     CreditWeight: number
+    /**
+     * Baht, FR-EQP-01. Nullable: existing rows predate the field, and staff
+     * tune it per item rather than it being derived from anything else. Drives
+     * the advisory `suggestedTier` (common/pricing/suggest-tier.ts) - it never
+     * forces the unit tier, which staff still choose by hand.
+     */
+    Price: number | null
   }, ExtArgs["result"]["itemInfo"]>
   composites: {}
 }
@@ -945,6 +996,7 @@ export interface ItemInfoFieldRefs {
   readonly ItemDesc: Prisma.FieldRef<"ItemInfo", 'String'>
   readonly ImageURL: Prisma.FieldRef<"ItemInfo", 'String'>
   readonly CreditWeight: Prisma.FieldRef<"ItemInfo", 'Float'>
+  readonly Price: Prisma.FieldRef<"ItemInfo", 'Float'>
 }
     
 

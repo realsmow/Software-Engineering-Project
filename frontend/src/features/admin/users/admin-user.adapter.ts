@@ -1,5 +1,5 @@
 import type { Role } from "@/types/domain";
-import type { AccountStatus, AdminUser } from "../mock-data";
+import type { AccountStatus, AdminUser } from "../admin-constants";
 
 /**
  * The account shape the backend sends (`adminUserSummary` in
@@ -71,6 +71,8 @@ export interface ServerAuthorityGrant {
 export interface ServerActivePenalty {
   id: number;
   reason: string | null;
+  /** The loan it came from; null for a ban. */
+  usageKey: number | null;
   creditDeducted: number | null;
   issuedAt: string | null;
   expiresAt: string;

@@ -45,8 +45,8 @@ export function useNavCounts(): Record<string, number | undefined> {
      */
     queue: nonZero(queue && queue.toPrepare + queue.toHandover + queue.overdue),
     inspect: nonZero(queue?.toInspect),
-    /** A supervisor's own pile, not the whole desk. */
-    approvals: nonZero(approvals?.supervisor),
+    /** A supervisor's own pile, not the whole desk - requests plus retirements. */
+    approvals: nonZero(approvals && approvals.supervisor + approvals.retirement),
   };
 }
 

@@ -7,6 +7,7 @@ import {
   type DamageLevel,
   type PenaltyReason,
 } from '../schemas/status.schema';
+import { recomputeCredit } from '../credit/recompute-credit';
 
 /** What a penalty will cost, worked out before anything is written. */
 export interface PenaltyQuote {
@@ -190,13 +191,7 @@ export class PenaltyService {
       select: { PenaltyKey: true },
     });
 
-    await tx.accountInfo.update({
-      where: { AccountKey: params.accountKey },
-      // decrement, not "read score then write score minus n": two penalties
-      // applied in the same moment would otherwise each overwrite the other's
-      // deduction and the borrower would only pay for one of them.
-      data: { UserCredit: { decrement: quote.amount } },
-    });
+    await recomputeCredit(tx, params.accountKey);
 
     return penalty.PenaltyKey;
   }

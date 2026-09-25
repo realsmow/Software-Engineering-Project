@@ -65,12 +65,15 @@ function extensionRow() {
 
 function build(row = extensionRow()) {
   const tx = {
-    conditionLog: { create: jest.fn().mockResolvedValue({ ConditionKey: 900 }) },
+    conditionLog: {
+      create: jest.fn().mockResolvedValue({ ConditionKey: 900 }),
+    },
     resourceInfo: { update: jest.fn().mockResolvedValue({}) },
     extensionRequest: { update: jest.fn().mockResolvedValue({}) },
     usageLog: { update: jest.fn().mockResolvedValue({}) },
   };
   const prisma = {
+    usageLog: { findUnique: jest.fn().mockResolvedValue(row.Usage) },
     extensionRequest: {
       findUnique: jest.fn().mockResolvedValue(row),
       // Read back by render() after the decision; counts and limits are not
@@ -144,5 +147,49 @@ describe('LoanExtensionService.decide — audit trail', () => {
       }),
     ).rejects.toThrow(/ALREADY_DECIDED/);
     expect(audit.record).not.toHaveBeenCalled();
+  });
+});
+
+describe('LoanExtensionService — rooms', () => {
+  const borrower = {
+    accountKey: BORROWER_ROW.AccountKey,
+    role: 'borrower',
+    facultyKey: null,
+    creditScore: 80,
+  } as TrpcUser;
+  const roomLoan = () => {
+    const row = extensionRow();
+    return {
+      ...row,
+      Usage: {
+        ...row.Usage,
+        PendingExtension: null,
+        Resource: {
+          ...RESOURCE,
+          BorrowRuleInfo: { RuleName: 'T3' },
+          Item: null,
+          Room: { RoomName: 'Lab 2' },
+        },
+      },
+    };
+  };
+
+  it('refuses to extend a room booking', async () => {
+    const { service } = build(roomLoan() as never);
+    await expect(
+      service.request(borrower, {
+        usageKey: 501,
+        requestedDueAt: '2099-01-10T01:00:00.000Z',
+      }),
+    ).rejects.toMatchObject({ businessCode: 'ROOM_NOT_EXTENDABLE' });
+  });
+
+  it('tells the borrower why before they ask', async () => {
+    const { service } = build(roomLoan() as never);
+    const options = await service.getOptions(borrower, 501);
+    expect(options).toMatchObject({
+      canRequest: false,
+      blockedBy: 'ROOM_NOT_EXTENDABLE',
+    });
   });
 });

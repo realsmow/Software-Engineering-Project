@@ -1,4 +1,4 @@
-import { QueryClient } from "@tanstack/react-query";
+import { MutationCache, QueryClient } from "@tanstack/react-query";
 import { CACHE } from "@/constants";
 import { ApiClientError } from "./api-client";
 
@@ -8,7 +8,14 @@ import { ApiClientError } from "./api-client";
  * - ไม่ retry ถ้าเป็น 4xx (user error)
  * - retry 3 ครั้งถ้าเป็น 5xx
  */
-export const queryClient = new QueryClient({
+export const queryClient: QueryClient = new QueryClient({
+  // Any successful write can move work between the buckets the sidebar badges
+  // count, and the pages that write don't know about the sidebar.
+  mutationCache: new MutationCache({
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["nav-counts"] });
+    },
+  }),
   defaultOptions: {
     queries: {
       staleTime: CACHE.DEFAULT_STALE_MS,

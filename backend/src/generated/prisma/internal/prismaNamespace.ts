@@ -80,12 +80,12 @@ export type PrismaVersion = {
 }
 
 /**
- * Prisma Client JS version: 7.9.1
- * Query Engine version: e922089b7d7502aff4249d5da3420f6fa55fc6ad
+ * Prisma Client JS version: 7.10.0
+ * Query Engine version: 0edf323efd1d98336f3f0a68684b56f689b900d3
  */
 export const prismaVersion: PrismaVersion = {
-  client: "7.9.1",
-  engine: "e922089b7d7502aff4249d5da3420f6fa55fc6ad"
+  client: "7.10.0",
+  engine: "0edf323efd1d98336f3f0a68684b56f689b900d3"
 }
 
 /**
@@ -413,6 +413,7 @@ export const ModelName = {
   ItemIndiv: 'ItemIndiv',
   RoomInfo: 'RoomInfo',
   ResourceInfo: 'ResourceInfo',
+  RetirementRequest: 'RetirementRequest',
   RoomCheckRound: 'RoomCheckRound',
   ConditionLog: 'ConditionLog',
   BorrowRule: 'BorrowRule',
@@ -445,7 +446,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "accountInfo" | "passwordReset" | "emailVerification" | "sessionInfo" | "auditLog" | "roleInfo" | "facultyInfo" | "branchInfo" | "managementGroup" | "authority" | "authorityRole" | "clubInfo" | "itemInfo" | "itemIndiv" | "roomInfo" | "resourceInfo" | "roomCheckRound" | "conditionLog" | "borrowRule" | "borrowConstraints" | "penaltyRule" | "eligibility" | "creditTier" | "reservations" | "usageLog" | "extensionRequest" | "inspection" | "penaltyInfo" | "appealInfo" | "images" | "notification" | "repairLog" | "cronRunLog"
+    modelProps: "accountInfo" | "passwordReset" | "emailVerification" | "sessionInfo" | "auditLog" | "roleInfo" | "facultyInfo" | "branchInfo" | "managementGroup" | "authority" | "authorityRole" | "clubInfo" | "itemInfo" | "itemIndiv" | "roomInfo" | "resourceInfo" | "retirementRequest" | "roomCheckRound" | "conditionLog" | "borrowRule" | "borrowConstraints" | "penaltyRule" | "eligibility" | "creditTier" | "reservations" | "usageLog" | "extensionRequest" | "inspection" | "penaltyInfo" | "appealInfo" | "images" | "notification" | "repairLog" | "cronRunLog"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1630,6 +1631,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.ResourceInfoCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.ResourceInfoCountAggregateOutputType> | number
+        }
+      }
+    }
+    RetirementRequest: {
+      payload: Prisma.$RetirementRequestPayload<ExtArgs>
+      fields: Prisma.RetirementRequestFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.RetirementRequestFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RetirementRequestPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.RetirementRequestFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RetirementRequestPayload>
+        }
+        findFirst: {
+          args: Prisma.RetirementRequestFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RetirementRequestPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.RetirementRequestFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RetirementRequestPayload>
+        }
+        findMany: {
+          args: Prisma.RetirementRequestFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RetirementRequestPayload>[]
+        }
+        create: {
+          args: Prisma.RetirementRequestCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RetirementRequestPayload>
+        }
+        createMany: {
+          args: Prisma.RetirementRequestCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.RetirementRequestCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RetirementRequestPayload>[]
+        }
+        delete: {
+          args: Prisma.RetirementRequestDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RetirementRequestPayload>
+        }
+        update: {
+          args: Prisma.RetirementRequestUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RetirementRequestPayload>
+        }
+        deleteMany: {
+          args: Prisma.RetirementRequestDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.RetirementRequestUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.RetirementRequestUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RetirementRequestPayload>[]
+        }
+        upsert: {
+          args: Prisma.RetirementRequestUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RetirementRequestPayload>
+        }
+        aggregate: {
+          args: Prisma.RetirementRequestAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateRetirementRequest>
+        }
+        groupBy: {
+          args: Prisma.RetirementRequestGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.RetirementRequestGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.RetirementRequestCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.RetirementRequestCountAggregateOutputType> | number
         }
       }
     }
@@ -3065,7 +3140,8 @@ export const ItemInfoScalarFieldEnum = {
   ItemName: 'ItemName',
   ItemDesc: 'ItemDesc',
   ImageURL: 'ImageURL',
-  CreditWeight: 'CreditWeight'
+  CreditWeight: 'CreditWeight',
+  Price: 'Price'
 } as const
 
 export type ItemInfoScalarFieldEnum = (typeof ItemInfoScalarFieldEnum)[keyof typeof ItemInfoScalarFieldEnum]
@@ -3090,7 +3166,11 @@ export const RoomInfoScalarFieldEnum = {
   RoomLocation: 'RoomLocation',
   ImageURL: 'ImageURL',
   CreditWeight: 'CreditWeight',
-  Capacity: 'Capacity'
+  Capacity: 'Capacity',
+  OpenTime: 'OpenTime',
+  CloseTime: 'CloseTime',
+  BreakStart: 'BreakStart',
+  BreakEnd: 'BreakEnd'
 } as const
 
 export type RoomInfoScalarFieldEnum = (typeof RoomInfoScalarFieldEnum)[keyof typeof RoomInfoScalarFieldEnum]
@@ -3108,6 +3188,21 @@ export const ResourceInfoScalarFieldEnum = {
 } as const
 
 export type ResourceInfoScalarFieldEnum = (typeof ResourceInfoScalarFieldEnum)[keyof typeof ResourceInfoScalarFieldEnum]
+
+
+export const RetirementRequestScalarFieldEnum = {
+  RequestKey: 'RequestKey',
+  ResourceKey: 'ResourceKey',
+  RequestedBy: 'RequestedBy',
+  Reason: 'Reason',
+  ApproveStatus: 'ApproveStatus',
+  DecidedBy: 'DecidedBy',
+  DecidedAt: 'DecidedAt',
+  DecisionNote: 'DecisionNote',
+  RequestedAt: 'RequestedAt'
+} as const
+
+export type RetirementRequestScalarFieldEnum = (typeof RetirementRequestScalarFieldEnum)[keyof typeof RetirementRequestScalarFieldEnum]
 
 
 export const RoomCheckRoundScalarFieldEnum = {
@@ -3476,6 +3571,20 @@ export type ListEnumResourceTypeFieldRefInput<$PrismaModel> = FieldRefInputType<
 
 
 /**
+ * Reference to a field of type 'ApproveStatus'
+ */
+export type EnumApproveStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ApproveStatus'>
+    
+
+
+/**
+ * Reference to a field of type 'ApproveStatus[]'
+ */
+export type ListEnumApproveStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ApproveStatus[]'>
+    
+
+
+/**
  * Reference to a field of type 'ConditionType'
  */
 export type EnumConditionTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ConditionType'>
@@ -3500,20 +3609,6 @@ export type EnumPenaltyReasonFieldRefInput<$PrismaModel> = FieldRefInputType<$Pr
  * Reference to a field of type 'PenaltyReason[]'
  */
 export type ListEnumPenaltyReasonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PenaltyReason[]'>
-    
-
-
-/**
- * Reference to a field of type 'ApproveStatus'
- */
-export type EnumApproveStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ApproveStatus'>
-    
-
-
-/**
- * Reference to a field of type 'ApproveStatus[]'
- */
-export type ListEnumApproveStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ApproveStatus[]'>
     
 
 
@@ -3725,6 +3820,7 @@ export type GlobalOmitConfig = {
   itemIndiv?: Prisma.ItemIndivOmit
   roomInfo?: Prisma.RoomInfoOmit
   resourceInfo?: Prisma.ResourceInfoOmit
+  retirementRequest?: Prisma.RetirementRequestOmit
   roomCheckRound?: Prisma.RoomCheckRoundOmit
   conditionLog?: Prisma.ConditionLogOmit
   borrowRule?: Prisma.BorrowRuleOmit

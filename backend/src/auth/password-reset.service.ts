@@ -5,6 +5,7 @@ import { PrismaService } from '../prisma.service';
 import { BusinessError } from '../common/errors/business-error';
 import { hashPassword } from '../common/crypto/password';
 import { SessionService } from './session.service';
+import type { Transporter } from 'nodemailer';
 import { mailSettings } from '../common/mail/mailer';
 
 /** Long enough that a stolen link is unlikely to still be live, short enough to be usable. */
@@ -24,7 +25,7 @@ export class PasswordResetService {
   private readonly logger = new Logger(PasswordResetService.name);
   private readonly appUrl: string;
   private readonly from: string;
-  private readonly mailer;
+  private readonly mailer: Transporter;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -83,7 +84,12 @@ export class PasswordResetService {
   async reset(token: string, newPassword: string): Promise<void> {
     const row = await this.prisma.passwordReset.findUnique({
       where: { TokenHash: PasswordResetService.hash(token) },
-      select: { ResetKey: true, AccountKey: true, ExpiresAt: true, UsedAt: true },
+      select: {
+        ResetKey: true,
+        AccountKey: true,
+        ExpiresAt: true,
+        UsedAt: true,
+      },
     });
 
     // One answer for forged, spent and expired alike: none of them should let

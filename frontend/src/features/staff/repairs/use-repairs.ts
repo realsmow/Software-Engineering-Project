@@ -9,7 +9,6 @@ import type {
 } from "@/features/staff/inventory/inventory.types";
 import type {
   InspectionHistoryEntry,
-  PaginatedRepairs,
   Repair,
   RoomCheckResult,
   RoomCheckRound,
@@ -22,28 +21,11 @@ import type {
  * short enough that a stale row costs nothing; the counter queue polls because
  * borrowers put work into it, which is not true here.
  *
- * Every procedure below is typed locally rather than through the contract.
- * server/trpc-contract.ts declares all six inspection repair/room procedures
- * with `unknown` outputs and, for `listRepairs`, without the `openOnly` input
- * the backend actually reads - it was written before anything called them. The
- * contract belongs to another change this session, so the real shapes (verified
- * against backend/src/inspection/inspection.schema.ts and against live
- * responses) are bound here at the call boundary instead.
+ * The router is now typed from the real backend (api-types.d.ts), so these
+ * calls need no local casts - `repairs.types.ts` keeps its own interfaces
+ * only because the page groups fields differently than the wire shape.
  */
 const REPAIRS_KEY = ["staff", "repairs"] as const;
-
-type TrpcClient = ReturnType<typeof useTRPCClient>;
-
-/** `listRepairs` with `openOnly` restored and the row type filled in. */
-function listRepairsPage(
-  trpc: TrpcClient,
-  input: { page: number; pageSize: number; openOnly: boolean },
-): Promise<PaginatedRepairs> {
-  const query = trpc.inspection.listRepairs.query as unknown as (
-    i: typeof input,
-  ) => Promise<PaginatedRepairs>;
-  return query(input);
-}
 
 /**
  * The workshop list.
@@ -59,7 +41,7 @@ export function useRepairs(openOnly: boolean) {
     queryKey: [...REPAIRS_KEY, "list", openOnly],
     queryFn: async (): Promise<Repair[]> =>
       fetchAllPages((page, pageSize) =>
-        listRepairsPage(trpc, { page, pageSize, openOnly }),
+        trpc.inspection.listRepairs.query({ page, pageSize, openOnly }),
       ),
   });
 }
@@ -95,8 +77,7 @@ export function useStartRepair() {
     mutationFn: async (input: {
       resourceKey: number;
       note?: string;
-    }): Promise<Repair> =>
-      (await trpc.inspection.startRepair.mutate(input)) as Repair,
+    }): Promise<Repair> => trpc.inspection.startRepair.mutate(input),
     onSuccess: refresh,
   });
 }
@@ -117,8 +98,7 @@ export function useFinishRepair() {
       repairKey: number;
       condition: ConditionType;
       note?: string;
-    }): Promise<Repair> =>
-      (await trpc.inspection.finishRepair.mutate(input)) as Repair,
+    }): Promise<Repair> => trpc.inspection.finishRepair.mutate(input),
     onSuccess: refresh,
   });
 }
@@ -156,8 +136,7 @@ export function useRecordRoomCheck() {
       resourceKey: number;
       condition: ConditionType;
       note?: string;
-    }): Promise<RoomCheckResult> =>
-      (await trpc.inspection.recordRoomCheck.mutate(input)) as RoomCheckResult,
+    }): Promise<RoomCheckResult> => trpc.inspection.recordRoomCheck.mutate(input),
     onSuccess: () => {
       // REPAIRS_KEY is the prefix the rounds list sits under, so answering a
       // check moves it out of the open list without a second invalidation.
@@ -182,10 +161,7 @@ export function useUnitInspectionHistory(resourceKey: number | null) {
     queryFn: async (): Promise<InspectionHistoryEntry[]> =>
       resourceKey === null
         ? []
-        : ((await trpc.inspection.listForResource.query({
-            resourceKey,
-            limit: 20,
-          })) as InspectionHistoryEntry[]),
+        : trpc.inspection.listForResource.query({ resourceKey, limit: 20 }),
     enabled: resourceKey !== null,
   });
 }

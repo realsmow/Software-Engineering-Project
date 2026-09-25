@@ -1,4 +1,4 @@
-import type { CatalogItem, StockStatus, UnitRow, UnitState } from "../mock-data";
+import type { CatalogItem, StockStatus, UnitRow, UnitState } from "./catalog.types";
 import type { Tier } from "@/types/domain";
 
 /**
@@ -79,7 +79,7 @@ export interface ServerItemUnit {
   /** ItemIndiv.ItemID - the asset tag printed on the unit. */
   assetTag: string;
   imageUrl: string | null;
-  status: "InStorage" | "Lended" | "Missing";
+  status: "InStorage" | "Lended" | "Missing" | "Retired";
   allowBorrow: boolean;
   condition: "Normal" | "MinorDamage" | "MajorDamage" | "Broken" | "Missing" | null;
   /** Due date of the loan holding this unit, when it is out. */

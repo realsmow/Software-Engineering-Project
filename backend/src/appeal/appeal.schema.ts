@@ -37,6 +37,20 @@ import {
  */
 export const APPEAL_WINDOW_DAYS = 7;
 
+/**
+ * Penalty reasons that come from a damage assessment (FR-APL-01). The reason
+ * is stored as `<PenaltyReason>` or `<PenaltyReason>: <note>` by PenaltyService.
+ *
+ * Exported so `UsageImageService` can apply the same test before letting a
+ * borrower attach appeal evidence (FR-APL-02) — evidence only makes sense
+ * against the kind of penalty an appeal can argue with.
+ */
+export const DAMAGE_REASONS = ['DamagedItem', 'BrokenItem'] as const;
+
+export function isDamagePenalty(reason: string | null): boolean {
+  return DAMAGE_REASONS.some((code) => reason?.startsWith(code) ?? false);
+}
+
 /** Pending / Approved / Rejected, as the frontend spells them (ว-10). */
 export const appealStatus = z.enum(['pending', 'approved', 'rejected']);
 export type AppealStatus = z.infer<typeof appealStatus>;

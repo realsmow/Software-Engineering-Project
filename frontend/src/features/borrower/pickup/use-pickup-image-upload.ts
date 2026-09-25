@@ -8,25 +8,28 @@ interface UploadPickupImageInput {
   image: PreparedBorrowerImage;
   /**
    * Which moment the photo is evidence of. Pickup files `before`; a room
-   * booking also files `after`, the room as it was left.
+   * booking also files `after`, the room as it was left; an appeal files
+   * `evidence` (FR-APL-02), not gated by the loan's pickup/return state at
+   * all - see `UsageImageService.assertHasAppealableDamage` on the backend.
    */
-  stage?: "before" | "after";
+  stage?: "before" | "after" | "evidence";
 }
 
 /** One photo on file against a loan (`usagePhotoOutput` in backend/src/image/image.schema.ts). */
 export interface UsagePhoto {
   imageKey: number;
   imageUrl: string;
-  stage: "before" | "after" | "inspection";
+  stage: "before" | "after" | "inspection" | "evidence";
   submittedBy: number;
   submittedAt: string | null;
 }
 
-/** Both sides of one loan's photo record (`usagePhotosOutput`), grouped by stage. */
+/** Every photo on one loan's record (`usagePhotosOutput`), grouped by stage. */
 export interface UsagePhotoSet {
   before: UsagePhoto[];
   after: UsagePhoto[];
   inspection: UsagePhoto[];
+  evidence: UsagePhoto[];
 }
 
 const usagePhotosKey = (usageKey: number | null) => ["image", "usagePhotos", usageKey] as const;
@@ -36,9 +39,10 @@ const usagePhotosKey = (usageKey: number | null) => ["image", "usagePhotos", usa
  *
  * This previously called `loan.requestPickupImageUpload` and
  * `loan.attachPickupImage`, which do not exist on the server. It type-checked
- * because `server/trpc-contract.ts` is a hand-written mirror and declared them,
- * so the mismatch only showed up as a failed call at the counter. The real
- * procedures live on the image router and are named differently.
+ * because the old hand-written contract declared them, so the mismatch only
+ * showed up as a failed call at the counter. The real procedures live on the
+ * image router and are named differently - the router is now typed from the
+ * real backend, so a rename like this fails `tsc` instead.
  *
  * `before` is the stage taken at pickup; `after` is the matching set at return.
  */

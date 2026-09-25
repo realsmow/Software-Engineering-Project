@@ -44,4 +44,19 @@ export default tseslint.config(
       "prettier/prettier": ["error", { endOfLine: "auto" }],
     },
   },
+  {
+    // Specs stub Prisma and services with partial objects; `any` is already
+    // allowed above, and these rules only re-flag every use of such a stub.
+    files: ['**/*.spec.ts'],
+    rules: {
+      '@typescript-eslint/no-unsafe-member-access': 'off',
+      '@typescript-eslint/no-unsafe-assignment': 'off',
+      '@typescript-eslint/no-unsafe-call': 'off',
+      '@typescript-eslint/no-unsafe-return': 'off',
+      // `expect(stub.method).toHaveBeenCalled()` and async stubs that resolve
+      // a fixture are how Jest is written; neither is a real bug in a spec.
+      '@typescript-eslint/unbound-method': 'off',
+      '@typescript-eslint/require-await': 'off',
+    },
+  },
 );

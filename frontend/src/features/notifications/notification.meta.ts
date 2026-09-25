@@ -27,4 +27,8 @@ export const NOTIFICATION_META: Record<
   overdue: { icon: "clock", tone: "alert" },
   credit_deducted: { icon: "alert-triangle", tone: "alert" },
   appeal_result: { icon: "shield", tone: "info" },
+  retirement_requested: { icon: "package", tone: "warn" },
+  retirement_decided: { icon: "package", tone: "info" },
+  supervisor_approval_needed: { icon: "inbox", tone: "warn" },
+  appeal_filed: { icon: "shield", tone: "warn" },
 };

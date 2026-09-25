@@ -22,6 +22,7 @@ import 'dotenv/config';
 import { PrismaClient } from '../src/generated/prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { randomBytes, scrypt } from 'node:crypto';
+import { seedReference } from '../src/seed/reference';
 
 const prisma = new PrismaClient({
   adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL! }),
@@ -35,55 +36,19 @@ const STAFF_USER_ID = 'STAFF001';
 const STAFF_PASSWORD_PLAINTEXT = 'staff1234';
 
 async function main() {
-  // --- tiers: the four BorrowRule rows the whole catalogue keys off ----------
+  // RoleInfo, BorrowRule T0-T3, CreditTier D0-D3 and BorrowConstraints -
+  // shared with src/seed.ts so the two never disagree on the credit bands
+  // again (see src/seed/reference.ts).
+  await seedReference(prisma);
+
   const tiers: Record<string, number> = {};
   for (const name of ['T0', 'T1', 'T2', 'T3']) {
-    const existing = await prisma.borrowRule.findFirst({
+    const row = await prisma.borrowRule.findFirst({
       where: { RuleName: name },
     });
-    const row =
-      existing ??
-      (await prisma.borrowRule.create({ data: { RuleName: name } }));
-    tiers[name] = row.BorrowRuleKey;
+    tiers[name] = row!.BorrowRuleKey;
   }
   console.log('BorrowRule  :', tiers);
-
-  // --- credit tiers (proposal §5.7) -----------------------------------------
-  const creditTiers = [
-    { name: 'D0', min: 80, max: 100, days: 14, extend: 2 },
-    { name: 'D1', min: 50, max: 79, days: 7, extend: 1 },
-    { name: 'D2', min: 30, max: 49, days: 7, extend: 0 },
-    { name: 'D3', min: 0, max: 29, days: 5, extend: 0 },
-  ];
-  for (const t of creditTiers) {
-    const existing = await prisma.creditTier.findFirst({
-      where: { CreditTierName: t.name },
-    });
-    const tier =
-      existing ??
-      (await prisma.creditTier.create({
-        data: { CreditTierName: t.name, CreditMin: t.min, CreditMax: t.max },
-      }));
-
-    // One constraint per tier x borrow rule, so any item can price a due date.
-    for (const ruleKey of Object.values(tiers)) {
-      await prisma.borrowConstraints.upsert({
-        where: {
-          BorrowRuleKey_CreditTierKey: {
-            BorrowRuleKey: ruleKey,
-            CreditTierKey: tier.CreditTierKey,
-          },
-        },
-        update: {},
-        create: {
-          BorrowRuleKey: ruleKey,
-          CreditTierKey: tier.CreditTierKey,
-          MaxBorrowDate: t.days,
-          MaxExtendTime: t.extend,
-        },
-      });
-    }
-  }
   console.log('CreditTier  : D0–D3 + BorrowConstraints');
 
   // --- the department that owns the equipment -------------------------------

@@ -67,6 +67,7 @@ export const ModelName = {
   ItemIndiv: 'ItemIndiv',
   RoomInfo: 'RoomInfo',
   ResourceInfo: 'ResourceInfo',
+  RetirementRequest: 'RetirementRequest',
   RoomCheckRound: 'RoomCheckRound',
   ConditionLog: 'ConditionLog',
   BorrowRule: 'BorrowRule',
@@ -237,7 +238,8 @@ export const ItemInfoScalarFieldEnum = {
   ItemName: 'ItemName',
   ItemDesc: 'ItemDesc',
   ImageURL: 'ImageURL',
-  CreditWeight: 'CreditWeight'
+  CreditWeight: 'CreditWeight',
+  Price: 'Price'
 } as const
 
 export type ItemInfoScalarFieldEnum = (typeof ItemInfoScalarFieldEnum)[keyof typeof ItemInfoScalarFieldEnum]
@@ -262,7 +264,11 @@ export const RoomInfoScalarFieldEnum = {
   RoomLocation: 'RoomLocation',
   ImageURL: 'ImageURL',
   CreditWeight: 'CreditWeight',
-  Capacity: 'Capacity'
+  Capacity: 'Capacity',
+  OpenTime: 'OpenTime',
+  CloseTime: 'CloseTime',
+  BreakStart: 'BreakStart',
+  BreakEnd: 'BreakEnd'
 } as const
 
 export type RoomInfoScalarFieldEnum = (typeof RoomInfoScalarFieldEnum)[keyof typeof RoomInfoScalarFieldEnum]
@@ -280,6 +286,21 @@ export const ResourceInfoScalarFieldEnum = {
 } as const
 
 export type ResourceInfoScalarFieldEnum = (typeof ResourceInfoScalarFieldEnum)[keyof typeof ResourceInfoScalarFieldEnum]
+
+
+export const RetirementRequestScalarFieldEnum = {
+  RequestKey: 'RequestKey',
+  ResourceKey: 'ResourceKey',
+  RequestedBy: 'RequestedBy',
+  Reason: 'Reason',
+  ApproveStatus: 'ApproveStatus',
+  DecidedBy: 'DecidedBy',
+  DecidedAt: 'DecidedAt',
+  DecisionNote: 'DecisionNote',
+  RequestedAt: 'RequestedAt'
+} as const
+
+export type RetirementRequestScalarFieldEnum = (typeof RetirementRequestScalarFieldEnum)[keyof typeof RetirementRequestScalarFieldEnum]
 
 
 export const RoomCheckRoundScalarFieldEnum = {

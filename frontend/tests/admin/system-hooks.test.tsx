@@ -94,9 +94,9 @@ describe("admin status data hooks", () => {
     const result = renderHook(() => useRunCronJob(), { wrapper });
 
     await act(async () => {
-      await result.result.current.mutateAsync("computeAvailability");
+      await result.result.current.mutateAsync("markOverdue");
     });
 
-    expect(runCronJobMock).toHaveBeenCalledWith({ job: "computeAvailability" });
+    expect(runCronJobMock).toHaveBeenCalledWith({ job: "markOverdue" });
   });
 });

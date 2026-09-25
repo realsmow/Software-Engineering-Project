@@ -26,7 +26,6 @@ export const BUSINESS = {
   MAX_LOAN_DAYS: 14,
   MIN_LOAN_DAYS: 1,
   PICKUP_DEADLINE_DAYS: 1,
-  EXTENSION_DAYS: 14, // ต่อเวลาผ่านระบบได้ครั้งละกี่วัน
   LOST_THRESHOLD_DAYS: 14, // เกินกำหนดกี่วันถือว่าหาย
   MAX_T3_CONCURRENT_SLOTS: 2, // จองสล็อต T3 พร้อมกันได้สูงสุด
   ROOM_SLOT_MINUTES: 30,
@@ -72,19 +71,19 @@ export const CREDIT_BANDS = [
 /**
  * What each credit band is allowed to do when opening a request.
  * - `needsSupervisor`: D2/D3 must get supervisor sign-off on T1 items too, not
- *   just the usual T2 ones.
- * - `blocked`: D3 cannot open a new request until outstanding items are cleared.
+ *   just the usual T2 ones (FR-REQ-05). D3 still borrows; it only loses
+ *   extensions (proposal §5.7).
  * Kept beside CREDIT_BANDS rather than inside it so the band table stays the
  * plain score → loan-days lookup that other screens already read.
  */
 export const CREDIT_BAND_POLICY: Record<
   CreditBand,
-  { needsSupervisor: boolean; blocked: boolean }
+  { needsSupervisor: boolean }
 > = {
-  D0: { needsSupervisor: false, blocked: false },
-  D1: { needsSupervisor: false, blocked: false },
-  D2: { needsSupervisor: true, blocked: false },
-  D3: { needsSupervisor: true, blocked: true },
+  D0: { needsSupervisor: false },
+  D1: { needsSupervisor: false },
+  D2: { needsSupervisor: true },
+  D3: { needsSupervisor: true },
 };
 
 // ==================== Damage Level Config ====================

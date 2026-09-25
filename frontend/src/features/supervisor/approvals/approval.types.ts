@@ -1,5 +1,8 @@
 import type { CreditBand, Tier } from "@/types/domain";
 import type { BorrowerRef } from "@/features/staff/queue/queue.types";
+import type { RetirementRequest } from "@/features/staff/inventory/inventory.types";
+
+export type { RetirementRequest };
 
 /**
  * Server shapes for the approval desk, mirroring
@@ -64,6 +67,8 @@ export interface ApprovalCounts {
   overdueToDecide: number;
   /** Cleared by the system today. */
   autoApprovedToday: number;
+  /** Pending FR-EQP-08 retirement requests in the caller's scope. */
+  retirement: number;
   asOf: string | null;
 }
 

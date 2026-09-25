@@ -13,6 +13,31 @@ import { UNAVAILABLE_USAGE_STATES } from '../usage/usage-states';
 export const HOLDING_APPROVE_STATES = ['Pending', 'Approved'] as const;
 
 /**
+ * When an approved request stops being held for its borrower.
+ *
+ * §5.9: a request not collected within a day is cancelled. The day starts when
+ * the borrow window opens, not at approval: a request approved today for next
+ * month cannot be collected before next month, and a hold counted from today
+ * would let the expiry job cancel it first.
+ */
+export const COLLECT_WITHIN_DAYS = 1;
+
+export function collectDeadline(startTime: Date, now: Date): Date {
+  return addDays(startTime > now ? startTime : now, COLLECT_WITHIN_DAYS);
+}
+
+/**
+ * When a loan may be collected. A few minutes early is ordinary (a borrower at
+ * the counter at 08:50 for a 09:00 pickup); anything earlier is an early
+ * handover, which only staff can grant (`loan.confirmPickup` with `early`).
+ */
+export const PICKUP_GRACE_MINUTES = 15;
+
+export function pickupOpensAt(startTime: Date): Date {
+  return new Date(startTime.getTime() - PICKUP_GRACE_MINUTES * 60_000);
+}
+
+/**
  * Turns a requested window into the range that must be free.
  *
  * `ResourceInfo.BufferTime` is the days staff need around a loan — checking a
@@ -128,7 +153,9 @@ export async function resourcesFreeInWindow(
 
   const [reserved, held] = await Promise.all([
     prisma.reservations.findMany({
-      where: { OR: windows.map((w) => clashingWindowFilter(w.key, w.from, w.to)) },
+      where: {
+        OR: windows.map((w) => clashingWindowFilter(w.key, w.from, w.to)),
+      },
       select: { ResourceKey: true },
     }),
     prisma.usageLog.findMany({

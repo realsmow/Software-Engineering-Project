@@ -31,7 +31,8 @@ export type ConditionType = (typeof ConditionType)[keyof typeof ConditionType]
 export const ResourceStatus = {
   InStorage: 'InStorage',
   Lended: 'Lended',
-  Missing: 'Missing'
+  Missing: 'Missing',
+  Retired: 'Retired'
 } as const
 
 export type ResourceStatus = (typeof ResourceStatus)[keyof typeof ResourceStatus]
@@ -84,7 +85,11 @@ export const NotificationType = {
   DueSoon: 'DueSoon',
   Overdue: 'Overdue',
   CreditDeducted: 'CreditDeducted',
-  AppealResult: 'AppealResult'
+  AppealResult: 'AppealResult',
+  RetirementRequested: 'RetirementRequested',
+  RetirementDecided: 'RetirementDecided',
+  SupervisorApprovalNeeded: 'SupervisorApprovalNeeded',
+  AppealFiled: 'AppealFiled'
 } as const
 
 export type NotificationType = (typeof NotificationType)[keyof typeof NotificationType]
@@ -93,7 +98,8 @@ export type NotificationType = (typeof NotificationType)[keyof typeof Notificati
 export const SubmissionType = {
   BeforePicture: 'BeforePicture',
   AfterPicture: 'AfterPicture',
-  InspectionPicture: 'InspectionPicture'
+  InspectionPicture: 'InspectionPicture',
+  AppealEvidence: 'AppealEvidence'
 } as const
 
 export type SubmissionType = (typeof SubmissionType)[keyof typeof SubmissionType]

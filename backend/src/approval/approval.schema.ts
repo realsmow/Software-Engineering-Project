@@ -9,6 +9,10 @@ import {
 } from '../common/schemas/datetime.schema';
 import { creditTier, resourceTier } from '../common/schemas/status.schema';
 import { approvalRoute, borrowerRef, requestOutput } from '../loan/loan.schema';
+import {
+  retirementRequestIdInput,
+  retirementRequestOutput,
+} from '../item/item.schema';
 
 /**
  * The approval desk (proposal §5.4, CONTRACT.md `approval.*`).
@@ -119,5 +123,38 @@ export const approvalCounts = z.object({
   overdueToDecide: z.number().int().min(0),
   /** Cleared by the system today, for the dashboard's "ระบบอนุมัติเอง" figure. */
   autoApprovedToday: z.number().int().min(0),
+  /** Pending FR-EQP-08 retirement requests in the caller's scope. */
+  retirement: z.number().int().min(0),
   asOf: isoDateTimeNullable,
 });
+
+// ---------------------------------------------------------------------------
+// Retirement queue (FR-EQP-08) — a supervisor approves or rejects
+// ---------------------------------------------------------------------------
+
+export const listRetirementQueueInput = paginationInput.omit({
+  sort: true,
+  order: true,
+});
+export type ListRetirementQueueInput = z.infer<typeof listRetirementQueueInput>;
+
+export const paginatedRetirementQueue = paginated(retirementRequestOutput);
+
+/**
+ * `note` is required on a rejection and optional on an approval, same rule as
+ * `decideApprovalInput` — a refusal is owed a reason, a grant is not.
+ */
+export const decideRetirementInput = retirementRequestIdInput
+  .extend({
+    decision: z.enum(['approve', 'reject']),
+    note: z.string().max(500).optional(),
+  })
+  .refine((v) => v.decision === 'approve' || (v.note?.trim().length ?? 0) > 0, {
+    message: 'A rejection must say why',
+    path: ['note'],
+  });
+export type DecideRetirementInput = z.infer<typeof decideRetirementInput>;
+
+export const decideRetirementOutput = retirementRequestOutput;
+
+export { retirementRequestIdInput, retirementRequestOutput };

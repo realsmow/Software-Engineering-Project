@@ -229,9 +229,11 @@ describe('AuthService', () => {
       await service.changePassword(accountKey, PASSWORD, NEXT);
 
       await expect(service.authenticate(EMAIL, NEXT)).resolves.toBe(accountKey);
-      await expect(service.authenticate(EMAIL, PASSWORD)).rejects.toMatchObject({
-        businessCode: 'INVALID_CREDENTIALS',
-      });
+      await expect(service.authenticate(EMAIL, PASSWORD)).rejects.toMatchObject(
+        {
+          businessCode: 'INVALID_CREDENTIALS',
+        },
+      );
     });
 
     it('refuses a wrong current password, and changes nothing', async () => {

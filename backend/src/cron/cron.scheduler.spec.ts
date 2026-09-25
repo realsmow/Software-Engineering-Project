@@ -22,8 +22,7 @@ function scheduled(): Map<string, CronMetadata> {
     const method = prototype[key];
     if (typeof method !== 'function') continue;
     const meta = Reflect.getMetadata(SCHEDULE_CRON_OPTIONS, method) as
-      | CronMetadata
-      | undefined;
+      CronMetadata | undefined;
     if (meta) found.set(key, meta);
   }
   return found;

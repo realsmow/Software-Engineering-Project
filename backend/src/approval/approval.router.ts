@@ -12,10 +12,16 @@ import {
   approvalCounts,
   decideApprovalInput,
   decideApprovalOutput,
+  decideRetirementInput,
+  decideRetirementOutput,
   listApprovalQueueInput,
+  listRetirementQueueInput,
   paginatedApprovalQueue,
+  paginatedRetirementQueue,
   type DecideApprovalInput,
+  type DecideRetirementInput,
   type ListApprovalQueueInput,
+  type ListRetirementQueueInput,
 } from './approval.schema';
 import {
   decideExtensionInput,
@@ -105,5 +111,31 @@ export class ApprovalRouter {
     @Ctx() ctx: TrpcContext,
   ) {
     return this.extensions.decide(ctx.user!, input);
+  }
+
+  // ── Retirement (FR-EQP-08) ───────────────────────────────────────────────
+  //
+  // A supervisor's own desk - StaffMiddleware on the class is only a floor,
+  // and ApprovalService.assertSupervisor is the real gate for these two.
+
+  /** Pending retirement requests in the caller's scope, oldest first. */
+  @Query({
+    input: listRetirementQueueInput,
+    output: paginatedRetirementQueue,
+  })
+  retirementQueue(
+    @Input() input: ListRetirementQueueInput,
+    @Ctx() ctx: TrpcContext,
+  ) {
+    return this.approvals.retirementQueue(ctx.user!, input);
+  }
+
+  /** Approve or reject one retirement request. Approving retires the resource. */
+  @Mutation({ input: decideRetirementInput, output: decideRetirementOutput })
+  decideRetirement(
+    @Input() input: DecideRetirementInput,
+    @Ctx() ctx: TrpcContext,
+  ) {
+    return this.approvals.decideRetirement(ctx.user!, input);
   }
 }

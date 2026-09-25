@@ -11,13 +11,8 @@ import { BUSINESS, ROUTES } from "@/constants";
 import { ImageThumb } from "@/components/shared/image-thumb";
 import { todayLocalDayKey } from "@/lib/datetime";
 import { cn } from "@/lib/utils";
-import {
-  CAPACITY_BANDS,
-  TIME_SLOTS,
-  activeRoomBookings,
-  capacityBand,
-  type MyRequest,
-} from "../mock-data";
+import { CAPACITY_BANDS, TIME_SLOTS, capacityBand } from "./room-slots";
+import { activeRoomBookings, type MyRequest } from "../request-status";
 import { FacetFilters, type FilterGroup } from "../facet-filters";
 import { useMyRequests } from "../loans/use-my-requests";
 import type { Room } from "./room.adapter";

@@ -18,7 +18,7 @@ import {
   type MyRequest,
   type MyRequestStatus,
   type RequestTab,
-} from "../mock-data";
+} from "../request-status";
 import { useRequestDraft } from "../request/request-draft.store";
 import { penaltyReasonText } from "../appeals/penalty-reason";
 import { usePenaltiesByUsage, type LoanPenalty } from "../appeals/use-my-appeals";

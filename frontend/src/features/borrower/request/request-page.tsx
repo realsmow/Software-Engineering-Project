@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { fmtDayMonth } from "@/lib/datetime";
+import { fmtDateTime, fmtDayMonth } from "@/lib/datetime";
 import { useNavigate } from "react-router-dom";
 import { differenceInCalendarDays, parseISO } from "date-fns";
 import { Check, Minus, Package, Plus, ShoppingCart, Trash2, TriangleAlert } from "lucide-react";
@@ -13,7 +13,7 @@ import { BUSINESS, CREDIT_BANDS, CREDIT_BAND_POLICY, ROUTES } from "@/constants"
 import { useAuthStore } from "@/features/auth/auth.store";
 import { getErrorMessage } from "@/lib/error-messages";
 import { cn } from "@/lib/utils";
-import type { CatalogItem, UnitCondition, UnitState } from "../mock-data";
+import type { CatalogItem, UnitCondition, UnitState } from "../catalog/catalog.types";
 import { toAvailabilityWindow } from "../catalog/availability-window";
 import { useEquipmentTypes, useEquipmentUnits } from "../catalog/use-equipment-types";
 import { useMyCredit } from "@/features/account/use-my-credit";
@@ -146,15 +146,13 @@ export default function RequestPage() {
   const checks = [
     {
       id: "eligible",
-      ok: hasItems && !policy.blocked,
+      ok: hasItems,
       label: t("borrower.request.pcEligible"),
       detail: !hasItems
         ? t("borrower.request.pcCreditIdle")
-        : policy.blocked
-          ? t("borrower.request.pcEligibleBad", { band })
-          : needsSupervisor
-            ? t("borrower.request.pcEligibleSup")
-            : t("borrower.request.pcEligibleOk"),
+        : needsSupervisor
+          ? t("borrower.request.pcEligibleSup")
+          : t("borrower.request.pcEligibleOk"),
     },
     {
       id: "credit",
@@ -222,7 +220,7 @@ export default function RequestPage() {
     createRequest.reset();
 
     try {
-      const result = await createRequest.mutateAsync({
+      let result = await createRequest.mutateAsync({
         rows: rows.map((row) => ({
           itemId: row.itemId,
           name: row.item.name,
@@ -235,6 +233,54 @@ export default function RequestPage() {
         endDate,
         returnTime,
       });
+
+      // FR-RSV-06 (G2): the unit is free at the start but a later reservation
+      // already claims part of the window. Offer the shortened window that
+      // still fits before falling into the plain partial-failure handling
+      // below - accepted, this replaces `result` with the retry's outcome.
+      const crossing = result.rejected.find(
+        (rejected) =>
+          rejected.code === "WINDOW_CROSSES_RESERVATION" &&
+          typeof rejected.detail?.maxEndTime === "string",
+      );
+      if (crossing) {
+        const maxEndTime = crossing.detail!.maxEndTime as string;
+        const startInstant = requestInstant(startDate, pickupTime);
+        if (
+          new Date(maxEndTime) > startInstant &&
+          window.confirm(t("borrower.request.shortenConfirm", { date: fmtDateTime(maxEndTime) }))
+        ) {
+          const rejectedKeys = new Set(result.rejected.map((row) => row.resourceKey));
+          const rejectedUnits = result.selectedUnits.filter((unit) => rejectedKeys.has(unit.resourceKey));
+          const retryRows = rows.flatMap((row) => {
+            const left = rejectedUnits.filter((unit) => unit.itemId === row.itemId);
+            return left.length
+              ? [
+                  {
+                    itemId: row.itemId,
+                    name: row.item.name,
+                    tier: row.item.tier,
+                    qty: left.length,
+                    serials: row.item.tier === "T2" ? left.map((unit) => unit.serial) : [],
+                  },
+                ]
+              : [];
+          });
+          const retry = await createRequest.mutateAsync({
+            rows: retryRows,
+            startDate,
+            pickupTime,
+            endDate,
+            returnTime,
+            endTimeOverride: maxEndTime,
+          });
+          result = {
+            created: [...result.created, ...retry.created],
+            rejected: retry.rejected,
+            selectedUnits: retry.selectedUnits,
+          };
+        }
+      }
 
       if (result.rejected.length === 0) {
         clear();

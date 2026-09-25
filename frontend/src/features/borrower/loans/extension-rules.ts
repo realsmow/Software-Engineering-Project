@@ -82,6 +82,7 @@ const BLOCKED_REASON: Record<string, string> = {
   INVALID_EXTENSION_WINDOW: "borrower.myRequests.extBlockedOverdue",
   // Seen on a loan that has been set aside but not yet picked up.
   WRONG_LOAN_STATE: "borrower.myRequests.extBlockedNotCollected",
+  ROOM_NOT_EXTENDABLE: "borrower.myRequests.extBlockedRoom",
 };
 
 const PENDING_REASON: Record<ServerExtension["route"], string> = {

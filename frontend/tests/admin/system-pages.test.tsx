@@ -42,8 +42,8 @@ const JOBS: CronJob[] = [
     durationMs: 41,
   },
   {
-    id: "computeAvailability",
-    name: "Compute availability",
+    id: "openT3InspectionRounds",
+    name: "Open T3 inspection rounds",
     schedule: "*/5 * * * *",
     implemented: false,
     lastRunAt: null,
@@ -112,7 +112,7 @@ describe("IT admin status and technical configuration pages", () => {
     expect(screen.getByText("Operational")).toBeInTheDocument();
     expect(screen.getByText("v22.14.0")).toBeInTheDocument();
     expect(screen.getByText("42")).toBeInTheDocument();
-    expect(screen.getByText("Compute availability")).toBeInTheDocument();
+    expect(screen.getByText("Open T3 inspection rounds")).toBeInTheDocument();
     expect(screen.getByText("Not implemented")).toBeInTheDocument();
     expect(screen.getByText("Success")).toBeInTheDocument();
   });
@@ -151,7 +151,7 @@ describe("IT admin status and technical configuration pages", () => {
         <AdminStatusPage />
       </MemoryRouter>
     );
-    const row = screen.getByText("Compute availability").closest("tr");
+    const row = screen.getByText("Open T3 inspection rounds").closest("tr");
     expect(row).not.toBeNull();
     fireEvent.click(within(row as HTMLElement).getByRole("button", { name: "Run now" }));
 

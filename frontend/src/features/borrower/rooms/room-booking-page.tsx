@@ -10,7 +10,7 @@ import { ImageThumb } from "@/components/shared/image-thumb";
 import { fmtDate, todayLocalDayKey } from "@/lib/datetime";
 import { getErrorMessage } from "@/lib/error-messages";
 import { cn } from "@/lib/utils";
-import { activeRoomBookings } from "../mock-data";
+import { activeRoomBookings } from "../request-status";
 import { useMyRequests } from "../loans/use-my-requests";
 import type { Room, RoomSlot } from "./room.adapter";
 import { useCreateRoomBooking, useRoom, useRoomDay } from "./use-rooms";

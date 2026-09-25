@@ -30,7 +30,6 @@ import {
   runCronJobInput,
   type RunCronJobInput,
   setUserActiveInput,
-  setUserBanInput,
   systemStatusOutput,
   technicalConfigOutput,
   updateLendingSettingsInput,
@@ -41,7 +40,6 @@ import {
   type ListUsersInput,
   type ResetPasswordInput,
   type SetUserActiveInput,
-  type SetUserBanInput,
   type UpdateLendingSettingsInput,
   type UpdateUserInput,
 } from './admin.schema';
@@ -147,13 +145,6 @@ export class AdminRouter {
   }
 
   // ── Borrowing ban (department staff) ────────────────────────────────────
-
-  /** Recorded as a PenaltyInfo row, so the ban and its history share one table. */
-  @UseMiddlewares(StaffMiddleware)
-  @Mutation({ input: setUserBanInput, output: okOutput })
-  setUserBan(@Input() input: SetUserBanInput, @Ctx() ctx: TrpcContext) {
-    return this.adminService.setUserBan(input, AdminRouter.actorFrom(ctx));
-  }
 
   // ── Lending rules (department staff) ────────────────────────────────────
 

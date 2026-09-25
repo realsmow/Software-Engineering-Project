@@ -7,7 +7,6 @@ import {
   createUserOutput,
   listUsersInput,
   paginatedAdminUsers,
-  setUserBanInput,
 } from '../../src/admin/admin.schema';
 import { AdminService } from '../../src/admin/admin.service';
 import type { AuditActor } from '../../src/common/audit/audit.service';
@@ -30,7 +29,6 @@ describe('AdminService user management', () => {
   let seededAdminKey: number;
   let seededStaffKey: number;
   let adminActor: AuditActor;
-  let staffActor: AuditActor;
 
   const createdRoleKeys = new Set<number>();
   const createdUserKeys = new Set<number>();
@@ -62,7 +60,6 @@ describe('AdminService user management', () => {
       lastName: overrides.lastName ?? 'Borrower',
       role: 'borrower',
       password: 'Password123!',
-      initialCredit: 100,
     });
     const result = await adminService.createUser(input, adminActor);
     createdUserKeys.add(result.user.id);
@@ -209,7 +206,6 @@ describe('AdminService user management', () => {
     seededAdminKey = admin.AccountKey;
     seededStaffKey = staff.AccountKey;
     adminActor = { accountKey: seededAdminKey };
-    staffActor = { accountKey: seededStaffKey };
   }, 30_000);
 
   afterEach(async () => {
@@ -304,9 +300,6 @@ describe('AdminService user management', () => {
         role: 'unknown',
       }).success,
     ).toBe(false);
-    expect(
-      setUserBanInput.safeParse({ id: 0, banned: true, days: 0 }).success,
-    ).toBe(false);
   });
 
   it('rejects duplicate email and student ID', async () => {
@@ -348,9 +341,6 @@ describe('AdminService user management', () => {
     ).rejects.toMatchObject({ businessCode: 'USER_NOT_FOUND' });
     await expect(
       adminService.resetPassword({ id: 999_999_999 }, adminActor),
-    ).rejects.toMatchObject({ businessCode: 'USER_NOT_FOUND' });
-    await expect(
-      adminService.setUserBan({ id: 999_999_999, banned: true, days: 7 }, staffActor),
     ).rejects.toMatchObject({ businessCode: 'USER_NOT_FOUND' });
     await expect(
       adminService.setUserActive({ id: 999_999_999, active: false }, adminActor),
@@ -444,52 +434,6 @@ describe('AdminService user management', () => {
     );
   });
 
-  it('records and lifts a borrowing ban without deleting its history', async () => {
-    const { result } = await createBorrower();
-    const before = Date.now();
-    await expect(
-      adminService.setUserBan(
-        setUserBanInput.parse({
-          id: result.user.id,
-          banned: true,
-          days: 7,
-          reason: 'Late return equipment violation',
-        }),
-        staffActor,
-      ),
-    ).resolves.toEqual({ ok: true });
-
-    const activePenalty = await prisma.penaltyInfo.findFirst({
-      where: { AccountKey: result.user.id, InEffect: true },
-    });
-    expect(activePenalty).toMatchObject({
-      Reason: 'Late return equipment violation',
-      InEffect: true,
-    });
-    expect(activePenalty?.ExpirationTime.getTime()).toBeGreaterThan(
-      before + 6 * 24 * 60 * 60 * 1000,
-    );
-
-    await adminService.setUserBan(
-      setUserBanInput.parse({ id: result.user.id, banned: false }),
-      staffActor,
-    );
-    const penalties = await prisma.penaltyInfo.findMany({
-      where: { AccountKey: result.user.id },
-    });
-    expect(penalties).toHaveLength(1);
-    expect(penalties[0].InEffect).toBe(false);
-  });
-
-  it('prevents staff from banning themself', async () => {
-    await expect(
-      adminService.setUserBan(
-        setUserBanInput.parse({ id: seededStaffKey, banned: true, days: 7 }),
-        staffActor,
-      ),
-    ).rejects.toMatchObject({ businessCode: 'CANNOT_MODIFY_SELF' });
-  });
-
   it('prevents an administrator from disabling their own account', async () => {
     await expect(
       adminService.setUserActive({ id: seededAdminKey, active: false }, adminActor),
@@ -518,7 +462,7 @@ describe('AdminService user management', () => {
     ).toBe(true);
   });
 
-  it('disables and re-enables another account without treating it as a borrowing ban', async () => {
+  it('disables and re-enables another account without writing a penalty', async () => {
     const { result } = await createBorrower();
 
     await expect(

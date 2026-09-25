@@ -25,6 +25,12 @@ const DUE_SOON_DAYS = 2;
 const ROUTE_MY_LOANS = '/my/loans';
 const ROUTE_PICKUP = '/pickup';
 const ROUTE_PROFILE = '/profile';
+/** Where a supervisor decides a retirement request (approval.retirementQueue). */
+const ROUTE_SUPERVISOR_APPROVALS = '/supervisor/approvals';
+/** Where a supervisor decides an appeal (appeal.listQueue). */
+const ROUTE_SUPERVISOR_APPEALS = '/supervisor/appeals';
+/** Where staff manage the catalogue, including their own retirement requests. */
+const ROUTE_STAFF_INVENTORY = '/staff/inventory';
 
 /**
  * The item as the borrower knows it — its name, not its key.
@@ -429,6 +435,138 @@ export class NotificationService {
     });
   }
 
+  /**
+   * "มีคำขอเลิกใช้งานอุปกรณ์รอการอนุมัติ" — FR-EQP-08, sent to one supervisor.
+   *
+   * Called once per supervisor with authority over the resource's department
+   * (see `ItemManagementService.requestRetirement`), so `dedupeKey` is not
+   * namespaced per recipient: the upsert's unique index already includes
+   * `AccountKey`, and two supervisors of the same department must each get
+   * their own row for the same request.
+   */
+  retirementRequested(
+    tx: Prisma.TransactionClient,
+    params: {
+      accountKey: number;
+      requestKey: number;
+      resourceName: string;
+      requestedBy: string;
+      reason: string;
+    },
+  ) {
+    return this.emit(tx, {
+      accountKey: params.accountKey,
+      type: 'RetirementRequested',
+      title: 'มีคำขอเลิกใช้งานอุปกรณ์รอการอนุมัติ',
+      body: `${params.resourceName} · ขอโดย ${params.requestedBy} · เหตุผล: ${params.reason}`,
+      linkTo: ROUTE_SUPERVISOR_APPROVALS,
+      dedupeKey: retirementRequestKeyOf(params.requestKey),
+    });
+  }
+
+  /**
+   * "คำขอเลิกใช้งานอุปกรณ์ได้รับการพิจารณาแล้ว" — FR-EQP-08, back to the staff
+   * member who filed it. One request has one decision, so this shares its
+   * dedupe key with nothing else and cannot double up on a retry.
+   */
+  retirementDecided(
+    tx: Prisma.TransactionClient,
+    params: {
+      accountKey: number;
+      requestKey: number;
+      resourceName: string;
+      decision: 'approve' | 'reject';
+      note?: string | null;
+    },
+  ) {
+    const approved = params.decision === 'approve';
+    return this.emit(tx, {
+      accountKey: params.accountKey,
+      type: 'RetirementDecided',
+      title: approved
+        ? 'คำขอเลิกใช้งานอุปกรณ์ได้รับการอนุมัติ'
+        : 'คำขอเลิกใช้งานอุปกรณ์ไม่ได้รับการอนุมัติ',
+      body: `${params.resourceName}` + (params.note ? ` · ${params.note}` : ''),
+      linkTo: ROUTE_STAFF_INVENTORY,
+      dedupeKey: retirementRequestKeyOf(params.requestKey),
+    });
+  }
+
+  /**
+   * "มีคำขอยืมรอการอนุมัติ" — FR-NTF-04, a T2 request or a T1 request from a
+   * D2/D3 borrower landed on a supervisor's desk instead of clearing on its
+   * own. Sent to one supervisor at a time, same pattern as
+   * `retirementRequested`: call once per supervisor with authority over the
+   * resource's department.
+   */
+  requestNeedsSupervisor(
+    tx: Prisma.TransactionClient,
+    params: {
+      accountKey: number;
+      reservationKey: number;
+      itemName: string;
+    },
+  ) {
+    return this.emit(tx, {
+      accountKey: params.accountKey,
+      type: 'SupervisorApprovalNeeded',
+      title: 'มีคำขอยืมรอการอนุมัติ',
+      body: `${params.itemName} · รอการอนุมัติ`,
+      linkTo: ROUTE_SUPERVISOR_APPROVALS,
+      dedupeKey: reservationKeyOf(params.reservationKey),
+    });
+  }
+
+  /**
+   * "มีคำขอต่ออายุรอการอนุมัติ" — FR-NTF-04, the extension counterpart of
+   * `requestNeedsSupervisor`. Shares `SupervisorApprovalNeeded` rather than a
+   * type of its own, the same way `extensionApproved` shares `RequestApproved`
+   * — the desk is one pile, whichever domain the row came from.
+   */
+  extensionNeedsSupervisor(
+    tx: Prisma.TransactionClient,
+    params: {
+      accountKey: number;
+      extensionKey: number;
+      itemName: string;
+    },
+  ) {
+    return this.emit(tx, {
+      accountKey: params.accountKey,
+      type: 'SupervisorApprovalNeeded',
+      title: 'มีคำขอต่ออายุรอการอนุมัติ',
+      body: `${params.itemName} · รอการอนุมัติ`,
+      linkTo: ROUTE_SUPERVISOR_APPROVALS,
+      dedupeKey: extensionKeyOf(params.extensionKey),
+    });
+  }
+
+  /**
+   * "มีคำขออุทธรณ์รอการพิจารณา" — FR-NTF-04, an appeal was just filed.
+   *
+   * Namespaced with the same `appealKeyOf` key as `appealApproved` and
+   * `appealRejected`, which is safe: those go to the borrower who filed it,
+   * this goes to a supervisor, and the unique index is per `AccountKey` as
+   * well as per type.
+   */
+  appealFiled(
+    tx: Prisma.TransactionClient,
+    params: {
+      accountKey: number;
+      appealKey: number;
+      reason: string;
+    },
+  ) {
+    return this.emit(tx, {
+      accountKey: params.accountKey,
+      type: 'AppealFiled',
+      title: 'มีคำขออุทธรณ์รอการพิจารณา',
+      body: `เหตุผล: ${params.reason}`,
+      linkTo: ROUTE_SUPERVISOR_APPEALS,
+      dedupeKey: appealKeyOf(params.appealKey),
+    });
+  }
+
   // =========================================================================
   // The due-date sweep
   // =========================================================================
@@ -604,4 +742,46 @@ function extensionKeyOf(extensionKey: number): string {
 
 function appealKeyOf(appealKey: number): string {
   return `appeal:${appealKey}`;
+}
+
+function retirementRequestKeyOf(requestKey: number): string {
+  return `retirement:${requestKey}`;
+}
+
+/**
+ * Supervisors with authority over one department (FR-NTF-04, FR-EQP-08).
+ *
+ * Same lookup `ItemManagementService.requestRetirement` uses for retirement
+ * requests: role Supervisor, holding an Authority row for `manageGroupKey`.
+ * Kept here, exported, so loan and appeal callers do not each grow their own
+ * copy of it.
+ */
+export async function supervisorsForGroup(
+  tx: Prisma.TransactionClient,
+  manageGroupKey: number,
+): Promise<{ AccountKey: number }[]> {
+  return tx.accountInfo.findMany({
+    where: {
+      Role: { RoleName: 'Supervisor' },
+      Authorities: { some: { ManageGroupKey: manageGroupKey } },
+    },
+    select: { AccountKey: true },
+  });
+}
+
+/**
+ * Every supervisor, department unscoped.
+ *
+ * For an appeal against an administrative penalty (no UsageLog, so no
+ * ResourceInfo.ManagedBy to key off): `appeal.listQueue` shows those to every
+ * supervisor rather than filtering by department, and the notification has to
+ * reach the same audience the queue does.
+ */
+export async function allSupervisors(
+  tx: Prisma.TransactionClient,
+): Promise<{ AccountKey: number }[]> {
+  return tx.accountInfo.findMany({
+    where: { Role: { RoleName: 'Supervisor' } },
+    select: { AccountKey: true },
+  });
 }

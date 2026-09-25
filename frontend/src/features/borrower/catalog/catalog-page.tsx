@@ -23,7 +23,7 @@ import {
 import { DataTable, type Column } from "@/components/ui/data-table";
 import { BUSINESS, ROUTES } from "@/constants";
 import { cn } from "@/lib/utils";
-import { STOCK_STATUSES, type CatalogItem } from "../mock-data";
+import { STOCK_STATUSES, type CatalogItem } from "./catalog.types";
 import { FacetFilters, type FilterGroup } from "../facet-filters";
 import {
   REQUEST_TIMES,

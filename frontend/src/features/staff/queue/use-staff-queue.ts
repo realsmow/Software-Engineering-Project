@@ -104,13 +104,17 @@ export function useAllocate() {
   });
 }
 
-/** Hand the prepared unit over. Records that it physically left the counter. */
+/**
+ * Hand the prepared unit over. Records that it physically left the counter.
+ * `early` hands it over before the booked pickup time; the server keeps the
+ * loan's length, so it comes back due earlier.
+ */
 export function useConfirmPickup() {
   const trpc = useTRPCClient();
   const refresh = useRefreshQueue();
 
   return useMutation({
-    mutationFn: (input: { usageKey: number; note?: string }) =>
+    mutationFn: (input: { usageKey: number; note?: string; early?: boolean }) =>
       trpc.loan.confirmPickup.mutate(input),
     onSuccess: refresh,
   });

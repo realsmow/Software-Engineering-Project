@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { fetchAllPages } from "@/lib/paging";
 import { queryKeys } from "@/lib/query-client";
 import { useTRPCClient } from "@/lib/trpc";
-import type { MyRequest } from "../mock-data";
+import type { MyRequest } from "../request-status";
 import type { ServerExtension, ServerExtensionOptions } from "./extension.adapter";
 import {
   EXTENSION_LOADING,

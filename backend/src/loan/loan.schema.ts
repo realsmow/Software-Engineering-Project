@@ -206,6 +206,11 @@ export type SwapUnitInput = z.infer<typeof swapUnitInput>;
  */
 export const confirmPickupInput = usageIdInput.extend({
   note: z.string().trim().max(500).optional(),
+  /**
+   * Hand over before the booked pickup time, with the borrower at the counter.
+   * The loan keeps its length, so the due date moves earlier by the same amount.
+   */
+  early: z.boolean().optional(),
 });
 export type ConfirmPickupInput = z.infer<typeof confirmPickupInput>;
 

@@ -42,8 +42,15 @@ vi.mock("react-i18next", () => ({
   useTranslation: () => ({ t: (key: string) => key, i18n: { language: "th" } }),
 }));
 
+/** The props the login page passes to each method panel. */
+type MethodProps = {
+  open: boolean;
+  onToggle: () => void;
+  onSubmit: (values: Record<string, string>) => void;
+};
+
 vi.mock("@/features/auth/login-method-ku", () => ({
-  LoginMethodKu: ({ open, onToggle, onSubmit }: any) => (
+  LoginMethodKu: ({ open, onToggle, onSubmit }: MethodProps) => (
     <>
       <button onClick={onToggle}>KU method</button>
       {open && <button onClick={() => onSubmit({ email: "student@ku.ac.th", password: "secret" })}>KU submit</button>}
@@ -51,7 +58,7 @@ vi.mock("@/features/auth/login-method-ku", () => ({
   ),
 }));
 vi.mock("@/features/auth/login-method-local", () => ({
-  LoginMethodLocal: ({ open, onToggle, onSubmit }: any) => (
+  LoginMethodLocal: ({ open, onToggle, onSubmit }: MethodProps) => (
     <>
       <button onClick={onToggle}>Local method</button>
       {open && <button onClick={() => onSubmit({ username: "staff01", password: "secret" })}>Local submit</button>}
@@ -113,14 +120,14 @@ describe("Authentication flow — Module 1.4", () => {
   });
 
   it("1.4.5 auth.me failure clears the store for a signed-out session", async () => {
-    useAuthStore.setState({ user: { id: "1" } as any, isLoading: false });
+    useAuthStore.setState({ user: { id: "1" } as never, isLoading: false });
     mocks.me.mockRejectedValue(new Error("NOT_AUTHENTICATED"));
     render(<App />);
     await waitFor(() => expect(useAuthStore.getState().user).toBeNull());
   });
 
   it("1.4.6 logout calls auth.logout, clears store, and leaves authenticated state", async () => {
-    useAuthStore.setState({ user: borrower as any, isLoading: false });
+    useAuthStore.setState({ user: borrower as never, isLoading: false });
     render(<MemoryRouter initialEntries={["/home"]}><Sidebar /></MemoryRouter>);
     fireEvent.click(screen.getByRole("button", { name: "common.signOut" }));
     await waitFor(() => expect(mocks.logout).toHaveBeenCalledTimes(1));
@@ -143,7 +150,7 @@ describe("Authentication flow — Module 1.4", () => {
   });
 
   it("1.4.8 insufficient role is redirected away from role-protected content", () => {
-    useAuthStore.setState({ user: borrower as any, isLoading: false });
+    useAuthStore.setState({ user: borrower as never, isLoading: false });
     render(<MemoryRouter initialEntries={["/admin"]}><ProtectedRoute allowedRoles={["admin"]}><div>admin</div></ProtectedRoute></MemoryRouter>);
     expect(screen.queryByText("admin")).not.toBeInTheDocument();
   });

@@ -8,19 +8,14 @@ import { hashPassword } from '../common/crypto/password';
 import { mailSettings } from '../common/mail/mailer';
 import { tryMapUserRole } from '../common/schemas/status.schema';
 import type { RegisterInput } from './auth.schema';
+import { BASE_CREDIT } from '../common/credit/recompute-credit';
+import {
+  allowedDomainsFromConfig,
+  isEmailDomainAllowed,
+} from './domain-policy';
 
 /** A day, so a link sent overnight still works in the morning. */
 const TTL_MS = 24 * 60 * 60 * 1000;
-
-/**
- * Starting credit for an account nobody vetted.
- *
- * The same 100 an admin-created account gets. It has to fall inside some
- * CreditTier's CreditMin..CreditMax range or the account cannot be shown, and
- * the tiers are seed data, so this is a convention rather than a rule in the
- * schema.
- */
-const INITIAL_CREDIT = 100;
 
 /**
  * Self-registration.
@@ -47,7 +42,7 @@ export class RegistrationService {
 
   constructor(
     private readonly prisma: PrismaService,
-    config: ConfigService,
+    private readonly config: ConfigService,
   ) {
     const settings = mailSettings(config);
     this.mailer = settings.mailer;
@@ -69,6 +64,16 @@ export class RegistrationService {
   async register(input: RegisterInput): Promise<void> {
     const email = input.email.trim();
     const studentId = input.studentId.trim();
+
+    // C-01: only a KU e-mail may hold an account. Checked before the clash
+    // lookup below so a disallowed address never touches AccountInfo at all -
+    // this is the one registration rule that is allowed to say why it failed,
+    // since "wrong domain" reveals nothing about who is already registered.
+    // Read at call time, not cached at construction, so a config change or a
+    // test does not need a new instance to take effect.
+    if (!isEmailDomainAllowed(email, allowedDomainsFromConfig(this.config))) {
+      throw new BusinessError('INVALID_DOMAIN');
+    }
 
     const clash = await this.prisma.accountInfo.findFirst({
       where: {
@@ -98,7 +103,7 @@ export class RegistrationService {
           UserID: studentId,
           UserFName: input.firstName.trim(),
           UserLName: input.lastName.trim(),
-          UserCredit: INITIAL_CREDIT,
+          UserCredit: BASE_CREDIT,
           RoleKey: roleKey,
           IsActive: false,
         },
@@ -161,7 +166,9 @@ export class RegistrationService {
     const rows = await this.prisma.roleInfo.findMany({
       select: { RoleKey: true, RoleName: true },
     });
-    const match = rows.find((row) => tryMapUserRole(row.RoleName) === 'borrower');
+    const match = rows.find(
+      (row) => tryMapUserRole(row.RoleName) === 'borrower',
+    );
     if (!match) {
       throw new BusinessError('ROLE_NOT_CONFIGURED', { role: 'borrower' });
     }

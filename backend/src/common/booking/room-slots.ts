@@ -16,9 +16,15 @@ import { localTimeToUtc, toLocalDayKey } from '../schemas/datetime.schema';
  *
  * The times here are the counter's wall clock, in Bangkok. Every value that
  * leaves this file is UTC — see `localTimeToUtc`.
+ *
+ * FR-EQP-04: opening hours are per room (RoomInfo.OpenTime/CloseTime/
+ * BreakStart/BreakEnd, minutes past local midnight), not a fixed grid. Every
+ * function below therefore takes the room's own `RoomHours` rather than
+ * reading a module-level constant, so a room with different hours computes
+ * its own strip without touching any other room's.
  */
 
-/** Matches the frontend's `LIMITS.ROOM_SLOT_MINUTES`. */
+/** Matches the frontend's `LIMITS.ROOM_SLOT_MINUTES`. Global — not per room. */
 export const ROOM_SLOT_MINUTES = 30;
 
 /**
@@ -27,6 +33,8 @@ export const ROOM_SLOT_MINUTES = 30;
  * A cap on one booking, not on the day: the borrower may hold slots in the
  * morning and more in the afternoon, subject to the separate T3 concurrency
  * limit. What it stops is one person taking the room from opening to closing.
+ * Global, like the slot length — decided to stay fixed even though hours now
+ * vary per room.
  */
 export const MAX_ROOM_BOOKING_SLOTS = 6;
 
@@ -43,17 +51,47 @@ export const MAX_ROOM_BOOKING_SLOTS = 6;
 export const MAX_ACTIVE_ROOM_BOOKINGS = 1;
 
 /**
- * When the counter is open, in local time, as half-open `[from, to)` periods.
+ * A room's opening hours, minutes past local midnight — the same unit
+ * RoomInfo.OpenTime/CloseTime/BreakStart/BreakEnd are stored in.
  *
- * 12:00–13:00 is missing because it is the lunch break, and that gap is the
- * reason slots are not simply "index × 30 minutes from 07:00": a booking may
- * not run through it, so 11:30 and 13:00 are neighbours in the list and an
- * hour apart on the clock.
+ * `breakStartMinutes`/`breakEndMinutes` are both present or both null: a room
+ * with no break is open `[openMinutes, closeMinutes)` in one run; one with a
+ * break is open in two, exactly like the old fixed grid's 07:00-12:00 and
+ * 13:00-18:00.
  */
-const OPEN_PERIODS: ReadonlyArray<readonly [string, string]> = [
-  ['07:00', '12:00'],
-  ['13:00', '18:00'],
-];
+export interface RoomHours {
+  openMinutes: number;
+  closeMinutes: number;
+  breakStartMinutes: number | null;
+  breakEndMinutes: number | null;
+}
+
+/**
+ * The grid every room used before per-room hours existed: 07:00-12:00 and
+ * 13:00-18:00. Also the column defaults in the room_opening_hours migration,
+ * so a room nobody has edited computes exactly this.
+ */
+export const DEFAULT_ROOM_HOURS: RoomHours = {
+  openMinutes: 7 * 60,
+  closeMinutes: 18 * 60,
+  breakStartMinutes: 12 * 60,
+  breakEndMinutes: 13 * 60,
+};
+
+/** RoomInfo's own columns -> the shape every function here takes. */
+export function toRoomHours(room: {
+  OpenTime: number;
+  CloseTime: number;
+  BreakStart: number | null;
+  BreakEnd: number | null;
+}): RoomHours {
+  return {
+    openMinutes: room.OpenTime,
+    closeMinutes: room.CloseTime,
+    breakStartMinutes: room.BreakStart,
+    breakEndMinutes: room.BreakEnd,
+  };
+}
 
 export interface RoomSlot {
   /** `"07:00"` — start of the period, and the chip's label. */
@@ -62,41 +100,94 @@ export interface RoomSlot {
   end: string;
 }
 
-function toMinutes(hhmm: string): number {
-  const [hours, minutes] = hhmm.split(':').map(Number);
-  return hours * 60 + minutes;
-}
-
 function toHhmm(minutes: number): string {
   const hours = Math.floor(minutes / 60);
   return `${String(hours).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
 }
 
+/** The open periods of the day, as half-open `[from, to)` minute ranges. */
+function openPeriods(
+  hours: RoomHours,
+): ReadonlyArray<readonly [number, number]> {
+  if (hours.breakStartMinutes === null || hours.breakEndMinutes === null) {
+    return [[hours.openMinutes, hours.closeMinutes]];
+  }
+  return [
+    [hours.openMinutes, hours.breakStartMinutes],
+    [hours.breakEndMinutes, hours.closeMinutes],
+  ];
+}
+
 /**
- * The day's slots, in order.
+ * Refuses opening hours that are not on the 30-minute grid, backwards, or
+ * carrying half a break.
  *
- * Built from `OPEN_PERIODS` rather than written out, so changing the opening
- * hours is a two-line edit instead of a twenty-line list that someone has to
- * keep consistent with the frontend's copy.
+ * Called from item.management.service.ts before a room's hours are written,
+ * so a bad pair never reaches the database — the migration's CHECK constraint
+ * is the last line of defence, not the first.
  */
-export const ROOM_SLOTS: readonly RoomSlot[] = OPEN_PERIODS.flatMap(
-  ([from, to]) => {
-    const slots: RoomSlot[] = [];
-    for (
-      let at = toMinutes(from);
-      at + ROOM_SLOT_MINUTES <= toMinutes(to);
-      at += ROOM_SLOT_MINUTES
+export function assertValidRoomHours(hours: RoomHours): void {
+  const onGrid = (m: number) => m % ROOM_SLOT_MINUTES === 0;
+  if (
+    hours.openMinutes < 0 ||
+    hours.openMinutes >= 24 * 60 ||
+    hours.closeMinutes <= hours.openMinutes ||
+    hours.closeMinutes > 24 * 60 ||
+    !onGrid(hours.openMinutes) ||
+    !onGrid(hours.closeMinutes)
+  ) {
+    throw new BusinessError('INVALID_ROOM_HOURS', {
+      reason: 'OPEN_CLOSE',
+      ...hours,
+    });
+  }
+
+  const hasBreak = hours.breakStartMinutes !== null;
+  if (hasBreak !== (hours.breakEndMinutes !== null)) {
+    throw new BusinessError('INVALID_ROOM_HOURS', {
+      reason: 'BREAK_INCOMPLETE',
+      ...hours,
+    });
+  }
+  if (hasBreak) {
+    const start = hours.breakStartMinutes!;
+    const end = hours.breakEndMinutes!;
+    if (
+      !onGrid(start) ||
+      !onGrid(end) ||
+      start < hours.openMinutes ||
+      end > hours.closeMinutes ||
+      start >= end
     ) {
+      throw new BusinessError('INVALID_ROOM_HOURS', {
+        reason: 'BREAK_OUT_OF_RANGE',
+        ...hours,
+      });
+    }
+  }
+}
+
+/**
+ * The day's slots, in order, for one room's hours.
+ *
+ * Built from `openPeriods` rather than written out, so a room's hours are a
+ * data value rather than a place every consumer re-derives the grid by hand.
+ */
+export function roomSlots(hours: RoomHours = DEFAULT_ROOM_HOURS): RoomSlot[] {
+  return openPeriods(hours).flatMap(([from, to]) => {
+    const slots: RoomSlot[] = [];
+    for (let at = from; at + ROOM_SLOT_MINUTES <= to; at += ROOM_SLOT_MINUTES) {
       slots.push({ start: toHhmm(at), end: toHhmm(at + ROOM_SLOT_MINUTES) });
     }
     return slots;
-  },
-);
+  });
+}
 
-/** True when slot `a` ends exactly as slot `b` starts — lunch is not adjacency. */
-export function slotsAdjacent(a: number, b: number): boolean {
-  const earlier = ROOM_SLOTS[Math.min(a, b)];
-  const later = ROOM_SLOTS[Math.max(a, b)];
+/** True when slot `a` ends exactly as slot `b` starts — a break is not adjacency. */
+export function slotsAdjacent(hours: RoomHours, a: number, b: number): boolean {
+  const slots = roomSlots(hours);
+  const earlier = slots[Math.min(a, b)];
+  const later = slots[Math.max(a, b)];
   if (!earlier || !later) return false;
   return earlier.end === later.start;
 }
@@ -110,14 +201,15 @@ export function slotsAdjacent(a: number, b: number): boolean {
  *
  *   - `ROOM_SLOT_OUT_OF_RANGE` — an index that is not a slot at all
  *   - `ROOM_SLOT_LIMIT_EXCEEDED` — more than three hours in one booking
- *   - `ROOM_SLOTS_NOT_CONTIGUOUS` — a gap, including one that is only the
- *     lunch break: 11:30–12:00 and 13:00–13:30 are two bookings, not one
- *     three-hour hold on a room nobody can use in between
+ *   - `ROOM_SLOTS_NOT_CONTIGUOUS` — a gap, including one that is only a break
+ *     in the room's hours: two slots either side of it are neighbours in the
+ *     list and not adjacent on the clock
  *
  * The result is half-open, matching `clashingWindowFilter`: a booking ending
  * at 10:00 does not collide with one starting at 10:00.
  */
 export function slotsToWindow(
+  hours: RoomHours,
   dayKey: string,
   slotIndices: readonly number[],
 ): { startTime: Date; endTime: Date } {
@@ -131,40 +223,43 @@ export function slotsToWindow(
     });
   }
 
+  const slots = roomSlots(hours);
+
   // Sorted and de-duplicated first: the chips are tapped in whatever order the
   // borrower likes, and two taps of the same chip must not read as two slots.
   const ordered = [...new Set(slotIndices)].sort((a, b) => a - b);
 
   for (const index of ordered) {
-    if (!ROOM_SLOTS[index]) {
+    if (!slots[index]) {
       throw new BusinessError('ROOM_SLOT_OUT_OF_RANGE', {
         slot: index,
-        slotCount: ROOM_SLOTS.length,
+        slotCount: slots.length,
       });
     }
   }
   for (let i = 1; i < ordered.length; i++) {
-    if (!slotsAdjacent(ordered[i - 1], ordered[i])) {
+    if (!slotsAdjacent(hours, ordered[i - 1], ordered[i])) {
       throw new BusinessError('ROOM_SLOTS_NOT_CONTIGUOUS', { slots: ordered });
     }
   }
 
   return {
-    startTime: localTimeToUtc(dayKey, ROOM_SLOTS[ordered[0]].start),
-    endTime: localTimeToUtc(dayKey, ROOM_SLOTS[ordered.at(-1)!].end),
+    startTime: localTimeToUtc(dayKey, slots[ordered[0]].start),
+    endTime: localTimeToUtc(dayKey, slots[ordered.at(-1)!].end),
   };
 }
 
 /** The instants one slot occupies on a given day. */
 export function slotWindow(
+  hours: RoomHours,
   dayKey: string,
   slotIndex: number,
 ): { startTime: Date; endTime: Date } {
-  const slot = ROOM_SLOTS[slotIndex];
+  const slot = roomSlots(hours)[slotIndex];
   if (!slot) {
     throw new BusinessError('ROOM_SLOT_OUT_OF_RANGE', {
       slot: slotIndex,
-      slotCount: ROOM_SLOTS.length,
+      slotCount: roomSlots(hours).length,
     });
   }
   return {
@@ -174,10 +269,14 @@ export function slotWindow(
 }
 
 /** The whole day, used to fetch the bookings that could touch any slot. */
-export function dayWindow(dayKey: string): { from: Date; to: Date } {
+export function dayWindow(
+  hours: RoomHours,
+  dayKey: string,
+): { from: Date; to: Date } {
+  const slots = roomSlots(hours);
   return {
-    from: localTimeToUtc(dayKey, ROOM_SLOTS[0].start),
-    to: localTimeToUtc(dayKey, ROOM_SLOTS.at(-1)!.end),
+    from: localTimeToUtc(dayKey, slots[0].start),
+    to: localTimeToUtc(dayKey, slots.at(-1)!.end),
   };
 }
 
@@ -200,11 +299,12 @@ export interface BookedWindow {
  * someone booked it or it is simply four hours ago; the caller adds that.
  */
 export function markSlots(
+  hours: RoomHours,
   dayKey: string,
   booked: readonly BookedWindow[],
 ): Array<RoomSlot & { index: number; available: boolean }> {
-  return ROOM_SLOTS.map((slot, index) => {
-    const { startTime, endTime } = slotWindow(dayKey, index);
+  return roomSlots(hours).map((slot, index) => {
+    const { startTime, endTime } = slotWindow(hours, dayKey, index);
     const taken = booked.some(
       (window) => window.startTime < endTime && window.endTime > startTime,
     );
@@ -213,7 +313,8 @@ export function markSlots(
 }
 
 /**
- * A window someone sent as two instants, checked against the slot grid.
+ * A window someone sent as two instants, checked against the room's slot
+ * grid.
  *
  * `loan.create` takes instants, and a room is a resource like any other, so
  * without this a room could be booked 13:10-13:40, 22:00-01:00, for seven
@@ -221,15 +322,21 @@ export function markSlots(
  * lived only on the booking screen. This maps the window back onto the slots
  * and runs it through `slotsToWindow`, so both entry points share one rule.
  */
-export function assertRoomWindow(startTime: Date, endTime: Date, now = new Date()): void {
+export function assertRoomWindow(
+  hours: RoomHours,
+  startTime: Date,
+  endTime: Date,
+  now = new Date(),
+): void {
   const dayKey = toLocalDayKey(startTime);
   if (dayKey !== toLocalDayKey(now)) {
     throw new BusinessError('ROOM_BOOKING_SAME_DAY_ONLY', { date: dayKey });
   }
-  const first = ROOM_SLOTS.findIndex(
+  const slots = roomSlots(hours);
+  const first = slots.findIndex(
     (s) => localTimeToUtc(dayKey, s.start).getTime() === startTime.getTime(),
   );
-  const last = ROOM_SLOTS.findIndex(
+  const last = slots.findIndex(
     (s) => localTimeToUtc(dayKey, s.end).getTime() === endTime.getTime(),
   );
   if (first === -1 || last === -1 || last < first) {
@@ -239,6 +346,7 @@ export function assertRoomWindow(startTime: Date, endTime: Date, now = new Date(
     });
   }
   slotsToWindow(
+    hours,
     dayKey,
     Array.from({ length: last - first + 1 }, (_, i) => first + i),
   );
