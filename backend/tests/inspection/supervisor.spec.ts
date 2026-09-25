@@ -1,8 +1,6 @@
-const test = require('node:test');
-const assert = require('node:assert/strict');
-
-const { InspectionService } = require('../../dist/src/inspection/inspection.service.js');
-const { LoanRouter } = require('../../dist/src/loan/loan.router.js');
+import assert from 'node:assert/strict';
+import { ApprovalRouter } from '../../src/approval/approval.router';
+import { InspectionService } from '../../src/inspection/inspection.service';
 
 function buildInspectionService() {
   const prisma = {
@@ -40,11 +38,15 @@ function buildInspectionService() {
     },
   };
 
-  const service = new InspectionService(prisma, { assertResourceInScope: async () => {} }, null, {
-    toPublicUrl: (url) => url,
-  });
+  const service = new InspectionService(
+    prisma as never,
+    { assertResourceInScope: async () => {} } as never,
+    null as never,
+    { toPublicUrl: (url: string) => url } as never,
+    null as never,
+  );
 
-  service.readSubject = async () => ({
+  jest.spyOn(service as any, 'readSubject').mockResolvedValue({
     UsageKey: 42,
     CurrentStatus: 'Returned',
     DueTime: new Date('2026-09-05T00:00:00Z'),
@@ -83,8 +85,8 @@ function validateSupervisorDecision(decision) {
 }
 
 function applySupervisorDecisions(request, decisions) {
-  const approved = [];
-  const rejected = [];
+  const approved: number[] = [];
+  const rejected: { itemId: number; reason: string }[] = [];
 
   for (const item of request.items) {
     const decision = decisions.find((d) => d.itemId === item.id);
@@ -147,10 +149,10 @@ function createStatusNotification({ borrowerId, requestId, status }) {
   };
 }
 
-test('Supervisor sees approval queue with borrower credit and loan history', async () => {
+it('Supervisor sees approval queue with borrower credit and loan history', async () => {
   const service = buildInspectionService();
 
-  const result = await service.getSubject({ accountKey: 99 }, 42);
+  const result = await service.getSubject({ accountKey: 99 } as never, 42);
 
   assert.equal(result.borrowerName, 'Ada Lovelace');
   assert.equal(result.borrowerStudentId, 'S12345');
@@ -164,7 +166,7 @@ test('Supervisor sees approval queue with borrower credit and loan history', asy
   assert.equal(result.unitHistory[1].note, 'Returned clean');
 });
 
-test('Supervisor approves/rejects individual items within multi-item request (partial approval)', () => {
+it('Supervisor approves/rejects individual items within multi-item request (partial approval)', () => {
   const request = {
     items: [
       { id: 1, name: 'Laptop' },
@@ -184,7 +186,7 @@ test('Supervisor approves/rejects individual items within multi-item request (pa
   assert.deepEqual(result.rejected, [{ itemId: 2, reason: 'Unavailable in stock' }]);
 });
 
-test('Rejection requires a reason to be entered before submit', () => {
+it('Rejection requires a reason to be entered before submit', () => {
   assert.throws(
     () => validateSupervisorDecision({ decision: 'reject', reason: '' }),
     /Rejection reason is required/i,
@@ -199,7 +201,7 @@ test('Rejection requires a reason to be entered before submit', () => {
   assert.doesNotThrow(() => validateSupervisorDecision({ decision: 'approve' }));
 });
 
-test('Approver must not be the same person as requester (self-approval guard)', () => {
+it('Approver must not be the same person as requester (self-approval guard)', () => {
   assert.throws(
     () => validateSelfApproval(101, 101),
     /same person as requester/i,
@@ -208,7 +210,7 @@ test('Approver must not be the same person as requester (self-approval guard)', 
   assert.doesNotThrow(() => validateSelfApproval(101, 202));
 });
 
-test('Approval creates Allocation with pickup_deadline = now + 24 hours', () => {
+it('Approval creates Allocation with pickup_deadline = now + 24 hours', () => {
   const now = new Date('2026-09-24T09:00:00Z');
 
   const result = approveRequest({
@@ -227,8 +229,8 @@ test('Approval creates Allocation with pickup_deadline = now + 24 hours', () => 
   assert.equal(result.allocation.pickup_deadline.getTime(), expectedDeadline.getTime());
 });
 
-test('Borrower receives notification when request status changes', () => {
-  const notifications = [];
+it('Borrower receives notification when request status changes', () => {
+  const notifications: ReturnType<typeof createStatusNotification>[] = [];
   const request = { id: 77, borrowerId: 42, status: 'Pending' };
 
   const applyStatusChange = (req, nextStatus) => {
@@ -251,18 +253,33 @@ test('Borrower receives notification when request status changes', () => {
   assert.equal(request.status, 'Approved');
 });
 
-test('Supervisor decision submitted via tRPC approval router', async () => {
-  const calls = [];
-  const router = new LoanRouter({
-    decideExtension: async (user, input) => {
+it('Supervisor decision submitted via tRPC approval router', async () => {
+  const calls: { user: any; input: any }[] = [];
+  const extensions = {
+    decide: async (user, input) => {
       calls.push({ user, input });
       return {
-        ok: true,
-        decision: input.decision,
         extensionKey: input.extensionKey,
+        usageKey: 42,
+        status: 'Approved',
+        route: 'supervisor',
+        requiresInspection: false,
+        autoApproved: false,
+        extendNo: 1,
+        previousDueAt: '2026-09-24T09:00:00.000Z',
+        requestedDueAt: '2026-09-25T09:00:00.000Z',
+        dueAt: '2026-09-25T09:00:00.000Z',
+        requestedAt: '2026-09-24T08:00:00.000Z',
+        resolvedAt: '2026-09-24T09:00:00.000Z',
+        itemName: 'Laptop',
+        serialNo: 'ITEM-42',
+        tier: 'T1',
+        extensionsUsed: 1,
+        extensionsAllowed: 3,
       };
     },
-  });
+  };
+  const router = new ApprovalRouter(null as never, extensions as never);
 
   const ctx = { user: { accountKey: 99, role: 'supervisor' } };
 
@@ -273,13 +290,13 @@ test('Supervisor decision submitted via tRPC approval router', async () => {
       condition: 'Normal',
       note: 'Approved for pickup',
     },
-    ctx,
+    ctx as never,
   );
 
   assert.equal(calls.length, 1);
   assert.equal(calls[0].user.accountKey, 99);
   assert.equal(calls[0].input.extensionKey, 12);
   assert.equal(calls[0].input.decision, 'approve');
-  assert.equal(result.ok, true);
-  assert.equal(result.decision, 'approve');
+  assert.equal(result.extensionKey, 12);
+  assert.equal(result.status, 'Approved');
 });

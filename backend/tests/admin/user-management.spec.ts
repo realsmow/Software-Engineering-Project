@@ -29,6 +29,7 @@ describe('AdminService user management', () => {
   let staffRoleKey: number;
   let seededAdminKey: number;
   let seededStaffKey: number;
+  let borrowerRoleKey: number | null = null;
   let adminActor: AuditActor;
   let staffActor: AuditActor;
 
@@ -69,15 +70,14 @@ describe('AdminService user management', () => {
   }
 
   async function ensureBorrowerRole() {
-    const existing = await prisma.roleInfo.findFirst({
-      where: { RoleName: { in: ['Student', 'Borrower'] } },
+    if (borrowerRoleKey !== null) return borrowerRoleKey;
+
+    const created = await prisma.roleInfo.create({
+      data: { RoleName: 'Borrower' },
     });
-    if (!existing) {
-      const created = await prisma.roleInfo.create({
-        data: { RoleName: 'Student' },
-      });
-      createdRoleKeys.add(created.RoleKey);
-    }
+    borrowerRoleKey = created.RoleKey;
+    createdRoleKeys.add(created.RoleKey);
+    return borrowerRoleKey;
   }
 
   async function createBorrower(
@@ -267,10 +267,7 @@ describe('AdminService user management', () => {
       }
       if (createdRoleKeys.size > 0) {
         await prisma.roleInfo.deleteMany({
-          where: {
-            RoleKey: { in: [...createdRoleKeys] },
-            RoleName: { notIn: ['Admin', 'Staff', 'Student', 'Borrower', 'Supervisor'] },
-          },
+          where: { RoleKey: { in: [...createdRoleKeys] } },
         });
       }
       if (createdTierKeys.size > 0) {
