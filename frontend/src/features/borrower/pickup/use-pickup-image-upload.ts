@@ -1,4 +1,4 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api-client";
 import { useTRPCClient } from "@/lib/trpc";
 import type { PreparedBorrowerImage } from "../uploads/prepared-image";
@@ -6,24 +6,52 @@ import type { PreparedBorrowerImage } from "../uploads/prepared-image";
 interface UploadPickupImageInput {
   usageKey: number;
   image: PreparedBorrowerImage;
+  /**
+   * Which moment the photo is evidence of. Pickup files `before`; a room
+   * booking also files `after`, the room as it was left; an appeal files
+   * `evidence` (FR-APL-02), not gated by the loan's pickup/return state at
+   * all - see `UsageImageService.assertHasAppealableDamage` on the backend.
+   */
+  stage?: "before" | "after" | "evidence";
 }
+
+/** One photo on file against a loan (`usagePhotoOutput` in backend/src/image/image.schema.ts). */
+export interface UsagePhoto {
+  imageKey: number;
+  imageUrl: string;
+  stage: "before" | "after" | "inspection" | "evidence";
+  submittedBy: number;
+  submittedAt: string | null;
+}
+
+/** Every photo on one loan's record (`usagePhotosOutput`), grouped by stage. */
+export interface UsagePhotoSet {
+  before: UsagePhoto[];
+  after: UsagePhoto[];
+  inspection: UsagePhoto[];
+  evidence: UsagePhoto[];
+}
+
+const usagePhotosKey = (usageKey: number | null) => ["image", "usagePhotos", usageKey] as const;
 
 /**
  * Collection photos: request a ticket, PUT the bytes, attach the stored URL.
  *
  * This previously called `loan.requestPickupImageUpload` and
  * `loan.attachPickupImage`, which do not exist on the server. It type-checked
- * because `server/trpc-contract.ts` is a hand-written mirror and declared them,
- * so the mismatch only showed up as a failed call at the counter. The real
- * procedures live on the image router and are named differently.
+ * because the old hand-written contract declared them, so the mismatch only
+ * showed up as a failed call at the counter. The real procedures live on the
+ * image router and are named differently - the router is now typed from the
+ * real backend, so a rename like this fails `tsc` instead.
  *
  * `before` is the stage taken at pickup; `after` is the matching set at return.
  */
 export function usePickupImageUpload() {
   const trpc = useTRPCClient();
+  const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ usageKey, image }: UploadPickupImageInput) => {
+    mutationFn: async ({ usageKey, image, stage = "before" }: UploadPickupImageInput) => {
       // Not `image.requestUpload`: that one is staff-only, so a borrower
       // standing at the counter could never get a URL from it. This one checks
       // the loan is theirs and fixes the purpose server-side.
@@ -37,15 +65,21 @@ export function usePickupImageUpload() {
 
       const attached = await trpc.image.attachUsagePhotos.mutate({
         usageKey,
-        stage: "before",
+        stage,
         imageUrls: [ticket.imageUrl],
       });
+
+      // `attachUsagePhotos` returns the loan's full, current photo set - the
+      // same shape `useUsagePhotos` reads. Write it straight into that cache
+      // so the gallery reflects what was just filed instead of last session's
+      // set until something else happens to refetch it.
+      queryClient.setQueryData(usagePhotosKey(usageKey), attached);
 
       // `attachUsagePhotos` answers with every photo on the loan, grouped by
       // stage, not with the row it just wrote. Pick ours back out by URL.
       const evidence =
-        attached.before.find((photo) => photo.imageUrl === ticket.imageUrl) ??
-        attached.before[attached.before.length - 1];
+        attached[stage].find((photo) => photo.imageUrl === ticket.imageUrl) ??
+        attached[stage][attached[stage].length - 1];
 
       return {
         evidence,
@@ -61,9 +95,46 @@ export function usePickupImageUpload() {
 }
 
 /**
+ * What is already filed against this loan, grouped by stage.
+ *
+ * Idle until a usage key exists - a request staff have not yet allocated a
+ * unit for has nothing to look up.
+ */
+export function useUsagePhotos(usageKey: number | null) {
+  const trpc = useTRPCClient();
+
+  return useQuery({
+    queryKey: usagePhotosKey(usageKey),
+    enabled: usageKey !== null,
+    queryFn: (): Promise<UsagePhotoSet> =>
+      trpc.image.usagePhotos.query({ usageKey: usageKey as number }),
+  });
+}
+
+/**
+ * Removes one photo the borrower filed by mistake.
+ *
+ * The server restricts this to the caller's own photo, and only while the
+ * stage it belongs to is still open - a refusal here is an expected outcome,
+ * not a bug, so the caller must show it rather than assume the remove worked.
+ */
+export function useDetachUsagePhoto() {
+  const trpc = useTRPCClient();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (vars: { usageKey: number; imageKey: number }) =>
+      trpc.image.detachUsagePhoto.mutate({ imageKey: vars.imageKey }),
+    onSuccess: (result, vars) => {
+      queryClient.setQueryData(usagePhotosKey(vars.usageKey), result);
+    },
+  });
+}
+
+/**
  * Starts every selected loan once its photos are filed.
  *
- * `loan.confirmPickup` takes one loan, so this walks the list. That is a real
+ * `loan.confirmMyPickup` takes one loan, so this walks the list. That is a real
  * difference from the single transaction the old (nonexistent)
  * `loan.finalizePickup` implied: if the third of five fails, the first two are
  * already collected. Sequential rather than parallel so the failure point is
@@ -77,7 +148,7 @@ export function useFinalizePickup() {
     mutationFn: async (usageKeys: number[]) => {
       const confirmed: number[] = [];
       for (const usageKey of usageKeys) {
-        await trpc.loan.confirmPickup.mutate({ usageKey });
+        await trpc.loan.confirmMyPickup.mutate({ usageKey });
         confirmed.push(usageKey);
       }
       return { finalizedUsageKeys: confirmed };

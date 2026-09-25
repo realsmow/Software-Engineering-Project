@@ -53,6 +53,7 @@ export const AnyNull = runtime.AnyNull
 export const ModelName = {
   AccountInfo: 'AccountInfo',
   PasswordReset: 'PasswordReset',
+  EmailVerification: 'EmailVerification',
   SessionInfo: 'SessionInfo',
   AuditLog: 'AuditLog',
   RoleInfo: 'RoleInfo',
@@ -66,6 +67,8 @@ export const ModelName = {
   ItemIndiv: 'ItemIndiv',
   RoomInfo: 'RoomInfo',
   ResourceInfo: 'ResourceInfo',
+  RetirementRequest: 'RetirementRequest',
+  RoomCheckRound: 'RoomCheckRound',
   ConditionLog: 'ConditionLog',
   BorrowRule: 'BorrowRule',
   BorrowConstraints: 'BorrowConstraints',
@@ -81,6 +84,7 @@ export const ModelName = {
   Images: 'Images',
   Notification: 'Notification',
   RepairLog: 'RepairLog',
+  SystemSetting: 'SystemSetting',
   CronRunLog: 'CronRunLog'
 } as const
 
@@ -126,6 +130,18 @@ export const PasswordResetScalarFieldEnum = {
 } as const
 
 export type PasswordResetScalarFieldEnum = (typeof PasswordResetScalarFieldEnum)[keyof typeof PasswordResetScalarFieldEnum]
+
+
+export const EmailVerificationScalarFieldEnum = {
+  VerificationKey: 'VerificationKey',
+  AccountKey: 'AccountKey',
+  TokenHash: 'TokenHash',
+  IssuedAt: 'IssuedAt',
+  ExpiresAt: 'ExpiresAt',
+  UsedAt: 'UsedAt'
+} as const
+
+export type EmailVerificationScalarFieldEnum = (typeof EmailVerificationScalarFieldEnum)[keyof typeof EmailVerificationScalarFieldEnum]
 
 
 export const SessionInfoScalarFieldEnum = {
@@ -223,7 +239,8 @@ export const ItemInfoScalarFieldEnum = {
   ItemName: 'ItemName',
   ItemDesc: 'ItemDesc',
   ImageURL: 'ImageURL',
-  CreditWeight: 'CreditWeight'
+  CreditWeight: 'CreditWeight',
+  Price: 'Price'
 } as const
 
 export type ItemInfoScalarFieldEnum = (typeof ItemInfoScalarFieldEnum)[keyof typeof ItemInfoScalarFieldEnum]
@@ -248,7 +265,11 @@ export const RoomInfoScalarFieldEnum = {
   RoomLocation: 'RoomLocation',
   ImageURL: 'ImageURL',
   CreditWeight: 'CreditWeight',
-  Capacity: 'Capacity'
+  Capacity: 'Capacity',
+  OpenTime: 'OpenTime',
+  CloseTime: 'CloseTime',
+  BreakStart: 'BreakStart',
+  BreakEnd: 'BreakEnd'
 } as const
 
 export type RoomInfoScalarFieldEnum = (typeof RoomInfoScalarFieldEnum)[keyof typeof RoomInfoScalarFieldEnum]
@@ -266,6 +287,33 @@ export const ResourceInfoScalarFieldEnum = {
 } as const
 
 export type ResourceInfoScalarFieldEnum = (typeof ResourceInfoScalarFieldEnum)[keyof typeof ResourceInfoScalarFieldEnum]
+
+
+export const RetirementRequestScalarFieldEnum = {
+  RequestKey: 'RequestKey',
+  ResourceKey: 'ResourceKey',
+  RequestedBy: 'RequestedBy',
+  Reason: 'Reason',
+  ApproveStatus: 'ApproveStatus',
+  DecidedBy: 'DecidedBy',
+  DecidedAt: 'DecidedAt',
+  DecisionNote: 'DecisionNote',
+  RequestedAt: 'RequestedAt'
+} as const
+
+export type RetirementRequestScalarFieldEnum = (typeof RetirementRequestScalarFieldEnum)[keyof typeof RetirementRequestScalarFieldEnum]
+
+
+export const RoomCheckRoundScalarFieldEnum = {
+  RoundKey: 'RoundKey',
+  ResourceKey: 'ResourceKey',
+  OpenedAt: 'OpenedAt',
+  DueAt: 'DueAt',
+  ClosedAt: 'ClosedAt',
+  ConditionKey: 'ConditionKey'
+} as const
+
+export type RoomCheckRoundScalarFieldEnum = (typeof RoomCheckRoundScalarFieldEnum)[keyof typeof RoomCheckRoundScalarFieldEnum]
 
 
 export const ConditionLogScalarFieldEnum = {
@@ -336,6 +384,7 @@ export const ReservationsScalarFieldEnum = {
   ResourceKey: 'ResourceKey',
   ReservedBy: 'ReservedBy',
   Reason: 'Reason',
+  DecisionNote: 'DecisionNote',
   StartTime: 'StartTime',
   EndTime: 'EndTime',
   ApproveStatus: 'ApproveStatus',
@@ -472,6 +521,15 @@ export const RepairLogScalarFieldEnum = {
 export type RepairLogScalarFieldEnum = (typeof RepairLogScalarFieldEnum)[keyof typeof RepairLogScalarFieldEnum]
 
 
+export const SystemSettingScalarFieldEnum = {
+  Key: 'Key',
+  Value: 'Value',
+  UpdatedAt: 'UpdatedAt'
+} as const
+
+export type SystemSettingScalarFieldEnum = (typeof SystemSettingScalarFieldEnum)[keyof typeof SystemSettingScalarFieldEnum]
+
+
 export const CronRunLogScalarFieldEnum = {
   RunKey: 'RunKey',
   Job: 'Job',
@@ -493,6 +551,13 @@ export const SortOrder = {
 export type SortOrder = (typeof SortOrder)[keyof typeof SortOrder]
 
 
+export const JsonNullValueInput = {
+  JsonNull: JsonNull
+} as const
+
+export type JsonNullValueInput = (typeof JsonNullValueInput)[keyof typeof JsonNullValueInput]
+
+
 export const QueryMode = {
   default: 'default',
   insensitive: 'insensitive'
@@ -507,4 +572,13 @@ export const NullsOrder = {
 } as const
 
 export type NullsOrder = (typeof NullsOrder)[keyof typeof NullsOrder]
+
+
+export const JsonNullValueFilter = {
+  DbNull: DbNull,
+  JsonNull: JsonNull,
+  AnyNull: AnyNull
+} as const
+
+export type JsonNullValueFilter = (typeof JsonNullValueFilter)[keyof typeof JsonNullValueFilter]
 

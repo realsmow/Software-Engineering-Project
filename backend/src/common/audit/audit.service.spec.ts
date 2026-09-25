@@ -155,16 +155,15 @@ describe('AuditService', () => {
   });
 
   it('never throws when the write fails, so it cannot undo the action it records', async () => {
-    // A non-existent actor violates the foreign key. The action that triggered
-    // this has already succeeded, so losing the row must not surface as an
-    // error to the caller.
+    // The action that triggered this has already succeeded, so losing the row
+    // must not surface as an error to the caller. The failure is forced: an
+    // unknown actor is written as an orphan row, not refused, and that would
+    // leave a row in the database on every run.
+    jest
+      .spyOn(prisma.auditLog, 'create')
+      .mockRejectedValueOnce(new Error('connection lost'));
     await expect(
-      service.record(
-        { accountKey: 99_999_999 },
-        'update',
-        'account/1',
-        'orphan',
-      ),
+      service.record({ accountKey: actorKey }, 'update', 'account/1', 'lost'),
     ).resolves.toBeUndefined();
   });
 });

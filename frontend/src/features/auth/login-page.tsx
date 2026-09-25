@@ -2,18 +2,21 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { SignInHelp } from "./signin-help";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Moon, Sun } from "lucide-react";
 import { KULogo } from "@/components/layout/ku-logo";
 import { LanguageToggle } from "@/components/shared/language-toggle";
 import { useTheme } from "@/hooks/use-theme";
-import { HOME_ROUTE_BY_ROLE } from "@/constants";
+import { HOME_ROUTE_BY_ROLE, ROUTES } from "@/constants";
 import { useTRPCClient } from "@/lib/trpc";
+import { getErrorMessage } from "@/lib/error-messages";
 import { useAuthStore } from "./auth.store";
 import { toClientUser } from "./user.adapter";
 import type { KuLoginValues, LocalLoginValues } from "./login.schema";
 import { LoginMethodKu } from "./login-method-ku";
 import { LoginMethodLocal } from "./login-method-local";
+import { LoginGoogleButton } from "./login-google-button";
+import { useAuthProviders } from "./use-auth-providers";
 
 /**
  * Login page - reference: ULMs-login-and-shell-v3.html (VIEW 1).
@@ -34,6 +37,13 @@ export function LoginPage() {
   const setUser = useAuthStore((s) => s.setUser);
   const trpcClient = useTRPCClient();
   const { isDark, toggleTheme } = useTheme();
+  const [searchParams] = useSearchParams();
+  const providers = useAuthProviders();
+  // FR-AUTH-01/02: the backend redirects a failed Google sign-in back here
+  // with ?error=<code> - INVALID_DOMAIN, ACCOUNT_NOT_FOUND, ACCOUNT_DISABLED,
+  // or SERVER_ERROR for anything else. getErrorMessage also accepts a bare
+  // code string, which is exactly what the query param is.
+  const oauthError = searchParams.get("error");
   // `null` = both panels collapsed. Clicking an open header closes it.
   const [openMethod, setOpenMethod] = useState<Method | null>("ku");
 
@@ -111,6 +121,12 @@ export function LoginPage() {
             <div className="login-title">{t("auth.universityAccount")}</div>
             <div className="login-desc">{t("auth.chooseMethod")}</div>
 
+            {oauthError ? (
+              <div className="field-error" role="alert">
+                {getErrorMessage(oauthError)}
+              </div>
+            ) : null}
+
             <div className="login-methods">
               <LoginMethodKu
                 open={openMethod === "ku"}
@@ -122,10 +138,14 @@ export function LoginPage() {
                 onToggle={() => toggleMethod("local")}
                 onSubmit={handleLocalLogin}
               />
+              {providers.google ? <LoginGoogleButton /> : null}
             </div>
           </div>
 
           <div className="login-footer">
+            <Link to={ROUTES.REGISTER} className="login-footer-link">
+              {t("auth.createAccount")}
+            </Link>
             <LegalDialog label={t("auth.termsOfUse")} />
             <LegalDialog label={t("auth.privacyPolicy")} />
             <SignInHelp className="login-footer-link" />

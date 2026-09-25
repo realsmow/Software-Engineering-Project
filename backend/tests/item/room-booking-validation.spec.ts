@@ -36,7 +36,11 @@ function managementHarness() {
     },
     itemInfo: { update: jest.fn() },
     roomInfo: { create: jest.fn(), findUnique: jest.fn(), update: jest.fn() },
-    eligibility: { createMany: jest.fn(), deleteMany: jest.fn() },
+    eligibility: {
+      findMany: jest.fn().mockResolvedValue([]),
+      createMany: jest.fn(),
+      deleteMany: jest.fn(),
+    },
   };
 
   const prisma = {
@@ -69,17 +73,21 @@ function managementHarness() {
     resolveGroupKeys: jest.fn().mockResolvedValue([8]),
   };
   const imageService = images();
+  const audit = { record: jest.fn() };
 
   return {
     service: new ItemManagementService(
       prisma as never,
       scope as never,
       imageService as never,
+      audit as never,
+      { retirementRequested: jest.fn(), retirementDecided: jest.fn() } as never,
     ),
     prisma,
     tx,
     scope,
     imageService,
+    audit,
   };
 }
 

@@ -1,11 +1,17 @@
 import { Injectable } from '@nestjs/common';
 import type { Prisma } from '../generated/prisma/client';
 import { PrismaService } from '../prisma.service';
+import { AuditService } from '../common/audit/audit.service';
 import { StaffScopeService } from '../common/authority/staff-scope.service';
 import {
   PenaltyService,
   type PenaltyQuote,
 } from '../common/penalty/penalty.service';
+import {
+  clashingWindowFilter,
+  pickupOpensAt,
+  withBuffer,
+} from '../common/booking/booking-window';
 import { BusinessError } from '../common/errors/business-error';
 import {
   addDays,
@@ -107,6 +113,7 @@ export class LoanService {
     private readonly scope: StaffScopeService,
     private readonly penalties: PenaltyService,
     private readonly notifications: NotificationService,
+    private readonly audit: AuditService,
   ) {}
 
   // =========================================================================
@@ -338,6 +345,13 @@ export class LoanService {
       return usage.UsageKey;
     });
 
+    await this.audit.record(
+      { accountKey: user.accountKey },
+      'update',
+      `reservation/${reservation.ReservationKey}`,
+      `Allocated unit (resourceKey ${target.ResourceKey}) and opened loan/${usageKey}, condition ${input.condition}`,
+    );
+
     return this.toLoan(await this.readUsage(usageKey), new Date());
   }
 
@@ -404,6 +418,13 @@ export class LoanService {
       }
     });
 
+    await this.audit.record(
+      { accountKey: user.accountKey },
+      'update',
+      `loan/${input.usageKey}`,
+      `Swapped prepared unit for resourceKey ${target.ResourceKey}${input.reason ? `: ${input.reason}` : ''}`,
+    );
+
     return this.toLoan(await this.readUsage(input.usageKey), new Date());
   }
 
@@ -413,9 +434,69 @@ export class LoanService {
     await this.scope.assertResourceInScope(user, usage.Resource.ResourceKey);
     this.assertState(usage, ['Prepared']);
 
+    // FR-PKP-03: the unit is photographed as it leaves, by the borrower on
+    // their pickup page or by staff at the counter. The borrower's own path
+    // already required it; handing over at the counter skipped it.
+    const beforePhoto = await this.prisma.images.findFirst({
+      where: { UsageKey: input.usageKey, SubmissionType: 'BeforePicture' },
+      select: { ImageKey: true },
+    });
+    if (!beforePhoto) {
+      throw new BusinessError('PICKUP_PHOTO_REQUIRED', {
+        usageKey: input.usageKey,
+      });
+    }
+
     const now = new Date();
+    // allocate() writes the booked pickup time here until the real one is known.
+    const plannedStart = usage.CheckoutTime;
+    const early = now < pickupOpensAt(plannedStart);
+    // A room's window sits on the slot grid, so it cannot slide earlier.
+    if (early && (!input.early || usage.Resource.Room)) {
+      throw new BusinessError('PICKUP_NOT_OPEN', {
+        usageKey: input.usageKey,
+        opensAt: toIso(pickupOpensAt(plannedStart)),
+      });
+    }
+    // Same length as booked, so no band's day limit is exceeded.
+    const dueTime = early
+      ? new Date(
+          now.getTime() + (usage.DueTime.getTime() - plannedStart.getTime()),
+        )
+      : usage.DueTime;
 
     await this.prisma.$transaction(async (tx) => {
+      if (early) {
+        // Only the stretch before the booked start is new; the rest was
+        // already checked when the request was made.
+        const { from, to } = withBuffer(
+          now,
+          plannedStart,
+          usage.Resource.BufferTime,
+        );
+        const clash = await tx.reservations.findFirst({
+          where: clashingWindowFilter(
+            usage.Resource.ResourceKey,
+            from,
+            to,
+            usage.ReservationKey ?? undefined,
+          ),
+          select: { ReservationKey: true },
+        });
+        if (clash) {
+          throw new BusinessError('WINDOW_NOT_AVAILABLE', {
+            resourceKey: usage.Resource.ResourceKey,
+            reservationKey: clash.ReservationKey,
+          });
+        }
+        if (usage.ReservationKey !== null) {
+          await tx.reservations.update({
+            where: { ReservationKey: usage.ReservationKey },
+            data: { StartTime: now, EndTime: dueTime },
+          });
+        }
+      }
+
       await tx.usageLog.update({
         where: { UsageKey: input.usageKey },
         data: {
@@ -424,6 +505,7 @@ export class LoanService {
           // calculation reads DueTime, but any question about "when did this
           // actually leave" has to be answerable from the row itself.
           CheckoutTime: now,
+          DueTime: dueTime,
         },
       });
 
@@ -445,6 +527,15 @@ export class LoanService {
       }
     });
 
+    await this.audit.record(
+      { accountKey: user.accountKey },
+      'update',
+      `loan/${input.usageKey}`,
+      early
+        ? `Staff handed the unit over early, now due ${toIso(dueTime)}`
+        : 'Staff handed the unit over to the borrower',
+    );
+
     return this.toLoan(await this.readUsage(input.usageKey), now);
   }
 
@@ -462,6 +553,20 @@ export class LoanService {
     const usage = await this.readUsage(input.usageKey);
     await this.scope.assertResourceInScope(user, usage.Resource.ResourceKey);
     this.assertState(usage, ['Lended']);
+
+    // FR-RTN-01: the return is photographed. Without it the inspection that
+    // follows has nothing to compare against the pickup photo, and a damage
+    // grade is one person's word. Same rule as PICKUP_PHOTO_REQUIRED at the
+    // other end; for a room, the borrower's own "after" photo counts.
+    const afterPhoto = await this.prisma.images.findFirst({
+      where: { UsageKey: input.usageKey, SubmissionType: 'AfterPicture' },
+      select: { ImageKey: true },
+    });
+    if (!afterPhoto) {
+      throw new BusinessError('RETURN_PHOTO_REQUIRED', {
+        usageKey: input.usageKey,
+      });
+    }
 
     const now = new Date();
     const overdueDays = this.penalties.overdueDays(usage.DueTime, now);
@@ -552,6 +657,15 @@ export class LoanService {
 
     // Whichever side charged it - this return, or the job that ran overnight.
     const chargedKey = penaltyKey ?? alreadyCharged?.PenaltyKey ?? null;
+
+    await this.audit.record(
+      { accountKey: user.accountKey },
+      'update',
+      `loan/${input.usageKey}`,
+      chargedKey === null
+        ? `Recorded return, ${overdueDays} days overdue, no new penalty`
+        : `Recorded return, ${overdueDays} days overdue, late penalty ${quote.amount} credit`,
+    );
 
     if (chargedKey === null) {
       return { loan, latePenalty: null };
@@ -652,6 +766,13 @@ export class LoanService {
         itemName: resourceName(usage.Resource),
       });
     });
+
+    await this.audit.record(
+      { accountKey: user.accountKey },
+      'update',
+      `loan/${input.usageKey}`,
+      `Marked lost, ${overdueDays} days overdue, penalty ${quote.amount} credit${input.reportedByBorrower ? ' (reported by borrower)' : ''}${input.reason ? `: ${input.reason}` : ''}`,
+    );
 
     return this.toLoan(await this.readUsage(input.usageKey), now);
   }
@@ -870,6 +991,20 @@ export class LoanService {
     resourceKey: number,
   ): Promise<ResourceRow> {
     await this.scope.assertResourceInScope(user, resourceKey);
+
+    // A T2 request is approved for one serial: the supervisor looked at that
+    // unit, and preparing a different one hands out something nobody
+    // approved. swapUnit already refuses T2 at pickup; this is the same rule
+    // at preparation, which went round it.
+    const reservedTier = tryMapTier(current.BorrowRuleInfo.RuleName);
+    if (reservedTier === 'T2') {
+      throw new BusinessError('UNIT_SWAP_NOT_ALLOWED', {
+        resourceKey,
+        reservedResourceKey: current.ResourceKey,
+        tier: reservedTier,
+        reason: 'APPROVED_FOR_A_SPECIFIC_UNIT',
+      });
+    }
 
     const target = await this.prisma.resourceInfo.findUnique({
       where: { ResourceKey: resourceKey },

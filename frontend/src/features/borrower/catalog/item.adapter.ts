@@ -1,4 +1,4 @@
-import type { CatalogItem, StockStatus, UnitRow, UnitState } from "../mock-data";
+import type { CatalogItem, StockStatus, UnitRow, UnitState } from "./catalog.types";
 import type { Tier } from "@/types/domain";
 
 /**
@@ -28,6 +28,8 @@ export interface ServerItem {
   nextAvailableAt: string | null;
   prepDays: number;
   allowBorrow: boolean;
+  /** Whether the caller holds a (group, role) pair a rule on some unit names. */
+  eligible: boolean;
   owner: { id: number; name: string | null; type: "Faculty" | "Club" } | null;
 }
 
@@ -35,10 +37,10 @@ export function toCatalogItem(s: ServerItem): CatalogItem {
   return {
     id: String(s.id),
     name: s.name,
-    // No category table exists in the schema, so item.listCategories answers
-    // NOT_IMPLEMENTED and there is nothing to map here. The catalogue's
-    // category facet therefore matches nothing while data comes from the
+    // ItemInfo has no category column, so there is nothing to map here. The
+    // catalogue's category facet matches nothing while data comes from the
     // server. Faking a value would make a broken filter look like it works.
+    // Tier is unaffected: it comes from the unit's BorrowRule.
     categoryId: "",
     tier: s.tier,
     imageUrl: s.imageUrl ?? undefined,
@@ -48,6 +50,7 @@ export function toCatalogItem(s: ServerItem): CatalogItem {
     availableUnits: s.availableUnits,
     nextAvailableAt: s.nextAvailableAt ?? undefined,
     allowBorrow: s.allowBorrow,
+    eligible: s.eligible,
     // Asset tags live on the individual unit (ItemIndiv.ItemID), not on the
     // type, so a list row has no single code to show. item.listUnits has them
     // for the detail page.
@@ -76,11 +79,15 @@ export interface ServerItemUnit {
   /** ItemIndiv.ItemID - the asset tag printed on the unit. */
   assetTag: string;
   imageUrl: string | null;
-  status: "InStorage" | "Lended" | "Missing";
+  status: "InStorage" | "Lended" | "Missing" | "Retired";
   allowBorrow: boolean;
   condition: "Normal" | "MinorDamage" | "MajorDamage" | "Broken" | "Missing" | null;
   /** Due date of the loan holding this unit, when it is out. */
   dueAt: string | null;
+  /** Due date plus this unit's preparation time. */
+  nextAvailableAt: string | null;
+  /** Whether this serial is free for the requested window from listUnits. */
+  availableForWindow?: boolean;
 }
 
 /** `item.getById` answers `itemDetail` - the summary plus every unit. */
@@ -102,11 +109,16 @@ export interface CatalogItemDetail extends CatalogItem {
  * `fix`, which is the less wrong of the two: nobody is holding it on a loan.
  */
 export function toUnitRow(u: ServerItemUnit): UnitRow {
-  return { resourceKey: u.resourceKey, serial: u.assetTag, state: toUnitState(u) };
+  return {
+    resourceKey: u.resourceKey,
+    serial: u.assetTag,
+    state: toUnitState(u),
+    condition: u.condition,
+    ...(u.nextAvailableAt ? { nextAvailableAt: u.nextAvailableAt } : {}),
+  };
 }
 
 export function toUnitState(u: ServerItemUnit): UnitState {
-  if (u.status === "Lended") return "out";
   if (
     !u.allowBorrow ||
     u.status === "Missing" ||
@@ -116,6 +128,10 @@ export function toUnitState(u: ServerItemUnit): UnitState {
   ) {
     return "fix";
   }
+  if (u.availableForWindow !== undefined) {
+    return u.availableForWindow ? "free" : "out";
+  }
+  if (u.status === "Lended" || u.nextAvailableAt != null) return "out";
   return "free";
 }
 

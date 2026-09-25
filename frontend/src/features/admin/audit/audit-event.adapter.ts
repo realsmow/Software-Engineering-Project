@@ -1,5 +1,5 @@
 import type { Role } from "@/types/domain";
-import type { AuditAction, AuditEvent } from "../mock-data";
+import type { AuditAction, AuditEvent } from "../admin-constants";
 
 /**
  * The audit row the backend sends (`auditEventOutput` in
@@ -26,6 +26,7 @@ export function toAuditEvent(s: ServerAuditEvent): AuditEvent {
   return {
     id: String(s.id),
     at: s.at,
+    actorId: s.actorId,
     actorName: s.actorName,
     actorRole: s.actorRole,
     action: s.action,

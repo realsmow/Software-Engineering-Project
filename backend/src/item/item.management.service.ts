@@ -1,14 +1,26 @@
 import { Injectable } from '@nestjs/common';
 import type { Prisma } from '../generated/prisma/client';
 import { PrismaService } from '../prisma.service';
+import { AuditService } from '../common/audit/audit.service';
 import { StaffScopeService } from '../common/authority/staff-scope.service';
 import { ImageService } from '../image/image.service';
 import {
   HELD_USAGE_STATES,
   UNAVAILABLE_USAGE_STATES,
 } from '../common/usage/usage-states';
+import { HOLDING_APPROVE_STATES } from '../common/booking/booking-window';
+import {
+  DEFAULT_ROOM_HOURS,
+  assertValidRoomHours,
+  type RoomHours,
+} from '../common/booking/room-slots';
+import { suggestTierFromPrice } from '../common/pricing/suggest-tier';
+import {
+  NotificationService,
+  supervisorsForGroup,
+} from '../notification/notification.service';
 import { BusinessError } from '../common/errors/business-error';
-import { toIsoNullable } from '../common/schemas/datetime.schema';
+import { toIso, toIsoNullable } from '../common/schemas/datetime.schema';
 import {
   toOrderBy,
   toPage,
@@ -24,10 +36,15 @@ import type {
   CreateItemTypeInput,
   CreateItemUnitInput,
   CreateRoomInput,
+  DeleteItemTypeInput,
+  DeleteResourceInput,
+  EligibilityTargetInput,
   ListManagedItemsInput,
   ListManagedRoomsInput,
   ListManagedUnitsInput,
-  SetTypeEligibilityInput,
+  RequestRetirementInput,
+  RetirementRequestIdInput,
+  SetEligibilityInput,
   SetUnitConditionInput,
   SetUnitLendableInput,
   UpdateItemTypeInput,
@@ -95,6 +112,10 @@ const ROOM_SELECT = {
   ImageURL: true,
   CreditWeight: true,
   Capacity: true,
+  OpenTime: true,
+  CloseTime: true,
+  BreakStart: true,
+  BreakEnd: true,
   Resource: {
     select: {
       ResourceKey: true,
@@ -118,6 +139,75 @@ type RoomRow = Prisma.RoomInfoGetPayload<{ select: typeof ROOM_SELECT }>;
 
 type GroupRow = UnitRow['Resource']['ManagementGroup'];
 
+const STAFF_REF_SELECT = {
+  AccountKey: true,
+  UserID: true,
+  UserFName: true,
+  UserLName: true,
+} satisfies Prisma.AccountInfoSelect;
+
+type StaffRefRow = Prisma.AccountInfoGetPayload<{
+  select: typeof STAFF_REF_SELECT;
+}>;
+
+function toStaffRef(row: StaffRefRow) {
+  return {
+    accountKey: row.AccountKey,
+    userId: row.UserID,
+    name: `${row.UserFName} ${row.UserLName}`.trim(),
+  };
+}
+
+/**
+ * Everything a retirement request's output needs, in one place so
+ * `item.requestRetirement`/`cancelRetirement` and
+ * `approval.retirementQueue`/`decideRetirement` cannot describe the same row
+ * two different ways.
+ */
+export const RETIREMENT_REQUEST_SELECT = {
+  RequestKey: true,
+  ResourceKey: true,
+  Reason: true,
+  ApproveStatus: true,
+  RequestedAt: true,
+  DecidedAt: true,
+  DecisionNote: true,
+  RequestedByUser: { select: STAFF_REF_SELECT },
+  DecidedByUser: { select: STAFF_REF_SELECT },
+  Resource: {
+    select: {
+      ResourceType: true,
+      ManagedBy: true,
+      Item: {
+        select: { ItemID: true, Item: { select: { ItemName: true } } },
+      },
+      Room: { select: { RoomName: true } },
+    },
+  },
+} satisfies Prisma.RetirementRequestSelect;
+
+export type RetirementRequestRow = Prisma.RetirementRequestGetPayload<{
+  select: typeof RETIREMENT_REQUEST_SELECT;
+}>;
+
+export function toRetirementRequestOutput(row: RetirementRequestRow) {
+  return {
+    requestKey: row.RequestKey,
+    resourceKey: row.ResourceKey,
+    kind: row.Resource.ResourceType === 'Room' ? 'room' : 'equipment',
+    resourceName:
+      row.Resource.Item?.Item.ItemName ?? row.Resource.Room?.RoomName ?? null,
+    serialNo: row.Resource.Item?.ItemID ?? null,
+    reason: row.Reason,
+    status: row.ApproveStatus,
+    requestedBy: toStaffRef(row.RequestedByUser),
+    requestedAt: toIso(row.RequestedAt),
+    decidedBy: row.DecidedByUser ? toStaffRef(row.DecidedByUser) : null,
+    decidedAt: toIsoNullable(row.DecidedAt),
+    decisionNote: row.DecisionNote,
+  };
+}
+
 /**
  * The catalogue as staff maintain it (proposal §5.9, setup tasks).
  *
@@ -133,6 +223,8 @@ export class ItemManagementService {
     // Image URLs are stored relative and served absolute, so every read and
     // write of an ImageURL column goes through here — see image.schema.ts.
     private readonly images: ImageService,
+    private readonly audit: AuditService,
+    private readonly notifications: NotificationService,
   ) {}
 
   // =========================================================================
@@ -172,6 +264,7 @@ export class ItemManagementService {
           ItemDesc: true,
           ImageURL: true,
           CreditWeight: true,
+          Price: true,
           // Only the in-scope units, so the counts describe what the caller
           // can actually act on rather than the university's whole stock.
           Items: { where: { Resource: resourceWhere }, select: UNIT_SELECT },
@@ -201,6 +294,7 @@ export class ItemManagementService {
         ItemDesc: true,
         ImageURL: true,
         CreditWeight: true,
+        Price: true,
         Items: { where: { Resource: resourceWhere }, select: UNIT_SELECT },
         // Distinguishes "another department's stock" from "no stock anywhere",
         // which the scoped `Items` list above cannot tell apart on its own.
@@ -224,13 +318,20 @@ export class ItemManagementService {
     };
   }
 
-  async createItemType(input: CreateItemTypeInput) {
+  async createItemType(user: TrpcUser, input: CreateItemTypeInput) {
+    // ItemInfo has no department, so there is no group to check against. What
+    // can be checked is the same thing every other staff write requires: the
+    // caller administers some department. A staff account attached to none
+    // was creating catalogue entries (FR-AUTH-05). Admins are unscoped.
+    await this.scope.resolveGroupKeys(user);
+
     const created = await this.prisma.itemInfo.create({
       data: {
         ItemName: input.name,
         ItemDesc: input.description ?? null,
         ImageURL: this.images.toStoredUrl(input.imageUrl) ?? null,
         CreditWeight: input.creditWeight,
+        Price: input.price ?? null,
       },
       select: {
         ItemKey: true,
@@ -238,8 +339,16 @@ export class ItemManagementService {
         ItemDesc: true,
         ImageURL: true,
         CreditWeight: true,
+        Price: true,
       },
     });
+
+    await this.audit.record(
+      { accountKey: user.accountKey },
+      'create',
+      `item/${created.ItemKey}`,
+      `Created item type "${created.ItemName}"`,
+    );
 
     // A type with no units yet: the counts are zero and there are no tiers,
     // because a tier lives on the unit. `item.createUnit` is the next call.
@@ -252,6 +361,8 @@ export class ItemManagementService {
       tiers: [] as ResourceTier[],
       totalUnits: 0,
       availableUnits: 0,
+      price: created.Price ?? null,
+      suggestedTier: suggestTierFromPrice(created.Price),
       units: [],
     };
   }
@@ -266,11 +377,19 @@ export class ItemManagementService {
       data.ImageURL = this.images.toStoredUrl(input.imageUrl);
     if (input.creditWeight !== undefined)
       data.CreditWeight = input.creditWeight;
+    if (input.price !== undefined) data.Price = input.price;
 
     await this.prisma.itemInfo.update({
       where: { ItemKey: input.itemKey },
       data,
     });
+
+    await this.audit.record(
+      { accountKey: user.accountKey },
+      'update',
+      `item/${input.itemKey}`,
+      `Updated item type fields: ${Object.keys(data).join(', ') || 'none'}`,
+    );
 
     return this.getManagedItemById(user, input.itemKey);
   }
@@ -319,11 +438,38 @@ export class ItemManagementService {
     }
 
     const borrowRuleKey = await this.resolveTierRuleKey(input.tier);
-    const serials = this.buildSerials(input, itemType.ItemName);
+    const existing = await this.prisma.itemIndiv.findMany({
+      where: { ItemKey: input.itemKey },
+      select: { ItemID: true },
+    });
+    const serials = this.buildSerials(
+      input,
+      itemType.ItemName,
+      existing.map((row) => row.ItemID),
+    );
     await this.assertSerialsFree(input.itemKey, serials);
 
     const created = await this.prisma.$transaction(async (tx) => {
       const keys: number[] = [];
+
+      // Who may already borrow this type here. Rules hang off each unit rather
+      // than the type, so without this a unit added to a type staff had
+      // already opened would be closed to everyone, and nothing would say so:
+      // the editor shows the type's rules, which the new unit silently lacks.
+      //
+      // Same department only. A type can have units in several departments
+      // with different rules, and inheriting across them would open this
+      // department's new unit to another department's students.
+      const inherited = await tx.eligibility.findMany({
+        where: {
+          Resource: {
+            ManagedBy: input.manageGroupKey,
+            Item: { is: { ItemKey: input.itemKey } },
+          },
+        },
+        select: { GroupKey: true, RoleKey: true },
+        distinct: ['GroupKey', 'RoleKey'],
+      });
 
       for (const serial of serials) {
         const resource = await tx.resourceInfo.create({
@@ -350,6 +496,15 @@ export class ItemManagementService {
         keys.push(resource.ResourceKey);
       }
 
+      if (inherited.length > 0) {
+        await tx.eligibility.createMany({
+          data: keys.flatMap((ResourceKey) =>
+            inherited.map((rule) => ({ ResourceKey, ...rule })),
+          ),
+          skipDuplicates: true,
+        });
+      }
+
       return keys;
     });
 
@@ -358,6 +513,13 @@ export class ItemManagementService {
       orderBy: { IndivKey: 'asc' },
       select: UNIT_SELECT,
     });
+
+    await this.audit.record(
+      { accountKey: user.accountKey },
+      'create',
+      `item/${input.itemKey}`,
+      `Registered ${serials.length} unit(s) (${serials.join(', ')}), tier ${input.tier}`,
+    );
 
     return rows.map((row) => this.toItemUnit(row));
   }
@@ -415,6 +577,13 @@ export class ItemManagementService {
         });
       }
     });
+
+    await this.audit.record(
+      { accountKey: user.accountKey },
+      'update',
+      `unit/${input.resourceKey}`,
+      `Updated unit${input.serialNo !== undefined ? `, serial ${input.serialNo}` : ''}${input.tier !== undefined ? `, tier ${input.tier}` : ''}`,
+    );
 
     return this.readUnit(input.resourceKey);
   }
@@ -485,6 +654,13 @@ export class ItemManagementService {
       }
     });
 
+    await this.audit.record(
+      { accountKey: user.accountKey },
+      'update',
+      `unit/${input.resourceKey}`,
+      `Set lendable = ${input.lendable}${input.reason ? `: ${input.reason}` : ''}`,
+    );
+
     return this.readUnit(input.resourceKey);
   }
 
@@ -526,6 +702,13 @@ export class ItemManagementService {
         },
       });
     });
+
+    await this.audit.record(
+      { accountKey: user.accountKey },
+      'update',
+      `unit/${input.resourceKey}`,
+      `Set condition ${condition}${input.note ? `: ${input.note}` : ''}`,
+    );
 
     return this.readUnit(input.resourceKey);
   }
@@ -572,6 +755,22 @@ export class ItemManagementService {
     // fixed-location resource, so the caller does not get to choose.
     const borrowRuleKey = await this.resolveTierRuleKey('T3');
 
+    // Omitting hours entirely reproduces the grid every room used to share
+    // (FR-EQP-04); the create input's own refine() already rejects half a pair.
+    const hours: RoomHours = {
+      openMinutes: input.openMinutes ?? DEFAULT_ROOM_HOURS.openMinutes,
+      closeMinutes: input.closeMinutes ?? DEFAULT_ROOM_HOURS.closeMinutes,
+      breakStartMinutes:
+        input.breakStartMinutes !== undefined
+          ? input.breakStartMinutes
+          : DEFAULT_ROOM_HOURS.breakStartMinutes,
+      breakEndMinutes:
+        input.breakEndMinutes !== undefined
+          ? input.breakEndMinutes
+          : DEFAULT_ROOM_HOURS.breakEndMinutes,
+    };
+    assertValidRoomHours(hours);
+
     const resourceKey = await this.prisma.$transaction(async (tx) => {
       const resource = await tx.resourceInfo.create({
         data: {
@@ -596,11 +795,22 @@ export class ItemManagementService {
           ImageURL: this.images.toStoredUrl(input.imageUrl) ?? null,
           CreditWeight: input.creditWeight,
           Capacity: input.capacity ?? null,
+          OpenTime: hours.openMinutes,
+          CloseTime: hours.closeMinutes,
+          BreakStart: hours.breakStartMinutes,
+          BreakEnd: hours.breakEndMinutes,
         },
       });
 
       return resource.ResourceKey;
     });
+
+    await this.audit.record(
+      { accountKey: user.accountKey },
+      'create',
+      `room/${resourceKey}`,
+      `Created room "${input.name}"`,
+    );
 
     return this.readRoom(resourceKey);
   }
@@ -610,12 +820,49 @@ export class ItemManagementService {
 
     const room = await this.prisma.roomInfo.findUnique({
       where: { ResourceKey: input.resourceKey },
-      select: { RoomKey: true },
+      select: {
+        RoomKey: true,
+        OpenTime: true,
+        CloseTime: true,
+        BreakStart: true,
+        BreakEnd: true,
+      },
     });
     if (!room) {
       throw new BusinessError('RESOURCE_NOT_FOUND', {
         resourceKey: input.resourceKey,
       });
+    }
+
+    // Only re-derive and validate the hours when at least one of the four
+    // fields was actually sent — an edit that only touches the name must not
+    // fail because of hours nobody asked to change.
+    const hoursTouched =
+      input.openMinutes !== undefined ||
+      input.closeMinutes !== undefined ||
+      input.breakStartMinutes !== undefined ||
+      input.breakEndMinutes !== undefined;
+    let hoursData: Partial<
+      Pick<RoomHours, 'openMinutes' | 'closeMinutes'> & {
+        breakStartMinutes: number | null;
+        breakEndMinutes: number | null;
+      }
+    > = {};
+    if (hoursTouched) {
+      const hours: RoomHours = {
+        openMinutes: input.openMinutes ?? room.OpenTime,
+        closeMinutes: input.closeMinutes ?? room.CloseTime,
+        breakStartMinutes:
+          input.breakStartMinutes !== undefined
+            ? input.breakStartMinutes
+            : room.BreakStart,
+        breakEndMinutes:
+          input.breakEndMinutes !== undefined
+            ? input.breakEndMinutes
+            : room.BreakEnd,
+      };
+      assertValidRoomHours(hours);
+      hoursData = hours;
     }
 
     await this.prisma.roomInfo.update({
@@ -638,8 +885,23 @@ export class ItemManagementService {
         // capacity back out. Hence `!== undefined` rather than a truthiness
         // check, which would silently drop the clear.
         ...(input.capacity !== undefined ? { Capacity: input.capacity } : {}),
+        ...(hoursTouched
+          ? {
+              OpenTime: hoursData.openMinutes,
+              CloseTime: hoursData.closeMinutes,
+              BreakStart: hoursData.breakStartMinutes,
+              BreakEnd: hoursData.breakEndMinutes,
+            }
+          : {}),
       },
     });
+
+    await this.audit.record(
+      { accountKey: user.accountKey },
+      'update',
+      `room/${input.resourceKey}`,
+      `Updated room${input.name !== undefined ? ` name to "${input.name}"` : ''}`,
+    );
 
     return this.readRoom(input.resourceKey);
   }
@@ -648,8 +910,8 @@ export class ItemManagementService {
   // Eligibility and reference data
   // =========================================================================
 
-  async listTypeEligibility(user: TrpcUser, itemKey: number) {
-    const resourceKeys = await this.scopedResourceKeysOfType(user, itemKey);
+  async listEligibility(user: TrpcUser, target: EligibilityTargetInput) {
+    const resourceKeys = await this.scopedResourceKeysOfTarget(user, target);
 
     const rules = await this.prisma.eligibility.findMany({
       where: { ResourceKey: { in: resourceKeys } },
@@ -667,7 +929,8 @@ export class ItemManagementService {
     });
 
     // Collapse per-unit rows back into the per-type rule staff think in terms
-    // of, keeping the unit count so a partially applied rule is visible.
+    // of, keeping the unit count so a partially applied rule is visible. A
+    // room is one resource, so each of its rules collapses to a count of 1.
     const byRule = new Map<string, ReturnType<typeof buildRule>>();
     function buildRule(row: (typeof rules)[number]) {
       return {
@@ -690,12 +953,12 @@ export class ItemManagementService {
     return [...byRule.values()];
   }
 
-  /** Replaces the whole rule set for a type, across every unit in scope. */
-  async setTypeEligibility(user: TrpcUser, input: SetTypeEligibilityInput) {
-    const resourceKeys = await this.scopedResourceKeysOfType(
-      user,
-      input.itemKey,
-    );
+  /**
+   * Replaces the whole rule set for a type, across every unit in scope, or for
+   * one room.
+   */
+  async setEligibility(user: TrpcUser, input: SetEligibilityInput) {
+    const resourceKeys = await this.scopedResourceKeysOfTarget(user, input);
 
     // One transaction, because the delete on its own leaves the type open to
     // nobody — a failure between the two halves would silently withdraw an
@@ -719,7 +982,16 @@ export class ItemManagementService {
       });
     });
 
-    return this.listTypeEligibility(user, input.itemKey);
+    const target =
+      'roomKey' in input ? `room/${input.roomKey}` : `item/${input.itemKey}`;
+    await this.audit.record(
+      { accountKey: user.accountKey },
+      'update',
+      target,
+      `Set eligibility to ${input.rules.length} rule(s)`,
+    );
+
+    return this.listEligibility(user, input);
   }
 
   /** BorrowRule rows that map to T0–T3, for the tier picker in the forms. */
@@ -787,6 +1059,332 @@ export class ItemManagementService {
   }
 
   // =========================================================================
+  // Delete (FR-EQP-05) — only a record with no history
+  // =========================================================================
+
+  /** Counts that decide whether a resource has "history" for FR-EQP-05. */
+  private async resourceHistoryCounts(resourceKey: number) {
+    const [reservations, usageLogs, images, inspections, repairLogs] =
+      await this.prisma.$transaction([
+        this.prisma.reservations.count({ where: { ResourceKey: resourceKey } }),
+        this.prisma.usageLog.count({ where: { ResourceKey: resourceKey } }),
+        this.prisma.images.count({ where: { ResourceKey: resourceKey } }),
+        this.prisma.inspection.count({ where: { ResourceKey: resourceKey } }),
+        this.prisma.repairLog.count({ where: { ResourceKey: resourceKey } }),
+      ]);
+    return { reservations, usageLogs, images, inspections, repairLogs };
+  }
+
+  /**
+   * Removes a resource with no history: its own ConditionLog, Eligibility and
+   * RetirementRequest rows first (all RESTRICT-linked to ResourceInfo — see
+   * schema.prisma), then the resource itself. RoomCheckRound rows cascade on
+   * their own.
+   *
+   * RetirementRequest is cleared unconditionally, cancelled/rejected rows
+   * included: a paper trail that only ever said "not retired" is not the
+   * history FR-EQP-05 means to protect, and leaving it behind turned a
+   * perfectly fresh unit's delete into a raw FK violation (caught live —
+   * request, then cancel, then delete used to 500).
+   */
+  private async wipeAndDeleteResource(
+    tx: Prisma.TransactionClient,
+    resourceKey: number,
+  ): Promise<void> {
+    await tx.retirementRequest.deleteMany({
+      where: { ResourceKey: resourceKey },
+    });
+    await tx.conditionLog.deleteMany({ where: { ResourceKey: resourceKey } });
+    await tx.eligibility.deleteMany({ where: { ResourceKey: resourceKey } });
+    await tx.resourceInfo.delete({ where: { ResourceKey: resourceKey } });
+  }
+
+  /** A type may be deleted only once every one of its units already has been. */
+  async deleteItemType(user: TrpcUser, input: DeleteItemTypeInput) {
+    // Same floor as createItemType: ItemInfo has no owner of its own, so the
+    // only thing to check is that the caller administers something at all.
+    await this.scope.resolveGroupKeys(user);
+
+    const type = await this.prisma.itemInfo.findUnique({
+      where: { ItemKey: input.itemKey },
+      select: {
+        ItemName: true,
+        _count: { select: { Items: true } },
+      },
+    });
+    if (!type) {
+      throw new BusinessError('ITEM_TYPE_NOT_FOUND', {
+        itemKey: input.itemKey,
+      });
+    }
+    if (type._count.Items > 0) {
+      throw new BusinessError('HAS_HISTORY', {
+        itemKey: input.itemKey,
+        units: type._count.Items,
+      });
+    }
+
+    await this.prisma.itemInfo.delete({ where: { ItemKey: input.itemKey } });
+
+    await this.audit.record(
+      { accountKey: user.accountKey },
+      'delete',
+      `item/${input.itemKey}`,
+      `Deleted item type "${type.ItemName}" (no units left)`,
+    );
+
+    return { itemKey: input.itemKey };
+  }
+
+  async deleteItemUnit(user: TrpcUser, input: DeleteResourceInput) {
+    await this.scope.assertResourceInScope(user, input.resourceKey);
+
+    const unit = await this.prisma.itemIndiv.findUnique({
+      where: { ResourceKey: input.resourceKey },
+      select: { IndivKey: true, ItemID: true },
+    });
+    if (!unit) {
+      throw new BusinessError('RESOURCE_NOT_FOUND', {
+        resourceKey: input.resourceKey,
+      });
+    }
+
+    const counts = await this.resourceHistoryCounts(input.resourceKey);
+    if (Object.values(counts).some((count) => count > 0)) {
+      throw new BusinessError('HAS_HISTORY', {
+        resourceKey: input.resourceKey,
+        ...counts,
+      });
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.itemIndiv.delete({ where: { IndivKey: unit.IndivKey } });
+      await this.wipeAndDeleteResource(tx, input.resourceKey);
+    });
+
+    await this.audit.record(
+      { accountKey: user.accountKey },
+      'delete',
+      `unit/${input.resourceKey}`,
+      `Deleted unit, serial ${unit.ItemID} (no history)`,
+    );
+
+    return { resourceKey: input.resourceKey };
+  }
+
+  async deleteRoom(user: TrpcUser, input: DeleteResourceInput) {
+    await this.scope.assertResourceInScope(user, input.resourceKey);
+
+    const room = await this.prisma.roomInfo.findUnique({
+      where: { ResourceKey: input.resourceKey },
+      select: { RoomKey: true, RoomName: true },
+    });
+    if (!room) {
+      throw new BusinessError('RESOURCE_NOT_FOUND', {
+        resourceKey: input.resourceKey,
+      });
+    }
+
+    const counts = await this.resourceHistoryCounts(input.resourceKey);
+    if (Object.values(counts).some((count) => count > 0)) {
+      throw new BusinessError('HAS_HISTORY', {
+        resourceKey: input.resourceKey,
+        ...counts,
+      });
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.roomInfo.delete({ where: { RoomKey: room.RoomKey } });
+      await this.wipeAndDeleteResource(tx, input.resourceKey);
+    });
+
+    await this.audit.record(
+      { accountKey: user.accountKey },
+      'delete',
+      `room/${input.resourceKey}`,
+      `Deleted room "${room.RoomName}" (no history)`,
+    );
+
+    return { resourceKey: input.resourceKey };
+  }
+
+  // =========================================================================
+  // Retirement (FR-EQP-08) — staff requests, a supervisor decides
+  // =========================================================================
+
+  /**
+   * Refuses while the resource is out on loan, or has an upcoming
+   * approved/pending reservation. Same check on request and on approval — the
+   * state can change in between — so `ApprovalService.decideRetirement` calls
+   * this too rather than keeping its own copy.
+   */
+  async assertNotActive(resourceKey: number): Promise<void> {
+    const now = new Date();
+    const [held, upcoming] = await Promise.all([
+      this.prisma.usageLog.findFirst({
+        where: {
+          ResourceKey: resourceKey,
+          CurrentStatus: { in: HELD_USAGE_STATES },
+        },
+        select: { UsageKey: true, CurrentStatus: true },
+      }),
+      this.prisma.reservations.findFirst({
+        where: {
+          ResourceKey: resourceKey,
+          ApproveStatus: { in: [...HOLDING_APPROVE_STATES] },
+          EndTime: { gt: now },
+        },
+        select: { ReservationKey: true, StartTime: true, EndTime: true },
+      }),
+    ]);
+
+    if (held || upcoming) {
+      throw new BusinessError('RETIREMENT_BLOCKED_BY_ACTIVITY', {
+        resourceKey,
+        heldUsage: held
+          ? { usageKey: held.UsageKey, status: held.CurrentStatus }
+          : null,
+        upcomingReservation: upcoming
+          ? {
+              reservationKey: upcoming.ReservationKey,
+              startTime: toIso(upcoming.StartTime),
+              endTime: toIso(upcoming.EndTime),
+            }
+          : null,
+      });
+    }
+  }
+
+  async requestRetirement(user: TrpcUser, input: RequestRetirementInput) {
+    await this.scope.assertResourceInScope(user, input.resourceKey);
+
+    const resource = await this.prisma.resourceInfo.findUnique({
+      where: { ResourceKey: input.resourceKey },
+      select: { ResourceStatus: true, ManagedBy: true },
+    });
+    if (!resource) {
+      throw new BusinessError('RESOURCE_NOT_FOUND', {
+        resourceKey: input.resourceKey,
+      });
+    }
+    if (resource.ResourceStatus === 'Retired') {
+      throw new BusinessError('RESOURCE_ALREADY_RETIRED', {
+        resourceKey: input.resourceKey,
+      });
+    }
+
+    const pending = await this.prisma.retirementRequest.findFirst({
+      where: { ResourceKey: input.resourceKey, ApproveStatus: 'Pending' },
+      select: { RequestKey: true },
+    });
+    if (pending) {
+      throw new BusinessError('RETIREMENT_ALREADY_PENDING', {
+        resourceKey: input.resourceKey,
+        requestKey: pending.RequestKey,
+      });
+    }
+
+    await this.assertNotActive(input.resourceKey);
+
+    const requestKey = await this.prisma.$transaction(async (tx) => {
+      const created = await tx.retirementRequest.create({
+        data: {
+          ResourceKey: input.resourceKey,
+          RequestedBy: user.accountKey,
+          Reason: input.reason,
+          ApproveStatus: 'Pending',
+        },
+        select: { RequestKey: true },
+      });
+
+      const row = await tx.retirementRequest.findUniqueOrThrow({
+        where: { RequestKey: created.RequestKey },
+        select: RETIREMENT_REQUEST_SELECT,
+      });
+      const output = toRetirementRequestOutput(row);
+
+      // FR-EQP-08: every supervisor who could act on this in
+      // `approval.retirementQueue` — the same department, same role — should
+      // hear about it existing, not just find it by opening the queue.
+      const supervisors = await supervisorsForGroup(tx, resource.ManagedBy);
+      await Promise.all(
+        supervisors.map((supervisor) =>
+          this.notifications.retirementRequested(tx, {
+            accountKey: supervisor.AccountKey,
+            requestKey: created.RequestKey,
+            resourceName: output.resourceName ?? 'อุปกรณ์',
+            requestedBy: output.requestedBy.name,
+            reason: input.reason,
+          }),
+        ),
+      );
+
+      return created.RequestKey;
+    });
+
+    await this.audit.record(
+      { accountKey: user.accountKey },
+      'create',
+      `retirement/${requestKey}`,
+      `Requested retirement of resource ${input.resourceKey}: ${input.reason}`,
+    );
+
+    return this.readRetirementRequest(requestKey);
+  }
+
+  /** Withdraws a still-pending request — only the staff member who filed it may. */
+  async cancelRetirement(user: TrpcUser, input: RetirementRequestIdInput) {
+    const request = await this.prisma.retirementRequest.findUnique({
+      where: { RequestKey: input.requestKey },
+      select: { ResourceKey: true, RequestedBy: true, ApproveStatus: true },
+    });
+    if (!request) {
+      throw new BusinessError('RETIREMENT_REQUEST_NOT_FOUND', {
+        requestKey: input.requestKey,
+      });
+    }
+    await this.scope.assertResourceInScope(user, request.ResourceKey);
+
+    if (request.RequestedBy !== user.accountKey) {
+      throw new BusinessError('NOT_YOUR_RETIREMENT_REQUEST', {
+        requestKey: input.requestKey,
+      });
+    }
+    if (request.ApproveStatus !== 'Pending') {
+      throw new BusinessError('RETIREMENT_ALREADY_DECIDED', {
+        requestKey: input.requestKey,
+        status: request.ApproveStatus,
+      });
+    }
+
+    await this.prisma.retirementRequest.update({
+      where: { RequestKey: input.requestKey },
+      data: { ApproveStatus: 'Canceled', DecidedAt: new Date() },
+    });
+
+    await this.audit.record(
+      { accountKey: user.accountKey },
+      'update',
+      `retirement/${input.requestKey}`,
+      'Cancelled own retirement request',
+    );
+
+    return this.readRetirementRequest(input.requestKey);
+  }
+
+  /** Shared by every retirement procedure so the output shape never drifts. */
+  async readRetirementRequest(requestKey: number) {
+    const row = await this.prisma.retirementRequest.findUnique({
+      where: { RequestKey: requestKey },
+      select: RETIREMENT_REQUEST_SELECT,
+    });
+    if (!row) {
+      throw new BusinessError('RETIREMENT_REQUEST_NOT_FOUND', { requestKey });
+    }
+    return toRetirementRequestOutput(row);
+  }
+
+  // =========================================================================
   // Internals
   // =========================================================================
 
@@ -846,6 +1444,39 @@ export class ItemManagementService {
     return [];
   }
 
+  /**
+   * The room's own ResourceKey, once the caller is allowed to touch it.
+   *
+   * Unlike a type, a room is a single ResourceInfo with a ManagedBy of its
+   * own, so there is no "nobody owns it yet" case: the ordinary one-resource
+   * scope check is the whole answer.
+   */
+  private async scopedResourceKeysOfRoom(
+    user: TrpcUser,
+    roomKey: number,
+  ): Promise<number[]> {
+    const room = await this.prisma.roomInfo.findUnique({
+      where: { RoomKey: roomKey },
+      select: { ResourceKey: true },
+    });
+
+    if (!room) {
+      throw new BusinessError('ROOM_NOT_FOUND', { roomKey });
+    }
+    await this.scope.assertResourceInScope(user, room.ResourceKey);
+
+    return [room.ResourceKey];
+  }
+
+  private scopedResourceKeysOfTarget(
+    user: TrpcUser,
+    target: EligibilityTargetInput,
+  ): Promise<number[]> {
+    return 'roomKey' in target
+      ? this.scopedResourceKeysOfRoom(user, target.roomKey)
+      : this.scopedResourceKeysOfType(user, target.itemKey);
+  }
+
   /** BorrowRule row for a tier label. */
   private async resolveTierRuleKey(tier: ResourceTier): Promise<number> {
     const rule = await this.prisma.borrowRule.findFirst({
@@ -866,10 +1497,9 @@ export class ItemManagementService {
   /**
    * The serials to write, one per unit requested.
    *
-   * T1 and T2 are tracked per unit, so a serial is mandatory (proposal §5.4:
-   * "หมายเลขประจำอุปกรณ์ (Serial Number): ติดบนอุปกรณ์ระดับ T1–T2"). T0 is
-   * counted, not tracked, so a readable placeholder is generated instead of
-   * forcing staff to invent one for each jumper wire.
+   * Only T2 must be given a serial: it is approved per serial (FR-REQ-07).
+   * T1 is borrowed by quantity (FR-EQP-03 as amended) and T0 is counted, so
+   * both get a generated tag instead of forcing staff to invent one.
    *
    * The two tracked tiers differ in how a batch may be registered. T1 arrives
    * as a box of interchangeable units, so one base serial plus a numeric
@@ -883,10 +1513,13 @@ export class ItemManagementService {
   private buildSerials(
     input: CreateItemUnitInput,
     itemName: string | null,
+    existing: readonly string[],
   ): string[] {
-    const needsSerial = input.tier === 'T1' || input.tier === 'T2';
-
-    if (needsSerial && !input.serialNo) {
+    // Only T2 needs a serial typed in: it is bound to the number printed on
+    // the unit, and approval is for that unit. T0 and T1 get a generated tag,
+    // which is what the team decided for T1 (the audit found the code still
+    // demanding one).
+    if (input.tier === 'T2' && !input.serialNo) {
       throw new BusinessError('SERIAL_REQUIRED_FOR_TIER', {
         tier: input.tier,
         quantity: input.quantity,
@@ -900,18 +1533,27 @@ export class ItemManagementService {
       });
     }
 
+    // One unit with a serial typed in is that serial, exactly.
+    if (input.serialNo && input.quantity === 1) return [input.serialNo];
+
     const base =
       input.serialNo ??
       `${(itemName ?? 'ITEM').trim().slice(0, 12).toUpperCase().replace(/\s+/g, '-')}-${input.itemKey}`;
 
-    if (input.quantity === 1) return [input.serialNo ?? `${base}-1`];
+    // Numbering carries on from the last batch. Starting at 1 every time made
+    // the second delivery of the same thing collide with the first
+    // (SERIAL_ALREADY_IN_USE), so a department could never add ten more.
+    const suffix = new RegExp(
+      `^${base.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}-(\\d+)$`,
+    );
+    const highest = existing.reduce((max, id) => {
+      const match = suffix.exec(id);
+      return match ? Math.max(max, Number(match[1])) : max;
+    }, 0);
 
-    // T0/T1 only, per the guard above. Suffixed rather than repeated:
-    // ItemIndiv.ItemID is how a staff member tells two boxes apart at the
-    // counter, and two rows reading "ARDUINO-7" make allocation a guess.
     return Array.from(
       { length: input.quantity },
-      (_, index) => `${base}-${index + 1}`,
+      (_, index) => `${base}-${highest + index + 1}`,
     );
   }
 
@@ -976,6 +1618,7 @@ export class ItemManagementService {
       ItemDesc: string | null;
       ImageURL: string | null;
       CreditWeight: number;
+      Price: number | null;
     },
     units: UnitRow[],
   ) {
@@ -996,6 +1639,8 @@ export class ItemManagementService {
       tiers,
       totalUnits: units.length,
       availableUnits: units.filter((unit) => this.isAvailable(unit)).length,
+      price: row.Price ?? null,
+      suggestedTier: suggestTierFromPrice(row.Price),
     };
   }
 
@@ -1044,6 +1689,10 @@ export class ItemManagementService {
       lendable: row.Resource.AllowBorrow,
       condition: row.Resource.CurrentCondition?.Condition ?? null,
       managementGroup: this.toGroupRef(row.Resource.ManagementGroup),
+      openMinutes: row.OpenTime,
+      closeMinutes: row.CloseTime,
+      breakStartMinutes: row.BreakStart,
+      breakEndMinutes: row.BreakEnd,
     };
   }
 

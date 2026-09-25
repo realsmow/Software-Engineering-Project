@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import type { Prisma } from '../generated/prisma/client';
 import { PrismaService } from '../prisma.service';
+import { AuditService } from '../common/audit/audit.service';
 import { StaffScopeService } from '../common/authority/staff-scope.service';
 import { BusinessError } from '../common/errors/business-error';
 import {
@@ -12,17 +13,22 @@ import { toPage, toSkipTake } from '../common/schemas/pagination.schema';
 import { toBorrowerRef } from '../loan/loan.schema';
 import {
   NotificationService,
+  allSupervisors,
   resourceName,
+  supervisorsForGroup,
 } from '../notification/notification.service';
 import type { TrpcUser } from '../trpc/context';
 import {
   APPEAL_WINDOW_DAYS,
+  DAMAGE_REASONS,
+  isDamagePenalty,
   type AppealStatus,
   type CreateAppealInput,
   type DecideAppealInput,
   type ListAppealsInput,
   type ListMyAppealsInput,
 } from './appeal.schema';
+import { recomputeCredit } from '../common/credit/recompute-credit';
 
 const BORROWER_SELECT = {
   AccountKey: true,
@@ -136,12 +142,17 @@ const STATUS_FILTER = {
  * the inspector whose grade produced the penalty. An appeal reviewed by the
  * person being appealed against is not a review.
  */
+const DAMAGE_PENALTY_WHERE = {
+  OR: DAMAGE_REASONS.map((code) => ({ Reason: { startsWith: code } })),
+};
+
 @Injectable()
 export class AppealService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly scope: StaffScopeService,
     private readonly notifications: NotificationService,
+    private readonly audit: AuditService,
   ) {}
 
   // =========================================================================
@@ -167,6 +178,7 @@ export class AppealService {
         // row may have left unset.
         OriginalAppeal: { is: null },
         ActionTime: { gte: addDays(new Date(), -APPEAL_WINDOW_DAYS) },
+        ...DAMAGE_PENALTY_WHERE,
       },
       select: PENALTY_SELECT,
       orderBy: { ActionTime: 'desc' },
@@ -204,6 +216,13 @@ export class AppealService {
     }
     if (penalty.AccountKey !== user.accountKey) {
       throw new BusinessError('NOT_YOUR_PENALTY', {
+        penaltyKey: input.penaltyKey,
+      });
+    }
+    if (!isDamagePenalty(penalty.Reason)) {
+      // FR-APL-01 appeals a damage assessment. Lateness and loss are counted by
+      // the clock, not judged by a person, so there is no assessment to argue.
+      throw new BusinessError('PENALTY_NOT_APPEALABLE', {
         penaltyKey: input.penaltyKey,
       });
     }
@@ -257,8 +276,41 @@ export class AppealService {
         data: { AppealKey: created.AppealKey },
       });
 
+      // FR-NTF-04: an appeal is now awaiting a decision. `listQueue` shows a
+      // penalty with no UsageLog (an administrative ban, no department) to
+      // every supervisor, so an appeal against one is announced the same way;
+      // otherwise only supervisors with authority over the resource's
+      // department, same as a routed request.
+      const department = penalty.UsageKey
+        ? await tx.usageLog.findUnique({
+            where: { UsageKey: penalty.UsageKey },
+            select: { Resource: { select: { ManagedBy: true } } },
+          })
+        : null;
+      const supervisors = department
+        ? await supervisorsForGroup(tx, department.Resource.ManagedBy)
+        : await allSupervisors(tx);
+      await Promise.all(
+        supervisors
+          .filter((s) => s.AccountKey !== user.accountKey)
+          .map((s) =>
+            this.notifications.appealFiled(tx, {
+              accountKey: s.AccountKey,
+              appealKey: created.AppealKey,
+              reason: input.appealReason,
+            }),
+          ),
+      );
+
       return created.AppealKey;
     });
+
+    await this.audit.record(
+      { accountKey: user.accountKey },
+      'create',
+      `appeal/${appealKey}`,
+      `Filed appeal against penalty/${input.penaltyKey}: ${input.appealReason}`,
+    );
 
     return this.getById(user, appealKey);
   }
@@ -433,6 +485,13 @@ export class AppealService {
         });
       });
 
+      await this.audit.record(
+        { accountKey: user.accountKey },
+        'update',
+        `appeal/${input.appealKey}`,
+        `Rejected appeal${input.note ? `: ${input.note}` : ''}`,
+      );
+
       return this.getById(user, input.appealKey);
     }
 
@@ -448,6 +507,12 @@ export class AppealService {
         reduced,
       });
     }
+
+    // One increment for the net difference, not a refund followed by a fresh
+    // deduction: two writes would leave a moment where the borrower's score
+    // is higher than it ever should have been, which is exactly when a
+    // concurrent request reads it to decide what they may borrow.
+    const restored = deducted - reduced;
 
     await this.prisma.$transaction(async (tx) => {
       // The original stops applying whatever happens next. Written before the
@@ -476,17 +541,8 @@ export class AppealService {
         newPenaltyKey = replacement.PenaltyKey;
       }
 
-      // One increment for the net difference, not a refund followed by a fresh
-      // deduction: two writes would leave a moment where the borrower's score
-      // is higher than it ever should have been, which is exactly when a
-      // concurrent request reads it to decide what they may borrow.
-      const restored = deducted - reduced;
-      if (restored > 0) {
-        await tx.accountInfo.update({
-          where: { AccountKey: penalty.AccountKey },
-          data: { UserCredit: { increment: restored } },
-        });
-      }
+      // FR-APL-05: revoke the original and recompute.
+      await recomputeCredit(tx, penalty.AccountKey);
 
       await tx.appealInfo.update({
         where: { AppealKey: input.appealKey },
@@ -508,6 +564,13 @@ export class AppealService {
         note: input.note,
       });
     });
+
+    await this.audit.record(
+      { accountKey: user.accountKey },
+      'update',
+      `appeal/${input.appealKey}`,
+      `Approved appeal, restored ${restored} credit${input.note ? `: ${input.note}` : ''}`,
+    );
 
     return this.getById(user, input.appealKey);
   }

@@ -1,0 +1,10 @@
+{
+  "name": "ulms-perf",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Dependency-light load test for SRS NFR-PRF-01..05. Only devDependency is undici, needed to raise the client-side HTTP connection pool past its default cap so 200 concurrent virtual users are not artificially serialized by the test client itself.",
+  "type": "module",
+  "devDependencies": {
+    "undici": "^7.0.0"
+  }
+}

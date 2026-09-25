@@ -3,199 +3,65 @@ import { useTranslation } from "react-i18next";
 import { PageHeader } from "@/components/shared/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Segmented } from "@/components/ui/segmented";
 import { getErrorMessage } from "@/lib/error-messages";
-import { useManagedItems } from "../inventory/use-inventory";
-import {
-  useDepartmentUsers,
-  useSetUserBan,
-  type DepartmentUser,
-} from "../users/department-users";
-import { DepartmentUserTable } from "../users/department-user-table";
+import { useManagedItems, useManagedRooms } from "../inventory/use-inventory";
 import {
   useAuthorityRoles,
   useEligibility,
   useManagementGroups,
   useSetEligibility,
 } from "./use-eligibility";
-import type { EligibilityRule } from "./permissions.types";
-
-/** Default ban length, matching the server's own default for `days`. */
-const DEFAULT_BAN_DAYS = 30;
-
-type PermissionsView = "bans" | "eligibility";
+import type { EligibilityRule, EligibilityTarget } from "./permissions.types";
 
 /**
- * Borrowing bans.
+ * Who may borrow what (Eligibility rows), per equipment type or room.
  *
- * A ban stops new requests; it does not lock the account out. Someone banned
- * can still sign in and see what they owe, which is the point - taking away
- * the screen that explains the sanction makes it harder to resolve. Disabling
- * an account outright is `admin.setUserActive` and stays with admins.
- *
- * A reason is asked for before the ban, not after: it goes on the record the
- * borrower eventually reads.
+ * There is no borrowing ban: penalties limit a borrower through the credit band
+ * (FR-CRD-08), and switching an account off is `admin.setUserActive`.
  */
 export default function StaffPermissionsPage() {
   const { t } = useTranslation();
-  const [view, setView] = useState<PermissionsView>("bans");
-  const [q, setQ] = useState("");
-  const { data: users, isLoading } = useDepartmentUsers(q);
-  const setBan = useSetUserBan();
-
-  const [editing, setEditing] = useState<number | null>(null);
-  const [reason, setReason] = useState("");
-  const [result, setResult] = useState<{ tone: "ok" | "bad"; text: string } | null>(null);
-
-  async function apply(user: DepartmentUser, banned: boolean) {
-    setResult(null);
-    try {
-      await setBan.mutateAsync({
-        id: user.id,
-        banned,
-        reason: reason.trim() || undefined,
-        days: DEFAULT_BAN_DAYS,
-      });
-      setResult({
-        tone: "ok",
-        text: banned
-          ? t("staff.permissions.doneBanned", {
-              who: `${user.firstName} ${user.lastName}`,
-              days: DEFAULT_BAN_DAYS,
-            })
-          : t("staff.permissions.doneLifted", {
-              who: `${user.firstName} ${user.lastName}`,
-            }),
-      });
-      setEditing(null);
-      setReason("");
-    } catch (e) {
-      setResult({ tone: "bad", text: getErrorMessage(e) });
-    }
-  }
-
   return (
     <div>
       <PageHeader title={t("nav.permissions")} subtitle={t("staff.permissions.subtitle")} />
-
-      <div className="mb-4">
-        <Segmented<PermissionsView>
-          value={view}
-          onChange={setView}
-          options={[
-            { value: "bans", label: t("staff.permissions.viewBans") },
-            { value: "eligibility", label: t("staff.permissions.viewEligibility") },
-          ]}
-        />
-      </div>
-
-      {view === "eligibility" ? (
-        <EligibilityPanel />
-      ) : (
-        <>
-      {result ? (
-        <div
-          role="status"
-          className={
-            result.tone === "ok"
-              ? "mb-3 rounded border border-[var(--s-ok-b)] bg-[var(--s-ok-bg)] px-3 py-2 text-[13px] leading-relaxed text-[var(--s-ok-t)]"
-              : "mb-3 rounded border border-[var(--s-warn-b)] bg-[var(--s-warn-bg)] px-3 py-2 text-[13px] leading-relaxed text-[var(--s-warn-t)]"
-          }
-        >
-          {result.text}
-        </div>
-      ) : null}
-
-      <DepartmentUserTable
-        users={users ?? []}
-        isLoading={isLoading}
-        q={q}
-        onSearch={setQ}
-        action={(u) => {
-          const busy = setBan.isPending;
-          const banned = u.status === "suspended";
-
-          if (banned) {
-            return (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                disabled={busy}
-                onClick={() => void apply(u, false)}
-              >
-                {t("staff.permissions.lift")}
-              </Button>
-            );
-          }
-
-          if (editing === u.id) {
-            return (
-              <div className="flex items-center justify-end gap-2">
-                <Input
-                  autoFocus
-                  value={reason}
-                  onChange={(e) => setReason(e.target.value)}
-                  placeholder={t("staff.permissions.reasonPlaceholder")}
-                  className="h-8 w-52"
-                />
-                <Button type="button" size="sm" disabled={busy} onClick={() => void apply(u, true)}>
-                  {t("staff.permissions.confirmBan", { days: DEFAULT_BAN_DAYS })}
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setEditing(null);
-                    setReason("");
-                  }}
-                >
-                  {t("common.cancel")}
-                </Button>
-              </div>
-            );
-          }
-
-          return (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={busy}
-              onClick={() => {
-                setEditing(u.id);
-                setReason("");
-              }}
-            >
-              {t("staff.permissions.ban")}
-            </Button>
-          );
-        }}
-      />
-        </>
-      )}
+      <EligibilityPanel />
     </div>
   );
 }
 
+/** The picker's option value, "type:7" or "room:1": a type and a room can share a key. */
+function targetValue(target: EligibilityTarget | null): string {
+  if (target === null) return "";
+  return "roomKey" in target ? `room:${target.roomKey}` : `type:${target.itemKey}`;
+}
+
+function parseTargetValue(value: string): EligibilityTarget | null {
+  const [kind, key] = value.split(":");
+  if (kind === "type") return { itemKey: Number(key) };
+  if (kind === "room") return { roomKey: Number(key) };
+  return null;
+}
+
 /**
- * Who may borrow which catalogue type (proposal §5.9 "กำหนดสิทธิ์การยืม").
+ * Who may borrow which catalogue type, or book which room (proposal §5.9
+ * "กำหนดสิทธิ์การยืม").
  *
  * A rule set belongs to a type but the server keys it per unit, so saving
  * always sends the complete array for the type - an empty save closes it to
  * everyone, which is a real thing staff want and the reason there is no
- * partial "add one rule" call.
+ * partial "add one rule" call. A room is a single resource with the same
+ * semantics, and one with no rules cannot be booked at all.
  */
 function EligibilityPanel() {
   const { t } = useTranslation();
   const { data: items, isLoading: itemsLoading } = useManagedItems();
+  const { data: rooms, isLoading: roomsLoading } = useManagedRooms();
   const { data: groups } = useManagementGroups();
   const { data: roles } = useAuthorityRoles();
 
-  const [itemKey, setItemKey] = useState<number | null>(null);
-  const { data: savedRules, isLoading: rulesLoading } = useEligibility(itemKey);
+  const [target, setTarget] = useState<EligibilityTarget | null>(null);
+  const isRoom = target !== null && "roomKey" in target;
+  const { data: savedRules, isLoading: rulesLoading } = useEligibility(target);
   const setEligibility = useSetEligibility();
 
   const [draft, setDraft] = useState<EligibilityRule[]>([]);
@@ -203,12 +69,12 @@ function EligibilityPanel() {
   const [roleKey, setRoleKey] = useState<number | "">("");
   const [result, setResult] = useState<{ tone: "ok" | "bad"; text: string } | null>(null);
 
-  // The draft mirrors what the server has whenever the type changes or a fresh
-  // load comes in - editing never starts from stale rules.
+  // The draft mirrors what the server has whenever the target changes or a
+  // fresh load comes in - editing never starts from stale rules.
   useEffect(() => {
     setDraft(savedRules ?? []);
     setResult(null);
-  }, [itemKey, savedRules]);
+  }, [target, savedRules]);
 
   const dirty =
     draft.length !== (savedRules ?? []).length ||
@@ -244,11 +110,11 @@ function EligibilityPanel() {
   }
 
   async function save() {
-    if (itemKey === null) return;
+    if (target === null) return;
     setResult(null);
     try {
       await setEligibility.mutateAsync({
-        itemKey,
+        ...target,
         rules: draft.map((r) => ({ groupKey: r.groupKey, authorityRoleKey: r.authorityRoleKey })),
       });
       setResult({ tone: "ok", text: t("staff.permissions.eligibilitySaved") });
@@ -260,28 +126,41 @@ function EligibilityPanel() {
   return (
     <div>
       <div className="mb-3 flex flex-wrap items-center gap-2">
-        <label className="text-xs font-medium text-t3" htmlFor="eligibility-item">
-          {t("staff.permissions.pickType")}
+        <label className="text-xs font-medium text-t3" htmlFor="eligibility-target">
+          {t("staff.permissions.pickTarget")}
         </label>
         <select
-          id="eligibility-item"
+          id="eligibility-target"
           className="h-9 max-w-xs rounded-md border border-border bg-card px-3 text-sm text-foreground"
-          value={itemKey ?? ""}
-          disabled={itemsLoading}
-          onChange={(e) => setItemKey(e.target.value === "" ? null : Number(e.target.value))}
+          value={targetValue(target)}
+          disabled={itemsLoading || roomsLoading}
+          onChange={(e) => setTarget(parseTargetValue(e.target.value))}
         >
-          <option value="">{t("staff.permissions.pickTypePlaceholder")}</option>
-          {(items ?? []).map((item) => (
-            <option key={item.id} value={item.id}>
-              {item.name ?? "-"}
-            </option>
-          ))}
+          <option value="">{t("staff.permissions.pickTargetPlaceholder")}</option>
+          {items && items.length > 0 ? (
+            <optgroup label={t("staff.permissions.groupTypes")}>
+              {items.map((item) => (
+                <option key={item.id} value={targetValue({ itemKey: item.id })}>
+                  {item.name ?? "-"}
+                </option>
+              ))}
+            </optgroup>
+          ) : null}
+          {rooms && rooms.length > 0 ? (
+            <optgroup label={t("staff.permissions.groupRooms")}>
+              {rooms.map((room) => (
+                <option key={room.roomKey} value={targetValue({ roomKey: room.roomKey })}>
+                  {room.name ?? "-"}
+                </option>
+              ))}
+            </optgroup>
+          ) : null}
         </select>
       </div>
 
-      {itemKey === null ? (
+      {target === null ? (
         <div className="rounded-lg border border-border bg-card px-4 py-10 text-center text-sm text-t3">
-          {t("staff.permissions.pickTypeHint")}
+          {t("staff.permissions.pickTargetHint")}
         </div>
       ) : (
         <div className="rounded-lg border border-border bg-card">
@@ -340,7 +219,7 @@ function EligibilityPanel() {
             <div className="px-3.5 py-8 text-center text-sm text-t3">{t("common.loading")}</div>
           ) : draft.length === 0 ? (
             <div className="px-3.5 py-8 text-center text-sm text-t3">
-              {t("staff.permissions.noRules")}
+              {isRoom ? t("staff.permissions.noRoomRules") : t("staff.permissions.noRules")}
             </div>
           ) : (
             <ul className="divide-y divide-border">
@@ -354,7 +233,7 @@ function EligibilityPanel() {
                       {r.groupName ?? t("staff.permissions.unknownGroup")}
                     </span>
                     <Badge tone="neutral">{r.authorityRoleName}</Badge>
-                    {r.appliesToUnits > 0 ? (
+                    {!isRoom && r.appliesToUnits > 0 ? (
                       <span className="text-[11px] text-t4">
                         {t("staff.permissions.appliesToUnits", { count: r.appliesToUnits })}
                       </span>

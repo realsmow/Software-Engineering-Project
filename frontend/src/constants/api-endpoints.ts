@@ -50,7 +50,6 @@ export const API = {
     /** Live remaining count + next-available for a type. POLLED - POLLING.AVAILABILITY (15s). */
     getAvailability: "item.getAvailability",
     /** Long-cached master data: categories + tiers (staleTime 1h). */
-    listCategories: "item.listCategories",
     /** Units of a type (serials, status) - staff prepare / inventory. */
     listUnits: "item.listUnits",
     /** Create a new equipment type. Staff inventory. */
@@ -59,6 +58,20 @@ export const API = {
     update: "item.update",
     /** Set a unit status (available/maintenance/lost). Staff inventory. Error: ITEM_UNAVAILABLE→CONFLICT. */
     updateUnitStatus: "item.updateUnitStatus",
+
+    // Delete (FR-EQP-05) - refused with HAS_HISTORY on a record with history.
+    /** Delete an equipment type. Refused unless every unit is already gone. */
+    deleteType: "item.deleteType",
+    /** Delete one unit. Refused if it has a reservation, usage log, or image. */
+    deleteUnit: "item.deleteUnit",
+    /** Delete one room. Same refusal rule as `deleteUnit`. */
+    deleteRoom: "item.deleteRoom",
+
+    // Retirement (FR-EQP-08) - staff requests, a supervisor decides.
+    /** File a retirement request for a unit or room. Error: RETIREMENT_ALREADY_PENDING→CONFLICT. */
+    requestRetirement: "item.requestRetirement",
+    /** Withdraw a still-pending retirement request the caller filed. */
+    cancelRetirement: "item.cancelRetirement",
   },
 
   // ── loan ──────────────────────────────────────────────────────────────
@@ -116,6 +129,10 @@ export const API = {
     getById: "approval.getById",
     /** Approve or reject. Page: Approvals. Error: ALREADY_DECIDED→CONFLICT. */
     decide: "approval.decide",
+    /** Pending retirement requests (FR-EQP-08), a supervisor's own desk. */
+    retirementQueue: "approval.retirementQueue",
+    /** Approve or reject a retirement request. Approving retires the resource. */
+    decideRetirement: "approval.decideRetirement",
   },
 
   // ── appeal ────────────────────────────────────────────────────────────
@@ -200,7 +217,6 @@ export const API = {
 
     // Permissions / behavioural ban (department staff)
     /** Apply or lift a borrowing ban. Page: Permissions / ban. */
-    setUserBan: "admin.setUserBan",
 
     // Lending rules (department staff - business config, not technical)
     /** Read department lending settings (periods, quotas, tiers). Page: Lending settings. */
@@ -212,7 +228,6 @@ export const API = {
     /** Read technical config (auth/storage/email/polling). Page: Technical config. */
     getConfig: "admin.getConfig",
     /** Update technical config. Page: Technical config. */
-    updateConfig: "admin.updateConfig",
 
     // System status & cron (IT admin)
     /** Service/DB/cron health. POLLED. Page: System status, Admin overview. */
@@ -247,17 +262,18 @@ export const POLLED_ENDPOINTS = {
  * Backend-only daily/hourly cron jobs (ว, group 3). NOT called by the frontend
  * except `admin.runCronJob` (manual "run now"). Listed for contract completeness:
  *   markOverdue · markLost · expireDemerits · dueSoonReminder ·
- *   computeAvailability · openT3InspectionRounds · rollupDailyStats ·
- *   expireStaleRequests (hourly).
+ *   openT3InspectionRounds · expireStaleRequests (hourly).
+ *
+ * `computeAvailability` and `rollupDailyStats` were proposed but never
+ * implemented (availability is computed live; report.summary reads UsageLog
+ * on demand), so they are not real job ids.
  */
 export const CRON_JOBS = [
   "markOverdue",
   "markLost",
   "expireDemerits",
   "dueSoonReminder",
-  "computeAvailability",
   "openT3InspectionRounds",
-  "rollupDailyStats",
   "expireStaleRequests",
 ] as const;
 

@@ -206,6 +206,11 @@ export type SwapUnitInput = z.infer<typeof swapUnitInput>;
  */
 export const confirmPickupInput = usageIdInput.extend({
   note: z.string().trim().max(500).optional(),
+  /**
+   * Hand over before the booked pickup time, with the borrower at the counter.
+   * The loan keeps its length, so the due date moves earlier by the same amount.
+   */
+  early: z.boolean().optional(),
 });
 export type ConfirmPickupInput = z.infer<typeof confirmPickupInput>;
 
@@ -499,6 +504,8 @@ export const requestOutput = z.object({
   startTime: isoDateTime,
   endTime: isoDateTime,
   reason: z.string().nullable(),
+  /** Why it ended: a rejection's reason or the borrower's cancel note. Null otherwise. */
+  decisionNote: z.string().nullable(),
   requestedAt: isoDateTime,
   /** When an approved request stops being held for the borrower (§5.9). */
   expiresAt: isoDateTimeNullable,

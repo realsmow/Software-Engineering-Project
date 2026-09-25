@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, type OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { Prisma } from '../generated/prisma/client';
 import { PrismaService } from '../prisma.service';
@@ -8,7 +8,7 @@ import { AuditService, type AuditActor } from '../common/audit/audit.service';
 import { CreditTierService } from '../common/credit/credit-tier.service';
 import { StaffScopeService } from '../common/authority/staff-scope.service';
 import { CronService } from '../cron/cron.service';
-import { BusinessError, notImplemented } from '../common/errors/business-error';
+import { BusinessError } from '../common/errors/business-error';
 import {
   generateTemporaryPassword,
   hashPassword,
@@ -20,7 +20,8 @@ import {
 } from '../common/mappers/admin-user.mapper';
 import { activePenaltyWhere } from '../common/schemas/penalty.schema';
 import { MAX_UPLOAD_BYTES } from '../common/schemas/image.schema';
-import { ALLOWED_ORIGINS } from '../bootstrap';
+import { allowedOrigins } from '../bootstrap';
+import { BASE_CREDIT } from '../common/credit/recompute-credit';
 import {
   toOrderBy,
   toPage,
@@ -33,6 +34,8 @@ import {
 } from '../common/schemas/status.schema';
 import { UNAVAILABLE_USAGE_STATES } from '../common/usage/usage-states';
 import { OK } from '../common/schemas/ok.schema';
+import { workHours } from '../common/schemas/datetime.schema';
+import { resourceName } from '../notification/notification.service';
 import type {
   ChangeRoleInput,
   CreateUserInput,
@@ -41,10 +44,11 @@ import type {
   ResetPasswordInput,
   SetUserActiveInput,
   RunCronJobInput,
-  SetUserBanInput,
   UpdateLendingSettingsInput,
   UpdateUserInput,
+  WorkHoursSetting,
 } from './admin.schema';
+import { workHoursSetting } from './admin.schema';
 
 /**
  * Sort keys the client may send, mapped to real columns.
@@ -92,6 +96,7 @@ const AUTHORITY_SELECT = {
 const PENALTY_SELECT = {
   PenaltyKey: true,
   Reason: true,
+  UsageKey: true,
   CreditDeducted: true,
   ActionTime: true,
   ExpirationTime: true,
@@ -138,8 +143,8 @@ const USER_SORT_COLUMNS = {
  * The daily/hourly jobs from "รายการเรียกใช้งานจาก Backend" group 3.
  *
  * A static registry, not a table: the list of jobs that are meant to exist is
- * a property of the code, not of the data, and the status page has to name the
- * three that are still unbuilt as well as the five on the clock.
+ * a property of the code, not of the data, and the status page has to name a
+ * job that has never run as well as the ones that have.
  *
  * `schedule` is the human-readable time shown to the administrator. The times
  * it states are Asia/Bangkok, which is what CronScheduler pins its @Cron
@@ -149,12 +154,6 @@ const CRON_REGISTRY = [
   { id: 'markOverdue', name: 'Mark overdue', schedule: '00:01 ทุกวัน' },
   { id: 'markLost', name: 'Mark lost', schedule: '00:15 ทุกวัน' },
   { id: 'expireDemerits', name: 'หมดอายุบทลงโทษ', schedule: '01:00 ทุกวัน' },
-  {
-    id: 'computeAvailability',
-    name: 'คำนวณวันที่พร้อมให้ยืม',
-    schedule: '02:00 ทุกวัน',
-  },
-  { id: 'rollupDailyStats', name: 'สรุปสถิติรายวัน', schedule: '03:00 ทุกวัน' },
   {
     id: 'openT3InspectionRounds',
     name: 'สร้างรอบตรวจสถานที่ (T3)',
@@ -178,6 +177,7 @@ const IMPLEMENTED_JOBS: readonly string[] = [
   'expireDemerits',
   'dueSoonReminder',
   'expireStaleRequests',
+  'openT3InspectionRounds',
 ];
 
 /** Above this, the database is answering but not healthily. */
@@ -206,7 +206,7 @@ const POLLING_CONTRACT = {
 } as const;
 
 @Injectable()
-export class AdminService {
+export class AdminService implements OnModuleInit {
   constructor(
     private readonly prisma: PrismaService,
     private readonly creditTiers: CreditTierService,
@@ -216,6 +216,32 @@ export class AdminService {
     private readonly config: ConfigService,
     private readonly cron: CronService,
   ) {}
+
+  /** Puts the saved working hours in force; the defaults stand until one is saved. */
+  async onModuleInit() {
+    // A setting that cannot be read leaves the defaults; it must not stop boot.
+    const row = await this.prisma.systemSetting
+      ?.findUnique({ where: { Key: 'workHours' } })
+      .catch(() => null);
+    const saved = workHoursSetting.safeParse(row?.Value);
+    if (saved.success) Object.assign(workHours, saved.data);
+  }
+
+  async updateWorkHours(input: WorkHoursSetting, actor: AuditActor) {
+    await this.prisma.systemSetting.upsert({
+      where: { Key: 'workHours' },
+      create: { Key: 'workHours', Value: input },
+      update: { Value: input },
+    });
+    Object.assign(workHours, input);
+    await this.audit.record(
+      actor,
+      'config',
+      'setting/workHours',
+      `Work hours set to ${input.start}:00-${input.end}:00`,
+    );
+    return this.getLendingSettings();
+  }
 
   // =========================================================================
   // Accounts
@@ -255,11 +281,7 @@ export class AdminService {
       where.RoleKey = { in: await this.roleKeysFor(input.role) };
     }
 
-    if (input.status) {
-      const active = activePenaltyWhere();
-      where.Penalties =
-        input.status === 'suspended' ? { some: active } : { none: active };
-    }
+    if (input.status) where.IsActive = input.status === 'active';
 
     if (input.q) {
       where.OR = [
@@ -280,12 +302,6 @@ export class AdminService {
         select: {
           ...ACCOUNT_SCALARS,
           Authorities: { take: 1, select: AUTHORITY_SELECT },
-          Penalties: {
-            // Existence is all the summary needs - one row answers "suspended?".
-            where: activePenaltyWhere(),
-            take: 1,
-            select: PENALTY_SELECT,
-          },
         },
       }),
       this.prisma.accountInfo.count({ where }),
@@ -306,6 +322,36 @@ export class AdminService {
     );
   }
 
+  // ponytail: last 100 loans, page it when someone has more worth reading.
+  async getUserLoans(accountKey: number) {
+    const rows = await this.prisma.usageLog.findMany({
+      where: { AccountKey: accountKey },
+      orderBy: { CheckoutTime: 'desc' },
+      take: 100,
+      select: {
+        UsageKey: true,
+        CurrentStatus: true,
+        CheckoutTime: true,
+        DueTime: true,
+        CheckInTime: true,
+        Resource: {
+          select: {
+            Item: { select: { Item: { select: { ItemName: true } } } },
+            Room: { select: { RoomName: true } },
+          },
+        },
+      },
+    });
+    return rows.map((r) => ({
+      id: r.UsageKey,
+      itemName: resourceName(r.Resource),
+      status: r.CurrentStatus,
+      checkoutTime: r.CheckoutTime.toISOString(),
+      dueTime: r.DueTime.toISOString(),
+      checkInTime: r.CheckInTime?.toISOString() ?? null,
+    }));
+  }
+
   async createUser(input: CreateUserInput, actor: AuditActor) {
     await this.assertIdentifiersFree(input.email, input.studentId, null);
 
@@ -321,7 +367,8 @@ export class AdminService {
         UserID: input.studentId,
         UserFName: input.firstName,
         UserLName: input.lastName,
-        UserCredit: input.initialCredit,
+        // FR-CRD-01: everyone starts at 100 (no penalties yet).
+        UserCredit: BASE_CREDIT,
         RoleKey: await this.roleKeyFor(input.role),
       },
       select: { AccountKey: true },
@@ -438,68 +485,12 @@ export class AdminService {
     return { ...OK, temporaryPassword: generated };
   }
 
-  async setUserBan(input: SetUserBanInput, actor: AuditActor) {
-    if (input.id === actor.accountKey) {
-      throw new BusinessError('CANNOT_MODIFY_SELF', { action: 'setUserBan' });
-    }
-
-    await this.assertAccountExists(input.id);
-
-    if (!input.banned) {
-      // Lift, don't delete: the row is the record that the ban happened.
-      await this.prisma.penaltyInfo.updateMany({
-        where: { AccountKey: input.id, ...activePenaltyWhere() },
-        data: { InEffect: false },
-      });
-
-      await this.audit.record(
-        actor,
-        'update',
-        `account/${input.id}`,
-        'Borrowing ban lifted',
-      );
-      return OK;
-    }
-
-    const now = new Date();
-    const expiresAt = new Date(
-      now.getTime() + input.days * 24 * 60 * 60 * 1000,
-    );
-
-    await this.prisma.penaltyInfo.create({
-      data: {
-        AccountKey: input.id,
-        // No UsageKey: this penalty comes from an admin decision, not from a
-        // specific loan going wrong.
-        Reason: input.reason ?? 'ระงับสิทธิ์การยืมโดยผู้ดูแลระบบ',
-        CreditDeducted: null,
-        ActionTime: now,
-        ExpirationTime: expiresAt,
-        Appealed: false,
-        InEffect: true,
-      },
-      select: { PenaltyKey: true },
-    });
-
-    await this.audit.record(
-      actor,
-      'update',
-      `account/${input.id}`,
-      `Borrowing banned for ${input.days} days${input.reason ? `: ${input.reason}` : ''}`,
-    );
-
-    return OK;
-  }
-
   /**
    * Enable or disable an account.
    *
    * Disabling revokes every live session as well as flipping the flag.
    * Without that the person stays signed in until their cookie lapses, which
    * is exactly the window you are trying to close when you disable someone.
-   *
-   * Not the same as a borrowing ban: setUserBan stops them borrowing but
-   * leaves them able to sign in and see their own history.
    */
   async setUserActive(input: SetUserActiveInput, actor: AuditActor) {
     // Disabling yourself locks you out of the tool you would need to undo it.
@@ -515,7 +506,12 @@ export class AdminService {
     // cover, so it needs no check.
     if (!input.active) {
       const current = await this.readAccountRole(input.id);
-      await this.assertGroupsStayCovered(input.id, current, 'borrower', 'disable');
+      await this.assertGroupsStayCovered(
+        input.id,
+        current,
+        'borrower',
+        'disable',
+      );
     } else {
       await this.assertAccountExists(input.id);
     }
@@ -580,6 +576,7 @@ export class AdminService {
     ]);
 
     return {
+      workHours: { ...workHours },
       creditTiers: creditTiers.map((tier) => ({
         id: tier.CreditTierKey,
         name: tier.CreditTierName,
@@ -724,10 +721,10 @@ export class AdminService {
   /**
    * The jobs, with what actually happened last time.
    *
-   * `implemented` still distinguishes the five that do work from the three
-   * that cannot yet - a job with no last run and a job that does not exist
-   * look identical otherwise, and an administrator reading "never run" would
-   * go hunting a scheduler fault that is really a missing table.
+   * `implemented` stays in the output even though every job in the registry
+   * now runs: a job with no last run and a job that does not exist look
+   * identical otherwise, and the flag is what tells an administrator which
+   * they are looking at.
    */
   async listCronJobs() {
     const last = await this.cron.lastRuns();
@@ -751,9 +748,10 @@ export class AdminService {
   /**
    * Runs one job now.
    *
-   * The three unbuilt jobs still throw NOT_IMPLEMENTED from CronService, with
-   * the missing pieces named, so pressing the button on one explains itself
-   * rather than failing silently.
+   * Every job in the registry runs. Two that were listed here only as
+   * NOT_IMPLEMENTED stubs are gone: availability is computed live by the
+   * catalogue queries, and report.summary counts from UsageLog on demand, so
+   * neither had anything to precompute.
    */
   async runCronJob(input: RunCronJobInput, actor: AuditActor) {
     const outcome = await this.cron.run(input.job);
@@ -781,9 +779,10 @@ export class AdminService {
    * effect until a redeploy, and a UI that accepts an edit which silently does
    * nothing is worse than one that refuses it.
    *
-   * So `updateConfig` still refuses. This procedure exists to let an
-   * administrator confirm what is deployed - which is the question they
-   * actually arrive with - rather than to pretend the values are editable.
+   * There is deliberately no `updateConfig` to pair with this. It existed as a
+   * procedure that only ever threw, which is a worse answer than not offering
+   * the verb at all: the page is a read-only record of what is deployed, which
+   * is the question an administrator actually arrives with.
    */
   getConfig() {
     const env = (key: string) => this.config.get<string>(key);
@@ -809,10 +808,16 @@ export class AdminService {
         presignedUploads: true,
       },
       email: {
-        // Nothing sends mail yet. Empty strings say so; a plausible-looking
-        // default here would read as a configured mail server.
-        smtpHost: '',
-        fromAddress: 'noreply@ku.th',
+        // Read from the same place the senders read it (common/mail/mailer.ts),
+        // so this page cannot drift from what actually goes out. The defaults
+        // point at the MailHog container in docker-compose.
+        smtpHost: env('SMTP_HOST') ?? 'localhost',
+        // MAIL_FROM is a header value ("ULMs <no-reply@ku.th>"); the page
+        // reports the address, which is what the schema declares.
+        fromAddress: mailAddress(env('MAIL_FROM') ?? 'ULMs <no-reply@ku.th>'),
+        // Mail is sent for password resets and registration confirmations.
+        // Due-soon reminders are not among them: dueSoonReminder writes in-app
+        // notifications, so there is no email to enable or disable.
         dueReminderEnabled: false,
       },
       // The polling intervals the contract fixes (SRS §"ช่วงเวลา polling").
@@ -822,17 +827,10 @@ export class AdminService {
       security: {
         cookieSecure: env('COOKIE_SECURE') === 'true' || isProduction,
         cookieSameSite: env('COOKIE_SAMESITE') ?? 'lax',
-        allowedOrigins: ALLOWED_ORIGINS,
+        allowedOrigins: allowedOrigins(),
         nodeEnv: env('NODE_ENV') ?? 'development',
       },
     };
-  }
-
-  updateConfig(): never {
-    return notImplemented(
-      ['SystemConfig table (key, value Json, updatedBy, updatedAt)'],
-      'These settings are environment variables and compiled-in constants, fixed per instance for the life of the process. Accepting an edit here would change nothing until a redeploy.',
-    );
   }
 
   // =========================================================================
@@ -1114,4 +1112,9 @@ export class AdminService {
     }
     return key;
   }
+}
+
+/** The bare address from a From header value, or the value itself if it has no brackets. */
+function mailAddress(from: string): string {
+  return /<([^>]+)>/.exec(from)?.[1].trim() ?? from.trim();
 }

@@ -1,78 +1,85 @@
-import { useEffect, useMemo, useRef, useState, type ChangeEvent, type ReactNode } from "react";
+import { useState, type ChangeEvent, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { fmtDayMonth } from "@/lib/datetime";
 import { useSearchParams } from "react-router-dom";
-import { Camera, Check, TriangleAlert } from "lucide-react";
+import { Camera, TriangleAlert, X } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
+import { ImageThumb } from "@/components/shared/image-thumb";
 import { Badge, type BadgeTone } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { UPLOAD } from "@/constants";
+import { getErrorMessage } from "@/lib/error-messages";
+import { fmtDate } from "@/lib/datetime";
 import { cn } from "@/lib/utils";
 import { uploadAcceptAttr, validateUploadFile } from "@/lib/upload-validation";
-import { creditCutOf, type MyRequest } from "../mock-data";
+import type {
+  AppealOutput,
+  AppealStatus,
+  AppealablePenalty,
+} from "@/features/supervisor/appeals/appeal.types";
+import type { MyRequest } from "../request-status";
 import { useMyRequests } from "../loans/use-my-requests";
-import { useSubmittedRequests } from "../loans/submitted-requests.store";
+import { prepareBorrowerImage, releaseBorrowerImage } from "../uploads/prepared-image";
 import {
-  prepareBorrowerImage,
-  releaseBorrowerImage,
-  type PreparedBorrowerImage,
-} from "../uploads/prepared-image";
+  useDetachUsagePhoto,
+  usePickupImageUpload,
+  useUsagePhotos,
+  type UsagePhotoSet,
+} from "../pickup/use-pickup-image-upload";
+import { penaltyReasonText } from "./penalty-reason";
+import { useAppealable, useCreateAppeal, useMyAppeals } from "./use-my-appeals";
+
+/** `createAppealInput.appealReason` in backend/src/appeal/appeal.schema.ts. */
+const REASON_MAX = 1000;
+
+const STATUS_TONE: Record<AppealStatus, BadgeTone> = {
+  pending: "warn",
+  approved: "ok",
+  rejected: "alert",
+};
 
 /**
- * Appeal a damage verdict.
+ * Appeal a credit penalty.
  *
- * The whole page exists because the inspector and the decider must be
- * different people: staff assign the damage level, a supervisor rules on the
- * challenge. Nothing here decides anything - it collects the borrower's side
- * of it and sends it on.
+ * Built on `appeal.appealable` (what can still be appealed, and until when)
+ * and `appeal.mine` (what has been filed and how it went). The unit is the
+ * penalty, not the loan: a late return and a damage grade on the same loan
+ * are separate penalties, and the borrower may accept one and dispute the
+ * other. A supervisor rules on it; nothing here decides anything.
  *
- * B0 verdicts never appear: nothing was deducted, so there is nothing to claim
- * back. Verdicts whose seven days have run out stay listed but unselectable,
- * because "you had a right and it expired" is worth seeing.
+ * `appeal.create` still takes only the penalty and the argument (FR-APL-02's
+ * evidence photos are optional, so they are not part of the same call). The
+ * borrower may attach them to the penalty's loan any time it is still
+ * appealable, through the same `image.attachUsagePhotos` stage machinery as
+ * pickup/return photos - see the `evidence` stage in
+ * backend/src/image/usage-image.service.ts. They land under `usagePhotos`
+ * keyed by the loan, which is also what the supervisor's screen reads.
  */
 export default function AppealsPage() {
   const { t } = useTranslation();
+  const appealable = useAppealable();
+  const mine = useMyAppeals();
   const { requests } = useMyRequests();
-  const sendAppeal = useSubmittedRequests((s) => s.sendAppeal);
+  const createAppeal = useCreateAppeal();
 
-  // Deep link from "my requests": the row the borrower pressed appeal on.
+  // Deep link from "my requests": the penalty the borrower pressed appeal on.
   const [params, setParams] = useSearchParams();
   const [reason, setReason] = useState("");
-  const [photo, setPhoto] = useState<PreparedBorrowerImage | null>(null);
-  const photoRef = useRef(photo);
-  photoRef.current = photo;
+  const [justSent, setJustSent] = useState(false);
 
-  useEffect(() => {
-    return () => releaseBorrowerImage(photoRef.current);
-  }, []);
+  const penalties = appealable.data ?? [];
+  const appeals = mine.data ?? [];
+  const wanted = Number(params.get("penalty"));
+  const picked = penalties.find((p) => p.penaltyKey === wanted) ?? null;
+  const loanOf = (usageKey: number | null) =>
+    usageKey === null ? undefined : requests.find((r) => r.usageKey === usageKey);
 
-  const appealable = useMemo(
-    () => requests.filter((r) => r.inspection && r.inspection.damage !== "B0"),
-    [requests],
-  );
-
-  const wanted = params.get("request");
-  const picked = appealable.find((r) => r.id === wanted && isOpen(r)) ?? null;
-
-  function pick(id: string) {
-    if (id !== picked?.id) {
+  function pick(penaltyKey: number) {
+    if (penaltyKey !== picked?.penaltyKey) {
       setReason("");
-      clearPhoto();
+      createAppeal.reset();
     }
-    setParams(id ? { request: id } : {}, { replace: true });
-  }
-
-  function replacePhoto(next: PreparedBorrowerImage) {
-    releaseBorrowerImage(photoRef.current);
-    photoRef.current = next;
-    setPhoto(next);
-  }
-
-  function clearPhoto() {
-    const previous = photoRef.current;
-    photoRef.current = null;
-    setPhoto(null);
-    releaseBorrowerImage(previous);
+    setJustSent(false);
+    setParams({ penalty: String(penaltyKey) }, { replace: true });
   }
 
   const why = reason.trim();
@@ -80,17 +87,32 @@ export default function AppealsPage() {
     ? "borrower.appeals.needPick"
     : why.length === 0
       ? "borrower.appeals.needWhy"
-      : photo === null
-        ? "borrower.appeals.needShot"
-        : null;
+      : null;
 
   function submit() {
-    if (picked === null || blockKey !== null) return;
-    sendAppeal(picked.id);
-    setReason("");
-    clearPhoto();
-    setParams({}, { replace: true });
+    if (picked === null || blockKey !== null || createAppeal.isPending) return;
+    createAppeal.mutate(
+      { penaltyKey: picked.penaltyKey, appealReason: why },
+      {
+        onSuccess: () => {
+          setReason("");
+          setJustSent(true);
+          setParams({}, { replace: true });
+        },
+      },
+    );
   }
+
+  if (appealable.isPending || mine.isPending) {
+    return (
+      <div>
+        <PageHeader title={t("nav.appeals")} subtitle={t("borrower.appeals.subtitle")} />
+        <p className="px-3.5 py-8 text-center text-[13px] text-t3">{t("common.loading")}</p>
+      </div>
+    );
+  }
+
+  const loadError = appealable.error ?? mine.error;
 
   return (
     <div>
@@ -100,25 +122,49 @@ export default function AppealsPage() {
         <p className="text-xs leading-relaxed text-t2">{t("borrower.appeals.intro")}</p>
       </div>
 
-      {appealable.length === 0 ? (
+      {loadError ? (
+        <p
+          role="alert"
+          className="mb-4 rounded border border-[var(--s-alert-b)] bg-[var(--s-alert-bg)] px-3 py-2 text-xs leading-relaxed text-[var(--s-alert-t)]"
+        >
+          {getErrorMessage(loadError)}
+        </p>
+      ) : null}
+
+      {justSent ? (
+        <p className="mb-4 rounded bg-[var(--s-ok-bg)] px-3 py-2 text-xs font-medium leading-relaxed text-[var(--s-ok-t)]">
+          {t("borrower.appeals.sentNote")}
+        </p>
+      ) : null}
+
+      {penalties.length === 0 && appeals.length === 0 ? (
         <EmptyState />
       ) : (
         <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_312px]">
           <div className="flex min-w-0 flex-col gap-4">
             <Panel title={t("borrower.appeals.pickTitle")}>
-              <p className="px-3.5 pb-1 pt-2.5 text-xs leading-relaxed text-t3">
-                {t("borrower.appeals.pickHelp")}
-              </p>
-              <div className="flex flex-col gap-2 px-3.5 pb-3.5 pt-1.5">
-                {appealable.map((row) => (
-                  <VerdictCard
-                    key={row.id}
-                    row={row}
-                    selected={picked?.id === row.id}
-                    onPick={() => pick(row.id)}
-                  />
-                ))}
-              </div>
+              {penalties.length === 0 ? (
+                <p className="px-3.5 py-6 text-center text-[13px] text-t3">
+                  {t("borrower.appeals.noneBody")}
+                </p>
+              ) : (
+                <>
+                  <p className="px-3.5 pb-1 pt-2.5 text-xs leading-relaxed text-t3">
+                    {t("borrower.appeals.pickHelp")}
+                  </p>
+                  <div className="flex flex-col gap-2 px-3.5 pb-3.5 pt-1.5">
+                    {penalties.map((p) => (
+                      <PenaltyCard
+                        key={p.penaltyKey}
+                        penalty={p}
+                        loan={loanOf(p.usageKey)}
+                        selected={picked?.penaltyKey === p.penaltyKey}
+                        onPick={() => pick(p.penaltyKey)}
+                      />
+                    ))}
+                  </div>
+                </>
+              )}
             </Panel>
 
             {picked ? (
@@ -130,28 +176,27 @@ export default function AppealsPage() {
                     </span>
                     <textarea
                       value={reason}
+                      maxLength={REASON_MAX}
                       onChange={(e) => setReason(e.target.value)}
                       placeholder={t("borrower.appeals.whyPlaceholder")}
                       className="mt-1.5 h-24 w-full resize-none rounded border border-border bg-surface-inset px-3 py-2 text-[13px] text-foreground outline-none placeholder:text-t4 focus-visible:border-accent"
                     />
                   </label>
 
-                  <div className="mt-4 text-[11px] font-semibold uppercase tracking-[0.05em] text-t3">
-                    {t("borrower.appeals.shotTitle")}
-                  </div>
-                  <p className="mt-1 text-xs leading-relaxed text-t4">
-                    {t("borrower.appeals.shotHelp")}
-                  </p>
-                  <PhotoBox image={photo} onPicked={replacePhoto} />
+                  {picked.usageKey !== null ? <Evidence usageKey={picked.usageKey} /> : null}
                 </div>
               </Panel>
-            ) : (
-              <Panel>
-                <p className="px-5 py-9 text-center text-sm font-semibold text-foreground">
-                  {t("borrower.appeals.needPick")}
-                </p>
+            ) : null}
+
+            {appeals.length > 0 ? (
+              <Panel title={t("borrower.appeals.mineTitle")}>
+                <div className="flex flex-col gap-2 p-3.5">
+                  {appeals.map((a) => (
+                    <AppealCard key={a.appealKey} appeal={a} loan={loanOf(a.penalty.usageKey)} />
+                  ))}
+                </div>
               </Panel>
-            )}
+            ) : null}
           </div>
 
           <aside className="lg:sticky lg:top-0">
@@ -166,29 +211,37 @@ export default function AppealsPage() {
                 <div>
                   <div className="text-t3">{t("borrower.appeals.sumItem")}</div>
                   <div className="mt-1 font-medium leading-snug text-foreground">
-                    {picked?.name ?? "-"}
+                    {picked ? itemName(loanOf(picked.usageKey), picked.usageKey, t) : "-"}
                   </div>
-                  {picked ? (
-                    <div className="mt-0.5 font-mono text-[11.5px] text-t4">{picked.serial}</div>
-                  ) : null}
                 </div>
-                <SumRow label={t("borrower.appeals.sumDmg")}>
-                  {picked?.inspection?.damage ?? "-"}
+                <SumRow label={t("borrower.appeals.sumReason")}>
+                  {picked ? penaltyReasonText(picked.reason, t) : "-"}
                 </SumRow>
                 <SumRow label={t("borrower.appeals.sumCut")}>
-                  {picked ? cutOf(picked) : "-"}
+                  {picked?.creditDeducted ?? "-"}
+                </SumRow>
+                <SumRow label={t("borrower.appeals.sumUntil")}>
+                  {picked ? fmtDate(picked.appealableUntil) : "-"}
                 </SumRow>
               </div>
 
               <div className="px-3.5 pb-3.5">
                 {blockKey ? <Warning>{t(blockKey)}</Warning> : null}
+                {createAppeal.error ? (
+                  <p
+                    role="alert"
+                    className="mb-2 rounded border border-[var(--s-alert-b)] bg-[var(--s-alert-bg)] px-3 py-2 text-xs leading-relaxed text-[var(--s-alert-t)]"
+                  >
+                    {getErrorMessage(createAppeal.error)}
+                  </p>
+                ) : null}
                 <Button
                   type="button"
                   className="h-[42px] w-full"
-                  disabled={blockKey !== null}
+                  disabled={blockKey !== null || createAppeal.isPending}
                   onClick={submit}
                 >
-                  {t("borrower.appeals.send")}
+                  {createAppeal.isPending ? t("common.loading") : t("borrower.appeals.send")}
                 </Button>
               </div>
             </Panel>
@@ -199,90 +252,166 @@ export default function AppealsPage() {
   );
 }
 
-/**
- * One verdict, with the three figures that decide whether it is worth
- * contesting: the level given, what it cost, and when the clock started.
- */
-function VerdictCard({
-  row,
+/** One penalty that can still be appealed, with the figure the server deducted. */
+function PenaltyCard({
+  penalty,
+  loan,
   selected,
   onPick,
 }: {
-  row: MyRequest;
+  penalty: AppealablePenalty;
+  loan: MyRequest | undefined;
   selected: boolean;
   onPick: () => void;
 }) {
   const { t } = useTranslation();
-  const insp = row.inspection;
-  if (!insp) return null;
-
-  const open = isOpen(row);
-  const window = row.appealSent
-    ? { key: "borrower.appeals.sentTag", tone: "ok" as BadgeTone, count: 0 }
-    : insp.appealDaysLeft > 0
-      ? { key: "borrower.appeals.left", tone: "warn" as BadgeTone, count: insp.appealDaysLeft }
-      : { key: "borrower.appeals.closed", tone: "neutral" as BadgeTone, count: 0 };
 
   return (
     <button
       type="button"
-      disabled={!open}
       onClick={onPick}
+      aria-pressed={selected}
       className={cn(
-        "rounded border p-3 text-left transition-colors",
+        "rounded border p-3 text-left transition-colors hover:border-line-strong",
         selected ? "border-accent bg-accent-soft" : "border-border bg-card",
-        open ? "hover:border-line-strong" : "cursor-not-allowed opacity-75",
       )}
     >
       <div className="flex flex-wrap items-start justify-between gap-2">
         <span className="min-w-0">
-          <span className="flex flex-wrap items-center gap-2">
-            <span className="text-sm font-semibold text-foreground">{row.name}</span>
-            <span className="rounded bg-surface-inset px-1.5 py-0.5 text-[10.5px] font-semibold text-t3">
-              {row.tier}
+          <span className="block text-sm font-semibold text-foreground">
+            {itemName(loan, penalty.usageKey, t)}
+          </span>
+          {loan ? (
+            <span className="mt-1 block font-mono text-[11.5px] text-t4">
+              {loan.id} · {loan.serial}
             </span>
-          </span>
-          <span className="mt-1 block font-mono text-[11.5px] text-t4">
-            {row.id} · {row.serial}
-          </span>
+          ) : null}
         </span>
-        <Badge tone={window.tone}>{t(window.key, { count: window.count })}</Badge>
+        <Badge tone="warn">
+          {t("borrower.appeals.until", { date: fmtDate(penalty.appealableUntil) })}
+        </Badge>
       </div>
 
       <div className="mt-2.5 grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(120px,1fr))]">
-        <Field label={t("borrower.appeals.colDmg")}>{insp.damage}</Field>
-        <Field label={t("borrower.appeals.colCut")}>−{cutOf(row)}</Field>
-        <Field label={t("borrower.appeals.colWhen")}>{fmtDay(insp.inspectedAt)}</Field>
+        <Field label={t("borrower.appeals.colReason")}>
+          {penaltyReasonText(penalty.reason, t)}
+        </Field>
+        <Field label={t("borrower.appeals.colCut")} mono>
+          {penalty.creditDeducted === null ? "-" : `−${penalty.creditDeducted}`}
+        </Field>
+        <Field label={t("borrower.appeals.colIssued")} mono>
+          {fmtDate(penalty.issuedAt)}
+        </Field>
       </div>
-
-      {insp.reason ? (
-        <p className="mt-2 text-xs leading-relaxed text-t3">
-          {t("borrower.appeals.inspectedBy", { name: insp.inspectedBy })} - {insp.reason}
-        </p>
-      ) : null}
-
-      {row.appealSent ? (
-        <p className="mt-2 rounded bg-[var(--s-ok-bg)] px-3 py-2 text-xs font-medium leading-relaxed text-[var(--s-ok-t)]">
-          {t("borrower.appeals.sentNote")}
-        </p>
-      ) : null}
     </button>
   );
 }
 
+/** One filed appeal and where it got to. */
+function AppealCard({ appeal, loan }: { appeal: AppealOutput; loan: MyRequest | undefined }) {
+  const { t } = useTranslation();
+  const penalty = appeal.penalty;
+
+  return (
+    <article className="rounded border border-border p-3">
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <span className="min-w-0">
+          <span className="block text-sm font-semibold text-foreground">
+            {itemName(loan, penalty.usageKey, t)}
+          </span>
+          <span className="mt-1 block text-xs text-t3">
+            {penaltyReasonText(penalty.reason, t)} ·{" "}
+            {t("borrower.myRequests.penaltyCredit", { credit: penalty.creditDeducted ?? 0 })}
+          </span>
+        </span>
+        <Badge tone={STATUS_TONE[appeal.status]}>
+          {t(`borrower.appeals.status_${appeal.status}`)}
+        </Badge>
+      </div>
+
+      {appeal.appealReason ? (
+        <p className="mt-2 whitespace-pre-line text-xs leading-relaxed text-t2">
+          {appeal.appealReason}
+        </p>
+      ) : null}
+
+      <p className="mt-2 font-mono text-[11px] text-t4">
+        {t("borrower.appeals.filedOn", { date: fmtDate(appeal.filedAt) })}
+        {appeal.status === "approved"
+          ? ` · ${t("borrower.appeals.restored", { count: appeal.creditRestored })}`
+          : ""}
+        {appeal.replacementPenalty
+          ? ` · ${t("borrower.appeals.reducedTo", {
+              count: appeal.replacementPenalty.creditDeducted ?? 0,
+            })}`
+          : ""}
+      </p>
+    </article>
+  );
+}
+
 /**
- * One photo, not the mockup's pair. The borrower already has shots from
- * collection and from return; forcing both slots when either one alone can
- * make the point just blocks the appeal on paperwork.
+ * What is on file for the loan, read-only. The same set the supervisor looks
+ * at, so the borrower can point at what they mean in the reason.
  */
-function PhotoBox({
-  image,
-  onPicked,
+function Evidence({ usageKey }: { usageKey: number }) {
+  const { t } = useTranslation();
+  const { data } = useUsagePhotos(usageKey);
+  const groups: { stage: keyof UsagePhotoSet; label: string }[] = [
+    { stage: "before", label: t("borrower.pickup.stageBefore") },
+    { stage: "after", label: t("borrower.pickup.stageAfter") },
+    { stage: "inspection", label: t("borrower.pickup.stageInspection") },
+  ];
+  const shown = data ? groups.filter((g) => data[g.stage].length > 0) : [];
+
+  return (
+    <div className="mt-4">
+      <div className="text-[11px] font-semibold uppercase tracking-[0.05em] text-t3">
+        {t("borrower.appeals.evidenceTitle")}
+      </div>
+      <p className="mt-1 text-xs leading-relaxed text-t4">{t("borrower.appeals.evidenceHelp")}</p>
+      {data && shown.length === 0 ? (
+        <p className="mt-2 text-xs text-t4">{t("borrower.appeals.evidenceNone")}</p>
+      ) : null}
+      {data
+        ? shown.map((g) => (
+            <div key={g.stage} className="mt-2">
+              <div className="mb-1 text-[10.5px] font-semibold uppercase tracking-wide text-t4">
+                {g.label}
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {data[g.stage].map((photo) => (
+                  <a key={photo.imageKey} href={photo.imageUrl} target="_blank" rel="noreferrer">
+                    <ImageThumb src={photo.imageUrl} size={64} />
+                  </a>
+                ))}
+              </div>
+            </div>
+          ))
+        : null}
+
+      <EvidenceUpload usageKey={usageKey} evidence={data?.evidence ?? []} />
+    </div>
+  );
+}
+
+/**
+ * FR-APL-02: the borrower's own photos, optional and separate from the
+ * before/after/inspection record above. Attached straight to the loan's usage
+ * key via `image.attachUsagePhotos({ stage: "evidence" })`, the same call
+ * pickup uses for `before` - the server decides whether there is still a
+ * damage penalty worth attaching evidence to (EVIDENCE_NOT_ALLOWED if not).
+ */
+function EvidenceUpload({
+  usageKey,
+  evidence,
 }: {
-  image: PreparedBorrowerImage | null;
-  onPicked: (image: PreparedBorrowerImage) => void;
+  usageKey: number;
+  evidence: UsagePhotoSet["evidence"];
 }) {
   const { t } = useTranslation();
+  const uploadEvidence = usePickupImageUpload();
+  const detachPhoto = useDetachUsagePhoto();
   const [error, setError] = useState<string | null>(null);
 
   function onPick(e: ChangeEvent<HTMLInputElement>) {
@@ -295,42 +424,77 @@ function PhotoBox({
     if (!result.ok) {
       setError(
         result.code === "FILE_TOO_LARGE"
-          ? t("borrower.appeals.photoTooLarge", { max: UPLOAD.MAX_MB })
-          : t("borrower.appeals.photoBadType"),
+          ? t("borrower.pickup.photoTooLarge", { max: UPLOAD.MAX_MB })
+          : t("borrower.pickup.photoBadType"),
       );
       return;
     }
 
     setError(null);
-    onPicked(prepareBorrowerImage(file));
+    const image = prepareBorrowerImage(file);
+    uploadEvidence.mutate(
+      { usageKey, image, stage: "evidence" },
+      {
+        onSettled: () => releaseBorrowerImage(image),
+        onError: (err) => setError(getErrorMessage(err)),
+      },
+    );
   }
 
+  function removePhoto(imageKey: number) {
+    setError(null);
+    detachPhoto.mutate(
+      { usageKey, imageKey },
+      { onError: (err) => setError(getErrorMessage(err)) },
+    );
+  }
+
+  const busy = uploadEvidence.isPending || detachPhoto.isPending;
+
   return (
-    <div className="mt-2.5">
-      <label
-        className={cn(
-          "relative flex h-[118px] max-w-[280px] cursor-pointer items-center justify-center overflow-hidden rounded border border-dashed",
-          image
-            ? "border-[var(--s-ok-t)] bg-[var(--s-ok-bg)] text-[var(--s-ok-t)]"
-            : "border-line-strong bg-surface-inset text-t4",
-        )}
-      >
-        <input type="file" accept={uploadAcceptAttr()} onChange={onPick} className="sr-only" />
-        {image ? (
-          <>
-            <img src={image.previewUrl} alt="" className="h-full w-full object-cover" />
-            <span className="absolute bottom-1.5 right-1.5 inline-flex items-center gap-1 rounded bg-[var(--s-ok-t)] px-1.5 py-0.5 text-[11px] font-semibold text-white">
-              <Check size={11} strokeWidth={3} />
-              {t("borrower.appeals.shotDone")}
-            </span>
-          </>
-        ) : (
-          <span className="flex flex-col items-center gap-2">
-            <Camera size={26} strokeWidth={1.5} />
-            <span className="text-[12.5px] font-medium">{t("borrower.appeals.shotTake")}</span>
-          </span>
-        )}
-      </label>
+    <div className="mt-4 border-t border-border pt-3">
+      <div className="text-[11px] font-semibold uppercase tracking-[0.05em] text-t3">
+        {t("borrower.appeals.myEvidenceTitle")}
+      </div>
+      <p className="mt-1 text-xs leading-relaxed text-t4">
+        {t("borrower.appeals.myEvidenceHelp")}
+      </p>
+
+      <div className="mt-2 flex flex-wrap items-center gap-1.5">
+        {evidence.map((photo) => (
+          <div key={photo.imageKey} className="relative">
+            <a href={photo.imageUrl} target="_blank" rel="noreferrer">
+              <ImageThumb src={photo.imageUrl} size={64} />
+            </a>
+            <button
+              type="button"
+              aria-label={t("borrower.pickup.removePhoto")}
+              disabled={busy}
+              onClick={() => removePhoto(photo.imageKey)}
+              className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full border border-border bg-card text-t3 shadow-sm disabled:opacity-50"
+            >
+              <X size={11} strokeWidth={2.6} />
+            </button>
+          </div>
+        ))}
+
+        <label
+          className={cn(
+            "flex h-16 w-16 cursor-pointer items-center justify-center rounded border border-dashed border-line-strong text-t4",
+            busy && "cursor-default opacity-60",
+          )}
+        >
+          <input
+            type="file"
+            accept={uploadAcceptAttr()}
+            disabled={busy}
+            onChange={onPick}
+            className="sr-only"
+          />
+          <Camera size={18} strokeWidth={1.5} />
+        </label>
+      </div>
+
       {error ? (
         <p className="mt-1.5 text-[11.5px] leading-relaxed text-[var(--s-alert-t)]">{error}</p>
       ) : null}
@@ -351,11 +515,11 @@ function Panel({ title, children }: { title?: ReactNode; children: ReactNode }) 
   );
 }
 
-function Field({ label, children }: { label: string; children: ReactNode }) {
+function Field({ label, mono = false, children }: { label: string; mono?: boolean; children: ReactNode }) {
   return (
     <div>
       <div className="text-[11px] font-semibold uppercase tracking-[0.05em] text-t3">{label}</div>
-      <div className="mt-1 font-mono text-[13px] text-foreground">{children}</div>
+      <div className={cn("mt-1 text-[13px] text-foreground", mono && "font-mono")}>{children}</div>
     </div>
   );
 }
@@ -364,7 +528,7 @@ function SumRow({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="flex justify-between gap-3">
       <span className="text-t3">{label}</span>
-      <span className="text-right font-mono font-medium text-foreground">{children}</span>
+      <span className="text-right font-medium text-foreground">{children}</span>
     </div>
   );
 }
@@ -392,15 +556,15 @@ function EmptyState() {
   );
 }
 
-/** Still contestable: a verdict that cost credit, inside its window, not yet sent. */
-function isOpen(row: MyRequest): boolean {
-  return !row.appealSent && (row.inspection?.appealDaysLeft ?? 0) > 0;
-}
-
-function cutOf(row: MyRequest): number {
-  return row.inspection ? creditCutOf(row.tier, row.inspection.damage) : 0;
-}
-
-function fmtDay(iso: string): string {
-  return fmtDayMonth(iso);
+/**
+ * The item a penalty came from. A penalty with no loan behind it (an
+ * administrative ban) says so rather than showing a blank.
+ */
+function itemName(
+  loan: MyRequest | undefined,
+  usageKey: number | null,
+  t: (key: string) => string,
+): string {
+  if (loan) return loan.name;
+  return usageKey === null ? t("borrower.appeals.noLoan") : `#${usageKey}`;
 }

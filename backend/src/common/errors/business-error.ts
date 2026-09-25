@@ -21,6 +21,27 @@ export const BUSINESS_ERROR_CODES = {
   ACCOUNT_DISABLED: 'FORBIDDEN',
   /** Too many failed logins. `cause.retryAfterSeconds` says how long to wait. */
   TOO_MANY_ATTEMPTS: 'TOO_MANY_REQUESTS',
+  /**
+   * NFR-SEC-05: a per-IP rate limit tripped on a public tRPC procedure that
+   * has no login-style throttle of its own (e.g. `auth.providers`). The REST
+   * routes with the same problem - uploads, signed media, Google OAuth - are
+   * not tRPC calls, so they answer 429 with this same code directly rather
+   * than through a BusinessError.
+   */
+  TOO_MANY_REQUESTS: 'TOO_MANY_REQUESTS',
+  /**
+   * C-01/FR-AUTH-02: an email outside ALLOWED_EMAIL_DOMAINS - on
+   * self-registration, or on a verified Google identity. Never applied to
+   * admin-created local accounts or to signing in to an account that already
+   * exists.
+   */
+  INVALID_DOMAIN: 'BAD_REQUEST',
+  /**
+   * FR-AUTH-01: a Google sign-in verified a KU identity with no matching
+   * AccountInfo row. Accounts are provisioned by registration or an admin,
+   * never created on the fly here.
+   */
+  ACCOUNT_NOT_FOUND: 'NOT_FOUND',
 
   // --- accounts (admin domain) ---
   USER_NOT_FOUND: 'NOT_FOUND',
@@ -51,7 +72,10 @@ export const BUSINESS_ERROR_CODES = {
    * has the same shape.
    */
   DISABLE_WOULD_ORPHAN_GROUP: 'CONFLICT',
-  /** No CreditTier row covers this score - CreditMin/CreditMax leave a gap */
+  /** Forged, already spent, or expired. One code for all three on purpose. */
+  RESET_TOKEN_INVALID: 'BAD_REQUEST',
+  /** Same three cases, for the link that confirms a self-registered address. */
+  VERIFICATION_TOKEN_INVALID: 'BAD_REQUEST',
   /**
    * The current password given on a self-service change did not match.
    *
@@ -59,11 +83,10 @@ export const BUSINESS_ERROR_CODES = {
    * client which treats 401 as "session expired" would sign the user out for
    * mistyping a field on a form they are already authenticated for.
    */
-  /** Forged, already spent, or expired. One code for all three on purpose. */
-  RESET_TOKEN_INVALID: 'BAD_REQUEST',
   CURRENT_PASSWORD_INCORRECT: 'FORBIDDEN',
   /** A new password identical to the old one - the change would be a no-op. */
   PASSWORD_UNCHANGED: 'BAD_REQUEST',
+  /** No CreditTier row covers this score - CreditMin/CreditMax leave a gap */
   CREDIT_TIER_NOT_CONFIGURED: 'PRECONDITION_FAILED',
 
   // --- lending settings ---
@@ -72,6 +95,8 @@ export const BUSINESS_ERROR_CODES = {
   // --- catalogue ---
   ITEM_NOT_FOUND: 'NOT_FOUND',
   ROOM_NOT_FOUND: 'NOT_FOUND',
+  /** FR-BRW-02: `item.list`'s cursor is forged, truncated, or from a different sort. */
+  INVALID_CURSOR: 'BAD_REQUEST',
 
   // --- departmental authority (staff domain) ---
   /** Staff role granted but the account holds no Authority row — nothing to manage */
@@ -95,6 +120,15 @@ export const BUSINESS_ERROR_CODES = {
   TIER_NOT_CONFIGURED: 'PRECONDITION_FAILED',
   /** Cannot take a unit out of the pool while somebody is holding it */
   RESOURCE_IN_USE: 'CONFLICT',
+  /**
+   * FR-EQP-05: refuses `item.deleteType`/`deleteUnit`/`deleteRoom` on a record
+   * that still has history. `cause` carries the counts (reservations, usage
+   * logs, images, …) so the caller knows what to clear, or that it should
+   * retire the resource instead of deleting it.
+   */
+  HAS_HISTORY: 'CONFLICT',
+  /** FR-EQP-04: opening hours off the 30-minute grid, backwards, or with half a break. */
+  INVALID_ROOM_HOURS: 'BAD_REQUEST',
 
   // --- handover desk (staff domain) ---
   RESERVATION_NOT_FOUND: 'NOT_FOUND',
@@ -103,9 +137,15 @@ export const BUSINESS_ERROR_CODES = {
   NOT_APPROVED_YET: 'CONFLICT',
   /** The loan is not at the step this action expects — `cause` names both */
   WRONG_LOAN_STATE: 'CONFLICT',
+  /** Borrower confirmation requires their before-pickup evidence photo. */
+  PICKUP_PHOTO_REQUIRED: 'PRECONDITION_FAILED',
+  /** No "after" photo on the loan yet; the return is photographed (FR-RTN-01). */
+  RETURN_PHOTO_REQUIRED: 'PRECONDITION_FAILED',
   /** The chosen unit is a different type, or a different department, than the request */
   UNIT_DOES_NOT_MATCH_REQUEST: 'BAD_REQUEST',
   EXTENSION_NOT_FOUND: 'NOT_FOUND',
+  /** Already holding a room; `cause.limit` says how many may be held at once. */
+  ROOM_BOOKING_LIMIT_REACHED: 'CONFLICT',
   /** T2 extensions are the supervisor's call, not the counter's (§5.4) */
   EXTENSION_NEEDS_SUPERVISOR: 'FORBIDDEN',
   /**
@@ -116,6 +156,13 @@ export const BUSINESS_ERROR_CODES = {
    * so the screen can offer exactly that.
    */
   EXTENSION_ALREADY_PENDING: 'CONFLICT',
+  /** A room is kept longer by booking the next free slot, not by extending. */
+  ROOM_NOT_EXTENDABLE: 'BAD_REQUEST',
+  /**
+   * Collected before the booked pickup time. `cause.opensAt` says when it can
+   * be; staff can hand over earlier with `early` when the unit is free.
+   */
+  PICKUP_NOT_OPEN: 'BAD_REQUEST',
   /**
    * The requested new due date is not one this loan can be moved to — earlier
    * than the current one, in the past, or past what the borrower's band allows.
@@ -184,11 +231,15 @@ export const BUSINESS_ERROR_CODES = {
   ROOM_SLOTS_NOT_CONTIGUOUS: 'BAD_REQUEST',
   /** The slot has already been and gone today. Sibling of INVALID_BORROW_WINDOW. */
   ROOM_SLOT_IN_THE_PAST: 'BAD_REQUEST',
+  /** Rooms are booked for today only; the booking screen never offered another day. */
+  ROOM_BOOKING_SAME_DAY_ONLY: 'BAD_REQUEST',
 
   // --- appeals (§5.8 "ขออุทธรณ์") ---
   PENALTY_NOT_FOUND: 'NOT_FOUND',
   APPEAL_NOT_FOUND: 'NOT_FOUND',
   /** One appeal per penalty — AppealInfo.OriginalPenalty is unique */
+  /** FR-APL-01: only a damage assessment can be appealed, not lateness or loss. */
+  PENALTY_NOT_APPEALABLE: 'BAD_REQUEST',
   ALREADY_APPEALED: 'CONFLICT',
   /** Appealing somebody else's penalty. Same answer as "no such penalty" would leak less, but the borrower reaches this only from their own list. */
   NOT_YOUR_PENALTY: 'FORBIDDEN',
@@ -218,6 +269,12 @@ export const BUSINESS_ERROR_CODES = {
    * borrower exactly where they were is a rejection with extra rows.
    */
   INVALID_APPEAL_REDUCTION: 'BAD_REQUEST',
+  /**
+   * FR-APL-02: no damage penalty on this loan that the caller can still argue
+   * with (appealable, or under a pending appeal), so there is nothing for
+   * appeal evidence to attach to.
+   */
+  EVIDENCE_NOT_ALLOWED: 'FORBIDDEN',
 
   // --- borrowing requests (borrower slice) ---
   /**
@@ -230,19 +287,35 @@ export const BUSINESS_ERROR_CODES = {
    * built around it. This code is the backend half of that decision; the
    * contract table has been corrected to match.
    */
-  /**
-   * An administrative borrowing ban is in force (admin.setUserBan).
-   *
-   * Separate from CREDIT_TOO_LOW: that one is the credit system doing its job,
-   * this one is a person having decided. `cause` carries the reason the staff
-   * member gave and when it lifts, so the borrower is told both.
-   */
-  BORROWING_SUSPENDED: 'FORBIDDEN',
   CREDIT_TOO_LOW: 'FORBIDDEN',
   /** The requested window is backwards, in the past, or longer than the tier allows */
   INVALID_BORROW_WINDOW: 'BAD_REQUEST',
+  /**
+   * FR-RSV-03: T0 is stock borrowed on the spot, not reserved ahead. Thrown
+   * when a T0 line's start falls on a later Bangkok day than today.
+   */
+  T0_NOT_RESERVABLE: 'BAD_REQUEST',
+  /**
+   * FR-RSV-01: T1/T2 may be reserved ahead only to the end of the current
+   * term (`TERM_END_DATE`). `cause.termEnd` is the last instant of the term.
+   */
+  RESERVATION_PAST_TERM_END: 'BAD_REQUEST',
   /** Somebody else's request already holds this unit for part of the window */
   WINDOW_NOT_AVAILABLE: 'CONFLICT',
+  /**
+   * FR-RSV-05 (G1, T2): the serial the borrower asked for is not free for the
+   * window. Distinct from WINDOW_NOT_AVAILABLE so the message can say what a
+   * T2 borrower does next - pick a different serial - rather than the generic
+   * "this slot is unavailable", which reads as the whole period being closed.
+   */
+  SERIAL_NOT_AVAILABLE: 'CONFLICT',
+  /**
+   * FR-RSV-06 (G2): the window is free at the start but a later reservation
+   * on the same unit claims part of it. `cause.maxEndTime` is that
+   * reservation's start minus the unit's own prep buffer - the latest end
+   * time a shortened request could still use.
+   */
+  WINDOW_CROSSES_RESERVATION: 'CONFLICT',
   /**
    * Serializable kept refusing the write because other people are booking the
    * same unit right now. `cause.attempts` says how many times it was retried.
@@ -258,6 +331,24 @@ export const BUSINESS_ERROR_CODES = {
   CANNOT_APPROVE_OWN_REQUEST: 'FORBIDDEN',
   /** This request is above the caller's pay grade - T2 belongs to a supervisor */
   APPROVAL_NEEDS_SUPERVISOR: 'FORBIDDEN',
+
+  // --- retirement (FR-EQP-08) ---
+  RETIREMENT_REQUEST_NOT_FOUND: 'NOT_FOUND',
+  /** The resource already carries an undecided retirement request. */
+  RETIREMENT_ALREADY_PENDING: 'CONFLICT',
+  /** Approved, rejected, or cancelled already — nothing left to decide or withdraw. */
+  RETIREMENT_ALREADY_DECIDED: 'CONFLICT',
+  /** Only the staff member who filed it may cancel their own pending request. */
+  NOT_YOUR_RETIREMENT_REQUEST: 'FORBIDDEN',
+  /** Same "no deciding your own" rule as CANNOT_APPROVE_OWN_REQUEST, one desk over. */
+  CANNOT_DECIDE_OWN_RETIREMENT: 'FORBIDDEN',
+  /** Already ResourceStatus.Retired — nothing left to retire. */
+  RESOURCE_ALREADY_RETIRED: 'CONFLICT',
+  /**
+   * Refuses a retirement request or approval while the resource is out on
+   * loan or has an upcoming approved/pending reservation. `cause` names which.
+   */
+  RETIREMENT_BLOCKED_BY_ACTIVITY: 'CONFLICT',
 
   // --- borrowing (declared here so other domains reuse the same table) ---
   NOT_ELIGIBLE: 'FORBIDDEN',

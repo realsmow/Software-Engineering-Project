@@ -45,6 +45,7 @@ export type ReservationsMinAggregateOutputType = {
   ResourceKey: number | null
   ReservedBy: number | null
   Reason: string | null
+  DecisionNote: string | null
   StartTime: Date | null
   EndTime: Date | null
   ApproveStatus: $Enums.ApproveStatus | null
@@ -61,6 +62,7 @@ export type ReservationsMaxAggregateOutputType = {
   ResourceKey: number | null
   ReservedBy: number | null
   Reason: string | null
+  DecisionNote: string | null
   StartTime: Date | null
   EndTime: Date | null
   ApproveStatus: $Enums.ApproveStatus | null
@@ -77,6 +79,7 @@ export type ReservationsCountAggregateOutputType = {
   ResourceKey: number
   ReservedBy: number
   Reason: number
+  DecisionNote: number
   StartTime: number
   EndTime: number
   ApproveStatus: number
@@ -109,6 +112,7 @@ export type ReservationsMinAggregateInputType = {
   ResourceKey?: true
   ReservedBy?: true
   Reason?: true
+  DecisionNote?: true
   StartTime?: true
   EndTime?: true
   ApproveStatus?: true
@@ -125,6 +129,7 @@ export type ReservationsMaxAggregateInputType = {
   ResourceKey?: true
   ReservedBy?: true
   Reason?: true
+  DecisionNote?: true
   StartTime?: true
   EndTime?: true
   ApproveStatus?: true
@@ -141,6 +146,7 @@ export type ReservationsCountAggregateInputType = {
   ResourceKey?: true
   ReservedBy?: true
   Reason?: true
+  DecisionNote?: true
   StartTime?: true
   EndTime?: true
   ApproveStatus?: true
@@ -244,6 +250,7 @@ export type ReservationsGroupByOutputType = {
   ResourceKey: number
   ReservedBy: number
   Reason: string | null
+  DecisionNote: string | null
   StartTime: Date
   EndTime: Date
   ApproveStatus: $Enums.ApproveStatus
@@ -283,6 +290,7 @@ export type ReservationsWhereInput = {
   ResourceKey?: Prisma.IntFilter<"Reservations"> | number
   ReservedBy?: Prisma.IntFilter<"Reservations"> | number
   Reason?: Prisma.StringNullableFilter<"Reservations"> | string | null
+  DecisionNote?: Prisma.StringNullableFilter<"Reservations"> | string | null
   StartTime?: Prisma.DateTimeFilter<"Reservations"> | Date | string
   EndTime?: Prisma.DateTimeFilter<"Reservations"> | Date | string
   ApproveStatus?: Prisma.EnumApproveStatusFilter<"Reservations"> | $Enums.ApproveStatus
@@ -304,6 +312,7 @@ export type ReservationsOrderByWithRelationInput = {
   ResourceKey?: Prisma.SortOrder
   ReservedBy?: Prisma.SortOrder
   Reason?: Prisma.SortOrderInput | Prisma.SortOrder
+  DecisionNote?: Prisma.SortOrderInput | Prisma.SortOrder
   StartTime?: Prisma.SortOrder
   EndTime?: Prisma.SortOrder
   ApproveStatus?: Prisma.SortOrder
@@ -328,6 +337,7 @@ export type ReservationsWhereUniqueInput = Prisma.AtLeast<{
   ResourceKey?: Prisma.IntFilter<"Reservations"> | number
   ReservedBy?: Prisma.IntFilter<"Reservations"> | number
   Reason?: Prisma.StringNullableFilter<"Reservations"> | string | null
+  DecisionNote?: Prisma.StringNullableFilter<"Reservations"> | string | null
   StartTime?: Prisma.DateTimeFilter<"Reservations"> | Date | string
   EndTime?: Prisma.DateTimeFilter<"Reservations"> | Date | string
   ApproveStatus?: Prisma.EnumApproveStatusFilter<"Reservations"> | $Enums.ApproveStatus
@@ -349,6 +359,7 @@ export type ReservationsOrderByWithAggregationInput = {
   ResourceKey?: Prisma.SortOrder
   ReservedBy?: Prisma.SortOrder
   Reason?: Prisma.SortOrderInput | Prisma.SortOrder
+  DecisionNote?: Prisma.SortOrderInput | Prisma.SortOrder
   StartTime?: Prisma.SortOrder
   EndTime?: Prisma.SortOrder
   ApproveStatus?: Prisma.SortOrder
@@ -373,6 +384,7 @@ export type ReservationsScalarWhereWithAggregatesInput = {
   ResourceKey?: Prisma.IntWithAggregatesFilter<"Reservations"> | number
   ReservedBy?: Prisma.IntWithAggregatesFilter<"Reservations"> | number
   Reason?: Prisma.StringNullableWithAggregatesFilter<"Reservations"> | string | null
+  DecisionNote?: Prisma.StringNullableWithAggregatesFilter<"Reservations"> | string | null
   StartTime?: Prisma.DateTimeWithAggregatesFilter<"Reservations"> | Date | string
   EndTime?: Prisma.DateTimeWithAggregatesFilter<"Reservations"> | Date | string
   ApproveStatus?: Prisma.EnumApproveStatusWithAggregatesFilter<"Reservations"> | $Enums.ApproveStatus
@@ -386,6 +398,7 @@ export type ReservationsScalarWhereWithAggregatesInput = {
 
 export type ReservationsCreateInput = {
   Reason?: string | null
+  DecisionNote?: string | null
   StartTime: Date | string
   EndTime: Date | string
   ApproveStatus: $Enums.ApproveStatus
@@ -406,6 +419,7 @@ export type ReservationsUncheckedCreateInput = {
   ResourceKey: number
   ReservedBy: number
   Reason?: string | null
+  DecisionNote?: string | null
   StartTime: Date | string
   EndTime: Date | string
   ApproveStatus: $Enums.ApproveStatus
@@ -421,6 +435,7 @@ export type ReservationsUncheckedCreateInput = {
 
 export type ReservationsUpdateInput = {
   Reason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  DecisionNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   StartTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   EndTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   ApproveStatus?: Prisma.EnumApproveStatusFieldUpdateOperationsInput | $Enums.ApproveStatus
@@ -441,6 +456,7 @@ export type ReservationsUncheckedUpdateInput = {
   ResourceKey?: Prisma.IntFieldUpdateOperationsInput | number
   ReservedBy?: Prisma.IntFieldUpdateOperationsInput | number
   Reason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  DecisionNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   StartTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   EndTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   ApproveStatus?: Prisma.EnumApproveStatusFieldUpdateOperationsInput | $Enums.ApproveStatus
@@ -459,6 +475,7 @@ export type ReservationsCreateManyInput = {
   ResourceKey: number
   ReservedBy: number
   Reason?: string | null
+  DecisionNote?: string | null
   StartTime: Date | string
   EndTime: Date | string
   ApproveStatus: $Enums.ApproveStatus
@@ -472,6 +489,7 @@ export type ReservationsCreateManyInput = {
 
 export type ReservationsUpdateManyMutationInput = {
   Reason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  DecisionNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   StartTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   EndTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   ApproveStatus?: Prisma.EnumApproveStatusFieldUpdateOperationsInput | $Enums.ApproveStatus
@@ -487,6 +505,7 @@ export type ReservationsUncheckedUpdateManyInput = {
   ResourceKey?: Prisma.IntFieldUpdateOperationsInput | number
   ReservedBy?: Prisma.IntFieldUpdateOperationsInput | number
   Reason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  DecisionNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   StartTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   EndTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   ApproveStatus?: Prisma.EnumApproveStatusFieldUpdateOperationsInput | $Enums.ApproveStatus
@@ -513,6 +532,7 @@ export type ReservationsCountOrderByAggregateInput = {
   ResourceKey?: Prisma.SortOrder
   ReservedBy?: Prisma.SortOrder
   Reason?: Prisma.SortOrder
+  DecisionNote?: Prisma.SortOrder
   StartTime?: Prisma.SortOrder
   EndTime?: Prisma.SortOrder
   ApproveStatus?: Prisma.SortOrder
@@ -536,6 +556,7 @@ export type ReservationsMaxOrderByAggregateInput = {
   ResourceKey?: Prisma.SortOrder
   ReservedBy?: Prisma.SortOrder
   Reason?: Prisma.SortOrder
+  DecisionNote?: Prisma.SortOrder
   StartTime?: Prisma.SortOrder
   EndTime?: Prisma.SortOrder
   ApproveStatus?: Prisma.SortOrder
@@ -552,6 +573,7 @@ export type ReservationsMinOrderByAggregateInput = {
   ResourceKey?: Prisma.SortOrder
   ReservedBy?: Prisma.SortOrder
   Reason?: Prisma.SortOrder
+  DecisionNote?: Prisma.SortOrder
   StartTime?: Prisma.SortOrder
   EndTime?: Prisma.SortOrder
   ApproveStatus?: Prisma.SortOrder
@@ -701,10 +723,6 @@ export type ReservationsUncheckedUpdateManyWithoutResourceNestedInput = {
   deleteMany?: Prisma.ReservationsScalarWhereInput | Prisma.ReservationsScalarWhereInput[]
 }
 
-export type EnumApproveStatusFieldUpdateOperationsInput = {
-  set?: $Enums.ApproveStatus
-}
-
 export type ReservationsCreateNestedOneWithoutUsageLogsInput = {
   create?: Prisma.XOR<Prisma.ReservationsCreateWithoutUsageLogsInput, Prisma.ReservationsUncheckedCreateWithoutUsageLogsInput>
   connectOrCreate?: Prisma.ReservationsCreateOrConnectWithoutUsageLogsInput
@@ -739,6 +757,7 @@ export type ReservationsUpdateOneWithoutRepairLogsNestedInput = {
 
 export type ReservationsCreateWithoutReservedByUserInput = {
   Reason?: string | null
+  DecisionNote?: string | null
   StartTime: Date | string
   EndTime: Date | string
   ApproveStatus: $Enums.ApproveStatus
@@ -757,6 +776,7 @@ export type ReservationsUncheckedCreateWithoutReservedByUserInput = {
   ReservationKey?: number
   ResourceKey: number
   Reason?: string | null
+  DecisionNote?: string | null
   StartTime: Date | string
   EndTime: Date | string
   ApproveStatus: $Enums.ApproveStatus
@@ -782,6 +802,7 @@ export type ReservationsCreateManyReservedByUserInputEnvelope = {
 
 export type ReservationsCreateWithoutApprovedByUserInput = {
   Reason?: string | null
+  DecisionNote?: string | null
   StartTime: Date | string
   EndTime: Date | string
   ApproveStatus: $Enums.ApproveStatus
@@ -801,6 +822,7 @@ export type ReservationsUncheckedCreateWithoutApprovedByUserInput = {
   ResourceKey: number
   ReservedBy: number
   Reason?: string | null
+  DecisionNote?: string | null
   StartTime: Date | string
   EndTime: Date | string
   ApproveStatus: $Enums.ApproveStatus
@@ -847,6 +869,7 @@ export type ReservationsScalarWhereInput = {
   ResourceKey?: Prisma.IntFilter<"Reservations"> | number
   ReservedBy?: Prisma.IntFilter<"Reservations"> | number
   Reason?: Prisma.StringNullableFilter<"Reservations"> | string | null
+  DecisionNote?: Prisma.StringNullableFilter<"Reservations"> | string | null
   StartTime?: Prisma.DateTimeFilter<"Reservations"> | Date | string
   EndTime?: Prisma.DateTimeFilter<"Reservations"> | Date | string
   ApproveStatus?: Prisma.EnumApproveStatusFilter<"Reservations"> | $Enums.ApproveStatus
@@ -876,6 +899,7 @@ export type ReservationsUpdateManyWithWhereWithoutApprovedByUserInput = {
 
 export type ReservationsCreateWithoutResourceInput = {
   Reason?: string | null
+  DecisionNote?: string | null
   StartTime: Date | string
   EndTime: Date | string
   ApproveStatus: $Enums.ApproveStatus
@@ -894,6 +918,7 @@ export type ReservationsUncheckedCreateWithoutResourceInput = {
   ReservationKey?: number
   ReservedBy: number
   Reason?: string | null
+  DecisionNote?: string | null
   StartTime: Date | string
   EndTime: Date | string
   ApproveStatus: $Enums.ApproveStatus
@@ -935,6 +960,7 @@ export type ReservationsUpdateManyWithWhereWithoutResourceInput = {
 
 export type ReservationsCreateWithoutUsageLogsInput = {
   Reason?: string | null
+  DecisionNote?: string | null
   StartTime: Date | string
   EndTime: Date | string
   ApproveStatus: $Enums.ApproveStatus
@@ -954,6 +980,7 @@ export type ReservationsUncheckedCreateWithoutUsageLogsInput = {
   ResourceKey: number
   ReservedBy: number
   Reason?: string | null
+  DecisionNote?: string | null
   StartTime: Date | string
   EndTime: Date | string
   ApproveStatus: $Enums.ApproveStatus
@@ -984,6 +1011,7 @@ export type ReservationsUpdateToOneWithWhereWithoutUsageLogsInput = {
 
 export type ReservationsUpdateWithoutUsageLogsInput = {
   Reason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  DecisionNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   StartTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   EndTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   ApproveStatus?: Prisma.EnumApproveStatusFieldUpdateOperationsInput | $Enums.ApproveStatus
@@ -1003,6 +1031,7 @@ export type ReservationsUncheckedUpdateWithoutUsageLogsInput = {
   ResourceKey?: Prisma.IntFieldUpdateOperationsInput | number
   ReservedBy?: Prisma.IntFieldUpdateOperationsInput | number
   Reason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  DecisionNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   StartTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   EndTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   ApproveStatus?: Prisma.EnumApproveStatusFieldUpdateOperationsInput | $Enums.ApproveStatus
@@ -1017,6 +1046,7 @@ export type ReservationsUncheckedUpdateWithoutUsageLogsInput = {
 
 export type ReservationsCreateWithoutRepairLogsInput = {
   Reason?: string | null
+  DecisionNote?: string | null
   StartTime: Date | string
   EndTime: Date | string
   ApproveStatus: $Enums.ApproveStatus
@@ -1036,6 +1066,7 @@ export type ReservationsUncheckedCreateWithoutRepairLogsInput = {
   ResourceKey: number
   ReservedBy: number
   Reason?: string | null
+  DecisionNote?: string | null
   StartTime: Date | string
   EndTime: Date | string
   ApproveStatus: $Enums.ApproveStatus
@@ -1066,6 +1097,7 @@ export type ReservationsUpdateToOneWithWhereWithoutRepairLogsInput = {
 
 export type ReservationsUpdateWithoutRepairLogsInput = {
   Reason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  DecisionNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   StartTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   EndTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   ApproveStatus?: Prisma.EnumApproveStatusFieldUpdateOperationsInput | $Enums.ApproveStatus
@@ -1085,6 +1117,7 @@ export type ReservationsUncheckedUpdateWithoutRepairLogsInput = {
   ResourceKey?: Prisma.IntFieldUpdateOperationsInput | number
   ReservedBy?: Prisma.IntFieldUpdateOperationsInput | number
   Reason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  DecisionNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   StartTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   EndTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   ApproveStatus?: Prisma.EnumApproveStatusFieldUpdateOperationsInput | $Enums.ApproveStatus
@@ -1101,6 +1134,7 @@ export type ReservationsCreateManyReservedByUserInput = {
   ReservationKey?: number
   ResourceKey: number
   Reason?: string | null
+  DecisionNote?: string | null
   StartTime: Date | string
   EndTime: Date | string
   ApproveStatus: $Enums.ApproveStatus
@@ -1117,6 +1151,7 @@ export type ReservationsCreateManyApprovedByUserInput = {
   ResourceKey: number
   ReservedBy: number
   Reason?: string | null
+  DecisionNote?: string | null
   StartTime: Date | string
   EndTime: Date | string
   ApproveStatus: $Enums.ApproveStatus
@@ -1129,6 +1164,7 @@ export type ReservationsCreateManyApprovedByUserInput = {
 
 export type ReservationsUpdateWithoutReservedByUserInput = {
   Reason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  DecisionNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   StartTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   EndTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   ApproveStatus?: Prisma.EnumApproveStatusFieldUpdateOperationsInput | $Enums.ApproveStatus
@@ -1147,6 +1183,7 @@ export type ReservationsUncheckedUpdateWithoutReservedByUserInput = {
   ReservationKey?: Prisma.IntFieldUpdateOperationsInput | number
   ResourceKey?: Prisma.IntFieldUpdateOperationsInput | number
   Reason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  DecisionNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   StartTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   EndTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   ApproveStatus?: Prisma.EnumApproveStatusFieldUpdateOperationsInput | $Enums.ApproveStatus
@@ -1164,6 +1201,7 @@ export type ReservationsUncheckedUpdateManyWithoutReservedByUserInput = {
   ReservationKey?: Prisma.IntFieldUpdateOperationsInput | number
   ResourceKey?: Prisma.IntFieldUpdateOperationsInput | number
   Reason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  DecisionNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   StartTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   EndTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   ApproveStatus?: Prisma.EnumApproveStatusFieldUpdateOperationsInput | $Enums.ApproveStatus
@@ -1177,6 +1215,7 @@ export type ReservationsUncheckedUpdateManyWithoutReservedByUserInput = {
 
 export type ReservationsUpdateWithoutApprovedByUserInput = {
   Reason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  DecisionNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   StartTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   EndTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   ApproveStatus?: Prisma.EnumApproveStatusFieldUpdateOperationsInput | $Enums.ApproveStatus
@@ -1196,6 +1235,7 @@ export type ReservationsUncheckedUpdateWithoutApprovedByUserInput = {
   ResourceKey?: Prisma.IntFieldUpdateOperationsInput | number
   ReservedBy?: Prisma.IntFieldUpdateOperationsInput | number
   Reason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  DecisionNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   StartTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   EndTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   ApproveStatus?: Prisma.EnumApproveStatusFieldUpdateOperationsInput | $Enums.ApproveStatus
@@ -1213,6 +1253,7 @@ export type ReservationsUncheckedUpdateManyWithoutApprovedByUserInput = {
   ResourceKey?: Prisma.IntFieldUpdateOperationsInput | number
   ReservedBy?: Prisma.IntFieldUpdateOperationsInput | number
   Reason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  DecisionNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   StartTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   EndTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   ApproveStatus?: Prisma.EnumApproveStatusFieldUpdateOperationsInput | $Enums.ApproveStatus
@@ -1227,6 +1268,7 @@ export type ReservationsCreateManyResourceInput = {
   ReservationKey?: number
   ReservedBy: number
   Reason?: string | null
+  DecisionNote?: string | null
   StartTime: Date | string
   EndTime: Date | string
   ApproveStatus: $Enums.ApproveStatus
@@ -1240,6 +1282,7 @@ export type ReservationsCreateManyResourceInput = {
 
 export type ReservationsUpdateWithoutResourceInput = {
   Reason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  DecisionNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   StartTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   EndTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   ApproveStatus?: Prisma.EnumApproveStatusFieldUpdateOperationsInput | $Enums.ApproveStatus
@@ -1258,6 +1301,7 @@ export type ReservationsUncheckedUpdateWithoutResourceInput = {
   ReservationKey?: Prisma.IntFieldUpdateOperationsInput | number
   ReservedBy?: Prisma.IntFieldUpdateOperationsInput | number
   Reason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  DecisionNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   StartTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   EndTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   ApproveStatus?: Prisma.EnumApproveStatusFieldUpdateOperationsInput | $Enums.ApproveStatus
@@ -1275,6 +1319,7 @@ export type ReservationsUncheckedUpdateManyWithoutResourceInput = {
   ReservationKey?: Prisma.IntFieldUpdateOperationsInput | number
   ReservedBy?: Prisma.IntFieldUpdateOperationsInput | number
   Reason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  DecisionNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   StartTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   EndTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   ApproveStatus?: Prisma.EnumApproveStatusFieldUpdateOperationsInput | $Enums.ApproveStatus
@@ -1331,6 +1376,7 @@ export type ReservationsSelect<ExtArgs extends runtime.Types.Extensions.Internal
   ResourceKey?: boolean
   ReservedBy?: boolean
   Reason?: boolean
+  DecisionNote?: boolean
   StartTime?: boolean
   EndTime?: boolean
   ApproveStatus?: boolean
@@ -1353,6 +1399,7 @@ export type ReservationsSelectCreateManyAndReturn<ExtArgs extends runtime.Types.
   ResourceKey?: boolean
   ReservedBy?: boolean
   Reason?: boolean
+  DecisionNote?: boolean
   StartTime?: boolean
   EndTime?: boolean
   ApproveStatus?: boolean
@@ -1372,6 +1419,7 @@ export type ReservationsSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.
   ResourceKey?: boolean
   ReservedBy?: boolean
   Reason?: boolean
+  DecisionNote?: boolean
   StartTime?: boolean
   EndTime?: boolean
   ApproveStatus?: boolean
@@ -1391,6 +1439,7 @@ export type ReservationsSelectScalar = {
   ResourceKey?: boolean
   ReservedBy?: boolean
   Reason?: boolean
+  DecisionNote?: boolean
   StartTime?: boolean
   EndTime?: boolean
   ApproveStatus?: boolean
@@ -1402,7 +1451,7 @@ export type ReservationsSelectScalar = {
   ResolvedAt?: boolean
 }
 
-export type ReservationsOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"ReservationKey" | "ResourceKey" | "ReservedBy" | "Reason" | "StartTime" | "EndTime" | "ApproveStatus" | "ApprovedBy" | "AutoApproved" | "ApprovedAt" | "ReservationExpiration" | "ActionTime" | "ResolvedAt", ExtArgs["result"]["reservations"]>
+export type ReservationsOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"ReservationKey" | "ResourceKey" | "ReservedBy" | "Reason" | "DecisionNote" | "StartTime" | "EndTime" | "ApproveStatus" | "ApprovedBy" | "AutoApproved" | "ApprovedAt" | "ReservationExpiration" | "ActionTime" | "ResolvedAt", ExtArgs["result"]["reservations"]>
 export type ReservationsInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   Resource?: boolean | Prisma.ResourceInfoDefaultArgs<ExtArgs>
   ReservedByUser?: boolean | Prisma.AccountInfoDefaultArgs<ExtArgs>
@@ -1441,6 +1490,12 @@ export type $ReservationsPayload<ExtArgs extends runtime.Types.Extensions.Intern
     ResourceKey: number
     ReservedBy: number
     Reason: string | null
+    /**
+     * Why the request ended the way it did: a rejection's reason, or the
+     * borrower's own note on cancelling. Separate from Reason, which is what the
+     * borrower asked for it for; writing the decision over it lost that.
+     */
+    DecisionNote: string | null
     StartTime: Date
     EndTime: Date
     ApproveStatus: $Enums.ApproveStatus
@@ -1895,6 +1950,7 @@ export interface ReservationsFieldRefs {
   readonly ResourceKey: Prisma.FieldRef<"Reservations", 'Int'>
   readonly ReservedBy: Prisma.FieldRef<"Reservations", 'Int'>
   readonly Reason: Prisma.FieldRef<"Reservations", 'String'>
+  readonly DecisionNote: Prisma.FieldRef<"Reservations", 'String'>
   readonly StartTime: Prisma.FieldRef<"Reservations", 'DateTime'>
   readonly EndTime: Prisma.FieldRef<"Reservations", 'DateTime'>
   readonly ApproveStatus: Prisma.FieldRef<"Reservations", 'ApproveStatus'>

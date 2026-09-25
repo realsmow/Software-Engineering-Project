@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600;700&family=Roboto+Mono:wght@400;500;600&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&family=Roboto+Mono:wght@400;500;600&display=swap");
 
 @tailwind base;
 @tailwind components;
@@ -11,7 +11,7 @@
    ============================================================ */
 @layer base {
   :root {
-    --font-ui: "Prompt", system-ui, -apple-system, sans-serif;
+    --font-ui: "Sarabun", system-ui, -apple-system, sans-serif;
     --font-mono: "Roboto Mono", ui-monospace, Menlo, Consolas, monospace;
 
     --accent: #0e7a46;
@@ -2172,6 +2172,15 @@ body.dark .modal-overlay {
 }
 
 /* Responsive */
+@media (min-width: 375px) {
+  .login-right { min-width: 0; }
+}
+
+@media (min-width: 1280px) {
+  .login-card { max-width: 400px; }
+  .shell { grid-template-columns: 240px 1fr; }
+}
+
 @media (max-width: 900px) {
   .tabbar {
     display: flex;

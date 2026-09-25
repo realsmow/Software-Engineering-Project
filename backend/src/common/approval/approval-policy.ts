@@ -25,20 +25,10 @@ export interface ApprovalContext {
 }
 
 /**
- * Credit bands that may not open a request at all.
+ * Credit bands that may not extend a loan (proposal §5.7: D3 "ต้องส่งคำขอยืมใหม่").
  *
- * ── Why this exists even though CONTRACT.md says it should not ────────────
- * CONTRACT.md ส่วนที่ 1 states outright: "ไม่มีรหัส 'เครดิตต่ำจนยืมไม่ได้'
- * เพราะกฎแบบนั้นไม่มีในระบบ" - credit only shortens the borrow window.
- *
- * The frontend was built the other way. `CREDIT_BAND_POLICY` in
- * frontend/src/constants/index.ts marks D3 `blocked: true`, with the comment
- * "D3 cannot open a new request until outstanding items are cleared", and the
- * request screen is written around that.
- *
- * The team settled it in favour of the frontend, so the rule lives here and
- * the contract table has been corrected. If it is ever reversed, this constant
- * and `BLOCKED_CREDIT_TIERS` are the only two places to change.
+ * They may still open requests: FR-REQ-05 sends a D2/D3 T1 request to a
+ * supervisor rather than refusing it.
  */
 export const BLOCKED_CREDIT_TIERS: readonly CreditTier[] = ['D3'];
 
@@ -50,7 +40,7 @@ export const BLOCKED_CREDIT_TIERS: readonly CreditTier[] = ['D3'];
  */
 const NEEDS_SUPERVISOR_CREDIT_TIERS: readonly CreditTier[] = ['D2', 'D3'];
 
-/** True when this band may not open a request at all. */
+/** True when this band may not extend a loan. */
 export function isBlockedByCredit(creditTier: CreditTier): boolean {
   return BLOCKED_CREDIT_TIERS.includes(creditTier);
 }
@@ -58,23 +48,21 @@ export function isBlockedByCredit(creditTier: CreditTier): boolean {
 /**
  * The route a request takes.
  *
- * Tier first, then credit. A T2 item is a supervisor's call whatever the
- * borrower's record looks like, and a shaky record pulls a T1 item up to the
- * same desk rather than pushing a T2 one down.
+ * FR-REQ-04..06: T2 always goes to a supervisor, T1 goes there too when the
+ * borrower's record has slipped to D2 or D3, and T0 is approved on the spot
+ * whatever the record.
  *
- * T3 (rooms - "ของติดที่" in TIER_CONFIG) goes to staff rather than a
- * supervisor: what makes it T3 is that it cannot be carried away, not that it
- * is valuable - TIER_CONFIG gives it creditWeight 0 and priceMax 0. The
- * department that owns the room decides who sits in it.
- * TODO: no document states this. Confirm with the team; it is a one-line
- * change here if rooms should need an academic's signature.
+ * T3 (rooms) is approved on the spot. The server already enforces what a
+ * person would check: the slot grid, the 3-hour cap, same-day only and one
+ * booking at a time (room-slots.ts, loan.request.service.ts).
  */
 export function routeFor({ tier, creditTier }: ApprovalContext): ApprovalRoute {
+  // A seeding gap must cost a person's look, not an automatic yes.
+  if (tier === null) return 'staff';
   if (tier === 'T2') return 'supervisor';
-  if (tier === 'T3') return 'staff';
-
-  // T0 and T1. A borrower whose credit has slipped loses the automatic yes.
-  if (NEEDS_SUPERVISOR_CREDIT_TIERS.includes(creditTier)) return 'supervisor';
+  if (tier === 'T1' && NEEDS_SUPERVISOR_CREDIT_TIERS.includes(creditTier)) {
+    return 'supervisor';
+  }
   return 'auto';
 }
 

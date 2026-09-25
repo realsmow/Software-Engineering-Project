@@ -2,24 +2,29 @@ import { useEffect, useRef, useState, type ChangeEvent, type ReactNode } from "r
 import { useTranslation } from "react-i18next";
 import { fmtDayMonth, fmtDayNum } from "@/lib/datetime";
 import { useNavigate } from "react-router-dom";
-import { Camera, Check, Package, TriangleAlert } from "lucide-react";
+import { Camera, Check, Package, TriangleAlert, X } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { Button } from "@/components/ui/button";
-import { Modal } from "@/components/ui/modal";
+import { ImageThumb } from "@/components/shared/image-thumb";
 import { BUSINESS, ROUTES, UPLOAD } from "@/constants";
 import { getErrorMessage } from "@/lib/error-messages";
 import { cn } from "@/lib/utils";
 import { uploadAcceptAttr, validateUploadFile } from "@/lib/upload-validation";
-import type { MyRequest } from "../mock-data";
+import type { MyRequest } from "../request-status";
 import { useMyRequests } from "../loans/use-my-requests";
-import { useSubmittedRequests } from "../loans/submitted-requests.store";
 import {
   prepareBorrowerImage,
   releaseBorrowerImage,
   releaseBorrowerImages,
   type PreparedBorrowerImage,
 } from "../uploads/prepared-image";
-import { useFinalizePickup, usePickupImageUpload } from "./use-pickup-image-upload";
+import {
+  useDetachUsagePhoto,
+  useFinalizePickup,
+  usePickupImageUpload,
+  useUsagePhotos,
+  type UsagePhotoSet,
+} from "./use-pickup-image-upload";
 
 /**
  * Pick up equipment - the counter step between "staff have it ready" and
@@ -258,11 +263,13 @@ export default function PickupPage() {
 }
 
 /**
- * One row waiting at the counter: tick to take it, or ask for a different unit.
+ * One row waiting at the counter: tick to take it.
  *
  * Swapping is a T1 affair. T0 items are interchangeable stock with nothing to
  * choose between, and a T2 unit was approved by a supervisor as *that* unit -
- * picking a different one afterwards would step around the approval.
+ * picking a different one afterwards would step around the approval. The swap
+ * itself is staff's (`loan.swapUnit`, with no borrower procedure), so the row
+ * says who to ask rather than offering a button.
  */
 function PickRow({
   row,
@@ -276,8 +283,6 @@ function PickRow({
   onToggle: () => void;
 }) {
   const { t } = useTranslation();
-  const patch = useSubmittedRequests((s) => s.patch);
-  const [asking, setAsking] = useState(false);
 
   const canSwap = row.tier === "T1";
 
@@ -300,7 +305,7 @@ function PickRow({
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
           <span className="text-sm font-medium text-foreground">{row.name}</span>
           <span className="rounded bg-surface-inset px-1.5 py-0.5 text-[10.5px] font-semibold text-t3">
-            {row.tier}
+            {row.tier ?? t("borrower.catalog.tierUnknown")}
           </span>
         </div>
         <div className="mt-1 font-mono text-xs text-t3">
@@ -308,52 +313,11 @@ function PickRow({
         </div>
 
         {canSwap ? (
-          <>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="mt-2 h-7 text-[11.5px]"
-              disabled={photographed}
-              onClick={() => setAsking(true)}
-            >
-              {photographed ? t("borrower.pickup.swapLocked") : t("borrower.pickup.swapAsk")}
-            </Button>
-            {photographed ? (
-              <p className="mt-1.5 text-[11.5px] leading-relaxed text-t4">
-                {t("borrower.pickup.swapNote")}
-              </p>
-            ) : null}
-          </>
+          <p className="mt-1.5 text-[11.5px] leading-relaxed text-t4">
+            {photographed ? t("borrower.pickup.swapNote") : t("borrower.pickup.swapAtCounter")}
+          </p>
         ) : null}
       </div>
-
-      <Modal
-        open={asking}
-        onClose={() => setAsking(false)}
-        title={t("borrower.pickup.swapConfirmTitle")}
-        footer={
-          <>
-            <Button type="button" variant="outline" onClick={() => setAsking(false)}>
-              {t("common.cancel")}
-            </Button>
-            <Button
-              type="button"
-              onClick={() => {
-                setAsking(false);
-                // Back to the staff bench - they have another unit to find.
-                patch(row.id, { status: "preparing" });
-              }}
-            >
-              {t("borrower.pickup.swapConfirmYes")}
-            </Button>
-          </>
-        }
-      >
-        <p className="text-[13px] leading-relaxed text-t2">
-          {t("borrower.pickup.swapConfirmBody", { name: row.name, serial: row.serial })}
-        </p>
-      </Modal>
     </div>
   );
 }
@@ -377,6 +341,20 @@ function PhotoBox({
 }) {
   const { t } = useTranslation();
   const [error, setError] = useState<string | null>(null);
+  // Ground truth for what is actually on file - separate from `image` above,
+  // which is only this session's queued shot. Idle for a room booking or a
+  // request staff have not allocated a unit for yet.
+  const { data: existingPhotos } = useUsagePhotos(row.usageKey ?? null);
+  const detachPhoto = useDetachUsagePhoto();
+
+  function removePhoto(imageKey: number) {
+    if (row.usageKey == null) return;
+    setError(null);
+    detachPhoto.mutate(
+      { usageKey: row.usageKey, imageKey },
+      { onError: (e) => setError(getErrorMessage(e)) },
+    );
+  }
 
   function onPick(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -442,6 +420,76 @@ function PhotoBox({
       {error ? (
         <p className="mt-1.5 text-[11.5px] leading-relaxed text-[var(--s-alert-t)]">{error}</p>
       ) : null}
+
+      {existingPhotos ? (
+        <UsagePhotoGallery
+          photos={existingPhotos}
+          disabled={disabled}
+          pendingImageKey={detachPhoto.isPending ? detachPhoto.variables?.imageKey : undefined}
+          onRemove={removePhoto}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+/**
+ * What the server already has on file for this loan, grouped by stage.
+ *
+ * Separate from the take-a-photo control above it: that one is this session's
+ * queued shot, this is ground truth - including a photo filed on an earlier
+ * visit that nothing here previously showed again.
+ */
+function UsagePhotoGallery({
+  photos,
+  disabled,
+  pendingImageKey,
+  onRemove,
+}: {
+  photos: UsagePhotoSet;
+  disabled: boolean;
+  pendingImageKey?: number;
+  onRemove: (imageKey: number) => void;
+}) {
+  const { t } = useTranslation();
+  const allGroups: { stage: keyof UsagePhotoSet; label: string }[] = [
+    { stage: "before", label: t("borrower.pickup.stageBefore") },
+    { stage: "after", label: t("borrower.pickup.stageAfter") },
+    { stage: "inspection", label: t("borrower.pickup.stageInspection") },
+  ];
+  const groups = allGroups.filter((g) => photos[g.stage].length > 0);
+
+  if (groups.length === 0) return null;
+
+  return (
+    <div className="mt-2 flex flex-col gap-2">
+      {groups.map((g) => (
+        <div key={g.stage}>
+          <div className="mb-1 text-[10.5px] font-semibold uppercase tracking-wide text-t4">
+            {g.label}
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {photos[g.stage].map((photo) => (
+              <div key={photo.imageKey} className="relative">
+                <ImageThumb src={photo.imageUrl} size={48} />
+                {/* Inspection photos come off a re-grading, never this control -
+                    the server refuses the call, so it is not offered here. */}
+                {g.stage !== "inspection" ? (
+                  <button
+                    type="button"
+                    aria-label={t("borrower.pickup.removePhoto")}
+                    disabled={disabled || pendingImageKey === photo.imageKey}
+                    onClick={() => onRemove(photo.imageKey)}
+                    className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full border border-border bg-card text-t3 shadow-sm disabled:opacity-50"
+                  >
+                    <X size={11} strokeWidth={2.6} />
+                  </button>
+                ) : null}
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }

@@ -24,6 +24,7 @@ import {
   TrendingUp,
   UserX,
   Users,
+  Wrench,
   XCircle,
   type LucideIcon,
 } from "lucide-react";
@@ -46,6 +47,7 @@ const NAV_ICON: Record<string, LucideIcon> = {
   inbox: Inbox,
   package: Package,
   "check-square": CheckSquare,
+  wrench: Wrench,
   "check-circle": CheckCircle,
   users: Users,
   "user-x": UserX,

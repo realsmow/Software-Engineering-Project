@@ -8,13 +8,19 @@
  * years may borrow the Arduinos".
  */
 
+/**
+ * What a rule set belongs to: an item type (fanned out across its units) or
+ * one room (RoomInfo.RoomKey). The server refuses a call naming both.
+ */
+export type EligibilityTarget = { itemKey: number } | { roomKey: number };
+
 /** One "this group, in this role, may borrow this type" rule. */
 export interface EligibilityRule {
   groupKey: number;
   groupName: string | null;
   authorityRoleKey: number;
   authorityRoleName: string;
-  /** How many of the type's units carry this rule - should equal totalUnits. */
+  /** How many of the type's units carry this rule - should equal totalUnits. Always 1 for a room. */
   appliesToUnits: number;
 }
 

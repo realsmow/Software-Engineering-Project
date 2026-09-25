@@ -22,8 +22,7 @@ function scheduled(): Map<string, CronMetadata> {
     const method = prototype[key];
     if (typeof method !== 'function') continue;
     const meta = Reflect.getMetadata(SCHEDULE_CRON_OPTIONS, method) as
-      | CronMetadata
-      | undefined;
+      CronMetadata | undefined;
     if (meta) found.set(key, meta);
   }
   return found;
@@ -46,11 +45,12 @@ describe('CronScheduler', () => {
     markOverdue: '1 0 * * *',
     markLost: '15 0 * * *',
     expireDemerits: '0 1 * * *',
+    openT3InspectionRounds: '0 6 * * *',
     dueSoonReminder: '0 8 * * *',
     expireStaleRequests: '0 * * * *',
   };
 
-  it('schedules exactly the five implemented jobs, at the SRS §5.3 times', () => {
+  it('schedules exactly the jobs in the registry, at the SRS §5.3 times', () => {
     const jobs = scheduled();
 
     expect([...jobs.keys()].sort()).toEqual(Object.keys(EXPECTED).sort());

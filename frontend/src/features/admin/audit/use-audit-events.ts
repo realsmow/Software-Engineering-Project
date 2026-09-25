@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useTRPCClient } from "@/lib/trpc";
 import { fetchAllPages } from "@/lib/paging";
 import { toAuditEvent } from "./audit-event.adapter";
-import type { AuditEvent } from "../mock-data";
+import type { AuditEvent } from "../admin-constants";
 
 /**
  * The audit trail, newest first.
@@ -18,12 +18,13 @@ import type { AuditEvent } from "../mock-data";
  */
 /** An audit log grows without bound, so the window is capped rather than paged. */
 const MAX_EVENTS = 500;
+const AUDIT_KEY = ["admin", "audit"] as const;
 
 export function useAuditEvents() {
   const trpc = useTRPCClient();
 
   return useQuery({
-    queryKey: ["admin", "audit"],
+    queryKey: AUDIT_KEY,
     queryFn: async (): Promise<AuditEvent[]> => {
       const rows = await fetchAllPages(
         (page, pageSize) => trpc.admin.listAudit.query({ page, pageSize }),

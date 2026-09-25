@@ -27,6 +27,7 @@ export class CreditService {
           select: {
             PenaltyKey: true,
             Reason: true,
+            UsageKey: true,
             CreditDeducted: true,
             ActionTime: true,
             ExpirationTime: true,

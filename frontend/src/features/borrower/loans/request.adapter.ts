@@ -1,6 +1,7 @@
 import { fmtTime, toLocalDayKey } from "@/lib/datetime";
 import type { Tier } from "@/types/domain";
-import type { MyRequest, MyRequestStatus } from "../mock-data";
+import { TIME_SLOTS } from "../rooms/room-slots";
+import type { MyRequest, MyRequestStatus } from "../request-status";
 
 /**
  * `loan.list` rows, and the conversion to what the request pages render.
@@ -27,6 +28,8 @@ export interface ServerRequest {
   startTime: string;
   endTime: string;
   reason: string | null;
+  /** Why it ended: the approver's rejection reason or the borrower's cancel note. */
+  decisionNote: string | null;
   requestedAt: string;
   /** When an approved request stops being held for the borrower. */
   expiresAt: string | null;
@@ -45,7 +48,7 @@ export interface ServerRequest {
   cancellable: boolean;
 }
 
-/** A request plus the two facts the pages need that MyRequest has no room for. */
+/** A request plus the facts the pages need that MyRequest leaves optional. */
 export interface BorrowerRequest extends MyRequest {
   reservationKey: number;
   cancellable: boolean;
@@ -65,13 +68,13 @@ export function toBorrowerRequest(s: ServerRequest): BorrowerRequest {
     // inventing a format here would print something staff cannot search for.
     id: String(s.reservationKey),
     kind: s.resource.kind,
-    // A request for an unclassified item should not claim a tier it has not
-    // got. T2 is the safe display default: it is the one that says "a human
-    // has to look at this".
-    tier: s.resource.tier ?? "T2",
+    // Left null rather than defaulted: showing an unclassified unit as T2 put a
+    // tier on screen the server never gave it.
+    tier: s.resource.tier,
     name: s.resource.name ?? "",
     serial: s.resource.serialNo ?? "-",
     status: s.status,
+    decisionNote: s.decisionNote,
     // The Bangkok day, not the UTC one. `slice(0, 10)` on the ISO string names
     // the UTC day, which is the day before for anything the borrower holds in
     // the first seven hours of a Bangkok morning.
@@ -81,7 +84,22 @@ export function toBorrowerRequest(s: ServerRequest): BorrowerRequest {
     returnTime: fmtTime(s.dueAt ?? s.endTime),
     dueAt: dueDate,
     daysLeft: dueDate ? calendarDayDifference(dueDate, toLocalDayKey(new Date())) : undefined,
+    ...(s.resource.kind === "room" ? { slots: slotsOf(s.startTime, s.endTime) } : {}),
   };
+}
+
+/**
+ * A room booking's chips, recovered from its window.
+ *
+ * The server stores a start and an end, not the chips that were tapped, so the
+ * room pages get them back by wall-clock time: a slot belongs to the booking
+ * when it starts at or after the start and ends at or before the end. A booking
+ * never spans lunch, so no slot inside that range is one it skipped.
+ */
+function slotsOf(startTime: string, endTime: string): number[] {
+  const from = fmtTime(startTime);
+  const to = fmtTime(endTime);
+  return TIME_SLOTS.flatMap((slot, i) => (slot.start >= from && slot.end <= to ? [i] : []));
 }
 
 /** Difference between YYYY-MM-DD values without depending on the browser timezone. */

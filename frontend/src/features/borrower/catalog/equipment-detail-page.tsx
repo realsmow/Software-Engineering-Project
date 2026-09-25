@@ -1,7 +1,6 @@
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
-import { localInstant, toLocalDayKey, todayLocalDayKey } from "@/lib/datetime";
 import { ArrowLeft } from "lucide-react";
 import { TierDot, tierNoteKey } from "@/components/shared/tier-badge";
 import { ImageThumb } from "@/components/shared/image-thumb";
@@ -18,11 +17,12 @@ import {
 import { CREDIT_BANDS, ROUTES } from "@/constants";
 import { useAuthStore } from "@/features/auth/auth.store";
 import { cn } from "@/lib/utils";
-import type { StockStatus, UnitState } from "../mock-data";
-import { fmtDateTime, fmtDayMonth } from "../format";
+import type { StockStatus, UnitCondition, UnitState } from "./catalog.types";
+import { fmtDateTime } from "../format";
 import { remainingUnits, useRequestDraft } from "../request/request-draft.store";
 import { AddButton } from "./add-button";
-import { useEquipmentAvailability, useEquipmentType } from "./use-equipment-types";
+import { toAvailabilityWindow } from "./availability-window";
+import { useEquipmentType } from "./use-equipment-types";
 import { useMyCredit } from "@/features/account/use-my-credit";
 
 const STOCK_TONE: Record<StockStatus, BadgeTone> = {
@@ -32,9 +32,6 @@ const STOCK_TONE: Record<StockStatus, BadgeTone> = {
 };
 
 const UNIT_TONE: Record<UnitState, BadgeTone> = { free: "ok", fix: "warn", out: "neutral" };
-
-/** How far ahead the availability strip looks. */
-const AVAIL_DAYS = 14;
 
 /**
  * Equipment detail - reached from a catalog row. Layout follows the reference
@@ -48,9 +45,14 @@ export default function EquipmentDetailPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-  const { data: item, isLoading } = useEquipmentType(id);
-  // Refreshed on a timer while this page is open; the detail itself is not.
-  const { data: live } = useEquipmentAvailability(id);
+  // The same period the catalogue filtered by, so the count here matches the
+  // row the borrower clicked on and the Add cap is for the dates they asked for.
+  const startDate = useRequestDraft((s) => s.startDate);
+  const pickupTime = useRequestDraft((s) => s.pickupTime);
+  const endDate = useRequestDraft((s) => s.endDate);
+  const returnTime = useRequestDraft((s) => s.returnTime);
+  const availabilityWindow = toAvailabilityWindow(startDate, pickupTime, endDate, returnTime);
+  const { data: item, isLoading } = useEquipmentType(id, availabilityWindow);
   const { data: credit } = useMyCredit();
   const creditBand = useAuthStore((s) => s.user?.creditBand) ?? "D0";
 
@@ -88,19 +90,16 @@ export default function EquipmentDetailPage() {
     );
   }
 
-  // Live stock when the poll has answered, the cached detail until then.
-  const availableUnits = live?.availableUnits ?? item.availableUnits;
+  const availableUnits = item.availableUnits;
   const decreaseItem = () => {
     const currentQty = useRequestDraft.getState().lines.find((line) => line.itemId === item.id)?.qty ?? 0;
     if (currentQty <= 1) removeItem(item.id);
     else setQty(item.id, currentQty - 1, availableUnits);
   };
-  const totalUnits = live?.totalUnits ?? item.totalUnits;
-  const nextAvailableAt = live ? (live.nextAvailableAt ?? undefined) : item.nextAvailableAt;
+  const totalUnits = item.totalUnits;
 
   // Out of stock, or the draft already holds every free unit.
   const atCap = remainingUnits(draftLines, { ...item, availableUnits }) === 0;
-  const days = buildDays(availableUnits, nextAvailableAt);
   // The real window comes from BorrowConstraints via `credit.me`; CREDIT_BANDS
   // is the static fallback for the moment before that query resolves.
   const loanDays =
@@ -171,6 +170,7 @@ export default function EquipmentDetailPage() {
               className="h-11 w-full"
               qty={qty}
               capped={atCap}
+              blocked={!item.eligible}
               variant="default"
               onAdd={() => addItem(item.id, availableUnits)}
               onDecrease={decreaseItem}
@@ -208,31 +208,6 @@ export default function EquipmentDetailPage() {
           </div>
         </Panel>
 
-        {/* Availability, next 14 days */}
-        <Panel title={t("borrower.detail.availTitle")}>
-          <div className="p-3.5">
-            <div className="grid grid-cols-7 gap-1.5 md:grid-cols-[repeat(14,minmax(0,1fr))]">
-              {days.map((d) => (
-                <div
-                  key={d.day}
-                  title={fmtDayMonth(d.day)}
-                  className={cn(
-                    "flex h-[34px] items-center justify-center rounded-sm border font-mono text-[11px] tabular-nums",
-                    d.busy
-                      ? "border-border bg-surface-inset text-t4"
-                      : "border-accent bg-[var(--accent-soft)] text-accent",
-                  )}
-                >
-                  {Number(d.day.slice(8, 10))}
-                </div>
-              ))}
-            </div>
-            <p className="mt-3 text-xs leading-relaxed text-t3">
-              {t("borrower.detail.availHelp")}
-            </p>
-          </div>
-        </Panel>
-
         {/* Units */}
         <Panel title={t("borrower.detail.units")}>
           <Table>
@@ -241,17 +216,31 @@ export default function EquipmentDetailPage() {
                 <TableHead>{t("borrower.detail.colUnit")}</TableHead>
                 <TableHead>{t("borrower.detail.colCond")}</TableHead>
                 <TableHead>{t("common.status")}</TableHead>
+                <TableHead>{t("borrower.catalog.colNext")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {units.map((u) => (
                 <TableRow key={u.serial} className="hover:bg-transparent">
                   <TableCell className="whitespace-nowrap font-mono text-xs">{u.serial}</TableCell>
-                  <TableCell className="text-t2">{t(UNIT_CONDITION_KEY[u.state])}</TableCell>
+                  <TableCell className="text-t2">
+                    {u.condition
+                      ? t(CONDITION_KEY[u.condition])
+                      : t("borrower.detail.condNotRecorded")}
+                  </TableCell>
                   <TableCell>
                     <Badge tone={UNIT_TONE[u.state]}>
-                      {t(`borrower.detail.unit${cap(u.state)}`)}
+                      {/* With a period chosen, "out" means taken for those
+                          dates, which may be a booking rather than a loan. */}
+                      {availabilityWindow && u.state === "out"
+                        ? t("borrower.detail.takenForPeriod")
+                        : t(`borrower.detail.unit${cap(u.state)}`)}
                     </Badge>
+                  </TableCell>
+                  <TableCell className="whitespace-nowrap text-xs text-t2">
+                    {u.state === "free"
+                      ? t(availabilityWindow ? "borrower.detail.freeForPeriod" : "borrower.detail.availableNow")
+                      : <span className="font-mono">{fmtDateTime(u.nextAvailableAt)}</span>}
                   </TableCell>
                 </TableRow>
               ))}
@@ -270,18 +259,13 @@ export default function EquipmentDetailPage() {
                 {availableUnits} / {totalUnits}
               </b>
             </div>
-            <div className="flex items-baseline justify-between gap-2.5">
-              <span className="text-t3">{t("borrower.catalog.colNext")}</span>
-              <b className="font-mono text-xs text-foreground">
-                {fmtDateTime(nextAvailableAt)}
-              </b>
-            </div>
           </div>
           <div className="flex flex-col gap-2 px-3.5 pb-3.5">
             <AddButton
               className="h-10"
               qty={qty}
               capped={atCap}
+              blocked={!item.eligible}
               variant="default"
               onAdd={() => addItem(item.id, availableUnits)}
               onDecrease={decreaseItem}
@@ -342,47 +326,13 @@ function SpecRow({
   );
 }
 
-const UNIT_CONDITION_KEY: Record<UnitState, string> = {
-  free: "borrower.detail.condOk",
-  fix: "borrower.detail.condFix",
-  out: "borrower.detail.condUse",
+const CONDITION_KEY: Record<UnitCondition, string> = {
+  Normal: "borrower.detail.condNormal",
+  MinorDamage: "borrower.detail.condMinorDamage",
+  MajorDamage: "borrower.detail.condMajorDamage",
+  Broken: "borrower.detail.condBroken",
+  Missing: "borrower.detail.condMissing",
 };
-
-/**
- * The next fortnight, marked from what the server actually knows.
- *
- * This used to invent a booking pattern (`i % 5 === 2 || i % 7 === 6`), which
- * drew a convincing calendar out of nothing. There is no per-day availability
- * on the server and no table to build one from, so the strip now says only
- * what `item.getAvailability` can support:
- *
- *   - stock free today  -> nothing is blocked;
- *   - none free, and a unit is due back on date X -> blocked until X;
- *   - none free and nothing due back -> blocked throughout.
- *
- * Coarse, but every square is true. A day-by-day view needs the reservation
- * calendar, which is not built yet.
- */
-function buildDays(
-  availableUnits: number,
-  nextAvailableAt: string | undefined,
-): { day: string; busy: boolean }[] {
-  // Walked in Bangkok days, not the browser's. Stepping from `new Date()` in
-  // local time starts the strip on the wrong square for anyone whose machine
-  // is not on Bangkok time, and the squares are labelled with a day number.
-  const todayKey = todayLocalDayKey();
-  const freeFromKey =
-    availableUnits > 0 ? todayKey : nextAvailableAt ? toLocalDayKey(nextAvailableAt) : null;
-
-  // Stepped from midday so a whole-day hop can never land on a boundary.
-  const noon = localInstant(todayKey, 12).getTime();
-
-  return Array.from({ length: AVAIL_DAYS }, (_, i) => {
-    const day = toLocalDayKey(new Date(noon + i * 86_400_000));
-    // Both sides are `YYYY-MM-DD`, which sorts lexicographically as a date.
-    return { day, busy: freeFromKey === null || day < freeFromKey };
-  });
-}
 
 function cap(s: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1);

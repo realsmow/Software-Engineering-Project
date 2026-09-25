@@ -15,13 +15,18 @@ import {
   createItemTypeInput,
   createItemUnitInput,
   createRoomInput,
+  deleteItemTypeInput,
+  deleteItemTypeOutput,
+  deleteResourceInput,
+  deleteResourceOutput,
   eligibilityRule,
-  itemCategory,
+  eligibilityTargetInput,
   itemDetail,
   itemIdInput,
   itemTypeDetail,
   itemTypeIdInput,
   itemUnit,
+  listUnitsInput,
   itemUnitOutput,
   listItemsInput,
   listManagedItemsInput,
@@ -33,12 +38,15 @@ import {
   paginatedItemTypes,
   paginatedManagedRooms,
   paginatedRooms,
+  requestRetirementInput,
+  retirementRequestIdInput,
+  retirementRequestOutput,
   roomAvailabilityInput,
   roomAvailabilityOutput,
   roomIdInput,
   roomOutput,
   roomSummary,
-  setTypeEligibilityInput,
+  setEligibilityInput,
   setUnitConditionInput,
   setUnitLendableInput,
   tierOptionOutput,
@@ -48,13 +56,19 @@ import {
   type CreateItemTypeInput,
   type CreateItemUnitInput,
   type CreateRoomInput,
+  type DeleteItemTypeInput,
+  type DeleteResourceInput,
+  type EligibilityTargetInput,
   type ListItemsInput,
+  type ListUnitsInput,
   type ListManagedItemsInput,
   type ListManagedRoomsInput,
   type ListManagedUnitsInput,
   type ListRoomsInput,
+  type RequestRetirementInput,
+  type RetirementRequestIdInput,
   type RoomAvailabilityInput,
-  type SetTypeEligibilityInput,
+  type SetEligibilityInput,
   type SetUnitConditionInput,
   type SetUnitLendableInput,
   type UpdateItemTypeInput,
@@ -105,15 +119,20 @@ export class ItemRouter {
    */
   @UseMiddlewares(AuthMiddleware)
   @Query({ input: listItemsInput, output: paginatedItems })
-  list(@Input() input: ListItemsInput) {
-    return this.itemService.list(input);
+  list(@Input() input: ListItemsInput, @Ctx() ctx: TrpcContext) {
+    return this.itemService.list(ctx.user!, input);
   }
 
   /** One equipment type with every unit, its condition and its due date. */
   @UseMiddlewares(AuthMiddleware)
-  @Query({ input: itemIdInput, output: itemDetail })
-  getById(@Input() input: { id: number }) {
-    return this.itemService.getById(input.id);
+  /**
+   * The item and every unit. Given the borrower's period, units and the count
+   * answer for that period, so the detail page agrees with the catalogue row
+   * the borrower clicked on.
+   */
+  @Query({ input: listUnitsInput, output: itemDetail })
+  getById(@Input() input: ListUnitsInput, @Ctx() ctx: TrpcContext) {
+    return this.itemService.getById(ctx.user!, input.id, input);
   }
 
   /**
@@ -128,16 +147,9 @@ export class ItemRouter {
 
   /** Units of one type — serial numbers, condition, and what is due back when. */
   @UseMiddlewares(AuthMiddleware)
-  @Query({ input: itemIdInput, output: z.array(itemUnit) })
-  listUnits(@Input() input: { id: number }) {
-    return this.itemService.listUnits(input.id);
-  }
-
-  /** Not implemented — equipment has no category column or table. */
-  @UseMiddlewares(AuthMiddleware)
-  @Query({ output: z.array(itemCategory) })
-  listCategories() {
-    return this.itemService.listCategories();
+  @Query({ input: listUnitsInput, output: z.array(itemUnit) })
+  listUnits(@Input() input: ListUnitsInput, @Ctx() ctx: TrpcContext) {
+    return this.itemService.listUnits(ctx.user!, input);
   }
 
   /** Room and facility search. `q` matches name, description and location. */
@@ -192,8 +204,8 @@ export class ItemRouter {
    */
   @UseMiddlewares(StaffMiddleware)
   @Mutation({ input: createItemTypeInput, output: itemTypeDetail })
-  createType(@Input() input: CreateItemTypeInput) {
-    return this.management.createItemType(input);
+  createType(@Input() input: CreateItemTypeInput, @Ctx() ctx: TrpcContext) {
+    return this.management.createItemType(ctx.user!, input);
   }
 
   @UseMiddlewares(StaffMiddleware)
@@ -276,26 +288,24 @@ export class ItemRouter {
 
   // ── Eligibility ─────────────────────────────────────────────────────────
 
+  /** Takes exactly one of `itemKey` (a type) or `roomKey` (a room). */
   @UseMiddlewares(StaffMiddleware)
-  @Query({ input: itemTypeIdInput, output: z.array(eligibilityRule) })
+  @Query({ input: eligibilityTargetInput, output: z.array(eligibilityRule) })
   listEligibility(
-    @Input() input: { itemKey: number },
+    @Input() input: EligibilityTargetInput,
     @Ctx() ctx: TrpcContext,
   ) {
-    return this.management.listTypeEligibility(ctx.user!, input.itemKey);
+    return this.management.listEligibility(ctx.user!, input);
   }
 
-  /** Replaces the rule set wholesale — an empty list closes the type to everyone. */
+  /** Replaces the rule set wholesale. An empty list closes the type or room to everyone. */
   @UseMiddlewares(StaffMiddleware)
   @Mutation({
-    input: setTypeEligibilityInput,
+    input: setEligibilityInput,
     output: z.array(eligibilityRule),
   })
-  setEligibility(
-    @Input() input: SetTypeEligibilityInput,
-    @Ctx() ctx: TrpcContext,
-  ) {
-    return this.management.setTypeEligibility(ctx.user!, input);
+  setEligibility(@Input() input: SetEligibilityInput, @Ctx() ctx: TrpcContext) {
+    return this.management.setEligibility(ctx.user!, input);
   }
 
   // ── Reference data for the forms ────────────────────────────────────────
@@ -316,5 +326,53 @@ export class ItemRouter {
   @Query({ output: z.array(authorityRoleOptionOutput) })
   listAuthorityRoles() {
     return this.management.listAuthorityRoles();
+  }
+
+  // ── Delete (FR-EQP-05) — only a record with no history ─────────────────
+
+  /** Refuses with HAS_HISTORY unless every unit of the type is already gone. */
+  @UseMiddlewares(StaffMiddleware)
+  @Mutation({ input: deleteItemTypeInput, output: deleteItemTypeOutput })
+  deleteType(@Input() input: DeleteItemTypeInput, @Ctx() ctx: TrpcContext) {
+    return this.management.deleteItemType(ctx.user!, input);
+  }
+
+  /** Refuses with HAS_HISTORY if the unit has any reservation, usage log, or image. */
+  @UseMiddlewares(StaffMiddleware)
+  @Mutation({ input: deleteResourceInput, output: deleteResourceOutput })
+  deleteUnit(@Input() input: DeleteResourceInput, @Ctx() ctx: TrpcContext) {
+    return this.management.deleteItemUnit(ctx.user!, input);
+  }
+
+  /** Same rule as `deleteUnit`, for a room's ResourceKey. */
+  @UseMiddlewares(StaffMiddleware)
+  @Mutation({ input: deleteResourceInput, output: deleteResourceOutput })
+  deleteRoom(@Input() input: DeleteResourceInput, @Ctx() ctx: TrpcContext) {
+    return this.management.deleteRoom(ctx.user!, input);
+  }
+
+  // ── Retirement (FR-EQP-08) — staff requests, a supervisor decides ──────
+
+  /** Refused while the resource is lent out or has an upcoming booking. */
+  @UseMiddlewares(StaffMiddleware)
+  @Mutation({ input: requestRetirementInput, output: retirementRequestOutput })
+  requestRetirement(
+    @Input() input: RequestRetirementInput,
+    @Ctx() ctx: TrpcContext,
+  ) {
+    return this.management.requestRetirement(ctx.user!, input);
+  }
+
+  /** Withdraws a still-pending request the caller filed themselves. */
+  @UseMiddlewares(StaffMiddleware)
+  @Mutation({
+    input: retirementRequestIdInput,
+    output: retirementRequestOutput,
+  })
+  cancelRetirement(
+    @Input() input: RetirementRequestIdInput,
+    @Ctx() ctx: TrpcContext,
+  ) {
+    return this.management.cancelRetirement(ctx.user!, input);
   }
 }

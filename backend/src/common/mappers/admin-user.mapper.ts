@@ -39,12 +39,7 @@ export interface AdminAccountRow {
    * first group. The detail view selects them all.
    */
   Authorities: AuthorityRow[];
-  /**
-   * MUST already be filtered to penalties in force (InEffect + not expired).
-   * The mapper reads `status` from whether this array is empty, so an
-   * unfiltered select would mark everyone who was ever penalised as
-   * suspended.
-   */
+  /** Penalties in force (InEffect + not expired). Detail view only. */
   Penalties: PenaltyRow[];
   IsActive: boolean;
 }
@@ -54,7 +49,9 @@ function groupName(group: ManagementGroupRow): string | null {
   return group.Branch?.BranchName ?? group.Club?.ClubName ?? null;
 }
 
-export function toAdminUserSummary(row: AdminAccountRow): AdminUserSummary {
+export function toAdminUserSummary(
+  row: Omit<AdminAccountRow, 'Penalties'>,
+): AdminUserSummary {
   const first = row.Authorities[0];
 
   return {
@@ -64,13 +61,7 @@ export function toAdminUserSummary(row: AdminAccountRow): AdminUserSummary {
     lastName: row.UserLName,
     email: row.Email,
     role: mapUserRole(row.Role.RoleName),
-    // Order matters: disabled outranks suspended, since it is the stronger
-    // statement about what the account can do.
-    status: !row.IsActive
-      ? 'disabled'
-      : row.Penalties.length > 0
-        ? 'suspended'
-        : 'active',
+    status: row.IsActive ? 'active' : 'disabled',
     creditScore: row.UserCredit,
     managementGroup: first
       ? {

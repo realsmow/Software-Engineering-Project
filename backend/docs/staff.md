@@ -99,15 +99,15 @@ npm run smoke:staff    # เดินครบ flow แล้วพิมพ์�
 | `item.createType` | mutation | `{ name, description?, imageUrl?, creditWeight }` | `itemTypeDetail` | staff | ✅ ยังไม่มีชิ้น จึงยังไม่มี tier |
 | `item.updateType` | mutation | `{ itemKey, ...ที่จะแก้ }` | `itemTypeDetail` | staff | ✅ |
 | `item.listManagedUnits` | query | `{ itemKey, status?, lendable? }` | `itemUnitOutput[]` | staff | ✅ ใช้เป็นตัวเลือกตอน `loan.allocate` |
-| `item.createUnit` | mutation | `createItemUnitInput` | `itemUnitOutput[]` | staff | ✅ `quantity` ลงทะเบียนทีละหลายชิ้น · T1/T2 บังคับ serial |
+| `item.createUnit` | mutation | `createItemUnitInput` | `itemUnitOutput[]` | staff | ✅ `quantity` ลงทะเบียนทีละหลายชิ้น · T1/T2 บังคับ serial · ชิ้นใหม่รับกฎสิทธิ์จากชิ้นประเภทเดียวกันในหน่วยงานเดียวกัน |
 | `item.updateUnit` | mutation | `{ resourceKey, serialNo?, tier?, prepDays?, imageUrl? }` | `itemUnitOutput` | staff | ✅ |
 | `item.setUnitLendable` | mutation | `{ resourceKey, lendable, reason? }` | `itemUnitOutput` | staff | ✅ §5.9 "ปรับสถานะชั่วคราว" · ปฏิเสธถ้ายังมีคนถืออยู่ (`RESOURCE_IN_USE`) |
 | `item.setUnitCondition` | mutation | `{ resourceKey, condition, note? }` | `itemUnitOutput` | staff | ✅ ของพังที่เจอบนชั้น — **ไม่หักเครดิตใคร** |
 | `item.listManagedRooms` | query | `paginationInput + { lendable? }` | `paginated(roomOutput)` | staff | ✅ |
-| `item.createRoom` | mutation | `createRoomInput` | `roomOutput` | staff | ⚠️ ไม่มีที่เก็บจำนวนที่นั่ง/ความยาวสล็อต (ส่วนที่ 3 ข้อ 3) |
+| `item.createRoom` | mutation | `createRoomInput` | `roomOutput` | staff | ⚠️ ห้องใหม่ยังไม่มีกฎสิทธิ์ จองไม่ได้จนกว่าจะตั้งด้วย `item.setEligibility` แบบ `{ roomKey }` |
 | `item.updateRoom` | mutation | `{ resourceKey, ...ที่จะแก้ }` | `roomOutput` | staff | ⚠️ เหมือนกัน |
-| `item.listEligibility` | query | `{ itemKey }` | `eligibilityRule[]` | staff | ✅ ยุบแถวรายชิ้นกลับเป็นกฎรายประเภท |
-| `item.setEligibility` | mutation | `{ itemKey, rules[] }` | `eligibilityRule[]` | staff | ⚠️ แทนที่ทั้งชุด · กระจายลงทุกชิ้นใน transaction เดียว (ส่วนที่ 3 ข้อ 6) |
+| `item.listEligibility` | query | `{ itemKey }` หรือ `{ roomKey }` อย่างใดอย่างหนึ่ง | `eligibilityRule[]` | staff | ✅ ยุบแถวรายชิ้นกลับเป็นกฎรายประเภท / รายห้อง |
+| `item.setEligibility` | mutation | `{ itemKey, rules[] }` หรือ `{ roomKey, rules[] }` | `eligibilityRule[]` | staff | ⚠️ แทนที่ทั้งชุด · กระจายลงทุกชิ้นใน transaction เดียว (ส่วนที่ 3 ข้อ 6) · ส่งทั้งสองคีย์หรือไม่ส่งเลยจะถูกปฏิเสธ |
 | `item.listTiers` | query | — | `tierOptionOutput[]` | staff | ✅ อ่านจาก `BorrowRule` จริง |
 | `item.listManagementGroups` | query | — | `managementGroupRef[]` | staff | ✅ คืนเฉพาะกลุ่มที่ตัวเองมีอำนาจ |
 | `item.listAuthorityRoles` | query | — | `authorityRoleOptionOutput[]` | staff | ✅ |

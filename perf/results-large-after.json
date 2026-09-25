@@ -1,0 +1,44 @@
+{
+  "base": "http://localhost:3100",
+  "maxVus": 200,
+  "durationMs": 60000,
+  "rampMs": 15000,
+  "rows": [
+    {
+      "endpoint": "item.getAvailability",
+      "count": 820,
+      "p50": 24.30185299999721,
+      "p95": 450.7536340000006,
+      "p99": 886.6024370000014,
+      "errorRate": 0,
+      "sampleErrorCodes": []
+    },
+    {
+      "endpoint": "loan.create",
+      "count": 256,
+      "p50": 60.837972999997874,
+      "p95": 1088.774225000001,
+      "p99": 2078.864722999999,
+      "errorRate": 0,
+      "sampleErrorCodes": []
+    },
+    {
+      "endpoint": "item.getById",
+      "count": 528,
+      "p50": 43.85268300000007,
+      "p95": 747.5508819999995,
+      "p99": 1316.5604190000013,
+      "errorRate": 0,
+      "sampleErrorCodes": []
+    },
+    {
+      "endpoint": "item.list",
+      "count": 1060,
+      "p50": 256.5897530000002,
+      "p95": 1528.303086,
+      "p99": 2235.249671000005,
+      "errorRate": 0,
+      "sampleErrorCodes": []
+    }
+  ]
+}

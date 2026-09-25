@@ -48,9 +48,11 @@ const clubAuthority = {
   AuthorityRole: { AuthorityName: 'Club officer', AuthorityLevel: null },
 };
 
+/** A late-return deduction: it came from a loan and took points. */
 const activePenalty = {
   PenaltyKey: 100,
   Reason: 'คืนของช้า',
+  UsageKey: 7,
   CreditDeducted: 10,
   ActionTime: new Date('2026-08-01T03:00:00.000Z'),
   ExpirationTime: new Date('2026-09-01T03:00:00.000Z'),
@@ -90,14 +92,22 @@ describe('toAdminUserSummary', () => {
   });
 
   describe('status', () => {
-    it('is active when no penalty is in force', () => {
+    it('is active while the account can sign in', () => {
       expect(toAdminUserSummary(accountRow()).status).toBe('active');
     });
 
-    it('is suspended when one is', () => {
+    // A penalty limits borrowing through the credit band; it never marks the
+    // account as anything but active (there is no borrowing ban, FR-CRD-08).
+    it('stays active under a credit deduction', () => {
       expect(
         toAdminUserSummary(accountRow({ Penalties: [activePenalty] })).status,
-      ).toBe('suspended');
+      ).toBe('active');
+    });
+
+    it('is disabled when the account is switched off', () => {
+      expect(toAdminUserSummary(accountRow({ IsActive: false })).status).toBe(
+        'disabled',
+      );
     });
   });
 

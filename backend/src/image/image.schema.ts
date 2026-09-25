@@ -44,6 +44,23 @@ export const uploadPurpose = z.enum([
 export type UploadPurpose = z.infer<typeof uploadPurpose>;
 
 /**
+ * The one purpose whose files are evidence rather than public product
+ * photos (NFR-SEC-06): `UsageImageService.requestUploadTicket` always issues
+ * this purpose for a borrower's before/after/appeal photos, and
+ * `inspection.create` uses it for the inspector's own. All four
+ * `Images.SubmissionType` values therefore land under this one folder -
+ * `ImageService.buildKey` uses `purpose` as the first path segment - which is
+ * what lets `bootstrap.ts` and `ImageService.toPublicUrl` tell "needs a
+ * signed URL" apart from "public catalogue photo" by folder name alone.
+ */
+export const EVIDENCE_UPLOAD_PURPOSE = 'inspection' satisfies UploadPurpose;
+
+/** Every other purpose: public product photos, served with no signature or expiry. */
+export const CATALOGUE_UPLOAD_PURPOSES = uploadPurpose.options.filter(
+  (purpose) => purpose !== EVIDENCE_UPLOAD_PURPOSE,
+);
+
+/**
  * Ask for somewhere to put a file.
  *
  * Type and size are declared up front so an oversized or wrong-type file is
@@ -91,12 +108,17 @@ export const requestUploadOutput = z.object({
 /**
  * Which side of the loan a photo belongs to.
  *
- * `SubmissionType` in the database has a third value, `InspectionPicture`,
+ * `SubmissionType` in the database has a fourth value, `InspectionPicture`,
  * which staff write through `inspection.create` and which no borrower may
  * claim. Keeping it out of this enum is what stops a borrower filing their own
  * photo as the inspector's evidence.
+ *
+ * `evidence` (FR-APL-02) is the borrower's own addition to an appeal. It is a
+ * borrower-writable stage like `before`/`after`, so it belongs in this enum -
+ * what makes it different is not who may write it but when: gated by
+ * `UsageImageService`'s appeal-eligibility check instead of loan state.
  */
-export const usagePhotoStage = z.enum(['before', 'after']);
+export const usagePhotoStage = z.enum(['before', 'after', 'evidence']);
 export type UsagePhotoStage = z.infer<typeof usagePhotoStage>;
 
 /** Enough for a unit photographed from every side, few enough to stay a record. */
@@ -138,18 +160,23 @@ export const usagePhotoOutput = z.object({
   /** Relative `/media/...` or an absolute URL — see common/schemas/image.schema.ts. */
   imageUrl: z.string(),
   /** `inspection` appears on reads only; nothing here can write it. */
-  stage: z.enum(['before', 'after', 'inspection']),
+  stage: z.enum(['before', 'after', 'inspection', 'evidence']),
   submittedBy: z.number().int(),
   submittedAt: isoDateTime.nullable(),
 });
 
 export const usagePhotosInput = z.object({ usageKey: dbId });
 
-/** Both sides of one loan, which is how the return screen shows them. */
+/**
+ * Every photo on one loan, which is how the return screen and the appeal
+ * desk (FR-APL-03) both show them: before/after/inspection plus, once filed,
+ * the borrower's own appeal evidence.
+ */
 export const usagePhotosOutput = z.object({
   before: z.array(usagePhotoOutput),
   after: z.array(usagePhotoOutput),
   inspection: z.array(usagePhotoOutput),
+  evidence: z.array(usagePhotoOutput),
 });
 
 /** Remove one photo the caller filed by mistake. */

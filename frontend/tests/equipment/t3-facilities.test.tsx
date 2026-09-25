@@ -1,126 +1,193 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { BUSINESS } from "../../src/constants";
+import { ROUTES } from "../../src/constants";
 import i18n from "../../src/i18n";
-import { ROOMS, TIME_SLOTS } from "../../src/features/borrower/mock-data";
+import { TIME_SLOTS } from "../../src/features/borrower/rooms/room-slots";
+import { todayLocalDayKey } from "../../src/lib/datetime";
+import { getErrorMessage } from "../../src/lib/error-messages";
 import RoomBookingPage from "../../src/features/borrower/rooms/room-booking-page";
 import RoomListPage from "../../src/features/borrower/rooms/room-list-page";
-import { useSubmittedRequests } from "../../src/features/borrower/loans/submitted-requests.store";
-
-const useRoomsMock = vi.hoisted(() => vi.fn());
-const useRoomMock = vi.hoisted(() => vi.fn());
-const useMyRequestsMock = vi.hoisted(() => vi.fn());
+import * as roomHooks from "../../src/features/borrower/rooms/use-rooms";
+import * as myRequestsHooks from "../../src/features/borrower/loans/use-my-requests";
+import type { Room, RoomDay } from "../../src/features/borrower/rooms/room.adapter";
 
 vi.mock("../../src/features/borrower/rooms/use-rooms", () => ({
-  useRooms: useRoomsMock,
-  useRoom: useRoomMock,
+  useRooms: vi.fn(),
+  useRoom: vi.fn(),
+  useRoomDay: vi.fn(),
+  useFreeSlots: vi.fn(),
+  useCreateRoomBooking: vi.fn(),
 }));
 
 vi.mock("../../src/features/borrower/loans/use-my-requests", () => ({
-  useMyRequests: useMyRequestsMock,
+  useMyRequests: vi.fn(),
 }));
 
-const T3_ROOM = ROOMS[0];
-const OPEN_T3_ROOM = { ...T3_ROOM, freeSlots: T3_ROOM.totalSlots };
+const ROOM: Room = {
+  id: "38",
+  name: "Innovation Lab",
+  description: "Fabrication and prototyping space",
+  location: "Building 2, Floor 3",
+  capacity: 24,
+  imageUrl: null,
+  bookable: true,
+};
+
+/** Small on purpose: proves the page reads the cap from the server, not BUSINESS.MAX_ROOM_BOOKING_SLOTS. */
+const MAX_SLOTS_PER_BOOKING = 3;
+
+function buildRoomDay(unavailable: number[] = []): RoomDay {
+  const closed = new Set(unavailable);
+  return {
+    roomKey: Number(ROOM.id),
+    date: todayLocalDayKey(),
+    slots: TIME_SLOTS.map((s, index) => ({
+      index,
+      start: s.start,
+      end: s.end,
+      startTime: s.start,
+      endTime: s.end,
+      available: !closed.has(index),
+    })),
+    maxSlotsPerBooking: MAX_SLOTS_PER_BOOKING,
+    slotMinutes: 30,
+  };
+}
+
+function renderBookingPage() {
+  render(
+    <MemoryRouter initialEntries={[ROUTES.ROOM_BOOKING.replace(":id", ROOM.id)]}>
+      <Routes>
+        <Route path={ROUTES.ROOM_BOOKING} element={<RoomBookingPage />} />
+        <Route path={ROUTES.MY_LOANS} element={<div>My requests</div>} />
+      </Routes>
+    </MemoryRouter>,
+  );
+}
 
 describe("Module 5 T3 facilities", () => {
+  const mutateAsync = vi.fn();
+
   beforeEach(() => {
     i18n.changeLanguage("en");
-    useSubmittedRequests.getState().clear();
     vi.clearAllMocks();
-    useRoomsMock.mockReturnValue({ data: ROOMS, isLoading: false });
-    useRoomMock.mockReturnValue({ data: OPEN_T3_ROOM, isLoading: false });
-    useMyRequestsMock.mockReturnValue({ requests: [] });
+    vi.mocked(roomHooks.useRooms).mockReturnValue({ data: [ROOM], isLoading: false } as never);
+    vi.mocked(roomHooks.useRoom).mockReturnValue({ data: ROOM, isLoading: false } as never);
+    vi.mocked(roomHooks.useRoomDay).mockReturnValue({ data: buildRoomDay(), isLoading: false } as never);
+    vi.mocked(roomHooks.useFreeSlots).mockReturnValue(new Map([[ROOM.id, 14]]));
+    vi.mocked(roomHooks.useCreateRoomBooking).mockReturnValue({
+      mutateAsync,
+      isPending: false,
+    } as never);
+    vi.mocked(myRequestsHooks.useMyRequests).mockReturnValue({ requests: [] } as never);
   });
 
-  it("lists a source T3 facility with its capacity and free slots", () => {
+  it("lists a room with its location, capacity, and free-slot count", () => {
     render(
       <MemoryRouter>
         <RoomListPage />
       </MemoryRouter>,
     );
 
-    expect(screen.getAllByText(T3_ROOM.name).length).toBeGreaterThan(0);
-    expect(screen.getAllByText(T3_ROOM.code).length).toBeGreaterThan(0);
-    expect(screen.getAllByText(String(T3_ROOM.capacity)).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(ROOM.name).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(ROOM.location as string).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(String(ROOM.capacity)).length).toBeGreaterThan(0);
+    expect(
+      screen.getAllByText(i18n.t("borrower.rooms.slots", { free: 14, total: TIME_SLOTS.length }))
+        .length,
+    ).toBeGreaterThan(0);
   });
 
-  it("renders every 30-minute T3 slot and explains the fixed-facility rules", () => {
-    render(
-      <MemoryRouter initialEntries={[`/rooms/${T3_ROOM.id}/book`]}>
-        <Routes>
-          <Route path="/rooms/:id/book" element={<RoomBookingPage />} />
-        </Routes>
-      </MemoryRouter>,
-    );
+  it("renders every slot the server returned and explains the booking rules", () => {
+    renderBookingPage();
 
-    expect(screen.getByText(i18n.t("borrower.booking.dateHelp", {
-      minutes: BUSINESS.ROOM_SLOT_MINUTES,
-      hours: BUSINESS.MAX_ROOM_BOOKING_HOURS,
-    }))).toBeInTheDocument();
-    expect(screen.getByText(i18n.t("borrower.booking.slotBreak"))).toBeInTheDocument();
-    expect(
-      screen.getByText(new RegExp(`${T3_ROOM.capacity} seats`)),
-    ).toBeInTheDocument();
-
-    for (const slot of TIME_SLOTS) {
+    for (const slot of buildRoomDay().slots) {
       expect(screen.getByRole("button", { name: slot.start })).toBeInTheDocument();
     }
+    expect(
+      screen.getByText(
+        // Hours follow the server's cap (3 slots of 30 minutes in this
+        // fixture), not the frontend constant, so the copy cannot drift from
+        // the limit the page enforces.
+        i18n.t("borrower.booking.dateHelp", {
+          minutes: 30,
+          hours: (3 * 30) / 60,
+        }),
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByText(i18n.t("borrower.booking.slotBreak"))).toBeInTheDocument();
+    expect(
+      screen.getByText(i18n.t("borrower.booking.seats", { count: ROOM.capacity }), {
+        exact: false,
+      }),
+    ).toBeInTheDocument();
   });
 
-  it("limits a T3 booking to the configured maximum number of slots", () => {
-    render(
-      <MemoryRouter initialEntries={[`/rooms/${T3_ROOM.id}/book`]}>
-        <Routes>
-          <Route path="/rooms/:id/book" element={<RoomBookingPage />} />
-        </Routes>
-      </MemoryRouter>,
-    );
+  it("marks a slot the server reports as unavailable disabled", () => {
+    vi.mocked(roomHooks.useRoomDay).mockReturnValue({
+      data: buildRoomDay([5]),
+      isLoading: false,
+    } as never);
+    renderBookingPage();
 
-    for (const slot of TIME_SLOTS.slice(0, BUSINESS.MAX_ROOM_BOOKING_SLOTS)) {
+    expect(screen.getByRole("button", { name: TIME_SLOTS[5].start })).toBeDisabled();
+  });
+
+  it("caps picking at the server's maxSlotsPerBooking, not the frontend constant", () => {
+    renderBookingPage();
+
+    for (const slot of TIME_SLOTS.slice(0, MAX_SLOTS_PER_BOOKING)) {
       fireEvent.click(screen.getByRole("button", { name: slot.start }));
     }
 
     expect(
-      screen.getByRole("button", { name: TIME_SLOTS[BUSINESS.MAX_ROOM_BOOKING_SLOTS].start }),
+      screen.getByRole("button", { name: TIME_SLOTS[MAX_SLOTS_PER_BOOKING].start }),
     ).toBeDisabled();
     expect(screen.getByRole("button", { name: i18n.t("borrower.booking.submit") })).toBeEnabled();
   });
 
   it("does not allow a booking to cross the lunch break", () => {
-    render(
-      <MemoryRouter initialEntries={[`/rooms/${T3_ROOM.id}/book`]}>
-        <Routes>
-          <Route path="/rooms/:id/book" element={<RoomBookingPage />} />
-        </Routes>
-      </MemoryRouter>,
-    );
+    renderBookingPage();
 
     fireEvent.click(screen.getByRole("button", { name: "11:30" }));
 
     expect(screen.getByRole("button", { name: "13:00" })).toBeDisabled();
   });
 
-  it("submits a room booking as a T3 request with the selected slots", () => {
-    render(
-      <MemoryRouter initialEntries={[`/rooms/${T3_ROOM.id}/book`]}>
-        <Routes>
-          <Route path="/rooms/:id/book" element={<RoomBookingPage />} />
-          <Route path="/my/loans" element={<div>My requests</div>} />
-        </Routes>
-      </MemoryRouter>,
-    );
+  it("submits a booking with the room key, today's date, and the picked slot indices", async () => {
+    mutateAsync.mockResolvedValue({ created: [{ id: "req-1" }], rejected: [] });
+    renderBookingPage();
 
     fireEvent.click(screen.getByRole("button", { name: "07:00" }));
     fireEvent.click(screen.getByRole("button", { name: i18n.t("borrower.booking.submit") }));
 
-    expect(useSubmittedRequests.getState().requests[0]).toMatchObject({
-      kind: "room",
-      tier: "T3",
-      name: T3_ROOM.name,
-      serial: T3_ROOM.code,
-      slots: [0],
+    await waitFor(() => {
+      expect(mutateAsync).toHaveBeenCalledWith({
+        roomKey: Number(ROOM.id),
+        date: todayLocalDayKey(),
+        slots: [0],
+        reason: undefined,
+      });
     });
+    await waitFor(() => {
+      expect(screen.getByText("My requests")).toBeInTheDocument();
+    });
+  });
+
+  it("shows an error and stays on the page when the server rejects the slot as a clash", async () => {
+    mutateAsync.mockResolvedValue({
+      created: [],
+      rejected: [{ resourceKey: 1, code: "WINDOW_NOT_AVAILABLE", detail: null }],
+    });
+    renderBookingPage();
+
+    fireEvent.click(screen.getByRole("button", { name: "07:00" }));
+    fireEvent.click(screen.getByRole("button", { name: i18n.t("borrower.booking.submit") }));
+
+    await waitFor(() => {
+      expect(screen.getByText(getErrorMessage("WINDOW_NOT_AVAILABLE"))).toBeInTheDocument();
+    });
+    expect(screen.queryByText("My requests")).not.toBeInTheDocument();
   });
 });

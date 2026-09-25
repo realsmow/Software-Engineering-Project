@@ -31,6 +31,14 @@ interface SubmitRequestInput {
   pickupTime: RequestTime;
   endDate: string;
   returnTime: RequestTime;
+  /**
+   * FR-RSV-06: the exact instant to end on, bypassing endDate/returnTime.
+   * Used when the borrower accepts the shortened window offered after a
+   * WINDOW_CROSSES_RESERVATION refusal - that instant is a reservation's
+   * start minus a buffer, which will not generally land on a REQUEST_TIMES
+   * slot.
+   */
+  endTimeOverride?: string;
 }
 
 export class RequestPreparationError extends Error {
@@ -62,13 +70,15 @@ export function useCreateEquipmentRequest() {
         throw new RequestPreparationError("TOO_MANY_UNITS");
       }
 
+      const startTime = requestInstant(input.startDate, input.pickupTime).toISOString();
+      const endTime = input.endTimeOverride ?? requestInstant(input.endDate, input.returnTime).toISOString();
       const unitsByItem = await Promise.all(
         input.rows.map(async (row) => {
           const itemKey = Number(row.itemId);
           if (!Number.isInteger(itemKey) || itemKey <= 0) {
             throw new RequestPreparationError("INVALID_ITEM_ID", row.name);
           }
-          const units = await trpc.item.listUnits.query({ id: itemKey });
+          const units = await trpc.item.listUnits.query({ id: itemKey, startTime, endTime });
           return [row.itemId, units] as const;
         }),
       );
@@ -77,8 +87,8 @@ export function useCreateEquipmentRequest() {
       const selectedUnits = input.rows.flatMap((row) => selectUnits(row, byItem.get(row.itemId) ?? []));
 
       const result = await trpc.loan.create.mutate({
-        startTime: requestInstant(input.startDate, input.pickupTime).toISOString(),
-        endTime: requestInstant(input.endDate, input.returnTime).toISOString(),
+        startTime,
+        endTime,
         lines: selectedUnits.map((unit) => ({ resourceKey: unit.resourceKey })),
       });
 

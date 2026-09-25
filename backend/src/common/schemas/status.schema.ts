@@ -175,8 +175,19 @@ export function tryMapDamageLevel(
 // Lifecycle states — mirrors of the Prisma enums, as contract strings
 // ---------------------------------------------------------------------------
 
-/** ResourceInfo.ResourceStatus — where a physical unit is right now. */
-export const resourceStatus = z.enum(['InStorage', 'Lended', 'Missing']);
+/**
+ * ResourceInfo.ResourceStatus — where a physical unit is right now.
+ *
+ * `Retired` (FR-EQP-08) is terminal: set only by `approval.decideRetirement`,
+ * and nothing moves a resource out of it. Retired resources are filtered out
+ * of the borrower catalogue and allocation, but keep their row and history.
+ */
+export const resourceStatus = z.enum([
+  'InStorage',
+  'Lended',
+  'Missing',
+  'Retired',
+]);
 export type ResourceStatus = z.infer<typeof resourceStatus>;
 
 /** UsageLog.CurrentStatus — how far along one borrowing is. */

@@ -11,6 +11,7 @@ import {
 } from '../common/schemas/datetime.schema';
 import { imageUrl } from '../common/schemas/image.schema';
 import {
+  approveStatus,
   conditionType,
   resourceStatus,
   resourceTier,
@@ -75,6 +76,14 @@ export const itemTypeSummary = z.object({
   totalUnits: z.number().int().min(0),
   /** Units in storage, lendable, and not currently held by anyone. */
   availableUnits: z.number().int().min(0),
+  /** ItemInfo.Price — baht, FR-EQP-01. Null when staff have not set one. */
+  price: z.number().min(0).nullable(),
+  /**
+   * `suggestTierFromPrice(price)` — the tier the proposal's price bands imply.
+   * Advisory only: staff still choose each unit's tier by hand, so this may
+   * legitimately disagree with `tiers`. Null when there is no price to go on.
+   */
+  suggestedTier: resourceTier.nullable(),
 });
 
 export const paginatedItemTypes = paginated(itemTypeSummary);
@@ -125,6 +134,8 @@ export const createItemTypeInput = z.object({
    * be tuned per item.
    */
   creditWeight: z.number().min(0).max(1000),
+  /** Baht, FR-EQP-01. Feeds the advisory `suggestedTier`; optional and never required. */
+  price: z.number().min(0).max(10_000_000).optional(),
 });
 export type CreateItemTypeInput = z.infer<typeof createItemTypeInput>;
 
@@ -133,6 +144,8 @@ export const updateItemTypeInput = itemTypeIdInput.extend({
   description: z.string().trim().max(2000).optional(),
   imageUrl: imageUrl.optional(),
   creditWeight: z.number().min(0).max(1000).optional(),
+  /** `null` clears a price that was set by mistake; omit to leave it alone. */
+  price: z.number().min(0).max(10_000_000).nullable().optional(),
 });
 export type UpdateItemTypeInput = z.infer<typeof updateItemTypeInput>;
 
@@ -151,9 +164,9 @@ export const createItemUnitInput = itemTypeIdInput.extend({
   manageGroupKey: dbId,
   tier: resourceTier,
   /**
-   * The sticker serial. Required for T1 and T2, which are tracked per unit;
-   * for T0 the field is a bulk label, so it may repeat and is generated when
-   * omitted.
+   * The sticker serial. Required only for T2, which is approved per serial.
+   * T1 and T0 may omit it: a numbered tag is generated, continuing from the
+   * highest one already on the type.
    */
   serialNo: z.string().trim().min(1).max(100).optional(),
   imageUrl: imageUrl.optional(),
@@ -203,6 +216,22 @@ export type SetUnitConditionInput = z.infer<typeof setUnitConditionInput>;
 // Rooms (RoomInfo + ResourceInfo) — T3, the fixed-location tier
 // ---------------------------------------------------------------------------
 
+/**
+ * A room's opening hours, FR-EQP-04 — minutes past local midnight, the same
+ * unit RoomInfo.OpenTime/CloseTime/BreakStart/BreakEnd are stored in and
+ * common/booking/room-slots.ts's `RoomHours` uses internally. Shared between
+ * `roomOutput` and the create/update inputs so the three cannot drift.
+ *
+ * `breakStartMinutes`/`breakEndMinutes` are both null (no break — open
+ * straight through) or both set; never one without the other.
+ */
+const roomHoursShape = {
+  openMinutes: z.number().int().min(0).max(1439),
+  closeMinutes: z.number().int().min(1).max(1440),
+  breakStartMinutes: z.number().int().min(0).max(1439).nullable(),
+  breakEndMinutes: z.number().int().min(1).max(1440).nullable(),
+};
+
 export const roomOutput = z.object({
   resourceKey: z.number().int(),
   roomKey: z.number().int(),
@@ -225,6 +254,7 @@ export const roomOutput = z.object({
   lendable: z.boolean(),
   condition: conditionType.nullable(),
   managementGroup: managementGroupRef,
+  ...roomHoursShape,
 });
 
 export const paginatedManagedRooms = paginated(roomOutput);
@@ -234,41 +264,142 @@ export const listManagedRoomsInput = paginationInput.extend({
 });
 export type ListManagedRoomsInput = z.infer<typeof listManagedRoomsInput>;
 
-export const createRoomInput = z.object({
-  manageGroupKey: dbId,
-  name: z.string().trim().min(1).max(200),
-  description: z.string().trim().max(2000).optional(),
-  location: z.string().trim().max(200).optional(),
-  imageUrl: imageUrl.optional(),
-  /** T3 is not credit-bearing in the proposal, so this defaults to zero. */
-  creditWeight: z.number().min(0).max(1000).default(0),
-  /**
-   * Seats. Optional rather than required: staff registering a room they have
-   * not measured should record the room now and the number when they know it,
-   * instead of typing a placeholder that nothing afterwards can tell from a
-   * real figure. The database refuses zero and below either way.
-   */
-  capacity: z.number().int().positive().max(10000).optional(),
-  lendable: z.boolean().default(true),
-});
+export const createRoomInput = z
+  .object({
+    manageGroupKey: dbId,
+    name: z.string().trim().min(1).max(200),
+    description: z.string().trim().max(2000).optional(),
+    location: z.string().trim().max(200).optional(),
+    imageUrl: imageUrl.optional(),
+    /** T3 is not credit-bearing in the proposal, so this defaults to zero. */
+    creditWeight: z.number().min(0).max(1000).default(0),
+    /**
+     * Seats. Optional rather than required: staff registering a room they have
+     * not measured should record the room now and the number when they know it,
+     * instead of typing a placeholder that nothing afterwards can tell from a
+     * real figure. The database refuses zero and below either way.
+     */
+    capacity: z.number().int().positive().max(10000).optional(),
+    lendable: z.boolean().default(true),
+    /**
+     * Opening hours, FR-EQP-04. Omit both to get the default grid
+     * (07:00-18:00 with a 12:00-13:00 break) that every room used to share.
+     */
+    openMinutes: z.number().int().min(0).max(1439).optional(),
+    closeMinutes: z.number().int().min(1).max(1440).optional(),
+    /**
+     * Both null means no break (open straight through); both set narrows it.
+     * Omit to get the default 12:00-13:00 break.
+     */
+    breakStartMinutes: z.number().int().min(0).max(1439).nullable().optional(),
+    breakEndMinutes: z.number().int().min(1).max(1440).nullable().optional(),
+  })
+  .refine(
+    (v) => (v.openMinutes === undefined) === (v.closeMinutes === undefined),
+    {
+      message: 'openMinutes and closeMinutes must be given together',
+      path: ['closeMinutes'],
+    },
+  )
+  .refine(
+    (v) =>
+      (v.breakStartMinutes === undefined) === (v.breakEndMinutes === undefined),
+    {
+      message: 'breakStartMinutes and breakEndMinutes must be given together',
+      path: ['breakEndMinutes'],
+    },
+  );
 export type CreateRoomInput = z.infer<typeof createRoomInput>;
 
-export const updateRoomInput = resourceIdInput.extend({
-  name: z.string().trim().min(1).max(200).optional(),
-  description: z.string().trim().max(2000).optional(),
-  location: z.string().trim().max(200).optional(),
-  imageUrl: imageUrl.optional(),
-  creditWeight: z.number().min(0).max(1000).optional(),
-  /**
-   * `null` clears it, an omitted field leaves it alone.
-   *
-   * The two have to be distinguishable here in a way they do not for the other
-   * fields: "we measured it and it was wrong" is a real edit, and without an
-   * explicit null there would be no way to take a bad number back out.
-   */
-  capacity: z.number().int().positive().max(10000).nullable().optional(),
-});
+export const updateRoomInput = resourceIdInput
+  .extend({
+    name: z.string().trim().min(1).max(200).optional(),
+    description: z.string().trim().max(2000).optional(),
+    location: z.string().trim().max(200).optional(),
+    imageUrl: imageUrl.optional(),
+    creditWeight: z.number().min(0).max(1000).optional(),
+    /** Same pairing rules as `createRoomInput`; omitting all four leaves hours untouched. */
+    openMinutes: z.number().int().min(0).max(1439).optional(),
+    closeMinutes: z.number().int().min(1).max(1440).optional(),
+    breakStartMinutes: z.number().int().min(0).max(1439).nullable().optional(),
+    breakEndMinutes: z.number().int().min(1).max(1440).nullable().optional(),
+    /**
+     * `null` clears it, an omitted field leaves it alone.
+     *
+     * The two have to be distinguishable here in a way they do not for the other
+     * fields: "we measured it and it was wrong" is a real edit, and without an
+     * explicit null there would be no way to take a bad number back out.
+     */
+    capacity: z.number().int().positive().max(10000).nullable().optional(),
+  })
+  .refine(
+    (v) => (v.openMinutes === undefined) === (v.closeMinutes === undefined),
+    {
+      message: 'openMinutes and closeMinutes must be given together',
+      path: ['closeMinutes'],
+    },
+  )
+  .refine(
+    (v) =>
+      (v.breakStartMinutes === undefined) === (v.breakEndMinutes === undefined),
+    {
+      message: 'breakStartMinutes and breakEndMinutes must be given together',
+      path: ['breakEndMinutes'],
+    },
+  );
 export type UpdateRoomInput = z.infer<typeof updateRoomInput>;
+
+// ---------------------------------------------------------------------------
+// Delete (FR-EQP-05) — allowed only on a record with no history
+// ---------------------------------------------------------------------------
+
+export const deleteItemTypeInput = itemTypeIdInput;
+export type DeleteItemTypeInput = z.infer<typeof deleteItemTypeInput>;
+
+export const deleteResourceInput = resourceIdInput;
+export type DeleteResourceInput = z.infer<typeof deleteResourceInput>;
+
+/** Echoes the key so a client can drop it from a list without a refetch. */
+export const deleteItemTypeOutput = z.object({ itemKey: z.number().int() });
+export const deleteResourceOutput = z.object({ resourceKey: z.number().int() });
+
+// ---------------------------------------------------------------------------
+// Retirement (FR-EQP-08) — staff requests, a supervisor decides
+// ---------------------------------------------------------------------------
+
+/** Who filed or decided a retirement request. */
+export const staffRef = z.object({
+  accountKey: z.number().int(),
+  userId: z.string(),
+  name: z.string(),
+});
+
+export const requestRetirementInput = resourceIdInput.extend({
+  reason: z.string().trim().min(1).max(500),
+});
+export type RequestRetirementInput = z.infer<typeof requestRetirementInput>;
+
+export const retirementRequestIdInput = z.object({
+  requestKey: dbId,
+});
+export type RetirementRequestIdInput = z.infer<typeof retirementRequestIdInput>;
+
+export const retirementRequestOutput = z.object({
+  requestKey: z.number().int(),
+  resourceKey: z.number().int(),
+  kind: z.enum(['equipment', 'room']),
+  /** Item/room name, for a screen that only has the request key. */
+  resourceName: z.string().nullable(),
+  serialNo: z.string().nullable(),
+  reason: z.string(),
+  status: approveStatus,
+  requestedBy: staffRef,
+  requestedAt: isoDateTime,
+  decidedBy: staffRef.nullable(),
+  decidedAt: isoDateTimeNullable,
+  decisionNote: z.string().nullable(),
+});
+export type RetirementRequestOutput = z.infer<typeof retirementRequestOutput>;
 
 // ---------------------------------------------------------------------------
 // Eligibility (who may borrow a thing) and reference data for the forms
@@ -287,26 +418,44 @@ export const eligibilityRule = z.object({
   groupName: z.string().nullable(),
   authorityRoleKey: z.number().int(),
   authorityRoleName: z.string(),
-  /** How many of the type's units carry this rule — should equal totalUnits. */
+  /**
+   * How many of the type's units carry this rule, which should equal
+   * totalUnits. Always 1 for a room, which is a single resource.
+   */
   appliesToUnits: z.number().int().min(0),
 });
 
-export const setTypeEligibilityInput = itemTypeIdInput.extend({
-  /**
-   * The complete rule set for this type. Rules missing from the list are
-   * removed, so sending an empty array closes the type to everyone — which is
-   * a real thing staff want, and the reason this is not a partial update.
-   */
-  rules: z
-    .array(
-      z.object({
-        groupKey: dbId,
-        authorityRoleKey: dbId,
-      }),
-    )
-    .max(200),
-});
-export type SetTypeEligibilityInput = z.infer<typeof setTypeEligibilityInput>;
+/**
+ * What a rule set is attached to: every in-scope unit of an item type, or one
+ * room (RoomInfo.RoomKey, the same key `roomAvailability` takes).
+ *
+ * `xor` rather than two optional keys, so a call naming both, or neither, is
+ * refused instead of quietly picking one.
+ */
+const roomKeyInput = z.object({ roomKey: dbId });
+
+export const eligibilityTargetInput = z.xor([itemTypeIdInput, roomKeyInput]);
+export type EligibilityTargetInput = z.infer<typeof eligibilityTargetInput>;
+
+/**
+ * The complete rule set for the target. Rules missing from the list are
+ * removed, so sending an empty array closes the type or room to everyone,
+ * which is a real thing staff want and the reason this is not a partial update.
+ */
+const eligibilityRulesInput = z
+  .array(
+    z.object({
+      groupKey: dbId,
+      authorityRoleKey: dbId,
+    }),
+  )
+  .max(200);
+
+export const setEligibilityInput = z.xor([
+  itemTypeIdInput.extend({ rules: eligibilityRulesInput }),
+  roomKeyInput.extend({ rules: eligibilityRulesInput }),
+]);
+export type SetEligibilityInput = z.infer<typeof setEligibilityInput>;
 
 /** BorrowRule rows that map to T0–T3, for the tier picker. */
 export const tierOptionOutput = z.object({
@@ -335,7 +484,24 @@ export const authorityRoleOptionOutput = z.object({
 // `getManagedById` above.
 // ===========================================================================
 
+/**
+ * The period a borrower is shopping for. Both or neither: availability for a
+ * window with only one end is not a question anybody is asking.
+ *
+ * Optional, and absent means "right now", which is what the catalogue meant
+ * before a borrower could pick dates. Checked against end > start in the
+ * service, where the error can carry the business code.
+ */
+export const availabilityWindow = z.object({
+  startTime: isoDateTime.optional(),
+  endTime: isoDateTime.optional(),
+});
+
 export const itemIdInput = z.object({ id: dbId });
+
+/** One item's units, optionally judged against a requested period. */
+export const listUnitsInput = itemIdInput.extend(availabilityWindow.shape);
+export type ListUnitsInput = z.infer<typeof listUnitsInput>;
 export const roomIdInput = z.object({ id: dbId });
 
 /**
@@ -388,6 +554,18 @@ export const itemSummary = z.object({
   /** False when no unit is open for borrowing (ResourceInfo.AllowBorrow). */
   allowBorrow: z.boolean(),
 
+  /**
+   * Whether the caller may borrow this at all: they hold a (group, role) pair
+   * that an Eligibility rule on at least one unit names. The same comparison
+   * loan.create makes, so the catalogue stops offering what a request would
+   * refuse with NOT_ELIGIBLE.
+   *
+   * Not the seniority floor (MinimumAuthorityLevel). That depends on the
+   * borrower's credit tier against each unit's BorrowRule, and a request can
+   * still be refused for it with reason AUTHORITY_LEVEL_TOO_LOW.
+   */
+  eligible: z.boolean(),
+
   owner: ownerGroup.nullable(),
 });
 
@@ -404,6 +582,17 @@ export const itemUnit = z.object({
   condition: conditionType.nullable(),
   /** Due date of the loan holding this unit, when it is out */
   dueAt: z.iso.datetime().nullable(),
+  /**
+   * When this unit can go out again: its due date plus the prep days staff
+   * need (ResourceInfo.BufferTime), per proposal 5.5. Null while it is on the
+   * shelf. Without this a unit out on loan read as "available now".
+   */
+  nextAvailableAt: z.iso.datetime().nullable(),
+  /**
+   * Present only when a window was asked for: whether this unit could be
+   * booked for it, by the same rule loan.create enforces.
+   */
+  availableForWindow: z.boolean().optional(),
 });
 
 export const itemDetail = itemSummary.extend({
@@ -444,11 +633,27 @@ export const listItemsInput = paginationInput
     tier: resourceTier.optional(),
     /** ManagementGroup.ManageGroupKey — the owning department or club */
     ownerGroupKey: dbId.optional(),
-    /** Hide anything with no unit free right now. */
+    /** Hide anything with no unit free right now, or in the window when given. */
     availableOnly: z.boolean().default(false),
-  });
+    /**
+     * FR-BRW-02: opaque keyset cursor from a previous page's `nextCursor`.
+     * When given, `page` is ignored and paging continues from this row
+     * instead of from an offset. Omit it (or pass none) to keep using
+     * page/pageSize exactly as before — both styles work against the same
+     * procedure so existing callers are unaffected.
+     */
+    cursor: z.string().optional(),
+  })
+  .extend(availabilityWindow.shape);
 
-export const paginatedItems = paginated(itemSummary);
+export const paginatedItems = paginated(itemSummary).extend({
+  /**
+   * Pass back as `cursor` to fetch the next page by keyset instead of by
+   * offset. Null once the caller has the last row. See item.service.ts for
+   * why the cursor has to carry the sort key, not just a row id.
+   */
+  nextCursor: z.string().nullable(),
+});
 
 // ---------------------------------------------------------------------------
 // Rooms — borrower-facing search
@@ -557,18 +762,6 @@ export const availabilityOutput = z.object({
   availableUnits: z.number().int().min(0),
   totalUnits: z.number().int().min(0),
   nextAvailableAt: z.iso.datetime().nullable(),
-});
-
-/**
- * Equipment category (instrument / tool / board in the frontend's mock).
- *
- * Declared so the contract is complete and the catalogue's category filter can
- * be written against it, but the service cannot answer: ItemInfo has no
- * category column and there is no category table. See docs/auth-admin.md.
- */
-export const itemCategory = z.object({
-  id: z.number().int(),
-  name: z.string(),
 });
 
 export type ListItemsInput = z.infer<typeof listItemsInput>;

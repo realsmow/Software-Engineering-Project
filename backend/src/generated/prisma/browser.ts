@@ -32,6 +32,17 @@ export type AccountInfo = Prisma.AccountInfoModel
  */
 export type PasswordReset = Prisma.PasswordResetModel
 /**
+ * Model EmailVerification
+ * A pending email address check for a self-registered account.
+ * 
+ * Same shape as PasswordReset and for the same reason: only the SHA-256 of
+ * the emailed token is kept, so a leaked database cannot be used to activate
+ * anybody's account. The account row exists from the moment someone submits
+ * the form, with IsActive false, which is what holds the email and student id
+ * against a second registration while the first is still unconfirmed.
+ */
+export type EmailVerification = Prisma.EmailVerificationModel
+/**
  * Model SessionInfo
  * 
  */
@@ -105,6 +116,33 @@ export type RoomInfo = Prisma.RoomInfoModel
  * 
  */
 export type ResourceInfo = Prisma.ResourceInfoModel
+/**
+ * Model RetirementRequest
+ * A staff request to retire a unit or room, decided by a supervisor
+ * (FR-EQP-08). Same "no deciding your own" shape as Reservations/AppealInfo:
+ * RequestedBy and DecidedBy cannot be the same account.
+ * 
+ * Approval is what actually sets ResourceInfo.ResourceStatus to `Retired` -
+ * this row is only the paper trail. One resource may have several rows over
+ * time (a rejected request does not block trying again), but the service
+ * refuses a second Pending one for the same resource.
+ */
+export type RetirementRequest = Prisma.RetirementRequestModel
+/**
+ * Model RoomCheckRound
+ * A scheduled condition check on one T3 room (SRS §5.3, §5.9).
+ * 
+ * `recordRoomCheck` already records the *result* of a check. This is the
+ * *task* of doing one: without it nothing says a room is due, and a room
+ * nobody thought about looks exactly like a room that was checked and found
+ * fine. The nightly job opens one per room whose last check has aged out, and
+ * the check that follows closes it.
+ * 
+ * At most one round may be open per room. That is the database's rule rather
+ * than the job's, so running the job twice in a row cannot produce a second
+ * task for the same room.
+ */
+export type RoomCheckRound = Prisma.RoomCheckRoundModel
 /**
  * Model ConditionLog
  * 
@@ -181,12 +219,17 @@ export type Notification = Prisma.NotificationModel
  */
 export type RepairLog = Prisma.RepairLogModel
 /**
- * Model CronRunLog
+ * Model SystemSetting
  * One run of one scheduled job (SRS 5.3).
  * 
  * Without this table a manual run has nowhere to record its outcome, which is
  * why `admin.runCronJob` refused before it existed: a job you can trigger but
  * cannot observe is not operable. The status page reads the newest row per
  * job to show when it last ran and whether it worked.
+ */
+export type SystemSetting = Prisma.SystemSettingModel
+/**
+ * Model CronRunLog
+ * 
  */
 export type CronRunLog = Prisma.CronRunLogModel

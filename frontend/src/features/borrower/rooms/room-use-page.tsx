@@ -3,40 +3,49 @@ import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { Camera, Check, TriangleAlert } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
+import { ImageThumb } from "@/components/shared/image-thumb";
 import { Badge, type BadgeTone } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 import { BUSINESS, ROUTES, UPLOAD } from "@/constants";
+import { getErrorMessage } from "@/lib/error-messages";
 import { cn } from "@/lib/utils";
 import { uploadAcceptAttr, validateUploadFile } from "@/lib/upload-validation";
-import { TIME_SLOTS, type MyRequest } from "../mock-data";
+import { TIME_SLOTS } from "../rooms/room-slots";
+import type { MyRequest } from "../request-status";
 import { fmtDayMonth } from "../format";
-import { useMyRequests } from "../loans/use-my-requests";
-import { useSubmittedRequests, type RoomUseShots } from "../loans/submitted-requests.store";
+import { useMyRequests, type LoanRow } from "../loans/use-my-requests";
+import { useCancelRequest } from "../loans/use-my-requests-api";
 import {
-  prepareBorrowerImage,
-  type PreparedBorrowerImage,
-} from "../uploads/prepared-image";
+  useFinalizePickup,
+  usePickupImageUpload,
+  useUsagePhotos,
+  type UsagePhoto,
+} from "../pickup/use-pickup-image-upload";
+import { prepareBorrowerImage, releaseBorrowerImage } from "../uploads/prepared-image";
 
 /**
- * Use a room - where a confirmed T3 booking is checked in and handed back.
+ * Use a room - where an approved T3 booking is checked in, and where the
+ * borrower records the room as they left it.
  *
- * One page for every booking rather than one page per room: the borrower comes
- * here to answer "what do I have today", not to look a room up, so the room
- * arrives as a card in the list instead of an id in the URL.
+ * One page for every booking rather than one per room: the borrower comes here
+ * to answer "what do I have today", so the room arrives as a card in the list
+ * instead of an id in the URL.
  *
- * The lifecycle ends here. Fixed facilities run
- *   submit → staff approval → photo before → in use → photo after
- * and that is the whole of it - nothing goes to a counter afterwards, so
- * checking out completes the request rather than queueing an inspection.
+ * The lifecycle, as the server runs it:
+ *   book -> staff approve -> staff open it (Prepared) -> photo before, check in
+ *   (loan.confirmMyPickup) -> in use -> photo after -> staff close it
  *
- * A booking still awaiting staff is listed too, greyed. It already holds the
- * room, so leaving it off this page would make the borrower's only held
- * booking the one thing they cannot see here.
+ * The last step is staff's, not the borrower's. There is no borrower check-out
+ * procedure: a room is handed back the way equipment is, through
+ * `loan.recordReturn` at the counter, where staff compare the two photos. This
+ * page used to offer a "check out" button that only changed a local status,
+ * which left the booking open on the server while telling the borrower it was
+ * finished. It now says who closes it instead.
  *
- * Both photos are mandatory gates, not decoration: staff compare the pair
- * during the daily condition check, so the button that ends each phase stays
- * disabled until its photo exists.
+ * Photos go to the server (`image.attachUsagePhotos`) under the loan, so staff
+ * see them in the inspection screen. The before photo gates check-in on the
+ * server as well (PICKUP_PHOTO_REQUIRED); the button waits for it here too.
  */
 export default function RoomUsePage() {
   const { t } = useTranslation();
@@ -66,17 +75,20 @@ export default function RoomUsePage() {
   );
 }
 
-/** Which phase of the visit a status puts the booking in. */
-type Phase = "waiting" | "before" | "using" | "done";
+/** Which part of the visit a status puts the booking in. */
+type Phase = "waiting" | "before" | "using" | "returned" | "done";
 
 /**
- * Only these statuses belong on this page. Cancelled and rejected bookings
- * have released the room and are read about under "my requests" instead.
+ * Only these statuses belong on this page. Cancelled and rejected bookings have
+ * released the room and are read about under "my requests" instead.
  */
 const PHASE_OF: Partial<Record<MyRequest["status"], Phase>> = {
   pending: "waiting",
+  approved: "waiting",
+  preparing: "waiting",
   ready: "before",
   inUse: "using",
+  returned: "returned",
   done: "done",
 };
 
@@ -84,6 +96,7 @@ const PHASE_TONE: Record<Phase, BadgeTone> = {
   waiting: "warn",
   before: "info",
   using: "ok",
+  returned: "neutral",
   done: "neutral",
 };
 
@@ -91,19 +104,24 @@ const PHASE_LABEL: Record<Phase, string> = {
   waiting: "borrower.roomUse.stWaiting",
   before: "borrower.roomUse.stBooked",
   using: "borrower.roomUse.stUsing",
+  returned: "borrower.roomUse.stReturned",
   done: "borrower.roomUse.stDone",
 };
 
-function BookingCard({ row }: { row: MyRequest }) {
+function BookingCard({ row }: { row: LoanRow }) {
   const { t } = useTranslation();
-  const setStatus = useSubmittedRequests((s) => s.setStatus);
-  const cancel = useSubmittedRequests((s) => s.cancel);
-  const shots = useSubmittedRequests((s) => s.roomUse[row.id]);
+  const usageKey = row.usageKey ?? null;
+  const { data: photos } = useUsagePhotos(usageKey);
+  const checkIn = useFinalizePickup();
+  const cancel = useCancelRequest();
   const [confirmingCancel, setConfirmingCancel] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const phase = PHASE_OF[row.status] ?? "before";
-  const hasBefore = Boolean(shots?.before);
-  const hasAfter = Boolean(shots?.after);
+  const phase = PHASE_OF[row.status] ?? "waiting";
+  const before = photos?.before ?? [];
+  const after = photos?.after ?? [];
+  // The server says whether it can still be called off; the button follows it.
+  const cancellable = "cancellable" in row && row.cancellable === true;
 
   const slots = row.slots ?? [];
   const first = slots.length > 0 ? Math.min(...slots) : null;
@@ -112,6 +130,27 @@ function BookingCard({ row }: { row: MyRequest }) {
     first === null || last === null
       ? "-"
       : `${TIME_SLOTS[first].start}–${TIME_SLOTS[last].end}`;
+
+  async function doCheckIn() {
+    if (usageKey === null) return;
+    setError(null);
+    try {
+      await checkIn.mutateAsync([usageKey]);
+    } catch (e) {
+      setError(getErrorMessage(e));
+    }
+  }
+
+  async function doCancel() {
+    setError(null);
+    try {
+      await cancel.mutateAsync({ reservationKey: Number(row.id) });
+      setConfirmingCancel(false);
+    } catch (e) {
+      setConfirmingCancel(false);
+      setError(getErrorMessage(e));
+    }
+  }
 
   return (
     <section className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
@@ -123,9 +162,7 @@ function BookingCard({ row }: { row: MyRequest }) {
               {row.tier}
             </span>
           </div>
-          <div className="mt-1 font-mono text-[11.5px] text-t4">
-            {row.id} · {row.serial}
-          </div>
+          <div className="mt-1 font-mono text-[11.5px] text-t4">{row.id}</div>
         </div>
         <Badge tone={PHASE_TONE[phase]}>{t(PHASE_LABEL[phase])}</Badge>
       </header>
@@ -140,77 +177,83 @@ function BookingCard({ row }: { row: MyRequest }) {
         </Field>
       </div>
 
-      <div className="grid grid-cols-2 gap-3.5 px-4 py-3.5">
-        <PhotoBox
-          requestId={row.id}
-          which="before"
-          label={t("borrower.roomUse.takeBefore")}
-          image={shots?.before}
-          // Each photo is evidence of one moment: the room as found, and the
-          // room as left. Locking them outside their phase keeps a check-out
-          // shot from being passed off as the arrival one.
-          editable={phase === "before"}
-        />
-        <PhotoBox
-          requestId={row.id}
-          which="after"
-          label={t("borrower.roomUse.takeAfter")}
-          image={shots?.after}
-          editable={phase === "using"}
-        />
-      </div>
+      {usageKey !== null ? (
+        <div className="grid grid-cols-2 gap-3.5 px-4 py-3.5">
+          <PhotoBox
+            usageKey={usageKey}
+            stage="before"
+            label={t("borrower.roomUse.takeBefore")}
+            photos={before}
+            // Each photo is evidence of one moment: the room as found, and the
+            // room as left. Only the phase it belongs to may add to it.
+            editable={phase === "before"}
+          />
+          <PhotoBox
+            usageKey={usageKey}
+            stage="after"
+            label={t("borrower.roomUse.takeAfter")}
+            photos={after}
+            editable={phase === "using" || phase === "returned"}
+          />
+        </div>
+      ) : null}
+
+      {error ? (
+        <div className="px-4 pb-2">
+          <Warning>{error}</Warning>
+        </div>
+      ) : null}
 
       {phase === "waiting" ? (
         <div className="px-4 pb-4">
           <p className="mb-2.5 rounded bg-secondary px-3 py-2.5 text-xs leading-relaxed text-t3">
             {t("borrower.roomUse.waitStaff")}
           </p>
-          <Button
-            type="button"
-            variant="outline"
-            className="h-[42px] w-full border-[var(--s-alert-b)] text-[var(--s-alert-t)] hover:bg-[var(--s-alert-bg)]"
-            onClick={() => setConfirmingCancel(true)}
-          >
-            {t("borrower.roomUse.cancel")}
-          </Button>
+          {cancellable ? (
+            <Button
+              type="button"
+              variant="outline"
+              className="h-[42px] w-full border-[var(--s-alert-b)] text-[var(--s-alert-t)] hover:bg-[var(--s-alert-bg)]"
+              onClick={() => setConfirmingCancel(true)}
+            >
+              {t("borrower.roomUse.cancel")}
+            </Button>
+          ) : null}
         </div>
       ) : null}
 
       {phase === "before" ? (
         <div className="px-4 pb-4">
-          {!hasBefore ? <Warning>{t("borrower.roomUse.needBefore")}</Warning> : null}
+          {before.length === 0 ? <Warning>{t("borrower.roomUse.needBefore")}</Warning> : null}
           <div className="flex flex-wrap gap-2.5">
             <Button
               type="button"
               className="h-[42px] min-w-[180px] flex-1"
-              disabled={!hasBefore}
-              onClick={() => setStatus(row.id, "inUse")}
+              disabled={before.length === 0 || checkIn.isPending}
+              onClick={() => void doCheckIn()}
             >
-              {t("borrower.roomUse.checkIn")}
+              {checkIn.isPending ? t("common.loading") : t("borrower.roomUse.checkIn")}
             </Button>
-            <Button
-              type="button"
-              variant="outline"
-              className="h-[42px] border-[var(--s-alert-b)] px-5 text-[var(--s-alert-t)] hover:bg-[var(--s-alert-bg)]"
-              onClick={() => setConfirmingCancel(true)}
-            >
-              {t("borrower.roomUse.cancel")}
-            </Button>
+            {cancellable ? (
+              <Button
+                type="button"
+                variant="outline"
+                className="h-[42px] border-[var(--s-alert-b)] px-5 text-[var(--s-alert-t)] hover:bg-[var(--s-alert-bg)]"
+                onClick={() => setConfirmingCancel(true)}
+              >
+                {t("borrower.roomUse.cancel")}
+              </Button>
+            ) : null}
           </div>
         </div>
       ) : null}
 
-      {phase === "using" ? (
+      {phase === "using" || phase === "returned" ? (
         <div className="px-4 pb-4">
-          {!hasAfter ? <Warning>{t("borrower.roomUse.needAfter")}</Warning> : null}
-          <Button
-            type="button"
-            className="h-[42px] w-full"
-            disabled={!hasAfter}
-            onClick={() => setStatus(row.id, "done")}
-          >
-            {t("borrower.roomUse.checkOut")}
-          </Button>
+          {after.length === 0 ? <Warning>{t("borrower.roomUse.needAfter")}</Warning> : null}
+          <p className="rounded bg-secondary px-3 py-2.5 text-xs leading-relaxed text-t3">
+            {t(phase === "using" ? "borrower.roomUse.handBack" : "borrower.roomUse.staffChecking")}
+          </p>
         </div>
       ) : null}
 
@@ -236,10 +279,8 @@ function BookingCard({ row }: { row: MyRequest }) {
             <Button
               type="button"
               variant="destructive"
-              onClick={() => {
-                cancel(row.id);
-                setConfirmingCancel(false);
-              }}
+              disabled={cancel.isPending}
+              onClick={() => void doCancel()}
             >
               {t("borrower.roomUse.cancelConfirmYes")}
             </Button>
@@ -255,29 +296,31 @@ function BookingCard({ row }: { row: MyRequest }) {
 }
 
 /**
- * One condition photo. A real file picker rather than the mockup's click-to-
- * toggle placeholder, so the size and type rules that the backend enforces are
- * felt here too - a 12 MB burst from a phone camera should fail at the point
- * the borrower can still retake it.
+ * One condition photo, filed to the server against the loan.
+ *
+ * The size and type rules the backend enforces are checked here first, so a
+ * 12 MB burst from a phone camera fails while the borrower can still retake it
+ * rather than after the upload.
  */
 function PhotoBox({
-  requestId,
-  which,
+  usageKey,
+  stage,
   label,
-  image,
+  photos,
   editable,
 }: {
-  requestId: string;
-  which: keyof RoomUseShots;
+  usageKey: number;
+  stage: "before" | "after";
   label: string;
-  image?: PreparedBorrowerImage;
+  photos: UsagePhoto[];
   editable: boolean;
 }) {
   const { t } = useTranslation();
-  const setRoomPhoto = useSubmittedRequests((s) => s.setRoomPhoto);
+  const upload = usePickupImageUpload();
   const [error, setError] = useState<string | null>(null);
+  const latest = photos[photos.length - 1];
 
-  function onPick(e: ChangeEvent<HTMLInputElement>) {
+  async function onPick(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     // Let the same file be chosen again after a rejection.
     e.target.value = "";
@@ -294,12 +337,20 @@ function PhotoBox({
     }
 
     setError(null);
-    // Keep the File as well as its preview. The store owns and releases the
-    // blob URL; the future signed-upload mutation can send this exact File.
-    setRoomPhoto(requestId, which, prepareBorrowerImage(file));
+    // The preview is the server's copy once it lands, so this one's blob URL
+    // is only needed for the upload and is released either way.
+    const prepared = prepareBorrowerImage(file);
+    try {
+      await upload.mutateAsync({ usageKey, stage, image: prepared });
+    } catch (err) {
+      setError(getErrorMessage(err));
+    } finally {
+      releaseBorrowerImage(prepared);
+    }
   }
 
-  const taken = Boolean(image);
+  const taken = Boolean(latest);
+  const canPick = editable && !upload.isPending;
 
   return (
     <div>
@@ -313,19 +364,19 @@ function PhotoBox({
           taken
             ? "border-[var(--s-ok-t)] bg-[var(--s-ok-bg)] text-[var(--s-ok-t)]"
             : "border-line-strong bg-surface-inset text-t4",
-          editable ? "cursor-pointer" : "cursor-default opacity-80",
+          canPick ? "cursor-pointer" : "cursor-default opacity-80",
         )}
       >
         <input
           type="file"
           accept={uploadAcceptAttr()}
-          disabled={!editable}
-          onChange={onPick}
+          disabled={!canPick}
+          onChange={(e) => void onPick(e)}
           className="sr-only"
         />
-        {image ? (
+        {latest ? (
           <>
-            <img src={image.previewUrl} alt="" className="h-full w-full object-cover" />
+            <ImageThumb src={latest.imageUrl} alt="" className="h-full w-full" icon={Camera} />
             <span className="absolute bottom-1.5 right-1.5 inline-flex items-center gap-1 rounded bg-[var(--s-ok-t)] px-1.5 py-0.5 text-[11px] font-semibold text-white">
               <Check size={11} strokeWidth={3} />
               {t("borrower.roomUse.shotDone")}
@@ -334,7 +385,9 @@ function PhotoBox({
         ) : (
           <span className="flex flex-col items-center gap-2">
             <Camera size={26} strokeWidth={1.5} />
-            <span className="text-[12.5px] font-medium">{label}</span>
+            <span className="text-[12.5px] font-medium">
+              {upload.isPending ? t("common.loading") : label}
+            </span>
           </span>
         )}
       </label>

@@ -6,10 +6,17 @@ import {
   HttpException,
   Param,
   Put,
+  Req,
 } from '@nestjs/common';
+import type { Request } from 'express';
 import { TRPCError } from '@trpc/server';
+import { rateLimiter } from '../common/security/rate-limiter';
 import { BusinessError } from '../common/errors/business-error';
 import { ImageService } from './image.service';
+
+/** NFR-SEC-05: generous enough that a real upload session never trips it. */
+const UPLOAD_RATE_LIMIT = 60;
+const UPLOAD_RATE_WINDOW_MS = 60 * 1000;
 
 /** tRPC's own codes mapped onto HTTP, so this route answers like the rest of the API. */
 const HTTP_STATUS: Partial<Record<TRPCError['code'], number>> = {
@@ -51,7 +58,21 @@ export class ImageController {
     @Param('token') token: string,
     @Headers('content-type') contentType: string | undefined,
     @Body() body: unknown,
+    @Req() req: Request,
   ) {
+    // NFR-SEC-05: this route has no session to key a limiter off, same as the
+    // signature check below - the IP is all that's left.
+    const ip = req.ip ?? 'unknown';
+    if (
+      !rateLimiter.consume(
+        `upload:${ip}`,
+        UPLOAD_RATE_LIMIT,
+        UPLOAD_RATE_WINDOW_MS,
+      )
+    ) {
+      throw new HttpException({ code: 'TOO_MANY_REQUESTS' }, 429);
+    }
+
     const ticket = this.imageService.verifyTicket(token);
     if (!ticket) {
       // One answer for expired, forged and malformed alike — telling the two

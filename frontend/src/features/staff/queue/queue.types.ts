@@ -72,6 +72,7 @@ export interface LoanOutput {
   serialNo: string | null;
   resourceKey: number;
   tier: Tier | null;
+  dueAt: string;
 }
 
 /**

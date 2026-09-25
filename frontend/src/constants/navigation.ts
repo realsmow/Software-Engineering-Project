@@ -78,8 +78,15 @@ export const NAV_CONFIG: Record<Role, RoleNav> = {
           { key: "home", labelKey: "nav.home", icon: "home", route: ROUTES.HOME },
           { key: "catalog", labelKey: "nav.catalog", icon: "grid", route: ROUTES.CATALOG },
           { key: "rooms", labelKey: "nav.rooms", icon: "building", route: ROUTES.ROOMS },
+          // Staff and supervisors borrow too (FR-AUTH-04), so they get the
+          // whole borrowing journey, not only its first half: without these
+          // they could book a room or request an item and then had no menu
+          // entry to collect it, check in, or appeal a penalty.
+          { key: "room-use", labelKey: "nav.roomUse", icon: "door-open", route: ROUTES.ROOM_USE },
           { key: "new-request", labelKey: "nav.newRequest", icon: "file-plus", route: ROUTES.REQUEST },
           { key: "requests", labelKey: "nav.myRequests", icon: "file", route: ROUTES.MY_LOANS },
+          { key: "pickup", labelKey: "nav.pickup", icon: "package", route: ROUTES.PICKUP },
+          { key: "appeals", labelKey: "nav.appeals", icon: "shield", route: ROUTES.APPEALS },
         ],
       },
       {
@@ -88,6 +95,7 @@ export const NAV_CONFIG: Record<Role, RoleNav> = {
           { key: "queue", labelKey: "nav.queue", icon: "inbox", active: true, route: ROUTES.STAFF_DASHBOARD },
           { key: "inventory", labelKey: "nav.inventory", icon: "package", route: ROUTES.STAFF_INVENTORY },
           { key: "inspect", labelKey: "nav.inspect", icon: "check-square", route: ROUTES.STAFF_INSPECTION },
+          { key: "repairs", labelKey: "nav.repairs", icon: "wrench", route: ROUTES.STAFF_REPAIRS },
         ],
       },
       {
@@ -117,8 +125,15 @@ export const NAV_CONFIG: Record<Role, RoleNav> = {
           { key: "home", labelKey: "nav.home", icon: "home", route: ROUTES.HOME },
           { key: "catalog", labelKey: "nav.catalog", icon: "grid", route: ROUTES.CATALOG },
           { key: "rooms", labelKey: "nav.rooms", icon: "building", route: ROUTES.ROOMS },
+          // Staff and supervisors borrow too (FR-AUTH-04), so they get the
+          // whole borrowing journey, not only its first half: without these
+          // they could book a room or request an item and then had no menu
+          // entry to collect it, check in, or appeal a penalty.
+          { key: "room-use", labelKey: "nav.roomUse", icon: "door-open", route: ROUTES.ROOM_USE },
           { key: "new-request", labelKey: "nav.newRequest", icon: "file-plus", route: ROUTES.REQUEST },
           { key: "requests", labelKey: "nav.myRequests", icon: "file", route: ROUTES.MY_LOANS },
+          { key: "pickup", labelKey: "nav.pickup", icon: "package", route: ROUTES.PICKUP },
+          { key: "appeals", labelKey: "nav.appeals", icon: "shield", route: ROUTES.APPEALS },
         ],
       },
       {
@@ -131,6 +146,7 @@ export const NAV_CONFIG: Record<Role, RoleNav> = {
       {
         labelKey: "nav.departmentMgmt",
         items: [
+          { key: "inventory", labelKey: "nav.inventory", icon: "package", route: ROUTES.STAFF_INVENTORY },
           { key: "users", labelKey: "nav.userMgmt", icon: "users", route: ROUTES.STAFF_USERS },
           { key: "permissions", labelKey: "nav.permissions", icon: "user-x", route: ROUTES.STAFF_PERMISSIONS },
           { key: "settings", labelKey: "nav.lendingSettings", icon: "sliders", route: ROUTES.STAFF_SETTINGS },

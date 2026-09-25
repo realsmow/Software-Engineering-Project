@@ -10,23 +10,30 @@ import { creditTier, userRole } from '../common/schemas/status.schema';
 /** Every admin procedure that addresses one account takes this. */
 export const accountIdInput = z.object({ id: dbId });
 
+/** FR-ADM-01: one account's loans, newest first. */
+export const userLoanHistory = z.array(
+  z.object({
+    id: z.number().int(),
+    itemName: z.string(),
+    status: z.string(),
+    checkoutTime: z.string(),
+    dueTime: z.string(),
+    checkInTime: z.string().nullable(),
+  }),
+);
+
 /**
  * Account status.
  *
- * Three values, all provable from the database:
- *   disabled  - AccountInfo.IsActive is false. Cannot sign in at all.
- *   suspended - holds a PenaltyInfo row still InEffect and not yet expired.
- *               Can sign in, cannot borrow.
- *   active    - neither of the above.
- *
- * Checked in that order, because a disabled account that also has a penalty
- * is disabled first and foremost.
+ * disabled is AccountInfo.IsActive false (FR-ADM-03): cannot sign in at all.
+ * There is no borrowing ban; penalties limit borrowing through the credit
+ * band (FR-CRD-08).
  *
  * The frontend's mock data also has `invited` (account created, password never
  * set). Nothing in AccountInfo records that, so it is not offered here rather
  * than being faked - see docs/auth-admin.md.
  */
-export const accountStatus = z.enum(['active', 'suspended', 'disabled']);
+export const accountStatus = z.enum(['active', 'disabled']);
 export type AccountStatus = z.infer<typeof accountStatus>;
 
 /** Mirrors the PenaltyReason enum in schema.prisma (ว-10: fixed strings, never keys). */
@@ -105,12 +112,6 @@ export const createUserInput = z.object({
   role: userRole,
   /** Omit to have the server generate one and return it once. */
   password: z.string().min(8).max(200).optional(),
-  /**
-   * Starting credit. Defaults to 100, which must fall inside some CreditTier's
-   * CreditMin..CreditMax range or the account cannot be shown - the tiers are
-   * seed data, so this default is a convention, not a rule in the schema.
-   */
-  initialCredit: z.number().int().min(0).default(100),
 });
 
 /**
@@ -140,21 +141,6 @@ export const resetPasswordInput = accountIdInput.extend({
 export const resetPasswordOutput = z.object({
   ok: z.literal(true),
   temporaryPassword: z.string().nullable(),
-});
-
-/**
- * Borrowing ban.
- *
- * Recorded as a PenaltyInfo row rather than a flag on the account, because
- * that is the mechanism the schema already has for "this person may not borrow
- * until a date". Lifting a ban sets InEffect false on the rows currently in
- * force; it does not delete them, so the history survives.
- */
-export const setUserBanInput = accountIdInput.extend({
-  banned: z.boolean(),
-  reason: z.string().trim().max(500).optional(),
-  /** Ban length in days. Ignored when lifting. */
-  days: z.number().int().positive().max(3650).default(30),
 });
 
 export const setUserActiveInput = accountIdInput.extend({
@@ -195,7 +181,17 @@ export const borrowRuleSetting = z.object({
   penalties: z.array(penaltyRuleSetting),
 });
 
+/** FR-ADM-04: the counter's day in Bangkok hours; loans fall due at `end`. */
+export const workHoursSetting = z
+  .object({
+    start: z.number().int().min(0).max(23),
+    end: z.number().int().min(1).max(23),
+  })
+  .refine((h) => h.start < h.end, { message: 'start must be before end' });
+export type WorkHoursSetting = z.infer<typeof workHoursSetting>;
+
 export const lendingSettingsOutput = z.object({
+  workHours: workHoursSetting,
   creditTiers: z.array(creditTierSetting),
   borrowRules: z.array(borrowRuleSetting),
 });
@@ -276,15 +272,19 @@ export const systemStatusOutput = z.object({
   }),
 });
 
-/** The eight backend jobs listed in "รายการเรียกใช้งานจาก Backend" group 3. */
+/**
+ * The backend jobs from "รายการเรียกใช้งานจาก Backend" group 3 that this
+ * system runs. `computeAvailability` and `rollupDailyStats` were listed there
+ * and are not here: availability is computed live by the catalogue queries and
+ * report.summary counts from UsageLog on demand, so neither had anything to
+ * precompute and both existed only as a button that answered NOT_IMPLEMENTED.
+ */
 export const cronJobId = z.enum([
   'markOverdue',
   'markLost',
   'expireDemerits',
   'dueSoonReminder',
-  'computeAvailability',
   'openT3InspectionRounds',
-  'rollupDailyStats',
   'expireStaleRequests',
 ]);
 
@@ -351,9 +351,6 @@ export const technicalConfigOutput = z.object({
   }),
 });
 
-/** Send only the groups being changed. */
-export const updateTechnicalConfigInput = technicalConfigOutput.partial();
-
 // ---------------------------------------------------------------------------
 // Audit (IT admin)
 // ---------------------------------------------------------------------------
@@ -396,7 +393,6 @@ export type CreateUserInput = z.infer<typeof createUserInput>;
 export type UpdateUserInput = z.infer<typeof updateUserInput>;
 export type ChangeRoleInput = z.infer<typeof changeRoleInput>;
 export type ResetPasswordInput = z.infer<typeof resetPasswordInput>;
-export type SetUserBanInput = z.infer<typeof setUserBanInput>;
 export type SetUserActiveInput = z.infer<typeof setUserActiveInput>;
 export type UpdateLendingSettingsInput = z.infer<
   typeof updateLendingSettingsInput

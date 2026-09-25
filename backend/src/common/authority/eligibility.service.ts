@@ -39,6 +39,28 @@ export interface BorrowAllowance {
  * item". Both read Authority, and confusing them would let a staff member
  * borrow anything they can administer.
  */
+/** One (group, role) pair: what an Eligibility rule names and an Authority row grants. */
+export interface GroupRole {
+  GroupKey: number;
+  RoleKey: number;
+}
+
+/**
+ * The rules this borrower satisfies: exact (group, role) matches, nothing
+ * inferred. Shared by assertMayBorrow and the catalogue, so what the catalogue
+ * offers and what a request accepts come from the same comparison.
+ */
+export function matchingRules<R extends GroupRole>(
+  rules: readonly R[],
+  held: readonly GroupRole[],
+): R[] {
+  return rules.filter((rule) =>
+    held.some(
+      (h) => h.GroupKey === rule.GroupKey && h.RoleKey === rule.RoleKey,
+    ),
+  );
+}
+
 @Injectable()
 export class EligibilityService {
   constructor(private readonly prisma: PrismaService) {}
@@ -75,12 +97,12 @@ export class EligibilityService {
       },
     });
 
-    const matches = resource.Eligibilities.filter((rule) =>
-      held.some(
-        (h) =>
-          h.ManageGroupKey === rule.GroupKey &&
-          h.AuthorityRoleKey === rule.RoleKey,
-      ),
+    const matches = matchingRules(
+      resource.Eligibilities,
+      held.map((h) => ({
+        GroupKey: h.ManageGroupKey,
+        RoleKey: h.AuthorityRoleKey,
+      })),
     );
 
     if (matches.length === 0) {
@@ -149,4 +171,23 @@ export class EligibilityService {
       authorityLevel,
     };
   }
+}
+
+/**
+ * Every (group, role) pair an account holds, for checking many resources at
+ * once. A function rather than a method so the catalogue can use it without
+ * taking EligibilityService as a dependency.
+ */
+export async function heldPairs(
+  prisma: Pick<PrismaService, 'authority'>,
+  accountKey: number,
+): Promise<GroupRole[]> {
+  const rows = await prisma.authority.findMany({
+    where: { AccountKey: accountKey },
+    select: { ManageGroupKey: true, AuthorityRoleKey: true },
+  });
+  return rows.map((r) => ({
+    GroupKey: r.ManageGroupKey,
+    RoleKey: r.AuthorityRoleKey,
+  }));
 }

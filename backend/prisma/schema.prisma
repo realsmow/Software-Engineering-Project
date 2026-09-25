@@ -34,6 +34,10 @@ enum ResourceStatus {
   InStorage
   Lended
   Missing
+  /// Retired via FR-EQP-08 (staff request + supervisor approval). Excluded
+  /// from the catalogue, availability and allocation, but the row and its
+  /// history stay for reports.
+  Retired
 }
 
 enum ResourceType {
@@ -75,12 +79,26 @@ enum NotificationType {
   Overdue
   CreditDeducted
   AppealResult
+  /** FR-EQP-08: a supervisor with authority over the resource's department has a retirement request to decide. */
+  RetirementRequested
+  /** FR-EQP-08: the requesting staff member's retirement request was approved or rejected. */
+  RetirementDecided
+  /** FR-NTF-04: a supervisor with authority over the department has a T2/low-credit request or extension to decide. */
+  SupervisorApprovalNeeded
+  /** FR-NTF-04: a supervisor has an appeal awaiting decision. */
+  AppealFiled
+  /** FR-NTF-03: staff over the department have an item to prepare, a return to receive or a room to check. */
+  StaffTask
 }
 
 enum SubmissionType {
   BeforePicture
   AfterPicture
   InspectionPicture
+  /**
+   * A borrower's own photo attached to an appeal (FR-APL-02).
+   */
+  AppealEvidence
 }
 
 // ----------------------------------------------------------------------
@@ -113,26 +131,29 @@ model AccountInfo {
   /// set when someone graduates or leaves.
   IsActive Boolean @default(true)
 
-  Role       RoleInfo      @relation(fields: [RoleKey], references: [RoleKey])
-  Faculty    FacultyInfo?  @relation(fields: [FacultyKey], references: [FacultyKey])
-  Sessions   SessionInfo[]
-  PasswordResets PasswordReset[]
-  AuditTrail AuditLog[]
+  Role               RoleInfo            @relation(fields: [RoleKey], references: [RoleKey])
+  Faculty            FacultyInfo?        @relation(fields: [FacultyKey], references: [FacultyKey])
+  Sessions           SessionInfo[]
+  PasswordResets     PasswordReset[]
+  EmailVerifications EmailVerification[]
+  AuditTrail         AuditLog[]
 
   Authorities          Authority[]
-  ConditionLogsLogged  ConditionLog[]     @relation("ConditionLogLoggedBy")
-  ExtensionsRequested  ExtensionRequest[] @relation("ExtensionRequestedBy")
-  ExtensionsApproved   ExtensionRequest[] @relation("ExtensionApprovedBy")
-  ReservationsMade     Reservations[]     @relation("ReservationsReservedBy")
-  ReservationsApproved Reservations[]     @relation("ReservationsApprovedBy")
-  UsageLogs            UsageLog[]         @relation("UsageLogAccount")
-  InspectionsPerformed Inspection[]       @relation("InspectionInspector")
-  Penalties            PenaltyInfo[]      @relation("PenaltyAccount")
-  AppealsFiled         AppealInfo[]       @relation("AppealFiledBy")
-  AppealsResolved      AppealInfo[]       @relation("AppealResolvedBy")
-  ImagesSubmitted      Images[]           @relation("ImagesSubmittedBy")
+  ConditionLogsLogged  ConditionLog[]      @relation("ConditionLogLoggedBy")
+  ExtensionsRequested  ExtensionRequest[]  @relation("ExtensionRequestedBy")
+  ExtensionsApproved   ExtensionRequest[]  @relation("ExtensionApprovedBy")
+  ReservationsMade     Reservations[]      @relation("ReservationsReservedBy")
+  ReservationsApproved Reservations[]      @relation("ReservationsApprovedBy")
+  UsageLogs            UsageLog[]          @relation("UsageLogAccount")
+  InspectionsPerformed Inspection[]        @relation("InspectionInspector")
+  Penalties            PenaltyInfo[]       @relation("PenaltyAccount")
+  AppealsFiled         AppealInfo[]        @relation("AppealFiledBy")
+  AppealsResolved      AppealInfo[]        @relation("AppealResolvedBy")
+  ImagesSubmitted      Images[]            @relation("ImagesSubmittedBy")
   Notifications        Notification[]
-  RepairsPerformed     RepairLog[]        @relation("RepairRepairedBy")
+  RepairsPerformed     RepairLog[]         @relation("RepairRepairedBy")
+  RetirementsRequested RetirementRequest[] @relation("RetirementRequestedBy")
+  RetirementsDecided   RetirementRequest[] @relation("RetirementDecidedBy")
 }
 
 /// A single sign-in, so a session can be ended before its token expires.
@@ -150,6 +171,27 @@ model PasswordReset {
   ExpiresAt  DateTime  @db.Timestamptz(3)
   /// Set the moment it is spent. One link, one reset.
   UsedAt     DateTime? @db.Timestamptz(3)
+
+  Account AccountInfo @relation(fields: [AccountKey], references: [AccountKey], onDelete: Cascade)
+
+  @@index([AccountKey])
+}
+
+/// A pending email address check for a self-registered account.
+///
+/// Same shape as PasswordReset and for the same reason: only the SHA-256 of
+/// the emailed token is kept, so a leaked database cannot be used to activate
+/// anybody's account. The account row exists from the moment someone submits
+/// the form, with IsActive false, which is what holds the email and student id
+/// against a second registration while the first is still unconfirmed.
+model EmailVerification {
+  VerificationKey Int       @id @default(autoincrement())
+  AccountKey      Int
+  TokenHash       String    @unique
+  IssuedAt        DateTime  @default(now()) @db.Timestamptz(3)
+  ExpiresAt       DateTime  @db.Timestamptz(3)
+  /// Set the moment it is spent. One link, one activation.
+  UsedAt          DateTime? @db.Timestamptz(3)
 
   Account AccountInfo @relation(fields: [AccountKey], references: [AccountKey], onDelete: Cascade)
 
@@ -280,6 +322,11 @@ model ItemInfo {
   ItemDesc     String?
   ImageURL     String?
   CreditWeight Float
+  /// Baht, FR-EQP-01. Nullable: existing rows predate the field, and staff
+  /// tune it per item rather than it being derived from anything else. Drives
+  /// the advisory `suggestedTier` (common/pricing/suggest-tier.ts) - it never
+  /// forces the unit tier, which staff still choose by hand.
+  Price        Float?
 
   Items ItemIndiv[]
 }
@@ -293,6 +340,11 @@ model ItemIndiv {
 
   Item     ItemInfo     @relation(fields: [ItemKey], references: [ItemKey])
   Resource ResourceInfo @relation(fields: [ResourceKey], references: [ResourceKey])
+
+  /// NFR-PRF-05: the catalogue's per-type aggregates (item.service.ts
+  /// `lightweightItemRows`) join every unit of a type by ItemKey; unindexed,
+  /// that is a seq scan of ItemIndiv for each type in the result.
+  @@index([ItemKey])
 }
 
 model RoomInfo {
@@ -309,6 +361,16 @@ model RoomInfo {
   /// staff fill it in. Never zero or negative - the check constraint in the
   /// migration holds that, since Prisma cannot express it.
   Capacity     Int?
+
+  /// Opening hours, FR-EQP-04, minutes past local midnight (420 = 07:00).
+  /// Defaults reproduce the grid every room used before this column existed
+  /// (07:00-12:00, 13:00-18:00), so an unedited room behaves exactly as
+  /// before. BreakStart/BreakEnd are both null or both set - see
+  /// room-slots.ts assertValidRoomHours.
+  OpenTime   Int  @default(420)
+  CloseTime  Int  @default(1080)
+  BreakStart Int? @default(720)
+  BreakEnd   Int? @default(780)
 
   Resource ResourceInfo @relation(fields: [ResourceKey], references: [ResourceKey])
 }
@@ -328,15 +390,75 @@ model ResourceInfo {
   BorrowRuleInfo   BorrowRule      @relation(fields: [BorrowRule], references: [BorrowRuleKey])
   CurrentCondition ConditionLog?   @relation("ResourceCurrentCondition", fields: [ConditionKey], references: [ConditionKey])
 
-  Item          ItemIndiv?
-  Room          RoomInfo?
-  ConditionLogs ConditionLog[] @relation("ConditionLogResource")
-  Eligibilities Eligibility[]
-  Reservations  Reservations[]
-  UsageLogs     UsageLog[]
-  Inspections   Inspection[]
-  Images        Images[]
-  RepairLogs    RepairLog[]
+  Item               ItemIndiv?
+  Room               RoomInfo?
+  ConditionLogs      ConditionLog[]      @relation("ConditionLogResource")
+  Eligibilities      Eligibility[]
+  Reservations       Reservations[]
+  UsageLogs          UsageLog[]
+  Inspections        Inspection[]
+  CheckRounds        RoomCheckRound[]
+  Images             Images[]
+  RepairLogs         RepairLog[]
+  RetirementRequests RetirementRequest[]
+}
+
+/// A staff request to retire a unit or room, decided by a supervisor
+/// (FR-EQP-08). Same "no deciding your own" shape as Reservations/AppealInfo:
+/// RequestedBy and DecidedBy cannot be the same account.
+///
+/// Approval is what actually sets ResourceInfo.ResourceStatus to `Retired` -
+/// this row is only the paper trail. One resource may have several rows over
+/// time (a rejected request does not block trying again), but the service
+/// refuses a second Pending one for the same resource.
+model RetirementRequest {
+  RequestKey    Int           @id @default(autoincrement())
+  ResourceKey   Int
+  RequestedBy   Int
+  Reason        String
+  ApproveStatus ApproveStatus
+  DecidedBy     Int?
+  DecidedAt     DateTime?     @db.Timestamptz(3)
+  DecisionNote  String?
+  RequestedAt   DateTime      @default(now()) @db.Timestamptz(3)
+
+  Resource        ResourceInfo @relation(fields: [ResourceKey], references: [ResourceKey])
+  RequestedByUser AccountInfo  @relation("RetirementRequestedBy", fields: [RequestedBy], references: [AccountKey])
+  DecidedByUser   AccountInfo? @relation("RetirementDecidedBy", fields: [DecidedBy], references: [AccountKey])
+
+  /// The supervisor queue reads "pending, oldest first" per resource scope.
+  @@index([ApproveStatus, RequestedAt])
+  @@index([ResourceKey])
+}
+
+/// A scheduled condition check on one T3 room (SRS §5.3, §5.9).
+///
+/// `recordRoomCheck` already records the *result* of a check. This is the
+/// *task* of doing one: without it nothing says a room is due, and a room
+/// nobody thought about looks exactly like a room that was checked and found
+/// fine. The nightly job opens one per room whose last check has aged out, and
+/// the check that follows closes it.
+///
+/// At most one round may be open per room. That is the database's rule rather
+/// than the job's, so running the job twice in a row cannot produce a second
+/// task for the same room.
+model RoomCheckRound {
+  RoundKey     Int       @id @default(autoincrement())
+  ResourceKey  Int
+  OpenedAt     DateTime  @default(now()) @db.Timestamptz(3)
+  /// When the check should have happened by. Past this, the round is overdue.
+  DueAt        DateTime  @db.Timestamptz(3)
+  ClosedAt     DateTime? @db.Timestamptz(3)
+  /// The ConditionLog row the closing check wrote. Null while still open.
+  ConditionKey Int?
+
+  Resource  ResourceInfo  @relation(fields: [ResourceKey], references: [ResourceKey], onDelete: Cascade)
+  Condition ConditionLog? @relation("RoomCheckRoundCondition", fields: [ConditionKey], references: [ConditionKey])
+
+  /// Enforces "one open round per room": ClosedAt is null on the open one, and
+  /// Postgres treats each null as distinct, so closed rounds never collide.
+  @@unique([ResourceKey, ClosedAt])
+  @@index([DueAt])
 }
 
 model ConditionLog {
@@ -350,12 +472,13 @@ model ConditionLog {
   Resource     ResourceInfo @relation("ConditionLogResource", fields: [ResourceKey], references: [ResourceKey])
   LoggedByUser AccountInfo  @relation("ConditionLogLoggedBy", fields: [LoggedBy], references: [AccountKey])
 
-  ResourcesCurrentlyOn ResourceInfo[] @relation("ResourceCurrentCondition")
-  UsageCheckIns        UsageLog[]     @relation("UsageCheckInCondition")
-  UsageCheckouts       UsageLog[]     @relation("UsageCheckoutCondition")
-  Inspections          Inspection[]   @relation("InspectionCondition")
-  RepairsBefore        RepairLog[]    @relation("RepairConditionBefore")
-  RepairsAfter         RepairLog[]    @relation("RepairConditionAfter")
+  ResourcesCurrentlyOn ResourceInfo[]   @relation("ResourceCurrentCondition")
+  UsageCheckIns        UsageLog[]       @relation("UsageCheckInCondition")
+  ClosedCheckRounds    RoomCheckRound[] @relation("RoomCheckRoundCondition")
+  UsageCheckouts       UsageLog[]       @relation("UsageCheckoutCondition")
+  Inspections          Inspection[]     @relation("InspectionCondition")
+  RepairsBefore        RepairLog[]      @relation("RepairConditionBefore")
+  RepairsAfter         RepairLog[]      @relation("RepairConditionAfter")
 }
 
 model BorrowRule {
@@ -404,6 +527,10 @@ model Eligibility {
   Role     AuthorityRole   @relation(fields: [RoleKey], references: [AuthorityRoleKey])
 
   @@unique([GroupKey, ResourceKey, RoleKey])
+  /// The catalogue's eligibility check (item.service.ts `lightweightItemRows`)
+  /// looks up a unit's rules by ResourceKey alone; the unique constraint above
+  /// does not lead with that column.
+  @@index([ResourceKey])
 }
 
 model CreditTier {
@@ -424,6 +551,10 @@ model Reservations {
   ResourceKey           Int
   ReservedBy            Int
   Reason                String?
+  /// Why the request ended the way it did: a rejection's reason, or the
+  /// borrower's own note on cancelling. Separate from Reason, which is what the
+  /// borrower asked for it for; writing the decision over it lost that.
+  DecisionNote          String?
   StartTime             DateTime      @db.Timestamptz(3)
   EndTime               DateTime      @db.Timestamptz(3)
   ApproveStatus         ApproveStatus
@@ -456,6 +587,11 @@ model Reservations {
   /// Finding the requests that clash with one being approved is a range scan
   /// over one resource's bookings.
   @@index([ResourceKey, StartTime, EndTime])
+  /// The same clash check (clashingWindowFilter, loan.create and the
+  /// catalogue's window search) always filters ApproveStatus alongside
+  /// ResourceKey; under NFR-PRF-05's 100k-row dataset this narrows the range
+  /// scan above before the StartTime/EndTime comparison instead of after.
+  @@index([ResourceKey, ApproveStatus, StartTime, EndTime])
 }
 
 // ----------------------------------------------------------------------
@@ -486,6 +622,15 @@ model UsageLog {
   Inspections       Inspection[]
   Penalties         PenaltyInfo[]
   Images            Images[]
+
+  /// NFR-PRF-05: "is this unit currently held" (CURRENT_LOAN_SELECT,
+  /// heldUsageFilter) is a ResourceKey + CurrentStatus lookup run once per
+  /// unit in getAvailability/getById and once per matching type's units in
+  /// the catalogue's aggregate query; unindexed it is a seq scan of UsageLog
+  /// (100k+ rows under the load-test dataset) every time.
+  @@index([ResourceKey, CurrentStatus])
+
+  @@index([CurrentStatus])
 }
 
 model ExtensionRequest {
@@ -681,6 +826,14 @@ model RepairLog {
 /// why `admin.runCronJob` refused before it existed: a job you can trigger but
 /// cannot observe is not operable. The status page reads the newest row per
 /// job to show when it last ran and whether it worked.
+// Admin-set values with no better home (FR-ADM-04). Key "workHours" holds
+// {"start":8,"end":17}, the counter's day in Bangkok hours.
+model SystemSetting {
+  Key       String   @id
+  Value     Json
+  UpdatedAt DateTime @updatedAt @db.Timestamptz(3)
+}
+
 model CronRunLog {
   RunKey     Int       @id @default(autoincrement())
   /// Matches the CronJobId union in admin.schema.ts.

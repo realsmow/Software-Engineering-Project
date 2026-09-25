@@ -14,6 +14,9 @@ import { okOutput } from '../common/schemas/ok.schema';
 import {
   accountIdInput,
   adminUserDetail,
+  userLoanHistory,
+  workHoursSetting,
+  type WorkHoursSetting,
   auditEventIdInput,
   auditEventOutput,
   changeRoleInput,
@@ -30,11 +33,9 @@ import {
   runCronJobInput,
   type RunCronJobInput,
   setUserActiveInput,
-  setUserBanInput,
   systemStatusOutput,
   technicalConfigOutput,
   updateLendingSettingsInput,
-  updateTechnicalConfigInput,
   updateUserInput,
   type ChangeRoleInput,
   type CreateUserInput,
@@ -42,7 +43,6 @@ import {
   type ListUsersInput,
   type ResetPasswordInput,
   type SetUserActiveInput,
-  type SetUserBanInput,
   type UpdateLendingSettingsInput,
   type UpdateUserInput,
 } from './admin.schema';
@@ -113,6 +113,12 @@ export class AdminRouter {
     return this.adminService.getUserById(input.id);
   }
 
+  @UseMiddlewares(AdminMiddleware)
+  @Query({ input: accountIdInput, output: userLoanHistory })
+  getUserLoans(@Input() input: { id: number }) {
+    return this.adminService.getUserLoans(input.id);
+  }
+
   /** Returns the generated password once, when the caller did not supply one. */
   @UseMiddlewares(AdminMiddleware)
   @Mutation({ input: createUserInput, output: createUserOutput })
@@ -149,13 +155,6 @@ export class AdminRouter {
 
   // ── Borrowing ban (department staff) ────────────────────────────────────
 
-  /** Recorded as a PenaltyInfo row, so the ban and its history share one table. */
-  @UseMiddlewares(StaffMiddleware)
-  @Mutation({ input: setUserBanInput, output: okOutput })
-  setUserBan(@Input() input: SetUserBanInput, @Ctx() ctx: TrpcContext) {
-    return this.adminService.setUserBan(input, AdminRouter.actorFrom(ctx));
-  }
-
   // ── Lending rules (department staff) ────────────────────────────────────
 
   @UseMiddlewares(StaffMiddleware)
@@ -180,6 +179,13 @@ export class AdminRouter {
     );
   }
 
+  /** FR-ADM-04: one working day for the whole university, so admin only. */
+  @UseMiddlewares(AdminMiddleware)
+  @Mutation({ input: workHoursSetting, output: lendingSettingsOutput })
+  updateWorkHours(@Input() input: WorkHoursSetting, @Ctx() ctx: TrpcContext) {
+    return this.adminService.updateWorkHours(input, AdminRouter.actorFrom(ctx));
+  }
+
   // ── Technical config (IT admin) ─────────────────────────────────────────
 
   /** Not implemented - needs a SystemConfig table; today these are env vars. */
@@ -187,13 +193,6 @@ export class AdminRouter {
   @Query({ output: technicalConfigOutput })
   getConfig() {
     return this.adminService.getConfig();
-  }
-
-  /** Not implemented - see getConfig. */
-  @UseMiddlewares(AdminMiddleware)
-  @Mutation({ input: updateTechnicalConfigInput, output: okOutput })
-  updateConfig() {
-    return this.adminService.updateConfig();
   }
 
   // ── System status & cron (IT admin) ─────────────────────────────────────
@@ -218,8 +217,8 @@ export class AdminRouter {
   }
 
   /**
-   * Runs one job now, off the schedule. The three unbuilt ones still refuse
-   * with NOT_IMPLEMENTED, and the attempt is recorded either way.
+   * Runs one job now, off the schedule. Every job in the registry does real
+   * work, and the attempt is recorded whether it succeeds or throws.
    */
   @UseMiddlewares(AdminMiddleware)
   @Mutation({ input: runCronJobInput, output: okOutput })

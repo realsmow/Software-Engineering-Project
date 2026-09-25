@@ -200,6 +200,32 @@ export const roomCheckOutput = z.object({
   stillBookable: z.boolean(),
 });
 
+export const listRoomRoundsInput = paginationInput.extend({
+  /** Default: only rounds nobody has answered yet, which is the work list. */
+  openOnly: z.boolean().default(true),
+});
+export type ListRoomRoundsInput = z.infer<typeof listRoomRoundsInput>;
+
+/** One scheduled room check, open or answered. */
+export const roomCheckRoundOutput = z.object({
+  roundKey: z.number().int(),
+  resourceKey: z.number().int(),
+  roomName: z.string().nullable(),
+  location: z.string().nullable(),
+  openedAt: isoDateTime,
+  dueAt: isoDateTime,
+  closedAt: isoDateTimeNullable,
+  /** Open and past its due date. Closed rounds are never overdue. */
+  overdue: z.boolean(),
+  /** What the closing check found. Null while the round is open. */
+  condition: conditionType.nullable(),
+  note: z.string().nullable(),
+  /** False once a check has taken the room out of service. */
+  stillBookable: z.boolean(),
+});
+
+export const paginatedRoomCheckRounds = paginated(roomCheckRoundOutput);
+
 // ---------------------------------------------------------------------------
 // Repair (R02 "การติดตามการซ่อมบำรุง")
 // ---------------------------------------------------------------------------
@@ -236,29 +262,3 @@ export const finishRepairInput = z.object({
   note: z.string().trim().max(1000).optional(),
 });
 export type FinishRepairInput = z.infer<typeof finishRepairInput>;
-
-// ---------------------------------------------------------------------------
-// Decommission (R02) — declared, not yet storable
-// ---------------------------------------------------------------------------
-
-/**
- * Propose retiring a unit (§5.7 note, §5.9 supervisor table).
- *
- * The schema has nowhere to keep a proposal: it needs a request row with a
- * proposer, a supervisor decision and an audit entry, and none of those tables
- * exist. Declared so the frontend can build the screen against a real type, and
- * throws NOT_IMPLEMENTED naming what is missing — see docs/staff.md.
- */
-export const proposeDecommissionInput = resourceIdInput.extend({
-  reason: z.string().trim().min(1).max(1000),
-});
-export type ProposeDecommissionInput = z.infer<typeof proposeDecommissionInput>;
-
-export const decommissionRequestOutput = z.object({
-  requestKey: z.number().int(),
-  resourceKey: z.number().int(),
-  reason: z.string(),
-  proposedByAccountKey: z.number().int(),
-  proposedAt: isoDateTime,
-  status: z.enum(['Pending', 'Approved', 'Rejected']),
-});
