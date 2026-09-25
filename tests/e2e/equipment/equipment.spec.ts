@@ -91,6 +91,15 @@ test.describe("Module 5 equipment browser flows", () => {
   test("opens a T3 facility and shows its capacity and same-day slot calendar", async ({
     page,
   }) => {
+    // T3 rooms are booked same-day only; after the last slot every room reads
+    // "Fully booked" until tomorrow.
+    const hm = new Intl.DateTimeFormat("en-GB", {
+      timeZone: "Asia/Bangkok",
+      hour: "2-digit",
+      minute: "2-digit",
+      hourCycle: "h23",
+    }).format(new Date());
+    test.skip(hm >= "17:30", "no room slot left today");
     await page.goto("/rooms");
 
     await expect(page.getByRole("heading", { name: "Room list" })).toBeVisible();
