@@ -430,6 +430,7 @@ export const ModelName = {
   Images: 'Images',
   Notification: 'Notification',
   RepairLog: 'RepairLog',
+  SystemSetting: 'SystemSetting',
   CronRunLog: 'CronRunLog'
 } as const
 
@@ -446,7 +447,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "accountInfo" | "passwordReset" | "emailVerification" | "sessionInfo" | "auditLog" | "roleInfo" | "facultyInfo" | "branchInfo" | "managementGroup" | "authority" | "authorityRole" | "clubInfo" | "itemInfo" | "itemIndiv" | "roomInfo" | "resourceInfo" | "retirementRequest" | "roomCheckRound" | "conditionLog" | "borrowRule" | "borrowConstraints" | "penaltyRule" | "eligibility" | "creditTier" | "reservations" | "usageLog" | "extensionRequest" | "inspection" | "penaltyInfo" | "appealInfo" | "images" | "notification" | "repairLog" | "cronRunLog"
+    modelProps: "accountInfo" | "passwordReset" | "emailVerification" | "sessionInfo" | "auditLog" | "roleInfo" | "facultyInfo" | "branchInfo" | "managementGroup" | "authority" | "authorityRole" | "clubInfo" | "itemInfo" | "itemIndiv" | "roomInfo" | "resourceInfo" | "retirementRequest" | "roomCheckRound" | "conditionLog" | "borrowRule" | "borrowConstraints" | "penaltyRule" | "eligibility" | "creditTier" | "reservations" | "usageLog" | "extensionRequest" | "inspection" | "penaltyInfo" | "appealInfo" | "images" | "notification" | "repairLog" | "systemSetting" | "cronRunLog"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -2892,6 +2893,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    SystemSetting: {
+      payload: Prisma.$SystemSettingPayload<ExtArgs>
+      fields: Prisma.SystemSettingFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.SystemSettingFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SystemSettingPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.SystemSettingFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SystemSettingPayload>
+        }
+        findFirst: {
+          args: Prisma.SystemSettingFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SystemSettingPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.SystemSettingFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SystemSettingPayload>
+        }
+        findMany: {
+          args: Prisma.SystemSettingFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SystemSettingPayload>[]
+        }
+        create: {
+          args: Prisma.SystemSettingCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SystemSettingPayload>
+        }
+        createMany: {
+          args: Prisma.SystemSettingCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.SystemSettingCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SystemSettingPayload>[]
+        }
+        delete: {
+          args: Prisma.SystemSettingDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SystemSettingPayload>
+        }
+        update: {
+          args: Prisma.SystemSettingUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SystemSettingPayload>
+        }
+        deleteMany: {
+          args: Prisma.SystemSettingDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.SystemSettingUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.SystemSettingUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SystemSettingPayload>[]
+        }
+        upsert: {
+          args: Prisma.SystemSettingUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SystemSettingPayload>
+        }
+        aggregate: {
+          args: Prisma.SystemSettingAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateSystemSetting>
+        }
+        groupBy: {
+          args: Prisma.SystemSettingGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.SystemSettingGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.SystemSettingCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.SystemSettingCountAggregateOutputType> | number
+        }
+      }
+    }
     CronRunLog: {
       payload: Prisma.$CronRunLogPayload<ExtArgs>
       fields: Prisma.CronRunLogFieldRefs
@@ -3422,6 +3497,15 @@ export const RepairLogScalarFieldEnum = {
 export type RepairLogScalarFieldEnum = (typeof RepairLogScalarFieldEnum)[keyof typeof RepairLogScalarFieldEnum]
 
 
+export const SystemSettingScalarFieldEnum = {
+  Key: 'Key',
+  Value: 'Value',
+  UpdatedAt: 'UpdatedAt'
+} as const
+
+export type SystemSettingScalarFieldEnum = (typeof SystemSettingScalarFieldEnum)[keyof typeof SystemSettingScalarFieldEnum]
+
+
 export const CronRunLogScalarFieldEnum = {
   RunKey: 'RunKey',
   Job: 'Job',
@@ -3443,6 +3527,13 @@ export const SortOrder = {
 export type SortOrder = (typeof SortOrder)[keyof typeof SortOrder]
 
 
+export const JsonNullValueInput = {
+  JsonNull: JsonNull
+} as const
+
+export type JsonNullValueInput = (typeof JsonNullValueInput)[keyof typeof JsonNullValueInput]
+
+
 export const QueryMode = {
   default: 'default',
   insensitive: 'insensitive'
@@ -3457,6 +3548,15 @@ export const NullsOrder = {
 } as const
 
 export type NullsOrder = (typeof NullsOrder)[keyof typeof NullsOrder]
+
+
+export const JsonNullValueFilter = {
+  DbNull: DbNull,
+  JsonNull: JsonNull,
+  AnyNull: AnyNull
+} as const
+
+export type JsonNullValueFilter = (typeof JsonNullValueFilter)[keyof typeof JsonNullValueFilter]
 
 
 
@@ -3653,6 +3753,20 @@ export type EnumNotificationTypeFieldRefInput<$PrismaModel> = FieldRefInputType<
 export type ListEnumNotificationTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'NotificationType[]'>
     
 
+
+/**
+ * Reference to a field of type 'Json'
+ */
+export type JsonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Json'>
+    
+
+
+/**
+ * Reference to a field of type 'QueryMode'
+ */
+export type EnumQueryModeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'QueryMode'>
+    
+
 /**
  * Batch Payload for updateMany & deleteMany & createMany
  */
@@ -3837,6 +3951,7 @@ export type GlobalOmitConfig = {
   images?: Prisma.ImagesOmit
   notification?: Prisma.NotificationOmit
   repairLog?: Prisma.RepairLogOmit
+  systemSetting?: Prisma.SystemSettingOmit
   cronRunLog?: Prisma.CronRunLogOmit
 }
 

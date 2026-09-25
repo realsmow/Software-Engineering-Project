@@ -51,28 +51,26 @@ export const APP_TIME_ZONE = 'Asia/Bangkok';
 const APP_UTC_OFFSET_MS = 7 * 60 * 60 * 1000;
 
 /**
- * The hour a loan falls due, in the counter's local time.
+ * The counter's working day in local hours; a loan falls due at `end`.
  *
- * 17:00 is the end of the counter's working day (proposal §5.9: "ตั้งค่า
+ * 08:00-17:00 is the default of the counter's working day (proposal §5.9: "ตั้งค่า
  * ช่วงเวลารับอุปกรณ์ เช่น 08.00–17.00 น. หากคืนช้ากว่านั้น ถือเป็นการคืนช้า
  * 1 วัน"). The overdue job and the countdown on screen must read this same
- * constant, or the system will dock credit from someone whose screen still
+ * value, or the system will dock credit from someone whose screen still
  * says they have hours left.
  *
- * It is a constant rather than a per-department setting because the schema has
- * nowhere to store one — see docs/staff.md.
+ * One value for the whole university, set by the admin (FR-ADM-04) and
+ * loaded from SystemSetting at boot by AdminService.
  */
-export const DUE_HOUR_LOCAL = 17;
+export const workHours = { start: 8, end: 17 };
 
 /**
- * The same hour expressed in UTC, which is what actually goes in the column.
- *
- * Derived rather than written down twice: the pair used to be maintained by
- * hand on two sides of the stack and drifted apart by seven hours.
+ * The closing hour in UTC, which is what actually goes in the column.
+ * A function because the admin can move the closing hour at runtime.
  */
-export const DUE_TIME_OF_DAY_UTC = `${String(
-  DUE_HOUR_LOCAL - APP_UTC_OFFSET_MS / 3_600_000,
-).padStart(2, '0')}:00:00`;
+export function dueTimeOfDayUtc(): string {
+  return `${String(workHours.end - APP_UTC_OFFSET_MS / 3_600_000).padStart(2, '0')}:00:00`;
+}
 
 /** Prisma `Date` -> contract string. Every mapper ends with one of these two. */
 export function toIso(value: Date): string {
@@ -102,7 +100,7 @@ export function localTimeToUtc(isoDateOnly: string, hhmm: string): Date {
 
 /** A calendar day from the client -> the exact instant the loan falls due. */
 export function toDueDate(isoDateOnly: string): Date {
-  return new Date(`${isoDateOnly}T${DUE_TIME_OF_DAY_UTC}Z`);
+  return new Date(`${isoDateOnly}T${dueTimeOfDayUtc()}Z`);
 }
 
 /** `from` plus N whole days, keeping the time of day. */

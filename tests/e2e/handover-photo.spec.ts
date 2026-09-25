@@ -127,6 +127,8 @@ async function seedFreshT1Unit(page: Page): Promise<string> {
 
 test.describe("Module 5/6 handover photo gate", () => {
   test("staff cannot hand over a T1 loan until a handover photo is attached", async ({ page }) => {
+    // The borrower picks a same-day pickup slot; after the last one none is left.
+    test.skip(bangkokParts().hm >= PICKUP_TIME_SLOTS.at(-1)!, "no pickup slot left today");
     // This is a full walk of the loan lifecycle (seed -> request -> prepare ->
     // handover -> return -> inspect) across three roles, well past the
     // project default of 30s per test.

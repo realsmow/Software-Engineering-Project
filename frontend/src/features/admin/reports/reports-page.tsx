@@ -105,6 +105,29 @@ export default function AdminReportsPage() {
 
           <section className="overflow-hidden rounded-lg border border-border bg-card">
             <h2 className="border-b border-border px-3.5 py-2.5 text-sm font-semibold text-foreground">
+              {t("admin.reports.last30")}
+            </h2>
+            <div className="divide-y divide-border">
+              {data.damage.map((d) => (
+                <Fact
+                  key={d.condition}
+                  label={t(`admin.reports.condition.${d.condition}`)}
+                  value={d.count}
+                />
+              ))}
+              <Fact
+                label={t("admin.reports.roomUtilization")}
+                value={data.roomUtilization.percent}
+                trailing={t("admin.reports.roomHours", {
+                  booked: data.roomUtilization.bookedHours,
+                  open: data.roomUtilization.openHours,
+                })}
+              />
+            </div>
+          </section>
+
+          <section className="overflow-hidden rounded-lg border border-border bg-card">
+            <h2 className="border-b border-border px-3.5 py-2.5 text-sm font-semibold text-foreground">
               {t("admin.reports.mostBorrowed")}
             </h2>
             {data.topEquipment.length === 0 ? (

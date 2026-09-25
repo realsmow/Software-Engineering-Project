@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, type OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { Prisma } from '../generated/prisma/client';
 import { PrismaService } from '../prisma.service';
@@ -34,6 +34,8 @@ import {
 } from '../common/schemas/status.schema';
 import { UNAVAILABLE_USAGE_STATES } from '../common/usage/usage-states';
 import { OK } from '../common/schemas/ok.schema';
+import { workHours } from '../common/schemas/datetime.schema';
+import { resourceName } from '../notification/notification.service';
 import type {
   ChangeRoleInput,
   CreateUserInput,
@@ -44,7 +46,9 @@ import type {
   RunCronJobInput,
   UpdateLendingSettingsInput,
   UpdateUserInput,
+  WorkHoursSetting,
 } from './admin.schema';
+import { workHoursSetting } from './admin.schema';
 
 /**
  * Sort keys the client may send, mapped to real columns.
@@ -202,7 +206,7 @@ const POLLING_CONTRACT = {
 } as const;
 
 @Injectable()
-export class AdminService {
+export class AdminService implements OnModuleInit {
   constructor(
     private readonly prisma: PrismaService,
     private readonly creditTiers: CreditTierService,
@@ -212,6 +216,32 @@ export class AdminService {
     private readonly config: ConfigService,
     private readonly cron: CronService,
   ) {}
+
+  /** Puts the saved working hours in force; the defaults stand until one is saved. */
+  async onModuleInit() {
+    // A setting that cannot be read leaves the defaults; it must not stop boot.
+    const row = await this.prisma.systemSetting
+      ?.findUnique({ where: { Key: 'workHours' } })
+      .catch(() => null);
+    const saved = workHoursSetting.safeParse(row?.Value);
+    if (saved.success) Object.assign(workHours, saved.data);
+  }
+
+  async updateWorkHours(input: WorkHoursSetting, actor: AuditActor) {
+    await this.prisma.systemSetting.upsert({
+      where: { Key: 'workHours' },
+      create: { Key: 'workHours', Value: input },
+      update: { Value: input },
+    });
+    Object.assign(workHours, input);
+    await this.audit.record(
+      actor,
+      'config',
+      'setting/workHours',
+      `Work hours set to ${input.start}:00-${input.end}:00`,
+    );
+    return this.getLendingSettings();
+  }
 
   // =========================================================================
   // Accounts
@@ -290,6 +320,36 @@ export class AdminService {
       row,
       await this.creditTiers.resolveBorrowLimits(row.UserCredit),
     );
+  }
+
+  // ponytail: last 100 loans, page it when someone has more worth reading.
+  async getUserLoans(accountKey: number) {
+    const rows = await this.prisma.usageLog.findMany({
+      where: { AccountKey: accountKey },
+      orderBy: { CheckoutTime: 'desc' },
+      take: 100,
+      select: {
+        UsageKey: true,
+        CurrentStatus: true,
+        CheckoutTime: true,
+        DueTime: true,
+        CheckInTime: true,
+        Resource: {
+          select: {
+            Item: { select: { Item: { select: { ItemName: true } } } },
+            Room: { select: { RoomName: true } },
+          },
+        },
+      },
+    });
+    return rows.map((r) => ({
+      id: r.UsageKey,
+      itemName: resourceName(r.Resource),
+      status: r.CurrentStatus,
+      checkoutTime: r.CheckoutTime.toISOString(),
+      dueTime: r.DueTime.toISOString(),
+      checkInTime: r.CheckInTime?.toISOString() ?? null,
+    }));
   }
 
   async createUser(input: CreateUserInput, actor: AuditActor) {
@@ -516,6 +576,7 @@ export class AdminService {
     ]);
 
     return {
+      workHours: { ...workHours },
       creditTiers: creditTiers.map((tier) => ({
         id: tier.CreditTierKey,
         name: tier.CreditTierName,

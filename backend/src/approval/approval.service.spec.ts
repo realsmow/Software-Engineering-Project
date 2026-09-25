@@ -85,6 +85,7 @@ function service(overrides: {
   const notifications = {
     requestRejected: jest.fn(),
     requestApproved: jest.fn(),
+    itemToPrepare: jest.fn(),
     retirementDecided: jest.fn(),
   } as unknown as NotificationService;
   const audit = { record: jest.fn() };

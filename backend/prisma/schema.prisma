@@ -87,6 +87,8 @@ enum NotificationType {
   SupervisorApprovalNeeded
   /** FR-NTF-04: a supervisor has an appeal awaiting decision. */
   AppealFiled
+  /** FR-NTF-03: staff over the department have an item to prepare, a return to receive or a room to check. */
+  StaffTask
 }
 
 enum SubmissionType {
@@ -627,6 +629,8 @@ model UsageLog {
   /// the catalogue's aggregate query; unindexed it is a seq scan of UsageLog
   /// (100k+ rows under the load-test dataset) every time.
   @@index([ResourceKey, CurrentStatus])
+
+  @@index([CurrentStatus])
 }
 
 model ExtensionRequest {
@@ -822,6 +826,14 @@ model RepairLog {
 /// why `admin.runCronJob` refused before it existed: a job you can trigger but
 /// cannot observe is not operable. The status page reads the newest row per
 /// job to show when it last ran and whether it worked.
+// Admin-set values with no better home (FR-ADM-04). Key "workHours" holds
+// {"start":8,"end":17}, the counter's day in Bangkok hours.
+model SystemSetting {
+  Key       String   @id
+  Value     Json
+  UpdatedAt DateTime @updatedAt @db.Timestamptz(3)
+}
+
 model CronRunLog {
   RunKey     Int       @id @default(autoincrement())
   /// Matches the CronJobId union in admin.schema.ts.

@@ -124,6 +124,20 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 			};
 			meta: object;
 		}>;
+		getUserLoans: import("@trpc/server").TRPCQueryProcedure<{
+			input: {
+				id: number;
+			};
+			output: {
+				id: number;
+				itemName: string;
+				status: string;
+				checkoutTime: string;
+				dueTime: string;
+				checkInTime: string | null;
+			}[];
+			meta: object;
+		}>;
 		createUser: import("@trpc/server").TRPCMutationProcedure<{
 			input: {
 				email: string;
@@ -281,6 +295,10 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 		getLendingSettings: import("@trpc/server").TRPCQueryProcedure<{
 			input: void;
 			output: {
+				workHours: {
+					start: number;
+					end: number;
+				};
 				creditTiers: {
 					id: number;
 					name: string | null;
@@ -322,6 +340,45 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 				}[] | undefined;
 			};
 			output: {
+				workHours: {
+					start: number;
+					end: number;
+				};
+				creditTiers: {
+					id: number;
+					name: string | null;
+					min: number;
+					max: number;
+				}[];
+				borrowRules: {
+					id: number;
+					name: string | null;
+					constraints: {
+						creditTierKey: number;
+						creditTierName: string | null;
+						minimumAuthorityLevel: number | null;
+						maxBorrowDays: number;
+						maxExtendTimes: number;
+					}[];
+					penalties: {
+						reason: "DamagedItem" | "BrokenItem" | "LostItem" | "DidntReturn" | "ReturnLate";
+						amount: number;
+						lengthDays: number;
+					}[];
+				}[];
+			};
+			meta: object;
+		}>;
+		updateWorkHours: import("@trpc/server").TRPCMutationProcedure<{
+			input: {
+				start: number;
+				end: number;
+			};
+			output: {
+				workHours: {
+					start: number;
+					end: number;
+				};
 				creditTiers: {
 					id: number;
 					name: string | null;
@@ -3030,7 +3087,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 				items: {
 					id: string;
 					userId: string;
-					type: "overdue" | "request_approved" | "request_rejected" | "pickup_reminder" | "due_soon" | "credit_deducted" | "appeal_result" | "retirement_requested" | "retirement_decided" | "supervisor_approval_needed" | "appeal_filed";
+					type: "overdue" | "request_approved" | "request_rejected" | "pickup_reminder" | "due_soon" | "credit_deducted" | "appeal_result" | "retirement_requested" | "retirement_decided" | "supervisor_approval_needed" | "appeal_filed" | "staff_task";
 					title: string;
 					body: string;
 					createdAt: string;
@@ -3101,6 +3158,16 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 					tier: "T0" | "T1" | "T2" | "T3" | null;
 					count: number;
 				}[];
+				damage: {
+					condition: "Normal" | "MinorDamage" | "MajorDamage" | "Broken" | "Missing";
+					count: number;
+				}[];
+				roomUtilization: {
+					rooms: number;
+					bookedHours: number;
+					openHours: number;
+					percent: number;
+				};
 			};
 			meta: object;
 		}>;

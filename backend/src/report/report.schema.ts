@@ -49,6 +49,26 @@ export const reportSummaryOutput = z.object({
   }),
   departments: z.array(departmentReport),
   topEquipment: z.array(topEquipment),
+  /** FR-ADM-06: return inspections in the last 30 days, by condition found. */
+  damage: z.array(
+    z.object({
+      condition: z.enum([
+        'Normal',
+        'MinorDamage',
+        'MajorDamage',
+        'Broken',
+        'Missing',
+      ]),
+      count: z.number().int().min(0),
+    }),
+  ),
+  /** FR-ADM-06: approved room bookings as a share of working hours, last 30 days. */
+  roomUtilization: z.object({
+    rooms: z.number().int().min(0),
+    bookedHours: z.number().min(0),
+    openHours: z.number().min(0),
+    percent: z.number().int().min(0).max(100),
+  }),
 });
 
 export const reportSummaryInput = z.object({

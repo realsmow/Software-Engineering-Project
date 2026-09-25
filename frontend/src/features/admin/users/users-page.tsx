@@ -36,6 +36,7 @@ import {
   useSetUserActive,
   useUpdateUser,
   useUserDetail,
+  useUserLoans,
 } from "./use-admin-users";
 import { penaltyReasonText } from "@/features/borrower/appeals/penalty-reason";
 
@@ -211,6 +212,7 @@ export default function AdminUsersPage() {
   // the first, and penalties. They cost joins a 500-row table does not need,
   // so they are fetched once, when a row is opened.
   const { data: detail, isLoading: detailLoading } = useUserDetail(selected?.id ?? null);
+  const { data: loans } = useUserLoans(selected?.id ?? null);
   const updateUser = useUpdateUser();
   const [editing, setEditing] = useState(false);
   const [edit, setEdit] = useState({ firstName: "", lastName: "", email: "", studentId: "" });
@@ -720,6 +722,32 @@ export default function AdminUsersPage() {
                           <div className="text-xs text-muted-foreground">
                             {t("admin.users.penaltyUntil", { date: fmtDate(pen.expiresAt) })}
                             {pen.appealed ? ` · ${t("admin.users.appealed")}` : ""}
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+
+                <div>
+                  <Label>{t("admin.users.loanHistory")}</Label>
+                  {!loans?.length ? (
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {t("admin.users.noLoans")}
+                    </p>
+                  ) : (
+                    <ul className="mt-1.5 flex max-h-64 flex-col gap-1.5 overflow-y-auto">
+                      {loans.map((loan) => (
+                        <li key={loan.id} className="text-[13px]">
+                          <div className="flex items-center justify-between gap-3">
+                            <span className="text-foreground">{loan.itemName}</span>
+                            <span className="text-xs text-muted-foreground">
+                              {t(`admin.users.loanStatus.${loan.status}`)}
+                            </span>
+                          </div>
+                          <div className="mono text-xs text-muted-foreground">
+                            {fmtDateTime(loan.checkoutTime)} ·{" "}
+                            {t("admin.users.loanDue", { date: fmtDateTime(loan.dueTime) })}
                           </div>
                         </li>
                       ))}

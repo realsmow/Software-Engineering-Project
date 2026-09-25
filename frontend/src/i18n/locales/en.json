@@ -237,7 +237,17 @@
       "lastName": "Last name",
       "email": "Email",
       "detailsSaved": "Details updated",
-      "loadingDetail": "Loading details"
+      "loadingDetail": "Loading details",
+      "loanHistory": "Loan history",
+      "noLoans": "No loans yet",
+      "loanDue": "due {{date}}",
+      "loanStatus": {
+        "Pending": "Pending",
+        "Prepared": "Prepared",
+        "Lended": "On loan",
+        "Returned": "Returned",
+        "Inspected": "Inspected"
+      }
     },
     "status": {
       "subtitle": "System health and scheduled jobs. Refreshes every 30 seconds.",
@@ -330,7 +340,12 @@
       "pollNotifications": "Notifications",
       "minutes": "{{count}} min",
       "megabytes": "{{count}} MB",
-      "seconds": "{{count}}s"
+      "seconds": "{{count}}s",
+      "workHours": "Working hours",
+      "workHoursHint": "Counter hours in Bangkok time. Loans fall due at the closing hour.",
+      "work_start": "Opening hour",
+      "work_end": "Closing hour",
+      "workHoursError": "Could not save"
     },
     "reports": {
       "subtitle": "Lending activity, counted from the records when this page opened",
@@ -350,7 +365,17 @@
       "colUtilization": "Utilisation",
       "unnamedGroup": "(unnamed group)",
       "mostBorrowed": "Most borrowed",
-      "noBorrowing": "Nothing has been borrowed in this scope yet"
+      "noBorrowing": "Nothing has been borrowed in this scope yet",
+      "last30": "Last 30 days: returns inspected and room use",
+      "roomUtilization": "Room utilization (%)",
+      "roomHours": "{{booked}} / {{open}} h",
+      "condition": {
+        "Normal": "Returned in normal condition",
+        "MinorDamage": "Minor damage",
+        "MajorDamage": "Major damage",
+        "Broken": "Broken",
+        "Missing": "Missing"
+      }
     },
     "overview": {
       "subtitle": "System state and the record of what changed. Every figure here is read from the server.",

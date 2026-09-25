@@ -84,6 +84,7 @@ export const ModelName = {
   Images: 'Images',
   Notification: 'Notification',
   RepairLog: 'RepairLog',
+  SystemSetting: 'SystemSetting',
   CronRunLog: 'CronRunLog'
 } as const
 
@@ -520,6 +521,15 @@ export const RepairLogScalarFieldEnum = {
 export type RepairLogScalarFieldEnum = (typeof RepairLogScalarFieldEnum)[keyof typeof RepairLogScalarFieldEnum]
 
 
+export const SystemSettingScalarFieldEnum = {
+  Key: 'Key',
+  Value: 'Value',
+  UpdatedAt: 'UpdatedAt'
+} as const
+
+export type SystemSettingScalarFieldEnum = (typeof SystemSettingScalarFieldEnum)[keyof typeof SystemSettingScalarFieldEnum]
+
+
 export const CronRunLogScalarFieldEnum = {
   RunKey: 'RunKey',
   Job: 'Job',
@@ -541,6 +551,13 @@ export const SortOrder = {
 export type SortOrder = (typeof SortOrder)[keyof typeof SortOrder]
 
 
+export const JsonNullValueInput = {
+  JsonNull: JsonNull
+} as const
+
+export type JsonNullValueInput = (typeof JsonNullValueInput)[keyof typeof JsonNullValueInput]
+
+
 export const QueryMode = {
   default: 'default',
   insensitive: 'insensitive'
@@ -555,4 +572,13 @@ export const NullsOrder = {
 } as const
 
 export type NullsOrder = (typeof NullsOrder)[keyof typeof NullsOrder]
+
+
+export const JsonNullValueFilter = {
+  DbNull: DbNull,
+  JsonNull: JsonNull,
+  AnyNull: AnyNull
+} as const
+
+export type JsonNullValueFilter = (typeof JsonNullValueFilter)[keyof typeof JsonNullValueFilter]
 

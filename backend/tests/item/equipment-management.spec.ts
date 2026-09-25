@@ -473,51 +473,37 @@ describe('Module 5 equipment management', () => {
 });
 
 describe('Module 5 borrower availability and catalogue queries', () => {
-  it('computes live availability from the current unit rows', async () => {
-    const prisma = {
-      itemInfo: {
-        findUnique: jest.fn().mockResolvedValue({
-          Items: [
-            {
-              Resource: {
-                ResourceStatus: 'InStorage',
-                AllowBorrow: true,
-                BufferTime: 0,
-                UsageLogs: [],
-              },
-            },
-            {
-              Resource: {
-                ResourceStatus: 'Lended',
-                AllowBorrow: true,
-                BufferTime: 2,
-                UsageLogs: [{ DueTime: new Date('2026-09-20T00:00:00Z') }],
-              },
-            },
-            {
-              Resource: {
-                ResourceStatus: 'Missing',
-                AllowBorrow: true,
-                BufferTime: 0,
-                UsageLogs: [],
-              },
-            },
-          ],
-        }),
-      },
-    };
-    const service = new ItemService(prisma as never);
+  it('reports live availability from the aggregate query', async () => {
+    // The counting itself is SQL (item.service getAvailability); this pins the
+    // mapping: a date only when nothing is free.
+    const queryRaw = jest.fn();
+    const service = new ItemService({ $queryRaw: queryRaw } as never);
 
+    queryRaw.mockResolvedValueOnce([
+      { found: true, total: 3, available: 1, readyAt: new Date('2026-09-22T00:00:00Z') },
+    ]);
     await expect(service.getAvailability(7)).resolves.toEqual({
       availableUnits: 1,
       totalUnits: 3,
       nextAvailableAt: null,
+    });
+
+    queryRaw.mockResolvedValueOnce([
+      { found: true, total: 2, available: 0, readyAt: new Date('2026-09-22T00:00:00Z') },
+    ]);
+    await expect(service.getAvailability(7)).resolves.toEqual({
+      availableUnits: 0,
+      totalUnits: 2,
+      nextAvailableAt: '2026-09-22T00:00:00.000Z',
     });
   });
 
   it('returns ITEM_NOT_FOUND instead of leaking a database null', async () => {
     const prisma = {
       itemInfo: { findUnique: jest.fn().mockResolvedValue(null) },
+      $queryRaw: jest
+        .fn()
+        .mockResolvedValue([{ found: false, total: 0, available: 0, readyAt: null }]),
     };
     const service = new ItemService(prisma as never);
 

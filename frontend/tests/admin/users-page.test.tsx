@@ -80,6 +80,9 @@ describe('Admin users page', () => {
     vi.spyOn(adminUsersHooks, 'useUserDetail').mockReturnValue({
       data: undefined, isLoading: false,
     } as never);
+    vi.spyOn(adminUsersHooks, 'useUserLoans').mockReturnValue({
+      data: undefined,
+    } as never);
     vi.spyOn(adminUsersHooks, 'useUpdateUser').mockReturnValue({
       mutate: updateUserMutate, isPending: false,
     } as never);

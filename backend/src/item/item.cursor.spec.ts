@@ -2,6 +2,7 @@ import { ItemService } from './item.service';
 import type { PrismaService } from '../prisma.service';
 import type { TrpcUser } from '../trpc/context';
 import type { ListItemsInput } from './item.schema';
+import { sqlAggregates } from './light-row.testing';
 
 /**
  * FR-BRW-02: `item.list` must support cursor-based pagination without
@@ -89,6 +90,7 @@ function deriveLightRows(rows: typeof ROWS) {
       id: row.ItemKey,
       name: row.ItemName ?? `#${row.ItemKey}`,
       creditWeight: row.CreditWeight,
+      ...sqlAggregates(notRetired),
       totalUnits: notRetired.length,
       availableUnits: notRetired.filter(
         (u) =>

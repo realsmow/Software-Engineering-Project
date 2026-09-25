@@ -2,6 +2,7 @@ import { ItemService } from './item.service';
 import { toItemSummary } from '../common/mappers/item.mapper';
 import type { PrismaService } from '../prisma.service';
 import type { TrpcUser } from '../trpc/context';
+import { sqlAggregates } from './light-row.testing';
 
 /**
  * NFR-PRF-05: `item.list` now computes totalUnits/availableUnits/eligible in
@@ -127,6 +128,7 @@ function lightRows() {
     id: row.ItemKey,
     name: row.ItemName,
     creditWeight: row.CreditWeight,
+    ...sqlAggregates(row.Items),
     totalUnits: row.Items.length, // fixture already excludes Retired units
     availableUnits: row.Items.filter(
       (u) =>

@@ -1,4 +1,6 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { mailSettings } from '../common/mail/mailer';
 import type { Prisma } from '../generated/prisma/client';
 import type { NotificationType as DbNotificationType } from '../generated/prisma/enums';
 import { PrismaService } from '../prisma.service';
@@ -31,6 +33,8 @@ const ROUTE_SUPERVISOR_APPROVALS = '/supervisor/approvals';
 const ROUTE_SUPERVISOR_APPEALS = '/supervisor/appeals';
 /** Where staff manage the catalogue, including their own retirement requests. */
 const ROUTE_STAFF_INVENTORY = '/staff/inventory';
+const ROUTE_STAFF_QUEUE = '/staff';
+const ROUTE_STAFF_ROOM_CHECKS = '/staff/repairs';
 
 /**
  * The item as the borrower knows it — its name, not its key.
@@ -107,7 +111,11 @@ function thaiDate(at: Date): string {
 export class NotificationService {
   private readonly logger = new Logger(NotificationService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    // Optional so unit tests can build the service with Prisma alone.
+    @Optional() private readonly config?: ConfigService,
+  ) {}
 
   // =========================================================================
   // Read — the bell
@@ -542,6 +550,77 @@ export class NotificationService {
   }
 
   /**
+   * FR-NTF-03: a counter task for every staff member over the department.
+   * One entry per task per person; the dedupe key names the task.
+   */
+  private async staffTask(
+    tx: Prisma.TransactionClient,
+    manageGroupKey: number,
+    note: { title: string; body: string; linkTo: string; dedupeKey: string },
+  ): Promise<void> {
+    const staff = await supervisorsForGroup(tx, manageGroupKey, 'Staff');
+    await Promise.all(
+      staff.map((s) =>
+        this.emit(tx, { accountKey: s.AccountKey, type: 'StaffTask', ...note }),
+      ),
+    );
+  }
+
+  /** An approved request is waiting to be set aside at the counter. */
+  itemToPrepare(
+    tx: Prisma.TransactionClient,
+    params: {
+      manageGroupKey: number;
+      reservationKey: number;
+      itemName: string;
+    },
+  ) {
+    return this.staffTask(tx, params.manageGroupKey, {
+      title: 'มีรายการต้องเตรียม',
+      body: `${params.itemName} · อนุมัติแล้ว รอเตรียมของ`,
+      linkTo: ROUTE_STAFF_QUEUE,
+      dedupeKey: reservationKeyOf(params.reservationKey),
+    });
+  }
+
+  /** A loan is due back within a day, or already late. */
+  returnToReceive(
+    tx: Prisma.TransactionClient,
+    params: {
+      manageGroupKey: number;
+      usageKey: number;
+      itemName: string;
+      due: Date;
+    },
+  ) {
+    return this.staffTask(tx, params.manageGroupKey, {
+      title: 'มีรายการรอรับคืน',
+      body: `${params.itemName} · ครบกำหนดคืน ${thaiDateTime(params.due)}`,
+      linkTo: ROUTE_STAFF_QUEUE,
+      dedupeKey: usageKeyOf(params.usageKey),
+    });
+  }
+
+  /** A T3 room check round was opened. */
+  roomToCheck(
+    tx: Prisma.TransactionClient,
+    params: {
+      manageGroupKey: number;
+      resourceKey: number;
+      roomName: string;
+      dueAt: Date;
+    },
+  ) {
+    return this.staffTask(tx, params.manageGroupKey, {
+      title: 'มีห้องต้องตรวจสภาพ',
+      body: `${params.roomName} · ตรวจภายใน ${thaiDateTime(params.dueAt)}`,
+      linkTo: ROUTE_STAFF_ROOM_CHECKS,
+      // One per round: a room gets a new round at most once a month.
+      dedupeKey: `roomcheck:${params.resourceKey}:${params.dueAt.toISOString().slice(0, 10)}`,
+    });
+  }
+
+  /**
    * "มีคำขออุทธรณ์รอการพิจารณา" — FR-NTF-04, an appeal was just filed.
    *
    * Namespaced with the same `appealKeyOf` key as `appealApproved` and
@@ -630,6 +709,18 @@ export class NotificationService {
           continue;
         }
 
+        // FR-NTF-02 emails a reminder once; the dedupe key says whether this
+        // loan already had one.
+        const already = await this.prisma.notification.findFirst({
+          where: {
+            AccountKey: accountKey,
+            DedupeKey: usageKeyOf(loan.UsageKey),
+            NotificationType: 'DueSoon',
+          },
+          select: { NotificationKey: true },
+        });
+        if (!already) void this.mailDueSoon(accountKey, name, loan.DueTime);
+
         await this.emit(this.prisma, {
           accountKey,
           type: 'DueSoon',
@@ -642,6 +733,38 @@ export class NotificationService {
     } catch (error) {
       this.logger.warn(
         `Could not refresh due reminders for account ${accountKey}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+    }
+  }
+
+  /**
+   * FR-NTF-02: the due-soon reminder also goes out by email, once per loan.
+   * A mail failure is logged and never reaches the caller.
+   */
+  private async mailDueSoon(
+    accountKey: number,
+    name: string,
+    due: Date,
+  ): Promise<void> {
+    if (!this.config) return;
+    try {
+      const account = await this.prisma.accountInfo.findUnique({
+        where: { AccountKey: accountKey },
+        select: { Email: true },
+      });
+      if (!account) return;
+      const { mailer, from, appUrl } = mailSettings(this.config);
+      await mailer.sendMail({
+        from,
+        to: account.Email,
+        subject: 'ULMs: ใกล้ครบกำหนดคืน',
+        text: `${name} ครบกำหนดคืน ${thaiDateTime(due)}\n\n${appUrl}${ROUTE_MY_LOANS}`,
+      });
+    } catch (error) {
+      this.logger.warn(
+        `Could not email due reminder to account ${accountKey}: ${
           error instanceof Error ? error.message : String(error)
         }`,
       );
@@ -759,10 +882,11 @@ function retirementRequestKeyOf(requestKey: number): string {
 export async function supervisorsForGroup(
   tx: Prisma.TransactionClient,
   manageGroupKey: number,
+  role: 'Supervisor' | 'Staff' = 'Supervisor',
 ): Promise<{ AccountKey: number }[]> {
   return tx.accountInfo.findMany({
     where: {
-      Role: { RoleName: 'Supervisor' },
+      Role: { RoleName: role },
       Authorities: { some: { ManageGroupKey: manageGroupKey } },
     },
     select: { AccountKey: true },

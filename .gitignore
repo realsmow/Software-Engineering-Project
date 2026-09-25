@@ -33,3 +33,6 @@ Software-Engineering-Project*/
 **/.npm-cache/
 
 /test-results/
+
+# Production backups written by scripts/backup.sh (docker-compose.prod.yml)
+/backups/

@@ -21,6 +21,8 @@ vi.mock("../../src/features/admin/status/use-system-status", () => ({
 
 vi.mock("../../src/features/admin/config/use-config", () => ({
   useTechnicalConfig: useTechnicalConfigMock,
+  useWorkHours: () => ({ data: undefined }),
+  useUpdateWorkHours: () => ({ mutate: vi.fn(), isPending: false }),
 }));
 
 const STATUS: SystemStatus = {

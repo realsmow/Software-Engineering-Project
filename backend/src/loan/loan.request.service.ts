@@ -383,6 +383,14 @@ export class LoanRequestService {
         select: { ReservationKey: true },
       });
 
+      if (approved) {
+        await this.notifications.itemToPrepare(tx, {
+          manageGroupKey: target.ManagedBy,
+          reservationKey: row.ReservationKey,
+          itemName: resourceName(target),
+        });
+      }
+
       // FR-NTF-04: T2, or T1 from a D2/D3 borrower, sits on a supervisor's
       // desk until decided — tell every supervisor with authority over the
       // department, not just the one who happens to open the queue next.

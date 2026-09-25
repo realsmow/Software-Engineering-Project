@@ -1,7 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { PenaltyService } from '../common/penalty/penalty.service';
-import { NotificationService } from '../notification/notification.service';
+import {
+  NotificationService,
+  resourceName,
+} from '../notification/notification.service';
 import { recomputeCredit } from '../common/credit/recompute-credit';
 
 /** The six jobs in SRS §5.3 that this system runs. */
@@ -306,6 +309,33 @@ export class CronService {
       await this.notifications.syncDueReminders(a.AccountKey);
     }
 
+    // FR-NTF-03: staff hear about returns due within a day, or already late.
+    const dueBack = await this.prisma.usageLog.findMany({
+      where: {
+        CurrentStatus: 'Lended',
+        DueTime: { lt: new Date(Date.now() + 86_400_000) },
+      },
+      select: {
+        UsageKey: true,
+        DueTime: true,
+        Resource: {
+          select: {
+            ManagedBy: true,
+            Item: { select: { Item: { select: { ItemName: true } } } },
+            Room: { select: { RoomName: true } },
+          },
+        },
+      },
+    });
+    for (const loan of dueBack) {
+      await this.notifications.returnToReceive(this.prisma, {
+        manageGroupKey: loan.Resource.ManagedBy,
+        usageKey: loan.UsageKey,
+        itemName: resourceName(loan.Resource),
+        due: loan.DueTime,
+      });
+    }
+
     return {
       affected: accounts.length,
       detail: `reminders synced for ${accounts.length} borrower(s) with open loans`,
@@ -344,6 +374,8 @@ export class CronService {
       where: { ResourceType: 'Room', AllowBorrow: true },
       select: {
         ResourceKey: true,
+        ManagedBy: true,
+        Room: { select: { RoomName: true } },
         CheckRounds: {
           orderBy: { OpenedAt: 'desc' },
           take: 1,
@@ -378,6 +410,15 @@ export class CronService {
       skipDuplicates: true,
     });
 
+    for (const room of due) {
+      await this.notifications.roomToCheck(this.prisma, {
+        manageGroupKey: room.ManagedBy,
+        resourceKey: room.ResourceKey,
+        roomName: room.Room?.RoomName ?? `room ${room.ResourceKey}`,
+        dueAt,
+      });
+    }
+
     return {
       affected: count,
       detail: `${count} room check round(s) opened, due ${CHECK_GRACE_DAYS} day(s) from now`,
@@ -394,19 +435,45 @@ export class CronService {
       },
       select: { ReservationKey: true },
     });
-    if (stale.length === 0) {
-      return { affected: 0, detail: 'no uncollected requests past their hold' };
+    const keys = stale.map((r) => r.ReservationKey);
+    if (keys.length > 0) {
+      await this.prisma.reservations.updateMany({
+        where: { ReservationKey: { in: keys } },
+        data: { ApproveStatus: 'Canceled' },
+      });
     }
 
-    const keys = stale.map((r) => r.ReservationKey);
-    await this.prisma.reservations.updateMany({
-      where: { ReservationKey: { in: keys } },
-      data: { ApproveStatus: 'Canceled' },
+    // FR-PKP-05: a unit already set aside for a no-show is released too. The
+    // Prepared row never left the counter, so it is removed (with any pickup
+    // photo taken for it) rather than kept as a loan that never happened.
+    const noShows = await this.prisma.usageLog.findMany({
+      where: {
+        CurrentStatus: 'Prepared',
+        Reservation: {
+          ApproveStatus: 'Approved',
+          ReservationExpiration: { lt: now },
+        },
+      },
+      select: { UsageKey: true, ReservationKey: true },
     });
+    for (const usage of noShows) {
+      await this.prisma.$transaction([
+        this.prisma.images.deleteMany({ where: { UsageKey: usage.UsageKey } }),
+        this.prisma.usageLog.delete({ where: { UsageKey: usage.UsageKey } }),
+        this.prisma.reservations.update({
+          where: { ReservationKey: usage.ReservationKey! },
+          data: { ApproveStatus: 'Canceled' },
+        }),
+      ]);
+    }
 
+    const released = keys.length + noShows.length;
     return {
-      affected: keys.length,
-      detail: `${keys.length} uncollected request(s) released back to the pool`,
+      affected: released,
+      detail:
+        released === 0
+          ? 'no uncollected requests past their hold'
+          : `${keys.length} uncollected request(s) and ${noShows.length} prepared no-show(s) released back to the pool`,
     };
   }
 

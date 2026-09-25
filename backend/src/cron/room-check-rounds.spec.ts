@@ -32,7 +32,7 @@ function build(
   const service = new CronService(
     prisma,
     {} as unknown as PenaltyService,
-    {} as unknown as NotificationService,
+    { roomToCheck: jest.fn() } as unknown as NotificationService,
   );
 
   return { service, prisma, createMany, findMany };

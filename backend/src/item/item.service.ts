@@ -11,13 +11,13 @@ import type { TrpcUser } from '../trpc/context';
 import { BusinessError } from '../common/errors/business-error';
 import {
   freeInWindowPredicate,
-  isUnitAvailable,
-  nextAvailableAt,
   toItemDetail,
   toItemSummary,
+  toOwner,
   toRoomSummary,
   type ItemTypeRow,
 } from '../common/mappers/item.mapper';
+import { tryMapTier } from '../common/schemas/status.schema';
 import {
   HOLDING_APPROVE_STATES,
   resourcesFreeInWindow,
@@ -111,6 +111,9 @@ const ITEM_TYPE_SELECT = {
   },
 } satisfies Prisma.ItemInfoSelect;
 
+/** How long catalogue counts are shared between callers (see lightweightItemRows). */
+const LIGHT_CACHE_MS = 5_000;
+
 /** The aggregate row `lightweightItemRows` computes per equipment type. */
 interface LightItemRow {
   id: number;
@@ -118,7 +121,23 @@ interface LightItemRow {
   creditWeight: number;
   totalUnits: number;
   availableUnits: number;
+  borrowableUnits: number;
+  /** Earliest due date plus prep days among units out on loan. */
+  readyAt: Date | null;
+  tier: string | null;
   eligible: boolean;
+}
+
+/**
+ * States in which a unit is out with a date to come back (unitReadyAt): every
+ * blocking state except Returned, which waits on grading and has no date.
+ */
+function onLoanStates() {
+  return Prisma.join(
+    UNAVAILABLE_USAGE_STATES.filter((s) => s !== 'Returned').map(
+      (s) => Prisma.sql`${s}::"CurrentStatus"`,
+    ),
+  );
 }
 
 /**
@@ -180,7 +199,7 @@ export class ItemService {
       : toSkipTake(input).skip;
 
     const pageLight = summaries.slice(start, start + input.pageSize);
-    const pageItems = await this.hydratePage(pageLight, held);
+    const pageItems = await this.hydratePage(pageLight);
 
     const last = pageItems[pageItems.length - 1];
     const nextCursor =
@@ -251,7 +270,52 @@ export class ItemService {
    * what a borrower sees on the page is byte-for-byte the same as before —
    * only the *unreturned* rows stop paying for a full relation load.
    */
+  /**
+   * The catalogue counts, shared for a few seconds across callers that ask the
+   * same question (same filters, same group memberships).
+   *
+   * NFR-PRF-03: counting every unit per request saturated the database at 200
+   * users on the 10,000-unit dataset, while the numbers barely move between
+   * requests. Borrowers already see availability through a 10-15s poll, so a
+   * 5s-old count is within what the page promises.
+   * ponytail: in-process cache, fine for the one backend instance deployed
+   * (docs/deploy.md); move it to Redis if the backend is ever replicated.
+   */
+  private readonly lightCache = new Map<
+    string,
+    { at: number; rows: Promise<LightItemRow[]> }
+  >();
+
   private async lightweightItemRows(
+    input: ListItemsInput,
+    held: GroupRole[],
+  ): Promise<LightItemRow[]> {
+    // Only what changes the SQL; paging, sort and availableOnly apply after.
+    const {
+      page: _page,
+      pageSize: _pageSize,
+      cursor: _cursor,
+      sort: _sort,
+      availableOnly: _availableOnly,
+      ...filters
+    } = input;
+    const key = JSON.stringify([
+      filters,
+      held.map((h) => `${h.GroupKey}:${h.RoleKey}`).sort(),
+    ]);
+    const now = Date.now();
+    const hit = this.lightCache.get(key);
+    if (hit && now - hit.at < LIGHT_CACHE_MS) return (await hit.rows).slice();
+
+    if (this.lightCache.size > 500) this.lightCache.clear();
+    const rows = this.queryLightweightItemRows(input, held);
+    this.lightCache.set(key, { at: now, rows });
+    // A failed query must not be served to the next caller for 5s.
+    rows.catch(() => this.lightCache.delete(key));
+    return (await rows).slice();
+  }
+
+  private async queryLightweightItemRows(
     input: ListItemsInput,
     held: GroupRole[],
   ): Promise<LightItemRow[]> {
@@ -325,6 +389,7 @@ export class ItemService {
     const unavailableStates = Prisma.join(
       UNAVAILABLE_USAGE_STATES.map((s) => Prisma.sql`${s}::"CurrentStatus"`),
     );
+    const loanStates = onLoanStates();
 
     return this.prisma.$queryRaw<LightItemRow[]>(Prisma.sql`
       SELECT
@@ -333,6 +398,9 @@ export class ItemService {
         i."CreditWeight" AS "creditWeight",
         COALESCE(u."totalUnits", 0)::int AS "totalUnits",
         COALESCE(u."availableUnits", 0)::int AS "availableUnits",
+        COALESCE(u."borrowableUnits", 0)::int AS "borrowableUnits",
+        n."readyAt" AS "readyAt",
+        t."RuleName" AS tier,
         COALESCE(u.eligible, false) AS eligible
       FROM "ItemInfo" i
       LEFT JOIN LATERAL (
@@ -347,6 +415,10 @@ export class ItemService {
                   AND ul."CurrentStatus" IN (${unavailableStates})
               )
           ) AS "availableUnits",
+          COUNT(*) FILTER (
+            WHERE r."ResourceStatus" NOT IN ('Missing'::"ResourceStatus", 'Retired'::"ResourceStatus")
+              AND r."AllowBorrow"
+          ) AS "borrowableUnits",
           BOOL_OR(
             r."ResourceStatus" != 'Retired'::"ResourceStatus" AND ${eligibleExpr}
           ) AS eligible
@@ -354,36 +426,95 @@ export class ItemService {
         JOIN "ResourceInfo" r ON r."ResourceKey" = ii."ResourceKey"
         WHERE ii."ItemKey" = i."ItemKey"
       ) u ON true
+      LEFT JOIN LATERAL (
+        -- unitReadyAt: a unit on loan frees up at its due date plus prep days;
+        -- one back and awaiting grading has no date, so Returned is left out.
+        -- Driven from the few active loans (status index), not the history.
+        SELECT MIN(ul."DueTime" + r."BufferTime" * interval '1 day') AS "readyAt"
+        FROM "UsageLog" ul
+        JOIN "ResourceInfo" r ON r."ResourceKey" = ul."ResourceKey"
+        JOIN "ItemIndiv" ii ON ii."ResourceKey" = ul."ResourceKey"
+        WHERE ul."CurrentStatus" IN (${loanStates})
+          AND ii."ItemKey" = i."ItemKey"
+          AND r."ResourceStatus" != 'Retired'::"ResourceStatus"
+      ) n ON true
+      LEFT JOIN LATERAL (
+        -- typeTier: the first unit whose rule names a tier.
+        SELECT br."RuleName"
+        FROM "ItemIndiv" ii
+        JOIN "ResourceInfo" r ON r."ResourceKey" = ii."ResourceKey"
+        JOIN "BorrowRule" br ON br."BorrowRuleKey" = r."BorrowRule"
+        WHERE ii."ItemKey" = i."ItemKey"
+          AND r."ResourceStatus" != 'Retired'::"ResourceStatus"
+          AND UPPER(TRIM(br."RuleName")) IN ('T0', 'T1', 'T2', 'T3')
+        ORDER BY ii."IndivKey"
+        LIMIT 1
+      ) t ON true
       ${where}
     `);
   }
 
   /**
-   * Full detail for exactly the page being returned, mapped with the same
-   * `toItemSummary`/`mayBorrowAny` the old full scan used everywhere — so a
-   * returned row is identical to what the old algorithm would have produced
-   * for it, whatever order the database hands rows back in.
+   * The page's summaries from the aggregate rows, plus each type's own columns
+   * and its first unit (owner, prep days). NFR-PRF-05: loading every unit here
+   * cost a query over all 10,000 units' loans just to count them again.
    */
-  private async hydratePage(
-    page: LightItemRow[],
-    held: GroupRole[],
-  ): Promise<ItemSummary[]> {
+  private async hydratePage(page: LightItemRow[]): Promise<ItemSummary[]> {
     if (page.length === 0) return [];
     const rows = await this.prisma.itemInfo.findMany({
       where: { ItemKey: { in: page.map((p) => p.id) } },
-      select: ITEM_TYPE_SELECT,
+      select: {
+        ItemKey: true,
+        ItemDesc: true,
+        ImageURL: true,
+        Items: {
+          where: { Resource: NOT_RETIRED },
+          orderBy: { IndivKey: 'asc' },
+          take: 1,
+          select: {
+            Resource: {
+              select: {
+                BufferTime: true,
+                ManagementGroup:
+                  ITEM_TYPE_SELECT.Items.select.Resource.select.ManagementGroup,
+              },
+            },
+          },
+        },
+      },
     });
-    const byKey = new Map(
-      rows.map((row) => [
-        row.ItemKey,
-        { ...toItemSummary(row), eligible: mayBorrowAny(row.Items, held) },
-      ]),
-    );
-    // Re-imposes the sort order `pageLight` was already sliced into — `in`
-    // filters do not promise to hand rows back in that order.
-    return page
-      .map((p) => byKey.get(p.id))
-      .filter((item): item is ItemSummary => item !== undefined);
+    const byKey = new Map(rows.map((row) => [row.ItemKey, row]));
+    return page.flatMap((p) => {
+      const row = byKey.get(p.id);
+      if (!row) return [];
+      const first = row.Items[0]?.Resource;
+      return [
+        {
+          id: p.id,
+          name: p.name,
+          description: row.ItemDesc,
+          imageUrl: row.ImageURL,
+          tier: tryMapTier(p.tier),
+          creditWeight: p.creditWeight,
+          totalUnits: p.totalUnits,
+          availableUnits: p.availableUnits,
+          stockStatus:
+            p.availableUnits > 0
+              ? 'ok'
+              : p.borrowableUnits > 0
+                ? 'queue'
+                : 'maintenance',
+          nextAvailableAt:
+            p.availableUnits > 0 || !p.readyAt
+              ? null
+              : new Date(p.readyAt).toISOString(),
+          prepDays: first?.BufferTime ?? 0,
+          allowBorrow: p.borrowableUnits > 0,
+          owner: first ? toOwner(first.ManagementGroup) : null,
+          eligible: p.eligible,
+        },
+      ];
+    });
   }
 
   async getById(user: TrpcUser, itemKey: number, window?: ListUnitsInput) {
@@ -421,35 +552,56 @@ export class ItemService {
    * flags the count needs and nothing else — no names, no images, no group.
    */
   async getAvailability(itemKey: number) {
-    const row = await this.prisma.itemInfo.findUnique({
-      where: { ItemKey: itemKey },
-      select: {
-        Items: {
-          where: { Resource: NOT_RETIRED },
-          select: {
-            Resource: {
-              select: {
-                ResourceStatus: true,
-                AllowBorrow: true,
-                // available-from is the return date plus prep days (proposal
-                // 5.5), so even the leanest select has to carry BufferTime.
-                BufferTime: true,
-                UsageLogs: CURRENT_LOAN_SELECT,
-              },
-            },
-          },
-        },
-      },
-    });
+    // Same rules as isUnitAvailable / unitReadyAt, counted in SQL: this is the
+    // 10-15s poll (NFR-PRF-04), and loading every unit's loan made it scale
+    // with the size of the type.
+    const states = Prisma.join(
+      UNAVAILABLE_USAGE_STATES.map((s) => Prisma.sql`${s}::"CurrentStatus"`),
+    );
+    const [row] = await this.prisma.$queryRaw<
+      {
+        found: boolean;
+        total: number;
+        available: number;
+        readyAt: Date | null;
+      }[]
+    >(Prisma.sql`
+      SELECT
+        EXISTS (SELECT 1 FROM "ItemInfo" WHERE "ItemKey" = ${itemKey}) AS found,
+        COUNT(*)::int AS total,
+        (COUNT(*) FILTER (
+          WHERE r."ResourceStatus" = 'InStorage'::"ResourceStatus"
+            AND r."AllowBorrow"
+            AND NOT EXISTS (
+              SELECT 1 FROM "UsageLog" ul
+              WHERE ul."ResourceKey" = r."ResourceKey"
+                AND ul."CurrentStatus" IN (${states})
+            )
+        ))::int AS available,
+        (
+          SELECT MIN(ul."DueTime" + r2."BufferTime" * interval '1 day')
+          FROM "UsageLog" ul
+          JOIN "ResourceInfo" r2 ON r2."ResourceKey" = ul."ResourceKey"
+          JOIN "ItemIndiv" ii2 ON ii2."ResourceKey" = ul."ResourceKey"
+          WHERE ul."CurrentStatus" IN (${onLoanStates()})
+            AND ii2."ItemKey" = ${itemKey}
+            AND r2."ResourceStatus" != 'Retired'::"ResourceStatus"
+        ) AS "readyAt"
+      FROM "ItemIndiv" ii
+      JOIN "ResourceInfo" r ON r."ResourceKey" = ii."ResourceKey"
+      WHERE ii."ItemKey" = ${itemKey}
+        AND r."ResourceStatus" != 'Retired'::"ResourceStatus"
+    `);
 
-    if (!row) throw new BusinessError('ITEM_NOT_FOUND', { id: itemKey });
+    if (!row?.found) throw new BusinessError('ITEM_NOT_FOUND', { id: itemKey });
 
-    // Both numbers come from the same helpers the catalogue mapper uses, so
-    // the polled badge and the list page cannot drift apart.
     return {
-      availableUnits: row.Items.filter(isUnitAvailable).length,
-      totalUnits: row.Items.length,
-      nextAvailableAt: nextAvailableAt(row.Items),
+      availableUnits: row.available,
+      totalUnits: row.total,
+      nextAvailableAt:
+        row.available > 0 || !row.readyAt
+          ? null
+          : new Date(row.readyAt).toISOString(),
     };
   }
 

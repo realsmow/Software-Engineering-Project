@@ -358,6 +358,11 @@ export class ApprovalService {
         itemName,
         collectBy,
       });
+      await this.notifications.itemToPrepare(tx, {
+        manageGroupKey: row.Resource.ManagedBy,
+        reservationKey: row.ReservationKey,
+        itemName,
+      });
 
       if (clashes.length > 0) {
         await tx.reservations.updateMany({
