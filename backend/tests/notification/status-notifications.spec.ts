@@ -112,4 +112,52 @@ describe('status notifications', () => {
       update: {},
     });
   });
+
+  it("marks only the caller's unread notification and treats a second click as idempotent", async () => {
+    const updateMany = jest
+      .fn()
+      .mockResolvedValueOnce({ count: 1 })
+      .mockResolvedValueOnce({ count: 0 });
+    const count = jest.fn().mockResolvedValue(1);
+    const service = new NotificationService({
+      notification: { updateMany, count },
+    } as never);
+
+    await expect(service.markRead(42, '77')).resolves.toEqual({ ok: true });
+    await expect(service.markRead(42, '77')).resolves.toEqual({ ok: true });
+
+    expect(updateMany).toHaveBeenCalledWith({
+      where: { NotificationKey: 77, AccountKey: 42, ReadAt: null },
+      data: { ReadAt: expect.any(Date) as unknown },
+    });
+    expect(count).toHaveBeenCalledWith({
+      where: { NotificationKey: 77, AccountKey: 42 },
+    });
+  });
+
+  it("does not reveal another borrower's notification when marking it read", async () => {
+    const service = new NotificationService({
+      notification: {
+        updateMany: jest.fn().mockResolvedValue({ count: 0 }),
+        count: jest.fn().mockResolvedValue(0),
+      },
+    } as never);
+
+    await expect(service.markRead(42, '77')).rejects.toMatchObject({
+      message: 'NOTIFICATION_NOT_FOUND',
+    });
+  });
+
+  it("marks every unread notification only within the caller's account", async () => {
+    const updateMany = jest.fn().mockResolvedValue({ count: 3 });
+    const service = new NotificationService({
+      notification: { updateMany },
+    } as never);
+
+    await expect(service.markAllRead(42)).resolves.toEqual({ ok: true });
+    expect(updateMany).toHaveBeenCalledWith({
+      where: { AccountKey: 42, ReadAt: null },
+      data: { ReadAt: expect.any(Date) as unknown },
+    });
+  });
 });

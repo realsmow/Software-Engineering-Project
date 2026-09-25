@@ -17,6 +17,7 @@ describe('AdminService lending settings', () => {
   let actorKey: number;
   let borrowRuleKey: number;
   let creditTierKey: number;
+  let creditTierRange: { min: number; max: number };
   let roleKey: number;
   const actorKeys = new Set<number>();
   const createdRoleKeys = new Set<number>();
@@ -66,6 +67,10 @@ describe('AdminService lending settings', () => {
     });
     if (existingTier) {
       creditTierKey = existingTier.CreditTierKey;
+      creditTierRange = {
+        min: existingTier.CreditMin,
+        max: existingTier.CreditMax,
+      };
     } else {
       const tier = await prisma.creditTier.create({
         data: {
@@ -75,6 +80,7 @@ describe('AdminService lending settings', () => {
         },
       });
       creditTierKey = tier.CreditTierKey;
+      creditTierRange = { min: tier.CreditMin, max: tier.CreditMax };
     }
 
     const rule = await prisma.borrowRule.create({
@@ -134,7 +140,7 @@ describe('AdminService lending settings', () => {
     expect(lendingSettingsOutput.safeParse(settings).success).toBe(true);
     expect(settings.creditTiers).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ id: creditTierKey, min: 0, max: 100 }),
+        expect.objectContaining({ id: creditTierKey, ...creditTierRange }),
       ]),
     );
     const borrowRule = settings.borrowRules.find(
