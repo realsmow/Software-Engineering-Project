@@ -575,7 +575,8 @@
       "emptyDesc": "Try removing a filter or changing your search term.",
       "held": "One at a time",
       "heldNote": "You already hold a booking for {{name}}. Cancel it or finish using it to book another room.",
-      "heldAction": "View booking"
+      "heldAction": "View booking",
+      "closedToday": "Closed for today"
     },
     "request": {
       "subtitle": "Review what you picked, set the period you need it for, then submit.",

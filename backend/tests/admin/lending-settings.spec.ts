@@ -64,8 +64,10 @@ describe('AdminService lending settings', () => {
     const tier = await prisma.creditTier.create({
       data: {
         CreditTierName: unique('module4-tier'),
+        // 0-0 so no account made by a spec running alongside (they start at
+        // 100) is placed in this tier while it exists.
         CreditMin: 0,
-        CreditMax: 100,
+        CreditMax: 0,
       },
     });
     creditTierKey = tier.CreditTierKey;
@@ -107,7 +109,7 @@ describe('AdminService lending settings', () => {
     expect(lendingSettingsOutput.safeParse(settings).success).toBe(true);
     expect(settings.creditTiers).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ id: creditTierKey, min: 0, max: 100 }),
+        expect.objectContaining({ id: creditTierKey, min: 0, max: 0 }),
       ]),
     );
     expect(settings.borrowRules).toEqual(

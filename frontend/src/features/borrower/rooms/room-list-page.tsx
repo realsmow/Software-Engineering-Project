@@ -9,7 +9,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { DataTable, type Column } from "@/components/ui/data-table";
 import { BUSINESS, ROUTES } from "@/constants";
 import { ImageThumb } from "@/components/shared/image-thumb";
-import { todayLocalDayKey } from "@/lib/datetime";
+import { localInstant, todayLocalDayKey } from "@/lib/datetime";
 import { cn } from "@/lib/utils";
 import { CAPACITY_BANDS, TIME_SLOTS, capacityBand } from "./room-slots";
 import { activeRoomBookings, type MyRequest } from "../request-status";
@@ -486,9 +486,14 @@ function BookButton({
 }) {
   const { t } = useTranslation();
   const full = free === 0;
+  // No slot left because the day is over, not because anyone booked them.
+  const [h, m] = TIME_SLOTS[TIME_SLOTS.length - 1].start.split(":").map(Number);
+  const closed = full && Date.now() >= localInstant(todayLocalDayKey(), h, m).getTime();
   // "Fully booked" is about the room; the hold is about the borrower. Saying
   // the wrong one sends them looking for a different room that is just as shut.
-  const label = full
+  const label = closed
+    ? t("borrower.rooms.closedToday")
+    : full
     ? t("borrower.rooms.full")
     : held
       ? t("borrower.rooms.held")
