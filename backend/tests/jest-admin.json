@@ -9,5 +9,6 @@
   "moduleNameMapper": {
     "^(\\.{1,2}/.*)\\.js$": "$1"
   },
-  "setupFiles": ["<rootDir>/jest.setup.js"]
+  "setupFiles": ["<rootDir>/jest.setup.js"],
+  "maxWorkers": 1
 }

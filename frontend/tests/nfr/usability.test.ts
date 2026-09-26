@@ -7,9 +7,15 @@ const globalsCss = readFileSync(resolve(process.cwd(), "src/app/globals.css"), "
 
 describe("Module 12.3 — Usability & UI Standards", () => {
   it("12.3.1 maps business error codes to Thai user-facing messages", () => {
-    expect(getErrorMessage("INVALID_CREDENTIALS")).toBe("ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง");
-    expect(getErrorMessage("NOT_AUTHENTICATED")).toBe("เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่");
-    expect(getErrorMessage("ITEM_UNAVAILABLE")).toBe("อุปกรณ์ชิ้นนี้ถูกยืมไปแล้ว กรุณาเลือกใหม่");
+    expect(getErrorMessage("INVALID_CREDENTIALS")).toBe(
+      "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง"
+    );
+    expect(getErrorMessage("NOT_AUTHENTICATED")).toBe(
+      "เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่"
+    );
+    expect(getErrorMessage("ITEM_UNAVAILABLE")).toBe(
+      "อุปกรณ์ชิ้นนี้ถูกยืมไปแล้ว กรุณาเลือกใหม่"
+    );
     expect(getErrorMessage("UNKNOWN_CODE")).toBe("เกิดข้อผิดพลาดที่ไม่ทราบสาเหตุ");
   });
 
@@ -24,5 +30,19 @@ describe("Module 12.3 — Usability & UI Standards", () => {
     expect(globalsCss).toMatch(/@media\s*\([^)]*min-width:\s*\d+px/);
     expect(globalsCss).toMatch(/375px/);
     expect(globalsCss).toMatch(/1280px/);
+  });
+});
+
+const globalStyles = readFileSync(resolve(process.cwd(), "src/app/globals.css"), "utf8");
+
+describe("frontend layout and typography contracts", () => {
+  it("defines one shared Thai-capable UI font token", () => {
+    expect(globalStyles).toMatch(/--font-ui:\s*["']?(Prompt|Sarabun)/);
+    expect(globalStyles).toContain("font-family: var(--font-ui)");
+  });
+
+  it("contains responsive layout rules for compact and wider screens", () => {
+    expect(globalStyles).toContain("@media (max-width: 900px)");
+    expect(globalStyles).toContain("@media (max-width: 1080px)");
   });
 });

@@ -15,6 +15,7 @@ vi.mock("@/lib/trpc", () => ({
 }));
 
 import { useCancelRequest } from "@/features/borrower/loans/use-my-requests-api";
+import { requestResponse } from "../fixtures/api-responses";
 
 function wrapper({ children }: { children: React.ReactNode }) {
   const client = new QueryClient({
@@ -23,13 +24,21 @@ function wrapper({ children }: { children: React.ReactNode }) {
   return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
 }
 
-describe("Borrower request cancellation — Module 6.10", () => {  beforeEach(() => {
+describe("Borrower request cancellation — Module 6.10", () => {
+  beforeEach(() => {
     vi.clearAllMocks();
-    mocks.cancel.mockResolvedValue({
-      reservationKey: 101,
-      status: "cancelled",
-      cancellable: false,
-    });
+    mocks.cancel.mockResolvedValue(
+      requestResponse({
+        reservationKey: 101,
+        status: "cancelled",
+        cancellable: false,
+        approval: {
+          ...requestResponse().approval,
+          status: "Canceled",
+          resolvedAt: "2026-09-26T00:00:00.000Z",
+        },
+      })
+    );
   });
 
   it("6.10 calls loan.cancel with the reservation key and reason", async () => {
@@ -42,7 +51,8 @@ describe("Borrower request cancellation — Module 6.10", () => {  beforeEach(()
       });
     });
 
-    expect(mocks.cancel).toHaveBeenCalledTimes(1);    expect(mocks.cancel).toHaveBeenCalledWith({
+    expect(mocks.cancel).toHaveBeenCalledTimes(1);
+    expect(mocks.cancel).toHaveBeenCalledWith({
       reservationKey: 101,
       reason: "เปลี่ยนแผนการใช้งาน",
     });
@@ -53,9 +63,9 @@ describe("Borrower request cancellation — Module 6.10", () => {  beforeEach(()
     const { result } = renderHook(() => useCancelRequest(), { wrapper });
 
     await act(async () => {
-      await expect(
-        result.current.mutateAsync({ reservationKey: 999 }),
-      ).rejects.toThrow("RESERVATION_NOT_FOUND");
+      await expect(result.current.mutateAsync({ reservationKey: 999 })).rejects.toThrow(
+        "RESERVATION_NOT_FOUND"
+      );
     });
 
     await waitFor(() => expect(result.current.isError).toBe(true));

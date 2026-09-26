@@ -1,3 +1,5 @@
+import { withOutputContracts } from '../fixtures/output-contracts';
+import { adminContracts } from '../fixtures/service-contracts';
 import { AdminService } from '../../src/admin/admin.service';
 import {
   auditEventIdInput,
@@ -49,6 +51,7 @@ function serviceWith(overrides: Record<string, unknown> = {}) {
     cron as never,
   );
 
+  withOutputContracts(service, adminContracts);
   return { service, prisma, audit, cron, config, ...overrides };
 }
 
@@ -101,7 +104,7 @@ describe('IT admin system status, cron, config, and audit procedures', () => {
     expect(prisma.$transaction).not.toHaveBeenCalled();
   });
 
-  it('lists all eight cron jobs and distinguishes implemented jobs', async () => {
+  it('lists the six supported cron jobs and their implemented state', async () => {
     const { service, cron } = serviceWith();
     const lastRunAt = new Date('2026-09-20T02:00:00.000Z');
     cron.lastRuns.mockResolvedValue(
@@ -154,7 +157,11 @@ describe('IT admin system status, cron, config, and audit procedures', () => {
   });
 
   it('no longer accepts the removed jobs, or an unknown one', () => {
-    for (const job of ['rollupDailyStats', 'computeAvailability', 'unknownJob']) {
+    for (const job of [
+      'rollupDailyStats',
+      'computeAvailability',
+      'unknownJob',
+    ]) {
       expect(() => runCronJobInput.parse({ job })).toThrow();
     }
   });
@@ -201,8 +208,8 @@ describe('IT admin system status, cron, config, and audit procedures', () => {
 
     expect('updateConfig' in service).toBe(false);
     expect(
-      Object.getOwnPropertyNames(Object.getPrototypeOf(service)).filter((name) =>
-        /^(update|set|save|write).*Config$/i.test(name),
+      Object.getOwnPropertyNames(Object.getPrototypeOf(service)).filter(
+        (name) => /^(update|set|save|write).*Config$/i.test(name),
       ),
     ).toEqual([]);
   });

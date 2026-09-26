@@ -15,6 +15,7 @@
     "format": "prettier --write \"src/**/*.{ts,tsx,css}\"",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "test:coverage": "vitest run --coverage --coverage.all --coverage.include=\"src/**/*.{ts,tsx}\" --coverage.reporter=text-summary --coverage.reporter=json-summary",
     "test:ac": "esbuild src/lib/__checks__/ac-checks.ts --bundle --platform=node --format=esm --alias:@=./src --define:import.meta.env={} --outfile=node_modules/.cache/ac-checks.mjs && node node_modules/.cache/ac-checks.mjs"
   },
   "dependencies": {
@@ -57,6 +58,7 @@
     "@types/react": "^18.3.11",
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^4.3.2",
+    "@vitest/coverage-v8": "2.1.9",
     "autoprefixer": "^10.4.20",
     "eslint": "^9.11.1",
     "eslint-plugin-react-hooks": "^5.1.0-rc.0",
