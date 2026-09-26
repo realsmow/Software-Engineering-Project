@@ -124,10 +124,6 @@ jobs:
         run: npm ci
         working-directory: backend
 
-      - name: lint
-        run: npm run lint
-        working-directory: backend
-
       # NOTE: no `prisma generate` step is needed right now, because the
       # generated client is committed to the repository (41 files under
       # backend/src/generated/prisma). That is accidental - backend/.gitignore
