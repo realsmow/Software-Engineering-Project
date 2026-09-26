@@ -15,16 +15,18 @@ import { extractErrorCode } from "@/lib/error-messages";
 import { useAppeals, useDecideAppeal } from "./use-appeals";
 import type { AppealOutput, AppealStatus } from "./appeal.types";
 import { penaltyReasonText } from "@/features/borrower/appeals/penalty-reason";
+import type { DamageLevel } from "@/types/domain";
+
+const GRADES: DamageLevel[] = ["B0", "B1", "B2", "B3"];
 
 /**
  * The appeal desk (§5.8 "ขออุทธรณ์"): a borrower disputes a credit penalty and
  * a supervisor rules on it.
  *
- * The decision is about credit, not about a damage grade. An earlier version
- * of this screen offered a B0..B3 picker and showed a refund worked out from
- * the gap between two grades; the server has never had such a procedure. What
- * it offers instead is `reducedCreditDeducted` - how much of the deduction is
- * left standing - and it computes the refund itself.
+ * The supervisor either names how much of the deduction still stands
+ * (`reducedCreditDeducted`) or revises the damage grade (FR-APL-06,
+ * `revisedGrade`), which the server prices the way the inspection did. Either
+ * way the server computes the refund itself.
  *
  * Two of the server's refusals are answered before the click rather than after
  * it. A supervisor may not rule on an inspection they made themselves
@@ -112,6 +114,10 @@ function AppealCard({
   const { t } = useTranslation();
   const decide = useDecideAppeal();
   const [reduced, setReduced] = useState("");
+  const [grade, setGrade] = useState<DamageLevel | null>(null);
+  // Grades below the one inspected; a revision can only lower it.
+  const inspectedGrade = appeal.inspection?.grade ?? null;
+  const lowerGrades = inspectedGrade ? GRADES.filter((g) => g < inspectedGrade) : [];
   const [note, setNote] = useState("");
   const [error, setError] = useState<string | null>(null);
 
@@ -135,7 +141,8 @@ function AppealCard({
         appealKey: appeal.appealKey,
         decision,
         ...(note.trim() ? { note: note.trim() } : {}),
-        ...(decision === "approve" && parsed ? { reducedCreditDeducted: parsed } : {}),
+        ...(decision === "approve" && grade ? { revisedGrade: grade } : {}),
+        ...(decision === "approve" && !grade && parsed ? { reducedCreditDeducted: parsed } : {}),
       });
       onDecided(
         decision === "approve"
@@ -185,6 +192,29 @@ function AppealCard({
                 })
               : t("supervisor.appeals.notInForce")}
           </p>
+          {/* FR-APL-03: the staff report the borrower is arguing with. */}
+          {appeal.inspection ? (
+            <div className="mt-2 text-[13px] text-t2">
+              {appeal.inspection.grade ? (
+                <p>
+                  {t("supervisor.appeals.gradedAs", {
+                    grade: `${appeal.inspection.grade} ${t(`damage.${appeal.inspection.grade}`)}`,
+                  })}
+                </p>
+              ) : null}
+              <p className="leading-relaxed">
+                {appeal.inspection.notes ?? t("supervisor.appeals.noStaffNote")}
+              </p>
+              <p className="mt-1 font-mono text-[11px] text-t4">
+                {t("supervisor.appeals.inspectedBy", {
+                  name: appeal.inspection.inspectorName,
+                  when: appeal.inspection.inspectedAt
+                    ? fmtDateTime(appeal.inspection.inspectedAt)
+                    : "",
+                })}
+              </p>
+            </div>
+          ) : null}
         </div>
 
         <div className="p-3.5">
@@ -214,6 +244,27 @@ function AppealCard({
             <p className="text-xs leading-relaxed text-[var(--s-warn-t)]">{t(blocked)}</p>
           ) : (
             <>
+              {lowerGrades.length > 0 ? (
+                <div className="mb-2.5 flex flex-wrap items-center gap-2">
+                  <span className="text-xs text-t3">{t("supervisor.appeals.reviseGrade")}</span>
+                  {lowerGrades.map((g) => (
+                    <Button
+                      key={g}
+                      type="button"
+                      size="sm"
+                      variant={grade === g ? "default" : "outline"}
+                      aria-pressed={grade === g}
+                      onClick={() => {
+                        setGrade(grade === g ? null : g);
+                        setReduced("");
+                      }}
+                    >
+                      {g} {t(`damage.${g}`)}
+                    </Button>
+                  ))}
+                </div>
+              ) : null}
+
               <div className="mb-1 flex flex-wrap items-center gap-2">
                 <span className="text-xs text-t3">{t("supervisor.appeals.reduceLabel")}</span>
                 <Input
@@ -222,13 +273,20 @@ function AppealCard({
                   min={1}
                   max={Math.max(deducted - 1, 1)}
                   value={reduced}
-                  onChange={(e) => setReduced(e.target.value)}
+                  onChange={(e) => {
+                    setReduced(e.target.value);
+                    setGrade(null);
+                  }}
                   disabled={deducted <= 0}
                   className="h-8 w-24"
                 />
                 {reduceError ? (
                   <span className="text-xs text-[var(--s-warn-t)]">
                     {t("supervisor.appeals.reduceTooLarge", { credit: deducted })}
+                  </span>
+                ) : grade ? (
+                  <span className="text-xs text-t2">
+                    {t("supervisor.appeals.gradePriced", { grade })}
                   </span>
                 ) : deducted > 0 ? (
                   <span className="text-xs text-t2">
@@ -310,6 +368,13 @@ function Outcome({ appeal }: { appeal: AppealOutput }) {
       {appeal.status === "approved" ? (
         <p className="mt-1">
           {t("supervisor.appeals.creditReturned", { credit: appeal.creditRestored })}
+        </p>
+      ) : null}
+      {appeal.revisedGrade ? (
+        <p className="mt-1">
+          {t("supervisor.appeals.revisedTo", {
+            grade: `${appeal.revisedGrade} ${t(`damage.${appeal.revisedGrade}`)}`,
+          })}
         </p>
       ) : null}
       {appeal.replacementPenalty ? (

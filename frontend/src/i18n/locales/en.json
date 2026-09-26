@@ -1225,7 +1225,12 @@
       "errAlreadyResolved": "This appeal has already been decided.",
       "errInvalidReduction": "The penalty left standing has to be smaller than the original deduction.",
       "errOutOfScope": "This penalty belongs to a department you do not manage.",
-      "photoEvidence": "Borrower's evidence"
+      "photoEvidence": "Borrower's evidence",
+      "gradedAs": "Graded {{grade}}",
+      "inspectedBy": "Inspected by {{name}} {{when}}",
+      "reviseGrade": "Revise grade to",
+      "gradePriced": "The server prices grade {{grade}} the way the inspection did",
+      "revisedTo": "Grade revised to {{grade}}"
     }
   },
   "damage": {

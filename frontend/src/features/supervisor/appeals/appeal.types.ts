@@ -1,14 +1,12 @@
 import type { BorrowerRef } from "@/features/staff/queue/queue.types";
+import type { DamageLevel } from "@/types/domain";
 
 /**
  * The appeal desk's shapes, mirroring backend/src/appeal/appeal.schema.ts.
  *
- * An appeal argues with a *credit penalty*, not with a damage grade. The
- * previous version of this file modelled a B0..B3 grade picker and derived a
- * refund from the distance between two grades; no procedure on the server has
- * ever taken a grade from this desk, and none computes a refund that way. What
- * the supervisor actually chooses is how much of the deduction still stands,
- * and the server works out what that hands back.
+ * An appeal argues with a credit penalty. The supervisor either names how
+ * much of it still stands, or revises the damage grade (FR-APL-06) and lets
+ * the server price the lower grade; the server works out the refund.
  */
 
 /** Pending / Approved / Rejected. There is no cancelled appeal (ว-10). */
@@ -60,6 +58,15 @@ export interface AppealOutput {
    * offering a button that is going to be rejected.
    */
   inspectorKeys: number[];
+  /** FR-APL-03: the staff report. Null when no inspection produced it. */
+  inspection: {
+    grade: DamageLevel | null;
+    notes: string | null;
+    inspectorName: string;
+    inspectedAt: string | null;
+  } | null;
+  /** FR-APL-06: the grade an approval revised the inspection to. */
+  revisedGrade: DamageLevel | null;
 }
 
 /** A penalty the borrower may still appeal (`appealablePenalty`). */
@@ -84,4 +91,6 @@ export interface DecideAppealInput {
   /** Reaches the borrower in the notification. Optional on the server. */
   note?: string;
   reducedCreditDeducted?: number;
+  /** Approve-only, instead of an amount: a grade lower than the one inspected. */
+  revisedGrade?: DamageLevel;
 }

@@ -157,6 +157,8 @@ function serve(path: string, input: Record<string, unknown> | undefined): unknow
         replacementPenalty: null,
         creditRestored: 0,
         inspectorKeys: [],
+        inspection: null,
+        revisedGrade: null,
       } as AppealOutput;
       db.appealable = db.appealable.filter((p) => p.penaltyKey !== penaltyKey);
       db.appeals = [appeal];

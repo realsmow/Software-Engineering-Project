@@ -3448,7 +3448,8 @@ export const AppealInfoScalarFieldEnum = {
   AppealReason: 'AppealReason',
   ApproveStatus: 'ApproveStatus',
   ActionTime: 'ActionTime',
-  ResolvedAt: 'ResolvedAt'
+  ResolvedAt: 'ResolvedAt',
+  RevisedCondition: 'RevisedCondition'
 } as const
 
 export type AppealInfoScalarFieldEnum = (typeof AppealInfoScalarFieldEnum)[keyof typeof AppealInfoScalarFieldEnum]
