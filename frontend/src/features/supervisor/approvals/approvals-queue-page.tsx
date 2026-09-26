@@ -6,8 +6,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DataTable, type Column } from "@/components/ui/data-table";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { getErrorMessage } from "@/lib/error-messages";
-import { fmtDateTime } from "@/features/borrower/format";
+import { fmtDateTime, fmtDate } from "@/features/borrower/format";
 import { Segmented } from "@/components/ui/segmented";
 import {
   useApprovalCounts,
@@ -17,6 +18,7 @@ import {
   useDecideRetirement,
   useExtensionQueue,
   useRetirementQueue,
+  useBorrowerHistory,
 } from "./use-approvals";
 import type {
   ApprovalQueueRow,
@@ -25,24 +27,6 @@ import type {
   RetirementRequest,
 } from "./approval.types";
 
-/**
- * The approval desk (SRS FR-APV-01..04, polled every 60s).
- *
- * Three things here exist because of how the decision actually goes wrong:
- *
- *  - approving cancels every other pending request for the same unit over an
- *    overlapping window, so `clashesWith` is shown on the row *before* the
- *    decision and the cancelled list is reported after it. Otherwise the loser
- *    finds out by their request silently vanishing;
- *  - a rejection without a reason is refused by the server (FR-APV-03), so the
- *    reason is collected in the row rather than sent and bounced;
- *  - the credit band that put a request on this desk is shown next to the
- *    borrower, because that band is usually the reason it needs a human.
- *
- * Partial approval (FR-APV-02) needs nothing special: the borrower flow opens
- * one request per unit, so every row here already is one unit and deciding
- * per row is deciding per item.
- */
 export default function SupervisorApprovalsPage() {
   const { t } = useTranslation();
   const [search, setSearch] = useState("");
@@ -50,23 +34,18 @@ export default function SupervisorApprovalsPage() {
   const [reason, setReason] = useState("");
   const [busyKey, setBusyKey] = useState<number | null>(null);
   const [result, setResult] = useState<{ tone: "ok" | "bad"; text: string } | null>(null);
+  
+  const [historyBorrower, setHistoryBorrower] = useState<ApprovalQueueRow["borrower"] | null>(null);
 
   const { data: counts } = useApprovalCounts();
-  // No route filter: the server already scopes the queue to what this caller
-  // may decide, so a supervisor sees their pile without being asked which
-  // desk they are.
   const { data: rows, isLoading } = useApprovalQueue(undefined, search);
   const decide = useDecideApproval();
 
-  // Extensions and retirements are two more piles at the same desk, not
-  // separate screens: the supervisor clearing T2 requests is the person who
-  // also clears T2 extensions and FR-EQP-08 retirements.
   const [view, setView] = useState<"requests" | "extensions" | "retirements">("requests");
   const { data: extRows, isLoading: extLoading } = useExtensionQueue(search);
   const decideExtension = useDecideExtension();
   const { data: retirementRows, isLoading: retirementLoading } = useRetirementQueue();
   const decideRetirement = useDecideRetirement();
-  // Per row, because the condition is a fact about one item on one counter.
   const [conditions, setConditions] = useState<Record<number, ConditionType>>({});
   const conditionOf = (key: number): ConditionType => conditions[key] ?? "Normal";
 
@@ -376,8 +355,6 @@ export default function SupervisorApprovalsPage() {
 
   async function reject(row: ApprovalQueueRow) {
     const why = reason.trim();
-    // Enforced on the server too; checked here so the person is not told off
-    // by a round trip for something the form could have said.
     if (!why) return;
 
     setBusyKey(row.reservationKey);
@@ -460,13 +437,12 @@ export default function SupervisorApprovalsPage() {
       key: "act",
       header: "",
       align: "right",
-      // Same reasoning as the staff queue: approve/reject is the row's purpose.
       className: "sticky right-0 bg-card",
       render: (r) => {
         const busy = busyKey === r.reservationKey;
         if (rejecting === r.reservationKey) {
           return (
-            <div className="flex items-center justify-end gap-2">
+            <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
               <Input
                 autoFocus
                 value={reason}
@@ -497,7 +473,7 @@ export default function SupervisorApprovalsPage() {
           );
         }
         return (
-          <div className="flex justify-end gap-2">
+          <div className="flex justify-end gap-2" onClick={(e) => e.stopPropagation()}>
             <Button
               type="button"
               variant="outline"
@@ -592,26 +568,34 @@ export default function SupervisorApprovalsPage() {
           rangeLabel={(start, end, total) => t("common.showingRange", { start, end, total })}
         />
       ) : (
-      <DataTable
-        columns={columns}
-        rows={rows ?? []}
-        rowKey={(r) => String(r.reservationKey)}
-        pageSize={15}
-        beforeRows={
-          <div className="border-b border-border px-3.5 py-2.5">
-            <Input
-              type="search"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder={t("supervisor.approvals.searchPlaceholder")}
-              className="max-w-sm"
-            />
-          </div>
-        }
-        emptyTitle={isLoading ? t("common.loading") : t("supervisor.approvals.emptyTitle")}
-        emptyDescription={isLoading ? undefined : t("supervisor.approvals.emptyDesc")}
-        rangeLabel={(start, end, total) => t("common.showingRange", { start, end, total })}
-      />
+        <DataTable
+          columns={columns}
+          rows={rows ?? []}
+          rowKey={(r) => String(r.reservationKey)}
+          pageSize={15}
+          onRowClick={(row) => setHistoryBorrower(row.borrower)}
+          beforeRows={
+            <div className="border-b border-border px-3.5 py-2.5">
+              <Input
+                type="search"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder={t("supervisor.approvals.searchPlaceholder")}
+                className="max-w-sm"
+              />
+            </div>
+          }
+          emptyTitle={isLoading ? t("common.loading") : t("supervisor.approvals.emptyTitle")}
+          emptyDescription={isLoading ? undefined : t("supervisor.approvals.emptyDesc")}
+          rangeLabel={(start, end, total) => t("common.showingRange", { start, end, total })}
+        />
+      )}
+
+      {historyBorrower && (
+        <BorrowerHistoryDialog
+          borrower={historyBorrower}
+          onClose={() => setHistoryBorrower(null)}
+        />
       )}
     </div>
   );
@@ -639,5 +623,94 @@ function Tile({
         {value ?? "-"}
       </div>
     </div>
+  );
+}
+
+// Main Adding
+function BorrowerHistoryDialog({
+  borrower,
+  onClose,
+}: {
+  borrower: ApprovalQueueRow["borrower"];
+  onClose: () => void;
+}) {
+  const { t } = useTranslation();
+  const { data: history, isLoading } = useBorrowerHistory(borrower.accountKey);
+
+  return (
+    <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-w-3xl">
+        <DialogHeader>
+          <DialogTitle>
+            Borrower History: {borrower.firstName} {borrower.lastName} ({borrower.studentId})
+          </DialogTitle>
+        </DialogHeader>
+
+        {isLoading ? (
+          <div className="py-8 text-center text-t3">{t("common.loading")}</div>
+        ) : !history ? (
+          <div className="py-8 text-center text-t3">Failed to load history</div>
+        ) : (
+          <div className="space-y-4">
+            <div className="grid grid-cols-4 gap-2">
+              <Tile label="Total Loans" value={history.totalLoans} />
+              <Tile label="Late Returns" value={history.lateReturns} warn={history.lateReturns > 0} />
+              <Tile label="Damage (B1+)" value={history.damageIncidents} warn={history.damageIncidents > 0} />
+              <div className="rounded-lg border border-border bg-card px-3 py-2.5">
+                <div className="text-xs text-t3">Last Damage</div>
+                <div className="mt-0.5 font-mono text-sm font-semibold tabular-nums text-foreground">
+                  {history.lastDamageDate ? fmtDate(history.lastDamageDate) : "-"}
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-4">
+              <h4 className="mb-2 text-sm font-medium">Past Loans</h4>
+              <div className="max-h-[300px] overflow-y-auto rounded-md border border-border">
+                <table className="w-full text-left text-sm">
+                  <thead className="sticky top-0 bg-muted px-3 py-2 text-xs text-muted-foreground">
+                    <tr>
+                      <th className="px-3 py-2 font-medium">Item</th>
+                      <th className="px-3 py-2 font-medium">Borrowed</th>
+                      <th className="px-3 py-2 font-medium">Returned</th>
+                      <th className="px-3 py-2 font-medium">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {history.items.length === 0 ? (
+                      <tr>
+                        <td colSpan={4} className="px-3 py-4 text-center text-t3">
+                          No past loans found.
+                        </td>
+                      </tr>
+                    ) : (
+                      history.items.map((item) => (
+                        <tr key={item.usageKey} className="border-t border-border">
+                          <td className="px-3 py-2">
+                            <div className="truncate text-foreground">{item.itemName}</div>
+                            <div className="font-mono text-[11px] text-t4">{item.serialNo ?? "-"}</div>
+                          </td>
+                          <td className="px-3 py-2 font-mono text-xs">{fmtDateTime(item.checkoutAt)}</td>
+                          <td className="px-3 py-2 font-mono text-xs">
+                            {item.returnedAt ? fmtDateTime(item.returnedAt) : "-"}
+                          </td>
+                          <td className="px-3 py-2">
+                            {item.overdueDays > 0 ? (
+                              <Badge tone="warn">Late ({item.overdueDays}d)</Badge>
+                            ) : (
+                              <Badge tone="neutral">{item.status}</Badge>
+                            )}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }
