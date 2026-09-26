@@ -1,3 +1,8 @@
+import { withOutputContracts } from '../fixtures/output-contracts';
+import {
+  managementContracts,
+  catalogContracts,
+} from '../fixtures/service-contracts';
 import { BusinessError } from '../../src/common/errors/business-error';
 import type { TrpcUser } from '../../src/trpc/context';
 import { ItemManagementService } from '../../src/item/item.management.service';
@@ -95,12 +100,73 @@ function managementHarness() {
   const imageService = images();
   const audit = { record: jest.fn() };
 
+  // Read newly created units from the actual transaction writes. Returning
+  // unrelated seed rows here would hide missing units and wrong resource IDs.
+  type ResourceWrite = {
+    ManagedBy: number;
+    BorrowRule: number;
+    BufferTime: number;
+    AllowBorrow: boolean;
+  };
+  type UnitWrite = {
+    ResourceKey: number;
+    ItemKey: number;
+    ItemID: string;
+    ImageURL: string | null;
+  };
+  const servicePrisma = {
+    ...prisma,
+    itemIndiv: {
+      ...prisma.itemIndiv,
+      findMany: async (args: { where: { ResourceKey?: { in: number[] } } }) => {
+        const existing: unknown = await prisma.itemIndiv.findMany(args);
+        if (!args.where.ResourceKey?.in) return existing;
+        const unitWrites = tx.itemIndiv.create.mock.calls as unknown as Array<
+          [{ data: UnitWrite }]
+        >;
+        const resourceWrites = tx.resourceInfo.create.mock
+          .calls as unknown as Array<[{ data: ResourceWrite }]>;
+        const ruleReads = prisma.borrowRule.findFirst.mock
+          .calls as unknown as Array<
+          [{ where: { RuleName: { equals: string } } }]
+        >;
+        return args.where.ResourceKey.in.map((key, index) => {
+          const write = unitWrites.find(
+            ([input]) => input.data.ResourceKey === key,
+          );
+          if (!write) throw new Error('Missing unit write for resource ' + key);
+          const resource = resourceWrites[index][0].data;
+          return {
+            ...unitRow(),
+            IndivKey: 1000 + index,
+            ...write[0].data,
+            Resource: {
+              ...unitRow().Resource,
+              ResourceKey: key,
+              ManagedBy: resource.ManagedBy,
+              AllowBorrow: resource.AllowBorrow,
+              BufferTime: resource.BufferTime,
+              BorrowRuleInfo: {
+                RuleName: ruleReads
+                  .at(-1)![0]
+                  .where.RuleName.equals.toUpperCase(),
+              },
+            },
+          };
+        });
+      },
+    },
+  };
+
   return {
-    service: new ItemManagementService(
-      prisma as never,
-      scope as never,
-      imageService as never,
-      audit as never,
+    service: withOutputContracts(
+      new ItemManagementService(
+        servicePrisma as never,
+        scope as never,
+        imageService as never,
+        audit as never,
+      ),
+      managementContracts,
     ),
     prisma,
     tx,
@@ -130,7 +196,7 @@ describe('Module 5 equipment management', () => {
       ItemKey: 7,
       ItemName: 'Oscilloscope',
       ItemDesc: 'Four-channel scope',
-      ImageURL: '/uploads/scope.png',
+      ImageURL: '/media/scope.png',
       CreditWeight: 10,
     });
 
@@ -138,7 +204,7 @@ describe('Module 5 equipment management', () => {
       service.createItemType(user(), {
         name: 'Oscilloscope',
         description: 'Four-channel scope',
-        imageUrl: 'https://cdn.example/scope.png',
+        imageUrl: 'http://localhost:3000/media/scope.png',
         creditWeight: 10,
       }),
     ).resolves.toMatchObject({
@@ -152,7 +218,7 @@ describe('Module 5 equipment management', () => {
     });
 
     expect(imageService.toStoredUrl).toHaveBeenCalledWith(
-      'https://cdn.example/scope.png',
+      'http://localhost:3000/media/scope.png',
     );
     expect(prisma.itemInfo.create).toHaveBeenCalledWith(
       objectContaining({
@@ -229,27 +295,14 @@ describe('Module 5 equipment management', () => {
   });
 
   it('registers a T2 unit only when its real serial is supplied', async () => {
-    const { service, prisma } = managementHarness();
+    const { service, prisma, tx } = managementHarness();
     prisma.itemInfo.findUnique.mockResolvedValue({
       ItemKey: 7,
       ItemName: 'Oscilloscope',
     });
     prisma.borrowRule.findFirst.mockResolvedValue({ BorrowRuleKey: 22 });
     prisma.itemIndiv.findMany.mockResolvedValue([unitRow()]);
-    prisma.$transaction.mockImplementation((work) =>
-      work({
-        resourceInfo: {
-          create: jest.fn().mockResolvedValue({ ResourceKey: 501 }),
-        },
-        itemIndiv: { create: jest.fn() },
-        eligibility: {
-          findMany: jest.fn().mockResolvedValue([]),
-          createMany: jest.fn(),
-        },
-        conditionLog: { create: jest.fn(), findUnique: jest.fn() },
-        itemInfo: { update: jest.fn() },
-      } as never),
-    );
+    tx.resourceInfo.create.mockResolvedValue({ ResourceKey: 501 });
 
     await expect(
       service.createItemUnits(user(), {
@@ -272,6 +325,7 @@ describe('Module 5 equipment management', () => {
       RoomName: 'Electronics Lab',
       RoomDesc: 'Bench laboratory',
       RoomLocation: 'Engineering building 3',
+      Capacity: 24,
       ImageURL: null,
       CreditWeight: 0,
       Resource: {
@@ -514,7 +568,10 @@ describe('Module 5 borrower availability and catalogue queries', () => {
         }),
       },
     };
-    const service = new ItemService(prisma as never);
+    const service = withOutputContracts(
+      new ItemService(prisma as never),
+      catalogContracts,
+    );
 
     await expect(service.getAvailability(7)).resolves.toEqual({
       availableUnits: 1,
@@ -631,7 +688,8 @@ describe('Equipment registration & unit increments — serial collision (Audit #
       lendable: true,
     });
 
-    expect(result).toHaveLength(2); // from findMany mock
+    expect(result).toHaveLength(3);
+    expect(result.map((unit) => unit.resourceKey)).toEqual([803, 804, 805]);
     expect(tx.itemIndiv.create).toHaveBeenCalledTimes(3);
     const serials = tx.itemIndiv.create.mock.calls.map(
       (call: unknown[]) =>
@@ -745,6 +803,7 @@ describe('Equipment registration & unit increments — serial collision (Audit #
     });
 
     expect(result).toHaveLength(2);
+    expect(result.map((unit) => unit.resourceKey)).toEqual([903, 904]);
     expect(tx.resourceInfo.create).toHaveBeenNthCalledWith(
       1,
       objectContaining({

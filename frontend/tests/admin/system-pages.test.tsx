@@ -4,8 +4,19 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import i18n from "../../src/i18n";
 import AdminConfigPage from "../../src/features/admin/config/config-page";
 import AdminStatusPage from "../../src/features/admin/status/status-page";
-import type { TechnicalConfig } from "../../src/features/admin/config/config.types";
-import type { CronJob, SystemStatus } from "../../src/features/admin/status/status.types";
+import {
+  technicalConfigOutput,
+  systemStatusOutput,
+  cronJobOutput,
+} from "../../../backend/src/admin/admin.schema";
+import { okOutput } from "../../../backend/src/common/schemas/ok.schema";
+import {
+  queryResult,
+  loadingQueryResult,
+  errorQueryResult,
+  mutationResult,
+} from "../fixtures/query-results";
+
 import { getErrorMessage } from "../../src/lib/error-messages";
 
 const useSystemStatusMock = vi.hoisted(() => vi.fn());
@@ -23,15 +34,15 @@ vi.mock("../../src/features/admin/config/use-config", () => ({
   useTechnicalConfig: useTechnicalConfigMock,
 }));
 
-const STATUS: SystemStatus = {
+const STATUS = systemStatusOutput.strict().parse({
   checkedAt: "2026-09-20T02:00:00.000Z",
   uptimeSeconds: 3661,
   nodeVersion: "v22.14.0",
   database: { state: "operational", latencyMs: 12 },
   counts: { accounts: 42, resources: 17, activeLoans: 6, pendingReservations: 3 },
-};
+});
 
-const JOBS: CronJob[] = [
+const JOBS = [
   {
     id: "markOverdue",
     name: "Mark overdue",
@@ -42,17 +53,17 @@ const JOBS: CronJob[] = [
     durationMs: 41,
   },
   {
-    id: "computeAvailability",
-    name: "Compute availability",
+    id: "markLost",
+    name: "Mark lost",
     schedule: "*/5 * * * *",
     implemented: false,
     lastRunAt: null,
     lastResult: null,
     durationMs: null,
   },
-];
+].map((job) => cronJobOutput.strict().parse(job));
 
-const CONFIG: TechnicalConfig = {
+const CONFIG = technicalConfigOutput.strict().parse({
   auth: {
     googleOauthEnabled: false,
     localFallbackEnabled: true,
@@ -80,7 +91,7 @@ const CONFIG: TechnicalConfig = {
     allowedOrigins: ["http://localhost:5173"],
     nodeEnv: "production",
   },
-};
+});
 
 describe("IT admin status and technical configuration pages", () => {
   const mutateAsync = vi.fn();
@@ -88,21 +99,13 @@ describe("IT admin status and technical configuration pages", () => {
   beforeEach(() => {
     i18n.changeLanguage("en");
     vi.clearAllMocks();
-    useSystemStatusMock.mockReturnValue({
-      data: STATUS,
-      isLoading: false,
-      isError: false,
-    });
-    useCronJobsMock.mockReturnValue({ data: JOBS, isLoading: false, isError: false });
-    useRunCronJobMock.mockReturnValue({ mutateAsync, isPending: false });
-    useTechnicalConfigMock.mockReturnValue({
-      data: CONFIG,
-      isLoading: false,
-      isError: false,
-    });
+    useSystemStatusMock.mockReturnValue(queryResult(STATUS));
+    useCronJobsMock.mockReturnValue(queryResult(JOBS));
+    useRunCronJobMock.mockReturnValue(mutationResult(mutateAsync));
+    useTechnicalConfigMock.mockReturnValue(queryResult(CONFIG));
   });
 
-  it("renders live status metrics, cron state, and a successful job result", () => {
+  it("renders API status metrics, cron state, and a successful job result", () => {
     render(
       <MemoryRouter>
         <AdminStatusPage />
@@ -112,17 +115,13 @@ describe("IT admin status and technical configuration pages", () => {
     expect(screen.getByText("Operational")).toBeInTheDocument();
     expect(screen.getByText("v22.14.0")).toBeInTheDocument();
     expect(screen.getByText("42")).toBeInTheDocument();
-    expect(screen.getByText("Compute availability")).toBeInTheDocument();
+    expect(screen.getByText("Mark lost")).toBeInTheDocument();
     expect(screen.getByText("Not implemented")).toBeInTheDocument();
     expect(screen.getByText("Success")).toBeInTheDocument();
   });
 
   it("shows loading and unavailable status states", () => {
-    useSystemStatusMock.mockReturnValue({
-      data: undefined,
-      isLoading: true,
-      isError: false,
-    });
+    useSystemStatusMock.mockReturnValue(loadingQueryResult());
     const { unmount } = render(
       <MemoryRouter>
         <AdminStatusPage />
@@ -131,11 +130,9 @@ describe("IT admin status and technical configuration pages", () => {
     expect(screen.getByText(i18n.t("common.loading"))).toBeInTheDocument();
     unmount();
 
-    useSystemStatusMock.mockReturnValue({
-      data: undefined,
-      isLoading: false,
-      isError: true,
-    });
+    useSystemStatusMock.mockReturnValue(
+      errorQueryResult(new Error("Service unavailable"))
+    );
     render(
       <MemoryRouter>
         <AdminStatusPage />
@@ -151,7 +148,7 @@ describe("IT admin status and technical configuration pages", () => {
         <AdminStatusPage />
       </MemoryRouter>
     );
-    const row = screen.getByText("Compute availability").closest("tr");
+    const row = screen.getByText("Mark lost").closest("tr");
     expect(row).not.toBeNull();
     fireEvent.click(within(row as HTMLElement).getByRole("button", { name: "Run now" }));
 
@@ -166,7 +163,7 @@ describe("IT admin status and technical configuration pages", () => {
   });
 
   it("runs a cron job through the mutation hook", async () => {
-    mutateAsync.mockResolvedValue({ ok: true });
+    mutateAsync.mockResolvedValue(okOutput.parse({ ok: true }));
     render(
       <MemoryRouter>
         <AdminStatusPage />
@@ -194,11 +191,7 @@ describe("IT admin status and technical configuration pages", () => {
   });
 
   it("shows configuration loading and unavailable states", () => {
-    useTechnicalConfigMock.mockReturnValue({
-      data: undefined,
-      isLoading: true,
-      isError: false,
-    });
+    useTechnicalConfigMock.mockReturnValue(loadingQueryResult());
     const { unmount } = render(
       <MemoryRouter>
         <AdminConfigPage />
@@ -207,11 +200,9 @@ describe("IT admin status and technical configuration pages", () => {
     expect(screen.getByText(i18n.t("common.loading"))).toBeInTheDocument();
     unmount();
 
-    useTechnicalConfigMock.mockReturnValue({
-      data: undefined,
-      isLoading: false,
-      isError: true,
-    });
+    useTechnicalConfigMock.mockReturnValue(
+      errorQueryResult(new Error("Service unavailable"))
+    );
     render(
       <MemoryRouter>
         <AdminConfigPage />

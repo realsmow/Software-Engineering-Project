@@ -1,4 +1,17 @@
-import { expect, test, type Page } from "@playwright/test";
+import {
+  roomSummary,
+  roomAvailabilityOutput,
+  paginatedRooms,
+} from "../../../backend/src/item/item.schema";
+import {
+  ROOM_SLOTS,
+  MAX_ROOM_BOOKING_SLOTS,
+  ROOM_SLOT_MINUTES,
+  slotWindow,
+} from "../../../backend/src/common/booking/room-slots";
+import { toLocalDayKey } from "../../../backend/src/common/schemas/datetime.schema";
+import type { Page } from "@playwright/test";
+import { expect, test } from "../fixtures/api-contracts";
 
 const ADMIN = { username: "test_admin", password: "admin1234" };
 
@@ -25,7 +38,7 @@ function trpcResponse(page: Page, procedure: string) {
   });
 }
 
-const ROOM_FIXTURE = {
+const ROOM_FIXTURE = roomSummary.strict().parse({
   id: 999_999,
   name: "E2E Engineering Lab",
   description: "Room fixture for the same-day booking screen.",
@@ -38,7 +51,7 @@ const ROOM_FIXTURE = {
   allowBorrow: true,
   bookable: true,
   owner: null,
-};
+});
 
 type TrpcResult = {
   result?: { data?: unknown };
@@ -46,38 +59,37 @@ type TrpcResult = {
 };
 
 function roomAvailability(date: string) {
-  const starts = [
-    ...Array.from({ length: 10 }, (_, index) => 420 + index * 30),
-    ...Array.from({ length: 10 }, (_, index) => 780 + index * 30),
-  ];
-
-  return {
+  return roomAvailabilityOutput.strict().parse({
     roomKey: ROOM_FIXTURE.id,
     date,
-    slots: starts.map((minutes, index) => {
-      const start = `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
-      const endMinutes = minutes + 30;
-      const end = `${String(Math.floor(endMinutes / 60)).padStart(2, "0")}:${String(endMinutes % 60).padStart(2, "0")}`;
-
+    slots: ROOM_SLOTS.map((slot, index) => {
+      const window = slotWindow(date, index);
       return {
+        ...slot,
         index,
-        start,
-        end,
-        startTime: new Date(`${date}T${start}:00+07:00`).toISOString(),
-        endTime: new Date(`${date}T${end}:00+07:00`).toISOString(),
+        startTime: window.startTime.toISOString(),
+        endTime: window.endTime.toISOString(),
         available: true,
       };
     }),
-    maxSlotsPerBooking: 6,
-    slotMinutes: 30,
-  };
+    maxSlotsPerBooking: MAX_ROOM_BOOKING_SLOTS,
+    slotMinutes: ROOM_SLOT_MINUTES,
+  });
 }
 
 async function installRoomFixtures(page: Page) {
   await page.route("**/trpc/**", async (route) => {
     const url = new URL(route.request().url());
     const procedures = url.pathname.split("/trpc/")[1]?.split(",") ?? [];
-    if (!procedures.some((procedure) => ["item.listRooms", "item.getRoomById", "item.roomAvailability"].includes(procedure))) {
+    if (
+      !procedures.some((procedure) =>
+        [
+          "item.listRooms",
+          "item.getRoomById",
+          "item.roomAvailability",
+        ].includes(procedure),
+      )
+    ) {
       await route.continue();
       return;
     }
@@ -87,7 +99,7 @@ async function installRoomFixtures(page: Page) {
     const upstream = await route.fetch();
     const encodedInput = url.searchParams.get("input");
     const inputs = encodedInput
-      ? (JSON.parse(encodedInput) as Record<string, { date?: string }>)
+      ? (JSON.parse(encodedInput) as { date?: string; [key: string]: unknown })
       : {};
     const rawResults: unknown = await upstream.json();
     const results: TrpcResult[] = Array.isArray(rawResults)
@@ -96,24 +108,31 @@ async function installRoomFixtures(page: Page) {
     procedures.forEach((procedure, index) => {
       if (procedure === "item.listRooms") {
         results[index] = {
-          result: { data: {
-            items: [ROOM_FIXTURE],
-            total: 1,
-            page: 1,
-            pageSize: 100,
-          } },
+          result: {
+            data: paginatedRooms.strict().parse({
+              items: [ROOM_FIXTURE],
+              total: 1,
+              page: 1,
+              pageSize: 100,
+            }),
+          },
         };
       } else if (procedure === "item.getRoomById") {
         results[index] = { result: { data: ROOM_FIXTURE } };
       } else if (procedure === "item.roomAvailability") {
-        const date = inputs[String(index)]?.date ?? new Date().toISOString().slice(0, 10);
+        const input = url.searchParams.has("batch")
+          ? (inputs[String(index)] as { date?: string } | undefined)
+          : inputs;
+        const date = input?.date ?? toLocalDayKey(new Date());
         results[index] = { result: { data: roomAvailability(date) } };
       }
     });
 
     await route.fulfill({
       response: upstream,
-      body: JSON.stringify(url.searchParams.has("batch") ? results : results[0]),
+      body: JSON.stringify(
+        url.searchParams.has("batch") ? results : results[0],
+      ),
     });
   });
 }
@@ -167,15 +186,17 @@ test.describe("Module 5 equipment browser flows", () => {
     const detailsBtn = page.getByRole("button", { name: "Details" }).first();
     const row = page.locator("tbody tr").first();
     const opener = (await detailsBtn.count()) ? detailsBtn : row;
-    test.skip(
-      !(await opener.count()),
-      "Seed database has no equipment type to open.",
-    );
+    await expect(
+      opener,
+      "The seeded catalogue must contain equipment for this scenario",
+    ).toBeVisible();
 
     const detail = trpcResponse(page, "item.getById");
     await opener.click();
     expect((await detail).ok()).toBeTruthy();
-    await expect(page.getByRole("columnheader", { name: "Unit serial" })).toBeVisible();
+    await expect(
+      page.getByRole("columnheader", { name: "Unit serial" }),
+    ).toBeVisible();
     await expect(page.locator("tbody tr").first()).toBeVisible();
     await expect(page.getByText("Free for your dates").first()).toBeVisible();
   });
@@ -186,14 +207,20 @@ test.describe("Module 5 equipment browser flows", () => {
     await installRoomFixtures(page);
     await page.goto("/rooms");
 
-    await expect(page.getByRole("heading", { name: "Room list" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Book this room" }).first()).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Room list" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Book this room" }).first(),
+    ).toBeVisible();
     await page.getByRole("button", { name: "Book this room" }).first().click();
 
     await expect(
       page.getByRole("heading", { name: "New room booking" }),
     ).toBeVisible();
-    await expect(page.getByText(/Fixed facilities \(T3\) are booked same-day only/)).toBeVisible();
+    await expect(
+      page.getByText(/Fixed facilities \(T3\) are booked same-day only/),
+    ).toBeVisible();
     await expect(page.getByText(/\d+\s*seats/i)).toBeVisible();
     await expect(page.getByRole("button", { name: "07:00" })).toBeVisible();
     await expect(page.getByRole("button", { name: "17:30" })).toBeVisible();

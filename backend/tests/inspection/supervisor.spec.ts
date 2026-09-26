@@ -1,360 +1,101 @@
-import assert from 'node:assert/strict';
-import { ApprovalRouter } from '../../src/approval/approval.router';
 import { InspectionService } from '../../src/inspection/inspection.service';
+import { inspectionSubjectOutput } from '../../src/inspection/inspection.schema';
+import type { TrpcUser } from '../../src/trpc/context';
 
-type SupervisorDecision = {
-  decision: 'approve' | 'reject';
-  reason?: string;
+const supervisor: TrpcUser = {
+  accountKey: 99,
+  role: 'supervisor',
+  facultyKey: null,
+  creditScore: 100,
 };
-
-type ItemSupervisorDecision = SupervisorDecision & { itemId: number };
-
-type RequestItem = { id: number; name: string };
 
 function buildInspectionService() {
   const prisma = {
-    $transaction: (ops: unknown) => {
-      if (Array.isArray(ops)) {
-        return Promise.all(ops as Promise<unknown>[]);
-      }
-      return ops;
+    $transaction: (operations: Promise<unknown>[]) => Promise.all(operations),
+    usageLog: {
+      findUnique: jest.fn().mockResolvedValue({
+        UsageKey: 42,
+        CurrentStatus: 'Returned',
+        DueTime: new Date('2026-09-05T00:00:00Z'),
+        CheckoutTime: new Date('2026-08-30T00:00:00Z'),
+        CheckInTime: new Date('2026-09-02T00:00:00Z'),
+        Account: {
+          AccountKey: 10,
+          UserID: 'S12345',
+          UserFName: 'Ada',
+          UserLName: 'Lovelace',
+          UserCredit: 88,
+        },
+        Resource: {
+          ResourceKey: 7,
+          BorrowRule: 1,
+          BorrowRuleInfo: { RuleName: 'T1' },
+          Item: {
+            ItemID: 'ITEM-42',
+            Item: { ItemName: 'Laptop', CreditWeight: 12 },
+          },
+          Room: null,
+        },
+        CheckoutConditionLog: {
+          Condition: 'Normal',
+          Notes: 'Good condition on release',
+          LoggedBy: 98,
+        },
+        Inspections: [],
+      }),
     },
     images: {
-      findMany: () =>
-        Promise.resolve([
-          {
-            ImageKey: 1,
-            ImageURL: 'img-1.png',
-            SubmissionType: 'BeforePicture',
-            ActionTime: new Date('2026-09-01T12:00:00Z'),
-          },
-        ]),
+      findMany: jest.fn().mockResolvedValue([
+        {
+          ImageKey: 1,
+          ImageURL: '/media/before.png',
+          SubmissionType: 'BeforePicture',
+          ActionTime: new Date('2026-09-01T12:00:00Z'),
+        },
+      ]),
     },
     conditionLog: {
-      findMany: () =>
-        Promise.resolve([
-          {
-            ConditionKey: 5,
-            Condition: 'MinorDamage',
-            Notes: 'Handle slightly worn',
-            LoggedAt: new Date('2026-08-25T10:00:00Z'),
-          },
-          {
-            ConditionKey: 6,
-            Condition: 'Normal',
-            Notes: 'Returned clean',
-            LoggedAt: new Date('2026-08-28T10:00:00Z'),
-          },
-        ]),
+      findMany: jest.fn().mockResolvedValue([
+        {
+          ConditionKey: 6,
+          Condition: 'Normal',
+          Notes: 'Returned clean',
+          LoggedAt: new Date('2026-08-28T10:00:00Z'),
+        },
+        {
+          ConditionKey: 5,
+          Condition: 'MinorDamage',
+          Notes: 'Handle slightly worn',
+          LoggedAt: new Date('2026-08-25T10:00:00Z'),
+        },
+      ]),
     },
   };
-
-  const service = new InspectionService(
+  return new InspectionService(
     prisma as never,
-    { assertResourceInScope: async () => {} } as never,
-    null as never,
-    { toPublicUrl: (url: string) => url } as never,
-    null as never,
+    { assertResourceInScope: jest.fn().mockResolvedValue(undefined) } as never,
+    {} as never,
+    { toPublicUrl: (url: string) => `http://localhost:3000${url}` } as never,
+    {} as never,
   );
-
-  jest.spyOn(service as any, 'readSubject').mockResolvedValue({
-    UsageKey: 42,
-    CurrentStatus: 'Returned',
-    DueTime: new Date('2026-09-05T00:00:00Z'),
-    CheckoutTime: new Date('2026-08-30T00:00:00Z'),
-    CheckInTime: new Date('2026-09-02T00:00:00Z'),
-    Account: {
-      AccountKey: 10,
-      UserID: 'S12345',
-      UserFName: 'Ada',
-      UserLName: 'Lovelace',
-      UserCredit: 88,
-    },
-    Resource: {
-      ResourceKey: 7,
-      BorrowRuleInfo: { RuleName: 'T1' },
-      Item: {
-        ItemID: 'ITEM-42',
-        Item: { ItemName: 'Laptop', CreditWeight: 12 },
-      },
-      Room: null,
-    },
-    CheckoutConditionLog: {
-      Condition: 'Normal',
-      Notes: 'Good condition on release',
-    },
-    Inspections: [],
-  });
-
-  return service;
 }
 
-function validateSupervisorDecision(decision: SupervisorDecision) {
-  if (decision.decision === 'reject') {
-    if (!decision.reason || !decision.reason.trim()) {
-      throw new Error('Rejection reason is required before submit.');
-    }
-  }
-  return true;
-}
-
-function applySupervisorDecisions(
-  request: { items: RequestItem[] },
-  decisions: ItemSupervisorDecision[],
-) {
-  const approved: number[] = [];
-  const rejected: { itemId: number; reason: string }[] = [];
-
-  for (const item of request.items) {
-    const decision = decisions.find((d) => d.itemId === item.id);
-    if (!decision) continue;
-
-    validateSupervisorDecision(decision);
-
-    if (decision.decision === 'approve') {
-      approved.push(item.id);
-    }
-
-    if (decision.decision === 'reject') {
-      const reason = decision.reason?.trim();
-      if (!reason) {
-        throw new Error('Rejection reason is required before submit.');
-      }
-      rejected.push({ itemId: item.id, reason });
-    }
-  }
-
-  const total = request.items.length;
-  const status =
-    approved.length === total
-      ? 'approved'
-      : rejected.length === total
-        ? 'rejected'
-        : approved.length > 0 && rejected.length > 0
-          ? 'partially-approved'
-          : 'pending';
-
-  return {
-    status,
-    approved,
-    rejected,
-  };
-}
-
-function validateSelfApproval(requesterId: number, approverId: number) {
-  if (requesterId === approverId) {
-    throw new Error('Approver must not be the same person as requester.');
-  }
-}
-
-function approveRequest({
-  requesterId,
-  approverId,
-  now,
-  itemId,
-}: {
-  requesterId: number;
-  approverId: number;
-  now: Date;
-  itemId: number;
-}) {
-  validateSelfApproval(requesterId, approverId);
-
-  return {
-    itemId,
-    requesterId,
-    approverId,
-    allocation: {
-      pickup_deadline: new Date(now.getTime() + 24 * 60 * 60 * 1000),
-    },
-  };
-}
-
-function createStatusNotification({
-  borrowerId,
-  requestId,
-  status,
-}: {
-  borrowerId: number;
-  requestId: number;
-  status: string;
-}) {
-  return {
-    accountKey: borrowerId,
-    notificationType: 'Approval',
-    notificationContent: `Request ${requestId} status changed to ${status}`,
-    sentAt: new Date('2026-09-24T10:00:00Z'),
-    isRead: false,
-  };
-}
-
-it('Supervisor sees approval queue with borrower credit and loan history', async () => {
-  const service = buildInspectionService();
-
-  const result = await service.getSubject({ accountKey: 99 } as never, 42);
-
-  assert.equal(result.borrowerName, 'Ada Lovelace');
-  assert.equal(result.borrowerStudentId, 'S12345');
-  assert.equal(result.borrowerCreditScore, 88);
-  assert.equal(result.itemName, 'Laptop');
-  assert.equal(result.serialNo, 'ITEM-42');
-  assert.equal(result.unitHistory.length, 2);
-  assert.equal(result.unitHistory[0].condition, 'MinorDamage');
-  assert.equal(result.unitHistory[0].note, 'Handle slightly worn');
-  assert.equal(result.unitHistory[1].condition, 'Normal');
-  assert.equal(result.unitHistory[1].note, 'Returned clean');
-});
-
-it('Supervisor approves/rejects individual items within multi-item request (partial approval)', () => {
-  const request = {
-    items: [
-      { id: 1, name: 'Laptop' },
-      { id: 2, name: 'Camera' },
+it('loads borrower credit and newest-first condition history through the inspection service', async () => {
+  const result = inspectionSubjectOutput
+    .strict()
+    .parse(await buildInspectionService().getSubject(supervisor, 42));
+  expect(result).toMatchObject({
+    borrowerName: 'Ada Lovelace',
+    borrowerStudentId: 'S12345',
+    borrowerCreditScore: 88,
+    itemName: 'Laptop',
+    serialNo: 'ITEM-42',
+    beforeImages: [
+      { imageKey: 1, url: 'http://localhost:3000/media/before.png' },
     ],
-  };
-
-  const decisions: ItemSupervisorDecision[] = [
-    { itemId: 1, decision: 'approve' },
-    { itemId: 2, decision: 'reject', reason: 'Unavailable in stock' },
-  ];
-
-  const result = applySupervisorDecisions(request, decisions);
-
-  assert.equal(result.status, 'partially-approved');
-  assert.deepEqual(result.approved, [1]);
-  assert.deepEqual(result.rejected, [
-    { itemId: 2, reason: 'Unavailable in stock' },
-  ]);
-});
-
-it('Rejection requires a reason to be entered before submit', () => {
-  assert.throws(
-    () => validateSupervisorDecision({ decision: 'reject', reason: '' }),
-    /Rejection reason is required/i,
-  );
-
-  assert.throws(
-    () => validateSupervisorDecision({ decision: 'reject', reason: '   ' }),
-    /Rejection reason is required/i,
-  );
-
-  assert.doesNotThrow(() =>
-    validateSupervisorDecision({ decision: 'reject', reason: 'Not available' }),
-  );
-  assert.doesNotThrow(() =>
-    validateSupervisorDecision({ decision: 'approve' }),
-  );
-});
-
-it('Approver must not be the same person as requester (self-approval guard)', () => {
-  assert.throws(
-    () => validateSelfApproval(101, 101),
-    /same person as requester/i,
-  );
-
-  assert.doesNotThrow(() => validateSelfApproval(101, 202));
-});
-
-it('Approval creates Allocation with pickup_deadline = now + 24 hours', () => {
-  const now = new Date('2026-09-24T09:00:00Z');
-
-  const result = approveRequest({
-    requesterId: 101,
-    approverId: 202,
-    now,
-    itemId: 7,
   });
-
-  const expectedDeadline = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-
-  assert.equal(result.itemId, 7);
-  assert.equal(result.requesterId, 101);
-  assert.equal(result.approverId, 202);
-  assert.ok(result.allocation);
-  assert.equal(
-    result.allocation.pickup_deadline.getTime(),
-    expectedDeadline.getTime(),
-  );
-});
-
-it('Borrower receives notification when request status changes', () => {
-  const notifications: ReturnType<typeof createStatusNotification>[] = [];
-  const request = { id: 77, borrowerId: 42, status: 'Pending' };
-
-  const applyStatusChange = (
-    req: { id: number; borrowerId: number; status: string },
-    nextStatus: string,
-  ) => {
-    req.status = nextStatus;
-    notifications.push(
-      createStatusNotification({
-        borrowerId: req.borrowerId,
-        requestId: req.id,
-        status: nextStatus,
-      }),
-    );
-  };
-
-  applyStatusChange(request, 'Approved');
-
-  assert.equal(notifications.length, 1);
-  assert.equal(notifications[0].accountKey, 42);
-  assert.equal(notifications[0].notificationType, 'Approval');
-  assert.match(notifications[0].notificationContent, /Approved/);
-  assert.equal(request.status, 'Approved');
-});
-
-it('Supervisor decision submitted via tRPC approval router', async () => {
-  type ApprovalUser = { accountKey: number; role: 'supervisor' };
-  type DecisionInput = {
-    extensionKey: number;
-    decision: 'approve' | 'reject';
-    condition: string;
-    note: string;
-  };
-  const calls: { user: ApprovalUser; input: DecisionInput }[] = [];
-  const extensions = {
-    decide: (user: ApprovalUser, input: DecisionInput) => {
-      calls.push({ user, input });
-      return {
-        extensionKey: input.extensionKey,
-        usageKey: 42,
-        status: 'Approved',
-        route: 'supervisor',
-        requiresInspection: false,
-        autoApproved: false,
-        extendNo: 1,
-        previousDueAt: '2026-09-24T09:00:00.000Z',
-        requestedDueAt: '2026-09-25T09:00:00.000Z',
-        dueAt: '2026-09-25T09:00:00.000Z',
-        requestedAt: '2026-09-24T08:00:00.000Z',
-        resolvedAt: '2026-09-24T09:00:00.000Z',
-        itemName: 'Laptop',
-        serialNo: 'ITEM-42',
-        tier: 'T1',
-        extensionsUsed: 1,
-        extensionsAllowed: 3,
-      };
-    },
-  };
-  const router = new ApprovalRouter(null as never, extensions as never);
-
-  const ctx = { user: { accountKey: 99, role: 'supervisor' } };
-
-  const result = await router.decideExtension(
-    {
-      extensionKey: 12,
-      decision: 'approve',
-      condition: 'Normal',
-      note: 'Approved for pickup',
-    },
-    ctx as never,
-  );
-
-  assert.equal(calls.length, 1);
-  assert.equal(calls[0].user.accountKey, 99);
-  assert.equal(calls[0].input.extensionKey, 12);
-  assert.equal(calls[0].input.decision, 'approve');
-  assert.equal(result.extensionKey, 12);
-  assert.equal(result.status, 'Approved');
+  expect(result.unitHistory.map((entry) => entry.condition)).toEqual([
+    'Normal',
+    'MinorDamage',
+  ]);
 });

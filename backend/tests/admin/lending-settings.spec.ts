@@ -1,3 +1,5 @@
+import { withOutputContracts } from '../fixtures/output-contracts';
+import { adminContracts } from '../fixtures/service-contracts';
 import { INestApplication } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { AppModule } from '../../src/app.module';
@@ -18,7 +20,6 @@ describe('AdminService lending settings', () => {
   let borrowRuleKey: number;
   let creditTierKey: number;
   let creditTierRange: { min: number; max: number };
-  let roleKey: number;
   const actorKeys = new Set<number>();
   const createdRoleKeys = new Set<number>();
   let sequence = 0;
@@ -32,22 +33,14 @@ describe('AdminService lending settings', () => {
     }).compile();
     app = module.createNestApplication();
     await app.init();
-    adminService = module.get(AdminService);
+    adminService = withOutputContracts(
+      module.get(AdminService),
+      adminContracts,
+    );
     prisma = module.get(PrismaService);
 
-    const existingRole = await prisma.roleInfo.findFirst({
-      where: { RoleName: { in: ['Admin', 'Staff', 'admin', 'staff'] } },
-    });
-    if (existingRole) {
-      roleKey = existingRole.RoleKey;
-    } else {
-      const createdRole = await prisma.roleInfo.create({
-        data: { RoleName: 'Admin' },
-      });
-      roleKey = createdRole.RoleKey;
-      createdRoleKeys.add(roleKey);
-    }
-
+    // Create the Admin role and its account in one transaction instead of
+    // referencing a role another suite could remove before the account insert.
     const createdActor = await prisma.accountInfo.create({
       data: {
         Email: `${unique('module4-actor')}@ku.th`,
@@ -55,12 +48,13 @@ describe('AdminService lending settings', () => {
         UserFName: 'Module',
         UserLName: 'Four',
         HashedPassword: 'not-used-by-this-suite',
-        RoleKey: roleKey,
+        Role: { create: { RoleName: 'Admin' } },
         UserCredit: 100,
       },
     });
     actorKey = createdActor.AccountKey;
     actorKeys.add(actorKey);
+    createdRoleKeys.add(createdActor.RoleKey);
 
     const existingTier = await prisma.creditTier.findFirst({
       where: { CreditTierName: 'D0' },
@@ -75,7 +69,7 @@ describe('AdminService lending settings', () => {
       const tier = await prisma.creditTier.create({
         data: {
           CreditTierName: 'D0',
-          CreditMin: 0,
+          CreditMin: 80,
           CreditMax: 100,
         },
       });
@@ -90,6 +84,9 @@ describe('AdminService lending settings', () => {
   }, 30_000);
 
   afterEach(async () => {
+    // Prisma omits undefined filters; failed setup must not clean other suites' rows.
+    if (!prisma || !Number.isInteger(borrowRuleKey)) return;
+
     await prisma.penaltyRule.deleteMany({
       where: { BorrowRuleKey: borrowRuleKey },
     });
@@ -100,15 +97,19 @@ describe('AdminService lending settings', () => {
 
   afterAll(async () => {
     try {
-      await prisma.penaltyRule.deleteMany({
-        where: { BorrowRuleKey: borrowRuleKey },
-      });
-      await prisma.borrowConstraints.deleteMany({
-        where: { BorrowRuleKey: borrowRuleKey },
-      });
-      await prisma.borrowRule.deleteMany({
-        where: { BorrowRuleKey: borrowRuleKey },
-      });
+      if (!prisma) return;
+
+      if (Number.isInteger(borrowRuleKey)) {
+        await prisma.penaltyRule.deleteMany({
+          where: { BorrowRuleKey: borrowRuleKey },
+        });
+        await prisma.borrowConstraints.deleteMany({
+          where: { BorrowRuleKey: borrowRuleKey },
+        });
+        await prisma.borrowRule.deleteMany({
+          where: { BorrowRuleKey: borrowRuleKey },
+        });
+      }
 
       if (actorKeys.size > 0) {
         await prisma.auditLog.deleteMany({

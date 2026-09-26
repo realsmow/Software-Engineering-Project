@@ -3,7 +3,9 @@ import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import i18n from "../../src/i18n";
 import AdminAuditPage from "../../src/features/admin/audit/audit-page";
-import type { AuditEvent } from "../../src/features/admin/mock-data";
+import { auditEventOutput } from "../../../backend/src/admin/admin.schema";
+import { toAuditEvent } from "../../src/features/admin/audit/audit-event.adapter";
+import { queryResult } from "../fixtures/query-results";
 
 const useAuditEventsMock = vi.hoisted(() => vi.fn());
 
@@ -13,9 +15,9 @@ vi.mock("../../src/features/admin/audit/use-audit-events", () => ({
   useAuditEvents: useAuditEventsMock,
 }));
 
-const EVENTS: AuditEvent[] = [
+const EVENTS = [
   {
-    id: "10",
+    id: 10,
     at: "2026-09-20T02:00:00.000Z",
     actorId: 6,
     actorName: "System admin",
@@ -27,7 +29,7 @@ const EVENTS: AuditEvent[] = [
     detail: "Viewed technical configuration",
   },
   {
-    id: "11",
+    id: 11,
     at: "2026-09-20T01:00:00.000Z",
     actorId: 4,
     actorName: "Staff user",
@@ -38,7 +40,7 @@ const EVENTS: AuditEvent[] = [
     userAgent: "Browser",
     detail: "Signed in",
   },
-];
+].map((event) => toAuditEvent(auditEventOutput.strict().parse(event)));
 
 describe("AdminAuditPage", () => {
   const refetch = vi.fn();
@@ -46,7 +48,7 @@ describe("AdminAuditPage", () => {
   beforeEach(() => {
     i18n.changeLanguage("en");
     vi.clearAllMocks();
-    useAuditEventsMock.mockReturnValue({ data: EVENTS, refetch });
+    useAuditEventsMock.mockReturnValue({ ...queryResult(EVENTS), refetch });
   });
 
   const renderPage = () =>
@@ -90,7 +92,7 @@ describe("AdminAuditPage", () => {
   });
 
   it("shows the empty state when the audit endpoint returns no records", () => {
-    useAuditEventsMock.mockReturnValue({ data: [], refetch });
+    useAuditEventsMock.mockReturnValue({ ...queryResult([]), refetch });
     renderPage();
 
     expect(screen.getByText(i18n.t("table.empty"))).toBeInTheDocument();

@@ -1,3 +1,5 @@
+import { withOutputContracts } from '../fixtures/output-contracts';
+import { adminContracts } from '../fixtures/service-contracts';
 import { AdminService } from '../../src/admin/admin.service';
 import { verifyPassword } from '../../src/common/crypto/password';
 
@@ -9,13 +11,16 @@ type AccountUpdateArgs = {
 function buildService() {
   const prisma = {
     accountInfo: {
+      findUnique: jest.fn(({ where }: { where: { AccountKey: number } }) =>
+        Promise.resolve({ AccountKey: where.AccountKey }),
+      ),
       update: jest.fn((args: AccountUpdateArgs) => ({
         AccountKey: args.where.AccountKey,
       })),
     },
   };
-  const sessions = { revokeAllForAccount: jest.fn().mockResolvedValue(true) };
-  const audit = { record: jest.fn().mockResolvedValue(true) };
+  const sessions = { revokeAllForAccount: jest.fn().mockResolvedValue(1) };
+  const audit = { record: jest.fn().mockResolvedValue(undefined) };
   const service = new AdminService(
     prisma as never,
     null as never,
@@ -25,9 +30,7 @@ function buildService() {
     null as never,
     null as never,
   );
-  jest
-    .spyOn(service as any, 'assertAccountExists')
-    .mockResolvedValue(undefined);
+  withOutputContracts(service, adminContracts);
 
   return { service, prisma, sessions, audit };
 }

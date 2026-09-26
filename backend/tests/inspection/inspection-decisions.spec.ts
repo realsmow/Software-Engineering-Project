@@ -1,3 +1,7 @@
+import { inspectionOutput } from '../../src/inspection/inspection.schema';
+import { PenaltyService } from '../../src/common/penalty/penalty.service';
+import type { ConditionType } from '../../src/common/schemas/status.schema';
+import { withOutputContracts } from '../fixtures/output-contracts';
 import { InspectionService } from '../../src/inspection/inspection.service';
 import type { TrpcUser } from '../../src/trpc/context';
 
@@ -5,14 +9,24 @@ function objectContaining(value: Record<string, unknown>): unknown {
   return expect.objectContaining(value) as unknown;
 }
 
-function subject(changes: Record<string, unknown> = {}) {
+function subject(changes: Partial<ReturnType<typeof baseSubject>> = {}) {
+  return { ...baseSubject(), ...changes };
+}
+
+function baseSubject() {
   return {
     UsageKey: 42,
     CurrentStatus: 'Returned',
     DueTime: new Date('2026-09-25T10:00:00.000Z'),
     CheckoutTime: new Date('2026-09-23T10:00:00.000Z'),
     CheckInTime: new Date('2026-09-25T09:00:00.000Z'),
-    Account: { AccountKey: 10 },
+    Account: {
+      AccountKey: 10,
+      UserID: 'S12345',
+      UserFName: 'Ada',
+      UserLName: 'Lovelace',
+      UserCredit: 88,
+    },
     Resource: {
       ResourceKey: 7,
       BorrowRule: 3,
@@ -24,16 +38,62 @@ function subject(changes: Record<string, unknown> = {}) {
       Room: null,
     },
     CheckoutConditionLog: { Condition: 'Normal', Notes: null, LoggedBy: 99 },
-    Inspections: [],
-    ...changes,
+    Inspections: [] as Array<{ InspectionKey: number }>,
   };
 }
 
 function setup(usage = subject()) {
+  let storedCondition: ConditionType = 'Normal';
+  type InspectionData = {
+    UsageKey: number;
+    ResourceKey: number;
+    InspectorKey: number;
+    ConditionKey: number;
+    PenaltyKey: number | null;
+    ActionTime: Date;
+    Notes: string | null;
+  };
+  let storedInspection: InspectionData | null = null;
   const prisma = {
-    conditionLog: { create: jest.fn().mockResolvedValue({ ConditionKey: 8 }) },
-    inspection: { create: jest.fn().mockResolvedValue({ InspectionKey: 13 }) },
-    usageLog: { update: jest.fn().mockResolvedValue({}) },
+    conditionLog: {
+      create: jest.fn(({ data }: { data: { Condition: ConditionType } }) => {
+        storedCondition = data.Condition;
+        return Promise.resolve({ ConditionKey: 8 });
+      }),
+    },
+    inspection: {
+      create: jest.fn(({ data }: { data: InspectionData }) => {
+        storedInspection = data;
+        return Promise.resolve({ InspectionKey: 13 });
+      }),
+      findUnique: jest.fn(() =>
+        Promise.resolve(
+          storedInspection
+            ? {
+                ...storedInspection,
+                InspectionKey: 13,
+                Condition: { Condition: storedCondition },
+                Penalty:
+                  storedInspection.PenaltyKey === null
+                    ? null
+                    : {
+                        PenaltyKey: storedInspection.PenaltyKey,
+                        CreditDeducted: 36,
+                        ExpirationTime: new Date(
+                          storedInspection.ActionTime.getTime() +
+                            72 * 86_400_000,
+                        ),
+                      },
+              }
+            : null,
+        ),
+      ),
+    },
+    usageLog: {
+      findUnique: jest.fn().mockResolvedValue(usage),
+      update: jest.fn().mockResolvedValue(usage),
+    },
+    penaltyRule: { findUnique: jest.fn().mockResolvedValue(null) },
     resourceInfo: { update: jest.fn().mockResolvedValue({}) },
     images: { createMany: jest.fn().mockResolvedValue({ count: 1 }) },
     $transaction: jest.fn(),
@@ -44,28 +104,26 @@ function setup(usage = subject()) {
   const scope = {
     assertResourceInScope: jest.fn().mockResolvedValue(undefined),
   };
-  const penalties = {
-    quoteDamage: jest.fn().mockResolvedValue({ amount: 36 }),
-    apply: jest.fn().mockResolvedValue(16),
+  const penalties = new PenaltyService(prisma as never);
+  const penaltySpies = {
+    quoteDamage: jest.spyOn(penalties, 'quoteDamage'),
+    apply: jest
+      .spyOn(penalties, 'apply')
+      .mockImplementation((_tx, quote) =>
+        Promise.resolve(quote.amount > 0 ? 16 : null),
+      ),
   };
   const images = { toStoredUrl: jest.fn((url: string) => url) };
   const audit = { record: jest.fn().mockResolvedValue(undefined) };
   const service = new InspectionService(
     prisma as never,
     scope as never,
-    penalties as never,
+    penalties,
     images as never,
     audit as never,
   );
-  const internals = service as unknown as {
-    readSubject: jest.Mock;
-    readInspectionOutput: jest.Mock;
-  };
-  internals.readSubject = jest.fn().mockResolvedValue(usage);
-  internals.readInspectionOutput = jest
-    .fn()
-    .mockResolvedValue({ inspectionKey: 13 });
-  return { service, prisma, scope, penalties, images, audit };
+  withOutputContracts(service, { createInspection: inspectionOutput });
+  return { service, prisma, scope, penalties: penaltySpies, images, audit };
 }
 
 const inspector: TrpcUser = {
@@ -126,7 +184,12 @@ describe('InspectionService grading', () => {
     );
     expect(penalties.apply).toHaveBeenCalledWith(
       prisma,
-      { amount: 36 },
+      {
+        reason: 'DamagedItem',
+        amount: 36,
+        lengthDays: 72,
+        source: 'proposal-formula',
+      },
       objectContaining({
         accountKey: 10,
         usageKey: 42,

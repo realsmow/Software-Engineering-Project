@@ -1,4 +1,5 @@
-import { expect, test, type Page } from "@playwright/test";
+import type { Page } from "@playwright/test";
+import { expect, test } from "../fixtures/api-contracts";
 
 const ADMIN = { username: "test_admin", password: "admin1234" };
 
@@ -114,8 +115,12 @@ test.describe("Admin console pages", () => {
     const rows = page.locator("tbody tr");
 
     await expect(rows).toHaveCount(6);
-    await expect(rows.filter({ hasText: "openT3InspectionRounds" })).toBeVisible();
-    await expect(rows.filter({ hasText: "computeAvailability" })).toHaveCount(0);
+    await expect(
+      rows.filter({ hasText: "openT3InspectionRounds" }),
+    ).toBeVisible();
+    await expect(rows.filter({ hasText: "computeAvailability" })).toHaveCount(
+      0,
+    );
     await expect(rows.filter({ hasText: "rollupDailyStats" })).toHaveCount(0);
   });
 });

@@ -1,3 +1,5 @@
+import { withOutputContracts } from '../fixtures/output-contracts';
+import { adminContracts } from '../fixtures/service-contracts';
 import { INestApplication } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { AppModule } from '../../src/app.module';
@@ -61,7 +63,7 @@ describe('AdminService user management', () => {
     });
     if (!existing) {
       const tier = await prisma.creditTier.create({
-        data: { CreditTierName: 'D0', CreditMin: 0, CreditMax: 100 },
+        data: { CreditTierName: 'D0', CreditMin: 80, CreditMax: 100 },
       });
       createdTierKeys.add(tier.CreditTierKey);
       return tier.CreditTierKey;
@@ -201,7 +203,10 @@ describe('AdminService user management', () => {
     }).compile();
     app = module.createNestApplication();
     await app.init();
-    adminService = module.get(AdminService);
+    adminService = withOutputContracts(
+      module.get(AdminService),
+      adminContracts,
+    );
     prisma = module.get(PrismaService);
 
     adminRoleKey = await roleKey('Admin');
@@ -269,8 +274,15 @@ describe('AdminService user management', () => {
         });
       }
       if (createdRoleKeys.size > 0) {
+        // Other parallel suites discover these shared roles by name.
+        // Removing them can invalidate a role key before its account is created.
         await prisma.roleInfo.deleteMany({
-          where: { RoleKey: { in: [...createdRoleKeys] } },
+          where: {
+            RoleKey: { in: [...createdRoleKeys] },
+            RoleName: {
+              notIn: ['Admin', 'Staff', 'Student', 'Borrower', 'Supervisor'],
+            },
+          },
         });
       }
       if (createdTierKeys.size > 0) {

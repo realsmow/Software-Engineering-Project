@@ -1,4 +1,3 @@
-import { ApprovalService } from '../../src/approval/approval.service';
 import {
   decideApprovalInput,
   listApprovalQueueInput,
@@ -9,78 +8,7 @@ function objectContaining(value: Record<string, unknown>): unknown {
   return expect.objectContaining(value) as unknown;
 }
 
-const start = new Date('2026-10-01T06:00:00.000Z');
-const end = new Date('2026-10-02T06:00:00.000Z');
-
-function reservation(changes: Record<string, unknown> = {}) {
-  return {
-    ReservationKey: 77,
-    ReservedBy: 42,
-    Reason: 'Lab project',
-    StartTime: start,
-    EndTime: end,
-    ActionTime: new Date('2026-09-24T08:00:00.000Z'),
-    ApproveStatus: 'Pending',
-    AutoApproved: false,
-    ResolvedAt: null,
-    ReservedByUser: {
-      AccountKey: 42,
-      UserID: 'S12345',
-      UserFName: 'Ada',
-      UserLName: 'Lovelace',
-      UserCredit: 100,
-    },
-    Resource: {
-      ResourceKey: 7,
-      ManagedBy: 1,
-      BufferTime: 0,
-      BorrowRuleInfo: { RuleName: 'T2' },
-      Item: { ItemID: 'OSC-001', Item: { ItemName: 'Oscilloscope' } },
-      Room: null,
-    },
-    ...changes,
-  };
-}
-
-function setup(row = reservation()) {
-  const prisma = {
-    reservations: {
-      findUnique: jest.fn().mockResolvedValue(row),
-      findMany: jest.fn().mockResolvedValue([]),
-      count: jest.fn().mockResolvedValue(0),
-      update: jest.fn().mockResolvedValue({}),
-      updateMany: jest.fn().mockResolvedValue({ count: 0 }),
-    },
-    $transaction: jest.fn(),
-  };
-  prisma.$transaction.mockImplementation(
-    async (fn: (tx: unknown) => Promise<unknown>) => fn(prisma),
-  );
-  const scope = {
-    assertResourceInScope: jest.fn().mockResolvedValue(undefined),
-    resourceScope: jest.fn().mockResolvedValue({ ManagedBy: 1 }),
-  };
-  const creditTiers = { tierMapper: jest.fn().mockResolvedValue(() => 'D0') };
-  const requests = {
-    getAsDecider: jest
-      .fn()
-      .mockResolvedValue({ reservationKey: 77, status: 'Approved' }),
-  };
-  const notifications = {
-    requestApproved: jest.fn().mockResolvedValue(undefined),
-    requestRejected: jest.fn().mockResolvedValue(undefined),
-  };
-  const audit = { record: jest.fn().mockResolvedValue(undefined) };
-  const service = new ApprovalService(
-    prisma as never,
-    scope as never,
-    creditTiers as never,
-    requests as never,
-    notifications as never,
-    audit as never,
-  );
-  return { service, prisma, scope, notifications, audit };
-}
+import { setup, reservation, start, end } from '../fixtures/approval-harness';
 
 const supervisor: TrpcUser = {
   accountKey: 99,
@@ -92,6 +20,7 @@ const supervisor: TrpcUser = {
 describe('ApprovalService decisions', () => {
   it('lists only the supervisor-routed rows with borrower credit and clashing requests', async () => {
     const { service, prisma, scope } = setup();
+    prisma.reservations.count.mockResolvedValueOnce(1);
     prisma.reservations.findMany
       .mockResolvedValueOnce([reservation()])
       .mockResolvedValueOnce([
@@ -145,22 +74,29 @@ describe('ApprovalService decisions', () => {
     ).rejects.toMatchObject({ message: 'CANNOT_APPROVE_OWN_REQUEST' });
 
     expect(prisma.$transaction).not.toHaveBeenCalled();
+    expect(prisma.reservations.update).not.toHaveBeenCalled();
   });
 
   it('requires a nonblank reason for a rejection at the API boundary', () => {
-    expect(
-      decideApprovalInput.safeParse({
-        reservationKey: 77,
-        decision: 'reject',
-        reason: '  ',
-      }).success,
-    ).toBe(false);
+    for (const reason of ['', '   ', undefined]) {
+      expect(
+        decideApprovalInput.safeParse({
+          reservationKey: 77,
+          decision: 'reject',
+          reason,
+        }).success,
+      ).toBe(false);
+    }
     expect(
       decideApprovalInput.safeParse({
         reservationKey: 77,
         decision: 'reject',
         reason: 'Unavailable',
       }).success,
+    ).toBe(true);
+    expect(
+      decideApprovalInput.safeParse({ reservationKey: 77, decision: 'approve' })
+        .success,
     ).toBe(true);
   });
 
@@ -242,5 +178,67 @@ describe('ApprovalService decisions', () => {
 
     expect(prisma.reservations.update).not.toHaveBeenCalled();
     expect(notifications.requestApproved).not.toHaveBeenCalled();
+  });
+
+  it('decides each reservation in a multi-item basket independently, allowing partial approval', async () => {
+    const accepted = setup(reservation());
+    const refused = setup(reservation({ ReservationKey: 78 }));
+    const approved = await accepted.service.decide(
+      supervisor,
+      decideApprovalInput.parse({ reservationKey: 77, decision: 'approve' }),
+    );
+    const rejected = await refused.service.decide(
+      supervisor,
+      decideApprovalInput.parse({
+        reservationKey: 78,
+        decision: 'reject',
+        reason: 'Unavailable in stock',
+      }),
+    );
+    // The API represents a basket as independent reservations; there is no
+    // invented aggregate status such as "partially-approved".
+    expect(approved.request).toMatchObject({
+      reservationKey: 77,
+      status: 'approved',
+    });
+    expect(rejected.request).toMatchObject({
+      reservationKey: 78,
+      status: 'rejected',
+      decisionNote: 'Unavailable in stock',
+    });
+  });
+
+  it('sets reservation expiration to 24 hours after the real approval timestamp', async () => {
+    const { service, row } = setup();
+    const result = await service.decide(supervisor, {
+      reservationKey: 77,
+      decision: 'approve',
+    });
+    expect(row.ApprovedAt).toBeInstanceOf(Date);
+    expect(
+      row.ReservationExpiration!.getTime() - row.ApprovedAt!.getTime(),
+    ).toBe(86_400_000);
+    expect(result.request.expiresAt).toBe(
+      row.ReservationExpiration!.toISOString(),
+    );
+  });
+
+  it('persists a real borrower notification when approval changes the reservation status', async () => {
+    const { service, prisma } = setup();
+    const result = await service.decide(supervisor, {
+      reservationKey: 77,
+      decision: 'approve',
+    });
+    expect(result.request.status).toBe('approved');
+    expect(prisma.notification.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        create: expect.objectContaining({
+          AccountKey: 42,
+          NotificationType: 'RequestApproved',
+          DedupeKey: 'reservation:77',
+          LinkTo: '/pickup',
+        }) as unknown,
+      }),
+    );
   });
 });

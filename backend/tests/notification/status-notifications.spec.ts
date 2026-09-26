@@ -1,4 +1,19 @@
+import { withOutputContracts } from '../fixtures/output-contracts';
+import { okOutput } from '../../src/common/schemas/ok.schema';
+import {
+  paginatedNotifications,
+  unreadCountOutput,
+} from '../../src/notification/notification.schema';
 import { NotificationService } from '../../src/notification/notification.service';
+
+function notificationService(prisma: unknown) {
+  return withOutputContracts(new NotificationService(prisma as never), {
+    list: paginatedNotifications,
+    unreadCount: unreadCountOutput,
+    markRead: okOutput,
+    markAllRead: okOutput,
+  });
+}
 
 function objectContaining(value: Record<string, unknown>): unknown {
   return expect.objectContaining(value);
@@ -18,7 +33,7 @@ describe('status notifications', () => {
       Promise.resolve(),
     );
     const prisma = { notification: { upsert } };
-    const service = new NotificationService(prisma as never);
+    const service = notificationService(prisma);
 
     await service.requestApproved(prisma as never, {
       accountKey: 42,
@@ -52,7 +67,7 @@ describe('status notifications', () => {
       Promise.resolve(),
     );
     const prisma = { notification: { upsert } };
-    const service = new NotificationService(prisma as never);
+    const service = notificationService(prisma);
 
     await service.requestRejected(prisma as never, {
       accountKey: 42,
@@ -85,7 +100,7 @@ describe('status notifications', () => {
       Promise.resolve(),
     );
     const prisma = { notification: { upsert } };
-    const service = new NotificationService(prisma as never);
+    const service = notificationService(prisma);
 
     await service.requestRejected(prisma as never, {
       accountKey: 42,
@@ -119,9 +134,9 @@ describe('status notifications', () => {
       .mockResolvedValueOnce({ count: 1 })
       .mockResolvedValueOnce({ count: 0 });
     const count = jest.fn().mockResolvedValue(1);
-    const service = new NotificationService({
+    const service = notificationService({
       notification: { updateMany, count },
-    } as never);
+    });
 
     await expect(service.markRead(42, '77')).resolves.toEqual({ ok: true });
     await expect(service.markRead(42, '77')).resolves.toEqual({ ok: true });
@@ -136,12 +151,12 @@ describe('status notifications', () => {
   });
 
   it("does not reveal another borrower's notification when marking it read", async () => {
-    const service = new NotificationService({
+    const service = notificationService({
       notification: {
         updateMany: jest.fn().mockResolvedValue({ count: 0 }),
         count: jest.fn().mockResolvedValue(0),
       },
-    } as never);
+    });
 
     await expect(service.markRead(42, '77')).rejects.toMatchObject({
       message: 'NOTIFICATION_NOT_FOUND',
@@ -150,9 +165,9 @@ describe('status notifications', () => {
 
   it("marks every unread notification only within the caller's account", async () => {
     const updateMany = jest.fn().mockResolvedValue({ count: 3 });
-    const service = new NotificationService({
+    const service = notificationService({
       notification: { updateMany },
-    } as never);
+    });
 
     await expect(service.markAllRead(42)).resolves.toEqual({ ok: true });
     expect(updateMany).toHaveBeenCalledWith({
