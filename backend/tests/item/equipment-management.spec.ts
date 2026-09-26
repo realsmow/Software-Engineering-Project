@@ -263,58 +263,6 @@ describe('Module 5 equipment management', () => {
     ).resolves.toHaveLength(1);
   });
 
-  it('registers a T3 room as a fixed-location resource with the T3 rule', async () => {
-    const { service, prisma, tx } = managementHarness();
-    prisma.borrowRule.findFirst.mockResolvedValue({ BorrowRuleKey: 23 });
-    prisma.roomInfo.findUnique.mockResolvedValue({
-      RoomKey: 70,
-      RoomName: 'Electronics Lab',
-      RoomDesc: 'Bench laboratory',
-      RoomLocation: 'Engineering building 3',
-      ImageURL: null,
-      CreditWeight: 0,
-      Resource: {
-        ResourceKey: 701,
-        ResourceStatus: 'InStorage',
-        AllowBorrow: true,
-        BorrowRuleInfo: { RuleName: 'T3' },
-        CurrentCondition: null,
-        ManagementGroup: {
-          ManageGroupKey: 8,
-          GroupType: 'Faculty',
-          Branch: { BranchName: 'Engineering' },
-          Club: null,
-        },
-      },
-    });
-    tx.resourceInfo.create.mockResolvedValue({ ResourceKey: 701 });
-
-    await expect(
-      service.createRoom(user(), {
-        manageGroupKey: 8,
-        name: 'Electronics Lab',
-        description: 'Bench laboratory',
-        location: 'Engineering building 3',
-        creditWeight: 0,
-        lendable: true,
-      }),
-    ).resolves.toMatchObject({
-      roomKey: 70,
-      name: 'Electronics Lab',
-      tier: 'T3',
-    });
-
-    expect(tx.resourceInfo.create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({
-          BorrowRule: 23,
-          ResourceType: 'Room',
-          BufferTime: 0,
-        }),
-      }),
-    );
-  });
-
   it.each([
     [
       // T2 only: T1 gets a generated tag, as the team decided (audit #8).

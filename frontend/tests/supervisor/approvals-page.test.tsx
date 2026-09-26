@@ -12,9 +12,14 @@ import { extensionResponse, requestResponse } from "../fixtures/api-responses";
 import { mutationResult, queryResult } from "../fixtures/query-results";
 
 const hooks = vi.hoisted(() => ({
-  // FR-EQP-08 tab, not under test here: always empty.
-  useRetirementQueue: vi.fn(() => ({ data: { items: [], total: 0 }, isLoading: false })),
-  useDecideRetirement: vi.fn(() => ({ mutateAsync: vi.fn(), isPending: false })),
+  useRetirementQueue:
+    vi.fn<
+      typeof import("../../src/features/supervisor/approvals/use-approvals").useRetirementQueue
+    >(),
+  useDecideRetirement:
+    vi.fn<
+      typeof import("../../src/features/supervisor/approvals/use-approvals").useDecideRetirement
+    >(),
   useApprovalCounts:
     vi.fn<
       typeof import("../../src/features/supervisor/approvals/use-approvals").useApprovalCounts
@@ -109,6 +114,16 @@ describe("SupervisorApprovalsPage", () => {
           autoApprovedToday: 0,
           asOf: null,
         })
+      )
+    );
+    hooks.useRetirementQueue.mockReturnValue(queryResult([]));
+    hooks.useDecideRetirement.mockReturnValue(
+      mutationResult(
+        vi.fn<
+          ReturnType<
+            typeof import("../../src/features/supervisor/approvals/use-approvals").useDecideRetirement
+          >["mutateAsync"]
+        >()
       )
     );
     hooks.useApprovalQueue.mockReturnValue(queryResult([request]));

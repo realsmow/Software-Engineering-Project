@@ -9,7 +9,9 @@ import {
   runCronJobInput,
   systemStatusOutput,
   technicalConfigOutput,
+  workHoursSetting,
 } from '../../src/admin/admin.schema';
+import { workHours } from '../../src/common/schemas/datetime.schema';
 import { BusinessError } from '../../src/common/errors/business-error';
 
 const ACTOR = {
@@ -29,6 +31,9 @@ function serviceWith(overrides: Record<string, unknown> = {}) {
     resourceInfo: { count: jest.fn().mockResolvedValue(8) },
     usageLog: { count: jest.fn().mockResolvedValue(3) },
     reservations: { count: jest.fn().mockResolvedValue(2) },
+    systemSetting: { upsert: jest.fn().mockResolvedValue(undefined) },
+    creditTier: { findMany: jest.fn().mockResolvedValue([]) },
+    borrowRule: { findMany: jest.fn().mockResolvedValue([]) },
   };
   const audit = {
     record: jest.fn().mockResolvedValue(undefined),
@@ -56,6 +61,46 @@ function serviceWith(overrides: Record<string, unknown> = {}) {
 }
 
 describe('IT admin system status, cron, config, and audit procedures', () => {
+  it('persists working hours, applies them to the runtime and audits the change', async () => {
+    const original = { ...workHours };
+    try {
+      const { service, prisma, audit } = serviceWith();
+      const input = workHoursSetting.parse({ start: 9, end: 18 });
+      const result = await service.updateWorkHours(input, ACTOR);
+      expect(prisma.systemSetting.upsert).toHaveBeenCalledWith({
+        where: { Key: 'workHours' },
+        create: { Key: 'workHours', Value: input },
+        update: { Value: input },
+      });
+      expect(result.workHours).toEqual(input);
+      expect(workHours).toEqual(input);
+      expect(audit.record).toHaveBeenCalledWith(
+        ACTOR,
+        'config',
+        'setting/workHours',
+        'Work hours set to 9:00-18:00',
+      );
+    } finally {
+      Object.assign(workHours, original);
+    }
+  });
+
+  it('keeps current working hours when saving to storage fails', async () => {
+    const original = { ...workHours };
+    const { service, prisma, audit } = serviceWith();
+    prisma.systemSetting.upsert.mockRejectedValueOnce(
+      new Error('Storage unavailable'),
+    );
+    await expect(
+      service.updateWorkHours(
+        workHoursSetting.parse({ start: 9, end: 18 }),
+        ACTOR,
+      ),
+    ).rejects.toThrow('Storage unavailable');
+    expect(workHours).toEqual(original);
+    expect(audit.record).not.toHaveBeenCalled();
+  });
+
   it('returns an operational status with entity counts and validates its output', async () => {
     const { service, prisma } = serviceWith();
 

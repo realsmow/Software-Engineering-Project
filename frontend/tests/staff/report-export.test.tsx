@@ -25,9 +25,9 @@ const report = reportSummaryOutput.strict().parse({
       utilization: 40,
     },
   ],
-  topEquipment: [{ itemKey: 11, name: "Multimeter", tier: "T1", count: 2 }],
   damage: [],
   roomUtilization: { rooms: 0, bookedHours: 0, openHours: 0, percent: 0 },
+  topEquipment: [{ itemKey: 11, name: "Multimeter", tier: "T1", count: 2 }],
 });
 
 async function blobText(blob: Blob): Promise<string> {

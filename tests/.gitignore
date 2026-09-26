@@ -1,0 +1,3 @@
+# Output from tests/run-isolated.mjs and older uploaded test media.
+.artifacts/
+artifacts-media/
