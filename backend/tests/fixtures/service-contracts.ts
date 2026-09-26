@@ -40,7 +40,6 @@ export const adminContracts = {
   createUser: createUserOutput,
   updateUser: adminUserDetail,
   changeRole: adminUserDetail,
-  setUserBan: okOutput,
   setUserActive: okOutput,
   resetPassword: resetPasswordOutput,
   getLendingSettings: lendingSettingsOutput,

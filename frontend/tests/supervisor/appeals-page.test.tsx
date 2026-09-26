@@ -55,6 +55,8 @@ const appeal = appealOutput.strict().parse({
   replacementPenalty: null,
   creditRestored: 0,
   inspectorKeys: [3],
+  inspection: null,
+  revisedGrade: null,
 });
 
 describe("supervisor appeal regression", () => {
@@ -92,6 +94,7 @@ describe("supervisor appeal regression", () => {
             },
           ],
           inspection: [],
+          evidence: [],
         })
       )
     );

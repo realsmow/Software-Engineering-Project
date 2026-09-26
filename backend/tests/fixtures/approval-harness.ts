@@ -91,6 +91,8 @@ export function setup(row = reservation()) {
       updateMany: jest.fn().mockResolvedValue({ count: 0 }),
     },
     notification: { upsert: jest.fn().mockResolvedValue(undefined) },
+    // FR-NTF-03: approving looks up the department staff to tell.
+    accountInfo: { findMany: jest.fn().mockResolvedValue([]) },
     $transaction: jest.fn(),
   };
   prisma.$transaction.mockImplementation(
@@ -107,6 +109,7 @@ export function setup(row = reservation()) {
       prisma as never,
       creditTiers as never,
       {} as never,
+      { itemToPrepare: jest.fn(), requestNeedsSupervisor: jest.fn() } as never,
       audit as never,
     ),
     {
@@ -126,6 +129,7 @@ export function setup(row = reservation()) {
       requests,
       notifications,
       audit as never,
+      {} as never,
     ),
     {
       listQueue: paginatedApprovalQueue,

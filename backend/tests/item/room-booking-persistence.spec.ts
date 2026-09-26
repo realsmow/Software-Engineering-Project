@@ -201,6 +201,10 @@ describe('PDF p. 9: room bookings persist in the database', () => {
           prisma,
           tiers,
           new EligibilityService(prisma),
+          {
+            itemToPrepare: jest.fn(),
+            requestNeedsSupervisor: jest.fn(),
+          } as never,
           audit as never,
         ),
         requestContracts,
@@ -251,13 +255,14 @@ describe('PDF p. 9: room bookings persist in the database', () => {
       ).toMatchObject({
         ResourceKey: keys.resource,
         ReservedBy: keys.account,
-        ApproveStatus: 'Pending',
+        // T3 rooms clear automatically (approval-policy routeFor).
+        ApproveStatus: 'Approved',
       });
       const history = await service().listMine(user, { page: 1, pageSize: 20 });
       expect(history.items[0]).toMatchObject({
         reservationKey: key,
         resource: { name: token, kind: 'room' },
-        status: 'pending',
+        status: 'approved',
       });
       const held = await catalog.roomAvailability({
         roomKey: keys.room,

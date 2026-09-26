@@ -138,10 +138,10 @@ describe('ApprovalService decisions', () => {
         AutoApproved: false,
       }),
     );
-    expect(
-      update.data.ReservationExpiration.getTime() -
-        update.data.ApprovedAt.getTime(),
-    ).toBe(24 * 60 * 60 * 1000);
+    // Pickup deadline: 1 day after the booking start, or after approval if later.
+    expect(update.data.ReservationExpiration.getTime()).toBe(
+      Math.max(start.getTime(), update.data.ApprovedAt.getTime()) + 86_400_000,
+    );
     expect(prisma.reservations.updateMany).toHaveBeenCalledWith(
       objectContaining({
         where: { ReservationKey: { in: [78] } },
@@ -208,16 +208,16 @@ describe('ApprovalService decisions', () => {
     });
   });
 
-  it('sets reservation expiration to 24 hours after the real approval timestamp', async () => {
+  it('sets the pickup deadline 1 day after the booking start, or after approval if later', async () => {
     const { service, row } = setup();
     const result = await service.decide(supervisor, {
       reservationKey: 77,
       decision: 'approve',
     });
     expect(row.ApprovedAt).toBeInstanceOf(Date);
-    expect(
-      row.ReservationExpiration!.getTime() - row.ApprovedAt!.getTime(),
-    ).toBe(86_400_000);
+    expect(row.ReservationExpiration!.getTime()).toBe(
+      Math.max(start.getTime(), row.ApprovedAt!.getTime()) + 86_400_000,
+    );
     expect(result.request.expiresAt).toBe(
       row.ReservationExpiration!.toISOString(),
     );

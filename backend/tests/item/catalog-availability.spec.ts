@@ -4,6 +4,7 @@ import {
   managementContracts,
 } from '../fixtures/service-contracts';
 import { ItemService } from '../../src/item/item.service';
+import { sqlAggregates } from '../../src/item/light-row.testing';
 import { ItemManagementService } from '../../src/item/item.management.service';
 import type { TrpcUser } from '../../src/trpc/context';
 import type { UsageStatus } from '../../src/common/schemas/status.schema';
@@ -79,6 +80,20 @@ function harness(items: ReturnType<typeof unit>[]) {
         .fn()
         .mockResolvedValue([{ ManageGroupKey: 8, AuthorityRoleKey: 1 }]),
     },
+    // getAvailability is one SQL query; this is what it returns for the fixture.
+    $queryRaw: jest.fn().mockResolvedValue([
+      {
+        found: true,
+        total: items.length,
+        available: items.filter(
+          (u) =>
+            u.Resource.ResourceStatus === 'InStorage' &&
+            u.Resource.AllowBorrow &&
+            u.Resource.UsageLogs.length === 0,
+        ).length,
+        readyAt: sqlAggregates(items).readyAt,
+      },
+    ]),
   };
   const scope = {
     resourceScope: jest.fn().mockResolvedValue({ ManagedBy: { in: [8] } }),
@@ -96,6 +111,7 @@ function harness(items: ReturnType<typeof unit>[]) {
         scope as never,
         images as never,
         { record: jest.fn() } as never,
+        {} as never,
       ),
       managementContracts,
     ),

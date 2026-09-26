@@ -113,8 +113,10 @@ describe('PDF p. 20: appeal evidence is served over HTTP', () => {
     expect(photos.before).toHaveLength(1);
     expect(photos.after).toHaveLength(1);
     for (const photo of [...photos.before, ...photos.after]) {
+      // Evidence URLs are absolute and signed; supertest wants path + query.
+      const url = new URL(photo.imageUrl);
       const response = await request(app.getHttpServer())
-        .get(photo.imageUrl)
+        .get(url.pathname + url.search)
         .expect(200)
         .expect('Content-Type', /image\/png/)
         .expect('X-Content-Type-Options', 'nosniff');

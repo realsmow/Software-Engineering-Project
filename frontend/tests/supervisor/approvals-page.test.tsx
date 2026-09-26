@@ -12,6 +12,9 @@ import { extensionResponse, requestResponse } from "../fixtures/api-responses";
 import { mutationResult, queryResult } from "../fixtures/query-results";
 
 const hooks = vi.hoisted(() => ({
+  // FR-EQP-08 tab, not under test here: always empty.
+  useRetirementQueue: vi.fn(() => ({ data: { items: [], total: 0 }, isLoading: false })),
+  useDecideRetirement: vi.fn(() => ({ mutateAsync: vi.fn(), isPending: false })),
   useApprovalCounts:
     vi.fn<
       typeof import("../../src/features/supervisor/approvals/use-approvals").useApprovalCounts
@@ -101,6 +104,7 @@ describe("SupervisorApprovalsPage", () => {
         approvalCounts.strict().parse({
           staff: 0,
           supervisor: 1,
+          retirement: 0,
           overdueToDecide: 0,
           autoApprovedToday: 0,
           asOf: null,
