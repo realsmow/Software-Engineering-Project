@@ -8,3 +8,5 @@ coverage
 .git
 .vscode
 .idea
+# Tests import ../backend, which is not in this build context; CI runs them.
+tests

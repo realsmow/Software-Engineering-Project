@@ -100,7 +100,7 @@ function service(overrides: {
     creditTiers,
     requests,
     notifications,
-    audit as any,
+    audit as never,
     itemManagement,
   );
   return {

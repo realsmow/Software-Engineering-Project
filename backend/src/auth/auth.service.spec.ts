@@ -98,7 +98,10 @@ describe('AuthService', () => {
           where: { CreditTierKey: creditTierKey },
         });
       if (roleKey)
-        await prisma.roleInfo.delete({ where: { RoleKey: roleKey } });
+        // Only if no account is still on it (a parallel spec may use it).
+        await prisma.roleInfo.deleteMany({
+          where: { RoleKey: roleKey, Accounts: { none: {} } },
+        });
     } finally {
       await prisma?.$disconnect();
     }

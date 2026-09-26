@@ -61,7 +61,7 @@ function service(ruleName: string) {
       scope,
       {} as PenaltyService,
       {} as NotificationService,
-      audit as any,
+      audit as never,
     ),
     findTarget,
     audit,
@@ -117,7 +117,7 @@ describe('recordReturn', () => {
       scope,
       penalties,
       {} as NotificationService,
-      audit as any,
+      audit as never,
     );
     // The usage read is not what is under test.
     Object.assign(svc, {
@@ -183,7 +183,7 @@ describe('allocate — audit trail', () => {
       scope,
       {} as PenaltyService,
       notifications,
-      audit as any,
+      audit as never,
     );
     Object.assign(svc, {
       readUsage: jest.fn().mockResolvedValue({
@@ -267,7 +267,7 @@ describe('confirmPickup before the booked time', () => {
       scope,
       {} as PenaltyService,
       {} as NotificationService,
-      audit as any,
+      audit as never,
     );
     Object.assign(svc, {
       readUsage: jest.fn().mockResolvedValue(usage),

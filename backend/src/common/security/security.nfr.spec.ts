@@ -45,10 +45,10 @@ describe('Module 12.1 — Security NFRs', () => {
           })[key],
       ),
     } as unknown as ConfigService;
-    const service = new SessionService(config, prisma);
+    const service = new SessionService(config, prisma as never);
     const cookie = jest.fn();
 
-    await service.issue({ cookie } as any, 1);
+    await service.issue({ cookie } as never, 1);
 
     expect(cookie).toHaveBeenCalledWith(
       'ulms_session',

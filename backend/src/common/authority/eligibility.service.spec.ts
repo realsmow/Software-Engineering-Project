@@ -185,7 +185,7 @@ describe('heldPairs', () => {
           .mockResolvedValue([{ ManageGroupKey: 1, AuthorityRoleKey: 2 }]),
       },
     };
-    const result = await heldPairs(prisma as any, 3);
+    const result = await heldPairs(prisma as never, 3);
     expect(result).toEqual([{ GroupKey: 1, RoleKey: 2 }]);
   });
 });

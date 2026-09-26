@@ -124,6 +124,10 @@ jobs:
         run: npm ci
         working-directory: backend
 
+      - name: lint
+        run: npm run lint
+        working-directory: backend
+
       # NOTE: no `prisma generate` step is needed right now, because the
       # generated client is committed to the repository (41 files under
       # backend/src/generated/prisma). That is accidental - backend/.gitignore
@@ -156,10 +160,18 @@ jobs:
         working-directory: backend
 
       # migrate deploy, not migrate dev: dev is interactive and would hang the
-      # runner. The suite seeds and cleans up its own fixtures, so no seed step
-      # is needed - and the specs must keep it that way to stay CI-safe.
+      # runner.
       - name: migrate
         run: npx prisma migrate deploy
+        working-directory: backend
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/app
+
+      # Specs run in parallel; on an empty database several of them created
+      # and deleted the shared roles and credit tiers under each other.
+      # Seeding first gives them the same reference data a dev database has.
+      - name: seed
+        run: npm run seed
         working-directory: backend
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/app
@@ -196,10 +208,22 @@ jobs:
         with:
           node-version-file: .nvmrc
           cache: npm
-          cache-dependency-path: frontend/package-lock.json
+          cache-dependency-path: |
+            frontend/package-lock.json
+            backend/package-lock.json
 
       - name: install
         run: npm ci
+        working-directory: frontend
+
+      # Tests validate fixtures with backend schemas and mapper types.
+      # Skip install scripts so this job does not regenerate the Prisma client.
+      - name: install backend contract dependencies
+        run: npm ci --ignore-scripts
+        working-directory: backend
+
+      - name: lint
+        run: npm run lint
         working-directory: frontend
 
       - name: typecheck
