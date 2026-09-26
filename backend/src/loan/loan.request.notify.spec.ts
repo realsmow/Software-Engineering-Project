@@ -88,18 +88,18 @@ function dbFor(resource: any, supervisors: { AccountKey: number }[] = []) {
 function service(db: any, creditTier = 'D0') {
   const notifications = { requestNeedsSupervisor: jest.fn() };
   const svc = new LoanRequestService(
-    db,
+    db as never,
     {
       resolveTier: jest
         .fn()
         .mockResolvedValue({ creditTierKey: 1, creditTier }),
       tierMapper: jest.fn().mockResolvedValue(() => creditTier),
-    } as any,
+    } as never,
     {
       assertMayBorrow: jest.fn().mockResolvedValue({ maxBorrowDays: 7 }),
-    } as any,
-    notifications as any,
-    { record: jest.fn() } as any,
+    } as never,
+    notifications as never,
+    { record: jest.fn() } as never,
   );
   return { svc, notifications };
 }
@@ -115,7 +115,7 @@ describe('FR-NTF-04: a request routed to a supervisor', () => {
     const db = dbFor(t2Resource, [{ AccountKey: 21 }, { AccountKey: 22 }]);
     const { svc, notifications } = service(db);
 
-    await svc.create(user, future);
+    await svc.create(user as never, future);
 
     expect(db.__tx.accountInfo.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -142,7 +142,7 @@ describe('FR-NTF-04: a request routed to a supervisor', () => {
     const db = dbFor(t2Resource, [{ AccountKey: user.accountKey }]);
     const { svc, notifications } = service(db);
 
-    await svc.create(user, future);
+    await svc.create(user as never, future);
 
     expect(notifications.requestNeedsSupervisor).not.toHaveBeenCalled();
   });
@@ -153,7 +153,7 @@ describe('FR-NTF-04: a request that clears automatically', () => {
     const db = dbFor(t0Resource, [{ AccountKey: 21 }]);
     const { svc, notifications } = service(db);
 
-    await svc.create(user, future);
+    await svc.create(user as never, future);
 
     expect(notifications.requestNeedsSupervisor).not.toHaveBeenCalled();
   });

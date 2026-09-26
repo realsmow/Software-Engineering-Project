@@ -101,7 +101,7 @@ it('sets a due date after the opening date', async () => {
   await run(t.service);
 
   const row = t.createMany.mock.calls[0][0].data[0];
-  expect(row.DueAt.getTime()).toBeGreaterThan(row.OpenedAt.getTime());
+  expect(row.DueAt.getTime()).toBeGreaterThan(row.OpenedAt.getTime() as never);
 });
 
 it('lets a concurrent run lose rather than failing the job', async () => {

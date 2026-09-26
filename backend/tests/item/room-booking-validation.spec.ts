@@ -1,4 +1,3 @@
-import { BusinessError } from '../../src/common/errors/business-error';
 import type { TrpcUser } from '../../src/trpc/context';
 import { ItemManagementService } from '../../src/item/item.management.service';
 
@@ -122,9 +121,7 @@ function bookingSlots(startIndex: number, count: number): number[] {
 describe('Room booking validation — 30-minute grid & operating hours', () => {
   it('recognises valid 30-minute grid times within operating hours', () => {
     const slots = validGridSlots();
-    expect(slots.length).toBe(
-      (OPERATING_END_HOUR - OPERATING_START_HOUR) * 2,
-    );
+    expect(slots.length).toBe((OPERATING_END_HOUR - OPERATING_START_HOUR) * 2);
     expect(slots[0]).toBe('07:00');
     expect(slots[slots.length - 1]).toBe('17:30');
 
@@ -320,4 +317,3 @@ describe('Dynamic room eligibility after item.createRoom', () => {
     );
   });
 });
-

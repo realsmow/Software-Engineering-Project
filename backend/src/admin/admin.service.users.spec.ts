@@ -101,7 +101,7 @@ describe('createUser', () => {
           firstName: 'Ana',
           lastName: 'Lek',
           role: 'staff',
-        } as any,
+        } as never,
         ACTOR,
       ),
     ).rejects.toMatchObject({ businessCode: 'EMAIL_ALREADY_IN_USE' });
@@ -118,7 +118,7 @@ describe('createUser', () => {
           firstName: 'Ana',
           lastName: 'Lek',
           role: 'staff',
-        } as any,
+        } as never,
         ACTOR,
       ),
     ).rejects.toMatchObject({ businessCode: 'USER_ID_ALREADY_IN_USE' });
@@ -133,7 +133,7 @@ describe('createUser', () => {
         firstName: 'Ana',
         lastName: 'Lek',
         role: 'staff',
-      } as any,
+      } as never,
       ACTOR,
     );
     expect(t.create).toHaveBeenCalledWith(
@@ -160,7 +160,7 @@ describe('createUser', () => {
         lastName: 'Lek',
         role: 'staff',
         password: 'supplied-pw',
-      } as any,
+      } as never,
       ACTOR,
     );
     expect(result.temporaryPassword).toBeNull();
@@ -171,7 +171,7 @@ describe('updateUser', () => {
   it('refuses to update an account that does not exist', async () => {
     const t = serviceWith({ accountExists: false });
     await expect(
-      t.service.updateUser({ id: 7, firstName: 'X' } as any, ACTOR),
+      t.service.updateUser({ id: 7, firstName: 'X' }, ACTOR),
     ).rejects.toMatchObject({ businessCode: 'USER_NOT_FOUND' });
     expect(t.update).not.toHaveBeenCalled();
   });
@@ -179,7 +179,7 @@ describe('updateUser', () => {
   it('refuses an update that collides with another account email', async () => {
     const t = serviceWith({ clashingEmail: true });
     await expect(
-      t.service.updateUser({ id: 7, email: 'taken@ku.th' } as any, ACTOR),
+      t.service.updateUser({ id: 7, email: 'taken@ku.th' }, ACTOR),
     ).rejects.toMatchObject({ businessCode: 'EMAIL_ALREADY_IN_USE' });
   });
 
@@ -205,7 +205,7 @@ describe('resetPassword', () => {
   it('refuses to reset a password for an account that does not exist', async () => {
     const t = serviceWith({ accountExists: false });
     await expect(
-      t.service.resetPassword({ id: 7 } as any, ACTOR),
+      t.service.resetPassword({ id: 7 }, ACTOR),
     ).rejects.toMatchObject({ businessCode: 'USER_NOT_FOUND' });
   });
 

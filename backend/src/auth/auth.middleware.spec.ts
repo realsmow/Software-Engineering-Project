@@ -21,7 +21,7 @@ describe('Auth and role middleware — Module 1.2.8–1.2.11', () => {
     const next = nextSpy();
 
     await expect(
-      middleware.use({ ctx: ctxWith(null), next } as any),
+      middleware.use({ ctx: ctxWith(null), next } as never),
     ).rejects.toMatchObject({
       businessCode: 'NOT_AUTHENTICATED',
     });
@@ -42,7 +42,7 @@ describe('Auth and role middleware — Module 1.2.8–1.2.11', () => {
           creditScore: 100,
         }),
         next,
-      } as any),
+      } as never),
     ).rejects.toMatchObject({
       businessCode: 'ROLE_NOT_ALLOWED',
     });
@@ -56,7 +56,7 @@ describe('Auth and role middleware — Module 1.2.8–1.2.11', () => {
           creditScore: 100,
         }),
         next,
-      } as any);
+      } as never);
     } catch (error) {
       expect(error).toBeInstanceOf(BusinessError);
       expect((error as BusinessError).details).toMatchObject({
@@ -81,7 +81,7 @@ describe('Auth and role middleware — Module 1.2.8–1.2.11', () => {
           creditScore: 100,
         }),
         next,
-      } as any),
+      } as never),
     ).rejects.toMatchObject({
       businessCode: 'ROLE_NOT_ALLOWED',
     });
@@ -106,7 +106,7 @@ describe('Auth and role middleware — Module 1.2.8–1.2.11', () => {
       const next = nextSpy();
 
       await expect(
-        middleware.use({ ctx: ctxWith(user), next } as any),
+        middleware.use({ ctx: ctxWith(user), next } as never),
       ).resolves.toMatchObject({ ok: true });
 
       expect(next).toHaveBeenCalledTimes(1);
