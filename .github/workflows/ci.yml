@@ -79,6 +79,8 @@ jobs:
   backend:
     name: backend
     runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/app
 
     # The specs talk to a real database rather than mocking Prisma, so CI has
     # to provide one. Without this the whole suite fails at connect and the
@@ -164,20 +166,9 @@ jobs:
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/app
 
+      # One run covers src specs and tests; serial execution avoids shared DB races.
       - name: test
-        run: npm test
-        working-directory: backend
-        env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/app
-
-      - name: test item
-        run: npm run test:item
-        working-directory: backend
-        env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/app
-
-      - name: test admin
-        run: npm run test:admin
+        run: npm test -- --runInBand
         working-directory: backend
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/app
@@ -228,6 +219,108 @@ jobs:
       - name: build
         run: npm run build
         working-directory: frontend
+
+  e2e:
+    name: browser workflows
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: app
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            backend/package-lock.json
+            frontend/package-lock.json
+
+      - name: install browser test dependencies
+        run: npm ci
+
+      - name: install backend
+        run: npm ci --ignore-scripts
+        working-directory: backend
+
+      - name: install frontend
+        run: npm ci
+        working-directory: frontend
+
+      - name: install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: check browser test types
+        run: node backend/node_modules/typescript/bin/tsc --project tests/tsconfig.e2e.json
+
+      - name: run all browser workflows once
+        run: node tests/run-isolated.mjs --e2e
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/app
+          SESSION_SECRET: ci-test-session-secret-not-for-production
+          UPLOAD_SECRET: ci-test-upload-secret-not-for-production
+          CORS_ORIGINS: http://localhost:5173
+
+  load:
+    name: admin system load
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/app
+      SESSION_SECRET: ci-test-session-secret-not-for-production
+      UPLOAD_SECRET: ci-test-upload-secret-not-for-production
+      API_URL: http://localhost:3000
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: app
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: install backend
+        run: npm ci --ignore-scripts
+        working-directory: backend
+
+      - name: install k6
+        uses: grafana/setup-k6-action@v1
+        with:
+          k6-version: '2.2.0'
+
+      - name: run admin system load test
+        run: node tests/run-isolated.mjs --load
 
   # ==========================================================================
   #  Docker image build check - proves both Dockerfiles still build.
