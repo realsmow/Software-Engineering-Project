@@ -115,6 +115,7 @@ function build(prisma: Record<string, unknown>) {
   const notifications = {
     appealApproved: jest.fn().mockResolvedValue(undefined),
     appealRejected: jest.fn().mockResolvedValue(undefined),
+    appealFiled: jest.fn().mockResolvedValue(undefined),
   } as unknown as NotificationService;
 
   const audit = { record: jest.fn() };
@@ -133,10 +134,15 @@ describe('AppealService.decide — who may rule', () => {
   /** A prisma stub that returns one appeal and records the writes attempted. */
   function prismaWith(row: ReturnType<typeof appealRow>) {
     const tx = {
+      $queryRaw: jest.fn().mockResolvedValue([]),
       appealInfo: { update: jest.fn().mockResolvedValue({}) },
       penaltyInfo: {
         update: jest.fn().mockResolvedValue({}),
         create: jest.fn().mockResolvedValue({ PenaltyKey: 56 }),
+        // What is still in force after the decision; set per case.
+        aggregate: jest
+          .fn()
+          .mockResolvedValue({ _sum: { CreditDeducted: null } }),
       },
       accountInfo: { update: jest.fn().mockResolvedValue({}) },
     };
@@ -206,10 +212,15 @@ describe('AppealService.decide — who may rule', () => {
 describe('AppealService.decide — what approving does', () => {
   function prismaWith(row: ReturnType<typeof appealRow>) {
     const tx = {
+      $queryRaw: jest.fn().mockResolvedValue([]),
       appealInfo: { update: jest.fn().mockResolvedValue({}) },
       penaltyInfo: {
         update: jest.fn().mockResolvedValue({}),
         create: jest.fn().mockResolvedValue({ PenaltyKey: 56 }),
+        // What is still in force after the decision; set per case.
+        aggregate: jest
+          .fn()
+          .mockResolvedValue({ _sum: { CreditDeducted: null } }),
       },
       accountInfo: { update: jest.fn().mockResolvedValue({}) },
     };
@@ -236,9 +247,10 @@ describe('AppealService.decide — what approving does', () => {
       where: { PenaltyKey: PENALTY.PenaltyKey },
       data: { InEffect: false },
     });
+    // Nothing left in force: the score is back to 100 (FR-APL-05).
     expect(tx.accountInfo.update).toHaveBeenCalledWith({
       where: { AccountKey: BORROWER.accountKey },
-      data: { UserCredit: { increment: 20 } },
+      data: { UserCredit: 100 },
     });
     // The original row is never rewritten beyond InEffect: what was charged
     // stays on the record, and the appeal is what says it was overturned.
@@ -253,6 +265,7 @@ describe('AppealService.decide — what approving does', () => {
 
   it('refunds only the difference when the penalty is reduced', async () => {
     const { prisma, tx } = prismaWith(appealRow());
+    tx.penaltyInfo.aggregate.mockResolvedValue({ _sum: { CreditDeducted: 5 } });
     const { service } = build(prisma);
 
     await service.decide(SUPERVISOR, {
@@ -266,7 +279,7 @@ describe('AppealService.decide — what approving does', () => {
     });
     expect(tx.accountInfo.update).toHaveBeenCalledWith({
       where: { AccountKey: BORROWER.accountKey },
-      data: { UserCredit: { increment: 15 } },
+      data: { UserCredit: 95 },
     });
   });
 
@@ -300,6 +313,12 @@ describe('AppealService.create', () => {
       appealInfo: { create: jest.fn().mockResolvedValue({ AppealKey: 9 }) },
       penaltyInfo: { update: jest.fn().mockResolvedValue({}) },
       inspection: { updateMany: jest.fn().mockResolvedValue({ count: 1 }) },
+      // FR-NTF-04's department lookup and supervisor list — empty by default,
+      // so a test that never sets it up notifies nobody.
+      usageLog: {
+        findUnique: jest.fn().mockResolvedValue({ Resource: { ManagedBy: 3 } }),
+      },
+      accountInfo: { findMany: jest.fn().mockResolvedValue([]) },
     };
     return {
       tx,
@@ -367,6 +386,25 @@ describe('AppealService.create', () => {
     await expect(service.create(BORROWER, filing)).rejects.toThrow(
       /ALREADY_APPEALED/,
     );
+  });
+
+  it('refuses a late-return or loss penalty: only damage is appealable (FR-APL-01)', async () => {
+    for (const reason of [
+      'ReturnLate',
+      'LostItem: not returned within 14 days (scheduled)',
+    ]) {
+      const { prisma } = prismaWith({
+        ...PENALTY,
+        Reason: reason,
+        OriginalAppeal: null,
+      });
+      const { service, audit } = build(prisma);
+
+      await expect(service.create(BORROWER, filing)).rejects.toThrow(
+        /PENALTY_NOT_APPEALABLE/,
+      );
+      expect(audit.record).not.toHaveBeenCalled();
+    }
   });
 
   it('refuses one that is already lifted', async () => {

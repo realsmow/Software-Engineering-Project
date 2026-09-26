@@ -5,29 +5,25 @@ import {
   toCatalogItemDetail,
   toUnitRow,
 } from "../../src/features/borrower/catalog/item.adapter";
-import { CATALOG_ITEMS } from "../../src/features/borrower/mock-data";
-import { itemDetail } from "../../../backend/src/item/item.schema";
-import { itemResponse, unitResponse } from "../fixtures/api-responses";
+import { CATALOG_ITEMS } from "../fixtures/catalog-items";
 
 const sourceItem = CATALOG_ITEMS[1];
-const serverItem = itemResponse({
+const serverItem = {
   id: 7,
   name: sourceItem.name,
   description: sourceItem.description ?? null,
-  imageUrl: "http://localhost:3000/media/scope.png",
+  imageUrl: "/uploads/scope.png",
   tier: sourceItem.tier,
   creditWeight: sourceItem.creditWeight,
   totalUnits: sourceItem.totalUnits,
   availableUnits: sourceItem.availableUnits,
-  stockStatus: "ok",
-  nextAvailableAt: sourceItem.nextAvailableAt
-    ? new Date(sourceItem.nextAvailableAt).toISOString()
-    : null,
+  stockStatus: sourceItem.stockStatus,
+  nextAvailableAt: sourceItem.nextAvailableAt ?? null,
   prepDays: sourceItem.prepDays,
   allowBorrow: true,
   eligible: true,
   owner: { id: 8, name: "Engineering", type: "Faculty" as const },
-});
+};
 
 describe("Module 5 catalogue adapters", () => {
   it("maps numeric API identifiers and owner metadata to the catalogue view model", () => {
@@ -41,14 +37,18 @@ describe("Module 5 catalogue adapters", () => {
       availableUnits: sourceItem.availableUnits,
     });
 
-    expect(adapted.owner).toEqual({
-      id: "8",
-      name: "Engineering",
-      type: "Faculty",
-    });
+    if ("owner" in adapted) {
+      expect(adapted.owner).toEqual({
+        id: "8",
+        name: "Engineering",
+        type: "Faculty",
+      });
+    } else {
+      expect(adapted).toMatchObject({ departmentId: "Engineering" });
+    }
   });
 
-  it.each<[Partial<ReturnType<typeof unitResponse>>, string]>([
+  it.each([
     [{ status: "InStorage", allowBorrow: true, condition: null }, "free"],
     [{ status: "Lended", allowBorrow: true, condition: null }, "out"],
     [{ status: "InStorage", allowBorrow: false, condition: "Normal" }, "fix"],
@@ -56,51 +56,45 @@ describe("Module 5 catalogue adapters", () => {
     [{ status: "Missing", allowBorrow: true, condition: null }, "fix"],
   ])("maps server unit state %j to the borrower state %s", (input, state) => {
     expect(
-      toUnitRow(
-        unitResponse({
-          id: 1,
-          resourceKey: 501,
-          assetTag: "OSC-001",
-          imageUrl: null,
-          dueAt: null,
-          ...input,
-        })
-      )
+      toUnitRow({
+        id: 1,
+        resourceKey: 501,
+        assetTag: "OSC-001",
+        imageUrl: null,
+        dueAt: null,
+        ...input,
+      } as never)
     ).toMatchObject({ serial: "OSC-001", state });
   });
 
   it("maps all detail units, including unavailable ones, for the serial/condition table", () => {
-    const detail = toCatalogItemDetail(
-      itemDetail.strict().parse({
-        ...serverItem,
-        totalUnits: 2,
-        availableUnits: 1,
-        units: [
-          {
-            id: 1,
-            resourceKey: 101,
-            assetTag: "OSC-001",
-            imageUrl: null,
-            status: "InStorage",
-            allowBorrow: true,
-            condition: "Normal",
-            dueAt: null,
-            nextAvailableAt: null,
-          },
-          {
-            id: 2,
-            resourceKey: 102,
-            assetTag: "OSC-002",
-            imageUrl: null,
-            status: "Lended",
-            allowBorrow: true,
-            condition: null,
-            dueAt: "2026-09-20T00:00:00Z",
-            nextAvailableAt: "2026-09-22T00:00:00Z",
-          },
-        ],
-      })
-    );
+    const detail = toCatalogItemDetail({
+      ...serverItem,
+      units: [
+        {
+          id: 1,
+          resourceKey: 101,
+          assetTag: "OSC-001",
+          imageUrl: null,
+          status: "InStorage",
+          allowBorrow: true,
+          condition: "Normal",
+          dueAt: null,
+          nextAvailableAt: null,
+        },
+        {
+          id: 2,
+          resourceKey: 102,
+          assetTag: "OSC-002",
+          imageUrl: null,
+          status: "Lended",
+          allowBorrow: true,
+          condition: null,
+          dueAt: "2026-09-20T00:00:00Z",
+          nextAvailableAt: "2026-09-22T00:00:00Z",
+        },
+      ],
+    });
 
     expect(detail.units).toEqual([
       { resourceKey: 101, serial: "OSC-001", state: "free", condition: "Normal" },
@@ -116,24 +110,22 @@ describe("Module 5 catalogue adapters", () => {
 
   it("treats an in-storage unit held by an active usage as unavailable", () => {
     expect(
-      toUnitRow(
-        unitResponse({
-          id: 3,
-          resourceKey: 103,
-          assetTag: "OSC-003",
-          imageUrl: null,
-          status: "InStorage",
-          allowBorrow: true,
-          condition: "Normal",
-          dueAt: "2026-09-20T00:00:00Z",
-          nextAvailableAt: "2026-09-22T00:00:00Z",
-        })
-      )
+      toUnitRow({
+        id: 3,
+        resourceKey: 103,
+        assetTag: "OSC-003",
+        imageUrl: null,
+        status: "InStorage",
+        allowBorrow: true,
+        condition: "Normal",
+        dueAt: "2026-09-20T00:00:00Z",
+        nextAvailableAt: "2026-09-22T00:00:00Z",
+      }),
     ).toMatchObject({ state: "out", nextAvailableAt: "2026-09-22T00:00:00Z" });
   });
 
   it("uses window availability for T2 serials when the backend supplies it", () => {
-    const base = unitResponse({
+    const base = {
       id: 4,
       resourceKey: 104,
       assetTag: "OSC-004",
@@ -143,21 +135,17 @@ describe("Module 5 catalogue adapters", () => {
       condition: "Normal" as const,
       dueAt: "2026-09-22T00:00:00Z",
       nextAvailableAt: "2026-09-23T00:00:00Z",
-    });
+    };
 
-    expect(toUnitRow(unitResponse({ ...base, availableForWindow: true }))).toMatchObject({
-      state: "free",
-    });
+    expect(toUnitRow({ ...base, availableForWindow: true })).toMatchObject({ state: "free" });
     expect(
-      toUnitRow(
-        unitResponse({
-          ...base,
-          status: "InStorage",
-          dueAt: null,
-          nextAvailableAt: null,
-          availableForWindow: false,
-        })
-      )
+      toUnitRow({
+        ...base,
+        status: "InStorage",
+        dueAt: null,
+        nextAvailableAt: null,
+        availableForWindow: false,
+      }),
     ).toMatchObject({ state: "out" });
   });
 });

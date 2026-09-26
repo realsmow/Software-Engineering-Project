@@ -1,5 +1,4 @@
-import type { Page } from "@playwright/test";
-import { expect, test } from "../fixtures/api-contracts";
+import { expect, test, type Page } from "@playwright/test";
 
 const ADMIN = { username: "test_admin", password: "admin1234" };
 
@@ -107,20 +106,20 @@ test.describe("Admin console pages", () => {
     await expect(page.getByRole("heading", { name: "Security" })).toBeVisible();
   });
 
-  test("lists the registered scheduled jobs without removed jobs", async ({
+  // computeAvailability and rollupDailyStats were removed as jobs entirely
+  // (nothing left to precompute), so there is no more "not implemented"
+  // placeholder job to press. Every job in the registry now does real work,
+  // so pressing Run now should surface a real result badge, not a blank cell.
+  test("running a scheduled job surfaces a real result instead of a blank status", async ({
     page,
   }) => {
     await page.goto("/admin/status");
     await expect(page.getByRole("columnheader", { name: "Job" })).toBeVisible();
-    const rows = page.locator("tbody tr");
+    const row = page.locator("tbody tr").filter({ hasText: "expireDemerits" });
 
-    await expect(rows).toHaveCount(6);
-    await expect(
-      rows.filter({ hasText: "openT3InspectionRounds" }),
-    ).toBeVisible();
-    await expect(rows.filter({ hasText: "computeAvailability" })).toHaveCount(
-      0,
-    );
-    await expect(rows.filter({ hasText: "rollupDailyStats" })).toHaveCount(0);
+    await expect(row).toBeVisible();
+    await row.getByRole("button", { name: "Run now" }).click();
+    await expect(row.getByText("Success")).toBeVisible();
+    await expect(row).not.toContainText("Error:");
   });
 });

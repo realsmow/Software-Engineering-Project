@@ -1,10 +1,6 @@
 import { useMemo } from "react";
-import {
-  STATUS_TAB,
-  type CatalogItem,
-  type MyRequest,
-  type RequestTab,
-} from "../mock-data";
+import { STATUS_TAB, type MyRequest, type RequestTab } from "../request-status";
+import type { CatalogItem } from "../catalog/catalog.types";
 import { useMyRequestsApi } from "./use-my-requests-api";
 import { useEquipmentTypes } from "../catalog/use-equipment-types";
 import {

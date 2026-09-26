@@ -83,3 +83,11 @@ export const verifyEmailInput = z.object({
   token: z.string().min(1).max(200),
 });
 export type VerifyEmailInput = z.infer<typeof verifyEmailInput>;
+
+/**
+ * FR-AUTH-01: lets the login page show "Sign in with Google" only when the
+ * backend actually has it wired up. Public - a visitor asks this before they
+ * have a session, same as `login` itself.
+ */
+export const providersOutput = z.object({ google: z.boolean() });
+export type ProvidersOutput = z.infer<typeof providersOutput>;

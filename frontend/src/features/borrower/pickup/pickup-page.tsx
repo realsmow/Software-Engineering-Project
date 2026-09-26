@@ -10,7 +10,7 @@ import { BUSINESS, ROUTES, UPLOAD } from "@/constants";
 import { getErrorMessage } from "@/lib/error-messages";
 import { cn } from "@/lib/utils";
 import { uploadAcceptAttr, validateUploadFile } from "@/lib/upload-validation";
-import type { MyRequest } from "../mock-data";
+import type { MyRequest } from "../request-status";
 import { useMyRequests } from "../loans/use-my-requests";
 import {
   prepareBorrowerImage,

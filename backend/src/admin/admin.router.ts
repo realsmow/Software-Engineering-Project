@@ -14,6 +14,9 @@ import { okOutput } from '../common/schemas/ok.schema';
 import {
   accountIdInput,
   adminUserDetail,
+  userLoanHistory,
+  workHoursSetting,
+  type WorkHoursSetting,
   auditEventIdInput,
   auditEventOutput,
   changeRoleInput,
@@ -30,7 +33,6 @@ import {
   runCronJobInput,
   type RunCronJobInput,
   setUserActiveInput,
-  setUserBanInput,
   systemStatusOutput,
   technicalConfigOutput,
   updateLendingSettingsInput,
@@ -41,7 +43,6 @@ import {
   type ListUsersInput,
   type ResetPasswordInput,
   type SetUserActiveInput,
-  type SetUserBanInput,
   type UpdateLendingSettingsInput,
   type UpdateUserInput,
 } from './admin.schema';
@@ -112,6 +113,12 @@ export class AdminRouter {
     return this.adminService.getUserById(input.id);
   }
 
+  @UseMiddlewares(AdminMiddleware)
+  @Query({ input: accountIdInput, output: userLoanHistory })
+  getUserLoans(@Input() input: { id: number }) {
+    return this.adminService.getUserLoans(input.id);
+  }
+
   /** Returns the generated password once, when the caller did not supply one. */
   @UseMiddlewares(AdminMiddleware)
   @Mutation({ input: createUserInput, output: createUserOutput })
@@ -148,13 +155,6 @@ export class AdminRouter {
 
   // ── Borrowing ban (department staff) ────────────────────────────────────
 
-  /** Recorded as a PenaltyInfo row, so the ban and its history share one table. */
-  @UseMiddlewares(StaffMiddleware)
-  @Mutation({ input: setUserBanInput, output: okOutput })
-  setUserBan(@Input() input: SetUserBanInput, @Ctx() ctx: TrpcContext) {
-    return this.adminService.setUserBan(input, AdminRouter.actorFrom(ctx));
-  }
-
   // ── Lending rules (department staff) ────────────────────────────────────
 
   @UseMiddlewares(StaffMiddleware)
@@ -177,6 +177,13 @@ export class AdminRouter {
       input,
       AdminRouter.actorFrom(ctx),
     );
+  }
+
+  /** FR-ADM-04: one working day for the whole university, so admin only. */
+  @UseMiddlewares(AdminMiddleware)
+  @Mutation({ input: workHoursSetting, output: lendingSettingsOutput })
+  updateWorkHours(@Input() input: WorkHoursSetting, @Ctx() ctx: TrpcContext) {
+    return this.adminService.updateWorkHours(input, AdminRouter.actorFrom(ctx));
   }
 
   // ── Technical config (IT admin) ─────────────────────────────────────────

@@ -9,15 +9,12 @@ import { fmtDate } from "@/lib/datetime";
 import { useDepartmentUsers, type DepartmentUser } from "./department-users";
 import { DepartmentUserTable } from "./department-user-table";
 import { useCreditDetail } from "./use-credit-detail";
+import { penaltyReasonText } from "@/features/borrower/appeals/penalty-reason";
 
 /**
  * Department directory.
  *
- * Read-only: looking somebody up is a different job from sanctioning them, and
- * the two live behind different nav entries. Banning is on the permissions
- * page, which renders the same table with an action column. Viewing a credit
- * record stays here rather than there for the same reason: it is what staff
- * check *before* deciding whether a ban is even warranted, not part of it.
+ * Read-only: who is in the department, and their credit record.
  */
 export default function StaffUsersPage() {
   const { t } = useTranslation();
@@ -112,7 +109,7 @@ function CreditDetail({ user, onClose }: { user: DepartmentUser | null; onClose:
                 {credit.penalties.map((p) => (
                   <li key={p.id} className="flex items-baseline justify-between gap-3 text-sm">
                     <span className="min-w-0 truncate text-foreground">
-                      {p.reason ?? t("profile.penaltyNoReason")}
+                      {p.reason ? penaltyReasonText(p.reason, t) : t("profile.penaltyNoReason")}
                     </span>
                     <span className="shrink-0 font-mono text-xs tabular-nums text-muted-foreground">
                       -{p.creditDeducted} ·{" "}

@@ -1,4 +1,6 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { mailSettings } from '../common/mail/mailer';
 import type { Prisma } from '../generated/prisma/client';
 import type { NotificationType as DbNotificationType } from '../generated/prisma/enums';
 import { PrismaService } from '../prisma.service';
@@ -25,6 +27,14 @@ const DUE_SOON_DAYS = 2;
 const ROUTE_MY_LOANS = '/my/loans';
 const ROUTE_PICKUP = '/pickup';
 const ROUTE_PROFILE = '/profile';
+/** Where a supervisor decides a retirement request (approval.retirementQueue). */
+const ROUTE_SUPERVISOR_APPROVALS = '/supervisor/approvals';
+/** Where a supervisor decides an appeal (appeal.listQueue). */
+const ROUTE_SUPERVISOR_APPEALS = '/supervisor/appeals';
+/** Where staff manage the catalogue, including their own retirement requests. */
+const ROUTE_STAFF_INVENTORY = '/staff/inventory';
+const ROUTE_STAFF_QUEUE = '/staff';
+const ROUTE_STAFF_ROOM_CHECKS = '/staff/repairs';
 
 /**
  * The item as the borrower knows it — its name, not its key.
@@ -101,7 +111,11 @@ function thaiDate(at: Date): string {
 export class NotificationService {
   private readonly logger = new Logger(NotificationService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    // Optional so unit tests can build the service with Prisma alone.
+    @Optional() private readonly config?: ConfigService,
+  ) {}
 
   // =========================================================================
   // Read — the bell
@@ -429,6 +443,209 @@ export class NotificationService {
     });
   }
 
+  /**
+   * "มีคำขอเลิกใช้งานอุปกรณ์รอการอนุมัติ" — FR-EQP-08, sent to one supervisor.
+   *
+   * Called once per supervisor with authority over the resource's department
+   * (see `ItemManagementService.requestRetirement`), so `dedupeKey` is not
+   * namespaced per recipient: the upsert's unique index already includes
+   * `AccountKey`, and two supervisors of the same department must each get
+   * their own row for the same request.
+   */
+  retirementRequested(
+    tx: Prisma.TransactionClient,
+    params: {
+      accountKey: number;
+      requestKey: number;
+      resourceName: string;
+      requestedBy: string;
+      reason: string;
+    },
+  ) {
+    return this.emit(tx, {
+      accountKey: params.accountKey,
+      type: 'RetirementRequested',
+      title: 'มีคำขอเลิกใช้งานอุปกรณ์รอการอนุมัติ',
+      body: `${params.resourceName} · ขอโดย ${params.requestedBy} · เหตุผล: ${params.reason}`,
+      linkTo: ROUTE_SUPERVISOR_APPROVALS,
+      dedupeKey: retirementRequestKeyOf(params.requestKey),
+    });
+  }
+
+  /**
+   * "คำขอเลิกใช้งานอุปกรณ์ได้รับการพิจารณาแล้ว" — FR-EQP-08, back to the staff
+   * member who filed it. One request has one decision, so this shares its
+   * dedupe key with nothing else and cannot double up on a retry.
+   */
+  retirementDecided(
+    tx: Prisma.TransactionClient,
+    params: {
+      accountKey: number;
+      requestKey: number;
+      resourceName: string;
+      decision: 'approve' | 'reject';
+      note?: string | null;
+    },
+  ) {
+    const approved = params.decision === 'approve';
+    return this.emit(tx, {
+      accountKey: params.accountKey,
+      type: 'RetirementDecided',
+      title: approved
+        ? 'คำขอเลิกใช้งานอุปกรณ์ได้รับการอนุมัติ'
+        : 'คำขอเลิกใช้งานอุปกรณ์ไม่ได้รับการอนุมัติ',
+      body: `${params.resourceName}` + (params.note ? ` · ${params.note}` : ''),
+      linkTo: ROUTE_STAFF_INVENTORY,
+      dedupeKey: retirementRequestKeyOf(params.requestKey),
+    });
+  }
+
+  /**
+   * "มีคำขอยืมรอการอนุมัติ" — FR-NTF-04, a T2 request or a T1 request from a
+   * D2/D3 borrower landed on a supervisor's desk instead of clearing on its
+   * own. Sent to one supervisor at a time, same pattern as
+   * `retirementRequested`: call once per supervisor with authority over the
+   * resource's department.
+   */
+  requestNeedsSupervisor(
+    tx: Prisma.TransactionClient,
+    params: {
+      accountKey: number;
+      reservationKey: number;
+      itemName: string;
+    },
+  ) {
+    return this.emit(tx, {
+      accountKey: params.accountKey,
+      type: 'SupervisorApprovalNeeded',
+      title: 'มีคำขอยืมรอการอนุมัติ',
+      body: `${params.itemName} · รอการอนุมัติ`,
+      linkTo: ROUTE_SUPERVISOR_APPROVALS,
+      dedupeKey: reservationKeyOf(params.reservationKey),
+    });
+  }
+
+  /**
+   * "มีคำขอต่ออายุรอการอนุมัติ" — FR-NTF-04, the extension counterpart of
+   * `requestNeedsSupervisor`. Shares `SupervisorApprovalNeeded` rather than a
+   * type of its own, the same way `extensionApproved` shares `RequestApproved`
+   * — the desk is one pile, whichever domain the row came from.
+   */
+  extensionNeedsSupervisor(
+    tx: Prisma.TransactionClient,
+    params: {
+      accountKey: number;
+      extensionKey: number;
+      itemName: string;
+    },
+  ) {
+    return this.emit(tx, {
+      accountKey: params.accountKey,
+      type: 'SupervisorApprovalNeeded',
+      title: 'มีคำขอต่ออายุรอการอนุมัติ',
+      body: `${params.itemName} · รอการอนุมัติ`,
+      linkTo: ROUTE_SUPERVISOR_APPROVALS,
+      dedupeKey: extensionKeyOf(params.extensionKey),
+    });
+  }
+
+  /**
+   * FR-NTF-03: a counter task for every staff member over the department.
+   * One entry per task per person; the dedupe key names the task.
+   */
+  private async staffTask(
+    tx: Prisma.TransactionClient,
+    manageGroupKey: number,
+    note: { title: string; body: string; linkTo: string; dedupeKey: string },
+  ): Promise<void> {
+    const staff = await supervisorsForGroup(tx, manageGroupKey, 'Staff');
+    await Promise.all(
+      staff.map((s) =>
+        this.emit(tx, { accountKey: s.AccountKey, type: 'StaffTask', ...note }),
+      ),
+    );
+  }
+
+  /** An approved request is waiting to be set aside at the counter. */
+  itemToPrepare(
+    tx: Prisma.TransactionClient,
+    params: {
+      manageGroupKey: number;
+      reservationKey: number;
+      itemName: string;
+    },
+  ) {
+    return this.staffTask(tx, params.manageGroupKey, {
+      title: 'มีรายการต้องเตรียม',
+      body: `${params.itemName} · อนุมัติแล้ว รอเตรียมของ`,
+      linkTo: ROUTE_STAFF_QUEUE,
+      dedupeKey: reservationKeyOf(params.reservationKey),
+    });
+  }
+
+  /** A loan is due back within a day, or already late. */
+  returnToReceive(
+    tx: Prisma.TransactionClient,
+    params: {
+      manageGroupKey: number;
+      usageKey: number;
+      itemName: string;
+      due: Date;
+    },
+  ) {
+    return this.staffTask(tx, params.manageGroupKey, {
+      title: 'มีรายการรอรับคืน',
+      body: `${params.itemName} · ครบกำหนดคืน ${thaiDateTime(params.due)}`,
+      linkTo: ROUTE_STAFF_QUEUE,
+      dedupeKey: usageKeyOf(params.usageKey),
+    });
+  }
+
+  /** A T3 room check round was opened. */
+  roomToCheck(
+    tx: Prisma.TransactionClient,
+    params: {
+      manageGroupKey: number;
+      resourceKey: number;
+      roomName: string;
+      dueAt: Date;
+    },
+  ) {
+    return this.staffTask(tx, params.manageGroupKey, {
+      title: 'มีห้องต้องตรวจสภาพ',
+      body: `${params.roomName} · ตรวจภายใน ${thaiDateTime(params.dueAt)}`,
+      linkTo: ROUTE_STAFF_ROOM_CHECKS,
+      // One per round: a room gets a new round at most once a month.
+      dedupeKey: `roomcheck:${params.resourceKey}:${params.dueAt.toISOString().slice(0, 10)}`,
+    });
+  }
+
+  /**
+   * "มีคำขออุทธรณ์รอการพิจารณา" — FR-NTF-04, an appeal was just filed.
+   *
+   * Namespaced with the same `appealKeyOf` key as `appealApproved` and
+   * `appealRejected`, which is safe: those go to the borrower who filed it,
+   * this goes to a supervisor, and the unique index is per `AccountKey` as
+   * well as per type.
+   */
+  appealFiled(
+    tx: Prisma.TransactionClient,
+    params: {
+      accountKey: number;
+      appealKey: number;
+      reason: string;
+    },
+  ) {
+    return this.emit(tx, {
+      accountKey: params.accountKey,
+      type: 'AppealFiled',
+      title: 'มีคำขออุทธรณ์รอการพิจารณา',
+      body: `เหตุผล: ${params.reason}`,
+      linkTo: ROUTE_SUPERVISOR_APPEALS,
+      dedupeKey: appealKeyOf(params.appealKey),
+    });
+  }
+
   // =========================================================================
   // The due-date sweep
   // =========================================================================
@@ -492,6 +709,18 @@ export class NotificationService {
           continue;
         }
 
+        // FR-NTF-02 emails a reminder once; the dedupe key says whether this
+        // loan already had one.
+        const already = await this.prisma.notification.findFirst({
+          where: {
+            AccountKey: accountKey,
+            DedupeKey: usageKeyOf(loan.UsageKey),
+            NotificationType: 'DueSoon',
+          },
+          select: { NotificationKey: true },
+        });
+        if (!already) void this.mailDueSoon(accountKey, name, loan.DueTime);
+
         await this.emit(this.prisma, {
           accountKey,
           type: 'DueSoon',
@@ -504,6 +733,38 @@ export class NotificationService {
     } catch (error) {
       this.logger.warn(
         `Could not refresh due reminders for account ${accountKey}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+    }
+  }
+
+  /**
+   * FR-NTF-02: the due-soon reminder also goes out by email, once per loan.
+   * A mail failure is logged and never reaches the caller.
+   */
+  private async mailDueSoon(
+    accountKey: number,
+    name: string,
+    due: Date,
+  ): Promise<void> {
+    if (!this.config) return;
+    try {
+      const account = await this.prisma.accountInfo.findUnique({
+        where: { AccountKey: accountKey },
+        select: { Email: true },
+      });
+      if (!account) return;
+      const { mailer, from, appUrl } = mailSettings(this.config);
+      await mailer.sendMail({
+        from,
+        to: account.Email,
+        subject: 'ULMs: ใกล้ครบกำหนดคืน',
+        text: `${name} ครบกำหนดคืน ${thaiDateTime(due)}\n\n${appUrl}${ROUTE_MY_LOANS}`,
+      });
+    } catch (error) {
+      this.logger.warn(
+        `Could not email due reminder to account ${accountKey}: ${
           error instanceof Error ? error.message : String(error)
         }`,
       );
@@ -604,4 +865,47 @@ function extensionKeyOf(extensionKey: number): string {
 
 function appealKeyOf(appealKey: number): string {
   return `appeal:${appealKey}`;
+}
+
+function retirementRequestKeyOf(requestKey: number): string {
+  return `retirement:${requestKey}`;
+}
+
+/**
+ * Supervisors with authority over one department (FR-NTF-04, FR-EQP-08).
+ *
+ * Same lookup `ItemManagementService.requestRetirement` uses for retirement
+ * requests: role Supervisor, holding an Authority row for `manageGroupKey`.
+ * Kept here, exported, so loan and appeal callers do not each grow their own
+ * copy of it.
+ */
+export async function supervisorsForGroup(
+  tx: Prisma.TransactionClient,
+  manageGroupKey: number,
+  role: 'Supervisor' | 'Staff' = 'Supervisor',
+): Promise<{ AccountKey: number }[]> {
+  return tx.accountInfo.findMany({
+    where: {
+      Role: { RoleName: role },
+      Authorities: { some: { ManageGroupKey: manageGroupKey } },
+    },
+    select: { AccountKey: true },
+  });
+}
+
+/**
+ * Every supervisor, department unscoped.
+ *
+ * For an appeal against an administrative penalty (no UsageLog, so no
+ * ResourceInfo.ManagedBy to key off): `appeal.listQueue` shows those to every
+ * supervisor rather than filtering by department, and the notification has to
+ * reach the same audience the queue does.
+ */
+export async function allSupervisors(
+  tx: Prisma.TransactionClient,
+): Promise<{ AccountKey: number }[]> {
+  return tx.accountInfo.findMany({
+    where: { Role: { RoleName: 'Supervisor' } },
+    select: { AccountKey: true },
+  });
 }

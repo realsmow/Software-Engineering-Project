@@ -30,6 +30,13 @@ export default defineConfig({
         target: "http://localhost:3000",
         changeOrigin: true,
       },
+      // Google OAuth redirects (FR-AUTH-01). Not a tRPC/REST call - the
+      // browser navigates here directly - but it still needs to resolve to
+      // the backend rather than the dev server in local development.
+      "/auth": {
+        target: "http://localhost:3000",
+        changeOrigin: true,
+      },
     },
   },
 });

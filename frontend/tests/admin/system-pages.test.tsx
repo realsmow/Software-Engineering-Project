@@ -4,19 +4,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import i18n from "../../src/i18n";
 import AdminConfigPage from "../../src/features/admin/config/config-page";
 import AdminStatusPage from "../../src/features/admin/status/status-page";
-import {
-  technicalConfigOutput,
-  systemStatusOutput,
-  cronJobOutput,
-} from "../../../backend/src/admin/admin.schema";
-import { okOutput } from "../../../backend/src/common/schemas/ok.schema";
-import {
-  queryResult,
-  loadingQueryResult,
-  errorQueryResult,
-  mutationResult,
-} from "../fixtures/query-results";
-
+import type { TechnicalConfig } from "../../src/features/admin/config/config.types";
+import type { CronJob, SystemStatus } from "../../src/features/admin/status/status.types";
 import { getErrorMessage } from "../../src/lib/error-messages";
 
 const useSystemStatusMock = vi.hoisted(() => vi.fn());
@@ -32,17 +21,19 @@ vi.mock("../../src/features/admin/status/use-system-status", () => ({
 
 vi.mock("../../src/features/admin/config/use-config", () => ({
   useTechnicalConfig: useTechnicalConfigMock,
+  useWorkHours: () => ({ data: undefined }),
+  useUpdateWorkHours: () => ({ mutate: vi.fn(), isPending: false }),
 }));
 
-const STATUS = systemStatusOutput.strict().parse({
+const STATUS: SystemStatus = {
   checkedAt: "2026-09-20T02:00:00.000Z",
   uptimeSeconds: 3661,
   nodeVersion: "v22.14.0",
   database: { state: "operational", latencyMs: 12 },
   counts: { accounts: 42, resources: 17, activeLoans: 6, pendingReservations: 3 },
-});
+};
 
-const JOBS = [
+const JOBS: CronJob[] = [
   {
     id: "markOverdue",
     name: "Mark overdue",
@@ -53,17 +44,17 @@ const JOBS = [
     durationMs: 41,
   },
   {
-    id: "markLost",
-    name: "Mark lost",
+    id: "openT3InspectionRounds",
+    name: "Open T3 inspection rounds",
     schedule: "*/5 * * * *",
     implemented: false,
     lastRunAt: null,
     lastResult: null,
     durationMs: null,
   },
-].map((job) => cronJobOutput.strict().parse(job));
+];
 
-const CONFIG = technicalConfigOutput.strict().parse({
+const CONFIG: TechnicalConfig = {
   auth: {
     googleOauthEnabled: false,
     localFallbackEnabled: true,
@@ -91,7 +82,7 @@ const CONFIG = technicalConfigOutput.strict().parse({
     allowedOrigins: ["http://localhost:5173"],
     nodeEnv: "production",
   },
-});
+};
 
 describe("IT admin status and technical configuration pages", () => {
   const mutateAsync = vi.fn();
@@ -99,13 +90,21 @@ describe("IT admin status and technical configuration pages", () => {
   beforeEach(() => {
     i18n.changeLanguage("en");
     vi.clearAllMocks();
-    useSystemStatusMock.mockReturnValue(queryResult(STATUS));
-    useCronJobsMock.mockReturnValue(queryResult(JOBS));
-    useRunCronJobMock.mockReturnValue(mutationResult(mutateAsync));
-    useTechnicalConfigMock.mockReturnValue(queryResult(CONFIG));
+    useSystemStatusMock.mockReturnValue({
+      data: STATUS,
+      isLoading: false,
+      isError: false,
+    });
+    useCronJobsMock.mockReturnValue({ data: JOBS, isLoading: false, isError: false });
+    useRunCronJobMock.mockReturnValue({ mutateAsync, isPending: false });
+    useTechnicalConfigMock.mockReturnValue({
+      data: CONFIG,
+      isLoading: false,
+      isError: false,
+    });
   });
 
-  it("renders API status metrics, cron state, and a successful job result", () => {
+  it("renders live status metrics, cron state, and a successful job result", () => {
     render(
       <MemoryRouter>
         <AdminStatusPage />
@@ -115,13 +114,17 @@ describe("IT admin status and technical configuration pages", () => {
     expect(screen.getByText("Operational")).toBeInTheDocument();
     expect(screen.getByText("v22.14.0")).toBeInTheDocument();
     expect(screen.getByText("42")).toBeInTheDocument();
-    expect(screen.getByText("Mark lost")).toBeInTheDocument();
+    expect(screen.getByText("Open T3 inspection rounds")).toBeInTheDocument();
     expect(screen.getByText("Not implemented")).toBeInTheDocument();
     expect(screen.getByText("Success")).toBeInTheDocument();
   });
 
   it("shows loading and unavailable status states", () => {
-    useSystemStatusMock.mockReturnValue(loadingQueryResult());
+    useSystemStatusMock.mockReturnValue({
+      data: undefined,
+      isLoading: true,
+      isError: false,
+    });
     const { unmount } = render(
       <MemoryRouter>
         <AdminStatusPage />
@@ -130,9 +133,11 @@ describe("IT admin status and technical configuration pages", () => {
     expect(screen.getByText(i18n.t("common.loading"))).toBeInTheDocument();
     unmount();
 
-    useSystemStatusMock.mockReturnValue(
-      errorQueryResult(new Error("Service unavailable"))
-    );
+    useSystemStatusMock.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      isError: true,
+    });
     render(
       <MemoryRouter>
         <AdminStatusPage />
@@ -148,7 +153,7 @@ describe("IT admin status and technical configuration pages", () => {
         <AdminStatusPage />
       </MemoryRouter>
     );
-    const row = screen.getByText("Mark lost").closest("tr");
+    const row = screen.getByText("Open T3 inspection rounds").closest("tr");
     expect(row).not.toBeNull();
     fireEvent.click(within(row as HTMLElement).getByRole("button", { name: "Run now" }));
 
@@ -163,7 +168,7 @@ describe("IT admin status and technical configuration pages", () => {
   });
 
   it("runs a cron job through the mutation hook", async () => {
-    mutateAsync.mockResolvedValue(okOutput.parse({ ok: true }));
+    mutateAsync.mockResolvedValue({ ok: true });
     render(
       <MemoryRouter>
         <AdminStatusPage />
@@ -191,7 +196,11 @@ describe("IT admin status and technical configuration pages", () => {
   });
 
   it("shows configuration loading and unavailable states", () => {
-    useTechnicalConfigMock.mockReturnValue(loadingQueryResult());
+    useTechnicalConfigMock.mockReturnValue({
+      data: undefined,
+      isLoading: true,
+      isError: false,
+    });
     const { unmount } = render(
       <MemoryRouter>
         <AdminConfigPage />
@@ -200,9 +209,11 @@ describe("IT admin status and technical configuration pages", () => {
     expect(screen.getByText(i18n.t("common.loading"))).toBeInTheDocument();
     unmount();
 
-    useTechnicalConfigMock.mockReturnValue(
-      errorQueryResult(new Error("Service unavailable"))
-    );
+    useTechnicalConfigMock.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      isError: true,
+    });
     render(
       <MemoryRouter>
         <AdminConfigPage />

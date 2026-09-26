@@ -14,8 +14,13 @@ describe('Module 12.1 — Security NFRs', () => {
 
   it('12.1.2 rejects malformed endpoint input through Zod schema validation', () => {
     const result = creditOutput.safeParse({
-      accountId: 'not-a-number', score: 80, tier: 'D1',
-      maxBorrowDays: 10, maxExtendTimes: 2, activePenalties: [], totalDeducted: 0,
+      accountId: 'not-a-number',
+      score: 80,
+      tier: 'D1',
+      maxBorrowDays: 10,
+      maxExtendTimes: 2,
+      activePenalties: [],
+      totalDeducted: 0,
     });
     expect(result.success).toBe(false);
   });
@@ -28,20 +33,32 @@ describe('Module 12.1 — Security NFRs', () => {
   });
 
   it('12.1.4 sets secure session cookie flags in production', async () => {
-    const prisma = { sessionInfo: { create: jest.fn().mockResolvedValue({}) } } as any;
+    const prisma = {
+      sessionInfo: { create: jest.fn().mockResolvedValue({}) },
+    } as any;
     const config = {
-      get: jest.fn((key: string) => ({
-        SESSION_SECRET: 'a-test-secret-that-is-at-least-32-characters-long',
-        NODE_ENV: 'production',
-      })[key]),
+      get: jest.fn(
+        (key: string) =>
+          ({
+            SESSION_SECRET: 'a-test-secret-that-is-at-least-32-characters-long',
+            NODE_ENV: 'production',
+          })[key],
+      ),
     } as unknown as ConfigService;
     const service = new SessionService(config, prisma);
     const cookie = jest.fn();
 
     await service.issue({ cookie } as any, 1);
 
-    expect(cookie).toHaveBeenCalledWith('ulms_session', expect.any(String), expect.objectContaining({
-      httpOnly: true, sameSite: 'lax', secure: true, path: '/',
-    }));
+    expect(cookie).toHaveBeenCalledWith(
+      'ulms_session',
+      expect.any(String),
+      expect.objectContaining({
+        httpOnly: true,
+        sameSite: 'lax',
+        secure: true,
+        path: '/',
+      }),
+    );
   });
 });

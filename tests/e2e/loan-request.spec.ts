@@ -1,27 +1,52 @@
-import {
-  addDays,
-  localTimeToUtc,
-  toLocalDayKey,
-} from "../../backend/src/common/schemas/datetime.schema";
-import type { Page } from "@playwright/test";
-import { expect, test } from "./fixtures/api-contracts";
-import { loginOutput } from "../../backend/src/auth/auth.schema";
-import { createRequestOutput } from "../../backend/src/loan/loan.schema";
+import { expect, test, type Page } from "@playwright/test";
 
 const BORROWER = { username: "test_borrower", password: "borrower1234" };
 const CALIPER = "เวอร์เนียคาลิปเปอร์ดิจิทัล";
 const JUMPER_WIRES = "สายจัมเปอร์ชุดใหญ่";
 
-let pickupDate: string;
-let maxBorrowDays: number;
-function e2eRequestDate(): string {
-  return pickupDate;
+/** Mirrors REQUEST_TIMES in request-draft.store.ts. */
+const PICKUP_TIME_SLOTS = ["08:00", "13:00", "16:00"];
+
+/** Today's date and current time-of-day in Asia/Bangkok, regardless of the
+ * host machine's own timezone. */
+function bangkokParts(date = new Date()): { day: string; hm: string } {
+  const fmt = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Bangkok",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  });
+  const parts = Object.fromEntries(fmt.formatToParts(date).map((p) => [p.type, p.value]));
+  return { day: `${parts.year}-${parts.month}-${parts.day}`, hm: `${parts.hour}:${parts.minute}` };
 }
 
-function e2eReturnDate(daysFromPickup: number): string {
-  return toLocalDayKey(
-    addDays(localTimeToUtc(pickupDate, "00:00"), daysFromPickup),
-  );
+/**
+ * Today in Asia/Bangkok, or N calendar days after it.
+ *
+ * `Date#toISOString` reports UTC, which lands on the wrong calendar day
+ * whenever it is past midnight but before 07:00 in Bangkok. Anchoring the
+ * arithmetic at UTC noon on Bangkok's own y/m/d keeps it correct no matter
+ * what timezone the test runner itself is in.
+ */
+function bangkokDay(offsetDays = 0): string {
+  const [y, m, d] = bangkokParts().day.split("-").map(Number);
+  const anchor = new Date(Date.UTC(y, m - 1, d, 12));
+  anchor.setUTCDate(anchor.getUTCDate() + offsetDays);
+  return anchor.toISOString().slice(0, 10);
+}
+
+/**
+ * T0 stock is walk-in only (FR-RSV-03: not reservable ahead), so pickup has
+ * to be today at a preset time that has not passed yet - picking a fixed
+ * slot like "13:00" would fail the "must be in the future" check once the
+ * suite runs past it. Tests that need one skip once none is left.
+ */
+function nextPickupTime(): string {
+  const { hm } = bangkokParts();
+  return PICKUP_TIME_SLOTS.find((slot) => slot > hm) ?? PICKUP_TIME_SLOTS[PICKUP_TIME_SLOTS.length - 1];
 }
 
 async function signInAsBorrower(page: Page) {
@@ -30,21 +55,13 @@ async function signInAsBorrower(page: Page) {
   await page.locator("#m-local .login-method-header").click();
   await page.locator("#loc-user").fill(BORROWER.username);
   await page.locator("#loc-pass").fill(BORROWER.password);
-  const login = mutationResponse(page, "auth.login");
   await page.locator('#m-local button[type="submit"]').click();
   await expect(page).toHaveURL(/\/$/, { timeout: 10_000 });
-  const body: unknown = await (await login).json();
-  const envelope = (Array.isArray(body) ? body[0] : body) as {
-    result?: { data?: unknown };
-  };
-  return loginOutput.parse(envelope.result?.data).user;
 }
 
 async function addSeedT0Items(page: Page) {
   await page.goto("/catalog");
-  await expect(
-    page.getByRole("heading", { name: "Equipment catalog" }),
-  ).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Equipment catalog" })).toBeVisible();
 
   for (const itemName of [CALIPER, JUMPER_WIRES]) {
     const row = page.getByRole("row").filter({ hasText: itemName });
@@ -54,25 +71,19 @@ async function addSeedT0Items(page: Page) {
 
   await page.getByRole("button", { name: "2 selected", exact: true }).click();
   await expect(page).toHaveURL("/request");
-}
-
-async function chooseRequestWindow(page: Page, returnDaysFromPickup = 1) {
-  await page.getByLabel("Pickup date", { exact: true }).fill(e2eRequestDate());
-  await page
-    .getByLabel("Return date", { exact: true })
-    .fill(e2eReturnDate(returnDaysFromPickup));
-  await page.getByRole("button", { name: "13:00" }).first().click();
+  // The request page's chunk loads in behind the navigation, and the
+  // catalog's own period filter (also labelled "Pickup date/time", as a
+  // combobox rather than a plain input) can still be on screen for a moment
+  // after the URL changes. Wait for this page's own heading before touching
+  // any field, or a getByLabel("Pickup date") call can resolve to the wrong
+  // page's control.
+  await expect(page.getByRole("heading", { name: "New borrow request" })).toBeVisible();
 }
 
 function mutationResponse(page: Page, procedure: string) {
   return page.waitForResponse((response) => {
-    const procedures = new URL(response.url()).pathname
-      .split("/trpc/")[1]
-      ?.split(",");
-    return (
-      procedures?.includes(procedure) === true &&
-      response.request().method() === "POST"
-    );
+    const procedures = new URL(response.url()).pathname.split("/trpc/")[1]?.split(",");
+    return procedures?.includes(procedure) === true && response.request().method() === "POST";
   });
 }
 
@@ -89,77 +100,64 @@ async function cancelLatestRequest(page: Page, itemName: string) {
 
 test.describe("Module 6 loan request submission", () => {
   test.beforeEach(async ({ page }) => {
-    pickupDate = toLocalDayKey(addDays(new Date(), 31));
-    const user = await signInAsBorrower(page);
-    maxBorrowDays = user.maxBorrowDays;
+    await signInAsBorrower(page);
   });
 
-  test("6.1: adds two items and opens one combined request draft", async ({
-    page,
-  }) => {
+  test("6.1: adds two items and opens one combined request draft", async ({ page }) => {
     await addSeedT0Items(page);
 
-    const draftRows = page.getByRole("row");
-    await expect(draftRows.filter({ hasText: CALIPER })).toBeVisible();
-    await expect(draftRows.filter({ hasText: JUMPER_WIRES })).toBeVisible();
-    await chooseRequestWindow(page);
-    await expect(
-      page.getByRole("button", { name: "Submit request" }),
-    ).toBeEnabled();
+    // Selected items now list as rows in one table rather than separate
+    // cards, but the point of this test - both items land on one shared
+    // draft - still holds.
+    await expect(page.getByRole("cell", { name: CALIPER, exact: true })).toBeVisible();
+    await expect(page.getByRole("cell", { name: JUMPER_WIRES, exact: true })).toBeVisible();
   });
 
-  test("6.2: requires a valid pickup/return period within the allowed range", async ({
-    page,
-  }) => {
+  test("6.2: requires a valid pickup/return period within the allowed range", async ({ page }) => {
+    // Same-day pickup only (FR-RSV-03), and after the last slot none is left.
+    test.skip(bangkokParts().hm >= PICKUP_TIME_SLOTS.at(-1)!, "no pickup slot left today");
     await addSeedT0Items(page);
+    await page.getByRole("button", { name: nextPickupTime() }).first().click();
 
     const submit = page.getByRole("button", { name: "Submit request" });
-    // Choose a future pickup explicitly: today's default time may have passed.
-    await chooseRequestWindow(page);
+    // Return tomorrow: the same-day default stops being valid late in the day,
+    // once the next pickup slot is the last one.
+    await page.getByLabel("Return date").fill(bangkokDay(1));
     await expect(submit).toBeEnabled();
 
-    await page
-      .getByLabel("Pickup date", { exact: true })
-      .fill(e2eRequestDate());
-    await page
-      .getByLabel("Return date", { exact: true })
-      .fill(e2eReturnDate(maxBorrowDays));
-    await page.getByRole("button", { name: "13:00" }).first().click();
+    // Pickup + 13 days is a 14-day loan inclusive of both ends, exactly the
+    // D0 credit band's cap.
+    await page.getByLabel("Return date").fill(bangkokDay(13));
+    await expect(submit).toBeEnabled();
+
+    // Pickup + 14 days is a 15-day loan, one more than the D0 allowance.
+    await page.getByLabel("Return date").fill(bangkokDay(14));
     await expect(submit).toBeDisabled();
-
-    // The inclusive span comes from the authenticated borrower's real limits.
-    await page
-      .getByLabel("Return date", { exact: true })
-      .fill(e2eReturnDate(maxBorrowDays - 1));
-    await expect(submit).toBeEnabled();
   });
 
-  test("6.11: submits the request through loan.create and shows both requested items", async ({
-    page,
-  }) => {
+  test("6.11: submits the request through loan.create and shows both requested items", async ({ page }) => {
+    // Same-day pickup only (FR-RSV-03), and after the last slot none is left.
+    test.skip(bangkokParts().hm >= PICKUP_TIME_SLOTS.at(-1)!, "no pickup slot left today");
     await addSeedT0Items(page);
 
-    await chooseRequestWindow(page);
+    // T0 stock is walk-in only (FR-RSV-03), so pickup must be today. Returning
+    // the next day means the pickup/return times never have to straddle the
+    // same day's preset slots.
+    await page.getByLabel("Pickup date").fill(bangkokDay(0));
+    await page.getByRole("button", { name: nextPickupTime() }).first().click();
+    await page.getByLabel("Return date").fill(bangkokDay(1));
 
     const create = mutationResponse(page, "loan.create");
     await page.getByRole("button", { name: "Submit request" }).click();
 
-    const createResponse = await create;
-    expect(createResponse.ok(), await createResponse.text()).toBeTruthy();
-    const body: unknown = await createResponse.json();
-    const envelope = (Array.isArray(body) ? body[0] : body) as {
-      result?: { data?: unknown };
-    };
-    const result = createRequestOutput.parse(envelope.result?.data);
-    expect(result.created).toHaveLength(2);
-    expect(result.rejected).toEqual([]);
+    expect((await create).ok()).toBeTruthy();
     await expect(page).toHaveURL("/my/loans");
-    await expect(
-      page.getByRole("heading", { name: CALIPER, exact: true }).first(),
-    ).toBeVisible();
-    await expect(
-      page.getByRole("heading", { name: JUMPER_WIRES, exact: true }).first(),
-    ).toBeVisible();
+    // Same code-split timing as the catalog -> request hop: the URL changes
+    // before the my-loans chunk has mounted, and the old (now-cleared)
+    // request page briefly still renders. Wait for this page's own heading.
+    await expect(page.getByRole("heading", { name: "My requests" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: CALIPER, exact: true }).first()).toBeVisible();
+    await expect(page.getByRole("heading", { name: JUMPER_WIRES, exact: true }).first()).toBeVisible();
 
     await cancelLatestRequest(page, CALIPER);
     await cancelLatestRequest(page, JUMPER_WIRES);

@@ -288,6 +288,8 @@ export type AccountInfoWhereInput = {
   ImagesSubmitted?: Prisma.ImagesListRelationFilter
   Notifications?: Prisma.NotificationListRelationFilter
   RepairsPerformed?: Prisma.RepairLogListRelationFilter
+  RetirementsRequested?: Prisma.RetirementRequestListRelationFilter
+  RetirementsDecided?: Prisma.RetirementRequestListRelationFilter
 }
 
 export type AccountInfoOrderByWithRelationInput = {
@@ -321,6 +323,8 @@ export type AccountInfoOrderByWithRelationInput = {
   ImagesSubmitted?: Prisma.ImagesOrderByRelationAggregateInput
   Notifications?: Prisma.NotificationOrderByRelationAggregateInput
   RepairsPerformed?: Prisma.RepairLogOrderByRelationAggregateInput
+  RetirementsRequested?: Prisma.RetirementRequestOrderByRelationAggregateInput
+  RetirementsDecided?: Prisma.RetirementRequestOrderByRelationAggregateInput
 }
 
 export type AccountInfoWhereUniqueInput = Prisma.AtLeast<{
@@ -357,6 +361,8 @@ export type AccountInfoWhereUniqueInput = Prisma.AtLeast<{
   ImagesSubmitted?: Prisma.ImagesListRelationFilter
   Notifications?: Prisma.NotificationListRelationFilter
   RepairsPerformed?: Prisma.RepairLogListRelationFilter
+  RetirementsRequested?: Prisma.RetirementRequestListRelationFilter
+  RetirementsDecided?: Prisma.RetirementRequestListRelationFilter
 }, "AccountKey" | "Email" | "UserID">
 
 export type AccountInfoOrderByWithAggregationInput = {
@@ -421,6 +427,8 @@ export type AccountInfoCreateInput = {
   ImagesSubmitted?: Prisma.ImagesCreateNestedManyWithoutSubmittedByUserInput
   Notifications?: Prisma.NotificationCreateNestedManyWithoutAccountInput
   RepairsPerformed?: Prisma.RepairLogCreateNestedManyWithoutRepairedByUserInput
+  RetirementsRequested?: Prisma.RetirementRequestCreateNestedManyWithoutRequestedByUserInput
+  RetirementsDecided?: Prisma.RetirementRequestCreateNestedManyWithoutDecidedByUserInput
 }
 
 export type AccountInfoUncheckedCreateInput = {
@@ -452,6 +460,8 @@ export type AccountInfoUncheckedCreateInput = {
   ImagesSubmitted?: Prisma.ImagesUncheckedCreateNestedManyWithoutSubmittedByUserInput
   Notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutAccountInput
   RepairsPerformed?: Prisma.RepairLogUncheckedCreateNestedManyWithoutRepairedByUserInput
+  RetirementsRequested?: Prisma.RetirementRequestUncheckedCreateNestedManyWithoutRequestedByUserInput
+  RetirementsDecided?: Prisma.RetirementRequestUncheckedCreateNestedManyWithoutDecidedByUserInput
 }
 
 export type AccountInfoUpdateInput = {
@@ -482,6 +492,8 @@ export type AccountInfoUpdateInput = {
   ImagesSubmitted?: Prisma.ImagesUpdateManyWithoutSubmittedByUserNestedInput
   Notifications?: Prisma.NotificationUpdateManyWithoutAccountNestedInput
   RepairsPerformed?: Prisma.RepairLogUpdateManyWithoutRepairedByUserNestedInput
+  RetirementsRequested?: Prisma.RetirementRequestUpdateManyWithoutRequestedByUserNestedInput
+  RetirementsDecided?: Prisma.RetirementRequestUpdateManyWithoutDecidedByUserNestedInput
 }
 
 export type AccountInfoUncheckedUpdateInput = {
@@ -513,6 +525,8 @@ export type AccountInfoUncheckedUpdateInput = {
   ImagesSubmitted?: Prisma.ImagesUncheckedUpdateManyWithoutSubmittedByUserNestedInput
   Notifications?: Prisma.NotificationUncheckedUpdateManyWithoutAccountNestedInput
   RepairsPerformed?: Prisma.RepairLogUncheckedUpdateManyWithoutRepairedByUserNestedInput
+  RetirementsRequested?: Prisma.RetirementRequestUncheckedUpdateManyWithoutRequestedByUserNestedInput
+  RetirementsDecided?: Prisma.RetirementRequestUncheckedUpdateManyWithoutDecidedByUserNestedInput
 }
 
 export type AccountInfoCreateManyInput = {
@@ -804,6 +818,36 @@ export type AccountInfoUpdateOneRequiredWithoutAuthoritiesNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.AccountInfoUpdateToOneWithWhereWithoutAuthoritiesInput, Prisma.AccountInfoUpdateWithoutAuthoritiesInput>, Prisma.AccountInfoUncheckedUpdateWithoutAuthoritiesInput>
 }
 
+export type AccountInfoCreateNestedOneWithoutRetirementsRequestedInput = {
+  create?: Prisma.XOR<Prisma.AccountInfoCreateWithoutRetirementsRequestedInput, Prisma.AccountInfoUncheckedCreateWithoutRetirementsRequestedInput>
+  connectOrCreate?: Prisma.AccountInfoCreateOrConnectWithoutRetirementsRequestedInput
+  connect?: Prisma.AccountInfoWhereUniqueInput
+}
+
+export type AccountInfoCreateNestedOneWithoutRetirementsDecidedInput = {
+  create?: Prisma.XOR<Prisma.AccountInfoCreateWithoutRetirementsDecidedInput, Prisma.AccountInfoUncheckedCreateWithoutRetirementsDecidedInput>
+  connectOrCreate?: Prisma.AccountInfoCreateOrConnectWithoutRetirementsDecidedInput
+  connect?: Prisma.AccountInfoWhereUniqueInput
+}
+
+export type AccountInfoUpdateOneRequiredWithoutRetirementsRequestedNestedInput = {
+  create?: Prisma.XOR<Prisma.AccountInfoCreateWithoutRetirementsRequestedInput, Prisma.AccountInfoUncheckedCreateWithoutRetirementsRequestedInput>
+  connectOrCreate?: Prisma.AccountInfoCreateOrConnectWithoutRetirementsRequestedInput
+  upsert?: Prisma.AccountInfoUpsertWithoutRetirementsRequestedInput
+  connect?: Prisma.AccountInfoWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.AccountInfoUpdateToOneWithWhereWithoutRetirementsRequestedInput, Prisma.AccountInfoUpdateWithoutRetirementsRequestedInput>, Prisma.AccountInfoUncheckedUpdateWithoutRetirementsRequestedInput>
+}
+
+export type AccountInfoUpdateOneWithoutRetirementsDecidedNestedInput = {
+  create?: Prisma.XOR<Prisma.AccountInfoCreateWithoutRetirementsDecidedInput, Prisma.AccountInfoUncheckedCreateWithoutRetirementsDecidedInput>
+  connectOrCreate?: Prisma.AccountInfoCreateOrConnectWithoutRetirementsDecidedInput
+  upsert?: Prisma.AccountInfoUpsertWithoutRetirementsDecidedInput
+  disconnect?: Prisma.AccountInfoWhereInput | boolean
+  delete?: Prisma.AccountInfoWhereInput | boolean
+  connect?: Prisma.AccountInfoWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.AccountInfoUpdateToOneWithWhereWithoutRetirementsDecidedInput, Prisma.AccountInfoUpdateWithoutRetirementsDecidedInput>, Prisma.AccountInfoUncheckedUpdateWithoutRetirementsDecidedInput>
+}
+
 export type AccountInfoCreateNestedOneWithoutConditionLogsLoggedInput = {
   create?: Prisma.XOR<Prisma.AccountInfoCreateWithoutConditionLogsLoggedInput, Prisma.AccountInfoUncheckedCreateWithoutConditionLogsLoggedInput>
   connectOrCreate?: Prisma.AccountInfoCreateOrConnectWithoutConditionLogsLoggedInput
@@ -1019,6 +1063,8 @@ export type AccountInfoCreateWithoutPasswordResetsInput = {
   ImagesSubmitted?: Prisma.ImagesCreateNestedManyWithoutSubmittedByUserInput
   Notifications?: Prisma.NotificationCreateNestedManyWithoutAccountInput
   RepairsPerformed?: Prisma.RepairLogCreateNestedManyWithoutRepairedByUserInput
+  RetirementsRequested?: Prisma.RetirementRequestCreateNestedManyWithoutRequestedByUserInput
+  RetirementsDecided?: Prisma.RetirementRequestCreateNestedManyWithoutDecidedByUserInput
 }
 
 export type AccountInfoUncheckedCreateWithoutPasswordResetsInput = {
@@ -1049,6 +1095,8 @@ export type AccountInfoUncheckedCreateWithoutPasswordResetsInput = {
   ImagesSubmitted?: Prisma.ImagesUncheckedCreateNestedManyWithoutSubmittedByUserInput
   Notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutAccountInput
   RepairsPerformed?: Prisma.RepairLogUncheckedCreateNestedManyWithoutRepairedByUserInput
+  RetirementsRequested?: Prisma.RetirementRequestUncheckedCreateNestedManyWithoutRequestedByUserInput
+  RetirementsDecided?: Prisma.RetirementRequestUncheckedCreateNestedManyWithoutDecidedByUserInput
 }
 
 export type AccountInfoCreateOrConnectWithoutPasswordResetsInput = {
@@ -1094,6 +1142,8 @@ export type AccountInfoUpdateWithoutPasswordResetsInput = {
   ImagesSubmitted?: Prisma.ImagesUpdateManyWithoutSubmittedByUserNestedInput
   Notifications?: Prisma.NotificationUpdateManyWithoutAccountNestedInput
   RepairsPerformed?: Prisma.RepairLogUpdateManyWithoutRepairedByUserNestedInput
+  RetirementsRequested?: Prisma.RetirementRequestUpdateManyWithoutRequestedByUserNestedInput
+  RetirementsDecided?: Prisma.RetirementRequestUpdateManyWithoutDecidedByUserNestedInput
 }
 
 export type AccountInfoUncheckedUpdateWithoutPasswordResetsInput = {
@@ -1124,6 +1174,8 @@ export type AccountInfoUncheckedUpdateWithoutPasswordResetsInput = {
   ImagesSubmitted?: Prisma.ImagesUncheckedUpdateManyWithoutSubmittedByUserNestedInput
   Notifications?: Prisma.NotificationUncheckedUpdateManyWithoutAccountNestedInput
   RepairsPerformed?: Prisma.RepairLogUncheckedUpdateManyWithoutRepairedByUserNestedInput
+  RetirementsRequested?: Prisma.RetirementRequestUncheckedUpdateManyWithoutRequestedByUserNestedInput
+  RetirementsDecided?: Prisma.RetirementRequestUncheckedUpdateManyWithoutDecidedByUserNestedInput
 }
 
 export type AccountInfoCreateWithoutEmailVerificationsInput = {
@@ -1153,6 +1205,8 @@ export type AccountInfoCreateWithoutEmailVerificationsInput = {
   ImagesSubmitted?: Prisma.ImagesCreateNestedManyWithoutSubmittedByUserInput
   Notifications?: Prisma.NotificationCreateNestedManyWithoutAccountInput
   RepairsPerformed?: Prisma.RepairLogCreateNestedManyWithoutRepairedByUserInput
+  RetirementsRequested?: Prisma.RetirementRequestCreateNestedManyWithoutRequestedByUserInput
+  RetirementsDecided?: Prisma.RetirementRequestCreateNestedManyWithoutDecidedByUserInput
 }
 
 export type AccountInfoUncheckedCreateWithoutEmailVerificationsInput = {
@@ -1183,6 +1237,8 @@ export type AccountInfoUncheckedCreateWithoutEmailVerificationsInput = {
   ImagesSubmitted?: Prisma.ImagesUncheckedCreateNestedManyWithoutSubmittedByUserInput
   Notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutAccountInput
   RepairsPerformed?: Prisma.RepairLogUncheckedCreateNestedManyWithoutRepairedByUserInput
+  RetirementsRequested?: Prisma.RetirementRequestUncheckedCreateNestedManyWithoutRequestedByUserInput
+  RetirementsDecided?: Prisma.RetirementRequestUncheckedCreateNestedManyWithoutDecidedByUserInput
 }
 
 export type AccountInfoCreateOrConnectWithoutEmailVerificationsInput = {
@@ -1228,6 +1284,8 @@ export type AccountInfoUpdateWithoutEmailVerificationsInput = {
   ImagesSubmitted?: Prisma.ImagesUpdateManyWithoutSubmittedByUserNestedInput
   Notifications?: Prisma.NotificationUpdateManyWithoutAccountNestedInput
   RepairsPerformed?: Prisma.RepairLogUpdateManyWithoutRepairedByUserNestedInput
+  RetirementsRequested?: Prisma.RetirementRequestUpdateManyWithoutRequestedByUserNestedInput
+  RetirementsDecided?: Prisma.RetirementRequestUpdateManyWithoutDecidedByUserNestedInput
 }
 
 export type AccountInfoUncheckedUpdateWithoutEmailVerificationsInput = {
@@ -1258,6 +1316,8 @@ export type AccountInfoUncheckedUpdateWithoutEmailVerificationsInput = {
   ImagesSubmitted?: Prisma.ImagesUncheckedUpdateManyWithoutSubmittedByUserNestedInput
   Notifications?: Prisma.NotificationUncheckedUpdateManyWithoutAccountNestedInput
   RepairsPerformed?: Prisma.RepairLogUncheckedUpdateManyWithoutRepairedByUserNestedInput
+  RetirementsRequested?: Prisma.RetirementRequestUncheckedUpdateManyWithoutRequestedByUserNestedInput
+  RetirementsDecided?: Prisma.RetirementRequestUncheckedUpdateManyWithoutDecidedByUserNestedInput
 }
 
 export type AccountInfoCreateWithoutSessionsInput = {
@@ -1287,6 +1347,8 @@ export type AccountInfoCreateWithoutSessionsInput = {
   ImagesSubmitted?: Prisma.ImagesCreateNestedManyWithoutSubmittedByUserInput
   Notifications?: Prisma.NotificationCreateNestedManyWithoutAccountInput
   RepairsPerformed?: Prisma.RepairLogCreateNestedManyWithoutRepairedByUserInput
+  RetirementsRequested?: Prisma.RetirementRequestCreateNestedManyWithoutRequestedByUserInput
+  RetirementsDecided?: Prisma.RetirementRequestCreateNestedManyWithoutDecidedByUserInput
 }
 
 export type AccountInfoUncheckedCreateWithoutSessionsInput = {
@@ -1317,6 +1379,8 @@ export type AccountInfoUncheckedCreateWithoutSessionsInput = {
   ImagesSubmitted?: Prisma.ImagesUncheckedCreateNestedManyWithoutSubmittedByUserInput
   Notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutAccountInput
   RepairsPerformed?: Prisma.RepairLogUncheckedCreateNestedManyWithoutRepairedByUserInput
+  RetirementsRequested?: Prisma.RetirementRequestUncheckedCreateNestedManyWithoutRequestedByUserInput
+  RetirementsDecided?: Prisma.RetirementRequestUncheckedCreateNestedManyWithoutDecidedByUserInput
 }
 
 export type AccountInfoCreateOrConnectWithoutSessionsInput = {
@@ -1362,6 +1426,8 @@ export type AccountInfoUpdateWithoutSessionsInput = {
   ImagesSubmitted?: Prisma.ImagesUpdateManyWithoutSubmittedByUserNestedInput
   Notifications?: Prisma.NotificationUpdateManyWithoutAccountNestedInput
   RepairsPerformed?: Prisma.RepairLogUpdateManyWithoutRepairedByUserNestedInput
+  RetirementsRequested?: Prisma.RetirementRequestUpdateManyWithoutRequestedByUserNestedInput
+  RetirementsDecided?: Prisma.RetirementRequestUpdateManyWithoutDecidedByUserNestedInput
 }
 
 export type AccountInfoUncheckedUpdateWithoutSessionsInput = {
@@ -1392,6 +1458,8 @@ export type AccountInfoUncheckedUpdateWithoutSessionsInput = {
   ImagesSubmitted?: Prisma.ImagesUncheckedUpdateManyWithoutSubmittedByUserNestedInput
   Notifications?: Prisma.NotificationUncheckedUpdateManyWithoutAccountNestedInput
   RepairsPerformed?: Prisma.RepairLogUncheckedUpdateManyWithoutRepairedByUserNestedInput
+  RetirementsRequested?: Prisma.RetirementRequestUncheckedUpdateManyWithoutRequestedByUserNestedInput
+  RetirementsDecided?: Prisma.RetirementRequestUncheckedUpdateManyWithoutDecidedByUserNestedInput
 }
 
 export type AccountInfoCreateWithoutAuditTrailInput = {
@@ -1421,6 +1489,8 @@ export type AccountInfoCreateWithoutAuditTrailInput = {
   ImagesSubmitted?: Prisma.ImagesCreateNestedManyWithoutSubmittedByUserInput
   Notifications?: Prisma.NotificationCreateNestedManyWithoutAccountInput
   RepairsPerformed?: Prisma.RepairLogCreateNestedManyWithoutRepairedByUserInput
+  RetirementsRequested?: Prisma.RetirementRequestCreateNestedManyWithoutRequestedByUserInput
+  RetirementsDecided?: Prisma.RetirementRequestCreateNestedManyWithoutDecidedByUserInput
 }
 
 export type AccountInfoUncheckedCreateWithoutAuditTrailInput = {
@@ -1451,6 +1521,8 @@ export type AccountInfoUncheckedCreateWithoutAuditTrailInput = {
   ImagesSubmitted?: Prisma.ImagesUncheckedCreateNestedManyWithoutSubmittedByUserInput
   Notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutAccountInput
   RepairsPerformed?: Prisma.RepairLogUncheckedCreateNestedManyWithoutRepairedByUserInput
+  RetirementsRequested?: Prisma.RetirementRequestUncheckedCreateNestedManyWithoutRequestedByUserInput
+  RetirementsDecided?: Prisma.RetirementRequestUncheckedCreateNestedManyWithoutDecidedByUserInput
 }
 
 export type AccountInfoCreateOrConnectWithoutAuditTrailInput = {
@@ -1496,6 +1568,8 @@ export type AccountInfoUpdateWithoutAuditTrailInput = {
   ImagesSubmitted?: Prisma.ImagesUpdateManyWithoutSubmittedByUserNestedInput
   Notifications?: Prisma.NotificationUpdateManyWithoutAccountNestedInput
   RepairsPerformed?: Prisma.RepairLogUpdateManyWithoutRepairedByUserNestedInput
+  RetirementsRequested?: Prisma.RetirementRequestUpdateManyWithoutRequestedByUserNestedInput
+  RetirementsDecided?: Prisma.RetirementRequestUpdateManyWithoutDecidedByUserNestedInput
 }
 
 export type AccountInfoUncheckedUpdateWithoutAuditTrailInput = {
@@ -1526,6 +1600,8 @@ export type AccountInfoUncheckedUpdateWithoutAuditTrailInput = {
   ImagesSubmitted?: Prisma.ImagesUncheckedUpdateManyWithoutSubmittedByUserNestedInput
   Notifications?: Prisma.NotificationUncheckedUpdateManyWithoutAccountNestedInput
   RepairsPerformed?: Prisma.RepairLogUncheckedUpdateManyWithoutRepairedByUserNestedInput
+  RetirementsRequested?: Prisma.RetirementRequestUncheckedUpdateManyWithoutRequestedByUserNestedInput
+  RetirementsDecided?: Prisma.RetirementRequestUncheckedUpdateManyWithoutDecidedByUserNestedInput
 }
 
 export type AccountInfoCreateWithoutRoleInput = {
@@ -1555,6 +1631,8 @@ export type AccountInfoCreateWithoutRoleInput = {
   ImagesSubmitted?: Prisma.ImagesCreateNestedManyWithoutSubmittedByUserInput
   Notifications?: Prisma.NotificationCreateNestedManyWithoutAccountInput
   RepairsPerformed?: Prisma.RepairLogCreateNestedManyWithoutRepairedByUserInput
+  RetirementsRequested?: Prisma.RetirementRequestCreateNestedManyWithoutRequestedByUserInput
+  RetirementsDecided?: Prisma.RetirementRequestCreateNestedManyWithoutDecidedByUserInput
 }
 
 export type AccountInfoUncheckedCreateWithoutRoleInput = {
@@ -1585,6 +1663,8 @@ export type AccountInfoUncheckedCreateWithoutRoleInput = {
   ImagesSubmitted?: Prisma.ImagesUncheckedCreateNestedManyWithoutSubmittedByUserInput
   Notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutAccountInput
   RepairsPerformed?: Prisma.RepairLogUncheckedCreateNestedManyWithoutRepairedByUserInput
+  RetirementsRequested?: Prisma.RetirementRequestUncheckedCreateNestedManyWithoutRequestedByUserInput
+  RetirementsDecided?: Prisma.RetirementRequestUncheckedCreateNestedManyWithoutDecidedByUserInput
 }
 
 export type AccountInfoCreateOrConnectWithoutRoleInput = {
@@ -1656,6 +1736,8 @@ export type AccountInfoCreateWithoutFacultyInput = {
   ImagesSubmitted?: Prisma.ImagesCreateNestedManyWithoutSubmittedByUserInput
   Notifications?: Prisma.NotificationCreateNestedManyWithoutAccountInput
   RepairsPerformed?: Prisma.RepairLogCreateNestedManyWithoutRepairedByUserInput
+  RetirementsRequested?: Prisma.RetirementRequestCreateNestedManyWithoutRequestedByUserInput
+  RetirementsDecided?: Prisma.RetirementRequestCreateNestedManyWithoutDecidedByUserInput
 }
 
 export type AccountInfoUncheckedCreateWithoutFacultyInput = {
@@ -1686,6 +1768,8 @@ export type AccountInfoUncheckedCreateWithoutFacultyInput = {
   ImagesSubmitted?: Prisma.ImagesUncheckedCreateNestedManyWithoutSubmittedByUserInput
   Notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutAccountInput
   RepairsPerformed?: Prisma.RepairLogUncheckedCreateNestedManyWithoutRepairedByUserInput
+  RetirementsRequested?: Prisma.RetirementRequestUncheckedCreateNestedManyWithoutRequestedByUserInput
+  RetirementsDecided?: Prisma.RetirementRequestUncheckedCreateNestedManyWithoutDecidedByUserInput
 }
 
 export type AccountInfoCreateOrConnectWithoutFacultyInput = {
@@ -1741,6 +1825,8 @@ export type AccountInfoCreateWithoutAuthoritiesInput = {
   ImagesSubmitted?: Prisma.ImagesCreateNestedManyWithoutSubmittedByUserInput
   Notifications?: Prisma.NotificationCreateNestedManyWithoutAccountInput
   RepairsPerformed?: Prisma.RepairLogCreateNestedManyWithoutRepairedByUserInput
+  RetirementsRequested?: Prisma.RetirementRequestCreateNestedManyWithoutRequestedByUserInput
+  RetirementsDecided?: Prisma.RetirementRequestCreateNestedManyWithoutDecidedByUserInput
 }
 
 export type AccountInfoUncheckedCreateWithoutAuthoritiesInput = {
@@ -1771,6 +1857,8 @@ export type AccountInfoUncheckedCreateWithoutAuthoritiesInput = {
   ImagesSubmitted?: Prisma.ImagesUncheckedCreateNestedManyWithoutSubmittedByUserInput
   Notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutAccountInput
   RepairsPerformed?: Prisma.RepairLogUncheckedCreateNestedManyWithoutRepairedByUserInput
+  RetirementsRequested?: Prisma.RetirementRequestUncheckedCreateNestedManyWithoutRequestedByUserInput
+  RetirementsDecided?: Prisma.RetirementRequestUncheckedCreateNestedManyWithoutDecidedByUserInput
 }
 
 export type AccountInfoCreateOrConnectWithoutAuthoritiesInput = {
@@ -1816,6 +1904,8 @@ export type AccountInfoUpdateWithoutAuthoritiesInput = {
   ImagesSubmitted?: Prisma.ImagesUpdateManyWithoutSubmittedByUserNestedInput
   Notifications?: Prisma.NotificationUpdateManyWithoutAccountNestedInput
   RepairsPerformed?: Prisma.RepairLogUpdateManyWithoutRepairedByUserNestedInput
+  RetirementsRequested?: Prisma.RetirementRequestUpdateManyWithoutRequestedByUserNestedInput
+  RetirementsDecided?: Prisma.RetirementRequestUpdateManyWithoutDecidedByUserNestedInput
 }
 
 export type AccountInfoUncheckedUpdateWithoutAuthoritiesInput = {
@@ -1846,6 +1936,292 @@ export type AccountInfoUncheckedUpdateWithoutAuthoritiesInput = {
   ImagesSubmitted?: Prisma.ImagesUncheckedUpdateManyWithoutSubmittedByUserNestedInput
   Notifications?: Prisma.NotificationUncheckedUpdateManyWithoutAccountNestedInput
   RepairsPerformed?: Prisma.RepairLogUncheckedUpdateManyWithoutRepairedByUserNestedInput
+  RetirementsRequested?: Prisma.RetirementRequestUncheckedUpdateManyWithoutRequestedByUserNestedInput
+  RetirementsDecided?: Prisma.RetirementRequestUncheckedUpdateManyWithoutDecidedByUserNestedInput
+}
+
+export type AccountInfoCreateWithoutRetirementsRequestedInput = {
+  Email: string
+  HashedPassword: string
+  UserID: string
+  UserFName: string
+  UserLName: string
+  UserCredit: number
+  IsActive?: boolean
+  Role: Prisma.RoleInfoCreateNestedOneWithoutAccountsInput
+  Faculty?: Prisma.FacultyInfoCreateNestedOneWithoutAccountsInput
+  Sessions?: Prisma.SessionInfoCreateNestedManyWithoutAccountInput
+  PasswordResets?: Prisma.PasswordResetCreateNestedManyWithoutAccountInput
+  EmailVerifications?: Prisma.EmailVerificationCreateNestedManyWithoutAccountInput
+  AuditTrail?: Prisma.AuditLogCreateNestedManyWithoutActorInput
+  Authorities?: Prisma.AuthorityCreateNestedManyWithoutAccountInput
+  ConditionLogsLogged?: Prisma.ConditionLogCreateNestedManyWithoutLoggedByUserInput
+  ExtensionsRequested?: Prisma.ExtensionRequestCreateNestedManyWithoutRequestedByUserInput
+  ExtensionsApproved?: Prisma.ExtensionRequestCreateNestedManyWithoutApprovedByUserInput
+  ReservationsMade?: Prisma.ReservationsCreateNestedManyWithoutReservedByUserInput
+  ReservationsApproved?: Prisma.ReservationsCreateNestedManyWithoutApprovedByUserInput
+  UsageLogs?: Prisma.UsageLogCreateNestedManyWithoutAccountInput
+  InspectionsPerformed?: Prisma.InspectionCreateNestedManyWithoutInspectorInput
+  Penalties?: Prisma.PenaltyInfoCreateNestedManyWithoutAccountInput
+  AppealsFiled?: Prisma.AppealInfoCreateNestedManyWithoutFiledByUserInput
+  AppealsResolved?: Prisma.AppealInfoCreateNestedManyWithoutResolvedByUserInput
+  ImagesSubmitted?: Prisma.ImagesCreateNestedManyWithoutSubmittedByUserInput
+  Notifications?: Prisma.NotificationCreateNestedManyWithoutAccountInput
+  RepairsPerformed?: Prisma.RepairLogCreateNestedManyWithoutRepairedByUserInput
+  RetirementsDecided?: Prisma.RetirementRequestCreateNestedManyWithoutDecidedByUserInput
+}
+
+export type AccountInfoUncheckedCreateWithoutRetirementsRequestedInput = {
+  AccountKey?: number
+  Email: string
+  HashedPassword: string
+  UserID: string
+  UserFName: string
+  UserLName: string
+  UserCredit: number
+  RoleKey: number
+  FacultyKey?: number | null
+  IsActive?: boolean
+  Sessions?: Prisma.SessionInfoUncheckedCreateNestedManyWithoutAccountInput
+  PasswordResets?: Prisma.PasswordResetUncheckedCreateNestedManyWithoutAccountInput
+  EmailVerifications?: Prisma.EmailVerificationUncheckedCreateNestedManyWithoutAccountInput
+  AuditTrail?: Prisma.AuditLogUncheckedCreateNestedManyWithoutActorInput
+  Authorities?: Prisma.AuthorityUncheckedCreateNestedManyWithoutAccountInput
+  ConditionLogsLogged?: Prisma.ConditionLogUncheckedCreateNestedManyWithoutLoggedByUserInput
+  ExtensionsRequested?: Prisma.ExtensionRequestUncheckedCreateNestedManyWithoutRequestedByUserInput
+  ExtensionsApproved?: Prisma.ExtensionRequestUncheckedCreateNestedManyWithoutApprovedByUserInput
+  ReservationsMade?: Prisma.ReservationsUncheckedCreateNestedManyWithoutReservedByUserInput
+  ReservationsApproved?: Prisma.ReservationsUncheckedCreateNestedManyWithoutApprovedByUserInput
+  UsageLogs?: Prisma.UsageLogUncheckedCreateNestedManyWithoutAccountInput
+  InspectionsPerformed?: Prisma.InspectionUncheckedCreateNestedManyWithoutInspectorInput
+  Penalties?: Prisma.PenaltyInfoUncheckedCreateNestedManyWithoutAccountInput
+  AppealsFiled?: Prisma.AppealInfoUncheckedCreateNestedManyWithoutFiledByUserInput
+  AppealsResolved?: Prisma.AppealInfoUncheckedCreateNestedManyWithoutResolvedByUserInput
+  ImagesSubmitted?: Prisma.ImagesUncheckedCreateNestedManyWithoutSubmittedByUserInput
+  Notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutAccountInput
+  RepairsPerformed?: Prisma.RepairLogUncheckedCreateNestedManyWithoutRepairedByUserInput
+  RetirementsDecided?: Prisma.RetirementRequestUncheckedCreateNestedManyWithoutDecidedByUserInput
+}
+
+export type AccountInfoCreateOrConnectWithoutRetirementsRequestedInput = {
+  where: Prisma.AccountInfoWhereUniqueInput
+  create: Prisma.XOR<Prisma.AccountInfoCreateWithoutRetirementsRequestedInput, Prisma.AccountInfoUncheckedCreateWithoutRetirementsRequestedInput>
+}
+
+export type AccountInfoCreateWithoutRetirementsDecidedInput = {
+  Email: string
+  HashedPassword: string
+  UserID: string
+  UserFName: string
+  UserLName: string
+  UserCredit: number
+  IsActive?: boolean
+  Role: Prisma.RoleInfoCreateNestedOneWithoutAccountsInput
+  Faculty?: Prisma.FacultyInfoCreateNestedOneWithoutAccountsInput
+  Sessions?: Prisma.SessionInfoCreateNestedManyWithoutAccountInput
+  PasswordResets?: Prisma.PasswordResetCreateNestedManyWithoutAccountInput
+  EmailVerifications?: Prisma.EmailVerificationCreateNestedManyWithoutAccountInput
+  AuditTrail?: Prisma.AuditLogCreateNestedManyWithoutActorInput
+  Authorities?: Prisma.AuthorityCreateNestedManyWithoutAccountInput
+  ConditionLogsLogged?: Prisma.ConditionLogCreateNestedManyWithoutLoggedByUserInput
+  ExtensionsRequested?: Prisma.ExtensionRequestCreateNestedManyWithoutRequestedByUserInput
+  ExtensionsApproved?: Prisma.ExtensionRequestCreateNestedManyWithoutApprovedByUserInput
+  ReservationsMade?: Prisma.ReservationsCreateNestedManyWithoutReservedByUserInput
+  ReservationsApproved?: Prisma.ReservationsCreateNestedManyWithoutApprovedByUserInput
+  UsageLogs?: Prisma.UsageLogCreateNestedManyWithoutAccountInput
+  InspectionsPerformed?: Prisma.InspectionCreateNestedManyWithoutInspectorInput
+  Penalties?: Prisma.PenaltyInfoCreateNestedManyWithoutAccountInput
+  AppealsFiled?: Prisma.AppealInfoCreateNestedManyWithoutFiledByUserInput
+  AppealsResolved?: Prisma.AppealInfoCreateNestedManyWithoutResolvedByUserInput
+  ImagesSubmitted?: Prisma.ImagesCreateNestedManyWithoutSubmittedByUserInput
+  Notifications?: Prisma.NotificationCreateNestedManyWithoutAccountInput
+  RepairsPerformed?: Prisma.RepairLogCreateNestedManyWithoutRepairedByUserInput
+  RetirementsRequested?: Prisma.RetirementRequestCreateNestedManyWithoutRequestedByUserInput
+}
+
+export type AccountInfoUncheckedCreateWithoutRetirementsDecidedInput = {
+  AccountKey?: number
+  Email: string
+  HashedPassword: string
+  UserID: string
+  UserFName: string
+  UserLName: string
+  UserCredit: number
+  RoleKey: number
+  FacultyKey?: number | null
+  IsActive?: boolean
+  Sessions?: Prisma.SessionInfoUncheckedCreateNestedManyWithoutAccountInput
+  PasswordResets?: Prisma.PasswordResetUncheckedCreateNestedManyWithoutAccountInput
+  EmailVerifications?: Prisma.EmailVerificationUncheckedCreateNestedManyWithoutAccountInput
+  AuditTrail?: Prisma.AuditLogUncheckedCreateNestedManyWithoutActorInput
+  Authorities?: Prisma.AuthorityUncheckedCreateNestedManyWithoutAccountInput
+  ConditionLogsLogged?: Prisma.ConditionLogUncheckedCreateNestedManyWithoutLoggedByUserInput
+  ExtensionsRequested?: Prisma.ExtensionRequestUncheckedCreateNestedManyWithoutRequestedByUserInput
+  ExtensionsApproved?: Prisma.ExtensionRequestUncheckedCreateNestedManyWithoutApprovedByUserInput
+  ReservationsMade?: Prisma.ReservationsUncheckedCreateNestedManyWithoutReservedByUserInput
+  ReservationsApproved?: Prisma.ReservationsUncheckedCreateNestedManyWithoutApprovedByUserInput
+  UsageLogs?: Prisma.UsageLogUncheckedCreateNestedManyWithoutAccountInput
+  InspectionsPerformed?: Prisma.InspectionUncheckedCreateNestedManyWithoutInspectorInput
+  Penalties?: Prisma.PenaltyInfoUncheckedCreateNestedManyWithoutAccountInput
+  AppealsFiled?: Prisma.AppealInfoUncheckedCreateNestedManyWithoutFiledByUserInput
+  AppealsResolved?: Prisma.AppealInfoUncheckedCreateNestedManyWithoutResolvedByUserInput
+  ImagesSubmitted?: Prisma.ImagesUncheckedCreateNestedManyWithoutSubmittedByUserInput
+  Notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutAccountInput
+  RepairsPerformed?: Prisma.RepairLogUncheckedCreateNestedManyWithoutRepairedByUserInput
+  RetirementsRequested?: Prisma.RetirementRequestUncheckedCreateNestedManyWithoutRequestedByUserInput
+}
+
+export type AccountInfoCreateOrConnectWithoutRetirementsDecidedInput = {
+  where: Prisma.AccountInfoWhereUniqueInput
+  create: Prisma.XOR<Prisma.AccountInfoCreateWithoutRetirementsDecidedInput, Prisma.AccountInfoUncheckedCreateWithoutRetirementsDecidedInput>
+}
+
+export type AccountInfoUpsertWithoutRetirementsRequestedInput = {
+  update: Prisma.XOR<Prisma.AccountInfoUpdateWithoutRetirementsRequestedInput, Prisma.AccountInfoUncheckedUpdateWithoutRetirementsRequestedInput>
+  create: Prisma.XOR<Prisma.AccountInfoCreateWithoutRetirementsRequestedInput, Prisma.AccountInfoUncheckedCreateWithoutRetirementsRequestedInput>
+  where?: Prisma.AccountInfoWhereInput
+}
+
+export type AccountInfoUpdateToOneWithWhereWithoutRetirementsRequestedInput = {
+  where?: Prisma.AccountInfoWhereInput
+  data: Prisma.XOR<Prisma.AccountInfoUpdateWithoutRetirementsRequestedInput, Prisma.AccountInfoUncheckedUpdateWithoutRetirementsRequestedInput>
+}
+
+export type AccountInfoUpdateWithoutRetirementsRequestedInput = {
+  Email?: Prisma.StringFieldUpdateOperationsInput | string
+  HashedPassword?: Prisma.StringFieldUpdateOperationsInput | string
+  UserID?: Prisma.StringFieldUpdateOperationsInput | string
+  UserFName?: Prisma.StringFieldUpdateOperationsInput | string
+  UserLName?: Prisma.StringFieldUpdateOperationsInput | string
+  UserCredit?: Prisma.IntFieldUpdateOperationsInput | number
+  IsActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  Role?: Prisma.RoleInfoUpdateOneRequiredWithoutAccountsNestedInput
+  Faculty?: Prisma.FacultyInfoUpdateOneWithoutAccountsNestedInput
+  Sessions?: Prisma.SessionInfoUpdateManyWithoutAccountNestedInput
+  PasswordResets?: Prisma.PasswordResetUpdateManyWithoutAccountNestedInput
+  EmailVerifications?: Prisma.EmailVerificationUpdateManyWithoutAccountNestedInput
+  AuditTrail?: Prisma.AuditLogUpdateManyWithoutActorNestedInput
+  Authorities?: Prisma.AuthorityUpdateManyWithoutAccountNestedInput
+  ConditionLogsLogged?: Prisma.ConditionLogUpdateManyWithoutLoggedByUserNestedInput
+  ExtensionsRequested?: Prisma.ExtensionRequestUpdateManyWithoutRequestedByUserNestedInput
+  ExtensionsApproved?: Prisma.ExtensionRequestUpdateManyWithoutApprovedByUserNestedInput
+  ReservationsMade?: Prisma.ReservationsUpdateManyWithoutReservedByUserNestedInput
+  ReservationsApproved?: Prisma.ReservationsUpdateManyWithoutApprovedByUserNestedInput
+  UsageLogs?: Prisma.UsageLogUpdateManyWithoutAccountNestedInput
+  InspectionsPerformed?: Prisma.InspectionUpdateManyWithoutInspectorNestedInput
+  Penalties?: Prisma.PenaltyInfoUpdateManyWithoutAccountNestedInput
+  AppealsFiled?: Prisma.AppealInfoUpdateManyWithoutFiledByUserNestedInput
+  AppealsResolved?: Prisma.AppealInfoUpdateManyWithoutResolvedByUserNestedInput
+  ImagesSubmitted?: Prisma.ImagesUpdateManyWithoutSubmittedByUserNestedInput
+  Notifications?: Prisma.NotificationUpdateManyWithoutAccountNestedInput
+  RepairsPerformed?: Prisma.RepairLogUpdateManyWithoutRepairedByUserNestedInput
+  RetirementsDecided?: Prisma.RetirementRequestUpdateManyWithoutDecidedByUserNestedInput
+}
+
+export type AccountInfoUncheckedUpdateWithoutRetirementsRequestedInput = {
+  AccountKey?: Prisma.IntFieldUpdateOperationsInput | number
+  Email?: Prisma.StringFieldUpdateOperationsInput | string
+  HashedPassword?: Prisma.StringFieldUpdateOperationsInput | string
+  UserID?: Prisma.StringFieldUpdateOperationsInput | string
+  UserFName?: Prisma.StringFieldUpdateOperationsInput | string
+  UserLName?: Prisma.StringFieldUpdateOperationsInput | string
+  UserCredit?: Prisma.IntFieldUpdateOperationsInput | number
+  RoleKey?: Prisma.IntFieldUpdateOperationsInput | number
+  FacultyKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  IsActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  Sessions?: Prisma.SessionInfoUncheckedUpdateManyWithoutAccountNestedInput
+  PasswordResets?: Prisma.PasswordResetUncheckedUpdateManyWithoutAccountNestedInput
+  EmailVerifications?: Prisma.EmailVerificationUncheckedUpdateManyWithoutAccountNestedInput
+  AuditTrail?: Prisma.AuditLogUncheckedUpdateManyWithoutActorNestedInput
+  Authorities?: Prisma.AuthorityUncheckedUpdateManyWithoutAccountNestedInput
+  ConditionLogsLogged?: Prisma.ConditionLogUncheckedUpdateManyWithoutLoggedByUserNestedInput
+  ExtensionsRequested?: Prisma.ExtensionRequestUncheckedUpdateManyWithoutRequestedByUserNestedInput
+  ExtensionsApproved?: Prisma.ExtensionRequestUncheckedUpdateManyWithoutApprovedByUserNestedInput
+  ReservationsMade?: Prisma.ReservationsUncheckedUpdateManyWithoutReservedByUserNestedInput
+  ReservationsApproved?: Prisma.ReservationsUncheckedUpdateManyWithoutApprovedByUserNestedInput
+  UsageLogs?: Prisma.UsageLogUncheckedUpdateManyWithoutAccountNestedInput
+  InspectionsPerformed?: Prisma.InspectionUncheckedUpdateManyWithoutInspectorNestedInput
+  Penalties?: Prisma.PenaltyInfoUncheckedUpdateManyWithoutAccountNestedInput
+  AppealsFiled?: Prisma.AppealInfoUncheckedUpdateManyWithoutFiledByUserNestedInput
+  AppealsResolved?: Prisma.AppealInfoUncheckedUpdateManyWithoutResolvedByUserNestedInput
+  ImagesSubmitted?: Prisma.ImagesUncheckedUpdateManyWithoutSubmittedByUserNestedInput
+  Notifications?: Prisma.NotificationUncheckedUpdateManyWithoutAccountNestedInput
+  RepairsPerformed?: Prisma.RepairLogUncheckedUpdateManyWithoutRepairedByUserNestedInput
+  RetirementsDecided?: Prisma.RetirementRequestUncheckedUpdateManyWithoutDecidedByUserNestedInput
+}
+
+export type AccountInfoUpsertWithoutRetirementsDecidedInput = {
+  update: Prisma.XOR<Prisma.AccountInfoUpdateWithoutRetirementsDecidedInput, Prisma.AccountInfoUncheckedUpdateWithoutRetirementsDecidedInput>
+  create: Prisma.XOR<Prisma.AccountInfoCreateWithoutRetirementsDecidedInput, Prisma.AccountInfoUncheckedCreateWithoutRetirementsDecidedInput>
+  where?: Prisma.AccountInfoWhereInput
+}
+
+export type AccountInfoUpdateToOneWithWhereWithoutRetirementsDecidedInput = {
+  where?: Prisma.AccountInfoWhereInput
+  data: Prisma.XOR<Prisma.AccountInfoUpdateWithoutRetirementsDecidedInput, Prisma.AccountInfoUncheckedUpdateWithoutRetirementsDecidedInput>
+}
+
+export type AccountInfoUpdateWithoutRetirementsDecidedInput = {
+  Email?: Prisma.StringFieldUpdateOperationsInput | string
+  HashedPassword?: Prisma.StringFieldUpdateOperationsInput | string
+  UserID?: Prisma.StringFieldUpdateOperationsInput | string
+  UserFName?: Prisma.StringFieldUpdateOperationsInput | string
+  UserLName?: Prisma.StringFieldUpdateOperationsInput | string
+  UserCredit?: Prisma.IntFieldUpdateOperationsInput | number
+  IsActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  Role?: Prisma.RoleInfoUpdateOneRequiredWithoutAccountsNestedInput
+  Faculty?: Prisma.FacultyInfoUpdateOneWithoutAccountsNestedInput
+  Sessions?: Prisma.SessionInfoUpdateManyWithoutAccountNestedInput
+  PasswordResets?: Prisma.PasswordResetUpdateManyWithoutAccountNestedInput
+  EmailVerifications?: Prisma.EmailVerificationUpdateManyWithoutAccountNestedInput
+  AuditTrail?: Prisma.AuditLogUpdateManyWithoutActorNestedInput
+  Authorities?: Prisma.AuthorityUpdateManyWithoutAccountNestedInput
+  ConditionLogsLogged?: Prisma.ConditionLogUpdateManyWithoutLoggedByUserNestedInput
+  ExtensionsRequested?: Prisma.ExtensionRequestUpdateManyWithoutRequestedByUserNestedInput
+  ExtensionsApproved?: Prisma.ExtensionRequestUpdateManyWithoutApprovedByUserNestedInput
+  ReservationsMade?: Prisma.ReservationsUpdateManyWithoutReservedByUserNestedInput
+  ReservationsApproved?: Prisma.ReservationsUpdateManyWithoutApprovedByUserNestedInput
+  UsageLogs?: Prisma.UsageLogUpdateManyWithoutAccountNestedInput
+  InspectionsPerformed?: Prisma.InspectionUpdateManyWithoutInspectorNestedInput
+  Penalties?: Prisma.PenaltyInfoUpdateManyWithoutAccountNestedInput
+  AppealsFiled?: Prisma.AppealInfoUpdateManyWithoutFiledByUserNestedInput
+  AppealsResolved?: Prisma.AppealInfoUpdateManyWithoutResolvedByUserNestedInput
+  ImagesSubmitted?: Prisma.ImagesUpdateManyWithoutSubmittedByUserNestedInput
+  Notifications?: Prisma.NotificationUpdateManyWithoutAccountNestedInput
+  RepairsPerformed?: Prisma.RepairLogUpdateManyWithoutRepairedByUserNestedInput
+  RetirementsRequested?: Prisma.RetirementRequestUpdateManyWithoutRequestedByUserNestedInput
+}
+
+export type AccountInfoUncheckedUpdateWithoutRetirementsDecidedInput = {
+  AccountKey?: Prisma.IntFieldUpdateOperationsInput | number
+  Email?: Prisma.StringFieldUpdateOperationsInput | string
+  HashedPassword?: Prisma.StringFieldUpdateOperationsInput | string
+  UserID?: Prisma.StringFieldUpdateOperationsInput | string
+  UserFName?: Prisma.StringFieldUpdateOperationsInput | string
+  UserLName?: Prisma.StringFieldUpdateOperationsInput | string
+  UserCredit?: Prisma.IntFieldUpdateOperationsInput | number
+  RoleKey?: Prisma.IntFieldUpdateOperationsInput | number
+  FacultyKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  IsActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  Sessions?: Prisma.SessionInfoUncheckedUpdateManyWithoutAccountNestedInput
+  PasswordResets?: Prisma.PasswordResetUncheckedUpdateManyWithoutAccountNestedInput
+  EmailVerifications?: Prisma.EmailVerificationUncheckedUpdateManyWithoutAccountNestedInput
+  AuditTrail?: Prisma.AuditLogUncheckedUpdateManyWithoutActorNestedInput
+  Authorities?: Prisma.AuthorityUncheckedUpdateManyWithoutAccountNestedInput
+  ConditionLogsLogged?: Prisma.ConditionLogUncheckedUpdateManyWithoutLoggedByUserNestedInput
+  ExtensionsRequested?: Prisma.ExtensionRequestUncheckedUpdateManyWithoutRequestedByUserNestedInput
+  ExtensionsApproved?: Prisma.ExtensionRequestUncheckedUpdateManyWithoutApprovedByUserNestedInput
+  ReservationsMade?: Prisma.ReservationsUncheckedUpdateManyWithoutReservedByUserNestedInput
+  ReservationsApproved?: Prisma.ReservationsUncheckedUpdateManyWithoutApprovedByUserNestedInput
+  UsageLogs?: Prisma.UsageLogUncheckedUpdateManyWithoutAccountNestedInput
+  InspectionsPerformed?: Prisma.InspectionUncheckedUpdateManyWithoutInspectorNestedInput
+  Penalties?: Prisma.PenaltyInfoUncheckedUpdateManyWithoutAccountNestedInput
+  AppealsFiled?: Prisma.AppealInfoUncheckedUpdateManyWithoutFiledByUserNestedInput
+  AppealsResolved?: Prisma.AppealInfoUncheckedUpdateManyWithoutResolvedByUserNestedInput
+  ImagesSubmitted?: Prisma.ImagesUncheckedUpdateManyWithoutSubmittedByUserNestedInput
+  Notifications?: Prisma.NotificationUncheckedUpdateManyWithoutAccountNestedInput
+  RepairsPerformed?: Prisma.RepairLogUncheckedUpdateManyWithoutRepairedByUserNestedInput
+  RetirementsRequested?: Prisma.RetirementRequestUncheckedUpdateManyWithoutRequestedByUserNestedInput
 }
 
 export type AccountInfoCreateWithoutConditionLogsLoggedInput = {
@@ -1875,6 +2251,8 @@ export type AccountInfoCreateWithoutConditionLogsLoggedInput = {
   ImagesSubmitted?: Prisma.ImagesCreateNestedManyWithoutSubmittedByUserInput
   Notifications?: Prisma.NotificationCreateNestedManyWithoutAccountInput
   RepairsPerformed?: Prisma.RepairLogCreateNestedManyWithoutRepairedByUserInput
+  RetirementsRequested?: Prisma.RetirementRequestCreateNestedManyWithoutRequestedByUserInput
+  RetirementsDecided?: Prisma.RetirementRequestCreateNestedManyWithoutDecidedByUserInput
 }
 
 export type AccountInfoUncheckedCreateWithoutConditionLogsLoggedInput = {
@@ -1905,6 +2283,8 @@ export type AccountInfoUncheckedCreateWithoutConditionLogsLoggedInput = {
   ImagesSubmitted?: Prisma.ImagesUncheckedCreateNestedManyWithoutSubmittedByUserInput
   Notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutAccountInput
   RepairsPerformed?: Prisma.RepairLogUncheckedCreateNestedManyWithoutRepairedByUserInput
+  RetirementsRequested?: Prisma.RetirementRequestUncheckedCreateNestedManyWithoutRequestedByUserInput
+  RetirementsDecided?: Prisma.RetirementRequestUncheckedCreateNestedManyWithoutDecidedByUserInput
 }
 
 export type AccountInfoCreateOrConnectWithoutConditionLogsLoggedInput = {
@@ -1950,6 +2330,8 @@ export type AccountInfoUpdateWithoutConditionLogsLoggedInput = {
   ImagesSubmitted?: Prisma.ImagesUpdateManyWithoutSubmittedByUserNestedInput
   Notifications?: Prisma.NotificationUpdateManyWithoutAccountNestedInput
   RepairsPerformed?: Prisma.RepairLogUpdateManyWithoutRepairedByUserNestedInput
+  RetirementsRequested?: Prisma.RetirementRequestUpdateManyWithoutRequestedByUserNestedInput
+  RetirementsDecided?: Prisma.RetirementRequestUpdateManyWithoutDecidedByUserNestedInput
 }
 
 export type AccountInfoUncheckedUpdateWithoutConditionLogsLoggedInput = {
@@ -1980,6 +2362,8 @@ export type AccountInfoUncheckedUpdateWithoutConditionLogsLoggedInput = {
   ImagesSubmitted?: Prisma.ImagesUncheckedUpdateManyWithoutSubmittedByUserNestedInput
   Notifications?: Prisma.NotificationUncheckedUpdateManyWithoutAccountNestedInput
   RepairsPerformed?: Prisma.RepairLogUncheckedUpdateManyWithoutRepairedByUserNestedInput
+  RetirementsRequested?: Prisma.RetirementRequestUncheckedUpdateManyWithoutRequestedByUserNestedInput
+  RetirementsDecided?: Prisma.RetirementRequestUncheckedUpdateManyWithoutDecidedByUserNestedInput
 }
 
 export type AccountInfoCreateWithoutReservationsMadeInput = {
@@ -2009,6 +2393,8 @@ export type AccountInfoCreateWithoutReservationsMadeInput = {
   ImagesSubmitted?: Prisma.ImagesCreateNestedManyWithoutSubmittedByUserInput
   Notifications?: Prisma.NotificationCreateNestedManyWithoutAccountInput
   RepairsPerformed?: Prisma.RepairLogCreateNestedManyWithoutRepairedByUserInput
+  RetirementsRequested?: Prisma.RetirementRequestCreateNestedManyWithoutRequestedByUserInput
+  RetirementsDecided?: Prisma.RetirementRequestCreateNestedManyWithoutDecidedByUserInput
 }
 
 export type AccountInfoUncheckedCreateWithoutReservationsMadeInput = {
@@ -2039,6 +2425,8 @@ export type AccountInfoUncheckedCreateWithoutReservationsMadeInput = {
   ImagesSubmitted?: Prisma.ImagesUncheckedCreateNestedManyWithoutSubmittedByUserInput
   Notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutAccountInput
   RepairsPerformed?: Prisma.RepairLogUncheckedCreateNestedManyWithoutRepairedByUserInput
+  RetirementsRequested?: Prisma.RetirementRequestUncheckedCreateNestedManyWithoutRequestedByUserInput
+  RetirementsDecided?: Prisma.RetirementRequestUncheckedCreateNestedManyWithoutDecidedByUserInput
 }
 
 export type AccountInfoCreateOrConnectWithoutReservationsMadeInput = {
@@ -2073,6 +2461,8 @@ export type AccountInfoCreateWithoutReservationsApprovedInput = {
   ImagesSubmitted?: Prisma.ImagesCreateNestedManyWithoutSubmittedByUserInput
   Notifications?: Prisma.NotificationCreateNestedManyWithoutAccountInput
   RepairsPerformed?: Prisma.RepairLogCreateNestedManyWithoutRepairedByUserInput
+  RetirementsRequested?: Prisma.RetirementRequestCreateNestedManyWithoutRequestedByUserInput
+  RetirementsDecided?: Prisma.RetirementRequestCreateNestedManyWithoutDecidedByUserInput
 }
 
 export type AccountInfoUncheckedCreateWithoutReservationsApprovedInput = {
@@ -2103,6 +2493,8 @@ export type AccountInfoUncheckedCreateWithoutReservationsApprovedInput = {
   ImagesSubmitted?: Prisma.ImagesUncheckedCreateNestedManyWithoutSubmittedByUserInput
   Notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutAccountInput
   RepairsPerformed?: Prisma.RepairLogUncheckedCreateNestedManyWithoutRepairedByUserInput
+  RetirementsRequested?: Prisma.RetirementRequestUncheckedCreateNestedManyWithoutRequestedByUserInput
+  RetirementsDecided?: Prisma.RetirementRequestUncheckedCreateNestedManyWithoutDecidedByUserInput
 }
 
 export type AccountInfoCreateOrConnectWithoutReservationsApprovedInput = {
@@ -2148,6 +2540,8 @@ export type AccountInfoUpdateWithoutReservationsMadeInput = {
   ImagesSubmitted?: Prisma.ImagesUpdateManyWithoutSubmittedByUserNestedInput
   Notifications?: Prisma.NotificationUpdateManyWithoutAccountNestedInput
   RepairsPerformed?: Prisma.RepairLogUpdateManyWithoutRepairedByUserNestedInput
+  RetirementsRequested?: Prisma.RetirementRequestUpdateManyWithoutRequestedByUserNestedInput
+  RetirementsDecided?: Prisma.RetirementRequestUpdateManyWithoutDecidedByUserNestedInput
 }
 
 export type AccountInfoUncheckedUpdateWithoutReservationsMadeInput = {
@@ -2178,6 +2572,8 @@ export type AccountInfoUncheckedUpdateWithoutReservationsMadeInput = {
   ImagesSubmitted?: Prisma.ImagesUncheckedUpdateManyWithoutSubmittedByUserNestedInput
   Notifications?: Prisma.NotificationUncheckedUpdateManyWithoutAccountNestedInput
   RepairsPerformed?: Prisma.RepairLogUncheckedUpdateManyWithoutRepairedByUserNestedInput
+  RetirementsRequested?: Prisma.RetirementRequestUncheckedUpdateManyWithoutRequestedByUserNestedInput
+  RetirementsDecided?: Prisma.RetirementRequestUncheckedUpdateManyWithoutDecidedByUserNestedInput
 }
 
 export type AccountInfoUpsertWithoutReservationsApprovedInput = {
@@ -2218,6 +2614,8 @@ export type AccountInfoUpdateWithoutReservationsApprovedInput = {
   ImagesSubmitted?: Prisma.ImagesUpdateManyWithoutSubmittedByUserNestedInput
   Notifications?: Prisma.NotificationUpdateManyWithoutAccountNestedInput
   RepairsPerformed?: Prisma.RepairLogUpdateManyWithoutRepairedByUserNestedInput
+  RetirementsRequested?: Prisma.RetirementRequestUpdateManyWithoutRequestedByUserNestedInput
+  RetirementsDecided?: Prisma.RetirementRequestUpdateManyWithoutDecidedByUserNestedInput
 }
 
 export type AccountInfoUncheckedUpdateWithoutReservationsApprovedInput = {
@@ -2248,6 +2646,8 @@ export type AccountInfoUncheckedUpdateWithoutReservationsApprovedInput = {
   ImagesSubmitted?: Prisma.ImagesUncheckedUpdateManyWithoutSubmittedByUserNestedInput
   Notifications?: Prisma.NotificationUncheckedUpdateManyWithoutAccountNestedInput
   RepairsPerformed?: Prisma.RepairLogUncheckedUpdateManyWithoutRepairedByUserNestedInput
+  RetirementsRequested?: Prisma.RetirementRequestUncheckedUpdateManyWithoutRequestedByUserNestedInput
+  RetirementsDecided?: Prisma.RetirementRequestUncheckedUpdateManyWithoutDecidedByUserNestedInput
 }
 
 export type AccountInfoCreateWithoutUsageLogsInput = {
@@ -2277,6 +2677,8 @@ export type AccountInfoCreateWithoutUsageLogsInput = {
   ImagesSubmitted?: Prisma.ImagesCreateNestedManyWithoutSubmittedByUserInput
   Notifications?: Prisma.NotificationCreateNestedManyWithoutAccountInput
   RepairsPerformed?: Prisma.RepairLogCreateNestedManyWithoutRepairedByUserInput
+  RetirementsRequested?: Prisma.RetirementRequestCreateNestedManyWithoutRequestedByUserInput
+  RetirementsDecided?: Prisma.RetirementRequestCreateNestedManyWithoutDecidedByUserInput
 }
 
 export type AccountInfoUncheckedCreateWithoutUsageLogsInput = {
@@ -2307,6 +2709,8 @@ export type AccountInfoUncheckedCreateWithoutUsageLogsInput = {
   ImagesSubmitted?: Prisma.ImagesUncheckedCreateNestedManyWithoutSubmittedByUserInput
   Notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutAccountInput
   RepairsPerformed?: Prisma.RepairLogUncheckedCreateNestedManyWithoutRepairedByUserInput
+  RetirementsRequested?: Prisma.RetirementRequestUncheckedCreateNestedManyWithoutRequestedByUserInput
+  RetirementsDecided?: Prisma.RetirementRequestUncheckedCreateNestedManyWithoutDecidedByUserInput
 }
 
 export type AccountInfoCreateOrConnectWithoutUsageLogsInput = {
@@ -2352,6 +2756,8 @@ export type AccountInfoUpdateWithoutUsageLogsInput = {
   ImagesSubmitted?: Prisma.ImagesUpdateManyWithoutSubmittedByUserNestedInput
   Notifications?: Prisma.NotificationUpdateManyWithoutAccountNestedInput
   RepairsPerformed?: Prisma.RepairLogUpdateManyWithoutRepairedByUserNestedInput
+  RetirementsRequested?: Prisma.RetirementRequestUpdateManyWithoutRequestedByUserNestedInput
+  RetirementsDecided?: Prisma.RetirementRequestUpdateManyWithoutDecidedByUserNestedInput
 }
 
 export type AccountInfoUncheckedUpdateWithoutUsageLogsInput = {
@@ -2382,6 +2788,8 @@ export type AccountInfoUncheckedUpdateWithoutUsageLogsInput = {
   ImagesSubmitted?: Prisma.ImagesUncheckedUpdateManyWithoutSubmittedByUserNestedInput
   Notifications?: Prisma.NotificationUncheckedUpdateManyWithoutAccountNestedInput
   RepairsPerformed?: Prisma.RepairLogUncheckedUpdateManyWithoutRepairedByUserNestedInput
+  RetirementsRequested?: Prisma.RetirementRequestUncheckedUpdateManyWithoutRequestedByUserNestedInput
+  RetirementsDecided?: Prisma.RetirementRequestUncheckedUpdateManyWithoutDecidedByUserNestedInput
 }
 
 export type AccountInfoCreateWithoutExtensionsRequestedInput = {
@@ -2411,6 +2819,8 @@ export type AccountInfoCreateWithoutExtensionsRequestedInput = {
   ImagesSubmitted?: Prisma.ImagesCreateNestedManyWithoutSubmittedByUserInput
   Notifications?: Prisma.NotificationCreateNestedManyWithoutAccountInput
   RepairsPerformed?: Prisma.RepairLogCreateNestedManyWithoutRepairedByUserInput
+  RetirementsRequested?: Prisma.RetirementRequestCreateNestedManyWithoutRequestedByUserInput
+  RetirementsDecided?: Prisma.RetirementRequestCreateNestedManyWithoutDecidedByUserInput
 }
 
 export type AccountInfoUncheckedCreateWithoutExtensionsRequestedInput = {
@@ -2441,6 +2851,8 @@ export type AccountInfoUncheckedCreateWithoutExtensionsRequestedInput = {
   ImagesSubmitted?: Prisma.ImagesUncheckedCreateNestedManyWithoutSubmittedByUserInput
   Notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutAccountInput
   RepairsPerformed?: Prisma.RepairLogUncheckedCreateNestedManyWithoutRepairedByUserInput
+  RetirementsRequested?: Prisma.RetirementRequestUncheckedCreateNestedManyWithoutRequestedByUserInput
+  RetirementsDecided?: Prisma.RetirementRequestUncheckedCreateNestedManyWithoutDecidedByUserInput
 }
 
 export type AccountInfoCreateOrConnectWithoutExtensionsRequestedInput = {
@@ -2475,6 +2887,8 @@ export type AccountInfoCreateWithoutExtensionsApprovedInput = {
   ImagesSubmitted?: Prisma.ImagesCreateNestedManyWithoutSubmittedByUserInput
   Notifications?: Prisma.NotificationCreateNestedManyWithoutAccountInput
   RepairsPerformed?: Prisma.RepairLogCreateNestedManyWithoutRepairedByUserInput
+  RetirementsRequested?: Prisma.RetirementRequestCreateNestedManyWithoutRequestedByUserInput
+  RetirementsDecided?: Prisma.RetirementRequestCreateNestedManyWithoutDecidedByUserInput
 }
 
 export type AccountInfoUncheckedCreateWithoutExtensionsApprovedInput = {
@@ -2505,6 +2919,8 @@ export type AccountInfoUncheckedCreateWithoutExtensionsApprovedInput = {
   ImagesSubmitted?: Prisma.ImagesUncheckedCreateNestedManyWithoutSubmittedByUserInput
   Notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutAccountInput
   RepairsPerformed?: Prisma.RepairLogUncheckedCreateNestedManyWithoutRepairedByUserInput
+  RetirementsRequested?: Prisma.RetirementRequestUncheckedCreateNestedManyWithoutRequestedByUserInput
+  RetirementsDecided?: Prisma.RetirementRequestUncheckedCreateNestedManyWithoutDecidedByUserInput
 }
 
 export type AccountInfoCreateOrConnectWithoutExtensionsApprovedInput = {
@@ -2550,6 +2966,8 @@ export type AccountInfoUpdateWithoutExtensionsRequestedInput = {
   ImagesSubmitted?: Prisma.ImagesUpdateManyWithoutSubmittedByUserNestedInput
   Notifications?: Prisma.NotificationUpdateManyWithoutAccountNestedInput
   RepairsPerformed?: Prisma.RepairLogUpdateManyWithoutRepairedByUserNestedInput
+  RetirementsRequested?: Prisma.RetirementRequestUpdateManyWithoutRequestedByUserNestedInput
+  RetirementsDecided?: Prisma.RetirementRequestUpdateManyWithoutDecidedByUserNestedInput
 }
 
 export type AccountInfoUncheckedUpdateWithoutExtensionsRequestedInput = {
@@ -2580,6 +2998,8 @@ export type AccountInfoUncheckedUpdateWithoutExtensionsRequestedInput = {
   ImagesSubmitted?: Prisma.ImagesUncheckedUpdateManyWithoutSubmittedByUserNestedInput
   Notifications?: Prisma.NotificationUncheckedUpdateManyWithoutAccountNestedInput
   RepairsPerformed?: Prisma.RepairLogUncheckedUpdateManyWithoutRepairedByUserNestedInput
+  RetirementsRequested?: Prisma.RetirementRequestUncheckedUpdateManyWithoutRequestedByUserNestedInput
+  RetirementsDecided?: Prisma.RetirementRequestUncheckedUpdateManyWithoutDecidedByUserNestedInput
 }
 
 export type AccountInfoUpsertWithoutExtensionsApprovedInput = {
@@ -2620,6 +3040,8 @@ export type AccountInfoUpdateWithoutExtensionsApprovedInput = {
   ImagesSubmitted?: Prisma.ImagesUpdateManyWithoutSubmittedByUserNestedInput
   Notifications?: Prisma.NotificationUpdateManyWithoutAccountNestedInput
   RepairsPerformed?: Prisma.RepairLogUpdateManyWithoutRepairedByUserNestedInput
+  RetirementsRequested?: Prisma.RetirementRequestUpdateManyWithoutRequestedByUserNestedInput
+  RetirementsDecided?: Prisma.RetirementRequestUpdateManyWithoutDecidedByUserNestedInput
 }
 
 export type AccountInfoUncheckedUpdateWithoutExtensionsApprovedInput = {
@@ -2650,6 +3072,8 @@ export type AccountInfoUncheckedUpdateWithoutExtensionsApprovedInput = {
   ImagesSubmitted?: Prisma.ImagesUncheckedUpdateManyWithoutSubmittedByUserNestedInput
   Notifications?: Prisma.NotificationUncheckedUpdateManyWithoutAccountNestedInput
   RepairsPerformed?: Prisma.RepairLogUncheckedUpdateManyWithoutRepairedByUserNestedInput
+  RetirementsRequested?: Prisma.RetirementRequestUncheckedUpdateManyWithoutRequestedByUserNestedInput
+  RetirementsDecided?: Prisma.RetirementRequestUncheckedUpdateManyWithoutDecidedByUserNestedInput
 }
 
 export type AccountInfoCreateWithoutInspectionsPerformedInput = {
@@ -2679,6 +3103,8 @@ export type AccountInfoCreateWithoutInspectionsPerformedInput = {
   ImagesSubmitted?: Prisma.ImagesCreateNestedManyWithoutSubmittedByUserInput
   Notifications?: Prisma.NotificationCreateNestedManyWithoutAccountInput
   RepairsPerformed?: Prisma.RepairLogCreateNestedManyWithoutRepairedByUserInput
+  RetirementsRequested?: Prisma.RetirementRequestCreateNestedManyWithoutRequestedByUserInput
+  RetirementsDecided?: Prisma.RetirementRequestCreateNestedManyWithoutDecidedByUserInput
 }
 
 export type AccountInfoUncheckedCreateWithoutInspectionsPerformedInput = {
@@ -2709,6 +3135,8 @@ export type AccountInfoUncheckedCreateWithoutInspectionsPerformedInput = {
   ImagesSubmitted?: Prisma.ImagesUncheckedCreateNestedManyWithoutSubmittedByUserInput
   Notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutAccountInput
   RepairsPerformed?: Prisma.RepairLogUncheckedCreateNestedManyWithoutRepairedByUserInput
+  RetirementsRequested?: Prisma.RetirementRequestUncheckedCreateNestedManyWithoutRequestedByUserInput
+  RetirementsDecided?: Prisma.RetirementRequestUncheckedCreateNestedManyWithoutDecidedByUserInput
 }
 
 export type AccountInfoCreateOrConnectWithoutInspectionsPerformedInput = {
@@ -2754,6 +3182,8 @@ export type AccountInfoUpdateWithoutInspectionsPerformedInput = {
   ImagesSubmitted?: Prisma.ImagesUpdateManyWithoutSubmittedByUserNestedInput
   Notifications?: Prisma.NotificationUpdateManyWithoutAccountNestedInput
   RepairsPerformed?: Prisma.RepairLogUpdateManyWithoutRepairedByUserNestedInput
+  RetirementsRequested?: Prisma.RetirementRequestUpdateManyWithoutRequestedByUserNestedInput
+  RetirementsDecided?: Prisma.RetirementRequestUpdateManyWithoutDecidedByUserNestedInput
 }
 
 export type AccountInfoUncheckedUpdateWithoutInspectionsPerformedInput = {
@@ -2784,6 +3214,8 @@ export type AccountInfoUncheckedUpdateWithoutInspectionsPerformedInput = {
   ImagesSubmitted?: Prisma.ImagesUncheckedUpdateManyWithoutSubmittedByUserNestedInput
   Notifications?: Prisma.NotificationUncheckedUpdateManyWithoutAccountNestedInput
   RepairsPerformed?: Prisma.RepairLogUncheckedUpdateManyWithoutRepairedByUserNestedInput
+  RetirementsRequested?: Prisma.RetirementRequestUncheckedUpdateManyWithoutRequestedByUserNestedInput
+  RetirementsDecided?: Prisma.RetirementRequestUncheckedUpdateManyWithoutDecidedByUserNestedInput
 }
 
 export type AccountInfoCreateWithoutPenaltiesInput = {
@@ -2813,6 +3245,8 @@ export type AccountInfoCreateWithoutPenaltiesInput = {
   ImagesSubmitted?: Prisma.ImagesCreateNestedManyWithoutSubmittedByUserInput
   Notifications?: Prisma.NotificationCreateNestedManyWithoutAccountInput
   RepairsPerformed?: Prisma.RepairLogCreateNestedManyWithoutRepairedByUserInput
+  RetirementsRequested?: Prisma.RetirementRequestCreateNestedManyWithoutRequestedByUserInput
+  RetirementsDecided?: Prisma.RetirementRequestCreateNestedManyWithoutDecidedByUserInput
 }
 
 export type AccountInfoUncheckedCreateWithoutPenaltiesInput = {
@@ -2843,6 +3277,8 @@ export type AccountInfoUncheckedCreateWithoutPenaltiesInput = {
   ImagesSubmitted?: Prisma.ImagesUncheckedCreateNestedManyWithoutSubmittedByUserInput
   Notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutAccountInput
   RepairsPerformed?: Prisma.RepairLogUncheckedCreateNestedManyWithoutRepairedByUserInput
+  RetirementsRequested?: Prisma.RetirementRequestUncheckedCreateNestedManyWithoutRequestedByUserInput
+  RetirementsDecided?: Prisma.RetirementRequestUncheckedCreateNestedManyWithoutDecidedByUserInput
 }
 
 export type AccountInfoCreateOrConnectWithoutPenaltiesInput = {
@@ -2888,6 +3324,8 @@ export type AccountInfoUpdateWithoutPenaltiesInput = {
   ImagesSubmitted?: Prisma.ImagesUpdateManyWithoutSubmittedByUserNestedInput
   Notifications?: Prisma.NotificationUpdateManyWithoutAccountNestedInput
   RepairsPerformed?: Prisma.RepairLogUpdateManyWithoutRepairedByUserNestedInput
+  RetirementsRequested?: Prisma.RetirementRequestUpdateManyWithoutRequestedByUserNestedInput
+  RetirementsDecided?: Prisma.RetirementRequestUpdateManyWithoutDecidedByUserNestedInput
 }
 
 export type AccountInfoUncheckedUpdateWithoutPenaltiesInput = {
@@ -2918,6 +3356,8 @@ export type AccountInfoUncheckedUpdateWithoutPenaltiesInput = {
   ImagesSubmitted?: Prisma.ImagesUncheckedUpdateManyWithoutSubmittedByUserNestedInput
   Notifications?: Prisma.NotificationUncheckedUpdateManyWithoutAccountNestedInput
   RepairsPerformed?: Prisma.RepairLogUncheckedUpdateManyWithoutRepairedByUserNestedInput
+  RetirementsRequested?: Prisma.RetirementRequestUncheckedUpdateManyWithoutRequestedByUserNestedInput
+  RetirementsDecided?: Prisma.RetirementRequestUncheckedUpdateManyWithoutDecidedByUserNestedInput
 }
 
 export type AccountInfoCreateWithoutAppealsFiledInput = {
@@ -2947,6 +3387,8 @@ export type AccountInfoCreateWithoutAppealsFiledInput = {
   ImagesSubmitted?: Prisma.ImagesCreateNestedManyWithoutSubmittedByUserInput
   Notifications?: Prisma.NotificationCreateNestedManyWithoutAccountInput
   RepairsPerformed?: Prisma.RepairLogCreateNestedManyWithoutRepairedByUserInput
+  RetirementsRequested?: Prisma.RetirementRequestCreateNestedManyWithoutRequestedByUserInput
+  RetirementsDecided?: Prisma.RetirementRequestCreateNestedManyWithoutDecidedByUserInput
 }
 
 export type AccountInfoUncheckedCreateWithoutAppealsFiledInput = {
@@ -2977,6 +3419,8 @@ export type AccountInfoUncheckedCreateWithoutAppealsFiledInput = {
   ImagesSubmitted?: Prisma.ImagesUncheckedCreateNestedManyWithoutSubmittedByUserInput
   Notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutAccountInput
   RepairsPerformed?: Prisma.RepairLogUncheckedCreateNestedManyWithoutRepairedByUserInput
+  RetirementsRequested?: Prisma.RetirementRequestUncheckedCreateNestedManyWithoutRequestedByUserInput
+  RetirementsDecided?: Prisma.RetirementRequestUncheckedCreateNestedManyWithoutDecidedByUserInput
 }
 
 export type AccountInfoCreateOrConnectWithoutAppealsFiledInput = {
@@ -3011,6 +3455,8 @@ export type AccountInfoCreateWithoutAppealsResolvedInput = {
   ImagesSubmitted?: Prisma.ImagesCreateNestedManyWithoutSubmittedByUserInput
   Notifications?: Prisma.NotificationCreateNestedManyWithoutAccountInput
   RepairsPerformed?: Prisma.RepairLogCreateNestedManyWithoutRepairedByUserInput
+  RetirementsRequested?: Prisma.RetirementRequestCreateNestedManyWithoutRequestedByUserInput
+  RetirementsDecided?: Prisma.RetirementRequestCreateNestedManyWithoutDecidedByUserInput
 }
 
 export type AccountInfoUncheckedCreateWithoutAppealsResolvedInput = {
@@ -3041,6 +3487,8 @@ export type AccountInfoUncheckedCreateWithoutAppealsResolvedInput = {
   ImagesSubmitted?: Prisma.ImagesUncheckedCreateNestedManyWithoutSubmittedByUserInput
   Notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutAccountInput
   RepairsPerformed?: Prisma.RepairLogUncheckedCreateNestedManyWithoutRepairedByUserInput
+  RetirementsRequested?: Prisma.RetirementRequestUncheckedCreateNestedManyWithoutRequestedByUserInput
+  RetirementsDecided?: Prisma.RetirementRequestUncheckedCreateNestedManyWithoutDecidedByUserInput
 }
 
 export type AccountInfoCreateOrConnectWithoutAppealsResolvedInput = {
@@ -3086,6 +3534,8 @@ export type AccountInfoUpdateWithoutAppealsFiledInput = {
   ImagesSubmitted?: Prisma.ImagesUpdateManyWithoutSubmittedByUserNestedInput
   Notifications?: Prisma.NotificationUpdateManyWithoutAccountNestedInput
   RepairsPerformed?: Prisma.RepairLogUpdateManyWithoutRepairedByUserNestedInput
+  RetirementsRequested?: Prisma.RetirementRequestUpdateManyWithoutRequestedByUserNestedInput
+  RetirementsDecided?: Prisma.RetirementRequestUpdateManyWithoutDecidedByUserNestedInput
 }
 
 export type AccountInfoUncheckedUpdateWithoutAppealsFiledInput = {
@@ -3116,6 +3566,8 @@ export type AccountInfoUncheckedUpdateWithoutAppealsFiledInput = {
   ImagesSubmitted?: Prisma.ImagesUncheckedUpdateManyWithoutSubmittedByUserNestedInput
   Notifications?: Prisma.NotificationUncheckedUpdateManyWithoutAccountNestedInput
   RepairsPerformed?: Prisma.RepairLogUncheckedUpdateManyWithoutRepairedByUserNestedInput
+  RetirementsRequested?: Prisma.RetirementRequestUncheckedUpdateManyWithoutRequestedByUserNestedInput
+  RetirementsDecided?: Prisma.RetirementRequestUncheckedUpdateManyWithoutDecidedByUserNestedInput
 }
 
 export type AccountInfoUpsertWithoutAppealsResolvedInput = {
@@ -3156,6 +3608,8 @@ export type AccountInfoUpdateWithoutAppealsResolvedInput = {
   ImagesSubmitted?: Prisma.ImagesUpdateManyWithoutSubmittedByUserNestedInput
   Notifications?: Prisma.NotificationUpdateManyWithoutAccountNestedInput
   RepairsPerformed?: Prisma.RepairLogUpdateManyWithoutRepairedByUserNestedInput
+  RetirementsRequested?: Prisma.RetirementRequestUpdateManyWithoutRequestedByUserNestedInput
+  RetirementsDecided?: Prisma.RetirementRequestUpdateManyWithoutDecidedByUserNestedInput
 }
 
 export type AccountInfoUncheckedUpdateWithoutAppealsResolvedInput = {
@@ -3186,6 +3640,8 @@ export type AccountInfoUncheckedUpdateWithoutAppealsResolvedInput = {
   ImagesSubmitted?: Prisma.ImagesUncheckedUpdateManyWithoutSubmittedByUserNestedInput
   Notifications?: Prisma.NotificationUncheckedUpdateManyWithoutAccountNestedInput
   RepairsPerformed?: Prisma.RepairLogUncheckedUpdateManyWithoutRepairedByUserNestedInput
+  RetirementsRequested?: Prisma.RetirementRequestUncheckedUpdateManyWithoutRequestedByUserNestedInput
+  RetirementsDecided?: Prisma.RetirementRequestUncheckedUpdateManyWithoutDecidedByUserNestedInput
 }
 
 export type AccountInfoCreateWithoutImagesSubmittedInput = {
@@ -3215,6 +3671,8 @@ export type AccountInfoCreateWithoutImagesSubmittedInput = {
   AppealsResolved?: Prisma.AppealInfoCreateNestedManyWithoutResolvedByUserInput
   Notifications?: Prisma.NotificationCreateNestedManyWithoutAccountInput
   RepairsPerformed?: Prisma.RepairLogCreateNestedManyWithoutRepairedByUserInput
+  RetirementsRequested?: Prisma.RetirementRequestCreateNestedManyWithoutRequestedByUserInput
+  RetirementsDecided?: Prisma.RetirementRequestCreateNestedManyWithoutDecidedByUserInput
 }
 
 export type AccountInfoUncheckedCreateWithoutImagesSubmittedInput = {
@@ -3245,6 +3703,8 @@ export type AccountInfoUncheckedCreateWithoutImagesSubmittedInput = {
   AppealsResolved?: Prisma.AppealInfoUncheckedCreateNestedManyWithoutResolvedByUserInput
   Notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutAccountInput
   RepairsPerformed?: Prisma.RepairLogUncheckedCreateNestedManyWithoutRepairedByUserInput
+  RetirementsRequested?: Prisma.RetirementRequestUncheckedCreateNestedManyWithoutRequestedByUserInput
+  RetirementsDecided?: Prisma.RetirementRequestUncheckedCreateNestedManyWithoutDecidedByUserInput
 }
 
 export type AccountInfoCreateOrConnectWithoutImagesSubmittedInput = {
@@ -3290,6 +3750,8 @@ export type AccountInfoUpdateWithoutImagesSubmittedInput = {
   AppealsResolved?: Prisma.AppealInfoUpdateManyWithoutResolvedByUserNestedInput
   Notifications?: Prisma.NotificationUpdateManyWithoutAccountNestedInput
   RepairsPerformed?: Prisma.RepairLogUpdateManyWithoutRepairedByUserNestedInput
+  RetirementsRequested?: Prisma.RetirementRequestUpdateManyWithoutRequestedByUserNestedInput
+  RetirementsDecided?: Prisma.RetirementRequestUpdateManyWithoutDecidedByUserNestedInput
 }
 
 export type AccountInfoUncheckedUpdateWithoutImagesSubmittedInput = {
@@ -3320,6 +3782,8 @@ export type AccountInfoUncheckedUpdateWithoutImagesSubmittedInput = {
   AppealsResolved?: Prisma.AppealInfoUncheckedUpdateManyWithoutResolvedByUserNestedInput
   Notifications?: Prisma.NotificationUncheckedUpdateManyWithoutAccountNestedInput
   RepairsPerformed?: Prisma.RepairLogUncheckedUpdateManyWithoutRepairedByUserNestedInput
+  RetirementsRequested?: Prisma.RetirementRequestUncheckedUpdateManyWithoutRequestedByUserNestedInput
+  RetirementsDecided?: Prisma.RetirementRequestUncheckedUpdateManyWithoutDecidedByUserNestedInput
 }
 
 export type AccountInfoCreateWithoutNotificationsInput = {
@@ -3349,6 +3813,8 @@ export type AccountInfoCreateWithoutNotificationsInput = {
   AppealsResolved?: Prisma.AppealInfoCreateNestedManyWithoutResolvedByUserInput
   ImagesSubmitted?: Prisma.ImagesCreateNestedManyWithoutSubmittedByUserInput
   RepairsPerformed?: Prisma.RepairLogCreateNestedManyWithoutRepairedByUserInput
+  RetirementsRequested?: Prisma.RetirementRequestCreateNestedManyWithoutRequestedByUserInput
+  RetirementsDecided?: Prisma.RetirementRequestCreateNestedManyWithoutDecidedByUserInput
 }
 
 export type AccountInfoUncheckedCreateWithoutNotificationsInput = {
@@ -3379,6 +3845,8 @@ export type AccountInfoUncheckedCreateWithoutNotificationsInput = {
   AppealsResolved?: Prisma.AppealInfoUncheckedCreateNestedManyWithoutResolvedByUserInput
   ImagesSubmitted?: Prisma.ImagesUncheckedCreateNestedManyWithoutSubmittedByUserInput
   RepairsPerformed?: Prisma.RepairLogUncheckedCreateNestedManyWithoutRepairedByUserInput
+  RetirementsRequested?: Prisma.RetirementRequestUncheckedCreateNestedManyWithoutRequestedByUserInput
+  RetirementsDecided?: Prisma.RetirementRequestUncheckedCreateNestedManyWithoutDecidedByUserInput
 }
 
 export type AccountInfoCreateOrConnectWithoutNotificationsInput = {
@@ -3424,6 +3892,8 @@ export type AccountInfoUpdateWithoutNotificationsInput = {
   AppealsResolved?: Prisma.AppealInfoUpdateManyWithoutResolvedByUserNestedInput
   ImagesSubmitted?: Prisma.ImagesUpdateManyWithoutSubmittedByUserNestedInput
   RepairsPerformed?: Prisma.RepairLogUpdateManyWithoutRepairedByUserNestedInput
+  RetirementsRequested?: Prisma.RetirementRequestUpdateManyWithoutRequestedByUserNestedInput
+  RetirementsDecided?: Prisma.RetirementRequestUpdateManyWithoutDecidedByUserNestedInput
 }
 
 export type AccountInfoUncheckedUpdateWithoutNotificationsInput = {
@@ -3454,6 +3924,8 @@ export type AccountInfoUncheckedUpdateWithoutNotificationsInput = {
   AppealsResolved?: Prisma.AppealInfoUncheckedUpdateManyWithoutResolvedByUserNestedInput
   ImagesSubmitted?: Prisma.ImagesUncheckedUpdateManyWithoutSubmittedByUserNestedInput
   RepairsPerformed?: Prisma.RepairLogUncheckedUpdateManyWithoutRepairedByUserNestedInput
+  RetirementsRequested?: Prisma.RetirementRequestUncheckedUpdateManyWithoutRequestedByUserNestedInput
+  RetirementsDecided?: Prisma.RetirementRequestUncheckedUpdateManyWithoutDecidedByUserNestedInput
 }
 
 export type AccountInfoCreateWithoutRepairsPerformedInput = {
@@ -3483,6 +3955,8 @@ export type AccountInfoCreateWithoutRepairsPerformedInput = {
   AppealsResolved?: Prisma.AppealInfoCreateNestedManyWithoutResolvedByUserInput
   ImagesSubmitted?: Prisma.ImagesCreateNestedManyWithoutSubmittedByUserInput
   Notifications?: Prisma.NotificationCreateNestedManyWithoutAccountInput
+  RetirementsRequested?: Prisma.RetirementRequestCreateNestedManyWithoutRequestedByUserInput
+  RetirementsDecided?: Prisma.RetirementRequestCreateNestedManyWithoutDecidedByUserInput
 }
 
 export type AccountInfoUncheckedCreateWithoutRepairsPerformedInput = {
@@ -3513,6 +3987,8 @@ export type AccountInfoUncheckedCreateWithoutRepairsPerformedInput = {
   AppealsResolved?: Prisma.AppealInfoUncheckedCreateNestedManyWithoutResolvedByUserInput
   ImagesSubmitted?: Prisma.ImagesUncheckedCreateNestedManyWithoutSubmittedByUserInput
   Notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutAccountInput
+  RetirementsRequested?: Prisma.RetirementRequestUncheckedCreateNestedManyWithoutRequestedByUserInput
+  RetirementsDecided?: Prisma.RetirementRequestUncheckedCreateNestedManyWithoutDecidedByUserInput
 }
 
 export type AccountInfoCreateOrConnectWithoutRepairsPerformedInput = {
@@ -3558,6 +4034,8 @@ export type AccountInfoUpdateWithoutRepairsPerformedInput = {
   AppealsResolved?: Prisma.AppealInfoUpdateManyWithoutResolvedByUserNestedInput
   ImagesSubmitted?: Prisma.ImagesUpdateManyWithoutSubmittedByUserNestedInput
   Notifications?: Prisma.NotificationUpdateManyWithoutAccountNestedInput
+  RetirementsRequested?: Prisma.RetirementRequestUpdateManyWithoutRequestedByUserNestedInput
+  RetirementsDecided?: Prisma.RetirementRequestUpdateManyWithoutDecidedByUserNestedInput
 }
 
 export type AccountInfoUncheckedUpdateWithoutRepairsPerformedInput = {
@@ -3588,6 +4066,8 @@ export type AccountInfoUncheckedUpdateWithoutRepairsPerformedInput = {
   AppealsResolved?: Prisma.AppealInfoUncheckedUpdateManyWithoutResolvedByUserNestedInput
   ImagesSubmitted?: Prisma.ImagesUncheckedUpdateManyWithoutSubmittedByUserNestedInput
   Notifications?: Prisma.NotificationUncheckedUpdateManyWithoutAccountNestedInput
+  RetirementsRequested?: Prisma.RetirementRequestUncheckedUpdateManyWithoutRequestedByUserNestedInput
+  RetirementsDecided?: Prisma.RetirementRequestUncheckedUpdateManyWithoutDecidedByUserNestedInput
 }
 
 export type AccountInfoCreateManyRoleInput = {
@@ -3629,6 +4109,8 @@ export type AccountInfoUpdateWithoutRoleInput = {
   ImagesSubmitted?: Prisma.ImagesUpdateManyWithoutSubmittedByUserNestedInput
   Notifications?: Prisma.NotificationUpdateManyWithoutAccountNestedInput
   RepairsPerformed?: Prisma.RepairLogUpdateManyWithoutRepairedByUserNestedInput
+  RetirementsRequested?: Prisma.RetirementRequestUpdateManyWithoutRequestedByUserNestedInput
+  RetirementsDecided?: Prisma.RetirementRequestUpdateManyWithoutDecidedByUserNestedInput
 }
 
 export type AccountInfoUncheckedUpdateWithoutRoleInput = {
@@ -3659,6 +4141,8 @@ export type AccountInfoUncheckedUpdateWithoutRoleInput = {
   ImagesSubmitted?: Prisma.ImagesUncheckedUpdateManyWithoutSubmittedByUserNestedInput
   Notifications?: Prisma.NotificationUncheckedUpdateManyWithoutAccountNestedInput
   RepairsPerformed?: Prisma.RepairLogUncheckedUpdateManyWithoutRepairedByUserNestedInput
+  RetirementsRequested?: Prisma.RetirementRequestUncheckedUpdateManyWithoutRequestedByUserNestedInput
+  RetirementsDecided?: Prisma.RetirementRequestUncheckedUpdateManyWithoutDecidedByUserNestedInput
 }
 
 export type AccountInfoUncheckedUpdateManyWithoutRoleInput = {
@@ -3712,6 +4196,8 @@ export type AccountInfoUpdateWithoutFacultyInput = {
   ImagesSubmitted?: Prisma.ImagesUpdateManyWithoutSubmittedByUserNestedInput
   Notifications?: Prisma.NotificationUpdateManyWithoutAccountNestedInput
   RepairsPerformed?: Prisma.RepairLogUpdateManyWithoutRepairedByUserNestedInput
+  RetirementsRequested?: Prisma.RetirementRequestUpdateManyWithoutRequestedByUserNestedInput
+  RetirementsDecided?: Prisma.RetirementRequestUpdateManyWithoutDecidedByUserNestedInput
 }
 
 export type AccountInfoUncheckedUpdateWithoutFacultyInput = {
@@ -3742,6 +4228,8 @@ export type AccountInfoUncheckedUpdateWithoutFacultyInput = {
   ImagesSubmitted?: Prisma.ImagesUncheckedUpdateManyWithoutSubmittedByUserNestedInput
   Notifications?: Prisma.NotificationUncheckedUpdateManyWithoutAccountNestedInput
   RepairsPerformed?: Prisma.RepairLogUncheckedUpdateManyWithoutRepairedByUserNestedInput
+  RetirementsRequested?: Prisma.RetirementRequestUncheckedUpdateManyWithoutRequestedByUserNestedInput
+  RetirementsDecided?: Prisma.RetirementRequestUncheckedUpdateManyWithoutDecidedByUserNestedInput
 }
 
 export type AccountInfoUncheckedUpdateManyWithoutFacultyInput = {
@@ -3780,6 +4268,8 @@ export type AccountInfoCountOutputType = {
   ImagesSubmitted: number
   Notifications: number
   RepairsPerformed: number
+  RetirementsRequested: number
+  RetirementsDecided: number
 }
 
 export type AccountInfoCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -3801,6 +4291,8 @@ export type AccountInfoCountOutputTypeSelect<ExtArgs extends runtime.Types.Exten
   ImagesSubmitted?: boolean | AccountInfoCountOutputTypeCountImagesSubmittedArgs
   Notifications?: boolean | AccountInfoCountOutputTypeCountNotificationsArgs
   RepairsPerformed?: boolean | AccountInfoCountOutputTypeCountRepairsPerformedArgs
+  RetirementsRequested?: boolean | AccountInfoCountOutputTypeCountRetirementsRequestedArgs
+  RetirementsDecided?: boolean | AccountInfoCountOutputTypeCountRetirementsDecidedArgs
 }
 
 /**
@@ -3939,6 +4431,20 @@ export type AccountInfoCountOutputTypeCountRepairsPerformedArgs<ExtArgs extends 
   where?: Prisma.RepairLogWhereInput
 }
 
+/**
+ * AccountInfoCountOutputType without action
+ */
+export type AccountInfoCountOutputTypeCountRetirementsRequestedArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.RetirementRequestWhereInput
+}
+
+/**
+ * AccountInfoCountOutputType without action
+ */
+export type AccountInfoCountOutputTypeCountRetirementsDecidedArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.RetirementRequestWhereInput
+}
+
 
 export type AccountInfoSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   AccountKey?: boolean
@@ -3971,6 +4477,8 @@ export type AccountInfoSelect<ExtArgs extends runtime.Types.Extensions.InternalA
   ImagesSubmitted?: boolean | Prisma.AccountInfo$ImagesSubmittedArgs<ExtArgs>
   Notifications?: boolean | Prisma.AccountInfo$NotificationsArgs<ExtArgs>
   RepairsPerformed?: boolean | Prisma.AccountInfo$RepairsPerformedArgs<ExtArgs>
+  RetirementsRequested?: boolean | Prisma.AccountInfo$RetirementsRequestedArgs<ExtArgs>
+  RetirementsDecided?: boolean | Prisma.AccountInfo$RetirementsDecidedArgs<ExtArgs>
   _count?: boolean | Prisma.AccountInfoCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["accountInfo"]>
 
@@ -4039,6 +4547,8 @@ export type AccountInfoInclude<ExtArgs extends runtime.Types.Extensions.Internal
   ImagesSubmitted?: boolean | Prisma.AccountInfo$ImagesSubmittedArgs<ExtArgs>
   Notifications?: boolean | Prisma.AccountInfo$NotificationsArgs<ExtArgs>
   RepairsPerformed?: boolean | Prisma.AccountInfo$RepairsPerformedArgs<ExtArgs>
+  RetirementsRequested?: boolean | Prisma.AccountInfo$RetirementsRequestedArgs<ExtArgs>
+  RetirementsDecided?: boolean | Prisma.AccountInfo$RetirementsDecidedArgs<ExtArgs>
   _count?: boolean | Prisma.AccountInfoCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type AccountInfoIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -4073,6 +4583,8 @@ export type $AccountInfoPayload<ExtArgs extends runtime.Types.Extensions.Interna
     ImagesSubmitted: Prisma.$ImagesPayload<ExtArgs>[]
     Notifications: Prisma.$NotificationPayload<ExtArgs>[]
     RepairsPerformed: Prisma.$RepairLogPayload<ExtArgs>[]
+    RetirementsRequested: Prisma.$RetirementRequestPayload<ExtArgs>[]
+    RetirementsDecided: Prisma.$RetirementRequestPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     AccountKey: number
@@ -4506,6 +5018,8 @@ export interface Prisma__AccountInfoClient<T, Null = never, ExtArgs extends runt
   ImagesSubmitted<T extends Prisma.AccountInfo$ImagesSubmittedArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AccountInfo$ImagesSubmittedArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ImagesPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   Notifications<T extends Prisma.AccountInfo$NotificationsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AccountInfo$NotificationsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$NotificationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   RepairsPerformed<T extends Prisma.AccountInfo$RepairsPerformedArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AccountInfo$RepairsPerformedArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$RepairLogPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  RetirementsRequested<T extends Prisma.AccountInfo$RetirementsRequestedArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AccountInfo$RetirementsRequestedArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$RetirementRequestPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  RetirementsDecided<T extends Prisma.AccountInfo$RetirementsDecidedArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AccountInfo$RetirementsDecidedArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$RetirementRequestPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -5394,6 +5908,54 @@ export type AccountInfo$RepairsPerformedArgs<ExtArgs extends runtime.Types.Exten
   take?: number
   skip?: number
   distinct?: Prisma.RepairLogScalarFieldEnum | Prisma.RepairLogScalarFieldEnum[]
+}
+
+/**
+ * AccountInfo.RetirementsRequested
+ */
+export type AccountInfo$RetirementsRequestedArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the RetirementRequest
+   */
+  select?: Prisma.RetirementRequestSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the RetirementRequest
+   */
+  omit?: Prisma.RetirementRequestOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.RetirementRequestInclude<ExtArgs> | null
+  where?: Prisma.RetirementRequestWhereInput
+  orderBy?: Prisma.RetirementRequestOrderByWithRelationInput | Prisma.RetirementRequestOrderByWithRelationInput[]
+  cursor?: Prisma.RetirementRequestWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.RetirementRequestScalarFieldEnum | Prisma.RetirementRequestScalarFieldEnum[]
+}
+
+/**
+ * AccountInfo.RetirementsDecided
+ */
+export type AccountInfo$RetirementsDecidedArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the RetirementRequest
+   */
+  select?: Prisma.RetirementRequestSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the RetirementRequest
+   */
+  omit?: Prisma.RetirementRequestOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.RetirementRequestInclude<ExtArgs> | null
+  where?: Prisma.RetirementRequestWhereInput
+  orderBy?: Prisma.RetirementRequestOrderByWithRelationInput | Prisma.RetirementRequestOrderByWithRelationInput[]
+  cursor?: Prisma.RetirementRequestWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.RetirementRequestScalarFieldEnum | Prisma.RetirementRequestScalarFieldEnum[]
 }
 
 /**

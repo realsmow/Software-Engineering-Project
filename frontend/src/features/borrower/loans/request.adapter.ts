@@ -1,6 +1,7 @@
 import { fmtTime, toLocalDayKey } from "@/lib/datetime";
 import type { Tier } from "@/types/domain";
-import { TIME_SLOTS, type MyRequest, type MyRequestStatus } from "../mock-data";
+import { TIME_SLOTS } from "../rooms/room-slots";
+import type { MyRequest, MyRequestStatus } from "../request-status";
 
 /**
  * `loan.list` rows, and the conversion to what the request pages render.

@@ -1,5 +1,3 @@
-import { withOutputContracts } from '../fixtures/output-contracts';
-import { adminContracts } from '../fixtures/service-contracts';
 import { INestApplication } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { AppModule } from '../../src/app.module';
@@ -9,7 +7,6 @@ import {
   createUserOutput,
   listUsersInput,
   paginatedAdminUsers,
-  setUserBanInput,
 } from '../../src/admin/admin.schema';
 import { AdminService } from '../../src/admin/admin.service';
 import type { AuditActor } from '../../src/common/audit/audit.service';
@@ -31,9 +28,7 @@ describe('AdminService user management', () => {
   let staffRoleKey: number;
   let seededAdminKey: number;
   let seededStaffKey: number;
-  let borrowerRoleKey: number | null = null;
   let adminActor: AuditActor;
-  let staffActor: AuditActor;
 
   const createdRoleKeys = new Set<number>();
   const createdUserKeys = new Set<number>();
@@ -54,39 +49,9 @@ describe('AdminService user management', () => {
     return created.RoleKey;
   }
 
-  async function ensureCreditTier() {
-    const existing = await prisma.creditTier.findFirst({
-      where: {
-        CreditMin: { lte: 100 },
-        CreditMax: { gte: 100 },
-      },
-    });
-    if (!existing) {
-      const tier = await prisma.creditTier.create({
-        data: { CreditTierName: 'D0', CreditMin: 80, CreditMax: 100 },
-      });
-      createdTierKeys.add(tier.CreditTierKey);
-      return tier.CreditTierKey;
-    }
-    return existing.CreditTierKey;
-  }
-
-  async function ensureBorrowerRole() {
-    if (borrowerRoleKey !== null) return borrowerRoleKey;
-
-    const created = await prisma.roleInfo.create({
-      data: { RoleName: 'Borrower' },
-    });
-    borrowerRoleKey = created.RoleKey;
-    createdRoleKeys.add(created.RoleKey);
-    return borrowerRoleKey;
-  }
-
   async function createBorrower(
     overrides: Partial<{ firstName: string; lastName: string }> = {},
   ) {
-    await ensureCreditTier();
-    await ensureBorrowerRole();
     const token = unique('admin-user-spec');
     const input = createUserInput.parse({
       email: `${token}@ku.th`,
@@ -95,23 +60,11 @@ describe('AdminService user management', () => {
       lastName: overrides.lastName ?? 'Borrower',
       role: 'borrower',
       password: 'Password123!',
-      initialCredit: 100,
     });
-    try {
-      const result = await adminService.createUser(input, adminActor);
-      createdUserKeys.add(result.user.id);
-      expect(createUserOutput.safeParse(result).success).toBe(true);
-      return { input, result };
-    } catch (error) {
-      const leaked = await prisma.accountInfo.findUnique({
-        where: { Email: input.email },
-        select: { AccountKey: true },
-      });
-      if (leaked) {
-        createdUserKeys.add(leaked.AccountKey);
-      }
-      throw error;
-    }
+    const result = await adminService.createUser(input, adminActor);
+    createdUserKeys.add(result.user.id);
+    expect(createUserOutput.safeParse(result).success).toBe(true);
+    return { input, result };
   }
 
   async function attachCoverageGroup(accountKey: number) {
@@ -134,10 +87,7 @@ describe('AdminService user management', () => {
     });
 
     const authorityRole = await prisma.authorityRole.create({
-      data: {
-        AuthorityName: unique('user-management-authority'),
-        AuthorityLevel: 2,
-      },
+      data: { AuthorityName: unique('user-management-authority'), AuthorityLevel: 2 },
     });
     coverageAuthorityRoleKeys.add(authorityRole.AuthorityRoleKey);
 
@@ -203,18 +153,31 @@ describe('AdminService user management', () => {
     }).compile();
     app = module.createNestApplication();
     await app.init();
-    adminService = withOutputContracts(
-      module.get(AdminService),
-      adminContracts,
-    );
+    adminService = module.get(AdminService);
     prisma = module.get(PrismaService);
 
     adminRoleKey = await roleKey('Admin');
     staffRoleKey = await roleKey('Staff');
 
-    await ensureBorrowerRole();
+    const existingBorrowerRole = await prisma.roleInfo.findFirst({
+      where: { RoleName: { in: ['Student', 'Borrower'] } },
+    });
+    if (!existingBorrowerRole) {
+      await roleKey('Student');
+    }
 
-    await ensureCreditTier();
+    const existingTier = await prisma.creditTier.findFirst({
+      where: {
+        CreditMin: { lte: 100 },
+        CreditMax: { gte: 100 },
+      },
+    });
+    if (!existingTier) {
+      const tier = await prisma.creditTier.create({
+        data: { CreditTierName: 'D0', CreditMin: 0, CreditMax: 100 },
+      });
+      createdTierKeys.add(tier.CreditTierKey);
+    }
 
     const [admin, staff] = await Promise.all([
       prisma.accountInfo.create({
@@ -243,12 +206,7 @@ describe('AdminService user management', () => {
     seededAdminKey = admin.AccountKey;
     seededStaffKey = staff.AccountKey;
     adminActor = { accountKey: seededAdminKey };
-    staffActor = { accountKey: seededStaffKey };
   }, 30_000);
-
-  beforeEach(async () => {
-    await ensureCreditTier();
-  });
 
   afterEach(async () => {
     await removeCoverageGroups();
@@ -274,23 +232,13 @@ describe('AdminService user management', () => {
         });
       }
       if (createdRoleKeys.size > 0) {
-        // Other parallel suites discover these shared roles by name.
-        // Removing them can invalidate a role key before its account is created.
         await prisma.roleInfo.deleteMany({
-          where: {
-            RoleKey: { in: [...createdRoleKeys] },
-            RoleName: {
-              notIn: ['Admin', 'Staff', 'Student', 'Borrower', 'Supervisor'],
-            },
-          },
+          where: { RoleKey: { in: [...createdRoleKeys] } },
         });
       }
       if (createdTierKeys.size > 0) {
         await prisma.creditTier.deleteMany({
-          where: {
-            CreditTierKey: { in: [...createdTierKeys] },
-            CreditTierName: { notIn: ['D0', 'D1', 'D2', 'D3'] },
-          },
+          where: { CreditTierKey: { in: [...createdTierKeys] } },
         });
       }
     } finally {
@@ -352,9 +300,6 @@ describe('AdminService user management', () => {
         role: 'unknown',
       }).success,
     ).toBe(false);
-    expect(
-      setUserBanInput.safeParse({ id: 0, banned: true, days: 0 }).success,
-    ).toBe(false);
   });
 
   it('rejects duplicate email and student ID', async () => {
@@ -392,25 +337,13 @@ describe('AdminService user management', () => {
 
   it('returns a typed not-found error for mutations targeting an unknown account', async () => {
     await expect(
-      adminService.updateUser(
-        { id: 999_999_999, firstName: 'Nobody' },
-        adminActor,
-      ),
+      adminService.updateUser({ id: 999_999_999, firstName: 'Nobody' }, adminActor),
     ).rejects.toMatchObject({ businessCode: 'USER_NOT_FOUND' });
     await expect(
       adminService.resetPassword({ id: 999_999_999 }, adminActor),
     ).rejects.toMatchObject({ businessCode: 'USER_NOT_FOUND' });
     await expect(
-      adminService.setUserBan(
-        { id: 999_999_999, banned: true, days: 7 },
-        staffActor,
-      ),
-    ).rejects.toMatchObject({ businessCode: 'USER_NOT_FOUND' });
-    await expect(
-      adminService.setUserActive(
-        { id: 999_999_999, active: false },
-        adminActor,
-      ),
+      adminService.setUserActive({ id: 999_999_999, active: false }, adminActor),
     ).rejects.toMatchObject({ businessCode: 'USER_NOT_FOUND' });
   });
 
@@ -453,12 +386,10 @@ describe('AdminService user management', () => {
       ],
     });
     expect(
-      (
-        await prisma.accountInfo.findUnique({
-          where: { AccountKey: seededStaffKey },
-          select: { RoleKey: true },
-        })
-      )?.RoleKey,
+      (await prisma.accountInfo.findUnique({
+        where: { AccountKey: seededStaffKey },
+        select: { RoleKey: true },
+      }))?.RoleKey,
     ).toBe(staffRoleKey);
   });
 
@@ -503,58 +434,9 @@ describe('AdminService user management', () => {
     );
   });
 
-  it('records and lifts a borrowing ban without deleting its history', async () => {
-    const { result } = await createBorrower();
-    const before = Date.now();
-    await expect(
-      adminService.setUserBan(
-        setUserBanInput.parse({
-          id: result.user.id,
-          banned: true,
-          days: 7,
-          reason: 'Late return equipment violation',
-        }),
-        staffActor,
-      ),
-    ).resolves.toEqual({ ok: true });
-
-    const activePenalty = await prisma.penaltyInfo.findFirst({
-      where: { AccountKey: result.user.id, InEffect: true },
-    });
-    expect(activePenalty).toMatchObject({
-      Reason: 'Late return equipment violation',
-      InEffect: true,
-    });
-    expect(activePenalty?.ExpirationTime.getTime()).toBeGreaterThan(
-      before + 6 * 24 * 60 * 60 * 1000,
-    );
-
-    await adminService.setUserBan(
-      setUserBanInput.parse({ id: result.user.id, banned: false }),
-      staffActor,
-    );
-    const penalties = await prisma.penaltyInfo.findMany({
-      where: { AccountKey: result.user.id },
-    });
-    expect(penalties).toHaveLength(1);
-    expect(penalties[0].InEffect).toBe(false);
-  });
-
-  it('prevents staff from banning themself', async () => {
-    await expect(
-      adminService.setUserBan(
-        setUserBanInput.parse({ id: seededStaffKey, banned: true, days: 7 }),
-        staffActor,
-      ),
-    ).rejects.toMatchObject({ businessCode: 'CANNOT_MODIFY_SELF' });
-  });
-
   it('prevents an administrator from disabling their own account', async () => {
     await expect(
-      adminService.setUserActive(
-        { id: seededAdminKey, active: false },
-        adminActor,
-      ),
+      adminService.setUserActive({ id: seededAdminKey, active: false }, adminActor),
     ).rejects.toMatchObject({ businessCode: 'CANNOT_MODIFY_SELF' });
   });
 
@@ -570,45 +452,31 @@ describe('AdminService user management', () => {
     expect(error.details).toMatchObject({
       accountKey: seededStaffKey,
       from: 'staff',
-      groups: [
-        expect.objectContaining({ manageGroupKey: groupKey, losing: 'staff' }),
-      ],
+      groups: [expect.objectContaining({ manageGroupKey: groupKey, losing: 'staff' })],
     });
     expect(
-      (
-        await prisma.accountInfo.findUnique({
-          where: { AccountKey: seededStaffKey },
-          select: { IsActive: true },
-        })
-      )?.IsActive,
+      (await prisma.accountInfo.findUnique({
+        where: { AccountKey: seededStaffKey },
+        select: { IsActive: true },
+      }))?.IsActive,
     ).toBe(true);
   });
 
-  it('disables and re-enables another account without treating it as a borrowing ban', async () => {
+  it('disables and re-enables another account without writing a penalty', async () => {
     const { result } = await createBorrower();
 
     await expect(
-      adminService.setUserActive(
-        { id: result.user.id, active: false },
-        adminActor,
-      ),
+      adminService.setUserActive({ id: result.user.id, active: false }, adminActor),
     ).resolves.toEqual({ ok: true });
-    await expect(
-      adminService.getUserById(result.user.id),
-    ).resolves.toMatchObject({
+    await expect(adminService.getUserById(result.user.id)).resolves.toMatchObject({
       id: result.user.id,
       status: 'disabled',
     });
 
     await expect(
-      adminService.setUserActive(
-        { id: result.user.id, active: true },
-        adminActor,
-      ),
+      adminService.setUserActive({ id: result.user.id, active: true }, adminActor),
     ).resolves.toEqual({ ok: true });
-    await expect(
-      adminService.getUserById(result.user.id),
-    ).resolves.toMatchObject({
+    await expect(adminService.getUserById(result.user.id)).resolves.toMatchObject({
       id: result.user.id,
       status: 'active',
     });

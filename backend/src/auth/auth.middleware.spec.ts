@@ -49,7 +49,12 @@ describe('Auth and role middleware — Module 1.2.8–1.2.11', () => {
 
     try {
       await middleware.use({
-        ctx: ctxWith({ accountKey: 101, role: 'borrower', facultyKey: null, creditScore: 100 }),
+        ctx: ctxWith({
+          accountKey: 101,
+          role: 'borrower',
+          facultyKey: null,
+          creditScore: 100,
+        }),
         next,
       } as any);
     } catch (error) {
@@ -69,7 +74,12 @@ describe('Auth and role middleware — Module 1.2.8–1.2.11', () => {
 
     await expect(
       middleware.use({
-        ctx: ctxWith({ accountKey: 102, role: 'staff', facultyKey: null, creditScore: 100 }),
+        ctx: ctxWith({
+          accountKey: 102,
+          role: 'staff',
+          facultyKey: null,
+          creditScore: 100,
+        }),
         next,
       } as any),
     ).rejects.toMatchObject({

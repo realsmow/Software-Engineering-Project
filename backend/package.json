@@ -19,7 +19,7 @@
     "start": "nest start",
     "start:debug": "nest start --debug --watch",
     "start:dev": "nest start --watch",
-    "start:prod": "node dist/main",
+    "start:prod": "node dist/src/main",
     "test": "cross-env NODE_OPTIONS=--experimental-vm-modules jest",
     "test:admin": "cross-env NODE_OPTIONS=--experimental-vm-modules jest --config tests/jest-admin.json --runInBand",
     "test:item": "cross-env NODE_OPTIONS=--experimental-vm-modules jest --config tests/jest-item.json",
@@ -29,7 +29,9 @@
     "test:watch": "cross-env NODE_OPTIONS=--experimental-vm-modules jest --watch",
     "trpc:generate": "nestjs-trpc generate -o ./src/generated/trpc",
     "trpc:watch": "nestjs-trpc watch -o ./src/generated/trpc",
+    "api:types": "node scripts/export-api-types.mjs",
     "seed": "nest build && node dist/src/seed.js",
+    "seed:prod": "nest build && node dist/src/seed-prod.js",
     "docs:api": "node scripts/gen-api-docs.mjs"
   },
   "dependencies": {
@@ -63,6 +65,7 @@
     "@types/supertest": "^7.0.0",
     "cross-env": "^10.1.0",
     "dotenv": "^17.4.2",
+    "dts-bundle-generator": "^9.5.1",
     "eslint": "^9.18.0",
     "eslint-config-prettier": "^10.0.1",
     "eslint-plugin-prettier": "^5.2.2",

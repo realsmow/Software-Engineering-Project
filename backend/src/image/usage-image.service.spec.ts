@@ -25,7 +25,13 @@ const STAFF: TrpcUser = {
   creditScore: 100,
 } as TrpcUser;
 
-function build(usage: unknown, existing: { ImageURL: string }[] = []) {
+function build(
+  usage: unknown,
+  existing: { ImageURL: string }[] = [],
+  // Null means "no appealable damage penalty on this loan" - the default,
+  // since most cases here have nothing to do with evidence.
+  appealablePenalty: { PenaltyKey: number } | null = null,
+) {
   const createMany = jest.fn().mockResolvedValue({ count: 1 });
 
   const prisma = {
@@ -40,6 +46,9 @@ function build(usage: unknown, existing: { ImageURL: string }[] = []) {
       findUnique: jest.fn(),
       delete: jest.fn(),
     },
+    penaltyInfo: {
+      findFirst: jest.fn().mockResolvedValue(appealablePenalty),
+    },
   } as unknown as PrismaService;
 
   const scope = {
@@ -49,9 +58,13 @@ function build(usage: unknown, existing: { ImageURL: string }[] = []) {
   // `createMany` is handed back separately rather than read off `prisma`: the
   // assertions want the mock itself, and pulling a method off the object to
   // pass to `expect` detaches it from its receiver.
-  // Only the ticket path touches ImageService, and these cases do not take it.
+  // `list()` (and everything that ends with it) now signs evidence URLs on
+  // the way out (NFR-SEC-06) via `toPublicUrl`, so it needs a stub here too -
+  // a passthrough, since these cases don't care about the signing itself,
+  // only that a URL comes back.
   const images = {
     issueTicket: jest.fn(),
+    toPublicUrl: jest.fn((value: string | null | undefined) => value ?? null),
   } as unknown as ImageService;
 
   return {
@@ -141,6 +154,108 @@ describe('UsageImageService.attach', () => {
 });
 
 /**
+ * Appeal evidence (FR-APL-02).
+ *
+ * Not gated by `CurrentStatus` like before/after - a damage grade only exists
+ * once a loan is well past `Lended`, so the window here is "is there a damage
+ * penalty worth arguing with", checked against `PenaltyInfo` instead.
+ */
+describe('UsageImageService.attach (evidence)', () => {
+  const photos = {
+    usageKey: 7,
+    stage: 'evidence' as const,
+    imageUrls: ['/media/a.jpg'],
+  };
+
+  it('attaches evidence while a damage penalty is still appealable', async () => {
+    const { service, createMany } = build(usage('Returned'), [], {
+      PenaltyKey: 9,
+    });
+
+    await service.attach(BORROWER, photos);
+
+    expect(createMany).toHaveBeenCalledWith({
+      data: [expect.objectContaining({ SubmissionType: 'AppealEvidence' })],
+    });
+  });
+
+  it('refuses evidence when there is no damage penalty to argue with', async () => {
+    const { service } = build(usage('Returned'), [], null);
+
+    await expect(service.attach(BORROWER, photos)).rejects.toThrow(
+      /EVIDENCE_NOT_ALLOWED/,
+    );
+  });
+
+  it('ignores loan state entirely - a "Lended" loan with an appealable penalty still qualifies', async () => {
+    // Contrived (a damage grade normally postdates the loan), but the point is
+    // that STAGE_ALLOWED_STATES, which would refuse "Lended" for before/after,
+    // is never consulted for this stage.
+    const { service, createMany } = build(usage('Lended'), [], {
+      PenaltyKey: 9,
+    });
+
+    await service.attach(BORROWER, photos);
+
+    expect(createMany).toHaveBeenCalled();
+  });
+
+  it('refuses staff even when the loan is in their scope', async () => {
+    // The penalty query filters by the caller's own account key, so a staff
+    // member's key simply matches nothing - no separate role check needed.
+    const { service } = build(usage('Returned', 999), [], null);
+
+    await expect(service.attach(STAFF, photos)).rejects.toThrow(
+      /EVIDENCE_NOT_ALLOWED/,
+    );
+  });
+});
+
+describe('UsageImageService.detach (evidence)', () => {
+  it('lets the borrower remove their own evidence while still appealable', async () => {
+    const { service } = build(usage('Returned'), [], { PenaltyKey: 9 });
+    const prisma = (
+      service as unknown as {
+        prisma: { images: { findUnique: jest.Mock; delete: jest.Mock } };
+      }
+    ).prisma;
+    prisma.images.findUnique.mockResolvedValue({
+      ImageKey: 1,
+      ImageURL: '/media/a.jpg',
+      SubmissionType: 'AppealEvidence',
+      SubmittedBy: BORROWER.accountKey,
+      ActionTime: new Date(),
+      UsageKey: 7,
+    });
+
+    await service.detach(BORROWER, 1);
+
+    expect(prisma.images.delete).toHaveBeenCalledWith({
+      where: { ImageKey: 1 },
+    });
+  });
+
+  it('refuses to remove evidence once nothing is left to appeal', async () => {
+    const { service } = build(usage('Returned'), [], null);
+    const prisma = (
+      service as unknown as { prisma: { images: { findUnique: jest.Mock } } }
+    ).prisma;
+    prisma.images.findUnique.mockResolvedValue({
+      ImageKey: 1,
+      ImageURL: '/media/a.jpg',
+      SubmissionType: 'AppealEvidence',
+      SubmittedBy: BORROWER.accountKey,
+      ActionTime: new Date(),
+      UsageKey: 7,
+    });
+
+    await expect(service.detach(BORROWER, 1)).rejects.toThrow(
+      /EVIDENCE_NOT_ALLOWED/,
+    );
+  });
+});
+
+/**
  * The borrower's upload ticket.
  *
  * `image.requestUpload` is staff-only on purpose, so this is the only way a
@@ -148,7 +263,11 @@ describe('UsageImageService.attach', () => {
  * theirs, and they cannot steer the ticket at anything but loan evidence.
  */
 describe('UsageImageService.requestUploadTicket', () => {
-  const ask = { usageKey: 7, contentType: 'image/png' as const, sizeBytes: 1024 };
+  const ask = {
+    usageKey: 7,
+    contentType: 'image/png' as const,
+    sizeBytes: 1024,
+  };
 
   it('issues a ticket for a loan the borrower owns', async () => {
     const { service, issueTicket } = build(usage('Lended'));

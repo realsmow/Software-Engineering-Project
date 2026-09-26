@@ -959,6 +959,29 @@ export const trpcClient = createTRPCClient<AppRouter>({
 ก่อน \en{merge}
 \end{badbox}
 
+\begin{goodbox}[title={สิ่งที่ทำจริง (\en{NFR-MNT-04})}]
+ทางที่เลือกท้ายที่สุดคือ \textbf{ข.} แบบละเอียดขึ้น: ไม่คัดลอกไฟล์ \code{server.ts}
+ทั้งไฟล์ (มันอ้างพาธของ \en{backend} และประเภทจาก \en{Prisma} ที่ \en{frontend}
+ไม่มี) แต่ใช้ \code{dts-bundle-generator} (\en{devDependency} ใหม่ของ
+\en{backend}) ไล่ตามกราฟประเภทจาก \code{AppRouter} แล้วยุบทุกอย่างเป็นไฟล์
+ประกาศประเภทไฟล์เดียวที่อ้างถึงแค่ \code{@trpc/server} --- ไม่มีพาธของ
+\en{backend}, ไม่มี \code{zod} \en{schema} object, ไม่มีประเภทจาก \en{Prisma}
+หลุดเข้ามา
+
+ขั้นตอน: \code{backend/scripts/export-api-types.mjs} รันด้วย
+\code{npm run api:types} ใน \code{backend/} (หลัง \code{npm run trpc:generate})
+เขียนผลลัพธ์ไปที่ \code{frontend/src/server/api-types.d.ts} ซึ่ง \code{commit}
+เข้ารีโปเหมือนไฟล์อื่น \code{src/lib/trpc.ts} ฝั่ง \en{frontend} \code{import type}
+จากไฟล์นี้แทนสัญญาที่เคยเขียนด้วยมือ (\code{trpc-contract.ts}, ลบไปแล้ว)
+
+ส่วน ``สคริปต์คัดลอก + \code{tsc --noEmit} เป็นเงื่อนไขก่อน \en{merge}''
+ในกล่องด้านบนคือ CI \en{job} \code{backend} ขั้น \textit{api types up to date}:
+รัน \code{trpc:generate} แล้ว \code{api:types} ใหม่ แล้ว
+\code{git diff --exit-code} ใส่ไฟล์ \code{api-types.d.ts} --- ถ้าใครแก้
+\en{router}/\en{schema} ฝั่ง \en{backend} แล้วลืมรันสคริปต์นี้ก่อน \code{commit}
+CI จะแดงแทนที่จะปล่อยให้สัญญาฝั่ง \en{frontend} ค้างของเก่าเงียบ ๆ
+\end{goodbox}
+
 \section{ความเสี่ยง 3 --- \en{schema} เป็น \code{PascalCase} และไม่มี \en{enum} เลย}
 
 \begin{goodbox}[title={นับจาก \code{schema.prisma} จริง}]

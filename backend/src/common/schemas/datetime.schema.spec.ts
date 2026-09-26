@@ -1,7 +1,7 @@
 import {
   APP_TIME_ZONE,
-  DUE_HOUR_LOCAL,
-  DUE_TIME_OF_DAY_UTC,
+  workHours,
+  dueTimeOfDayUtc,
   startOfLocalDay,
   toLocalDayKey,
   toDueDate,
@@ -31,14 +31,14 @@ const JUST_BEFORE_BANGKOK_MIDNIGHT = new Date('2026-09-13T16:59:00.000Z');
 
 describe('the two constants stay in step', () => {
   it('states the counter closing hour once, in local time', () => {
-    expect(DUE_HOUR_LOCAL).toBe(17);
+    expect(workHours.end).toBe(17);
     expect(APP_TIME_ZONE).toBe('Asia/Bangkok');
   });
 
   it('derives the UTC wire form from it rather than repeating it', () => {
     // 17:00 in Bangkok is 10:00Z. These drifted apart by seven hours once,
     // when the frontend wrote 17 and the backend wrote 10:00:00 by hand.
-    expect(DUE_TIME_OF_DAY_UTC).toBe('10:00:00');
+    expect(dueTimeOfDayUtc()).toBe('10:00:00');
   });
 
   it('really is closing time in Bangkok, as Intl reads it', () => {
@@ -48,7 +48,7 @@ describe('the two constants stay in step', () => {
       hour12: false,
       timeZone: APP_TIME_ZONE,
     }).format(due);
-    expect(hour).toBe(String(DUE_HOUR_LOCAL));
+    expect(hour).toBe(String(workHours.end));
   });
 
   it('keeps the due instant on the day the borrower named', () => {

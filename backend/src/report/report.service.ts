@@ -5,6 +5,17 @@ import { tryMapTier } from '../common/schemas/status.schema';
 import { UNAVAILABLE_USAGE_STATES } from '../common/usage/usage-states';
 import type { TrpcUser } from '../trpc/context';
 import type { ReportSummaryInput } from './report.schema';
+import { workHours } from '../common/schemas/datetime.schema';
+
+/** The window the damage and room figures cover. */
+const REPORT_DAYS = 30;
+const CONDITIONS = [
+  'Normal',
+  'MinorDamage',
+  'MajorDamage',
+  'Broken',
+  'Missing',
+] as const;
 
 /**
  * Lending activity, counted from the rows themselves.
@@ -77,6 +88,44 @@ export class ReportService {
     );
 
     const top = await this.topEquipment(scope, input.topLimit);
+    const since = new Date(now.getTime() - REPORT_DAYS * 86_400_000);
+
+    const inspections = await this.prisma.inspection.findMany({
+      where: { Resource: scope, ActionTime: { gte: since } },
+      select: { Condition: { select: { Condition: true } } },
+    });
+    const damage = CONDITIONS.map((condition) => ({
+      condition,
+      count: inspections.filter((i) => i.Condition.Condition === condition)
+        .length,
+    }));
+
+    const roomScope = { ...scope, ResourceType: 'Room' as const };
+    const [rooms, bookings] = await Promise.all([
+      this.prisma.resourceInfo.count({
+        where: { ...roomScope, AllowBorrow: true },
+      }),
+      this.prisma.reservations.findMany({
+        where: {
+          Resource: roomScope,
+          ApproveStatus: 'Approved',
+          StartTime: { lt: now },
+          EndTime: { gt: since },
+        },
+        select: { StartTime: true, EndTime: true },
+      }),
+    ]);
+    // Only the part of each booking inside the window counts.
+    const bookedMs = bookings.reduce(
+      (sum, b) =>
+        sum +
+        Math.min(b.EndTime.getTime(), now.getTime()) -
+        Math.max(b.StartTime.getTime(), since.getTime()),
+      0,
+    );
+    // ponytail: counts every day as a working day; subtract weekends if asked.
+    const openHours = rooms * REPORT_DAYS * (workHours.end - workHours.start);
+    const bookedHours = Math.round(bookedMs / 360_000) / 10;
 
     return {
       generatedAt: now.toISOString(),
@@ -92,6 +141,16 @@ export class ReportService {
       ),
       departments: departments.sort((a, b) => b.loans - a.loans),
       topEquipment: top,
+      damage,
+      roomUtilization: {
+        rooms,
+        bookedHours,
+        openHours,
+        percent:
+          openHours === 0
+            ? 0
+            : Math.min(100, Math.round((bookedHours / openHours) * 100)),
+      },
     };
   }
 

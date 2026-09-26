@@ -12,12 +12,12 @@ import {
 } from '../common/approval/approval-policy';
 import {
   clashingWindowFilter,
+  collectDeadline,
   runSerializable,
   withBuffer,
 } from '../common/booking/booking-window';
 import { BusinessError } from '../common/errors/business-error';
 import {
-  addDays,
   daysBetween,
   startOfLocalDay,
   toIso,
@@ -29,14 +29,18 @@ import {
   NotificationService,
   resourceName,
 } from '../notification/notification.service';
+import {
+  ItemManagementService,
+  RETIREMENT_REQUEST_SELECT,
+  toRetirementRequestOutput,
+} from '../item/item.management.service';
 import type { TrpcUser } from '../trpc/context';
 import type {
   DecideApprovalInput,
+  DecideRetirementInput,
   ListApprovalQueueInput,
+  ListRetirementQueueInput,
 } from './approval.schema';
-
-/** Matches COLLECT_WITHIN_DAYS in loan.request.service.ts (§5.9). */
-const COLLECT_WITHIN_DAYS = 1;
 
 const BORROWER_SELECT = {
   AccountKey: true,
@@ -92,6 +96,7 @@ export class ApprovalService {
     private readonly requests: LoanRequestService,
     private readonly notifications: NotificationService,
     private readonly audit: AuditService,
+    private readonly itemManagement: ItemManagementService,
   ) {}
 
   // =========================================================================
@@ -150,25 +155,29 @@ export class ApprovalService {
     // before the desk opens and, after 17:00, count two days as one.
     const startOfToday = startOfLocalDay(now);
 
-    const [pending, autoApprovedToday] = await this.prisma.$transaction([
-      this.prisma.reservations.findMany({
-        where: { ApproveStatus: 'Pending', Resource: scope },
-        select: {
-          StartTime: true,
-          ReservedByUser: { select: { UserCredit: true } },
-          Resource: {
-            select: { BorrowRuleInfo: { select: { RuleName: true } } },
+    const [pending, autoApprovedToday, retirement] =
+      await this.prisma.$transaction([
+        this.prisma.reservations.findMany({
+          where: { ApproveStatus: 'Pending', Resource: scope },
+          select: {
+            StartTime: true,
+            ReservedByUser: { select: { UserCredit: true } },
+            Resource: {
+              select: { BorrowRuleInfo: { select: { RuleName: true } } },
+            },
           },
-        },
-      }),
-      this.prisma.reservations.count({
-        where: {
-          AutoApproved: true,
-          ApprovedAt: { gte: startOfToday },
-          Resource: scope,
-        },
-      }),
-    ]);
+        }),
+        this.prisma.reservations.count({
+          where: {
+            AutoApproved: true,
+            ApprovedAt: { gte: startOfToday },
+            Resource: scope,
+          },
+        }),
+        this.prisma.retirementRequest.count({
+          where: { ApproveStatus: 'Pending', Resource: scope },
+        }),
+      ]);
 
     const toBand = await this.creditTiers.tierMapper();
     let staff = 0;
@@ -190,6 +199,7 @@ export class ApprovalService {
       supervisor,
       overdueToDecide,
       autoApprovedToday,
+      retirement,
       asOf: toIso(now),
     };
   }
@@ -326,8 +336,7 @@ export class ApprovalService {
         });
       }
 
-      // The clock on collecting it starts now, not when it was asked for.
-      const collectBy = addDays(now, COLLECT_WITHIN_DAYS);
+      const collectBy = collectDeadline(row.StartTime, now);
 
       await tx.reservations.update({
         where: { ReservationKey: row.ReservationKey },
@@ -348,6 +357,11 @@ export class ApprovalService {
         reservationKey: row.ReservationKey,
         itemName,
         collectBy,
+      });
+      await this.notifications.itemToPrepare(tx, {
+        manageGroupKey: row.Resource.ManagedBy,
+        reservationKey: row.ReservationKey,
+        itemName,
       });
 
       if (clashes.length > 0) {
@@ -396,8 +410,151 @@ export class ApprovalService {
   }
 
   // =========================================================================
+  // Retirement (FR-EQP-08) — a supervisor's own desk, not staff's
+  // =========================================================================
+
+  async retirementQueue(user: TrpcUser, input: ListRetirementQueueInput) {
+    this.assertSupervisor(user);
+
+    const where: Prisma.RetirementRequestWhereInput = {
+      ApproveStatus: 'Pending',
+      Resource: await this.scope.resourceScope(user),
+    };
+
+    const [rows, total] = await this.prisma.$transaction([
+      this.prisma.retirementRequest.findMany({
+        where,
+        // Oldest first, same as the borrowing queue.
+        orderBy: { RequestedAt: 'asc' },
+        ...toSkipTake(input),
+        select: RETIREMENT_REQUEST_SELECT,
+      }),
+      this.prisma.retirementRequest.count({ where }),
+    ]);
+
+    return toPage(rows.map(toRetirementRequestOutput), total, input);
+  }
+
+  async decideRetirement(user: TrpcUser, input: DecideRetirementInput) {
+    this.assertSupervisor(user);
+
+    const request = await this.prisma.retirementRequest.findUnique({
+      where: { RequestKey: input.requestKey },
+      select: {
+        ResourceKey: true,
+        RequestedBy: true,
+        ApproveStatus: true,
+        Resource: {
+          select: {
+            Item: { select: { Item: { select: { ItemName: true } } } },
+            Room: { select: { RoomName: true } },
+          },
+        },
+      },
+    });
+    if (!request) {
+      throw new BusinessError('RETIREMENT_REQUEST_NOT_FOUND', {
+        requestKey: input.requestKey,
+      });
+    }
+    await this.scope.assertResourceInScope(user, request.ResourceKey);
+
+    if (request.RequestedBy === user.accountKey) {
+      // Same "no deciding your own" rule as CANNOT_APPROVE_OWN_REQUEST.
+      throw new BusinessError('CANNOT_DECIDE_OWN_RETIREMENT', {
+        requestKey: input.requestKey,
+      });
+    }
+    if (request.ApproveStatus !== 'Pending') {
+      throw new BusinessError('RETIREMENT_ALREADY_DECIDED', {
+        requestKey: input.requestKey,
+        status: request.ApproveStatus,
+      });
+    }
+
+    const now = new Date();
+    const name = resourceName(request.Resource);
+
+    if (input.decision === 'reject') {
+      // In a transaction so the requester's notification cannot outlive a
+      // rejection that failed to write — same reasoning as decideApproval.
+      await this.prisma.$transaction(async (tx) => {
+        await tx.retirementRequest.update({
+          where: { RequestKey: input.requestKey },
+          data: {
+            ApproveStatus: 'Rejected',
+            DecidedBy: user.accountKey,
+            DecidedAt: now,
+            DecisionNote: input.note ?? null,
+          },
+        });
+
+        await this.notifications.retirementDecided(tx, {
+          accountKey: request.RequestedBy,
+          requestKey: input.requestKey,
+          resourceName: name,
+          decision: 'reject',
+          note: input.note,
+        });
+      });
+    } else {
+      // The resource may have gone active since the request was filed - a
+      // loan taken out this morning must not be retired out from under it.
+      await this.itemManagement.assertNotActive(request.ResourceKey);
+
+      await this.prisma.$transaction(async (tx) => {
+        await tx.retirementRequest.update({
+          where: { RequestKey: input.requestKey },
+          data: {
+            ApproveStatus: 'Approved',
+            DecidedBy: user.accountKey,
+            DecidedAt: now,
+            DecisionNote: input.note ?? null,
+          },
+        });
+        // The one write that actually retires it: out of the catalogue,
+        // availability and allocation, kept for history and reports.
+        await tx.resourceInfo.update({
+          where: { ResourceKey: request.ResourceKey },
+          data: { ResourceStatus: 'Retired', AllowBorrow: false },
+        });
+
+        await this.notifications.retirementDecided(tx, {
+          accountKey: request.RequestedBy,
+          requestKey: input.requestKey,
+          resourceName: name,
+          decision: 'approve',
+          note: input.note,
+        });
+      });
+    }
+
+    await this.audit.record(
+      { accountKey: user.accountKey },
+      'update',
+      `retirement/${input.requestKey}`,
+      `${input.decision === 'approve' ? 'Approved' : 'Rejected'} retirement request${input.note ? `: ${input.note}` : ''}`,
+    );
+
+    return this.itemManagement.readRetirementRequest(input.requestKey);
+  }
+
+  // =========================================================================
   // Internals
   // =========================================================================
+
+  /**
+   * FR-EQP-08 is a supervisor's decision, not staff's - unlike the borrowing
+   * queue, which splits by tier and credit band. StaffMiddleware on the router
+   * is only a floor; this is the actual gate for these two procedures.
+   */
+  private assertSupervisor(user: TrpcUser): void {
+    if (user.role !== 'supervisor' && user.role !== 'admin') {
+      throw new BusinessError('APPROVAL_NEEDS_SUPERVISOR', {
+        requiredRole: 'supervisor',
+      });
+    }
+  }
 
   /**
    * The role the caller decides with.

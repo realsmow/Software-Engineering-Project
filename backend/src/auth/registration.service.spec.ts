@@ -99,6 +99,15 @@ describe('register', () => {
     expect(token).not.toBe(stored);
   });
 
+  it('refuses an email outside the allowed domain (C-01) before touching the database', async () => {
+    const t = build();
+    await expect(
+      t.service.register({ ...input, email: 'someone@gmail.com' }),
+    ).rejects.toMatchObject({ businessCode: 'INVALID_DOMAIN' });
+    expect(t.prisma.accountInfo.findFirst).not.toHaveBeenCalled();
+    expect(t.accountCreate).not.toHaveBeenCalled();
+  });
+
   it('creates nothing when the address is taken, and does not say so', async () => {
     const t = build({ clash: { Email: 'existing@ku.th' } });
 
@@ -122,7 +131,9 @@ describe('verify', () => {
 
   it('activates the account and spends the token', async () => {
     const t = build();
-    (t.prisma.emailVerification.findUnique as jest.Mock).mockResolvedValue(live);
+    (t.prisma.emailVerification.findUnique as jest.Mock).mockResolvedValue(
+      live,
+    );
 
     await t.service.verify('good-token');
 
@@ -150,9 +161,17 @@ describe('verify', () => {
   it('answers the same code for all three', async () => {
     const t = build();
     const codes: string[] = [];
-    for (const row of [null, { ...live, UsedAt: new Date() }, { ...live, ExpiresAt: new Date(0) }]) {
-      (t.prisma.emailVerification.findUnique as jest.Mock).mockResolvedValue(row);
-      await t.service.verify('x').catch((e: BusinessError) => codes.push(e.businessCode));
+    for (const row of [
+      null,
+      { ...live, UsedAt: new Date() },
+      { ...live, ExpiresAt: new Date(0) },
+    ]) {
+      (t.prisma.emailVerification.findUnique as jest.Mock).mockResolvedValue(
+        row,
+      );
+      await t.service
+        .verify('x')
+        .catch((e: BusinessError) => codes.push(e.businessCode));
     }
     expect(new Set(codes).size).toBe(1);
   });

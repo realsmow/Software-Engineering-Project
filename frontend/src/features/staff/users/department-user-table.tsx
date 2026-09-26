@@ -6,16 +6,11 @@ import type { AccountStatus, DepartmentUser } from "./department-users";
 
 const STATUS_TONE: Record<AccountStatus, BadgeTone> = {
   active: "ok",
-  suspended: "warn",
   disabled: "neutral",
 };
 
 /**
- * The department roster, shared by the directory and the ban screen.
- *
- * One table rather than two near-copies: both screens ask the same question
- * ("who is in my department") and differ only in what you can do to a row, so
- * the difference is a render prop rather than a second file that drifts.
+ * The department roster.
  */
 export function DepartmentUserTable({
   users,

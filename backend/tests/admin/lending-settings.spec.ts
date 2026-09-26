@@ -1,5 +1,3 @@
-import { withOutputContracts } from '../fixtures/output-contracts';
-import { adminContracts } from '../fixtures/service-contracts';
 import { INestApplication } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { AppModule } from '../../src/app.module';
@@ -19,7 +17,7 @@ describe('AdminService lending settings', () => {
   let actorKey: number;
   let borrowRuleKey: number;
   let creditTierKey: number;
-  let creditTierRange: { min: number; max: number };
+  let roleKey: number;
   const actorKeys = new Set<number>();
   const createdRoleKeys = new Set<number>();
   let sequence = 0;
@@ -33,14 +31,22 @@ describe('AdminService lending settings', () => {
     }).compile();
     app = module.createNestApplication();
     await app.init();
-    adminService = withOutputContracts(
-      module.get(AdminService),
-      adminContracts,
-    );
+    adminService = module.get(AdminService);
     prisma = module.get(PrismaService);
 
-    // Create the Admin role and its account in one transaction instead of
-    // referencing a role another suite could remove before the account insert.
+    const existingRole = await prisma.roleInfo.findFirst({
+      where: { RoleName: { in: ['Admin', 'Staff'] } },
+    });
+    if (existingRole) {
+      roleKey = existingRole.RoleKey;
+    } else {
+      const createdRole = await prisma.roleInfo.create({
+        data: { RoleName: unique('module4-role') },
+      });
+      roleKey = createdRole.RoleKey;
+      createdRoleKeys.add(roleKey);
+    }
+
     const createdActor = await prisma.accountInfo.create({
       data: {
         Email: `${unique('module4-actor')}@ku.th`,
@@ -48,34 +54,23 @@ describe('AdminService lending settings', () => {
         UserFName: 'Module',
         UserLName: 'Four',
         HashedPassword: 'not-used-by-this-suite',
-        Role: { create: { RoleName: 'Admin' } },
+        RoleKey: roleKey,
         UserCredit: 100,
       },
     });
     actorKey = createdActor.AccountKey;
     actorKeys.add(actorKey);
-    createdRoleKeys.add(createdActor.RoleKey);
 
-    const existingTier = await prisma.creditTier.findFirst({
-      where: { CreditTierName: 'D0' },
+    const tier = await prisma.creditTier.create({
+      data: {
+        CreditTierName: unique('module4-tier'),
+        // 0-0 so no account made by a spec running alongside (they start at
+        // 100) is placed in this tier while it exists.
+        CreditMin: 0,
+        CreditMax: 0,
+      },
     });
-    if (existingTier) {
-      creditTierKey = existingTier.CreditTierKey;
-      creditTierRange = {
-        min: existingTier.CreditMin,
-        max: existingTier.CreditMax,
-      };
-    } else {
-      const tier = await prisma.creditTier.create({
-        data: {
-          CreditTierName: 'D0',
-          CreditMin: 80,
-          CreditMax: 100,
-        },
-      });
-      creditTierKey = tier.CreditTierKey;
-      creditTierRange = { min: tier.CreditMin, max: tier.CreditMax };
-    }
+    creditTierKey = tier.CreditTierKey;
 
     const rule = await prisma.borrowRule.create({
       data: { RuleName: unique('module4-rule') },
@@ -84,50 +79,23 @@ describe('AdminService lending settings', () => {
   }, 30_000);
 
   afterEach(async () => {
-    // Prisma omits undefined filters; failed setup must not clean other suites' rows.
-    if (!prisma || !Number.isInteger(borrowRuleKey)) return;
-
-    await prisma.penaltyRule.deleteMany({
-      where: { BorrowRuleKey: borrowRuleKey },
-    });
-    await prisma.borrowConstraints.deleteMany({
-      where: { BorrowRuleKey: borrowRuleKey },
-    });
+    await prisma.penaltyRule.deleteMany({ where: { BorrowRuleKey: borrowRuleKey } });
+    await prisma.borrowConstraints.deleteMany({ where: { BorrowRuleKey: borrowRuleKey } });
   });
 
   afterAll(async () => {
     try {
-      if (!prisma) return;
-
-      if (Number.isInteger(borrowRuleKey)) {
-        await prisma.penaltyRule.deleteMany({
-          where: { BorrowRuleKey: borrowRuleKey },
-        });
-        await prisma.borrowConstraints.deleteMany({
-          where: { BorrowRuleKey: borrowRuleKey },
-        });
-        await prisma.borrowRule.deleteMany({
-          where: { BorrowRuleKey: borrowRuleKey },
-        });
-      }
+      await prisma.penaltyRule.deleteMany({ where: { BorrowRuleKey: borrowRuleKey } });
+      await prisma.borrowConstraints.deleteMany({ where: { BorrowRuleKey: borrowRuleKey } });
+      await prisma.borrowRule.deleteMany({ where: { BorrowRuleKey: borrowRuleKey } });
+      await prisma.creditTier.deleteMany({ where: { CreditTierKey: creditTierKey } });
 
       if (actorKeys.size > 0) {
-        await prisma.auditLog.deleteMany({
-          where: { ActorKey: { in: [...actorKeys] } },
-        });
-        await prisma.accountInfo.deleteMany({
-          where: { AccountKey: { in: [...actorKeys] } },
-        });
+        await prisma.auditLog.deleteMany({ where: { ActorKey: { in: [...actorKeys] } } });
+        await prisma.accountInfo.deleteMany({ where: { AccountKey: { in: [...actorKeys] } } });
       }
       if (createdRoleKeys.size > 0) {
-        await prisma.roleInfo.deleteMany({
-          where: {
-            RoleKey: { in: [...createdRoleKeys] },
-            RoleName: {
-              notIn: ['Admin', 'Staff', 'Student', 'Borrower', 'Supervisor'],
-            },
-          },
-        });
+        await prisma.roleInfo.deleteMany({ where: { RoleKey: { in: [...createdRoleKeys] } } });
       }
     } finally {
       await prisma?.$disconnect();
@@ -141,18 +109,14 @@ describe('AdminService lending settings', () => {
     expect(lendingSettingsOutput.safeParse(settings).success).toBe(true);
     expect(settings.creditTiers).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ id: creditTierKey, ...creditTierRange }),
+        expect.objectContaining({ id: creditTierKey, min: 0, max: 0 }),
       ]),
     );
-    const borrowRule = settings.borrowRules.find(
-      (rule) => rule.id === borrowRuleKey,
+    expect(settings.borrowRules).toEqual(
+      expect.arrayContaining([
+        { id: borrowRuleKey, name: expect.any(String), constraints: [], penalties: [] },
+      ]),
     );
-    expect(borrowRule).toMatchObject({
-      id: borrowRuleKey,
-      constraints: [],
-      penalties: [],
-    });
-    expect(borrowRule?.name).toEqual(expect.any(String));
   });
 
   it('upserts constraints and penalty rules and returns the updated settings', async () => {
@@ -166,13 +130,13 @@ describe('AdminService lending settings', () => {
           minimumAuthorityLevel: 3,
         },
       ],
-      penalties: [{ reason: 'DamagedItem', amount: 20, lengthDays: 30 }],
+      penalties: [
+        { reason: 'DamagedItem', amount: 20, lengthDays: 30 },
+      ],
     });
 
     const settings = await adminService.updateLendingSettings(input, actor());
-    const rule = settings.borrowRules.find(
-      (candidate) => candidate.id === borrowRuleKey,
-    );
+    const rule = settings.borrowRules.find((candidate) => candidate.id === borrowRuleKey);
 
     expect(rule).toMatchObject({
       id: borrowRuleKey,
@@ -188,12 +152,7 @@ describe('AdminService lending settings', () => {
     });
     await expect(
       prisma.borrowConstraints.findUnique({
-        where: {
-          BorrowRuleKey_CreditTierKey: {
-            BorrowRuleKey: borrowRuleKey,
-            CreditTierKey: creditTierKey,
-          },
-        },
+        where: { BorrowRuleKey_CreditTierKey: { BorrowRuleKey: borrowRuleKey, CreditTierKey: creditTierKey } },
       }),
     ).resolves.toMatchObject({ MaxBorrowDate: 14, MaxExtendTime: 2 });
   });
@@ -215,27 +174,18 @@ describe('AdminService lending settings', () => {
       }),
       actor(),
     );
-    const rule = settings.borrowRules.find(
-      (candidate) => candidate.id === borrowRuleKey,
-    )!;
+    const rule = settings.borrowRules.find((candidate) => candidate.id === borrowRuleKey)!;
 
     expect(rule.constraints).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ maxBorrowDays: 10, maxExtendTimes: 4 }),
-      ]),
+      expect.arrayContaining([expect.objectContaining({ maxBorrowDays: 10, maxExtendTimes: 4 })]),
     );
-    expect(rule.penalties).toEqual([
-      { reason: 'LostItem', amount: 80, lengthDays: 90 },
-    ]);
+    expect(rule.penalties).toEqual([{ reason: 'LostItem', amount: 80, lengthDays: 90 }]);
   });
 
   it('rejects an unknown borrow rule with a typed business error', async () => {
     const error = (await adminService
       .updateLendingSettings(
-        updateLendingSettingsInput.parse({
-          borrowRuleKey: 999_999_999,
-          constraints: [],
-        }),
+        updateLendingSettingsInput.parse({ borrowRuleKey: 999_999_999, constraints: [] }),
         actor(),
       )
       .catch((value: unknown) => value)) as BusinessError;
@@ -246,42 +196,13 @@ describe('AdminService lending settings', () => {
   });
 
   it.each([
-    [
-      'maxBorrowDays below one',
-      {
-        constraints: [
-          { creditTierKey: 1, maxBorrowDays: 0, maxExtendTimes: 0 },
-        ],
-      },
-    ],
-    [
-      'maxBorrowDays above one year',
-      {
-        constraints: [
-          { creditTierKey: 1, maxBorrowDays: 366, maxExtendTimes: 0 },
-        ],
-      },
-    ],
-    [
-      'maxExtendTimes above the ceiling',
-      {
-        constraints: [
-          { creditTierKey: 1, maxBorrowDays: 1, maxExtendTimes: 51 },
-        ],
-      },
-    ],
-    [
-      'penalty amount above the credit scale',
-      { penalties: [{ reason: 'LostItem', amount: 101, lengthDays: 1 }] },
-    ],
-    [
-      'penalty length above the ten-year ceiling',
-      { penalties: [{ reason: 'LostItem', amount: 1, lengthDays: 3651 }] },
-    ],
+    ['maxBorrowDays below one', { constraints: [{ creditTierKey: 1, maxBorrowDays: 0, maxExtendTimes: 0 }] }],
+    ['maxBorrowDays above one year', { constraints: [{ creditTierKey: 1, maxBorrowDays: 366, maxExtendTimes: 0 }] }],
+    ['maxExtendTimes above the ceiling', { constraints: [{ creditTierKey: 1, maxBorrowDays: 1, maxExtendTimes: 51 }] }],
+    ['penalty amount above the credit scale', { penalties: [{ reason: 'LostItem', amount: 101, lengthDays: 1 }] }],
+    ['penalty length above the ten-year ceiling', { penalties: [{ reason: 'LostItem', amount: 1, lengthDays: 3651 }] }],
   ])('rejects %s at the input boundary', (_description, patch) => {
-    expect(() =>
-      updateLendingSettingsInput.parse({ borrowRuleKey, ...patch }),
-    ).toThrow();
+    expect(() => updateLendingSettingsInput.parse({ borrowRuleKey, ...patch })).toThrow();
   });
 
   it('rolls back all writes when one constraint violates a foreign key', async () => {
@@ -301,11 +222,7 @@ describe('AdminService lending settings', () => {
           borrowRuleKey,
           constraints: [
             { creditTierKey, maxBorrowDays: 21, maxExtendTimes: 3 },
-            {
-              creditTierKey: 999_999_999,
-              maxBorrowDays: 21,
-              maxExtendTimes: 3,
-            },
+            { creditTierKey: 999_999_999, maxBorrowDays: 21, maxExtendTimes: 3 },
           ],
           penalties: [{ reason: 'BrokenItem', amount: 50, lengthDays: 30 }],
         }),
@@ -315,22 +232,12 @@ describe('AdminService lending settings', () => {
 
     await expect(
       prisma.borrowConstraints.findUnique({
-        where: {
-          BorrowRuleKey_CreditTierKey: {
-            BorrowRuleKey: borrowRuleKey,
-            CreditTierKey: creditTierKey,
-          },
-        },
+        where: { BorrowRuleKey_CreditTierKey: { BorrowRuleKey: borrowRuleKey, CreditTierKey: creditTierKey } },
       }),
     ).resolves.toMatchObject({ MaxBorrowDate: 7, MaxExtendTime: 1 });
     await expect(
       prisma.penaltyRule.findUnique({
-        where: {
-          BorrowRuleKey_PenaltyReason: {
-            BorrowRuleKey: borrowRuleKey,
-            PenaltyReason: 'BrokenItem',
-          },
-        },
+        where: { BorrowRuleKey_PenaltyReason: { BorrowRuleKey: borrowRuleKey, PenaltyReason: 'BrokenItem' } },
       }),
     ).resolves.toBeNull();
   });

@@ -32,4 +32,6 @@ export interface ReportSummary {
   totals: { loans: number; overdue: number; unitsHeld: number; unitsOut: number };
   departments: DepartmentReport[];
   topEquipment: TopEquipmentRow[];
+  damage: { condition: string; count: number }[];
+  roomUtilization: { rooms: number; bookedHours: number; openHours: number; percent: number };
 }

@@ -24,6 +24,8 @@ export interface ServerActivePenalty {
   id: number;
   /** PenaltyInfo.Reason - free text, not an enum. */
   reason: string | null;
+  /** The loan it came from; null for a ban. */
+  usageKey: number | null;
   creditDeducted: number | null;
   issuedAt: string | null;
   expiresAt: string;

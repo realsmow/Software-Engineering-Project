@@ -1,123 +1,41 @@
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { MemoryRouter } from "react-router-dom";
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import i18n from "../../src/i18n";
-import UsersPage from "../../src/features/admin/users/users-page";
-import { DEPARTMENTS } from "../../src/features/admin/mock-data";
-import * as adminUsersHooks from "../../src/features/admin/users/use-admin-users";
-import { toAdminUser } from "../../src/features/admin/users/admin-user.adapter";
-import { toAuditEvent } from "../../src/features/admin/audit/audit-event.adapter";
-import {
-  adminUserSummary,
-  auditEventOutput,
-  resetPasswordOutput,
-} from "../../../backend/src/admin/admin.schema";
-import {
-  toAdminUserSummary,
-  type AdminAccountRow,
-} from "../../../backend/src/common/mappers/admin-user.mapper";
-import {
-  errorQueryResult,
-  idleQueryResult,
-  loadingQueryResult,
-  mutationResult,
-  queryResult,
-} from "../fixtures/query-results";
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { MemoryRouter } from 'react-router-dom';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import i18n from '../../src/i18n';
+import UsersPage from '../../src/features/admin/users/users-page';
+import { ADMIN_USERS } from '../fixtures/admin-users';
+import * as adminUsersHooks from '../../src/features/admin/users/use-admin-users';
 
 const useAuditEventsMock = vi.hoisted(() => vi.fn());
 
-vi.mock("../../src/features/admin/audit/use-audit-events", () => ({
+vi.mock('../../src/features/admin/audit/use-audit-events', () => ({
   useAuditEvents: useAuditEventsMock,
 }));
 
-function account(changes: Partial<AdminAccountRow>) {
-  const row: AdminAccountRow = {
-    AccountKey: 1,
-    UserID: "EMP001",
-    UserFName: "Ada",
-    UserLName: "Admin",
-    Email: "ada@ku.th",
-    UserCredit: 100,
-    Role: { RoleName: "Admin" },
-    Authorities: [],
-    Penalties: [],
-    IsActive: true,
-    ...changes,
-  };
-  return toAdminUser(adminUserSummary.strict().parse(toAdminUserSummary(row)));
-}
-const ADMIN_USER = account({});
-const STAFF_USER = account({
-  AccountKey: 2,
-  UserID: "EMP002",
-  UserFName: "Grace",
-  UserLName: "Staff",
-  Email: "grace@example.test",
-  Role: { RoleName: "Staff" },
-});
-const SUSPENDED_USER = account({
-  AccountKey: 3,
-  UserID: "S003",
-  UserFName: "Alan",
-  UserLName: "Borrower",
-  Email: "alan@ku.th",
-  Role: { RoleName: "Student" },
-  Penalties: [
-    {
-      PenaltyKey: 1,
-      UsageKey: null,
-      CreditDeducted: null,
-      Reason: "Borrowing ban",
-      ActionTime: new Date("2026-09-01T00:00:00Z"),
-      ExpirationTime: new Date("2031-10-01T00:00:00Z"),
-      Appealed: false,
-    },
-  ],
-});
-const DISABLED_USER = account({
-  AccountKey: 4,
-  UserID: "EMP004",
-  UserFName: "Katherine",
-  UserLName: "Disabled",
-  Email: "katherine@example.test",
-  Role: { RoleName: "Staff" },
-  IsActive: false,
-});
-const USERS = [ADMIN_USER, STAFF_USER, SUSPENDED_USER, DISABLED_USER];
+const ADMIN_USER = ADMIN_USERS.find((user) => user.role === 'admin')!;
+const STAFF_USER = ADMIN_USERS.find((user) => user.role === 'staff' && user.status === 'active')!;
+const BORROWER_USER = ADMIN_USERS.find((user) => user.id === 'u-1006')!;
+const DISABLED_USER = ADMIN_USERS.find((user) => user.status === 'disabled')!;
+const USERS = [ADMIN_USER, STAFF_USER, BORROWER_USER, DISABLED_USER];
 const AUDIT_EVENTS = [
   {
-    id: 1,
-    actorId: Number(STAFF_USER.id),
-    at: "2026-09-01T10:00:00Z",
-    actorName: STAFF_USER.name,
-    actorRole: "staff" as const,
-    action: "login" as const,
-    target: `account/${STAFF_USER.id}`,
-    ip: "-",
-    userAgent: "-",
-    detail: "Signed in",
+    id: 'audit-1', at: '2026-09-01T10:00:00Z', actorName: STAFF_USER.name,
+    actorRole: 'staff' as const, action: 'login' as const, target: `account/${STAFF_USER.id}`,
+    ip: '-', userAgent: '-', detail: 'Signed in',
   },
   {
-    id: 2,
-    actorId: Number(STAFF_USER.id),
-    at: "2026-09-01T11:00:00Z",
-    actorName: STAFF_USER.name,
-    actorRole: "staff" as const,
-    action: "update" as const,
-    target: `account/${SUSPENDED_USER.id}`,
-    ip: "-",
-    userAgent: "-",
-    detail: "Updated account",
+    id: 'audit-2', at: '2026-09-01T11:00:00Z', actorName: STAFF_USER.name,
+    actorRole: 'staff' as const, action: 'update' as const, target: `account/${BORROWER_USER.id}`,
+    ip: '-', userAgent: '-', detail: 'Updated account',
   },
-].map((event) => toAuditEvent(auditEventOutput.strict().parse(event)));
+];
 
-describe("Admin users page", () => {
+describe('Admin users page', () => {
   let queryClient: QueryClient;
   const createMutate = vi.fn();
   const changeRoleMutate = vi.fn();
   const resetPasswordMutate = vi.fn();
-  const setUserBanMutate = vi.fn();
   const setUserActiveMutate = vi.fn();
   const updateUserMutate = vi.fn();
 
@@ -129,81 +47,69 @@ describe("Admin users page", () => {
         <MemoryRouter>
           <UsersPage />
         </MemoryRouter>
-      </QueryClientProvider>
+      </QueryClientProvider>,
     );
 
   const openUser = (name: string) => {
-    fireEvent.click(screen.getByText(name).closest("tr")!);
+    fireEvent.click(screen.getByText(name).closest('tr')!);
   };
 
   beforeEach(() => {
     queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     vi.clearAllMocks();
-    useAuditEventsMock.mockReturnValue(queryResult([]));
-    vi.spyOn(adminUsersHooks, "useAdminUsers").mockReturnValue(queryResult(USERS));
-    vi.spyOn(adminUsersHooks, "useCreateUser").mockReturnValue({
-      ...mutationResult(
-        vi.fn<ReturnType<typeof adminUsersHooks.useCreateUser>["mutateAsync"]>()
-      ),
-      mutate: createMutate,
-    });
-    vi.spyOn(adminUsersHooks, "useChangeRole").mockReturnValue({
-      ...mutationResult(
-        vi.fn<ReturnType<typeof adminUsersHooks.useChangeRole>["mutateAsync"]>()
-      ),
-      mutate: changeRoleMutate,
-    });
-    vi.spyOn(adminUsersHooks, "useResetPassword").mockReturnValue({
-      ...mutationResult(
-        vi.fn<ReturnType<typeof adminUsersHooks.useResetPassword>["mutateAsync"]>()
-      ),
-      mutate: resetPasswordMutate,
-    });
-    vi.spyOn(adminUsersHooks, "useSetUserBan").mockReturnValue({
-      ...mutationResult(
-        vi.fn<ReturnType<typeof adminUsersHooks.useSetUserBan>["mutateAsync"]>()
-      ),
-      mutate: setUserBanMutate,
-    });
-    vi.spyOn(adminUsersHooks, "useSetUserActive").mockReturnValue({
-      ...mutationResult(
-        vi.fn<ReturnType<typeof adminUsersHooks.useSetUserActive>["mutateAsync"]>()
-      ),
-      mutate: setUserActiveMutate,
-    });
+    useAuditEventsMock.mockReturnValue({ data: [] });
+    vi.spyOn(adminUsersHooks, 'useAdminUsers').mockReturnValue({
+      data: USERS, isLoading: false, isError: false, error: null, refetch: vi.fn(),
+    } as never);
+    vi.spyOn(adminUsersHooks, 'useCreateUser').mockReturnValue({
+      mutate: createMutate, isPending: false,
+    } as never);
+    vi.spyOn(adminUsersHooks, 'useChangeRole').mockReturnValue({
+      mutate: changeRoleMutate, isPending: false,
+    } as never);
+    vi.spyOn(adminUsersHooks, 'useResetPassword').mockReturnValue({
+      mutate: resetPasswordMutate, isPending: false,
+    } as never);
+    vi.spyOn(adminUsersHooks, 'useSetUserActive').mockReturnValue({
+      mutate: setUserActiveMutate, isPending: false,
+    } as never);
     // The detail drawer fetches the fuller account (credit tier, borrow limits,
     // every authority, active penalties) only once a row is opened. Left
     // undefined here so these cases keep asserting against the summary the
     // table itself carries; the page falls back to it while the query is idle.
-    vi.spyOn(adminUsersHooks, "useUserDetail").mockReturnValue(idleQueryResult());
-    vi.spyOn(adminUsersHooks, "useUpdateUser").mockReturnValue({
-      ...mutationResult(
-        vi.fn<ReturnType<typeof adminUsersHooks.useUpdateUser>["mutateAsync"]>()
-      ),
-      mutate: updateUserMutate,
-    });
+    vi.spyOn(adminUsersHooks, 'useUserDetail').mockReturnValue({
+      data: undefined, isLoading: false,
+    } as never);
+    vi.spyOn(adminUsersHooks, 'useUserLoans').mockReturnValue({
+      data: undefined,
+    } as never);
+    vi.spyOn(adminUsersHooks, 'useUpdateUser').mockReturnValue({
+      mutate: updateUserMutate, isPending: false,
+    } as never);
   });
 
-  it("shows contract-derived account statuses and filters by suspension", () => {
+  it('shows contract-derived account statuses and filters by them', () => {
     renderPage();
 
-    expect(screen.getByText("4")).toBeInTheDocument();
-    expect(screen.getByText("2")).toBeInTheDocument();
-    const suspendedChip = screen
-      .getAllByText(t("admin.users.statusSuspended"))[0]
-      .closest("button");
-    expect(suspendedChip).not.toBeNull();
+    expect(screen.getByText('4')).toBeInTheDocument();
+    expect(screen.getByText('3')).toBeInTheDocument();
+    // The chip, not the disabled user's badge that shares its label.
+    const disabledChip = screen
+      .getAllByText(t('admin.users.statDisabled'))
+      .map((el) => el.closest('button'))
+      .find((el) => el !== null);
+    expect(disabledChip).toBeDefined();
 
-    fireEvent.click(suspendedChip!);
+    fireEvent.click(disabledChip!);
 
-    expect(screen.getByText(SUSPENDED_USER.name)).toBeInTheDocument();
+    expect(screen.getByText(DISABLED_USER.name)).toBeInTheDocument();
     expect(screen.queryByText(ADMIN_USER.name)).not.toBeInTheDocument();
-    expect(screen.queryByText(DISABLED_USER.name)).not.toBeInTheDocument();
+    expect(screen.queryByText(BORROWER_USER.name)).not.toBeInTheDocument();
   });
 
-  it("filters users by a case-insensitive name, email, or institutional ID query", () => {
+  it('filters users by a case-insensitive name, email, or institutional ID query', () => {
     renderPage();
-    const search = screen.getByRole("textbox", { name: t("common.search") });
+    const search = screen.getByRole('textbox', { name: t('common.search') });
 
     fireEvent.change(search, { target: { value: STAFF_USER.govId.toLowerCase() } });
 
@@ -211,213 +117,174 @@ describe("Admin users page", () => {
     expect(screen.queryByText(ADMIN_USER.name)).not.toBeInTheDocument();
   });
 
-  it("filters rows using the role and account-status dropdowns", () => {
+  it('filters rows using the role and account-status dropdowns', () => {
     renderPage();
 
-    fireEvent.click(screen.getByRole("combobox", { name: t("admin.users.filterRole") }));
-    fireEvent.click(screen.getByRole("option", { name: t("nav.staff") }));
+    fireEvent.click(screen.getByRole('combobox', { name: t('admin.users.filterRole') }));
+    fireEvent.click(screen.getByRole('option', { name: t('nav.staff') }));
 
     expect(screen.getByText(STAFF_USER.name)).toBeInTheDocument();
     expect(screen.queryByText(ADMIN_USER.name)).not.toBeInTheDocument();
-    expect(screen.queryByText(SUSPENDED_USER.name)).not.toBeInTheDocument();
+    expect(screen.queryByText(BORROWER_USER.name)).not.toBeInTheDocument();
 
-    fireEvent.click(
-      screen.getByRole("combobox", { name: t("admin.users.filterStatus") })
-    );
-    fireEvent.click(
-      screen.getByRole("option", { name: t("admin.users.statusSuspended") })
-    );
+    fireEvent.click(screen.getByRole('combobox', { name: t('admin.users.filterStatus') }));
+    fireEvent.click(screen.getByRole('option', { name: t('admin.users.statusDisabled') }));
 
     expect(screen.queryByText(STAFF_USER.name)).not.toBeInTheDocument();
     expect(screen.queryByText(ADMIN_USER.name)).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("combobox", { name: t("admin.users.filterRole") }));
+    fireEvent.click(screen.getByRole('combobox', { name: t('admin.users.filterRole') }));
     fireEvent.click(
-      screen.getByRole("option", {
-        name: `${t("admin.users.filterRole")}: ${t("table.filterAll")}`,
-      })
+      screen.getByRole('option', {
+        name: `${t('admin.users.filterRole')}: ${t('table.filterAll')}`,
+      }),
     );
-    expect(screen.getByText(SUSPENDED_USER.name)).toBeInTheDocument();
+    expect(screen.getByText(DISABLED_USER.name)).toBeInTheDocument();
   });
 
-  it("renders the most-active-users chart from API-shaped audit events", () => {
-    useAuditEventsMock.mockReturnValue(queryResult(AUDIT_EVENTS));
+  it('renders the most-active-users chart from the live audit event list', () => {
+    useAuditEventsMock.mockReturnValue({
+      data: AUDIT_EVENTS,
+    });
     renderPage();
 
-    expect(screen.getByText(t("admin.charts.topUsers"))).toBeInTheDocument();
+    expect(screen.getByText(t('admin.charts.topUsers'))).toBeInTheDocument();
     expect(screen.getByText(STAFF_USER.name)).toBeInTheDocument();
   });
 
-  it("keeps required create fields disabled and supports department and auth selections", () => {
+  it('keeps the create button disabled until the required fields are filled', () => {
     renderPage();
-    fireEvent.click(screen.getByRole("button", { name: t("admin.users.createUser") }));
+    fireEvent.click(screen.getByRole('button', { name: t('admin.users.createUser') }));
 
-    const dialog = screen.getByRole("dialog");
-    const submit = within(dialog).getByRole("button", {
-      name: t("admin.users.createSubmit"),
-    });
-    const [roleSelect, facultySelect, departmentSelect, authSelect] =
-      within(dialog).getAllByRole("combobox");
+    const dialog = screen.getByRole('dialog');
+    const submit = within(dialog).getByRole('button', { name: t('admin.users.createSubmit') });
+    // Only the role is chosen here; departments come from authority, not this form.
+    const [roleSelect] = within(dialog).getAllByRole('combobox');
+    expect(within(dialog).getAllByRole('combobox')).toHaveLength(1);
 
     expect(submit).toBeDisabled();
-    expect(facultySelect).toBeDisabled();
-    expect(roleSelect).toHaveTextContent(t("nav.borrower"));
+    expect(roleSelect).toHaveTextContent(t('nav.borrower'));
 
-    fireEvent.click(departmentSelect);
-    fireEvent.click(
-      screen.getByRole("option", {
-        name: DEPARTMENTS.find((department) => department.id === "ee")!.name,
-      })
-    );
-    expect(departmentSelect).toHaveTextContent(
-      DEPARTMENTS.find((department) => department.id === "ee")!.name
-    );
-
-    fireEvent.click(authSelect);
-    fireEvent.click(screen.getByRole("option", { name: t("admin.users.authKu") }));
-    expect(authSelect).toHaveTextContent(t("admin.users.authKu"));
-
-    fireEvent.change(screen.getByPlaceholderText(t("admin.users.namePlaceholder")), {
-      target: { value: "New Test User" },
+    fireEvent.change(screen.getByPlaceholderText(t('admin.users.namePlaceholder')), {
+      target: { value: 'New Test User' },
     });
     expect(submit).toBeDisabled();
-    fireEvent.change(screen.getByPlaceholderText("name@ku.th"), {
-      target: { value: "new.test@ku.th" },
+    fireEvent.change(screen.getByPlaceholderText('name@ku.th'), {
+      target: { value: 'new.test@ku.th' },
     });
     expect(submit).toBeEnabled();
     expect(createMutate).not.toHaveBeenCalled();
   });
 
-  it("sends the form-derived, contract-shaped create payload", async () => {
+  it('sends the form-derived, contract-shaped create payload', async () => {
     renderPage();
-    fireEvent.click(screen.getByRole("button", { name: t("admin.users.createUser") }));
+    fireEvent.click(screen.getByRole('button', { name: t('admin.users.createUser') }));
 
-    const dialog = screen.getByRole("dialog");
-    fireEvent.change(screen.getByPlaceholderText(t("admin.users.namePlaceholder")), {
-      target: { value: "New Test User" },
+    const dialog = screen.getByRole('dialog');
+    fireEvent.change(screen.getByPlaceholderText(t('admin.users.namePlaceholder')), {
+      target: { value: 'New Test User' },
     });
-    fireEvent.change(screen.getByPlaceholderText("name@ku.th"), {
-      target: { value: "new.test@ku.th" },
+    fireEvent.change(screen.getByPlaceholderText('name@ku.th'), {
+      target: { value: 'new.test@ku.th' },
     });
-    fireEvent.click(
-      within(dialog).getByRole("button", { name: t("admin.users.createSubmit") })
-    );
+    fireEvent.click(within(dialog).getByRole('button', { name: t('admin.users.createSubmit') }));
 
     await waitFor(() => {
       expect(createMutate).toHaveBeenCalledWith(
         {
-          email: "new.test@ku.th",
-          studentId: "new.test",
-          firstName: "New",
-          lastName: "Test User",
-          role: "borrower",
+          email: 'new.test@ku.th',
+          studentId: 'new.test',
+          firstName: 'New',
+          lastName: 'Test User',
+          role: 'borrower',
         },
-        expect.any(Object)
+        expect.any(Object),
       );
     });
   });
 
-  it("requests a borrowing ban for the selected active account", () => {
+  it('requests account deactivation for the selected active account', () => {
     renderPage();
     openUser(STAFF_USER.name);
 
-    fireEvent.click(screen.getByRole("button", { name: t("admin.users.suspend") }));
-
-    expect(setUserBanMutate).toHaveBeenCalledWith(
-      { id: STAFF_USER.id, banned: true },
-      expect.any(Object)
-    );
-  });
-
-  it("requests account deactivation separately from a borrowing ban", () => {
-    renderPage();
-    openUser(STAFF_USER.name);
-
-    fireEvent.click(screen.getByRole("button", { name: t("admin.users.deactivate") }));
+    fireEvent.click(screen.getByRole('button', { name: t('admin.users.deactivate') }));
 
     expect(setUserActiveMutate).toHaveBeenCalledWith(
       { id: STAFF_USER.id, active: false },
-      expect.any(Object)
+      expect.any(Object),
     );
   });
 
-  it("requests a role change using the selected account ID and enum value", () => {
+  it('requests a role change using the selected account ID and enum value', () => {
     renderPage();
     openUser(STAFF_USER.name);
 
-    const roleSelect = screen.getAllByRole("combobox").at(-1)!;
+    const roleSelect = screen.getAllByRole('combobox').at(-1)!;
     fireEvent.click(roleSelect);
-    fireEvent.click(screen.getByRole("option", { name: t("nav.borrower") }));
+    fireEvent.click(screen.getByRole('option', { name: t('nav.borrower') }));
 
     expect(changeRoleMutate).toHaveBeenCalledWith(
-      { id: STAFF_USER.id, role: "borrower" },
-      expect.any(Object)
+      { id: STAFF_USER.id, role: 'borrower' },
+      expect.any(Object),
     );
   });
 
-  it("shows a one-time password returned by a reset mutation", async () => {
+  it('shows a one-time password returned by a reset mutation', async () => {
     resetPasswordMutate.mockImplementation((_input, options) => {
-      options.onSuccess(
-        resetPasswordOutput
-          .strict()
-          .parse({ ok: true, temporaryPassword: "temporary-123" })
-      );
+      options.onSuccess({ ok: true, temporaryPassword: 'temporary-123' });
     });
     renderPage();
     openUser(STAFF_USER.name);
 
-    fireEvent.click(screen.getByRole("button", { name: t("admin.users.resetPassword") }));
+    fireEvent.click(screen.getByRole('button', { name: t('admin.users.resetPassword') }));
 
     await waitFor(() => {
       expect(screen.getByText(new RegExp(`temporary-123`))).toBeInTheDocument();
     });
-    expect(resetPasswordMutate).toHaveBeenCalledWith(
-      { id: STAFF_USER.id },
-      expect.any(Object)
-    );
+    expect(resetPasswordMutate).toHaveBeenCalledWith({ id: STAFF_USER.id }, expect.any(Object));
   });
 
-  it("keeps the panel open and surfaces a mutation error instead of claiming success", async () => {
+  it('keeps the panel open and surfaces a mutation error instead of claiming success', async () => {
     resetPasswordMutate.mockImplementation((_input, options) => {
-      options.onError(new Error("Password reset is unavailable"));
+      options.onError(new Error('Password reset is unavailable'));
     });
     renderPage();
     openUser(STAFF_USER.name);
 
-    fireEvent.click(screen.getByRole("button", { name: t("admin.users.resetPassword") }));
+    fireEvent.click(screen.getByRole('button', { name: t('admin.users.resetPassword') }));
 
     await waitFor(() => {
-      expect(screen.getByText("Password reset is unavailable")).toBeInTheDocument();
+      expect(screen.getByText('Password reset is unavailable')).toBeInTheDocument();
     });
-    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
   });
 
-  it("surfaces a self-modification error when suspending the current account", async () => {
-    setUserBanMutate.mockImplementation((_input, options) => {
-      options.onError(new Error("CANNOT_MODIFY_SELF"));
+  it('surfaces a self-modification error when deactivating the current account', async () => {
+    setUserActiveMutate.mockImplementation((_input, options) => {
+      options.onError(new Error('CANNOT_MODIFY_SELF'));
     });
     renderPage();
     openUser(STAFF_USER.name);
 
-    fireEvent.click(screen.getByRole("button", { name: t("admin.users.suspend") }));
+    fireEvent.click(screen.getByRole('button', { name: t('admin.users.deactivate') }));
 
     await waitFor(() => {
-      expect(screen.getByText("CANNOT_MODIFY_SELF")).toBeInTheDocument();
+      expect(screen.getByText('CANNOT_MODIFY_SELF')).toBeInTheDocument();
     });
-    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
   });
 
-  it("explains which department blocks a role demotion and includes queued work", async () => {
+  it('explains which department blocks a role demotion and includes queued work', async () => {
     changeRoleMutate.mockImplementation((_input, options) => {
       options.onError({
         data: {
-          businessCode: "ROLE_CHANGE_WOULD_ORPHAN_GROUP",
+          businessCode: 'ROLE_CHANGE_WOULD_ORPHAN_GROUP',
           details: {
             groups: [
               {
                 manageGroupKey: 4,
-                groupName: "Computer Engineering",
-                losing: "staff",
+                groupName: 'Computer Engineering',
+                losing: 'staff',
                 openWork: {
                   pendingRequests: 3,
                   pendingExtensions: 1,
@@ -433,33 +300,33 @@ describe("Admin users page", () => {
     renderPage();
     openUser(STAFF_USER.name);
 
-    const roleSelect = screen.getAllByRole("combobox").at(-1)!;
+    const roleSelect = screen.getAllByRole('combobox').at(-1)!;
     fireEvent.click(roleSelect);
-    fireEvent.click(screen.getByRole("option", { name: t("nav.borrower") }));
+    fireEvent.click(screen.getByRole('option', { name: t('nav.borrower') }));
 
     await waitFor(() => {
       expect(
         screen.getByText(
-          `${i18n.t("admin.users.roleChangeBlocked", { groups: "Computer Engineering" })} ${i18n.t(
-            "admin.users.roleChangeBlockedWork",
-            { requests: 3, extensions: 1, loans: 5, repairs: 2 }
-          )}`
-        )
+          `${i18n.t('admin.users.roleChangeBlocked', { groups: 'Computer Engineering' })} ${i18n.t(
+            'admin.users.roleChangeBlockedWork',
+            { requests: 3, extensions: 1, loans: 5, repairs: 2 },
+          )}`,
+        ),
       ).toBeInTheDocument();
     });
   });
 
-  it("explains which department blocks account deactivation without showing role-change text", async () => {
+  it('explains which department blocks account deactivation without showing role-change text', async () => {
     setUserActiveMutate.mockImplementation((_input, options) => {
       options.onError({
         data: {
-          businessCode: "DISABLE_WOULD_ORPHAN_GROUP",
+          businessCode: 'DISABLE_WOULD_ORPHAN_GROUP',
           details: {
             groups: [
               {
                 manageGroupKey: 9,
-                groupName: "Electrical Engineering",
-                losing: "staff",
+                groupName: 'Electrical Engineering',
+                losing: 'staff',
                 openWork: {
                   pendingRequests: 0,
                   pendingExtensions: 0,
@@ -475,60 +342,56 @@ describe("Admin users page", () => {
     renderPage();
     openUser(STAFF_USER.name);
 
-    fireEvent.click(screen.getByRole("button", { name: t("admin.users.deactivate") }));
+    fireEvent.click(screen.getByRole('button', { name: t('admin.users.deactivate') }));
 
     await waitFor(() => {
       expect(
         screen.getByText(
-          i18n.t("admin.users.disableBlocked", { groups: "Electrical Engineering" })
-        )
+          i18n.t('admin.users.disableBlocked', { groups: 'Electrical Engineering' }),
+        ),
       ).toBeInTheDocument();
     });
-    expect(
-      screen.queryByText(t("admin.users.roleChangeBlocked"))
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText(t('admin.users.roleChangeBlocked'))).not.toBeInTheDocument();
   });
 
-  it("offers activation, not suspension, for a disabled account", () => {
+  it('offers activation, not deactivation, for a disabled account', () => {
     renderPage();
     openUser(DISABLED_USER.name);
 
-    expect(
-      screen.getByRole("button", { name: t("admin.users.activate") })
-    ).not.toHaveProperty("disabled", true);
-    expect(
-      screen.queryByRole("button", { name: t("admin.users.suspend") })
-    ).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: t('admin.users.activate') })).not.toHaveProperty('disabled', true);
+    expect(screen.queryByRole('button', { name: t('admin.users.deactivate') })).not.toBeInTheDocument();
   });
 
-  it("exports only the currently filtered account rows", () => {
-    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => undefined);
+  it('exports only the currently filtered account rows', () => {
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => undefined);
     renderPage();
-    fireEvent.change(screen.getByRole("textbox", { name: t("common.search") }), {
+    fireEvent.change(screen.getByRole('textbox', { name: t('common.search') }), {
       target: { value: STAFF_USER.name },
     });
 
-    fireEvent.click(screen.getByRole("button", { name: t("common.export") }));
+    fireEvent.click(screen.getByRole('button', { name: t('common.export') }));
 
     expect(window.URL.createObjectURL).toHaveBeenCalledWith(
-      expect.objectContaining({ type: "text/csv;charset=utf-8;" })
+      expect.objectContaining({ type: 'text/csv;charset=utf-8;' }),
     );
   });
 
-  it("renders an empty table without stale account rows while loading or after a query failure", () => {
-    vi.spyOn(adminUsersHooks, "useAdminUsers").mockReturnValue(loadingQueryResult());
+  it('renders an empty table without stale account rows while loading or after a query failure', () => {
+    vi.spyOn(adminUsersHooks, 'useAdminUsers').mockReturnValue({
+      data: undefined, isLoading: true, isError: false, error: null, refetch: vi.fn(),
+    } as never);
     const { rerender } = renderPage();
     expect(screen.queryByText(ADMIN_USER.name)).not.toBeInTheDocument();
 
-    vi.spyOn(adminUsersHooks, "useAdminUsers").mockReturnValue(
-      errorQueryResult(new Error("Network error"))
-    );
+    vi.spyOn(adminUsersHooks, 'useAdminUsers').mockReturnValue({
+      data: undefined, isLoading: false, isError: true, error: new Error('Network error'), refetch: vi.fn(),
+    } as never);
     rerender(
       <QueryClientProvider client={queryClient}>
         <MemoryRouter>
           <UsersPage />
         </MemoryRouter>
-      </QueryClientProvider>
+      </QueryClientProvider>,
     );
     expect(screen.queryByText(ADMIN_USER.name)).not.toBeInTheDocument();
   });

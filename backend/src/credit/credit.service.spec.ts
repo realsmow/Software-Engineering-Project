@@ -15,12 +15,37 @@ describe('CreditService — Module 3.3 / 3.4', () => {
       AccountKey: 10,
       UserCredit: 72,
       Penalties: [
-        { PenaltyKey: 1, Reason: 'Late', CreditDeducted: 5, ActionTime: new Date(), ExpirationTime: new Date(Date.now() + 86400000), Appealed: false },
-        { PenaltyKey: 2, Reason: 'Ban', CreditDeducted: null, ActionTime: new Date(), ExpirationTime: new Date(Date.now() + 86400000), Appealed: false },
-        { PenaltyKey: 3, Reason: 'Damage', CreditDeducted: 3, ActionTime: new Date(), ExpirationTime: new Date(Date.now() + 86400000), Appealed: false },
+        {
+          PenaltyKey: 1,
+          Reason: 'Late',
+          CreditDeducted: 5,
+          ActionTime: new Date(),
+          ExpirationTime: new Date(Date.now() + 86400000),
+          Appealed: false,
+        },
+        {
+          PenaltyKey: 2,
+          Reason: 'Ban',
+          CreditDeducted: null,
+          ActionTime: new Date(),
+          ExpirationTime: new Date(Date.now() + 86400000),
+          Appealed: false,
+        },
+        {
+          PenaltyKey: 3,
+          Reason: 'Damage',
+          CreditDeducted: 3,
+          ActionTime: new Date(),
+          ExpirationTime: new Date(Date.now() + 86400000),
+          Appealed: false,
+        },
       ],
     });
-    creditTiers.resolveBorrowLimits.mockResolvedValue({ creditTier: 'D2', maxBorrowDays: 7, maxExtendTimes: 1 });
+    creditTiers.resolveBorrowLimits.mockResolvedValue({
+      creditTier: 'D2',
+      maxBorrowDays: 7,
+      maxExtendTimes: 1,
+    });
 
     const result = await service.getCredit(10);
 
@@ -35,7 +60,11 @@ describe('CreditService — Module 3.3 / 3.4', () => {
       UserCredit: 95,
       Penalties: [],
     });
-    creditTiers.resolveBorrowLimits.mockResolvedValue({ creditTier: 'D0', maxBorrowDays: 14, maxExtendTimes: 3 });
+    creditTiers.resolveBorrowLimits.mockResolvedValue({
+      creditTier: 'D0',
+      maxBorrowDays: 14,
+      maxExtendTimes: 3,
+    });
 
     await expect(service.getCredit(10)).resolves.toMatchObject({
       accountId: 10,

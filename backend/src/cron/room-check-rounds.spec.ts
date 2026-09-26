@@ -13,7 +13,9 @@ import type { NotificationService } from '../notification/notification.service';
  */
 const DAY = 86_400_000;
 
-function build(rooms: { ResourceKey: number; CheckRounds: { ClosedAt: Date | null }[] }[]) {
+function build(
+  rooms: { ResourceKey: number; CheckRounds: { ClosedAt: Date | null }[] }[],
+) {
   const createMany = jest.fn().mockResolvedValue({ count: 0 });
   const findMany = jest.fn().mockResolvedValue(rooms);
 
@@ -30,7 +32,7 @@ function build(rooms: { ResourceKey: number; CheckRounds: { ClosedAt: Date | nul
   const service = new CronService(
     prisma,
     {} as unknown as PenaltyService,
-    {} as unknown as NotificationService,
+    { roomToCheck: jest.fn() } as unknown as NotificationService,
   );
 
   return { service, prisma, createMany, findMany };
@@ -44,7 +46,14 @@ const room = (key: number, closedDaysAgo: number | null | 'open') => ({
   CheckRounds:
     closedDaysAgo === null
       ? []
-      : [{ ClosedAt: closedDaysAgo === 'open' ? null : new Date(Date.now() - closedDaysAgo * DAY) }],
+      : [
+          {
+            ClosedAt:
+              closedDaysAgo === 'open'
+                ? null
+                : new Date(Date.now() - closedDaysAgo * DAY),
+          },
+        ],
 });
 
 it('opens a round for a room that has never been checked', async () => {

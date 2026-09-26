@@ -1,7 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { PenaltyService } from '../common/penalty/penalty.service';
-import { NotificationService } from '../notification/notification.service';
+import {
+  NotificationService,
+  resourceName,
+} from '../notification/notification.service';
+import { recomputeCredit } from '../common/credit/recompute-credit';
 
 /** The six jobs in SRS §5.3 that this system runs. */
 export type CronJobId =
@@ -260,11 +264,7 @@ export class CronService {
    * Lifts penalties whose term has run out, and gives the credit back
    * (SRS §5.3 "หมดอายุบทลงโทษ + recompute credit_score").
    *
-   * The credit is restored by the amount the penalty took, rather than
-   * recomputed from scratch: PenaltyInfo.CreditDeducted is the record of what
-   * was taken, and adding it back is exactly reversible. Recomputing a score
-   * from the surviving penalty rows would quietly discard every manual
-   * adjustment an administrator has ever made.
+   * The score is recomputed from the penalties still in force (FR-CRD-06).
    */
   private async expireDemerits(): Promise<CronOutcome> {
     const now = new Date();
@@ -279,12 +279,7 @@ export class CronService {
           where: { PenaltyKey: p.PenaltyKey },
           data: { InEffect: false },
         });
-        if (p.CreditDeducted && p.CreditDeducted > 0) {
-          await tx.accountInfo.update({
-            where: { AccountKey: p.AccountKey },
-            data: { UserCredit: { increment: p.CreditDeducted } },
-          });
-        }
+        await recomputeCredit(tx, p.AccountKey);
       });
     }
 
@@ -314,6 +309,33 @@ export class CronService {
       await this.notifications.syncDueReminders(a.AccountKey);
     }
 
+    // FR-NTF-03: staff hear about returns due within a day, or already late.
+    const dueBack = await this.prisma.usageLog.findMany({
+      where: {
+        CurrentStatus: 'Lended',
+        DueTime: { lt: new Date(Date.now() + 86_400_000) },
+      },
+      select: {
+        UsageKey: true,
+        DueTime: true,
+        Resource: {
+          select: {
+            ManagedBy: true,
+            Item: { select: { Item: { select: { ItemName: true } } } },
+            Room: { select: { RoomName: true } },
+          },
+        },
+      },
+    });
+    for (const loan of dueBack) {
+      await this.notifications.returnToReceive(this.prisma, {
+        manageGroupKey: loan.Resource.ManagedBy,
+        usageKey: loan.UsageKey,
+        itemName: resourceName(loan.Resource),
+        due: loan.DueTime,
+      });
+    }
+
     return {
       affected: accounts.length,
       detail: `reminders synced for ${accounts.length} borrower(s) with open loans`,
@@ -328,7 +350,7 @@ export class CronService {
    * aside there is a UsageLog, and that is the counter's problem to settle,
    * not a job's.
    */
-/**
+  /**
    * Opens a condition-check task for every bookable room whose last check has
    * aged out (§5.3, §5.9).
    *
@@ -344,12 +366,16 @@ export class CronService {
    */
   private async openT3InspectionRounds(): Promise<CronOutcome> {
     const now = new Date();
-    const staleBefore = new Date(now.getTime() - CHECK_INTERVAL_DAYS * 86_400_000);
+    const staleBefore = new Date(
+      now.getTime() - CHECK_INTERVAL_DAYS * 86_400_000,
+    );
 
     const rooms = await this.prisma.resourceInfo.findMany({
       where: { ResourceType: 'Room', AllowBorrow: true },
       select: {
         ResourceKey: true,
+        ManagedBy: true,
+        Room: { select: { RoomName: true } },
         CheckRounds: {
           orderBy: { OpenedAt: 'desc' },
           take: 1,
@@ -366,16 +392,32 @@ export class CronService {
     });
 
     if (due.length === 0) {
-      return { affected: 0, detail: 'every bookable room has been checked recently' };
+      return {
+        affected: 0,
+        detail: 'every bookable room has been checked recently',
+      };
     }
 
     const dueAt = new Date(now.getTime() + CHECK_GRACE_DAYS * 86_400_000);
     const { count } = await this.prisma.roomCheckRound.createMany({
-      data: due.map((room) => ({ ResourceKey: room.ResourceKey, OpenedAt: now, DueAt: dueAt })),
+      data: due.map((room) => ({
+        ResourceKey: room.ResourceKey,
+        OpenedAt: now,
+        DueAt: dueAt,
+      })),
       // A concurrent run that already opened one loses here rather than failing
       // the whole job.
       skipDuplicates: true,
     });
+
+    for (const room of due) {
+      await this.notifications.roomToCheck(this.prisma, {
+        manageGroupKey: room.ManagedBy,
+        resourceKey: room.ResourceKey,
+        roomName: room.Room?.RoomName ?? `room ${room.ResourceKey}`,
+        dueAt,
+      });
+    }
 
     return {
       affected: count,
@@ -393,19 +435,45 @@ export class CronService {
       },
       select: { ReservationKey: true },
     });
-    if (stale.length === 0) {
-      return { affected: 0, detail: 'no uncollected requests past their hold' };
+    const keys = stale.map((r) => r.ReservationKey);
+    if (keys.length > 0) {
+      await this.prisma.reservations.updateMany({
+        where: { ReservationKey: { in: keys } },
+        data: { ApproveStatus: 'Canceled' },
+      });
     }
 
-    const keys = stale.map((r) => r.ReservationKey);
-    await this.prisma.reservations.updateMany({
-      where: { ReservationKey: { in: keys } },
-      data: { ApproveStatus: 'Canceled' },
+    // FR-PKP-05: a unit already set aside for a no-show is released too. The
+    // Prepared row never left the counter, so it is removed (with any pickup
+    // photo taken for it) rather than kept as a loan that never happened.
+    const noShows = await this.prisma.usageLog.findMany({
+      where: {
+        CurrentStatus: 'Prepared',
+        Reservation: {
+          ApproveStatus: 'Approved',
+          ReservationExpiration: { lt: now },
+        },
+      },
+      select: { UsageKey: true, ReservationKey: true },
     });
+    for (const usage of noShows) {
+      await this.prisma.$transaction([
+        this.prisma.images.deleteMany({ where: { UsageKey: usage.UsageKey } }),
+        this.prisma.usageLog.delete({ where: { UsageKey: usage.UsageKey } }),
+        this.prisma.reservations.update({
+          where: { ReservationKey: usage.ReservationKey! },
+          data: { ApproveStatus: 'Canceled' },
+        }),
+      ]);
+    }
 
+    const released = keys.length + noShows.length;
     return {
-      affected: keys.length,
-      detail: `${keys.length} uncollected request(s) released back to the pool`,
+      affected: released,
+      detail:
+        released === 0
+          ? 'no uncollected requests past their hold'
+          : `${keys.length} uncollected request(s) and ${noShows.length} prepared no-show(s) released back to the pool`,
     };
   }
 

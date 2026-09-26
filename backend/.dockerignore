@@ -1,0 +1,15 @@
+node_modules
+dist
+dist-tools
+coverage
+media
+.env
+.env.*
+!.env.example
+!.env.production.example
+*.log
+.git
+.vscode
+.idea
+.temp
+.tmp

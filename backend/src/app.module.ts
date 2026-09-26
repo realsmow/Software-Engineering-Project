@@ -34,6 +34,8 @@ import { SessionService } from './auth/session.service';
 import { LoginThrottleService } from './auth/login-throttle.service';
 import { PasswordResetService } from './auth/password-reset.service';
 import { RegistrationService } from './auth/registration.service';
+import { GoogleOAuthService } from './auth/google-oauth.service';
+import { GoogleAuthController } from './auth/google-auth.controller';
 
 import { AdminRouter } from './admin/admin.router';
 import { AdminService } from './admin/admin.service';
@@ -101,8 +103,10 @@ import {
       onError: TrpcErrorLogger,
     }),
   ],
-  // ImageController is the one REST route: tRPC cannot carry file bytes (CONTRACT.md §3)
-  controllers: [AppController, ImageController],
+  // ImageController and GoogleAuthController are REST routes: tRPC cannot
+  // carry file bytes (CONTRACT.md §3), and Google's OAuth redirects are
+  // top-level browser navigations, not same-origin JSON calls.
+  controllers: [AppController, ImageController, GoogleAuthController],
   providers: [
     AppService,
 
@@ -126,6 +130,7 @@ import {
     LoginThrottleService,
     PasswordResetService,
     RegistrationService,
+    GoogleOAuthService,
     TrpcErrorLogger,
 
     // router + service, one pair per domain

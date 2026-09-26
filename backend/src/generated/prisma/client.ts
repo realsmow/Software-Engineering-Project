@@ -139,6 +139,18 @@ export type RoomInfo = Prisma.RoomInfoModel
  */
 export type ResourceInfo = Prisma.ResourceInfoModel
 /**
+ * Model RetirementRequest
+ * A staff request to retire a unit or room, decided by a supervisor
+ * (FR-EQP-08). Same "no deciding your own" shape as Reservations/AppealInfo:
+ * RequestedBy and DecidedBy cannot be the same account.
+ * 
+ * Approval is what actually sets ResourceInfo.ResourceStatus to `Retired` -
+ * this row is only the paper trail. One resource may have several rows over
+ * time (a rejected request does not block trying again), but the service
+ * refuses a second Pending one for the same resource.
+ */
+export type RetirementRequest = Prisma.RetirementRequestModel
+/**
  * Model RoomCheckRound
  * A scheduled condition check on one T3 room (SRS §5.3, §5.9).
  * 
@@ -229,12 +241,17 @@ export type Notification = Prisma.NotificationModel
  */
 export type RepairLog = Prisma.RepairLogModel
 /**
- * Model CronRunLog
+ * Model SystemSetting
  * One run of one scheduled job (SRS 5.3).
  * 
  * Without this table a manual run has nowhere to record its outcome, which is
  * why `admin.runCronJob` refused before it existed: a job you can trigger but
  * cannot observe is not operable. The status page reads the newest row per
  * job to show when it last ran and whether it worked.
+ */
+export type SystemSetting = Prisma.SystemSettingModel
+/**
+ * Model CronRunLog
+ * 
  */
 export type CronRunLog = Prisma.CronRunLogModel

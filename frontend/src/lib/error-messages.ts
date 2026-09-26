@@ -9,6 +9,8 @@ const ERROR_MESSAGES: Record<string, string> = {
   UNAUTHORIZED: "กรุณาเข้าสู่ระบบใหม่",
   FORBIDDEN: "คุณไม่มีสิทธิ์เข้าถึงส่วนนี้",
   INVALID_DOMAIN: "รองรับเฉพาะอีเมล @ku.th เท่านั้น",
+  // Google sign-in (FR-AUTH-01): a verified KU identity with no matching account.
+  ACCOUNT_NOT_FOUND: "ไม่พบบัญชีผู้ใช้สำหรับอีเมลนี้ กรุณาติดต่อผู้ดูแลระบบให้สร้างบัญชีก่อน",
 
   // Loan request
   CONFLICT_UNIT_TAKEN: "อุปกรณ์ชิ้นนี้ถูกยืมไปแล้ว กรุณาเลือกใหม่",
@@ -26,6 +28,13 @@ const ERROR_MESSAGES: Record<string, string> = {
   ROOM_SLOT_IN_THE_PAST: "ช่วงเวลานี้ผ่านไปแล้ว",
   ROOM_BOOKING_SAME_DAY_ONLY: "จองห้องได้เฉพาะวันนี้เท่านั้น",
   ROOM_BOOKING_LIMIT_REACHED: "คุณจองห้องไว้แล้วหนึ่งรายการ ยกเลิกหรือใช้งานให้เสร็จก่อนจึงจะจองห้องอื่นได้",
+  ROOM_NOT_EXTENDABLE: "ห้องต่อเวลาไม่ได้ ถ้าช่วงถัดไปว่าง กรุณาจองช่วงถัดไปแทน",
+  TOO_MANY_REQUESTS: "มีคำขอจากเครื่องนี้ถี่เกินไป กรุณารอสักครู่แล้วลองใหม่",
+  PICKUP_NOT_OPEN: "ยังไม่ถึงเวลารับของ ถ้ามาถึงก่อนเวลา เจ้าหน้าที่ส่งมอบก่อนเวลาให้ได้ที่เคาน์เตอร์",
+
+  // Reservation horizon (FR-RSV-01, FR-RSV-03)
+  T0_NOT_RESERVABLE: "อุปกรณ์ระดับนี้ยืมได้ทันทีตามของคงเหลือเท่านั้น ไม่รองรับการจองล่วงหน้าข้ามวัน",
+  RESERVATION_PAST_TERM_END: "จองล่วงหน้าได้ไม่เกินสิ้นภาคเรียนปัจจุบัน",
 
   // Renewal
   RENEWAL_LIMIT_REACHED: "คุณต่ออายุออนไลน์ครบแล้ว ต้องนำอุปกรณ์มาให้เจ้าหน้าที่ตรวจ",
@@ -40,6 +49,12 @@ const ERROR_MESSAGES: Record<string, string> = {
   ITEM_UNAVAILABLE: "อุปกรณ์ชิ้นนี้ถูกยืมไปแล้ว กรุณาเลือกใหม่", // → CONFLICT_UNIT_TAKEN
   SLOT_TAKEN: "ช่วงเวลานี้ไม่ว่างแล้ว", // → SLOT_UNAVAILABLE
   WINDOW_NOT_AVAILABLE: "ช่วงเวลานี้ไม่ว่างแล้ว", // → SLOT_UNAVAILABLE
+  // FR-RSV-05 (G1, T2): the serial itself is taken, not the whole time period -
+  // says so, since T2 has no sibling unit to move to automatically.
+  SERIAL_NOT_AVAILABLE: "อุปกรณ์หมายเลขนี้ถูกจองไว้แล้วในช่วงเวลานี้ กรุณาเลือกหมายเลขประจำเครื่องอื่น",
+  // FR-RSV-06 (G2): the request page offers to shorten the loan to maxEndTime
+  // before falling back to this plain message.
+  WINDOW_CROSSES_RESERVATION: "ช่วงเวลานี้ไปชนกับการจองอื่นที่มีอยู่แล้วบนเครื่องนี้ กรุณาย่อระยะเวลายืมหรือเลือกช่วงเวลาใหม่",
   TRANSACTION_CONFLICT: "ตอนนี้มีคนจองพร้อมกันหลายคน กรุณากดใหม่อีกครั้ง",
   SLOT_LIMIT_EXCEEDED: "จองห้อง/สล็อตพร้อมกันได้ไม่เกิน 2 รายการ",
   NOT_ELIGIBLE: "คุณไม่ตรงเงื่อนไขการยืมอุปกรณ์นี้", // → ELIGIBILITY_NOT_MET
@@ -54,6 +69,7 @@ const ERROR_MESSAGES: Record<string, string> = {
   PENALTY_NOT_FOUND: "ไม่พบรายการโทษนี้",
   NOT_YOUR_PENALTY: "อุทธรณ์ได้เฉพาะโทษของตัวเอง",
   PENALTY_NOT_IN_EFFECT: "โทษนี้ไม่มีผลแล้ว จึงไม่ต้องอุทธรณ์",
+  PENALTY_NOT_APPEALABLE: "อุทธรณ์ได้เฉพาะผลการประเมินความเสียหาย ส่วนโทษคืนช้าหรือสูญหายคิดจากเวลา อุทธรณ์ไม่ได้",
   EXTENSION_ALREADY_PENDING: "มีคำขอต่ออายุที่รอพิจารณาอยู่แล้ว",
   INVALID_EXTENSION_WINDOW: "วันที่ขอต่ออายุไม่อยู่ในช่วงที่ต่อได้",
 
@@ -77,7 +93,6 @@ const ERROR_MESSAGES: Record<string, string> = {
   CANNOT_APPROVE_OWN_REQUEST: "คุณอนุมัติคำขอของตัวเองไม่ได้",
   APPROVAL_NEEDS_SUPERVISOR: "คำขอนี้ต้องให้อาจารย์เป็นผู้อนุมัติ",
   // WINDOW_NOT_AVAILABLE is already defined above with the slot codes.
-  BORROWING_SUSPENDED: "บัญชีของคุณถูกระงับสิทธิ์การยืมชั่วคราว กรุณาติดต่อเจ้าหน้าที่ภาควิชา",
   CREDIT_TOO_LOW: "เครดิตของผู้ยืมไม่ถึงเกณฑ์สำหรับรายการนี้",
   INVALID_BORROW_WINDOW: "ช่วงเวลาที่ขอยืมไม่ถูกต้อง",
   CANNOT_CANCEL: "คำขอนี้ยกเลิกไม่ได้แล้ว",
@@ -120,9 +135,28 @@ const ERROR_MESSAGES: Record<string, string> = {
   SERIAL_ALREADY_IN_USE: "หมายเลขเครื่องนี้ถูกใช้กับอุปกรณ์ชิ้นอื่นแล้ว",
   RESOURCE_IN_USE: "อุปกรณ์อยู่กับผู้ยืม ต้องรับคืนก่อนจึงจะดำเนินการนี้ได้",
 
+  // Delete / retirement (FR-EQP-05, FR-EQP-08)
+  HAS_HISTORY: "ลบไม่ได้ เนื่องจากมีประวัติการใช้งานอยู่แล้ว",
+  INVALID_ROOM_HOURS: "เวลาเปิด-ปิดห้องไม่ถูกต้อง กรุณาตรวจสอบช่วงเวลาและช่วงพัก",
+  RETIREMENT_REQUEST_NOT_FOUND: "ไม่พบคำขอเลิกใช้งานนี้",
+  RETIREMENT_ALREADY_PENDING: "อุปกรณ์ชิ้นนี้มีคำขอเลิกใช้งานที่รอพิจารณาอยู่แล้ว",
+  RETIREMENT_ALREADY_DECIDED: "คำขอเลิกใช้งานนี้ถูกดำเนินการไปแล้ว",
+  NOT_YOUR_RETIREMENT_REQUEST: "ยกเลิกได้เฉพาะคำขอเลิกใช้งานของตัวเอง",
+  CANNOT_DECIDE_OWN_RETIREMENT: "คุณตัดสินคำขอเลิกใช้งานของตัวเองไม่ได้",
+  RESOURCE_ALREADY_RETIRED: "อุปกรณ์ชิ้นนี้เลิกใช้งานไปแล้ว",
+  RETIREMENT_BLOCKED_BY_ACTIVITY: "ดำเนินการไม่ได้ เนื่องจากอุปกรณ์นี้กำลังถูกยืมอยู่หรือมีการจองล่วงหน้า",
+
   // Inspection
   INSPECTION_NOT_FOUND: "ไม่พบผลการตรวจสภาพนี้",
   ALREADY_INSPECTED: "รายการนี้ถูกตรวจสภาพไปแล้ว หากไม่เห็นด้วยต้องยื่นอุทธรณ์",
+  CANNOT_INSPECT_OWN_PREPARATION: "คุณเป็นผู้เตรียมอุปกรณ์ชิ้นนี้ จึงตรวจสภาพเองไม่ได้ กรุณาให้เจ้าหน้าที่คนอื่นตรวจ",
+
+  // Appeals
+  APPEAL_NOT_FOUND: "ไม่พบคำอุทธรณ์นี้",
+  APPEAL_ALREADY_RESOLVED: "คำอุทธรณ์นี้ได้รับการตัดสินไปแล้ว กรุณารีเฟรชรายการ",
+  CANNOT_DECIDE_OWN_APPEAL: "คุณตัดสินคำอุทธรณ์ของตัวเองไม่ได้",
+  CANNOT_DECIDE_OWN_INSPECTION: "คุณเป็นผู้ตรวจสภาพรายการนี้ จึงตัดสินคำอุทธรณ์นี้ไม่ได้ กรุณาให้ผู้อื่นตัดสิน",
+  INVALID_APPEAL_REDUCTION: "จำนวนเครดิตที่ลดต้องน้อยกว่าที่หักไว้เดิม ถ้าไม่ลดเลยให้เลือกปฏิเสธ",
 
   // Approval queue
   ALREADY_AUTO_APPROVED: "ระบบอนุมัติคำขอนี้ให้อัตโนมัติแล้ว ไม่ต้องตัดสินอีก",
@@ -137,12 +171,15 @@ const ERROR_MESSAGES: Record<string, string> = {
   UPLOAD_EMPTY: "ไฟล์ว่างเปล่า",
   UPLOAD_ALREADY_STORED: "ไฟล์นี้ถูกอัปโหลดไปแล้ว",
   UPLOAD_NOT_STORED: "ยังไม่พบไฟล์ที่อัปโหลด กรุณาลองส่งรูปอีกครั้ง",
+  TOO_MANY_PHOTOS: "แนบรูปในขั้นตอนนี้ครบจำนวนสูงสุดแล้ว",
   UPLOAD_NOT_AN_IMAGE: "ไฟล์นี้ไม่ใช่รูปภาพ",
   UPLOAD_REJECTED: "อัปโหลดไม่สำเร็จ กรุณาลองใหม่",
 
   // Usage/check-in photos (borrower pickup & return)
   IMAGE_NOT_FOUND: "ไม่พบรูปภาพนี้ อาจถูกลบไปแล้ว",
   NOT_YOUR_PHOTO: "ลบได้เฉพาะรูปที่คุณอัปโหลดเอง",
+  // FR-APL-02: attaching evidence needs a damage penalty still worth arguing with.
+  EVIDENCE_NOT_ALLOWED: "แนบหลักฐานได้เฉพาะตอนที่มีโทษความเสียหายที่ยังอุทธรณ์ได้ หรือมีคำอุทธรณ์ที่รอพิจารณาอยู่",
 
   // Configuration problems - not the user's fault, and they cannot fix them,
   // so each one says who can.

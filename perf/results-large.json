@@ -1,0 +1,52 @@
+{
+  "base": "http://localhost:3100",
+  "maxVus": 50,
+  "durationMs": 30000,
+  "rampMs": 5000,
+  "rows": [
+    {
+      "endpoint": "item.getAvailability",
+      "count": 58,
+      "p50": 10001.820923,
+      "p95": 10006.596091,
+      "p99": 10009.949048999999,
+      "errorRate": 0.9655172413793104,
+      "sampleErrorCodes": [
+        "EXCEPTION"
+      ]
+    },
+    {
+      "endpoint": "item.getById",
+      "count": 39,
+      "p50": 10002.872172,
+      "p95": 10022.322341000001,
+      "p99": 10023.661064999998,
+      "errorRate": 0.9743589743589743,
+      "sampleErrorCodes": [
+        "EXCEPTION"
+      ]
+    },
+    {
+      "endpoint": "item.list",
+      "count": 91,
+      "p50": 10002.047907,
+      "p95": 10007.194694999998,
+      "p99": 10055.838230000001,
+      "errorRate": 0.978021978021978,
+      "sampleErrorCodes": [
+        "EXCEPTION"
+      ]
+    },
+    {
+      "endpoint": "loan.create",
+      "count": 15,
+      "p50": 10001.927595000001,
+      "p95": 10029.168156,
+      "p99": 10029.168156,
+      "errorRate": 1,
+      "sampleErrorCodes": [
+        "EXCEPTION"
+      ]
+    }
+  ]
+}

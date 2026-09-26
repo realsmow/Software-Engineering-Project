@@ -1,5 +1,5 @@
 import type { Role } from "@/types/domain";
-import type { AuditAction, AuditEvent } from "../mock-data";
+import type { AuditAction, AuditEvent } from "../admin-constants";
 
 /**
  * The audit row the backend sends (`auditEventOutput` in

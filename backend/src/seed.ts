@@ -2,6 +2,8 @@ import 'dotenv/config';
 import { PrismaClient } from './generated/prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { hashPassword } from './common/crypto/password';
+import { seedReference } from './seed/reference';
+import { BASE_CREDIT } from './common/credit/recompute-credit';
 
 /**
  * Development seed - the minimum graph login needs.
@@ -18,16 +20,6 @@ const prisma = new PrismaClient({
   adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
 });
 
-/** CreditTier buckets must cover 0-100 with no gap, or resolveBorrowLimits throws. */
-const TIERS = [
-  { name: 'D0', min: 90, max: 100, maxBorrowDays: 14, maxExtendTimes: 3 },
-  { name: 'D1', min: 80, max: 89, maxBorrowDays: 10, maxExtendTimes: 2 },
-  { name: 'D2', min: 50, max: 79, maxBorrowDays: 7, maxExtendTimes: 1 },
-  { name: 'D3', min: 0, max: 49, maxBorrowDays: 3, maxExtendTimes: 0 },
-];
-
-const ROLES = ['Student', 'Staff', 'Supervisor', 'Admin'];
-
 /** The four BorrowRule rows the catalogue keys its tier off (§5.4). */
 const TIER_RULES = ['T0', 'T1', 'T2', 'T3'] as const;
 type TierRule = (typeof TIER_RULES)[number];
@@ -40,7 +32,6 @@ const USERS = [
     role: 'Student',
     first: 'Natthawut',
     last: 'Srisuwan',
-    credit: 92,
   },
   {
     userId: 'test_staff',
@@ -49,7 +40,6 @@ const USERS = [
     role: 'Staff',
     first: 'Somchai',
     last: 'Promcharoen',
-    credit: 100,
   },
   {
     userId: 'test_supervisor',
@@ -58,7 +48,6 @@ const USERS = [
     role: 'Supervisor',
     first: 'Orawan',
     last: 'Phakdee',
-    credit: 100,
   },
   {
     userId: 'test_admin',
@@ -67,7 +56,6 @@ const USERS = [
     role: 'Admin',
     first: 'Thanapon',
     last: 'IT',
-    credit: 100,
   },
 ];
 
@@ -122,14 +110,14 @@ async function main() {
     })) ??
     (await prisma.facultyInfo.create({ data: { FacultyName: FACULTY_NAME } }));
 
+  await seedReference(prisma);
+
+  // seedReference already created these rows; look up the keys this file
+  // still needs for the catalogue and demo accounts below.
   const roleKeys = new Map<string, number>();
-  for (const name of ROLES) {
-    const existing = await prisma.roleInfo.findFirst({
-      where: { RoleName: name },
-    });
-    const row =
-      existing ?? (await prisma.roleInfo.create({ data: { RoleName: name } }));
-    roleKeys.set(name, row.RoleKey);
+  for (const name of ['Student', 'Staff', 'Supervisor', 'Admin']) {
+    const row = await prisma.roleInfo.findFirst({ where: { RoleName: name } });
+    roleKeys.set(name, row!.RoleKey);
   }
 
   // A tier *is* a BorrowRule row, and status.schema.ts reads the tier off
@@ -138,47 +126,10 @@ async function main() {
   // the tier dot, the tier facet and the whole T2 serial flow down with it.
   const ruleKeys = {} as Record<(typeof TIER_RULES)[number], number>;
   for (const name of TIER_RULES) {
-    const existing = await prisma.borrowRule.findFirst({
+    const row = await prisma.borrowRule.findFirst({
       where: { RuleName: name },
     });
-    const row =
-      existing ??
-      (await prisma.borrowRule.create({ data: { RuleName: name } }));
-    ruleKeys[name] = row.BorrowRuleKey;
-  }
-
-  for (const t of TIERS) {
-    const existing = await prisma.creditTier.findFirst({
-      where: { CreditTierName: t.name },
-    });
-    const tier =
-      existing ??
-      (await prisma.creditTier.create({
-        data: { CreditTierName: t.name, CreditMin: t.min, CreditMax: t.max },
-      }));
-
-    // One row per (rule x credit tier) so any item can price a due date for
-    // any borrower. A missing pair makes `credit.me` fall over on that tier.
-    for (const ruleKey of Object.values(ruleKeys)) {
-      await prisma.borrowConstraints.upsert({
-        where: {
-          BorrowRuleKey_CreditTierKey: {
-            BorrowRuleKey: ruleKey,
-            CreditTierKey: tier.CreditTierKey,
-          },
-        },
-        update: {
-          MaxBorrowDate: t.maxBorrowDays,
-          MaxExtendTime: t.maxExtendTimes,
-        },
-        create: {
-          BorrowRuleKey: ruleKey,
-          CreditTierKey: tier.CreditTierKey,
-          MaxBorrowDate: t.maxBorrowDays,
-          MaxExtendTime: t.maxExtendTimes,
-        },
-      });
-    }
+    ruleKeys[name] = row!.BorrowRuleKey;
   }
 
   const units = await seedUnits(faculty.FacultyKey);
@@ -198,12 +149,14 @@ async function main() {
         data: {
           // Email and names are refreshed too, otherwise editing this file
           // silently does nothing to a database that was already seeded.
+          // UserCredit is NOT set here: FR-CRD-06 makes it derived (100 minus
+          // active penalties), and overwriting it on every seed run would
+          // erase whatever recomputeCredit last wrote for this account.
           Email: u.email,
           HashedPassword: hashed,
           UserFName: u.first,
           UserLName: u.last,
           RoleKey: roleKeys.get(u.role)!,
-          UserCredit: u.credit,
           FacultyKey: faculty.FacultyKey,
         },
       });
@@ -215,7 +168,7 @@ async function main() {
           UserID: u.userId,
           UserFName: u.first,
           UserLName: u.last,
-          UserCredit: u.credit,
+          UserCredit: BASE_CREDIT,
           RoleKey: roleKeys.get(u.role)!,
           FacultyKey: faculty.FacultyKey,
         },

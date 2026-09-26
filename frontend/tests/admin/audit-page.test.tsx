@@ -3,9 +3,7 @@ import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import i18n from "../../src/i18n";
 import AdminAuditPage from "../../src/features/admin/audit/audit-page";
-import { auditEventOutput } from "../../../backend/src/admin/admin.schema";
-import { toAuditEvent } from "../../src/features/admin/audit/audit-event.adapter";
-import { queryResult } from "../fixtures/query-results";
+import type { AuditEvent } from "../../src/features/admin/admin-constants";
 
 const useAuditEventsMock = vi.hoisted(() => vi.fn());
 
@@ -15,9 +13,9 @@ vi.mock("../../src/features/admin/audit/use-audit-events", () => ({
   useAuditEvents: useAuditEventsMock,
 }));
 
-const EVENTS = [
+const EVENTS: AuditEvent[] = [
   {
-    id: 10,
+    id: "10",
     at: "2026-09-20T02:00:00.000Z",
     actorId: 6,
     actorName: "System admin",
@@ -29,7 +27,7 @@ const EVENTS = [
     detail: "Viewed technical configuration",
   },
   {
-    id: 11,
+    id: "11",
     at: "2026-09-20T01:00:00.000Z",
     actorId: 4,
     actorName: "Staff user",
@@ -40,7 +38,7 @@ const EVENTS = [
     userAgent: "Browser",
     detail: "Signed in",
   },
-].map((event) => toAuditEvent(auditEventOutput.strict().parse(event)));
+];
 
 describe("AdminAuditPage", () => {
   const refetch = vi.fn();
@@ -48,7 +46,7 @@ describe("AdminAuditPage", () => {
   beforeEach(() => {
     i18n.changeLanguage("en");
     vi.clearAllMocks();
-    useAuditEventsMock.mockReturnValue({ ...queryResult(EVENTS), refetch });
+    useAuditEventsMock.mockReturnValue({ data: EVENTS, refetch });
   });
 
   const renderPage = () =>
@@ -92,7 +90,7 @@ describe("AdminAuditPage", () => {
   });
 
   it("shows the empty state when the audit endpoint returns no records", () => {
-    useAuditEventsMock.mockReturnValue({ ...queryResult([]), refetch });
+    useAuditEventsMock.mockReturnValue({ data: [], refetch });
     renderPage();
 
     expect(screen.getByText(i18n.t("table.empty"))).toBeInTheDocument();

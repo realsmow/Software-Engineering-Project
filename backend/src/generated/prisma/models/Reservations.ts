@@ -723,10 +723,6 @@ export type ReservationsUncheckedUpdateManyWithoutResourceNestedInput = {
   deleteMany?: Prisma.ReservationsScalarWhereInput | Prisma.ReservationsScalarWhereInput[]
 }
 
-export type EnumApproveStatusFieldUpdateOperationsInput = {
-  set?: $Enums.ApproveStatus
-}
-
 export type ReservationsCreateNestedOneWithoutUsageLogsInput = {
   create?: Prisma.XOR<Prisma.ReservationsCreateWithoutUsageLogsInput, Prisma.ReservationsUncheckedCreateWithoutUsageLogsInput>
   connectOrCreate?: Prisma.ReservationsCreateOrConnectWithoutUsageLogsInput

@@ -6,14 +6,16 @@ import { AuditService } from '../common/audit/audit.service';
 import { CreditTierService } from '../common/credit/credit-tier.service';
 import { EligibilityService } from '../common/authority/eligibility.service';
 import {
-  isBlockedByCredit,
   routeFor,
   type ApprovalRoute,
 } from '../common/approval/approval-policy';
 import {
   HOLDING_APPROVE_STATES,
   clashingWindowFilter,
+  collectDeadline,
   heldUsageFilter,
+  pickupOpensAt,
+  resourcesFreeInWindow,
   runSerializable,
   withBuffer,
 } from '../common/booking/booking-window';
@@ -21,12 +23,27 @@ import {
   MAX_ACTIVE_ROOM_BOOKINGS,
   assertRoomWindow,
   slotsToWindow,
+  toRoomHours,
 } from '../common/booking/room-slots';
 import { BusinessError } from '../common/errors/business-error';
-import { activeBanWhere } from '../common/schemas/penalty.schema';
-import { addDays, daysBetween, toIso } from '../common/schemas/datetime.schema';
+import {
+  NotificationService,
+  resourceName,
+  supervisorsForGroup,
+} from '../notification/notification.service';
+import {
+  addDays,
+  daysBetween,
+  localTimeToUtc,
+  toIso,
+  toLocalDayKey,
+} from '../common/schemas/datetime.schema';
 import { toPage, toSkipTake } from '../common/schemas/pagination.schema';
-import { tryMapTier, type CreditTier } from '../common/schemas/status.schema';
+import {
+  tryMapTier,
+  type CreditTier,
+  type ResourceTier,
+} from '../common/schemas/status.schema';
 import type { TrpcUser } from '../trpc/context';
 import type {
   CancelRequestInput,
@@ -35,16 +52,6 @@ import type {
   ListMyRequestsInput,
   RequestStatus,
 } from './loan.schema';
-
-/**
- * How long an approved request is held before the borrower loses it.
- *
- * §5.9: a request not collected within a day is cancelled. Written into
- * `Reservations.ReservationExpiration` at approval time rather than left for
- * the cron job to compute, so the borrower's card can show the deadline the
- * moment it is approved.
- */
-const COLLECT_WITHIN_DAYS = 1;
 
 /** Which tab of "คำขอของฉัน" each status belongs to (mock-data.ts STATUS_TAB). */
 const STATUS_TAB: Record<RequestStatus, 'active' | 'using' | 'history'> = {
@@ -70,11 +77,27 @@ const RESOURCE_SELECT = {
   Item: {
     select: {
       ItemID: true,
+      // ItemKey names the type, for finding siblings of the same ItemInfo
+      // when a T1 unit turns out not to be free (FR-RSV-04).
+      ItemKey: true,
       Item: { select: { ItemName: true, CreditWeight: true } },
     },
   },
-  Room: { select: { RoomName: true, CreditWeight: true } },
+  Room: {
+    select: {
+      RoomName: true,
+      CreditWeight: true,
+      OpenTime: true,
+      CloseTime: true,
+      BreakStart: true,
+      BreakEnd: true,
+    },
+  },
 } satisfies Prisma.ResourceInfoSelect;
+
+type ResourceRow = Prisma.ResourceInfoGetPayload<{
+  select: typeof RESOURCE_SELECT;
+}>;
 
 const REQUEST_SELECT = {
   ReservationKey: true,
@@ -127,6 +150,7 @@ export class LoanRequestService {
     private readonly prisma: PrismaService,
     private readonly creditTiers: CreditTierService,
     private readonly eligibility: EligibilityService,
+    private readonly notifications: NotificationService,
     private readonly audit: AuditService,
   ) {}
 
@@ -149,19 +173,7 @@ export class LoanRequestService {
     const endTime = new Date(input.endTime);
     this.assertWindowShape(startTime, endTime);
 
-    await this.assertNotBanned(user);
-
     const band = await this.creditTiers.resolveTier(user.creditScore);
-    if (isBlockedByCredit(band.creditTier)) {
-      // §CREDIT_BAND_POLICY: D3 may not open a request until what they are
-      // holding is cleared. See common/approval/approval-policy.ts for why
-      // this rule exists despite CONTRACT.md.
-      throw new BusinessError('CREDIT_TOO_LOW', {
-        creditTier: band.creditTier,
-        creditScore: user.creditScore,
-      });
-    }
-
     const toBand = await this.creditTiers.tierMapper();
     const created: RequestRow[] = [];
     const rejected: {
@@ -212,13 +224,23 @@ export class LoanRequestService {
   async createRoomBooking(user: TrpcUser, input: CreateRoomBookingInput) {
     const room = await this.prisma.roomInfo.findUnique({
       where: { RoomKey: input.roomKey },
-      select: { Resource: { select: { ResourceKey: true } } },
+      select: {
+        OpenTime: true,
+        CloseTime: true,
+        BreakStart: true,
+        BreakEnd: true,
+        Resource: { select: { ResourceKey: true } },
+      },
     });
     if (!room) {
       throw new BusinessError('ROOM_NOT_FOUND', { id: input.roomKey });
     }
 
-    const { startTime, endTime } = slotsToWindow(input.date, input.slots);
+    const { startTime, endTime } = slotsToWindow(
+      toRoomHours(room),
+      input.date,
+      input.slots,
+    );
 
     return this.create(user, {
       startTime: toIso(startTime),
@@ -251,7 +273,9 @@ export class LoanRequestService {
     }
 
     // Same rule whether the window came from chips or from raw instants.
-    if (resource.Room) assertRoomWindow(startTime, endTime);
+    if (resource.Room) {
+      assertRoomWindow(toRoomHours(resource.Room), startTime, endTime);
+    }
 
     const tier = tryMapTier(resource.BorrowRuleInfo.RuleName);
     if (tier === null) {
@@ -260,6 +284,11 @@ export class LoanRequestService {
         borrowRuleKey: resource.BorrowRule,
       });
     }
+
+    // How far ahead this tier may be reserved (FR-RSV-03, FR-RSV-01). Cheap
+    // and tier-only, so it runs before any DB round trip that would be wasted
+    // on a window the tier cannot use at all.
+    this.assertReservationHorizon(tier, startTime, endTime);
 
     // Eligibility and the authority floor. Throws NOT_ELIGIBLE on its own.
     const allowance = await this.eligibility.assertMayBorrow(
@@ -277,7 +306,22 @@ export class LoanRequestService {
       });
     }
 
-    await this.assertWindowFree(resource, startTime, endTime);
+    // FR-RSV-04 (G1, T1): a T1 unit that is not free for the window is swapped
+    // for a free sibling rather than refused outright. T2 binds a specific
+    // serial (FR-RSV-05), so it only gets a clearer refusal; everything else
+    // (T0, T3) just takes the plain check.
+    let target: ResourceRow = resource;
+    if (tier === 'T1') {
+      target = await this.resolveT1Target(resource, startTime, endTime);
+    } else if (tier === 'T2') {
+      target = await this.assertWindowFreeForSerial(
+        resource,
+        startTime,
+        endTime,
+      );
+    } else {
+      await this.assertWindowFree(resource, startTime, endTime);
+    }
 
     const route = routeFor({ tier, creditTier });
     const now = new Date();
@@ -287,19 +331,19 @@ export class LoanRequestService {
       // Re-check inside the transaction. Two people submitting the same unit
       // for the same hours a moment apart both pass the check above; only one
       // may come out of here holding it.
-      const { from, to } = withBuffer(startTime, endTime, resource.BufferTime);
+      const { from, to } = withBuffer(startTime, endTime, target.BufferTime);
       const taken = await tx.reservations.count({
-        where: clashingWindowFilter(resource.ResourceKey, from, to),
+        where: clashingWindowFilter(target.ResourceKey, from, to),
       });
       if (taken > 0) {
         throw new BusinessError('WINDOW_NOT_AVAILABLE', {
-          resourceKey: resource.ResourceKey,
+          resourceKey: target.ResourceKey,
           from: toIso(from),
           to: toIso(to),
         });
       }
 
-      if (resource.Room) {
+      if (target.Room) {
         const holding = await tx.reservations.count({
           where: {
             ReservedBy: user.accountKey,
@@ -318,7 +362,7 @@ export class LoanRequestService {
 
       const row = await tx.reservations.create({
         data: {
-          ResourceKey: resource.ResourceKey,
+          ResourceKey: target.ResourceKey,
           ReservedBy: user.accountKey,
           Reason: reason,
           StartTime: startTime,
@@ -331,13 +375,40 @@ export class LoanRequestService {
           ApprovedAt: approved ? now : null,
           ActionTime: now,
           ReservationExpiration: approved
-            ? addDays(now, COLLECT_WITHIN_DAYS)
+            ? collectDeadline(startTime, now)
             : // Nothing is being held yet, so the field carries the end of the
               // requested window rather than a collection deadline.
               endTime,
         },
         select: { ReservationKey: true },
       });
+
+      if (approved) {
+        await this.notifications.itemToPrepare(tx, {
+          manageGroupKey: target.ManagedBy,
+          reservationKey: row.ReservationKey,
+          itemName: resourceName(target),
+        });
+      }
+
+      // FR-NTF-04: T2, or T1 from a D2/D3 borrower, sits on a supervisor's
+      // desk until decided — tell every supervisor with authority over the
+      // department, not just the one who happens to open the queue next.
+      if (route === 'supervisor') {
+        const supervisors = await supervisorsForGroup(tx, target.ManagedBy);
+        await Promise.all(
+          supervisors
+            .filter((s) => s.AccountKey !== user.accountKey)
+            .map((s) =>
+              this.notifications.requestNeedsSupervisor(tx, {
+                accountKey: s.AccountKey,
+                reservationKey: row.ReservationKey,
+                itemName: resourceName(target),
+              }),
+            ),
+        );
+      }
+
       return row.ReservationKey;
     });
 
@@ -346,10 +417,155 @@ export class LoanRequestService {
       { accountKey: user.accountKey },
       'create',
       `reservation/${key}`,
-      `Requested ${resource.Item ? resource.Item.Item.ItemName : resource.Room?.RoomName ?? 'resource'} (resourceKey ${resourceKey})${approved ? ', auto-approved' : ''}`,
+      `Requested ${target.Item ? target.Item.Item.ItemName : (target.Room?.RoomName ?? 'resource')} (resourceKey ${target.ResourceKey})${approved ? ', auto-approved' : ''}`,
     );
 
     return this.read(key);
+  }
+
+  /**
+   * How far ahead this tier may be reserved.
+   *
+   * FR-RSV-03: T0 is stock borrowed on the spot ("ยืมได้ทันทีตามของคงเหลือ"),
+   * not reserved for a future day - a T0 line is refused once its start falls
+   * on a later Bangkok day than today. `assertWindowShape` already refused a
+   * start in the past, so what is left to catch here is only "later", not
+   * "earlier".
+   *
+   * FR-RSV-01: T1/T2 may be reserved ahead, but only to the end of the current
+   * term. `TERM_END_DATE` is read here, at call time, rather than into a
+   * module-level constant at import time, so changing it takes effect on the
+   * next request instead of needing a restart. Left unset, this half of the
+   * check is skipped - the 90-day cap a borrower sees on the request screen
+   * (`BUSINESS.RESERVATION_MAX_DAYS`) is enforced there only, same as before
+   * this method existed.
+   */
+  private assertReservationHorizon(
+    tier: ResourceTier,
+    startTime: Date,
+    endTime: Date,
+  ): void {
+    if (tier === 'T0') {
+      if (toLocalDayKey(startTime) > toLocalDayKey(new Date())) {
+        throw new BusinessError('T0_NOT_RESERVABLE', {
+          startTime: toIso(startTime),
+        });
+      }
+      return;
+    }
+
+    if (tier !== 'T1' && tier !== 'T2') return;
+
+    const termEnd = process.env.TERM_END_DATE;
+    if (!termEnd) return;
+
+    // Midnight Bangkok the day after TERM_END_DATE - the first instant that
+    // no longer belongs to the current term.
+    const termEndExclusive = addDays(localTimeToUtc(termEnd, '00:00'), 1);
+    if (endTime.getTime() >= termEndExclusive.getTime()) {
+      throw new BusinessError('RESERVATION_PAST_TERM_END', {
+        termEnd: toIso(new Date(termEndExclusive.getTime() - 1)),
+      });
+    }
+  }
+
+  /**
+   * FR-RSV-04 (G1, T1): the requested unit, unless it turns out not to be
+   * free - then another unit of the same ItemInfo, in the same department,
+   * that IS free for the whole window. T1 stock is interchangeable within its
+   * item type, so this is a straight swap rather than a refusal: the response
+   * already returns the created request's own resource, so the borrower sees
+   * which unit they got.
+   *
+   * If nothing else qualifies, the original refusal is what surfaces -
+   * WINDOW_NOT_AVAILABLE with `nextAvailableAt`, or WINDOW_CROSSES_RESERVATION
+   * with `maxEndTime` (FR-RSV-06) - unchanged.
+   */
+  private async resolveT1Target(
+    resource: ResourceRow,
+    startTime: Date,
+    endTime: Date,
+  ): Promise<ResourceRow> {
+    try {
+      await this.assertWindowFree(resource, startTime, endTime);
+      return resource;
+    } catch (error) {
+      if (!(error instanceof BusinessError)) throw error;
+      const sibling = await this.findFreeSibling(resource, startTime, endTime);
+      if (!sibling) throw error;
+      return sibling;
+    }
+  }
+
+  /** Other units of the same ItemInfo, in the same department, free for the whole window. */
+  private async findFreeSibling(
+    resource: ResourceRow,
+    startTime: Date,
+    endTime: Date,
+  ): Promise<ResourceRow | null> {
+    if (!resource.Item) return null;
+
+    const siblings = await this.prisma.resourceInfo.findMany({
+      where: {
+        ManagedBy: resource.ManagedBy,
+        AllowBorrow: true,
+        ResourceStatus: { not: 'Missing' },
+        ResourceKey: { not: resource.ResourceKey },
+        Item: { ItemKey: resource.Item.ItemKey },
+      },
+      select: RESOURCE_SELECT,
+    });
+    if (siblings.length === 0) return null;
+
+    const free = await resourcesFreeInWindow(
+      this.prisma,
+      siblings.map((s) => ({
+        ResourceKey: s.ResourceKey,
+        BufferTime: s.BufferTime,
+      })),
+      startTime,
+      endTime,
+    );
+
+    // Lowest key first - a stable, arbitrary tie-break among units that are
+    // all equally free right now.
+    return (
+      siblings
+        .filter((s) => free.has(s.ResourceKey))
+        .sort((a, b) => a.ResourceKey - b.ResourceKey)[0] ?? null
+    );
+  }
+
+  /**
+   * FR-RSV-05 (G1, T2): still refuses, but a T2 serial has no sibling to move
+   * to the way T1 does, so the plain "unit not free" refusal is recast into a
+   * code that tells the borrower what to do about it - choose another serial
+   * number - rather than reading like the whole time period is closed.
+   *
+   * WINDOW_CROSSES_RESERVATION (G2) is left as-is: it already carries its own
+   * next step (shorten the loan), which applies here too.
+   */
+  private async assertWindowFreeForSerial(
+    resource: ResourceRow,
+    startTime: Date,
+    endTime: Date,
+  ): Promise<ResourceRow> {
+    try {
+      await this.assertWindowFree(resource, startTime, endTime);
+      return resource;
+    } catch (error) {
+      if (
+        error instanceof BusinessError &&
+        (error.businessCode === 'WINDOW_NOT_AVAILABLE' ||
+          error.businessCode === 'ITEM_UNAVAILABLE')
+      ) {
+        throw new BusinessError(
+          'SERIAL_NOT_AVAILABLE',
+          error.details ?? undefined,
+        );
+      }
+      throw error;
+    }
   }
 
   // =========================================================================
@@ -431,6 +647,7 @@ export class LoanRequestService {
         ResourceKey: true,
         ReservationKey: true,
         CurrentStatus: true,
+        CheckoutTime: true,
       },
     });
 
@@ -446,6 +663,16 @@ export class LoanRequestService {
         usageKey,
         status: usage.CurrentStatus,
         expected: 'Prepared',
+      });
+    }
+
+    // Until the pickup window opens, only staff can hand it over (early).
+    // allocate() writes the booked pickup time into CheckoutTime.
+    const opensAt = pickupOpensAt(usage.CheckoutTime);
+    if (new Date() < opensAt) {
+      throw new BusinessError('PICKUP_NOT_OPEN', {
+        usageKey,
+        opensAt: toIso(opensAt),
       });
     }
 
@@ -573,31 +800,6 @@ export class LoanRequestService {
   // Internals
   // =========================================================================
 
-  /**
-   * Refuses a request from an account with a borrowing ban in force.
-   *
-   * Without this the ban was decoration: `admin.setUserBan` wrote the penalty
-   * row, the account showed as "suspended" on every staff screen, and the
-   * person carried on opening requests exactly as before. Checked here rather
-   * than per line, because a ban is about the borrower and not about any
-   * particular item - a banned account gets one clear refusal, not one per
-   * basket line.
-   */
-  private async assertNotBanned(user: TrpcUser): Promise<void> {
-    const ban = await this.prisma.penaltyInfo.findFirst({
-      where: { AccountKey: user.accountKey, ...activeBanWhere() },
-      select: { PenaltyKey: true, Reason: true, ExpirationTime: true },
-      orderBy: { ExpirationTime: 'desc' },
-    });
-    if (!ban) return;
-
-    throw new BusinessError('BORROWING_SUSPENDED', {
-      penaltyKey: ban.PenaltyKey,
-      reason: ban.Reason,
-      expiresAt: ban.ExpirationTime.toISOString(),
-    });
-  }
-
   private assertWindowShape(startTime: Date, endTime: Date): void {
     if (endTime <= startTime) {
       throw new BusinessError('INVALID_BORROW_WINDOW', {
@@ -630,6 +832,18 @@ export class LoanRequestService {
       select: { ReservationKey: true, StartTime: true, EndTime: true },
     });
     if (clash) {
+      // FR-RSV-06 (G2): the unit is free right at the requested start, but a
+      // later reservation already claims part of the window - the borrower
+      // can still have it up to just before that reservation's own prep
+      // buffer, so this is offered as a shorter window instead of a flat
+      // refusal. A clash starting at or before the requested start leaves no
+      // usable window at all, which is the plain WINDOW_NOT_AVAILABLE case.
+      if (clash.StartTime.getTime() > startTime.getTime()) {
+        throw new BusinessError('WINDOW_CROSSES_RESERVATION', {
+          resourceKey: resource.ResourceKey,
+          maxEndTime: toIso(addDays(clash.StartTime, -resource.BufferTime)),
+        });
+      }
       throw new BusinessError('WINDOW_NOT_AVAILABLE', {
         resourceKey: resource.ResourceKey,
         nextAvailableAt: toIso(addDays(clash.EndTime, resource.BufferTime)),

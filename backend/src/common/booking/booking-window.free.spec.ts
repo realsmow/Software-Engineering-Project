@@ -12,8 +12,16 @@ const end = new Date('2099-03-12T09:00:00Z');
 
 function reader(reserved: number[], held: number[]) {
   return {
-    reservations: { findMany: jest.fn().mockResolvedValue(reserved.map((ResourceKey) => ({ ResourceKey }))) },
-    usageLog: { findMany: jest.fn().mockResolvedValue(held.map((ResourceKey) => ({ ResourceKey }))) },
+    reservations: {
+      findMany: jest
+        .fn()
+        .mockResolvedValue(reserved.map((ResourceKey) => ({ ResourceKey }))),
+    },
+    usageLog: {
+      findMany: jest
+        .fn()
+        .mockResolvedValue(held.map((ResourceKey) => ({ ResourceKey }))),
+    },
   };
 }
 
@@ -21,7 +29,10 @@ it('returns every resource when nothing clashes', async () => {
   const prisma = reader([], []);
   const free = await resourcesFreeInWindow(
     prisma,
-    [{ ResourceKey: 1, BufferTime: 0 }, { ResourceKey: 2, BufferTime: 0 }],
+    [
+      { ResourceKey: 1, BufferTime: 0 },
+      { ResourceKey: 2, BufferTime: 0 },
+    ],
     start,
     end,
   );
@@ -43,12 +54,16 @@ it("widens each resource's window by its own buffer", async () => {
   const prisma = reader([], []);
   await resourcesFreeInWindow(
     prisma,
-    [{ ResourceKey: 1, BufferTime: 0 }, { ResourceKey: 2, BufferTime: 2 }],
+    [
+      { ResourceKey: 1, BufferTime: 0 },
+      { ResourceKey: 2, BufferTime: 2 },
+    ],
     start,
     end,
   );
 
-  const [zeroBuffer, twoDays] = prisma.reservations.findMany.mock.calls[0][0].where.OR;
+  const [zeroBuffer, twoDays] =
+    prisma.reservations.findMany.mock.calls[0][0].where.OR;
   expect(zeroBuffer.StartTime.lt).toEqual(end);
   expect(zeroBuffer.EndTime.gt).toEqual(start);
   expect(twoDays.StartTime.lt).toEqual(new Date(end.getTime() + 2 * DAY));

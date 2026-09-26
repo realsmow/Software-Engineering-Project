@@ -3,7 +3,7 @@ import { useTRPCClient } from "@/lib/trpc";
 import { fetchAllPages } from "@/lib/paging";
 import type { Role } from "@/types/domain";
 import { toAdminUser, toAdminUserDetail, type AdminUserDetail } from "./admin-user.adapter";
-import type { AdminUser } from "../mock-data";
+import type { AdminUser } from "../admin-constants";
 
 /**
  * Admin account list and the mutations that act on it.
@@ -50,6 +50,17 @@ export function useUserDetail(id: string | null) {
   });
 }
 
+/** FR-ADM-01: the account's loans, newest first. */
+export function useUserLoans(id: string | null) {
+  const trpc = useTRPCClient();
+
+  return useQuery({
+    queryKey: [...ADMIN_USERS_KEY, "loans", id],
+    enabled: id !== null,
+    queryFn: () => trpc.admin.getUserLoans.query({ id: Number(id) }),
+  });
+}
+
 /** Shared by every mutation below: refetch the list once the server has spoken. */
 function useInvalidateUsers() {
   const queryClient = useQueryClient();
@@ -64,18 +75,6 @@ export function useSetUserActive() {
   return useMutation({
     mutationFn: ({ id, active }: { id: string; active: boolean }) =>
       trpc.admin.setUserActive.mutate({ id: Number(id), active }),
-    onSuccess: invalidate,
-  });
-}
-
-/** Borrowing ban. Distinct from disable: a banned user can still sign in. */
-export function useSetUserBan() {
-  const trpc = useTRPCClient();
-  const invalidate = useInvalidateUsers();
-
-  return useMutation({
-    mutationFn: ({ id, banned, reason }: { id: string; banned: boolean; reason?: string }) =>
-      trpc.admin.setUserBan.mutate({ id: Number(id), banned, reason }),
     onSuccess: invalidate,
   });
 }
@@ -143,7 +142,7 @@ export function useCreateUser() {
       firstName: string;
       lastName: string;
       role: Role;
-    }) => trpc.admin.createUser.mutate({ ...input, initialCredit: 100 }),
+    }) => trpc.admin.createUser.mutate(input),
     onSuccess: invalidate,
   });
 }

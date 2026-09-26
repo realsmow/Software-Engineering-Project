@@ -117,6 +117,7 @@ function harness(options: { rows?: Row[]; unitsOfType?: number[] } = {}) {
     scope,
     {} as never,
     audit as never,
+    { retirementRequested: jest.fn(), retirementDecided: jest.fn() } as never,
   );
 
   return { service, prisma, eligibility, rows: () => table, audit };

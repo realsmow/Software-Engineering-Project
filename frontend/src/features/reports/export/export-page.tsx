@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next";
 import { Download } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { Button } from "@/components/ui/button";
+import { toLocalDayKey } from "@/lib/datetime";
 import { useReportSummary } from "@/features/admin/reports/use-reports";
 import type { ReportSummary } from "@/features/admin/reports/report.types";
 
@@ -102,7 +103,7 @@ function equipmentRows(data: ReportSummary): (string | number)[][] {
 
 /** The report's own timestamp, so two downloads of the same numbers share a name. */
 function stamp(data: ReportSummary): string {
-  return data.generatedAt.slice(0, 10);
+  return toLocalDayKey(data.generatedAt);
 }
 
 function downloadCsv(filename: string, rows: (string | number)[][]): void {

@@ -20,9 +20,12 @@ export function useUploadImage() {
 
   return useMutation({
     mutationFn: async ({ file, purpose }: { file: File; purpose: UploadPurpose }) => {
+      // Callers run `validateUploadFile` first, which checks `file.type`
+      // against UPLOAD.ALLOWED_MIME (the same two values the server accepts) -
+      // narrowed here the way `prepareBorrowerImage` does for the borrower flow.
       const ticket = await trpc.image.requestUpload.mutate({
         purpose,
-        contentType: file.type,
+        contentType: file.type as "image/jpeg" | "image/png",
         sizeBytes: file.size,
       });
 

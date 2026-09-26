@@ -162,7 +162,16 @@ export type NotificationType =
   // consequence, and they can arrive days apart - the penalty's clock only
   // starts once the item is actually back.
   | "credit_deducted"
-  | "appeal_result";
+  | "appeal_result"
+  // FR-EQP-08: a supervisor is asked to approve a retirement; staff hear back.
+  | "retirement_requested"
+  | "retirement_decided"
+  // FR-NTF-04: a T2/low-credit request or extension landed on a supervisor's
+  // desk, or an appeal was filed and is awaiting their decision.
+  | "supervisor_approval_needed"
+  | "appeal_filed"
+  // FR-NTF-03: counter work for staff (prepare, receive, room check).
+  | "staff_task";
 
 export interface Notification {
   id: string;

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, type OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { Prisma } from '../generated/prisma/client';
 import { PrismaService } from '../prisma.service';
@@ -18,12 +18,10 @@ import {
   toAdminUserSummary,
   type AdminAccountRow,
 } from '../common/mappers/admin-user.mapper';
-import {
-  activeBanWhere,
-  activePenaltyWhere,
-} from '../common/schemas/penalty.schema';
+import { activePenaltyWhere } from '../common/schemas/penalty.schema';
 import { MAX_UPLOAD_BYTES } from '../common/schemas/image.schema';
-import { ALLOWED_ORIGINS } from '../bootstrap';
+import { allowedOrigins } from '../bootstrap';
+import { BASE_CREDIT } from '../common/credit/recompute-credit';
 import {
   toOrderBy,
   toPage,
@@ -36,6 +34,8 @@ import {
 } from '../common/schemas/status.schema';
 import { UNAVAILABLE_USAGE_STATES } from '../common/usage/usage-states';
 import { OK } from '../common/schemas/ok.schema';
+import { workHours } from '../common/schemas/datetime.schema';
+import { resourceName } from '../notification/notification.service';
 import type {
   ChangeRoleInput,
   CreateUserInput,
@@ -44,10 +44,11 @@ import type {
   ResetPasswordInput,
   SetUserActiveInput,
   RunCronJobInput,
-  SetUserBanInput,
   UpdateLendingSettingsInput,
   UpdateUserInput,
+  WorkHoursSetting,
 } from './admin.schema';
+import { workHoursSetting } from './admin.schema';
 
 /**
  * Sort keys the client may send, mapped to real columns.
@@ -205,7 +206,7 @@ const POLLING_CONTRACT = {
 } as const;
 
 @Injectable()
-export class AdminService {
+export class AdminService implements OnModuleInit {
   constructor(
     private readonly prisma: PrismaService,
     private readonly creditTiers: CreditTierService,
@@ -215,6 +216,32 @@ export class AdminService {
     private readonly config: ConfigService,
     private readonly cron: CronService,
   ) {}
+
+  /** Puts the saved working hours in force; the defaults stand until one is saved. */
+  async onModuleInit() {
+    // A setting that cannot be read leaves the defaults; it must not stop boot.
+    const row = await this.prisma.systemSetting
+      ?.findUnique({ where: { Key: 'workHours' } })
+      .catch(() => null);
+    const saved = workHoursSetting.safeParse(row?.Value);
+    if (saved.success) Object.assign(workHours, saved.data);
+  }
+
+  async updateWorkHours(input: WorkHoursSetting, actor: AuditActor) {
+    await this.prisma.systemSetting.upsert({
+      where: { Key: 'workHours' },
+      create: { Key: 'workHours', Value: input },
+      update: { Value: input },
+    });
+    Object.assign(workHours, input);
+    await this.audit.record(
+      actor,
+      'config',
+      'setting/workHours',
+      `Work hours set to ${input.start}:00-${input.end}:00`,
+    );
+    return this.getLendingSettings();
+  }
 
   // =========================================================================
   // Accounts
@@ -254,12 +281,7 @@ export class AdminService {
       where.RoleKey = { in: await this.roleKeysFor(input.role) };
     }
 
-    if (input.status) {
-      // A ban, not any penalty: see activeBanWhere.
-      const active = activeBanWhere();
-      where.Penalties =
-        input.status === 'suspended' ? { some: active } : { none: active };
-    }
+    if (input.status) where.IsActive = input.status === 'active';
 
     if (input.q) {
       where.OR = [
@@ -280,14 +302,6 @@ export class AdminService {
         select: {
           ...ACCOUNT_SCALARS,
           Authorities: { take: 1, select: AUTHORITY_SELECT },
-          Penalties: {
-            // Existence is all the summary needs - one row answers "suspended?".
-            // Bans only: with take: 1 over every live penalty, a credit
-            // deduction could be the row returned and a real ban be missed.
-            where: activeBanWhere(),
-            take: 1,
-            select: PENALTY_SELECT,
-          },
         },
       }),
       this.prisma.accountInfo.count({ where }),
@@ -308,6 +322,36 @@ export class AdminService {
     );
   }
 
+  // ponytail: last 100 loans, page it when someone has more worth reading.
+  async getUserLoans(accountKey: number) {
+    const rows = await this.prisma.usageLog.findMany({
+      where: { AccountKey: accountKey },
+      orderBy: { CheckoutTime: 'desc' },
+      take: 100,
+      select: {
+        UsageKey: true,
+        CurrentStatus: true,
+        CheckoutTime: true,
+        DueTime: true,
+        CheckInTime: true,
+        Resource: {
+          select: {
+            Item: { select: { Item: { select: { ItemName: true } } } },
+            Room: { select: { RoomName: true } },
+          },
+        },
+      },
+    });
+    return rows.map((r) => ({
+      id: r.UsageKey,
+      itemName: resourceName(r.Resource),
+      status: r.CurrentStatus,
+      checkoutTime: r.CheckoutTime.toISOString(),
+      dueTime: r.DueTime.toISOString(),
+      checkInTime: r.CheckInTime?.toISOString() ?? null,
+    }));
+  }
+
   async createUser(input: CreateUserInput, actor: AuditActor) {
     await this.assertIdentifiersFree(input.email, input.studentId, null);
 
@@ -323,7 +367,8 @@ export class AdminService {
         UserID: input.studentId,
         UserFName: input.firstName,
         UserLName: input.lastName,
-        UserCredit: input.initialCredit,
+        // FR-CRD-01: everyone starts at 100 (no penalties yet).
+        UserCredit: BASE_CREDIT,
         RoleKey: await this.roleKeyFor(input.role),
       },
       select: { AccountKey: true },
@@ -440,71 +485,12 @@ export class AdminService {
     return { ...OK, temporaryPassword: generated };
   }
 
-  async setUserBan(input: SetUserBanInput, actor: AuditActor) {
-    if (input.id === actor.accountKey) {
-      throw new BusinessError('CANNOT_MODIFY_SELF', { action: 'setUserBan' });
-    }
-
-    await this.assertAccountExists(input.id);
-
-    if (!input.banned) {
-      // Lift, don't delete: the row is the record that the ban happened.
-      await this.prisma.penaltyInfo.updateMany({
-        // Bans only. Lifting over every live penalty also cancelled any
-        // damage or late penalty the borrower was carrying, which staff never
-        // asked for and which an appeal is the only proper route to.
-        where: { AccountKey: input.id, ...activeBanWhere() },
-        data: { InEffect: false },
-      });
-
-      await this.audit.record(
-        actor,
-        'update',
-        `account/${input.id}`,
-        'Borrowing ban lifted',
-      );
-      return OK;
-    }
-
-    const now = new Date();
-    const expiresAt = new Date(
-      now.getTime() + input.days * 24 * 60 * 60 * 1000,
-    );
-
-    await this.prisma.penaltyInfo.create({
-      data: {
-        AccountKey: input.id,
-        // No UsageKey: this penalty comes from an admin decision, not from a
-        // specific loan going wrong.
-        Reason: input.reason ?? 'ระงับสิทธิ์การยืมโดยผู้ดูแลระบบ',
-        CreditDeducted: null,
-        ActionTime: now,
-        ExpirationTime: expiresAt,
-        Appealed: false,
-        InEffect: true,
-      },
-      select: { PenaltyKey: true },
-    });
-
-    await this.audit.record(
-      actor,
-      'update',
-      `account/${input.id}`,
-      `Borrowing banned for ${input.days} days${input.reason ? `: ${input.reason}` : ''}`,
-    );
-
-    return OK;
-  }
-
   /**
    * Enable or disable an account.
    *
    * Disabling revokes every live session as well as flipping the flag.
    * Without that the person stays signed in until their cookie lapses, which
    * is exactly the window you are trying to close when you disable someone.
-   *
-   * Not the same as a borrowing ban: setUserBan stops them borrowing but
-   * leaves them able to sign in and see their own history.
    */
   async setUserActive(input: SetUserActiveInput, actor: AuditActor) {
     // Disabling yourself locks you out of the tool you would need to undo it.
@@ -520,7 +506,12 @@ export class AdminService {
     // cover, so it needs no check.
     if (!input.active) {
       const current = await this.readAccountRole(input.id);
-      await this.assertGroupsStayCovered(input.id, current, 'borrower', 'disable');
+      await this.assertGroupsStayCovered(
+        input.id,
+        current,
+        'borrower',
+        'disable',
+      );
     } else {
       await this.assertAccountExists(input.id);
     }
@@ -585,6 +576,7 @@ export class AdminService {
     ]);
 
     return {
+      workHours: { ...workHours },
       creditTiers: creditTiers.map((tier) => ({
         id: tier.CreditTierKey,
         name: tier.CreditTierName,
@@ -835,7 +827,7 @@ export class AdminService {
       security: {
         cookieSecure: env('COOKIE_SECURE') === 'true' || isProduction,
         cookieSameSite: env('COOKIE_SAMESITE') ?? 'lax',
-        allowedOrigins: ALLOWED_ORIGINS,
+        allowedOrigins: allowedOrigins(),
         nodeEnv: env('NODE_ENV') ?? 'development',
       },
     };

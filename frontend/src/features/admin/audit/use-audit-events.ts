@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useTRPCClient } from "@/lib/trpc";
 import { fetchAllPages } from "@/lib/paging";
 import { toAuditEvent } from "./audit-event.adapter";
-import type { AuditEvent } from "../mock-data";
+import type { AuditEvent } from "../admin-constants";
 
 /**
  * The audit trail, newest first.

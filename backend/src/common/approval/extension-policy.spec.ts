@@ -1,5 +1,5 @@
 import { extensionRouteFor, requiresInspection } from './extension-policy';
-import type { CreditTier, ResourceTier } from '../schemas/status.schema';
+import type { CreditTier } from '../schemas/status.schema';
 
 /**
  * The extension routing table, tested directly — same reasoning as
@@ -7,7 +7,6 @@ import type { CreditTier, ResourceTier } from '../schemas/status.schema';
  * `ExtensionRoute`, so only a test can tell a mistake from a decision.
  */
 
-const ALL_TIERS: ResourceTier[] = ['T0', 'T1', 'T2', 'T3'];
 const ALL_BANDS: CreditTier[] = ['D0', 'D1', 'D2', 'D3'];
 
 describe('extensionRouteFor', () => {
@@ -39,22 +38,14 @@ describe('extensionRouteFor', () => {
     }
   });
 
-  it('takes the online option away from a shaky record (§5.7)', () => {
-    for (const tier of ALL_TIERS) {
+  it('sends every extension of a D2 or D3 record to a supervisor (FR-RNW-06)', () => {
+    for (const tier of ['T0', 'T1', 'T2'] as const) {
       for (const creditTier of ['D2', 'D3'] as const) {
-        expect(extensionRouteFor({ tier, creditTier, extendNo: 1 })).not.toBe(
-          'auto',
+        expect(extensionRouteFor({ tier, creditTier, extendNo: 1 })).toBe(
+          'supervisor',
         );
       }
     }
-  });
-
-  it('sends a room to the department rather than clearing it silently', () => {
-    // Nobody can carry a room to the counter, but holding one longer takes the
-    // next booking's slot, so a person decides.
-    expect(
-      extensionRouteFor({ tier: 'T3', creditTier: 'D0', extendNo: 1 }),
-    ).toBe('staff');
   });
 
   it('refuses to auto-approve a tier it could not read', () => {

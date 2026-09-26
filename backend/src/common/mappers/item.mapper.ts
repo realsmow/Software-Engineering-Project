@@ -21,7 +21,7 @@ interface ManagementGroupRow {
 }
 
 interface ResourceRow {
-  ResourceStatus: 'InStorage' | 'Lended' | 'Missing';
+  ResourceStatus: 'InStorage' | 'Lended' | 'Missing' | 'Retired';
   AllowBorrow: boolean;
   BufferTime: number;
   /**
@@ -70,7 +70,7 @@ export interface RoomRow {
   Resource: ResourceRow;
 }
 
-function toOwner(group: ManagementGroupRow) {
+export function toOwner(group: ManagementGroupRow) {
   return {
     id: group.ManageGroupKey,
     name: group.Branch?.BranchName ?? group.Club?.ClubName ?? null,
@@ -106,7 +106,7 @@ function typeTier(units: ItemUnitRow[]) {
  */
 export interface AvailabilityUnitRow {
   Resource: {
-    ResourceStatus: 'InStorage' | 'Lended' | 'Missing';
+    ResourceStatus: 'InStorage' | 'Lended' | 'Missing' | 'Retired';
     AllowBorrow: boolean;
     BufferTime: number;
     UsageLogs: { DueTime: Date; CurrentStatus: UsageStatus }[];
@@ -127,10 +127,12 @@ export function isUnitAvailable(unit: AvailabilityUnitRow): boolean {
   );
 }
 
-/** Could be borrowed eventually — excludes units that are lost or switched off. */
+/** Could be borrowed eventually — excludes units that are lost, retired, or switched off. */
 function isBorrowable(unit: AvailabilityUnitRow): boolean {
   return (
-    unit.Resource.ResourceStatus !== 'Missing' && unit.Resource.AllowBorrow
+    unit.Resource.ResourceStatus !== 'Missing' &&
+    unit.Resource.ResourceStatus !== 'Retired' &&
+    unit.Resource.AllowBorrow
   );
 }
 
@@ -243,9 +245,7 @@ export function toItemDetail(
           ? unit.Resource.UsageLogs[0].DueTime.toISOString()
           : null,
       nextAvailableAt: readyAtIso(unit),
-      ...(freeInWindow
-        ? { availableForWindow: isAvailable(unit) }
-        : {}),
+      ...(freeInWindow ? { availableForWindow: isAvailable(unit) } : {}),
     })),
   };
 }
