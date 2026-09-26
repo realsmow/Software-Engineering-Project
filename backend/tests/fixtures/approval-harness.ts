@@ -90,6 +90,7 @@ export function setup(row = reservation()) {
         }),
       updateMany: jest.fn().mockResolvedValue({ count: 0 }),
     },
+    // Department staff receive the approval preparation notification.
     accountInfo: {
       findMany: jest.fn().mockResolvedValue([{ AccountKey: 98 }]),
     },

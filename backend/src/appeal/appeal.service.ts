@@ -29,6 +29,11 @@ import {
   type ListMyAppealsInput,
 } from './appeal.schema';
 import { recomputeCredit } from '../common/credit/recompute-credit';
+import { PenaltyService } from '../common/penalty/penalty.service';
+import {
+  DAMAGE_CONDITION,
+  tryMapDamageLevel,
+} from '../common/schemas/status.schema';
 
 const BORROWER_SELECT = {
   AccountKey: true,
@@ -61,10 +66,25 @@ const APPEAL_SELECT = {
   ResolvedByUser: { select: BORROWER_SELECT },
   OriginalPenaltyInfo: { select: PENALTY_SELECT },
   NewPenaltyInfo: { select: PENALTY_SELECT },
-  // Only the inspector: this is what CANNOT_DECIDE_OWN_INSPECTION compares
-  // against, and pulling the whole inspection would drag its condition log and
-  // photos into every row of the queue.
-  Inspections: { select: { InspectorKey: true } },
+  RevisedCondition: true,
+  // InspectorKey is what CANNOT_DECIDE_OWN_INSPECTION compares against; the
+  // rest is the staff report FR-APL-03 puts on the desk. Photos stay out.
+  Inspections: {
+    orderBy: { ActionTime: 'desc' },
+    select: {
+      InspectorKey: true,
+      Notes: true,
+      ActionTime: true,
+      Inspector: { select: { UserFName: true, UserLName: true } },
+      Condition: { select: { Condition: true } },
+      Resource: {
+        select: {
+          BorrowRule: true,
+          Item: { select: { Item: { select: { CreditWeight: true } } } },
+        },
+      },
+    },
+  },
 } as const;
 
 type AppealRow = Prisma.AppealInfoGetPayload<{ select: typeof APPEAL_SELECT }>;
@@ -124,6 +144,21 @@ function toAppealOutput(row: AppealRow) {
     inspectorKeys: [
       ...new Set(row.Inspections.map((inspection) => inspection.InspectorKey)),
     ],
+    inspection: row.Inspections[0]
+      ? toAppealInspection(row.Inspections[0])
+      : null,
+    revisedGrade: row.RevisedCondition
+      ? tryMapDamageLevel(row.RevisedCondition)
+      : null,
+  };
+}
+
+function toAppealInspection(inspection: AppealRow['Inspections'][number]) {
+  return {
+    grade: tryMapDamageLevel(inspection.Condition.Condition),
+    notes: inspection.Notes,
+    inspectorName: `${inspection.Inspector.UserFName} ${inspection.Inspector.UserLName}`,
+    inspectedAt: toIsoNullable(inspection.ActionTime),
   };
 }
 
@@ -153,6 +188,7 @@ export class AppealService {
     private readonly scope: StaffScopeService,
     private readonly notifications: NotificationService,
     private readonly audit: AuditService,
+    private readonly penalties: PenaltyService,
   ) {}
 
   // =========================================================================
@@ -496,7 +532,9 @@ export class AppealService {
     }
 
     const deducted = penalty.CreditDeducted ?? 0;
-    const reduced = input.reducedCreditDeducted ?? 0;
+    const reduced = input.revisedGrade
+      ? await this.priceRevisedGrade(appeal, input)
+      : (input.reducedCreditDeducted ?? 0);
     if (reduced >= deducted) {
       // An appeal that leaves the borrower no better off is a rejection with
       // extra rows. Refusing it here keeps the desk from producing a penalty
@@ -551,6 +589,9 @@ export class AppealService {
           ResolvedBy: user.accountKey,
           ResolvedAt: now,
           ...(newPenaltyKey === null ? {} : { NewPenalty: newPenaltyKey }),
+          ...(input.revisedGrade
+            ? { RevisedCondition: DAMAGE_CONDITION[input.revisedGrade] }
+            : {}),
         },
       });
 
@@ -569,7 +610,7 @@ export class AppealService {
       { accountKey: user.accountKey },
       'update',
       `appeal/${input.appealKey}`,
-      `Approved appeal, restored ${restored} credit${input.note ? `: ${input.note}` : ''}`,
+      `Approved appeal${input.revisedGrade ? `, grade revised to ${input.revisedGrade}` : ''}, restored ${restored} credit${input.note ? `: ${input.note}` : ''}`,
     );
 
     return this.getById(user, input.appealKey);
@@ -578,6 +619,40 @@ export class AppealService {
   // =========================================================================
   // Internals
   // =========================================================================
+
+  /**
+   * FR-APL-06: what the penalty would have been at the revised grade, quoted
+   * the way the inspection quoted it (PenaltyRule first, then the formula).
+   * Only a lower grade than the one inspected, and never with an amount too.
+   */
+  private async priceRevisedGrade(
+    appeal: AppealRow,
+    input: DecideAppealInput,
+  ): Promise<number> {
+    const inspection = appeal.Inspections[0];
+    const graded = inspection
+      ? tryMapDamageLevel(inspection.Condition.Condition)
+      : null;
+    if (
+      !inspection ||
+      !graded ||
+      !input.revisedGrade ||
+      input.revisedGrade >= graded ||
+      input.reducedCreditDeducted !== undefined
+    ) {
+      throw new BusinessError('INVALID_APPEAL_REDUCTION', {
+        appealKey: appeal.AppealKey,
+        gradedAs: graded,
+        revisedGrade: input.revisedGrade,
+      });
+    }
+    const quote = await this.penalties.quoteDamage(
+      inspection.Resource.BorrowRule,
+      inspection.Resource.Item?.Item.CreditWeight ?? 0,
+      input.revisedGrade,
+    );
+    return quote.amount;
+  }
 
   /**
    * §5.8: "คนตรวจสอบต้องไม่ใช่คนเดิม".

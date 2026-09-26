@@ -6,7 +6,7 @@ describe('CreditTierService — Module 3.1 / 3.2 / 3.5', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    service = new CreditTierService(prisma);
+    service = new CreditTierService(prisma as never);
   });
 
   describe('3.1 Credit Tier resolution', () => {

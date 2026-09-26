@@ -201,7 +201,10 @@ describe('PDF p. 9: room bookings persist in the database', () => {
           prisma,
           tiers,
           new EligibilityService(prisma),
-          { itemToPrepare: jest.fn() } as never,
+          {
+            itemToPrepare: jest.fn(),
+            requestNeedsSupervisor: jest.fn(),
+          } as never,
           audit as never,
         ),
         requestContracts,

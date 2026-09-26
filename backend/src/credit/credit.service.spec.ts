@@ -7,7 +7,7 @@ describe('CreditService — Module 3.3 / 3.4', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    service = new CreditService(prisma, creditTiers);
+    service = new CreditService(prisma as never, creditTiers as never);
   });
 
   it('3.3 calculates total credit deducted from active penalties, treating null as zero', async () => {

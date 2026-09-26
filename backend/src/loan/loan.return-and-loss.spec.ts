@@ -110,7 +110,7 @@ function service(overrides: {
     scope,
     penalties,
     notifications,
-    audit as any,
+    audit as never,
   );
   return { svc, prisma, penalties, notifications, audit, tx };
 }
@@ -119,14 +119,14 @@ describe('recordReturn', () => {
   it('refuses a return without an after photo (FR-RTN-01)', async () => {
     const t = service({ afterPhoto: null });
     await expect(
-      t.svc.recordReturn(staff, { usageKey: 8 } as any),
+      t.svc.recordReturn(staff, { usageKey: 8 }),
     ).rejects.toMatchObject({ businessCode: 'RETURN_PHOTO_REQUIRED' });
   });
 
   it('refuses a return for a loan that is not out', async () => {
     const t = service({ usage: usageRow({ CurrentStatus: 'Prepared' }) });
     await expect(
-      t.svc.recordReturn(staff, { usageKey: 8 } as any),
+      t.svc.recordReturn(staff, { usageKey: 8 }),
     ).rejects.toMatchObject({ businessCode: 'WRONG_LOAN_STATE' });
   });
 
@@ -201,7 +201,7 @@ describe('markLost', () => {
   it('refuses to mark lost a loan not currently out', async () => {
     const t = service({ usage: usageRow({ CurrentStatus: 'Returned' }) });
     await expect(
-      t.svc.markLost(staff, { usageKey: 8 } as any),
+      t.svc.markLost(staff, { usageKey: 8 } as never),
     ).rejects.toMatchObject({ businessCode: 'WRONG_LOAN_STATE' });
   });
 
@@ -209,7 +209,10 @@ describe('markLost', () => {
     const t = service({});
     (t.penalties.overdueDays as jest.Mock).mockReturnValue(5);
     await expect(
-      t.svc.markLost(staff, { usageKey: 8, reportedByBorrower: false } as any),
+      t.svc.markLost(staff, {
+        usageKey: 8,
+        reportedByBorrower: false,
+      }),
     ).rejects.toMatchObject({ businessCode: 'NOT_YET_LOST' });
   });
 
@@ -220,7 +223,7 @@ describe('markLost', () => {
       t.svc.markLost(staff, {
         usageKey: 8,
         reportedByBorrower: true,
-      } as any),
+      }),
     ).resolves.toBeDefined();
   });
 
@@ -230,7 +233,7 @@ describe('markLost', () => {
     await t.svc.markLost(staff, {
       usageKey: 8,
       reason: 'never returned',
-    } as any);
+    } as never);
 
     expect(t.tx.conditionLog.create).toHaveBeenCalledWith(
       expect.objectContaining({

@@ -118,7 +118,7 @@ function service(overrides: {
     scope,
     penalties,
     images,
-    audit as any,
+    audit as never,
   );
   return { svc, prisma, scope, penalties, images, audit, tx };
 }
@@ -131,7 +131,7 @@ describe('createInspection', () => {
         usageKey: 8,
         level: 'B1',
         imageUrls: [],
-      } as any),
+      } as never),
     ).rejects.toMatchObject({ businessCode: 'WRONG_LOAN_STATE' });
   });
 
@@ -144,7 +144,7 @@ describe('createInspection', () => {
         usageKey: 8,
         level: 'B1',
         imageUrls: [],
-      } as any),
+      } as never),
     ).rejects.toMatchObject({ businessCode: 'ALREADY_INSPECTED' });
   });
 
@@ -163,7 +163,7 @@ describe('createInspection', () => {
         usageKey: 8,
         level: 'B1',
         imageUrls: [],
-      } as any),
+      } as never),
     ).rejects.toMatchObject({ businessCode: 'CANNOT_INSPECT_OWN_PREPARATION' });
   });
 
@@ -183,7 +183,7 @@ describe('createInspection', () => {
         usageKey: 8,
         level: 'B1',
         imageUrls: [],
-      } as any),
+      } as never),
     ).resolves.toBeDefined();
   });
 
@@ -199,7 +199,7 @@ describe('createInspection', () => {
       level: 'B2',
       note: 'cracked lens',
       imageUrls: ['a.jpg'],
-    } as any);
+    } as never);
 
     expect(t.tx.conditionLog.create).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -233,7 +233,7 @@ describe('createInspection', () => {
       usageKey: 8,
       level: 'B3',
       imageUrls: [],
-    } as any);
+    } as never);
     expect(t.tx.resourceInfo.update).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({ AllowBorrow: false }),
@@ -253,7 +253,7 @@ describe('createInspection', () => {
       usageKey: 8,
       level: 'B0',
       imageUrls: [],
-    } as any);
+    } as never);
     expect(t.tx.resourceInfo.update).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.not.objectContaining({ AllowBorrow: false }),
@@ -271,7 +271,7 @@ describe('recordRoomCheck', () => {
       t.svc.recordRoomCheck(staff, {
         resourceKey: 26,
         condition: 'Normal',
-      } as any),
+      } as never),
     ).rejects.toMatchObject({ businessCode: 'RESOURCE_NOT_FOUND' });
   });
 
@@ -285,7 +285,7 @@ describe('recordRoomCheck', () => {
       t.svc.recordRoomCheck(staff, {
         resourceKey: 26,
         condition: 'Normal',
-      } as any),
+      } as never),
     ).rejects.toMatchObject({ businessCode: 'UNIT_DOES_NOT_MATCH_REQUEST' });
   });
 
@@ -299,7 +299,7 @@ describe('recordRoomCheck', () => {
       resourceKey: 26,
       condition: 'Broken',
       note: 'AC broken',
-    } as any);
+    } as never);
     expect(t.tx.roomCheckRound.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({ where: { ResourceKey: 26, ClosedAt: null } }),
     );
@@ -318,7 +318,7 @@ describe('startRepair', () => {
     const t = service({});
     (t.prisma.resourceInfo.findUnique as jest.Mock).mockResolvedValue(null);
     await expect(
-      t.svc.startRepair(staff, { resourceKey: 26 } as any),
+      t.svc.startRepair(staff, { resourceKey: 26 }),
     ).rejects.toMatchObject({ businessCode: 'RESOURCE_NOT_FOUND' });
   });
 
@@ -361,7 +361,10 @@ describe('finishRepair', () => {
     const t = service({});
     (t.prisma.repairLog.findUnique as jest.Mock).mockResolvedValue(null);
     await expect(
-      t.svc.finishRepair(staff, { repairKey: 55, condition: 'Normal' } as any),
+      t.svc.finishRepair(staff, {
+        repairKey: 55,
+        condition: 'Normal',
+      } as never),
     ).rejects.toMatchObject({ businessCode: 'RESOURCE_NOT_FOUND' });
   });
 
@@ -373,7 +376,10 @@ describe('finishRepair', () => {
       EndRepairDate: new Date(),
     });
     await expect(
-      t.svc.finishRepair(staff, { repairKey: 55, condition: 'Normal' } as any),
+      t.svc.finishRepair(staff, {
+        repairKey: 55,
+        condition: 'Normal',
+      } as never),
     ).rejects.toMatchObject({ businessCode: 'ALREADY_DECIDED' });
   });
 
@@ -387,7 +393,7 @@ describe('finishRepair', () => {
     await t.svc.finishRepair(staff, {
       repairKey: 55,
       condition: 'Normal',
-    } as any);
+    } as never);
     expect(t.tx.repairLog.update).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({ ConditionAfterRepair: 900 }),
@@ -413,7 +419,7 @@ describe('finishRepair', () => {
     await t.svc.finishRepair(staff, {
       repairKey: 55,
       condition: 'Broken',
-    } as any);
+    } as never);
     expect(t.tx.resourceInfo.update).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({ AllowBorrow: false }),

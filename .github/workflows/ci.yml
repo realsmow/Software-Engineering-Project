@@ -126,6 +126,10 @@ jobs:
         run: npm ci
         working-directory: backend
 
+      - name: lint
+        run: npm run lint
+        working-directory: backend
+
       # NOTE: no `prisma generate` step is needed right now, because the
       # generated client is committed to the repository (41 files under
       # backend/src/generated/prisma). That is accidental - backend/.gitignore
@@ -158,10 +162,16 @@ jobs:
         working-directory: backend
 
       # migrate deploy, not migrate dev: dev is interactive and would hang the
-      # runner. The suite seeds and cleans up its own fixtures, so no seed step
-      # is needed - and the specs must keep it that way to stay CI-safe.
+      # runner.
       - name: migrate
         run: npx prisma migrate deploy
+        working-directory: backend
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/app
+
+      # Seed the reference roles and credit tiers before integration tests.
+      - name: seed
+        run: npm run seed
         working-directory: backend
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/app

@@ -5,6 +5,7 @@ import {
   isoDateTimeNullable,
 } from '../common/schemas/datetime.schema';
 import { dbId } from '../common/schemas/id.schema';
+import { damageLevel } from '../common/schemas/status.schema';
 import {
   paginated,
   paginationInput,
@@ -79,6 +80,15 @@ export const appealedPenalty = z.object({
   inEffect: z.boolean(),
 });
 
+/** FR-APL-03: the staff report the appeal argues with. */
+export const appealInspection = z.object({
+  /** Null when the recorded condition is not a grade (Missing). */
+  grade: damageLevel.nullable(),
+  notes: z.string().nullable(),
+  inspectorName: z.string(),
+  inspectedAt: isoDateTimeNullable,
+});
+
 export const appealOutput = z.object({
   appealKey: z.number().int(),
   status: appealStatus,
@@ -108,6 +118,10 @@ export const appealOutput = z.object({
    * inspection. The desk needs it to know who must *not* take the case.
    */
   inspectorKeys: z.array(z.number().int()),
+  /** Null for a penalty that did not come from an inspection. */
+  inspection: appealInspection.nullable(),
+  /** FR-APL-06: the grade an approval revised the inspection to, if any. */
+  revisedGrade: damageLevel.nullable(),
 });
 export type AppealOutput = z.infer<typeof appealOutput>;
 
@@ -178,5 +192,10 @@ export const decideAppealInput = z.object({
    * has `inspection` for that.
    */
   reducedCreditDeducted: z.number().int().positive().optional(),
+  /**
+   * FR-APL-06, approve-only: revise the damage grade instead of naming an
+   * amount. The server prices the lower grade the way the inspection did.
+   */
+  revisedGrade: damageLevel.optional(),
 });
 export type DecideAppealInput = z.infer<typeof decideAppealInput>;

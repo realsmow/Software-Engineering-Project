@@ -100,8 +100,17 @@ function appealRow(
           : overrides.usage,
     },
     NewPenaltyInfo: null,
+    RevisedCondition: null,
+    // Graded B2 on an item of weight 4, with the staff report FR-APL-03 shows.
     Inspections: (overrides.inspectorKeys ?? [INSPECTOR.accountKey]).map(
-      (key) => ({ InspectorKey: key }),
+      (key) => ({
+        InspectorKey: key,
+        Notes: 'เลนส์มีรอยร้าว',
+        ActionTime: RECENTLY,
+        Inspector: { UserFName: 'สมชาย', UserLName: 'ตรวจดี' },
+        Condition: { Condition: 'MajorDamage' },
+        Resource: { BorrowRule: 1, Item: { Item: { CreditWeight: 4 } } },
+      }),
     ),
   };
 }
@@ -119,15 +128,20 @@ function build(prisma: Record<string, unknown>) {
   } as unknown as NotificationService;
 
   const audit = { record: jest.fn() };
+  // B1 on the fixture's weight-4 item costs 4 under the proposal formula.
+  const penalties = {
+    quoteDamage: jest.fn().mockResolvedValue({ amount: 4 }),
+  };
 
   const service = new AppealService(
     prisma as unknown as PrismaService,
     scope,
     notifications,
     audit as never,
+    penalties as never,
   );
 
-  return { service, scope, notifications, audit };
+  return { service, scope, notifications, audit, penalties };
 }
 
 describe('AppealService.decide — who may rule', () => {
@@ -292,6 +306,44 @@ describe('AppealService.decide — what approving does', () => {
         appealKey: 9,
         decision: 'approve',
         reducedCreditDeducted: 20,
+      }),
+    ).rejects.toThrow(/INVALID_APPEAL_REDUCTION/);
+  });
+
+  it('revises the grade, charges the lower grade and shows the staff report', async () => {
+    const { prisma, tx } = prismaWith(appealRow());
+    const { service, penalties } = build(prisma);
+
+    const result = await service.decide(SUPERVISOR, {
+      appealKey: 9,
+      decision: 'approve',
+      revisedGrade: 'B1',
+    });
+
+    expect(penalties.quoteDamage).toHaveBeenCalledWith(1, 4, 'B1');
+    expect(firstCall(tx.penaltyInfo.create).data).toMatchObject({
+      CreditDeducted: 4,
+    });
+    expect(firstCall(tx.appealInfo.update).data).toMatchObject({
+      RevisedCondition: 'MinorDamage',
+    });
+    expect(result.inspection).toEqual({
+      grade: 'B2',
+      notes: 'เลนส์มีรอยร้าว',
+      inspectorName: 'สมชาย ตรวจดี',
+      inspectedAt: RECENTLY.toISOString(),
+    });
+  });
+
+  it('refuses a revised grade that is not lower than the one inspected', async () => {
+    const { prisma } = prismaWith(appealRow());
+    const { service } = build(prisma);
+
+    await expect(
+      service.decide(SUPERVISOR, {
+        appealKey: 9,
+        decision: 'approve',
+        revisedGrade: 'B2',
       }),
     ).rejects.toThrow(/INVALID_APPEAL_REDUCTION/);
   });

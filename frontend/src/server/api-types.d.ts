@@ -594,6 +594,13 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 				} | null;
 				creditRestored: number;
 				inspectorKeys: number[];
+				inspection: {
+					grade: "B0" | "B1" | "B2" | "B3" | null;
+					notes: string | null;
+					inspectorName: string;
+					inspectedAt: string | null;
+				} | null;
+				revisedGrade: "B0" | "B1" | "B2" | "B3" | null;
 			};
 			meta: object;
 		}>;
@@ -647,6 +654,13 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 					} | null;
 					creditRestored: number;
 					inspectorKeys: number[];
+					inspection: {
+						grade: "B0" | "B1" | "B2" | "B3" | null;
+						notes: string | null;
+						inspectorName: string;
+						inspectedAt: string | null;
+					} | null;
+					revisedGrade: "B0" | "B1" | "B2" | "B3" | null;
 				}[];
 				total: number;
 				page: number;
@@ -698,6 +712,13 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 				} | null;
 				creditRestored: number;
 				inspectorKeys: number[];
+				inspection: {
+					grade: "B0" | "B1" | "B2" | "B3" | null;
+					notes: string | null;
+					inspectorName: string;
+					inspectedAt: string | null;
+				} | null;
+				revisedGrade: "B0" | "B1" | "B2" | "B3" | null;
 			};
 			meta: object;
 		}>;
@@ -751,6 +772,13 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 					} | null;
 					creditRestored: number;
 					inspectorKeys: number[];
+					inspection: {
+						grade: "B0" | "B1" | "B2" | "B3" | null;
+						notes: string | null;
+						inspectorName: string;
+						inspectedAt: string | null;
+					} | null;
+					revisedGrade: "B0" | "B1" | "B2" | "B3" | null;
 				}[];
 				total: number;
 				page: number;
@@ -764,6 +792,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 				decision: "approve" | "reject";
 				note?: string | undefined;
 				reducedCreditDeducted?: number | undefined;
+				revisedGrade?: "B0" | "B1" | "B2" | "B3" | undefined;
 			};
 			output: {
 				appealKey: number;
@@ -805,6 +834,13 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 				} | null;
 				creditRestored: number;
 				inspectorKeys: number[];
+				inspection: {
+					grade: "B0" | "B1" | "B2" | "B3" | null;
+					notes: string | null;
+					inspectorName: string;
+					inspectedAt: string | null;
+				} | null;
+				revisedGrade: "B0" | "B1" | "B2" | "B3" | null;
 			};
 			meta: object;
 		}>;
@@ -1236,7 +1272,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 	}, import("@trpc/server").TRPCDecorateCreateRouterOptions<{
 		requestUpload: import("@trpc/server").TRPCMutationProcedure<{
 			input: {
-				purpose: "room" | "itemType" | "itemUnit" | "inspection";
+				purpose: "room" | "inspection" | "itemType" | "itemUnit";
 				contentType: "image/jpeg" | "image/png";
 				sizeBytes: number;
 			};

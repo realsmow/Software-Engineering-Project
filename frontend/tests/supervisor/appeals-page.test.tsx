@@ -55,6 +55,8 @@ const appeal = appealOutput.strict().parse({
   replacementPenalty: null,
   creditRestored: 0,
   inspectorKeys: [3],
+  inspection: null,
+  revisedGrade: null,
 });
 
 describe("supervisor appeal regression", () => {
@@ -124,7 +126,7 @@ describe("supervisor appeal regression", () => {
     ]);
   });
 
-  it("submits a credit appeal decision with its note, not a damage grade", async () => {
+  it("approves a credit appeal with its note when no grade revision is selected", async () => {
     decide.mockResolvedValue(
       appealOutput.strict().parse({
         ...appeal,

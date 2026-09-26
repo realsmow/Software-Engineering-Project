@@ -728,6 +728,9 @@ model AppealInfo {
   ApproveStatus   ApproveStatus
   ActionTime      DateTime?     @db.Timestamptz(3)
   ResolvedAt      DateTime?     @db.Timestamptz(3)
+  // FR-APL-06: the grade the supervisor revised the inspection to. The
+  // inspection's own ConditionLog row is left as graded.
+  RevisedCondition ConditionType?
 
   OriginalPenaltyInfo PenaltyInfo  @relation("AppealOriginalPenalty", fields: [OriginalPenalty], references: [PenaltyKey])
   NewPenaltyInfo      PenaltyInfo? @relation("AppealNewPenalty", fields: [NewPenalty], references: [PenaltyKey])

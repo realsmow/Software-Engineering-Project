@@ -97,16 +97,16 @@ function service(
   },
 ) {
   return new LoanRequestService(
-    db,
+    db as never,
     {
       resolveTier: jest
         .fn()
         .mockResolvedValue({ creditTierKey: 1, creditTier }),
       tierMapper: jest.fn().mockResolvedValue(() => creditTier),
-    } as any,
-    eligibility,
-    notifications,
-    audit,
+    } as never,
+    eligibility as never,
+    notifications as never,
+    audit as never,
   );
 }
 
@@ -131,14 +131,14 @@ describe('Module 6 request validation', () => {
 
   it('6.3 accepts an eligible borrower when stock and credit checks pass', async () => {
     const db = dbFor();
-    const result = await service(db).create(user, future);
+    const result = await service(db).create(user as never, future);
     expect(result.created).toHaveLength(1);
     expect(result.rejected).toHaveLength(0);
   });
 
   it('6.3 rejects an unavailable resource before creating a reservation', async () => {
     const db = dbFor({ ...baseResource, AllowBorrow: false });
-    const result = await service(db).create(user, future);
+    const result = await service(db).create(user as never, future);
     expect(result.created).toHaveLength(0);
     expect(result.rejected[0].code).toBe('ITEM_UNAVAILABLE');
     expect(db.reservations.create).not.toHaveBeenCalled();
@@ -146,7 +146,7 @@ describe('Module 6 request validation', () => {
 
   it('6.4 auto-approves a T0 request', async () => {
     const db = dbFor();
-    const result = await service(db).create(user, future);
+    const result = await service(db).create(user as never, future);
     expect(result.created[0].approval.route).toBe('auto');
     expect(result.created[0].approval.status).toBe('Approved');
     expect(result.created[0].approval.autoApproved).toBe(true);
@@ -154,7 +154,10 @@ describe('Module 6 request validation', () => {
   it('6.5 routes T1 D2 to supervisor instead of auto-approving', async () => {
     const resource = { ...baseResource, BorrowRuleInfo: { RuleName: 'T1' } };
     const db = dbFor(resource);
-    const result = await service(db, undefined, 'D2').create(user, future);
+    const result = await service(db, undefined, 'D2').create(
+      user as never,
+      future,
+    );
     expect(result.created[0].approval.route).toBe('supervisor');
     expect(result.created[0].approval.status).toBe('Pending');
     expect(result.created[0].approval.autoApproved).toBe(false);
@@ -163,7 +166,7 @@ describe('Module 6 request validation', () => {
   it('6.6 routes every T2 request to supervisor', async () => {
     const resource = { ...baseResource, BorrowRuleInfo: { RuleName: 'T2' } };
     const db = dbFor(resource);
-    const result = await service(db).create(user, future);
+    const result = await service(db).create(user as never, future);
     expect(result.created[0].approval.route).toBe('supervisor');
     expect(result.created[0].approval.status).toBe('Pending');
   });
@@ -176,7 +179,7 @@ describe('Module 6 request validation', () => {
       Item: { ...baseResource.Item, ItemID: 'T2-SERIAL-42' },
     };
     const db = dbFor(resource);
-    const result = await service(db).create(user, {
+    const result = await service(db).create(user as never, {
       ...future,
       lines: [{ resourceKey: 42 }],
     });
@@ -217,7 +220,7 @@ describe('Module 6 request validation', () => {
           }),
     );
 
-    const result = await service(db).confirmMyPickup(user, 501);
+    const result = await service(db).confirmMyPickup(user as never, 501);
 
     expect(result.status).toBe('inUse');
     expect(updateMany).toHaveBeenCalledWith(
@@ -247,7 +250,9 @@ describe('Module 6 request validation', () => {
     });
     db.images = { findFirst: jest.fn().mockResolvedValue(null) };
 
-    await expect(service(db).confirmMyPickup(user, 501)).rejects.toMatchObject({
+    await expect(
+      service(db).confirmMyPickup(user as never, 501),
+    ).rejects.toMatchObject({
       message: 'PICKUP_PHOTO_REQUIRED',
     });
   });
@@ -264,7 +269,9 @@ describe('Module 6 request validation', () => {
     });
     db.images = { findFirst: jest.fn().mockResolvedValue({ ImageKey: 91 }) };
 
-    await expect(service(db).confirmMyPickup(user, 501)).rejects.toMatchObject({
+    await expect(
+      service(db).confirmMyPickup(user as never, 501),
+    ).rejects.toMatchObject({
       message: 'PICKUP_NOT_OPEN',
     });
   });
@@ -283,7 +290,7 @@ describe('Module 6 request validation', () => {
       return Promise.resolve(row);
     });
 
-    const result = await service(db).cancel(user, {
+    const result = await service(db).cancel(user as never, {
       reservationKey: 101,
       reason: 'เปลี่ยนแผนการใช้งาน',
     });
@@ -329,7 +336,10 @@ describe('Module 6 request validation', () => {
         .fn()
         .mockRejectedValue(new BusinessError('NOT_ELIGIBLE')),
     };
-    const result = await service(db, eligibility as any).create(user, future);
+    const result = await service(db, eligibility as any).create(
+      user as never,
+      future,
+    );
     expect(result.created).toHaveLength(0);
     expect(result.rejected[0].code).toBe('NOT_ELIGIBLE');
   });
@@ -368,7 +378,7 @@ describe('one room held at a time', () => {
   };
 
   function holding(count: number) {
-    const db = dbFor(room as any);
+    const db = dbFor(room as never);
     const tx = db.$transaction as jest.Mock;
     // First count is the window clash, second is what this borrower holds.
     tx.mockImplementation(async (arg: any) => {
@@ -387,19 +397,19 @@ describe('one room held at a time', () => {
   }
 
   it('refuses a second room while one is still held', async () => {
-    const result = await service(holding(1)).create(user, roomWindow);
+    const result = await service(holding(1)).create(user as never, roomWindow);
     expect(result.created).toHaveLength(0);
     expect(result.rejected[0].code).toBe('ROOM_BOOKING_LIMIT_REACHED');
   });
 
   it('books the first one', async () => {
-    const result = await service(holding(0)).create(user, roomWindow);
+    const result = await service(holding(0)).create(user as never, roomWindow);
     expect(result.created).toHaveLength(1);
   });
 
   it('leaves equipment alone', async () => {
     const db = dbFor();
-    const result = await service(db).create(user, future);
+    const result = await service(db).create(user as never, future);
     expect(result.created).toHaveLength(1);
   });
 });
@@ -449,7 +459,10 @@ describe('room windows sent as raw instants', () => {
       'ROOM_BOOKING_SAME_DAY_ONLY',
     ],
   ])('refuses %s', async (_l, input, code) => {
-    const result = await service(dbFor(room as any)).create(user, input);
+    const result = await service(dbFor(room as never)).create(
+      user as never,
+      input,
+    );
     expect(result.created).toHaveLength(0);
     expect(result.rejected[0].code).toBe(code);
   });
@@ -470,7 +483,7 @@ describe('audit trail', () => {
     const db = dbFor();
     const audit = { record: jest.fn() };
     const result = await service(db, undefined, 'D0', audit).create(
-      user,
+      user as never,
       future,
     );
 
@@ -485,7 +498,7 @@ describe('audit trail', () => {
   it('does not record anything when every line is rejected', async () => {
     const db = dbFor({ ...baseResource, AllowBorrow: false });
     const audit = { record: jest.fn() };
-    await service(db, undefined, 'D0', audit).create(user, future);
+    await service(db, undefined, 'D0', audit).create(user as never, future);
 
     expect(audit.record).not.toHaveBeenCalled();
   });
@@ -505,7 +518,7 @@ describe('reservation horizon (FR-RSV-01, FR-RSV-03)', () => {
 
   it('refuses a T0 line whose start is on a later Bangkok day than today', async () => {
     const db = dbFor(); // default resource is T0
-    const result = await service(db).create(user, {
+    const result = await service(db).create(user as never, {
       startTime: '2099-01-11T08:00:00.000Z',
       endTime: '2099-01-11T13:00:00.000Z',
       lines: [{ resourceKey: 7 }],
@@ -520,7 +533,7 @@ describe('reservation horizon (FR-RSV-01, FR-RSV-03)', () => {
     const resource = { ...baseResource, BorrowRuleInfo: { RuleName: 'T1' } };
     const db = dbFor(resource);
 
-    const result = await service(db).create(user, {
+    const result = await service(db).create(user as never, {
       startTime: '2099-01-10T08:00:00.000Z',
       endTime: '2099-01-20T08:00:00.000Z',
       lines: [{ resourceKey: 7 }],
@@ -588,7 +601,7 @@ describe('T1 unit swap (FR-RSV-04)', () => {
       }),
     );
 
-    const result = await service(db).create(user, future);
+    const result = await service(db).create(user as never, future);
 
     expect(result.created).toHaveLength(1);
     expect(result.created[0].resource.resourceKey).toBe(8);
@@ -614,7 +627,7 @@ describe('window crosses a later reservation (FR-RSV-06, G2)', () => {
       EndTime: new Date('2099-01-10T14:00:00Z'),
     });
 
-    const result = await service(db).create(user, future);
+    const result = await service(db).create(user as never, future);
 
     expect(result.created).toHaveLength(0);
     expect(result.rejected[0].code).toBe('WINDOW_CROSSES_RESERVATION');

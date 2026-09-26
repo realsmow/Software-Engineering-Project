@@ -4,6 +4,7 @@ import {
   managementContracts,
 } from '../fixtures/service-contracts';
 import { ItemService } from '../../src/item/item.service';
+import { sqlAggregates } from '../../src/item/light-row.testing';
 import { ItemManagementService } from '../../src/item/item.management.service';
 import type { TrpcUser } from '../../src/trpc/context';
 import type { UsageStatus } from '../../src/common/schemas/status.schema';
@@ -73,27 +74,26 @@ function harness(items: ReturnType<typeof unit>[]) {
     _count: { Items: items.length },
   } satisfies ItemTypeRow & { _count: { Items: number } };
   const prisma = {
-    $queryRaw: jest.fn().mockResolvedValue([
-      {
-        found: true,
-        total: items.length,
-        available: items.filter((item) => item.Resource.UsageLogs.length === 0)
-          .length,
-        readyAt: items.some((item) =>
-          item.Resource.UsageLogs.some((loan) =>
-            ['Pending', 'Prepared', 'Lended'].includes(loan.CurrentStatus),
-          ),
-        )
-          ? new Date(due.getTime() + 2 * 86_400_000)
-          : null,
-      },
-    ]),
     itemInfo: { findUnique: jest.fn().mockResolvedValue(row) },
     authority: {
       findMany: jest
         .fn()
         .mockResolvedValue([{ ManageGroupKey: 8, AuthorityRoleKey: 1 }]),
     },
+    // getAvailability is one SQL query; this is what it returns for the fixture.
+    $queryRaw: jest.fn().mockResolvedValue([
+      {
+        found: true,
+        total: items.length,
+        available: items.filter(
+          (u) =>
+            u.Resource.ResourceStatus === 'InStorage' &&
+            u.Resource.AllowBorrow &&
+            u.Resource.UsageLogs.length === 0,
+        ).length,
+        readyAt: sqlAggregates(items).readyAt,
+      },
+    ]),
   };
   const scope = {
     resourceScope: jest.fn().mockResolvedValue({ ManagedBy: { in: [8] } }),

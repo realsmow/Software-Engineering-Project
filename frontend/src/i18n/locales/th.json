@@ -1225,7 +1225,12 @@
       "errAlreadyResolved": "คำอุทธรณ์นี้ถูกตัดสินไปแล้ว",
       "errInvalidReduction": "จำนวนที่คงไว้ต้องน้อยกว่าการหักเครดิตเดิม",
       "errOutOfScope": "รายการนี้อยู่นอกหน่วยงานที่คุณดูแล",
-      "photoEvidence": "หลักฐานจากผู้ยืม"
+      "photoEvidence": "หลักฐานจากผู้ยืม",
+      "gradedAs": "ให้ระดับ {{grade}}",
+      "inspectedBy": "ตรวจโดย {{name}} {{when}}",
+      "reviseGrade": "ปรับระดับเป็น",
+      "gradePriced": "ระบบคิดเครดิตตามระดับ {{grade}} แบบเดียวกับตอนตรวจ",
+      "revisedTo": "ปรับระดับเป็น {{grade}}"
     }
   },
   "damage": {

@@ -106,8 +106,8 @@ describe('Dynamic room eligibility after item.createRoom', () => {
       CreditWeight: 0,
       OpenTime: 420,
       CloseTime: 1080,
-      BreakStart: 720,
-      BreakEnd: 780,
+      BreakStart: null,
+      BreakEnd: null,
       Resource: {
         ResourceKey: 701,
         ResourceStatus: 'InStorage',
@@ -154,8 +154,8 @@ describe('Dynamic room eligibility after item.createRoom', () => {
       CreditWeight: 0,
       OpenTime: 420,
       CloseTime: 1080,
-      BreakStart: 720,
-      BreakEnd: 780,
+      BreakStart: null,
+      BreakEnd: null,
       Resource: {
         ResourceKey: 702,
         ResourceStatus: 'InStorage',
@@ -206,8 +206,8 @@ describe('Dynamic room eligibility after item.createRoom', () => {
       CreditWeight: 0,
       OpenTime: 420,
       CloseTime: 1080,
-      BreakStart: 720,
-      BreakEnd: 780,
+      BreakStart: null,
+      BreakEnd: null,
       Resource: {
         ResourceKey: 703,
         ResourceStatus: 'InStorage',

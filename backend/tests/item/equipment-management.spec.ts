@@ -481,29 +481,6 @@ describe('Module 5 borrower availability and catalogue queries', () => {
       service.getById({ accountKey: 1 } as never, 999),
     ).rejects.toBeInstanceOf(BusinessError);
   });
-
-  /*
-  it('keeps the decommission workflow as an explicit typed partial contract', async () => {
-    const service = Object.create(
-      InspectionService.prototype,
-    ) as InspectionService;
-    const scope = {
-      assertResourceInScope: jest.fn().mockResolvedValue(undefined),
-    };
-    (service as unknown as { scope: typeof scope }).scope = scope;
-
-    await expect(
-      service.proposeDecommission(user(), {
-        resourceKey: 501,
-        reason: 'Beyond economical repair',
-      }),
-    ).rejects.toMatchObject({
-      businessCode: 'NOT_IMPLEMENTED',
-      details: expect.objectContaining({ missing: expect.any(Array) }),
-    });
-    expect(scope.assertResourceInScope).toHaveBeenCalledWith(user(), 501);
-  });
-  */
 });
 
 describe('Equipment registration & unit increments — serial collision (Audit #8)', () => {
