@@ -24,6 +24,7 @@ const SOURCE_BANDS = CREDIT_BANDS.slice(0, 2);
 const SOURCE_RULE = (Object.keys(TIER_CONFIG) as Array<keyof typeof TIER_CONFIG>)[0];
 
 const SETTINGS: LendingSettings = lendingSettingsOutput.strict().parse({
+  workHours: { start: 8, end: 17 },
   creditTiers: SOURCE_BANDS.map((band, index) => ({
     id: index + 1,
     name: band.band,
@@ -77,7 +78,9 @@ describe("LendingSettingsPage", () => {
   it("shows the empty state when no borrow rules are configured", () => {
     useLendingSettingsMock.mockReturnValue(
       queryResult(
-        lendingSettingsOutput.strict().parse({ creditTiers: [], borrowRules: [] })
+        lendingSettingsOutput
+          .strict()
+          .parse({ workHours: { start: 8, end: 17 }, creditTiers: [], borrowRules: [] })
       )
     );
 

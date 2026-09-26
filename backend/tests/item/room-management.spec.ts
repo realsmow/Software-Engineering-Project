@@ -80,6 +80,7 @@ function managementHarness() {
         scope as never,
         imageService as never,
         audit as never,
+        {} as never,
       ),
       { createRoom: roomOutput },
     ),
@@ -103,6 +104,10 @@ describe('Dynamic room eligibility after item.createRoom', () => {
       Capacity: 24,
       ImageURL: null,
       CreditWeight: 0,
+      OpenTime: 420,
+      CloseTime: 1080,
+      BreakStart: 720,
+      BreakEnd: 780,
       Resource: {
         ResourceKey: 701,
         ResourceStatus: 'InStorage',
@@ -147,6 +152,10 @@ describe('Dynamic room eligibility after item.createRoom', () => {
       Capacity: 24,
       ImageURL: null,
       CreditWeight: 0,
+      OpenTime: 420,
+      CloseTime: 1080,
+      BreakStart: 720,
+      BreakEnd: 780,
       Resource: {
         ResourceKey: 702,
         ResourceStatus: 'InStorage',
@@ -178,6 +187,7 @@ describe('Dynamic room eligibility after item.createRoom', () => {
           AllowBorrow: true,
           ResourceType: 'Room',
           BorrowRule: 23,
+          BufferTime: 0,
         }),
       }),
     );
@@ -194,6 +204,10 @@ describe('Dynamic room eligibility after item.createRoom', () => {
       Capacity: 24,
       ImageURL: null,
       CreditWeight: 0,
+      OpenTime: 420,
+      CloseTime: 1080,
+      BreakStart: 720,
+      BreakEnd: 780,
       Resource: {
         ResourceKey: 703,
         ResourceStatus: 'InStorage',

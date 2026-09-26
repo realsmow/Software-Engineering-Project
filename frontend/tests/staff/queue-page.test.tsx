@@ -88,7 +88,9 @@ describe("StaffQueuePage", () => {
     mocks.useStaffDecideExtension.mockReturnValue(mutationResult(vi.fn()));
     mocks.useUsagePhotos.mockReturnValue(
       queryResult(
-        usagePhotosOutput.strict().parse({ before: [], after: [], inspection: [] })
+        usagePhotosOutput
+          .strict()
+          .parse({ before: [], after: [], inspection: [], evidence: [] })
       )
     );
     mocks.usePickupImageUpload.mockReturnValue(mutationResult(vi.fn()));
@@ -216,6 +218,7 @@ describe("StaffQueuePage", () => {
             },
           ],
           inspection: [],
+          evidence: [],
         })
       )
     );

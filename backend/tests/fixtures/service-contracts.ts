@@ -10,9 +10,12 @@ import {
   resetPasswordOutput,
   systemStatusOutput,
   technicalConfigOutput,
+  userLoanHistory,
 } from '../../src/admin/admin.schema';
 import {
   availabilityOutput,
+  deleteItemTypeOutput,
+  deleteResourceOutput,
   eligibilityRule,
   itemDetail,
   itemTypeDetail,
@@ -25,6 +28,7 @@ import {
   roomAvailabilityOutput,
   roomOutput,
   roomSummary,
+  retirementRequestOutput,
 } from '../../src/item/item.schema';
 import {
   createRequestOutput,
@@ -37,14 +41,15 @@ export const adminContracts = {
   listUsers: paginatedAdminUsers,
   listUsersInScope: paginatedAdminUsers,
   getUserById: adminUserDetail,
+  getUserLoans: userLoanHistory,
   createUser: createUserOutput,
   updateUser: adminUserDetail,
   changeRole: adminUserDetail,
-  setUserBan: okOutput,
   setUserActive: okOutput,
   resetPassword: resetPasswordOutput,
   getLendingSettings: lendingSettingsOutput,
   updateLendingSettings: lendingSettingsOutput,
+  updateWorkHours: lendingSettingsOutput,
   getSystemStatus: systemStatusOutput,
   listCronJobs: z.array(cronJobOutput),
   runCronJob: okOutput,
@@ -68,6 +73,11 @@ export const managementContracts = {
   updateRoom: roomOutput,
   listEligibility: z.array(eligibilityRule),
   setEligibility: z.array(eligibilityRule),
+  deleteItemType: deleteItemTypeOutput,
+  deleteItemUnit: deleteResourceOutput,
+  deleteRoom: deleteResourceOutput,
+  requestRetirement: retirementRequestOutput,
+  cancelRetirement: retirementRequestOutput,
 };
 
 export const catalogContracts = {

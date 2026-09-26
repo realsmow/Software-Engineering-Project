@@ -50,16 +50,16 @@ describe('PDF p. 20: appeal evidence is served over HTTP', () => {
     if (mediaRoot) await rm(mediaRoot, { recursive: true, force: true });
   });
 
-  it('returns before and after URLs that load the uploaded PNG through the real media mount', async () => {
+  it('returns before, after and appeal evidence URLs that load the uploaded PNG through the real media mount', async () => {
     const rows: Array<{
       ImageKey: number;
       ImageURL: string;
-      SubmissionType: 'BeforePicture' | 'AfterPicture';
+      SubmissionType: 'BeforePicture' | 'AfterPicture' | 'AppealEvidence';
       SubmittedBy: number;
       ActionTime: Date;
     }> = [];
     for (const [index, stage] of (
-      ['BeforePicture', 'AfterPicture'] as const
+      ['BeforePicture', 'AfterPicture', 'AppealEvidence'] as const
     ).entries()) {
       const ticket = images.issueTicket(
         {
@@ -112,13 +112,39 @@ describe('PDF p. 20: appeal evidence is served over HTTP', () => {
     expect(scope.assertResourceInScope).toHaveBeenCalledWith(supervisor, 8);
     expect(photos.before).toHaveLength(1);
     expect(photos.after).toHaveLength(1);
-    for (const photo of [...photos.before, ...photos.after]) {
+    expect(photos.evidence).toHaveLength(1);
+    for (const photo of [
+      ...photos.before,
+      ...photos.after,
+      ...photos.evidence,
+    ]) {
+      const url = new URL(photo.imageUrl);
+      expect(url.origin).toBe('http://localhost:3000');
+      expect(url.searchParams.has('sig')).toBe(true);
+      expect(Number(url.searchParams.get('exp'))).toBeGreaterThan(Date.now());
       const response = await request(app.getHttpServer())
-        .get(photo.imageUrl)
+        .get(url.pathname + url.search)
         .expect(200)
         .expect('Content-Type', /image\/png/)
         .expect('X-Content-Type-Options', 'nosniff');
       expect(response.body).toEqual(png);
+      await request(app.getHttpServer()).get(url.pathname).expect(403);
+      const forged = new URL(url);
+      forged.searchParams.set('sig', 'forged');
+      await request(app.getHttpServer())
+        .get(forged.pathname + forged.search)
+        .expect(403);
+      const clock = jest
+        .spyOn(Date, 'now')
+        .mockReturnValue(Number(url.searchParams.get('exp')) + 1);
+      try {
+        // Keep the original signature valid, and move past its expiry.
+        await request(app.getHttpServer())
+          .get(url.pathname + url.search)
+          .expect(403);
+      } finally {
+        clock.mockRestore();
+      }
     }
   });
 });

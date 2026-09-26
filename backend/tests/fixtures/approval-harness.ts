@@ -90,6 +90,9 @@ export function setup(row = reservation()) {
         }),
       updateMany: jest.fn().mockResolvedValue({ count: 0 }),
     },
+    accountInfo: {
+      findMany: jest.fn().mockResolvedValue([{ AccountKey: 98 }]),
+    },
     notification: { upsert: jest.fn().mockResolvedValue(undefined) },
     $transaction: jest.fn(),
   };
@@ -102,20 +105,22 @@ export function setup(row = reservation()) {
   };
   const creditTiers = { tierMapper: jest.fn().mockResolvedValue(() => 'D0') };
   const audit = { record: jest.fn().mockResolvedValue(undefined) };
+  const notifications = new NotificationService(prisma as never);
   const requests = withOutputContracts(
     new LoanRequestService(
       prisma as never,
       creditTiers as never,
       {} as never,
+      notifications,
       audit as never,
     ),
     {
       getAsDecider: requestOutput,
     },
   );
-  const notifications = new NotificationService(prisma as never);
   const notificationSpies = {
     requestApproved: jest.spyOn(notifications, 'requestApproved'),
+    itemToPrepare: jest.spyOn(notifications, 'itemToPrepare'),
     requestRejected: jest.spyOn(notifications, 'requestRejected'),
   };
   const service = withOutputContracts(
@@ -126,6 +131,7 @@ export function setup(row = reservation()) {
       requests,
       notifications,
       audit as never,
+      {} as never,
     ),
     {
       listQueue: paginatedApprovalQueue,

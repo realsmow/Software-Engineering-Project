@@ -73,6 +73,21 @@ function harness(items: ReturnType<typeof unit>[]) {
     _count: { Items: items.length },
   } satisfies ItemTypeRow & { _count: { Items: number } };
   const prisma = {
+    $queryRaw: jest.fn().mockResolvedValue([
+      {
+        found: true,
+        total: items.length,
+        available: items.filter((item) => item.Resource.UsageLogs.length === 0)
+          .length,
+        readyAt: items.some((item) =>
+          item.Resource.UsageLogs.some((loan) =>
+            ['Pending', 'Prepared', 'Lended'].includes(loan.CurrentStatus),
+          ),
+        )
+          ? new Date(due.getTime() + 2 * 86_400_000)
+          : null,
+      },
+    ]),
     itemInfo: { findUnique: jest.fn().mockResolvedValue(row) },
     authority: {
       findMany: jest
@@ -96,6 +111,7 @@ function harness(items: ReturnType<typeof unit>[]) {
         scope as never,
         images as never,
         { record: jest.fn() } as never,
+        {} as never,
       ),
       managementContracts,
     ),
@@ -118,6 +134,20 @@ describe('PDF pp. 13 and 15: borrower/staff availability parity', () => {
       expect(borrowerItem).toMatchObject({ availableUnits: 1, totalUnits: 2 });
       expect(staffItem).toMatchObject({ availableUnits: 1, totalUnits: 2 });
       expect(badge).toMatchObject({ availableUnits: 1, totalUnits: 2 });
+      const [query] = prisma.$queryRaw.mock.calls[0] as [
+        { values: unknown[]; sql: string },
+      ];
+      expect(query.values).toEqual(
+        expect.arrayContaining([
+          'Pending',
+          'Prepared',
+          'Lended',
+          'Returned',
+          7,
+        ]),
+      );
+      expect(query.sql).toContain('"ResourceStatus"');
+      expect(query.sql).toContain('"AllowBorrow"');
       // Check the actual database selects too; a fixture with held loans alone
       // cannot catch a query that accidentally stops selecting Prepared rows.
       for (const [input] of prisma.itemInfo.findUnique.mock.calls as Array<

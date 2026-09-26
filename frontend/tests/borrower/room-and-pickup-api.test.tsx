@@ -13,7 +13,10 @@ import {
 import { useAppeals } from "../../src/features/supervisor/appeals/use-appeals";
 import type { PreparedBorrowerImage } from "../../src/features/borrower/uploads/prepared-image";
 import { requestResponse, roomResponse } from "../fixtures/api-responses";
-import { slotsToWindow } from "../../../backend/src/common/booking/room-slots";
+import {
+  DEFAULT_ROOM_HOURS,
+  slotsToWindow,
+} from "../../../backend/src/common/booking/room-slots";
 import { createRequestOutput } from "../../../backend/src/loan/loan.schema";
 import { paginatedRooms } from "../../../backend/src/item/item.schema";
 import {
@@ -111,7 +114,7 @@ describe("room and pickup API regressions from the PDF", () => {
       reason: "Project meeting",
     };
 
-    const window = slotsToWindow(input.date, input.slots);
+    const window = slotsToWindow(DEFAULT_ROOM_HOURS, input.date, input.slots);
     const response = createRequestOutput.parse({
       created: [
         requestResponse({
@@ -125,7 +128,16 @@ describe("room and pickup API regressions from the PDF", () => {
             creditWeight: 1,
           },
           startTime: window.startTime.toISOString(),
-          approval: { ...requestResponse().approval, route: "staff" },
+          status: "approved",
+          approval: {
+            ...requestResponse().approval,
+            route: "auto",
+            status: "Approved",
+            autoApproved: true,
+            approvedAt: "2026-09-26T00:00:00.000Z",
+            resolvedAt: "2026-09-26T00:00:00.000Z",
+          },
+          expiresAt: new Date(window.startTime.getTime() + 86_400_000).toISOString(),
           endTime: window.endTime.toISOString(),
           reason: "Project meeting",
         }),
@@ -232,6 +244,7 @@ describe("room and pickup API regressions from the PDF", () => {
         ],
         after: [],
         inspection: [],
+        evidence: [],
       })
     );
     const { wrapper } = setup();

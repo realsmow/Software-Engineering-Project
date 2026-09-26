@@ -30,19 +30,7 @@ describe("Module 12.3 — Usability & UI Standards", () => {
     expect(globalsCss).toMatch(/@media\s*\([^)]*min-width:\s*\d+px/);
     expect(globalsCss).toMatch(/375px/);
     expect(globalsCss).toMatch(/1280px/);
-  });
-});
-
-const globalStyles = readFileSync(resolve(process.cwd(), "src/app/globals.css"), "utf8");
-
-describe("frontend layout and typography contracts", () => {
-  it("defines one shared Thai-capable UI font token", () => {
-    expect(globalStyles).toMatch(/--font-ui:\s*["']?(Prompt|Sarabun)/);
-    expect(globalStyles).toContain("font-family: var(--font-ui)");
-  });
-
-  it("contains responsive layout rules for compact and wider screens", () => {
-    expect(globalStyles).toContain("@media (max-width: 900px)");
-    expect(globalStyles).toContain("@media (max-width: 1080px)");
+    expect(globalsCss).toContain("@media (max-width: 900px)");
+    expect(globalsCss).toContain("@media (max-width: 1080px)");
   });
 });

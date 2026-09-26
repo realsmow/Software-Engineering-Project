@@ -18,6 +18,7 @@ const supervisor: TrpcUser = {
 };
 
 describe('ApprovalService decisions', () => {
+  afterEach(() => jest.useRealTimers());
   it('lists only the supervisor-routed rows with borrower credit and clashing requests', async () => {
     const { service, prisma, scope } = setup();
     prisma.reservations.count.mockResolvedValueOnce(1);
@@ -140,7 +141,7 @@ describe('ApprovalService decisions', () => {
     );
     expect(
       update.data.ReservationExpiration.getTime() -
-        update.data.ApprovedAt.getTime(),
+        Math.max(start.getTime(), update.data.ApprovedAt.getTime()),
     ).toBe(24 * 60 * 60 * 1000);
     expect(prisma.reservations.updateMany).toHaveBeenCalledWith(
       objectContaining({
@@ -208,20 +209,30 @@ describe('ApprovalService decisions', () => {
     });
   });
 
-  it('sets reservation expiration to 24 hours after the real approval timestamp', async () => {
-    const { service, row } = setup();
-    const result = await service.decide(supervisor, {
-      reservationKey: 77,
-      decision: 'approve',
-    });
-    expect(row.ApprovedAt).toBeInstanceOf(Date);
-    expect(
-      row.ReservationExpiration!.getTime() - row.ApprovedAt!.getTime(),
-    ).toBe(86_400_000);
-    expect(result.request.expiresAt).toBe(
-      row.ReservationExpiration!.toISOString(),
-    );
-  });
+  it.each([
+    ['ahead of pickup', '2026-09-26T08:00:00.000Z', '2026-10-02T06:00:00.000Z'],
+    [
+      'after pickup opens',
+      '2026-10-01T07:00:00.000Z',
+      '2026-10-02T07:00:00.000Z',
+    ],
+  ])(
+    'gives a full 24-hour pickup window when approved %s',
+    async (_case, approvedAt, expiresAt) => {
+      jest.useFakeTimers({ now: new Date(approvedAt) });
+      const { service, row } = setup();
+      const result = await service.decide(supervisor, {
+        reservationKey: 77,
+        decision: 'approve',
+      });
+      expect(row.ApprovedAt).toBeInstanceOf(Date);
+      expect(
+        row.ReservationExpiration!.getTime() -
+          Math.max(row.StartTime.getTime(), row.ApprovedAt!.getTime()),
+      ).toBe(86_400_000);
+      expect(result.request.expiresAt).toBe(expiresAt);
+    },
+  );
 
   it('persists a real borrower notification when approval changes the reservation status', async () => {
     const { service, prisma } = setup();
@@ -238,6 +249,23 @@ describe('ApprovalService decisions', () => {
           DedupeKey: 'reservation:77',
           LinkTo: '/pickup',
         }) as unknown,
+      }),
+    );
+    expect(prisma.accountInfo.findMany).toHaveBeenCalledWith({
+      where: {
+        Role: { RoleName: 'Staff' },
+        Authorities: { some: { ManageGroupKey: 1 } },
+      },
+      select: { AccountKey: true },
+    });
+    expect(prisma.notification.upsert).toHaveBeenCalledWith(
+      objectContaining({
+        create: objectContaining({
+          AccountKey: 98,
+          NotificationType: 'StaffTask',
+          DedupeKey: 'reservation:77',
+          LinkTo: '/staff',
+        }),
       }),
     );
   });

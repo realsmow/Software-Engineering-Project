@@ -2,7 +2,6 @@ import { BusinessError } from '../../src/common/errors/business-error';
 import type { TrpcUser } from '../../src/trpc/context';
 import { ItemManagementService } from '../../src/item/item.management.service';
 import { ItemService } from '../../src/item/item.service';
-import { InspectionService } from '../../src/inspection/inspection.service';
 
 function user(overrides: Partial<TrpcUser> = {}): TrpcUser {
   return {
@@ -53,7 +52,10 @@ function managementHarness() {
   const tx = {
     resourceInfo: { create: jest.fn(), update: jest.fn() },
     itemIndiv: { create: jest.fn() },
-    eligibility: { findMany: jest.fn().mockResolvedValue([]), createMany: jest.fn() },
+    eligibility: {
+      findMany: jest.fn().mockResolvedValue([]),
+      createMany: jest.fn(),
+    },
     conditionLog: {
       create: jest.fn().mockResolvedValue({ ConditionKey: 900 }),
       findUnique: jest.fn(),
@@ -111,7 +113,9 @@ describe('Module 5 equipment management', () => {
   it('refuses a new item type from staff attached to no department', async () => {
     const { service, prisma, scope } = managementHarness();
     scope.resolveGroupKeys.mockRejectedValue(
-      Object.assign(new Error('NO_MANAGEMENT_SCOPE'), { businessCode: 'NO_MANAGEMENT_SCOPE' }),
+      Object.assign(new Error('NO_MANAGEMENT_SCOPE'), {
+        businessCode: 'NO_MANAGEMENT_SCOPE',
+      }),
     );
     await expect(
       service.createItemType(user(), { name: 'Scope', creditWeight: 1 }),
@@ -237,7 +241,10 @@ describe('Module 5 equipment management', () => {
           create: jest.fn().mockResolvedValue({ ResourceKey: 501 }),
         },
         itemIndiv: { create: jest.fn() },
-    eligibility: { findMany: jest.fn().mockResolvedValue([]), createMany: jest.fn() },
+        eligibility: {
+          findMany: jest.fn().mockResolvedValue([]),
+          createMany: jest.fn(),
+        },
         conditionLog: { create: jest.fn(), findUnique: jest.fn() },
         itemInfo: { update: jest.fn() },
       } as never),
@@ -254,58 +261,6 @@ describe('Module 5 equipment management', () => {
         lendable: true,
       }),
     ).resolves.toHaveLength(1);
-  });
-
-  it('registers a T3 room as a fixed-location resource with the T3 rule', async () => {
-    const { service, prisma, tx } = managementHarness();
-    prisma.borrowRule.findFirst.mockResolvedValue({ BorrowRuleKey: 23 });
-    prisma.roomInfo.findUnique.mockResolvedValue({
-      RoomKey: 70,
-      RoomName: 'Electronics Lab',
-      RoomDesc: 'Bench laboratory',
-      RoomLocation: 'Engineering building 3',
-      ImageURL: null,
-      CreditWeight: 0,
-      Resource: {
-        ResourceKey: 701,
-        ResourceStatus: 'InStorage',
-        AllowBorrow: true,
-        BorrowRuleInfo: { RuleName: 'T3' },
-        CurrentCondition: null,
-        ManagementGroup: {
-          ManageGroupKey: 8,
-          GroupType: 'Faculty',
-          Branch: { BranchName: 'Engineering' },
-          Club: null,
-        },
-      },
-    });
-    tx.resourceInfo.create.mockResolvedValue({ ResourceKey: 701 });
-
-    await expect(
-      service.createRoom(user(), {
-        manageGroupKey: 8,
-        name: 'Electronics Lab',
-        description: 'Bench laboratory',
-        location: 'Engineering building 3',
-        creditWeight: 0,
-        lendable: true,
-      }),
-    ).resolves.toMatchObject({
-      roomKey: 70,
-      name: 'Electronics Lab',
-      tier: 'T3',
-    });
-
-    expect(tx.resourceInfo.create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({
-          BorrowRule: 23,
-          ResourceType: 'Room',
-          BufferTime: 0,
-        }),
-      }),
-    );
   });
 
   it.each([
@@ -480,7 +435,12 @@ describe('Module 5 borrower availability and catalogue queries', () => {
     const service = new ItemService({ $queryRaw: queryRaw } as never);
 
     queryRaw.mockResolvedValueOnce([
-      { found: true, total: 3, available: 1, readyAt: new Date('2026-09-22T00:00:00Z') },
+      {
+        found: true,
+        total: 3,
+        available: 1,
+        readyAt: new Date('2026-09-22T00:00:00Z'),
+      },
     ]);
     await expect(service.getAvailability(7)).resolves.toEqual({
       availableUnits: 1,
@@ -489,7 +449,12 @@ describe('Module 5 borrower availability and catalogue queries', () => {
     });
 
     queryRaw.mockResolvedValueOnce([
-      { found: true, total: 2, available: 0, readyAt: new Date('2026-09-22T00:00:00Z') },
+      {
+        found: true,
+        total: 2,
+        available: 0,
+        readyAt: new Date('2026-09-22T00:00:00Z'),
+      },
     ]);
     await expect(service.getAvailability(7)).resolves.toEqual({
       availableUnits: 0,
@@ -503,14 +468,18 @@ describe('Module 5 borrower availability and catalogue queries', () => {
       itemInfo: { findUnique: jest.fn().mockResolvedValue(null) },
       $queryRaw: jest
         .fn()
-        .mockResolvedValue([{ found: false, total: 0, available: 0, readyAt: null }]),
+        .mockResolvedValue([
+          { found: false, total: 0, available: 0, readyAt: null },
+        ]),
     };
     const service = new ItemService(prisma as never);
 
     await expect(service.getAvailability(999)).rejects.toMatchObject({
       businessCode: 'ITEM_NOT_FOUND',
     });
-    await expect(service.getById({ accountKey: 1 } as never, 999)).rejects.toBeInstanceOf(BusinessError);
+    await expect(
+      service.getById({ accountKey: 1 } as never, 999),
+    ).rejects.toBeInstanceOf(BusinessError);
   });
 
   /*
@@ -610,7 +579,8 @@ describe('Equipment registration & unit increments — serial collision (Audit #
     expect(result).toHaveLength(2); // from findMany mock
     expect(tx.itemIndiv.create).toHaveBeenCalledTimes(3);
     const serials = tx.itemIndiv.create.mock.calls.map(
-      (call: unknown[]) => (call[0] as { data: { ItemID: string } }).data.ItemID,
+      (call: unknown[]) =>
+        (call[0] as { data: { ItemID: string } }).data.ItemID,
     );
     expect(new Set(serials).size).toBe(serials.length);
   });
@@ -643,7 +613,8 @@ describe('Equipment registration & unit increments — serial collision (Audit #
     });
 
     const serials = tx.itemIndiv.create.mock.calls.map(
-      (call: unknown[]) => (call[0] as { data: { ItemID: string } }).data.ItemID,
+      (call: unknown[]) =>
+        (call[0] as { data: { ItemID: string } }).data.ItemID,
     );
     expect(serials).toEqual(['JUMPER-WIRE-10-3', 'JUMPER-WIRE-10-4']);
   });
@@ -840,9 +811,7 @@ describe('Department isolation — staff scope checks (Audit #17 / FR-AUTH-05)',
       _count: { Items: 5 },
     });
 
-    await expect(
-      service.getManagedItemById(user(), 50),
-    ).rejects.toMatchObject({
+    await expect(service.getManagedItemById(user(), 50)).rejects.toMatchObject({
       businessCode: 'OUT_OF_MANAGEMENT_SCOPE',
     });
   });
