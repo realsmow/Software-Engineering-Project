@@ -79,6 +79,7 @@ function build(penalty: unknown, department: unknown, supervisors: unknown) {
     scope,
     notifications,
     { record: jest.fn() } as never,
+    {} as never,
   );
 
   return { service, tx, notifications };
