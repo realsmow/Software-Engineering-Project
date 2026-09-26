@@ -235,13 +235,22 @@ describe('AdminService user management', () => {
         });
       }
       if (createdRoleKeys.size > 0) {
+        // A spec running in parallel may have put accounts on this role;
+        // only a role nobody uses is ours to remove.
         await prisma.roleInfo.deleteMany({
-          where: { RoleKey: { in: [...createdRoleKeys] } },
+          where: {
+            RoleKey: { in: [...createdRoleKeys] },
+            Accounts: { none: {} },
+          },
         });
       }
       if (createdTierKeys.size > 0) {
+        // Same as roles: other specs may have hung rules on this tier.
         await prisma.creditTier.deleteMany({
-          where: { CreditTierKey: { in: [...createdTierKeys] } },
+          where: {
+            CreditTierKey: { in: [...createdTierKeys] },
+            BorrowConstraints: { none: {} },
+          },
         });
       }
     } finally {

@@ -111,8 +111,13 @@ describe('AdminService lending settings', () => {
         });
       }
       if (createdRoleKeys.size > 0) {
+        // A spec running in parallel may have put accounts on this role;
+        // only a role nobody uses is ours to remove.
         await prisma.roleInfo.deleteMany({
-          where: { RoleKey: { in: [...createdRoleKeys] } },
+          where: {
+            RoleKey: { in: [...createdRoleKeys] },
+            Accounts: { none: {} },
+          },
         });
       }
     } finally {

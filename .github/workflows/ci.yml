@@ -160,10 +160,18 @@ jobs:
         working-directory: backend
 
       # migrate deploy, not migrate dev: dev is interactive and would hang the
-      # runner. The suite seeds and cleans up its own fixtures, so no seed step
-      # is needed - and the specs must keep it that way to stay CI-safe.
+      # runner.
       - name: migrate
         run: npx prisma migrate deploy
+        working-directory: backend
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/app
+
+      # Specs run in parallel; on an empty database several of them created
+      # and deleted the shared roles and credit tiers under each other.
+      # Seeding first gives them the same reference data a dev database has.
+      - name: seed
+        run: npm run seed
         working-directory: backend
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/app
