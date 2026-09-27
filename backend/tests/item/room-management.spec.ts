@@ -187,6 +187,7 @@ describe('Dynamic room eligibility after item.createRoom', () => {
           AllowBorrow: true,
           ResourceType: 'Room',
           BorrowRule: 23,
+          BufferTime: 0,
         }),
       }),
     );

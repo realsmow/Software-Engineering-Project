@@ -78,7 +78,9 @@ describe("LendingSettingsPage", () => {
   it("shows the empty state when no borrow rules are configured", () => {
     useLendingSettingsMock.mockReturnValue(
       queryResult(
-        lendingSettingsOutput.strict().parse({ workHours: { start: 8, end: 17 }, creditTiers: [], borrowRules: [] })
+        lendingSettingsOutput
+          .strict()
+          .parse({ workHours: { start: 8, end: 17 }, creditTiers: [], borrowRules: [] })
       )
     );
 

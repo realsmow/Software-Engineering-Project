@@ -974,8 +974,6 @@ FR-AUTH-07 บันทึกการเข้าสู่ระบบทุก
 | ชุด | ผล | ครอบคลุม |
 |---|---|---|
 | backend `npm test` (ฐานข้อมูลแยก) | 266/266 · 24 ชุด | unit ของ service ส่วนใหญ่ |
-| backend `test:item` | 13/13 | จัดการอุปกรณ์ (ข้อมูลจำลอง ไม่ใช้ฐานข้อมูล) |
-| backend `test:admin` | 16/16 | จัดการผู้ใช้ |
 | frontend `typecheck` | ผ่าน | หลัง `npm ci` (โมดูลในเครื่องค้าง ไม่ใช่บั๊ก) |
 | frontend `vitest` | 33/33 | catalog inventory หน้าผู้ใช้ของผู้ดูแล |
 | frontend `test:ac` | 49/49 | ฟังก์ชันกฎธุรกิจ (มีข้อ 2.6 ที่ใช้กฎห้องเก่า) |
@@ -1128,7 +1126,7 @@ python3 -m venv /tmp/audit-venv && /tmp/audit-venv/bin/pip install playwright re
 /tmp/audit-venv/bin/python docs/audit/api_scenarios.py        # or: ... api_scenarios.py s1 s3
 
 # 4. team test suites (backend on a separate database)
-DATABASE_URL=".../ulms_test" npm test && npm run test:item && npm run test:admin
+DATABASE_URL=".../ulms_test" npm test
 cd frontend && npm run typecheck && npm test && npm run test:ac && npm run lint
 cd .. && npm ci && npx playwright install chromium && npx playwright test
 

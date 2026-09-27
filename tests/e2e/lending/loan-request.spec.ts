@@ -1,4 +1,5 @@
-import { expect, test, type Page } from "@playwright/test";
+import type { Page } from "@playwright/test";
+import { expect, test } from "../fixtures/api-contracts";
 
 const BORROWER = { username: "test_borrower", password: "borrower1234" };
 const CALIPER = "เวอร์เนียคาลิปเปอร์ดิจิทัล";
@@ -115,7 +116,7 @@ test.describe("Module 6 loan request submission", () => {
 
   test("6.2: requires a valid pickup/return period within the allowed range", async ({ page }) => {
     // Same-day pickup only (FR-RSV-03), and after the last slot none is left.
-    test.skip(bangkokParts().hm >= PICKUP_TIME_SLOTS.at(-1)!, "no pickup slot left today");
+    expect(bangkokParts().hm < PICKUP_TIME_SLOTS.at(-1)!, "Use the isolated runner's business clock").toBe(true);
     await addSeedT0Items(page);
     await page.getByRole("button", { name: nextPickupTime() }).first().click();
 
@@ -137,7 +138,7 @@ test.describe("Module 6 loan request submission", () => {
 
   test("6.11: submits the request through loan.create and shows both requested items", async ({ page }) => {
     // Same-day pickup only (FR-RSV-03), and after the last slot none is left.
-    test.skip(bangkokParts().hm >= PICKUP_TIME_SLOTS.at(-1)!, "no pickup slot left today");
+    expect(bangkokParts().hm < PICKUP_TIME_SLOTS.at(-1)!, "Use the isolated runner's business clock").toBe(true);
     await addSeedT0Items(page);
 
     // T0 stock is walk-in only (FR-RSV-03), so pickup must be today. Returning

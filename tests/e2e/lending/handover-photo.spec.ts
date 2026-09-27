@@ -1,4 +1,5 @@
-import { expect, test, type Page, type Locator } from "@playwright/test";
+import { expect, test } from "../fixtures/api-contracts";
+import { type Page, type Locator } from "@playwright/test";
 
 const BORROWER = { username: "test_borrower", password: "borrower1234" };
 const STAFF = { username: "test_staff", password: "staff1234" };
@@ -128,7 +129,7 @@ async function seedFreshT1Unit(page: Page): Promise<string> {
 test.describe("Module 5/6 handover photo gate", () => {
   test("staff cannot hand over a T1 loan until a handover photo is attached", async ({ page }) => {
     // The borrower picks a same-day pickup slot; after the last one none is left.
-    test.skip(bangkokParts().hm >= PICKUP_TIME_SLOTS.at(-1)!, "no pickup slot left today");
+    expect(bangkokParts().hm < PICKUP_TIME_SLOTS.at(-1)!, "Use the isolated runner's business clock").toBe(true);
     // This is a full walk of the loan lifecycle (seed -> request -> prepare ->
     // handover -> return -> inspect) across three roles, well past the
     // project default of 30s per test.

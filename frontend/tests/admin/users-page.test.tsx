@@ -15,7 +15,7 @@ vi.mock('../../src/features/admin/audit/use-audit-events', () => ({
 
 const ADMIN_USER = ADMIN_USERS.find((user) => user.role === 'admin')!;
 const STAFF_USER = ADMIN_USERS.find((user) => user.role === 'staff' && user.status === 'active')!;
-const BORROWER_USER = ADMIN_USERS.find((user) => user.id === 'u-1006')!;
+const BORROWER_USER = ADMIN_USERS.find((user) => user.id === '1006')!;
 const DISABLED_USER = ADMIN_USERS.find((user) => user.status === 'disabled')!;
 const USERS = [ADMIN_USER, STAFF_USER, BORROWER_USER, DISABLED_USER];
 const AUDIT_EVENTS = [

@@ -255,14 +255,15 @@ describe('PDF p. 9: room bookings persist in the database', () => {
       ).toMatchObject({
         ResourceKey: keys.resource,
         ReservedBy: keys.account,
-        // T3 rooms clear automatically (approval-policy routeFor).
         ApproveStatus: 'Approved',
+        AutoApproved: true,
       });
       const history = await service().listMine(user, { page: 1, pageSize: 20 });
       expect(history.items[0]).toMatchObject({
         reservationKey: key,
         resource: { name: token, kind: 'room' },
         status: 'approved',
+        approval: { route: 'auto', status: 'Approved', autoApproved: true },
       });
       const held = await catalog.roomAvailability({
         roomKey: keys.room,

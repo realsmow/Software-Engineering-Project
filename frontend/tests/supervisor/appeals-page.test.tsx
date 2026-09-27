@@ -94,13 +94,22 @@ describe("supervisor appeal regression", () => {
             },
           ],
           inspection: [],
-          evidence: [],
+          evidence: [
+            {
+              imageKey: 3,
+              imageUrl:
+                "http://localhost:3000/media/evidence.jpg?exp=1900000000000&sig=test",
+              stage: "evidence",
+              submittedBy: 7,
+              submittedAt: null,
+            },
+          ],
         })
       )
     );
   });
 
-  it("loads a contract-validated appeal fixture and shows both evidence image URLs", () => {
+  it("loads a contract-validated appeal fixture and shows pickup, return and appeal evidence image URLs", () => {
     const { container } = render(<SupervisorAppealsPage />);
 
     expect(hooks.useAppeals).toHaveBeenCalledWith("pending");
@@ -113,10 +122,11 @@ describe("supervisor appeal regression", () => {
     ).toEqual([
       "http://localhost:3000/media/before.jpg",
       "http://localhost:3000/media/after.jpg",
+      "http://localhost:3000/media/evidence.jpg?exp=1900000000000&sig=test",
     ]);
   });
 
-  it("submits a credit appeal decision with its note, not a damage grade", async () => {
+  it("approves a credit appeal with its note when no grade revision is selected", async () => {
     decide.mockResolvedValue(
       appealOutput.strict().parse({
         ...appeal,

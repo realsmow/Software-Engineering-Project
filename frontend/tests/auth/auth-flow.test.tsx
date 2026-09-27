@@ -9,16 +9,20 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("@/lib/trpc", () => ({
-  useTRPCClient: () => ({ auth: {
-    login: { mutate: mocks.login },
-    me: { query: mocks.me },
-    logout: { mutate: mocks.logout },
-  }}),
-  createUlmsTrpcClient: () => ({ auth: {
-    login: { mutate: mocks.login },
-    me: { query: mocks.me },
-    logout: { mutate: mocks.logout },
-  }}),
+  useTRPCClient: () => ({
+    auth: {
+      login: { mutate: mocks.login },
+      me: { query: mocks.me },
+      logout: { mutate: mocks.logout },
+    },
+  }),
+  createUlmsTrpcClient: () => ({
+    auth: {
+      login: { mutate: mocks.login },
+      me: { query: mocks.me },
+      logout: { mutate: mocks.logout },
+    },
+  }),
   TRPCProvider: ({ children }: { children: React.ReactNode }) => children,
 }));
 
@@ -32,7 +36,9 @@ vi.mock("@/components/layout/use-nav-counts", () => ({ useNavCounts: () => ({}) 
 vi.mock("@/components/layout/ku-logo", () => ({ KULogo: () => <div /> }));
 vi.mock("@/components/shared/language-toggle", () => ({ LanguageToggle: () => <div /> }));
 vi.mock("@/features/auth/signin-help", () => ({ SignInHelp: () => <div /> }));
-vi.mock("@/hooks/use-theme", () => ({ useTheme: () => ({ isDark: false, toggleTheme: vi.fn() }) }));
+vi.mock("@/hooks/use-theme", () => ({
+  useTheme: () => ({ isDark: false, toggleTheme: vi.fn() }),
+}));
 vi.mock("@/components/ui/dialog", () => ({
   Dialog: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   DialogContent: ({ children }: { children: React.ReactNode }) => <>{children}</>,
@@ -53,7 +59,13 @@ vi.mock("@/features/auth/login-method-ku", () => ({
   LoginMethodKu: ({ open, onToggle, onSubmit }: MethodProps) => (
     <>
       <button onClick={onToggle}>KU method</button>
-      {open && <button onClick={() => onSubmit({ email: "student@ku.ac.th", password: "secret" })}>KU submit</button>}
+      {open && (
+        <button
+          onClick={() => onSubmit({ email: "student@ku.ac.th", password: "secret" })}
+        >
+          KU submit
+        </button>
+      )}
     </>
   ),
 }));
@@ -61,7 +73,11 @@ vi.mock("@/features/auth/login-method-local", () => ({
   LoginMethodLocal: ({ open, onToggle, onSubmit }: MethodProps) => (
     <>
       <button onClick={onToggle}>Local method</button>
-      {open && <button onClick={() => onSubmit({ username: "staff01", password: "secret" })}>Local submit</button>}
+      {open && (
+        <button onClick={() => onSubmit({ username: "staff01", password: "secret" })}>
+          Local submit
+        </button>
+      )}
     </>
   ),
 }));
@@ -74,9 +90,18 @@ import { Sidebar } from "@/components/layout/sidebar";
 
 describe("Authentication flow — Module 1.4", () => {
   const borrower = {
-    id: "1", studentId: "6410501234", firstName: "Test", lastName: "Student", name: "Test Student",
-    email: "student@ku.ac.th", role: "borrower" as const, facultyName: "CPE",
-    creditScore: 80, creditTier: "T1" as const, maxBorrowDays: 7, maxExtendTimes: 1,
+    id: "1",
+    studentId: "6410501234",
+    firstName: "Test",
+    lastName: "Student",
+    name: "Test Student",
+    email: "student@ku.ac.th",
+    role: "borrower" as const,
+    facultyName: "CPE",
+    creditScore: 80,
+    creditTier: "T1" as const,
+    maxBorrowDays: 7,
+    maxExtendTimes: 1,
   };
   const staff = { ...borrower, role: "staff" as const };
 
@@ -85,29 +110,77 @@ describe("Authentication flow — Module 1.4", () => {
     useAuthStore.setState({ user: null, isLoading: false });
   });
 
+  it("1.3.5 opens one login method at a time through the real login page", () => {
+    render(
+      <MemoryRouter initialEntries={["/login"]}>
+        <LoginPage />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByRole("button", { name: "KU submit" })).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Local submit" })
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Local method" }));
+    expect(screen.queryByRole("button", { name: "KU submit" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Local submit" })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "KU method" }));
+    expect(screen.getByRole("button", { name: "KU submit" })).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Local submit" })
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "KU method" }));
+    expect(screen.queryByRole("button", { name: "KU submit" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Local submit" })
+    ).not.toBeInTheDocument();
+  });
+
   it("1.4.1 KU login → tRPC → cookie/session response → redirect", async () => {
     mocks.login.mockResolvedValue({ user: borrower });
-    render(<MemoryRouter initialEntries={["/login"]}><LoginPage /></MemoryRouter>);
+    render(
+      <MemoryRouter initialEntries={["/login"]}>
+        <LoginPage />
+      </MemoryRouter>
+    );
     fireEvent.click(screen.getByRole("button", { name: "KU submit" }));
-    await waitFor(() => expect(mocks.login).toHaveBeenCalledWith({ username: "student@ku.ac.th", password: "secret" }));
+    await waitFor(() =>
+      expect(mocks.login).toHaveBeenCalledWith({
+        username: "student@ku.ac.th",
+        password: "secret",
+      })
+    );
     await waitFor(() => expect(useAuthStore.getState().user?.id).toBe("1"));
   });
 
   it("1.4.2 local login → tRPC → cookie/session response → redirect", async () => {
     mocks.login.mockResolvedValue({ user: staff });
-    render(<MemoryRouter initialEntries={["/login"]}><LoginPage /></MemoryRouter>);
+    render(
+      <MemoryRouter initialEntries={["/login"]}>
+        <LoginPage />
+      </MemoryRouter>
+    );
     fireEvent.click(screen.getByRole("button", { name: "Local method" }));
     fireEvent.click(screen.getByRole("button", { name: "Local submit" }));
-    await waitFor(() => expect(mocks.login).toHaveBeenCalledWith({
-      username: "staff01",
-      password: "secret",
-    }));
+    await waitFor(() =>
+      expect(mocks.login).toHaveBeenCalledWith({
+        username: "staff01",
+        password: "secret",
+      })
+    );
     await waitFor(() => expect(useAuthStore.getState().user?.role).toBe("staff"));
   });
 
   it("1.4.3 invalid credentials map to the unified Thai auth error path", async () => {
     mocks.login.mockRejectedValue(new Error("INVALID_CREDENTIALS"));
-    render(<MemoryRouter initialEntries={["/login"]}><LoginPage /></MemoryRouter>);
+    render(
+      <MemoryRouter initialEntries={["/login"]}>
+        <LoginPage />
+      </MemoryRouter>
+    );
     fireEvent.click(screen.getByRole("button", { name: "KU submit" }));
     await waitFor(() => expect(useAuthStore.getState().user).toBeNull());
   });
@@ -128,7 +201,11 @@ describe("Authentication flow — Module 1.4", () => {
 
   it("1.4.6 logout calls auth.logout, clears store, and leaves authenticated state", async () => {
     useAuthStore.setState({ user: borrower as never, isLoading: false });
-    render(<MemoryRouter initialEntries={["/home"]}><Sidebar /></MemoryRouter>);
+    render(
+      <MemoryRouter initialEntries={["/home"]}>
+        <Sidebar />
+      </MemoryRouter>
+    );
     fireEvent.click(screen.getByRole("button", { name: "common.signOut" }));
     await waitFor(() => expect(mocks.logout).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(useAuthStore.getState().user).toBeNull());
@@ -138,10 +215,17 @@ describe("Authentication flow — Module 1.4", () => {
     render(
       <MemoryRouter initialEntries={["/catalog"]}>
         <Routes>
-          <Route path="/catalog" element={<ProtectedRoute><div>protected</div></ProtectedRoute>} />
+          <Route
+            path="/catalog"
+            element={
+              <ProtectedRoute>
+                <div>protected</div>
+              </ProtectedRoute>
+            }
+          />
           <Route path="/login" element={<div data-testid="login-page">login</div>} />
         </Routes>
-      </MemoryRouter>,
+      </MemoryRouter>
     );
 
     await waitFor(() => {
@@ -151,7 +235,13 @@ describe("Authentication flow — Module 1.4", () => {
 
   it("1.4.8 insufficient role is redirected away from role-protected content", () => {
     useAuthStore.setState({ user: borrower as never, isLoading: false });
-    render(<MemoryRouter initialEntries={["/admin"]}><ProtectedRoute allowedRoles={["admin"]}><div>admin</div></ProtectedRoute></MemoryRouter>);
+    render(
+      <MemoryRouter initialEntries={["/admin"]}>
+        <ProtectedRoute allowedRoles={["admin"]}>
+          <div>admin</div>
+        </ProtectedRoute>
+      </MemoryRouter>
+    );
     expect(screen.queryByText("admin")).not.toBeInTheDocument();
   });
 });

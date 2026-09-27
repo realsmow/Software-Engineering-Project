@@ -5,25 +5,16 @@ import {
   toCatalogItemDetail,
   toUnitRow,
 } from "../../src/features/borrower/catalog/item.adapter";
-import { CATALOG_ITEMS } from "../fixtures/catalog-items";
+import { CATALOG_ITEM_RESPONSES } from "../fixtures/catalog-items";
+import { itemResponse, unitResponse } from "../fixtures/api-responses";
 
-const sourceItem = CATALOG_ITEMS[1];
-const serverItem = {
+const sourceItem = CATALOG_ITEM_RESPONSES[1];
+const serverItem = itemResponse({
+  ...sourceItem,
   id: 7,
-  name: sourceItem.name,
-  description: sourceItem.description ?? null,
-  imageUrl: "/uploads/scope.png",
-  tier: sourceItem.tier,
-  creditWeight: sourceItem.creditWeight,
-  totalUnits: sourceItem.totalUnits,
-  availableUnits: sourceItem.availableUnits,
-  stockStatus: sourceItem.stockStatus,
-  nextAvailableAt: sourceItem.nextAvailableAt ?? null,
-  prepDays: sourceItem.prepDays,
-  allowBorrow: true,
-  eligible: true,
+  imageUrl: "http://localhost:3000/media/item/scope.png",
   owner: { id: 8, name: "Engineering", type: "Faculty" as const },
-};
+});
 
 describe("Module 5 catalogue adapters", () => {
   it("maps numeric API identifiers and owner metadata to the catalogue view model", () => {
@@ -48,7 +39,7 @@ describe("Module 5 catalogue adapters", () => {
     }
   });
 
-  it.each([
+  it.each<[Partial<ReturnType<typeof unitResponse>>, string]>([
     [{ status: "InStorage", allowBorrow: true, condition: null }, "free"],
     [{ status: "Lended", allowBorrow: true, condition: null }, "out"],
     [{ status: "InStorage", allowBorrow: false, condition: "Normal" }, "fix"],
@@ -56,14 +47,16 @@ describe("Module 5 catalogue adapters", () => {
     [{ status: "Missing", allowBorrow: true, condition: null }, "fix"],
   ])("maps server unit state %j to the borrower state %s", (input, state) => {
     expect(
-      toUnitRow({
-        id: 1,
-        resourceKey: 501,
-        assetTag: "OSC-001",
-        imageUrl: null,
-        dueAt: null,
-        ...input,
-      } as never)
+      toUnitRow(
+        unitResponse({
+          id: 1,
+          resourceKey: 501,
+          assetTag: "OSC-001",
+          imageUrl: null,
+          dueAt: null,
+          ...input,
+        })
+      )
     ).toMatchObject({ serial: "OSC-001", state });
   });
 
@@ -120,7 +113,7 @@ describe("Module 5 catalogue adapters", () => {
         condition: "Normal",
         dueAt: "2026-09-20T00:00:00Z",
         nextAvailableAt: "2026-09-22T00:00:00Z",
-      }),
+      })
     ).toMatchObject({ state: "out", nextAvailableAt: "2026-09-22T00:00:00Z" });
   });
 
@@ -137,7 +130,9 @@ describe("Module 5 catalogue adapters", () => {
       nextAvailableAt: "2026-09-23T00:00:00Z",
     };
 
-    expect(toUnitRow({ ...base, availableForWindow: true })).toMatchObject({ state: "free" });
+    expect(toUnitRow({ ...base, availableForWindow: true })).toMatchObject({
+      state: "free",
+    });
     expect(
       toUnitRow({
         ...base,
@@ -145,7 +140,7 @@ describe("Module 5 catalogue adapters", () => {
         dueAt: null,
         nextAvailableAt: null,
         availableForWindow: false,
-      }),
+      })
     ).toMatchObject({ state: "out" });
   });
 });

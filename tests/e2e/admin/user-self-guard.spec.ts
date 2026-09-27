@@ -1,4 +1,5 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test } from '../fixtures/api-contracts';
+import type { Page } from '@playwright/test';
 
 const ADMIN = { username: 'test_admin', password: 'admin1234' };
 const ADMIN_EMAIL = 'admin@ku.th';

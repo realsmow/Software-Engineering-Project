@@ -1,11 +1,11 @@
-import { expect, test } from "./fixtures/api-contracts";
-import { userOutput } from "../../backend/src/common/schemas/user.schema";
+import { expect, test } from "../fixtures/api-contracts";
+import { userOutput } from "../../../backend/src/common/schemas/user.schema";
 import {
   paginatedNotifications,
   unreadCountOutput,
-} from "../../backend/src/notification/notification.schema";
-import { paginatedItems } from "../../backend/src/item/item.schema";
-import { paginatedRequests } from "../../backend/src/loan/loan.schema";
+} from "../../../backend/src/notification/notification.schema";
+import { paginatedItems } from "../../../backend/src/item/item.schema";
+import { paginatedRequests } from "../../../backend/src/loan/loan.schema";
 
 // Browser geometry needs a real layout engine. These fixtures isolate the
 // PDF's wrapping/scrolling regressions; they do not prove database behavior.
@@ -53,6 +53,7 @@ test.describe("PDF text layout regressions", () => {
         } else if (procedure === "item.list") {
           data = paginatedItems.parse({
             items: [],
+            nextCursor: null,
             total: 0,
             page: 1,
             pageSize: 100,

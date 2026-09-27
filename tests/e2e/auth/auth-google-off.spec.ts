@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "../fixtures/api-contracts";
 
 /**
  * FR-AUTH-01: Google sign-in ships switched off until GOOGLE_* is configured.

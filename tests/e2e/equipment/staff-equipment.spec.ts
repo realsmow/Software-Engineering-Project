@@ -1,4 +1,5 @@
-import { expect, test, type Page, type Locator } from "@playwright/test";
+import { expect, test } from "../fixtures/api-contracts";
+import { type Page, type Locator } from "@playwright/test";
 
 const STAFF = { username: "test_staff", password: "staff1234" };
 const SUPERVISOR = { username: "test_supervisor", password: "supervisor1234" };
@@ -80,7 +81,7 @@ test.describe("Module 5 staff equipment management", () => {
     const typeRow = page.getByRole("button", { name: new RegExp(typeName) });
     await expect(typeRow).toBeVisible();
     await typeRow.click();
-    await expect(page.getByText("2 / 2")).toBeVisible();
+    await expect(typeRow.getByText("2 / 2")).toBeVisible();
 
     // ── 3. One T2 unit: serial is mandatory, submit is refused without it ──
     await page.getByRole("button", { name: "Add units", exact: true }).click();
@@ -99,7 +100,7 @@ test.describe("Module 5 staff equipment management", () => {
     await expect(addT2Dialog).toBeHidden();
 
     // The count shows in the tile and the type card; any one is enough.
-    await expect(page.getByText("3 / 3").first()).toBeVisible();
+    await expect(typeRow.getByText("3 / 3")).toBeVisible();
     const unitsTable = page.locator("table").filter({ has: page.getByRole("columnheader", { name: "Serial" }) });
     const t2Row = unitsTable.locator("tbody tr").filter({ hasText: t2Serial });
     await expect(t2Row).toBeVisible();
@@ -111,7 +112,7 @@ test.describe("Module 5 staff equipment management", () => {
     await expect(firstUnitRow).toBeVisible();
     acceptNextConfirm(page);
     await firstUnitRow.getByRole("button", { name: "Delete", exact: true }).click();
-    await expect(page.getByText("2 / 2")).toBeVisible();
+    await expect(typeRow.getByText("2 / 2")).toBeVisible();
 
     // ── 5. Room with custom opening hours, then delete it ──────────────────
     const roomName = uniqueName("Room");

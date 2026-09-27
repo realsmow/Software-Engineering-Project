@@ -90,9 +90,11 @@ export function setup(row = reservation()) {
         }),
       updateMany: jest.fn().mockResolvedValue({ count: 0 }),
     },
+    // Department staff receive the approval preparation notification.
+    accountInfo: {
+      findMany: jest.fn().mockResolvedValue([{ AccountKey: 98 }]),
+    },
     notification: { upsert: jest.fn().mockResolvedValue(undefined) },
-    // FR-NTF-03: approving looks up the department staff to tell.
-    accountInfo: { findMany: jest.fn().mockResolvedValue([]) },
     $transaction: jest.fn(),
   };
   prisma.$transaction.mockImplementation(
@@ -104,21 +106,22 @@ export function setup(row = reservation()) {
   };
   const creditTiers = { tierMapper: jest.fn().mockResolvedValue(() => 'D0') };
   const audit = { record: jest.fn().mockResolvedValue(undefined) };
+  const notifications = new NotificationService(prisma as never);
   const requests = withOutputContracts(
     new LoanRequestService(
       prisma as never,
       creditTiers as never,
       {} as never,
-      { itemToPrepare: jest.fn(), requestNeedsSupervisor: jest.fn() } as never,
+      notifications,
       audit as never,
     ),
     {
       getAsDecider: requestOutput,
     },
   );
-  const notifications = new NotificationService(prisma as never);
   const notificationSpies = {
     requestApproved: jest.spyOn(notifications, 'requestApproved'),
+    itemToPrepare: jest.spyOn(notifications, 'itemToPrepare'),
     requestRejected: jest.spyOn(notifications, 'requestRejected'),
   };
   const service = withOutputContracts(

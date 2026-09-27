@@ -1,5 +1,5 @@
 import type { Page } from "@playwright/test";
-import { expect, test } from "./fixtures/api-contracts";
+import { expect, test } from "../fixtures/api-contracts";
 
 const USERS = {
   staff: { username: "test_staff", password: "staff1234", landing: "/staff" },

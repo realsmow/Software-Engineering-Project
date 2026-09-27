@@ -6,6 +6,7 @@ import {
   useRunCronJob,
 } from "../../src/features/admin/status/use-system-status";
 import { okOutput } from "../../../backend/src/common/schemas/ok.schema";
+import { systemStatusOutput } from "../../../backend/src/admin/admin.schema";
 
 const listCronJobsMock = vi.hoisted(() => vi.fn());
 
@@ -42,12 +43,34 @@ describe("admin cron job hooks", () => {
   });
 
   it("passes a selected job to admin.runCronJob and refreshes status data", async () => {
-    const result = renderHook(() => useRunCronJob(), { wrapper });
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+    });
+    client.setQueryData(["admin", "cron-jobs"], []);
+    client.setQueryData(
+      ["admin", "system-status"],
+      systemStatusOutput.strict().parse({
+        checkedAt: "2026-09-20T02:00:00.000Z",
+        uptimeSeconds: 60,
+        nodeVersion: "v22.14.0",
+        database: { state: "operational", latencyMs: 4 },
+        counts: { accounts: 1, resources: 2, activeLoans: 3, pendingReservations: 4 },
+      })
+    );
+    const result = renderHook(() => useRunCronJob(), {
+      wrapper: ({ children }) => (
+        <QueryClientProvider client={client}>{children}</QueryClientProvider>
+      ),
+    });
 
     await act(async () => {
       await result.result.current.mutateAsync("markOverdue");
     });
 
     expect(runCronJobMock).toHaveBeenCalledWith({ job: "markOverdue" });
+    expect(client.getQueryState(["admin", "cron-jobs"])?.isInvalidated).toBe(true);
+    expect(client.getQueryState(["admin", "system-status"])?.isInvalidated).toBe(true);
+    result.unmount();
+    client.clear();
   });
 });

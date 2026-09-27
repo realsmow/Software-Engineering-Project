@@ -1,11 +1,20 @@
-import { test as base, expect, type Response } from "@playwright/test";
+import {
+  test as base,
+  expect,
+  type Request,
+  type Response,
+} from "@playwright/test";
+import { writeBusinessClock } from "./business-clock";
 import {
   adminContracts,
   catalogContracts,
   managementContracts,
   requestContracts,
 } from "../../../backend/tests/fixtures/service-contracts";
-import { loginOutput } from "../../../backend/src/auth/auth.schema";
+import {
+  loginOutput,
+  providersOutput,
+} from "../../../backend/src/auth/auth.schema";
 import { userOutput } from "../../../backend/src/common/schemas/user.schema";
 import { okOutput } from "../../../backend/src/common/schemas/ok.schema";
 import {
@@ -16,6 +25,8 @@ import {
   approvalCounts,
   decideApprovalOutput,
   paginatedApprovalQueue,
+  paginatedRetirementQueue,
+  decideRetirementOutput,
 } from "../../../backend/src/approval/approval.schema";
 import {
   extensionOptionsOutput,
@@ -31,6 +42,11 @@ import {
   inspectionOutput,
   inspectionSubjectOutput,
   paginatedInspectionQueue,
+  inspectionHistoryEntry,
+  paginatedRoomCheckRounds,
+  roomCheckOutput,
+  paginatedRepairs,
+  repairOutput,
 } from "../../../backend/src/inspection/inspection.schema";
 import { creditOutput } from "../../../backend/src/credit/credit.schema";
 import {
@@ -63,6 +79,7 @@ const contracts: Record<string, OutputSchema> = {
       schema,
     ]),
   ),
+  "auth.providers": providersOutput,
   "auth.login": loginOutput,
   "auth.me": userOutput,
   "auth.logout": okOutput,
@@ -83,6 +100,11 @@ const contracts: Record<string, OutputSchema> = {
   "item.listManagedRooms": managementContracts.listManagedRooms,
   "item.createRoom": managementContracts.createRoom,
   "item.updateRoom": managementContracts.updateRoom,
+  "item.deleteType": managementContracts.deleteItemType,
+  "item.deleteUnit": managementContracts.deleteItemUnit,
+  "item.deleteRoom": managementContracts.deleteRoom,
+  "item.requestRetirement": managementContracts.requestRetirement,
+  "item.cancelRetirement": managementContracts.cancelRetirement,
   "item.listEligibility": managementContracts.listEligibility,
   "item.setEligibility": managementContracts.setEligibility,
   "item.listTiers": tierOptionOutput.array(),
@@ -111,11 +133,19 @@ const contracts: Record<string, OutputSchema> = {
   "approval.queue": paginatedApprovalQueue,
   "approval.counts": approvalCounts,
   "approval.decide": decideApprovalOutput,
+  "approval.retirementQueue": paginatedRetirementQueue,
+  "approval.decideRetirement": decideRetirementOutput,
   "approval.extensionQueue": paginatedExtensionReviews,
   "approval.decideExtension": extensionOutput,
   "inspection.list": paginatedInspectionQueue,
   "inspection.getById": inspectionSubjectOutput,
   "inspection.create": inspectionOutput,
+  "inspection.listForResource": inspectionHistoryEntry.array(),
+  "inspection.listRoomRounds": paginatedRoomCheckRounds,
+  "inspection.recordRoomCheck": roomCheckOutput,
+  "inspection.listRepairs": paginatedRepairs,
+  "inspection.startRepair": repairOutput,
+  "inspection.finishRepair": repairOutput,
   "credit.me": creditOutput,
   "credit.getById": creditOutput,
   "appeal.appealable": appealablePenalty.array(),
@@ -136,12 +166,15 @@ const contracts: Record<string, OutputSchema> = {
   "report.summary": reportSummaryOutput,
 };
 
-export async function validateApiResponse(response: Response) {
+export async function validateApiResponse(
+  response: Response,
+  capturedBody?: unknown,
+) {
   const procedures = new URL(response.url()).pathname
     .split("/trpc/")[1]
     ?.split(",");
   if (!procedures || !response.ok()) return;
-  const body: unknown = await response.json();
+  const body: unknown = capturedBody ?? (await response.json());
   const results = Array.isArray(body) ? body : [body];
   for (const [index, procedure] of procedures.entries()) {
     const envelope = results[index] as {
@@ -165,19 +198,40 @@ export { expect };
 export const test = base.extend<{ apiContractValidation: void }>({
   apiContractValidation: [
     async ({ page }, use) => {
+      if (process.env.ULMS_TEST_NOW) {
+        if (process.env.ULMS_TEST_CLOCK_FILE) {
+          const clockFile = process.env.ULMS_TEST_CLOCK_FILE;
+          await writeBusinessClock(clockFile, process.env.ULMS_TEST_NOW);
+        }
+        await page.clock.setFixedTime(new Date(process.env.ULMS_TEST_NOW));
+      }
       const pending: Promise<void>[] = [];
       const failures: string[] = [];
+      // Buffer live API bodies before navigation can discard Chromium's copy.
+      // Scenario routes registered later still override this route; their
+      // mocked responses are validated by the observer in the same way.
+      const bodies = new WeakMap<Request, unknown>();
+      await page.route("**/trpc/**", async (route) => {
+        const response = await route.fetch();
+        if (response.ok()) bodies.set(route.request(), await response.json());
+        await route.fulfill({ response });
+      });
       const observe = (response: Response) => {
         pending.push(
-          validateApiResponse(response).catch((error: unknown) => {
-            failures.push(String(error));
-          }),
+          validateApiResponse(response, bodies.get(response.request())).catch(
+            (error: unknown) => {
+              failures.push(String(error));
+            },
+          ),
         );
       };
       page.on("response", observe);
       try {
         await use();
       } finally {
+        // Finish in-flight route.fetch reads before Playwright disposes its
+        // request context, including requests started by final refetches.
+        await page.unrouteAll({ behavior: "wait" });
         page.off("response", observe);
         await Promise.all(pending);
         expect(
