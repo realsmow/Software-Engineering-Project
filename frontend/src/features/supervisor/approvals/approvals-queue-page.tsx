@@ -27,6 +27,24 @@ import type {
   RetirementRequest,
 } from "./approval.types";
 
+/**
+ * The approval desk (SRS FR-APV-01..04, polled every 60s).
+ *
+ * Three things here exist because of how the decision actually goes wrong:
+ *
+ *  - approving cancels every other pending request for the same unit over an
+ *    overlapping window, so `clashesWith` is shown on the row *before* the
+ *    decision and the cancelled list is reported after it. Otherwise the loser
+ *    finds out by their request silently vanishing;
+ *  - a rejection without a reason is refused by the server (FR-APV-03), so the
+ *    reason is collected in the row rather than sent and bounced;
+ *  - the credit band that put a request on this desk is shown next to the
+ *    borrower, because that band is usually the reason it needs a human.
+ *
+ * Partial approval (FR-APV-02) needs nothing special: the borrower flow opens
+ * one request per unit, so every row here already is one unit and deciding
+ * per row is deciding per item.
+ */
 export default function SupervisorApprovalsPage() {
   const { t } = useTranslation();
   const [search, setSearch] = useState("");
@@ -34,18 +52,25 @@ export default function SupervisorApprovalsPage() {
   const [reason, setReason] = useState("");
   const [busyKey, setBusyKey] = useState<number | null>(null);
   const [result, setResult] = useState<{ tone: "ok" | "bad"; text: string } | null>(null);
-  
+  // FR-APV-01: clicking a row opens the requester's loan history.
   const [historyBorrower, setHistoryBorrower] = useState<ApprovalQueueRow["borrower"] | null>(null);
 
   const { data: counts } = useApprovalCounts();
+  // No route filter: the server already scopes the queue to what this caller
+  // may decide, so a supervisor sees their pile without being asked which
+  // desk they are.
   const { data: rows, isLoading } = useApprovalQueue(undefined, search);
   const decide = useDecideApproval();
 
+  // Extensions and retirements are two more piles at the same desk, not
+  // separate screens: the supervisor clearing T2 requests is the person who
+  // also clears T2 extensions and FR-EQP-08 retirements.
   const [view, setView] = useState<"requests" | "extensions" | "retirements">("requests");
   const { data: extRows, isLoading: extLoading } = useExtensionQueue(search);
   const decideExtension = useDecideExtension();
   const { data: retirementRows, isLoading: retirementLoading } = useRetirementQueue();
   const decideRetirement = useDecideRetirement();
+  // Per row, because the condition is a fact about one item on one counter.
   const [conditions, setConditions] = useState<Record<number, ConditionType>>({});
   const conditionOf = (key: number): ConditionType => conditions[key] ?? "Normal";
 
@@ -355,6 +380,8 @@ export default function SupervisorApprovalsPage() {
 
   async function reject(row: ApprovalQueueRow) {
     const why = reason.trim();
+    // Enforced on the server too; checked here so the person is not told off
+    // by a round trip for something the form could have said.
     if (!why) return;
 
     setBusyKey(row.reservationKey);
@@ -626,7 +653,7 @@ function Tile({
   );
 }
 
-// Main Adding
+/** FR-APV-01: the requester's past loans, late returns and damage. */
 function BorrowerHistoryDialog({
   borrower,
   onClose,
@@ -642,22 +669,25 @@ function BorrowerHistoryDialog({
       <DialogContent className="max-w-3xl">
         <DialogHeader>
           <DialogTitle>
-            Borrower History: {borrower.firstName} {borrower.lastName} ({borrower.studentId})
+            {t("supervisor.approvals.history.title", {
+              name: `${borrower.firstName} ${borrower.lastName}`,
+              id: borrower.studentId,
+            })}
           </DialogTitle>
         </DialogHeader>
 
         {isLoading ? (
           <div className="py-8 text-center text-t3">{t("common.loading")}</div>
         ) : !history ? (
-          <div className="py-8 text-center text-t3">Failed to load history</div>
+          <div className="py-8 text-center text-t3">{t("supervisor.approvals.history.failed")}</div>
         ) : (
           <div className="space-y-4">
             <div className="grid grid-cols-4 gap-2">
-              <Tile label="Total Loans" value={history.totalLoans} />
-              <Tile label="Late Returns" value={history.lateReturns} warn={history.lateReturns > 0} />
-              <Tile label="Damage (B1+)" value={history.damageIncidents} warn={history.damageIncidents > 0} />
+              <Tile label={t("supervisor.approvals.history.total")} value={history.totalLoans} />
+              <Tile label={t("supervisor.approvals.history.late")} value={history.lateReturns} warn={history.lateReturns > 0} />
+              <Tile label={t("supervisor.approvals.history.damage")} value={history.damageIncidents} warn={history.damageIncidents > 0} />
               <div className="rounded-lg border border-border bg-card px-3 py-2.5">
-                <div className="text-xs text-t3">Last Damage</div>
+                <div className="text-xs text-t3">{t("supervisor.approvals.history.lastDamage")}</div>
                 <div className="mt-0.5 font-mono text-sm font-semibold tabular-nums text-foreground">
                   {history.lastDamageDate ? fmtDate(history.lastDamageDate) : "-"}
                 </div>
@@ -665,22 +695,22 @@ function BorrowerHistoryDialog({
             </div>
 
             <div className="mt-4">
-              <h4 className="mb-2 text-sm font-medium">Past Loans</h4>
+              <h4 className="mb-2 text-sm font-medium">{t("supervisor.approvals.history.pastLoans")}</h4>
               <div className="max-h-[300px] overflow-y-auto rounded-md border border-border">
                 <table className="w-full text-left text-sm">
                   <thead className="sticky top-0 bg-muted px-3 py-2 text-xs text-muted-foreground">
                     <tr>
-                      <th className="px-3 py-2 font-medium">Item</th>
-                      <th className="px-3 py-2 font-medium">Borrowed</th>
-                      <th className="px-3 py-2 font-medium">Returned</th>
-                      <th className="px-3 py-2 font-medium">Status</th>
+                      <th className="px-3 py-2 font-medium">{t("supervisor.approvals.history.item")}</th>
+                      <th className="px-3 py-2 font-medium">{t("supervisor.approvals.history.borrowed")}</th>
+                      <th className="px-3 py-2 font-medium">{t("supervisor.approvals.history.returned")}</th>
+                      <th className="px-3 py-2 font-medium">{t("supervisor.approvals.history.status")}</th>
                     </tr>
                   </thead>
                   <tbody>
                     {history.items.length === 0 ? (
                       <tr>
                         <td colSpan={4} className="px-3 py-4 text-center text-t3">
-                          No past loans found.
+                          {t("supervisor.approvals.history.none")}
                         </td>
                       </tr>
                     ) : (
@@ -696,9 +726,9 @@ function BorrowerHistoryDialog({
                           </td>
                           <td className="px-3 py-2">
                             {item.overdueDays > 0 ? (
-                              <Badge tone="warn">Late ({item.overdueDays}d)</Badge>
+                              <Badge tone="warn">{t("supervisor.approvals.history.lateDays", { n: item.overdueDays })}</Badge>
                             ) : (
-                              <Badge tone="neutral">{item.status}</Badge>
+                              <Badge tone="neutral">{t(`admin.users.loanStatus.${item.status}`)}</Badge>
                             )}
                           </td>
                         </tr>
