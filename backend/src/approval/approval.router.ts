@@ -10,6 +10,8 @@ import { StaffMiddleware } from '../trpc/auth.middleware';
 import type { TrpcContext } from '../trpc/context';
 import {
   approvalCounts,
+  borrowerHistoryInput,
+  borrowerHistoryOutput,
   decideApprovalInput,
   decideApprovalOutput,
   decideRetirementInput,
@@ -18,6 +20,7 @@ import {
   listRetirementQueueInput,
   paginatedApprovalQueue,
   paginatedRetirementQueue,
+  type BorrowerHistoryInput,
   type DecideApprovalInput,
   type DecideRetirementInput,
   type ListApprovalQueueInput,
@@ -117,6 +120,15 @@ export class ApprovalRouter {
   //
   // A supervisor's own desk - StaffMiddleware on the class is only a floor,
   // and ApprovalService.assertSupervisor is the real gate for these two.
+
+  /** FR-APV-01: the requester's loan history, beside the decision. */
+  @Query({ input: borrowerHistoryInput, output: borrowerHistoryOutput })
+  borrowerHistory(
+    @Input() input: BorrowerHistoryInput,
+    @Ctx() ctx: TrpcContext,
+  ) {
+    return this.approvals.borrowerHistory(ctx.user!, input.accountKey);
+  }
 
   /** Pending retirement requests in the caller's scope, oldest first. */
   @Query({

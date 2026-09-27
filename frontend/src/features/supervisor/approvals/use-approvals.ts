@@ -10,6 +10,7 @@ import type {
   ConditionType,
   ExtensionReviewRow,
   RetirementRequest,
+  BorrowerHistoryData,
 } from "./approval.types";
 
 /**
@@ -165,5 +166,20 @@ export function useDecideRetirement() {
       // The resource's own row (lendable, status) just changed too.
       void queryClient.invalidateQueries({ queryKey: ["staff", "inventory"] });
     },
+  });
+}
+
+/** FR-APV-01: the requester's past loans, opened from a queue row. */
+export function useBorrowerHistory(accountKey: number | undefined) {
+  const trpc = useTRPCClient();
+
+  return useQuery({
+    queryKey: [...APPROVALS_KEY, "borrowerHistory", accountKey],
+    queryFn: async (): Promise<BorrowerHistoryData> => {
+      if (!accountKey) throw new Error("Missing account key");
+      return trpc.approval.borrowerHistory.query({ accountKey });
+    },
+    enabled: !!accountKey,
+    staleTime: 5 * 60 * 1000
   });
 }

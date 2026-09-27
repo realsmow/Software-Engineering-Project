@@ -1178,7 +1178,22 @@
       "retirementEmptyDesc": "Retirement requests appear here as staff file them.",
       "doneRetireApprove": "Approved retirement of {{item}}",
       "doneRetireReject": "Rejected retirement of {{item}}",
-      "tileRetirement": "Retirements waiting"
+      "tileRetirement": "Retirements waiting",
+      "history": {
+        "title": "Loan history: {{name}} ({{id}})",
+        "failed": "Could not load the history",
+        "total": "Total loans",
+        "late": "Late returns",
+        "damage": "Damage (B1 or worse)",
+        "lastDamage": "Last damage",
+        "pastLoans": "Past loans",
+        "item": "Item",
+        "borrowed": "Borrowed",
+        "returned": "Returned",
+        "status": "Status",
+        "none": "No past loans.",
+        "lateDays": "Late {{n}} d"
+      }
     },
     "appeals": {
       "subtitle": "Credit penalties a borrower has asked a supervisor to overturn",
