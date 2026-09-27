@@ -148,7 +148,7 @@ describe('FR-APV-06 / FR-NTF-01: no-show cancellation notifications', () => {
     // Both specifications require notification on a request status change.
     // expireStaleRequests currently updates Approved -> Canceled without one.
     // No notification enum or exact message is invented by this assertion.
-    it.failing(
+    it(
       'notifies the affected borrower once after automatic cancellation',
       () => {
         expect(notices).toHaveLength(1);

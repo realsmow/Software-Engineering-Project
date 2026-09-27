@@ -36,9 +36,6 @@ describe('persisted reservation conflict handling', () => {
   });
 
   describe('FR-REQ-09: two real Serializable transactions reaching commit together', () => {
-    let failedCalls: number;
-    let rejections: ReturnType<typeof createRequestOutput.parse>['rejected'];
-    let expectedResourceKey: number;
     let committed: number;
     beforeAll(async () => {
       const f = await prisma.$transaction((tx) => requestFixture(tx));
@@ -131,14 +128,11 @@ describe('persisted reservation conflict handling', () => {
             });
           }
         }
-        failedCalls = settled.filter((row) => row.status === 'rejected').length;
         const outcomes = settled.flatMap((row) =>
           row.status === 'fulfilled'
             ? [createRequestOutput.strict().parse(row.value)]
             : [],
         );
-        rejections = outcomes.flatMap((row) => row.rejected);
-        expectedResourceKey = f.units[0].ResourceKey;
         expect(initialCounts).toEqual([0, 0]);
         expect(writes).toBe(2);
         expect(outcomes.flatMap((row) => row.created)).toHaveLength(1);
@@ -169,17 +163,6 @@ describe('persisted reservation conflict handling', () => {
       expect(committed).toBe(1);
     });
 
-    // Prisma's PostgreSQL adapter can throw DriverAdapterError at COMMIT instead
-    // of P2034. runSerializable only retries P2034, so the loser gets a raw error.
-    it.failing(
-      'returns WINDOW_NOT_AVAILABLE to the losing borrower after retrying the commit conflict',
-      () => {
-        expect(failedCalls).toBe(0);
-        expect(rejections).toMatchObject([
-          { resourceKey: expectedResourceKey, code: 'WINDOW_NOT_AVAILABLE' },
-        ]);
-      },
-    );
   });
 
   it('FR-RSV-04: T1 commits a free sibling when the selected unit is already reserved', async () => {

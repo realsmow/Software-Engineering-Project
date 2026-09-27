@@ -442,12 +442,6 @@ test.describe("live lending lifecycle across roles", () => {
       paginatedNotifications,
       { page: 1, pageSize: 100 },
     );
-    // Every prior transaction succeeded. This expected failure is restricted
-    // to the missing event: inspection applies a penalty but emits no alert.
-    test.fail(
-      true,
-      "FR-NTF-01: damage inspection does not emit creditDeducted",
-    );
     expect(notifications.items).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
