@@ -2,16 +2,27 @@ import { fireEvent, render, screen, waitFor, within } from "@testing-library/rea
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import i18n from "../../src/i18n";
 import SupervisorApprovalsPage from "../../src/features/supervisor/approvals/approvals-queue-page";
+import { fmtDate } from "../../src/features/borrower/format";
 import {
   approvalCounts,
   approvalQueueRow,
+  borrowerHistoryOutput,
   decideApprovalOutput,
 } from "../../../backend/src/approval/approval.schema";
 import { extensionReviewRow } from "../../../backend/src/loan/loan.schema";
 import { extensionResponse, requestResponse } from "../fixtures/api-responses";
-import { mutationResult, queryResult } from "../fixtures/query-results";
+import {
+  errorQueryResult,
+  loadingQueryResult,
+  mutationResult,
+  queryResult,
+} from "../fixtures/query-results";
 
 const hooks = vi.hoisted(() => ({
+  useBorrowerHistory:
+    vi.fn<
+      typeof import("../../src/features/supervisor/approvals/use-approvals").useBorrowerHistory
+    >(),
   useRetirementQueue:
     vi.fn<
       typeof import("../../src/features/supervisor/approvals/use-approvals").useRetirementQueue
@@ -87,6 +98,38 @@ const extension = extensionReviewRow.strict().parse({
   status: "Pending",
 });
 
+const history = borrowerHistoryOutput.strict().parse({
+  totalLoans: 2,
+  lateReturns: 1,
+  damageIncidents: 1,
+  lastDamageDate: "2026-09-23T08:00:00.000Z",
+  items: [
+    {
+      usageKey: 9,
+      itemName: "Past oscilloscope",
+      serialNo: "OSC-009",
+      checkoutAt: "2026-09-20T08:00:00.000Z",
+      returnedAt: null,
+      overdueDays: 2,
+      status: "Lended",
+    },
+    {
+      usageKey: 8,
+      itemName: "Lab 3",
+      serialNo: null,
+      checkoutAt: "2026-09-18T08:00:00.000Z",
+      returnedAt: "2026-09-18T10:00:00.000Z",
+      overdueDays: 0,
+      status: "Inspected",
+    },
+  ],
+});
+
+function openHistory() {
+  fireEvent.click(screen.getByText("Ada Lovelace"));
+  return within(screen.getByRole("dialog"));
+}
+
 describe("SupervisorApprovalsPage", () => {
   const decide =
     vi.fn<
@@ -127,6 +170,7 @@ describe("SupervisorApprovalsPage", () => {
       )
     );
     hooks.useApprovalQueue.mockReturnValue(queryResult([request]));
+    hooks.useBorrowerHistory.mockReturnValue(queryResult(history));
     hooks.useExtensionQueue.mockReturnValue(queryResult([extension]));
     hooks.useDecideApproval.mockReturnValue(mutationResult(decide));
     hooks.useDecideExtension.mockReturnValue(mutationResult(decideExtension));
@@ -147,6 +191,107 @@ describe("SupervisorApprovalsPage", () => {
       }
     );
     expect(hooks.useApprovalQueue).toHaveBeenLastCalledWith(undefined, "Ada");
+  });
+
+  it("opens history only on a borrower row and closes it without deciding the request", () => {
+    render(<SupervisorApprovalsPage />);
+    expect(hooks.useBorrowerHistory).not.toHaveBeenCalled();
+    const dialog = openHistory();
+    expect(hooks.useBorrowerHistory).toHaveBeenLastCalledWith(42);
+    expect(dialog.getByText("Past oscilloscope")).toBeInTheDocument();
+    expect(dialog.getByText("OSC-009")).toBeInTheDocument();
+    expect(dialog.getByText(fmtDate(history.lastDamageDate!))).toBeInTheDocument();
+    expect(
+      dialog.getByText(i18n.t("supervisor.approvals.history.lateDays", { n: 2 }))
+    ).toBeInTheDocument();
+    const roomRow = dialog.getByText("Lab 3").closest("tr")!;
+    expect(within(roomRow).getByText("-")).toBeInTheDocument();
+    for (const [label, value] of [
+      ["total", "2"],
+      ["late", "1"],
+      ["damage", "1"],
+    ]) {
+      expect(
+        dialog.getByText(i18n.t(`supervisor.approvals.history.${label}`)).parentElement
+      ).toHaveTextContent(value);
+    }
+    fireEvent.click(dialog.getByRole("button", { name: "Close" }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(decide).not.toHaveBeenCalled();
+  });
+
+  it("shows a valid empty history and no last damage date", () => {
+    hooks.useBorrowerHistory.mockReturnValue(
+      queryResult(
+        borrowerHistoryOutput.strict().parse({
+          totalLoans: 0,
+          lateReturns: 0,
+          damageIncidents: 0,
+          lastDamageDate: null,
+          items: [],
+        })
+      )
+    );
+    render(<SupervisorApprovalsPage />);
+    const dialog = openHistory();
+    expect(
+      dialog.getByText(i18n.t("supervisor.approvals.history.none"))
+    ).toBeInTheDocument();
+    expect(dialog.getByText("-")).toBeInTheDocument();
+  });
+
+  it("shows loading before history arrives and a failure if the query fails", () => {
+    hooks.useBorrowerHistory.mockReturnValue(loadingQueryResult());
+    const view = render(<SupervisorApprovalsPage />);
+    const dialog = openHistory();
+    expect(dialog.getByText(i18n.t("common.loading"))).toBeInTheDocument();
+    expect(dialog.queryByText("Past oscilloscope")).not.toBeInTheDocument();
+    hooks.useBorrowerHistory.mockReturnValue(
+      errorQueryResult(new Error("OUT_OF_MANAGEMENT_SCOPE"))
+    );
+    view.rerender(<SupervisorApprovalsPage />);
+    expect(
+      dialog.getByText(i18n.t("supervisor.approvals.history.failed"))
+    ).toBeInTheDocument();
+    expect(dialog.queryByText("Past oscilloscope")).not.toBeInTheDocument();
+  });
+
+  it("uses the next borrower's key and replaces the previous history on reopening", () => {
+    hooks.useApprovalQueue.mockReturnValue(
+      queryResult([
+        request,
+        approvalQueueRow.strict().parse({
+          ...request,
+          reservationKey: 78,
+          borrower: {
+            ...borrower,
+            accountKey: 43,
+            firstName: "Grace",
+            lastName: "Hopper",
+            studentId: "S67890",
+          },
+        }),
+      ])
+    );
+    render(<SupervisorApprovalsPage />);
+    fireEvent.click(openHistory().getByRole("button", { name: "Close" }));
+    hooks.useBorrowerHistory.mockReturnValue(
+      queryResult(
+        borrowerHistoryOutput.strict().parse({
+          totalLoans: 0,
+          lateReturns: 0,
+          damageIncidents: 0,
+          lastDamageDate: null,
+          items: [],
+        })
+      )
+    );
+    fireEvent.click(screen.getByText("Grace Hopper"));
+    expect(hooks.useBorrowerHistory).toHaveBeenLastCalledWith(43);
+    expect(screen.getByRole("dialog")).toHaveTextContent("Grace Hopper");
+    expect(
+      within(screen.getByRole("dialog")).queryByText("Past oscilloscope")
+    ).not.toBeInTheDocument();
   });
 
   it("requires a reason before rejecting and passes it to the decision mutation", async () => {
@@ -190,6 +335,8 @@ describe("SupervisorApprovalsPage", () => {
       name: i18n.t("supervisor.approvals.confirmReject"),
     });
     expect(confirm).toBeDisabled();
+    expect(hooks.useBorrowerHistory).not.toHaveBeenCalled();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
 
     fireEvent.change(
       screen.getByPlaceholderText(i18n.t("supervisor.approvals.reasonPlaceholder")),
@@ -232,6 +379,7 @@ describe("SupervisorApprovalsPage", () => {
       screen.getByRole("button", { name: i18n.t("supervisor.approvals.approve") })
     );
     expect(confirm).toHaveBeenCalledTimes(1);
+    expect(hooks.useBorrowerHistory).not.toHaveBeenCalled();
     expect(decide).not.toHaveBeenCalled();
     confirm.mockRestore();
   });
