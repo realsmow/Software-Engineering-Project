@@ -125,3 +125,20 @@ export interface ExtensionReviewRow {
   reason: string | null;
   status: string;
 }
+
+//Adding New one
+export interface BorrowerHistoryData {
+  totalLoans: number;
+  lateReturns: number;
+  damageIncidents: number;
+  lastDamageDate: string | null;
+  items: Array<{
+    usageKey: number;
+    itemName: string;
+    serialNo: string | null;
+    checkoutAt: string;
+    returnedAt: string | null;
+    overdueDays: number;
+    status: string;
+  }>;
+}
