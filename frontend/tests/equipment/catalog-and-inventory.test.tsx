@@ -89,7 +89,7 @@ describe("Module 5 borrower catalogue", () => {
     } as never);
   });
 
-  it.fails("does not change popularity order when only inventory totals change", () => {
+  it("does not change popularity order when only inventory totals change", () => {
     // item.list has no borrowingCount field. Exercise an invariant with real
     // API-shaped items instead of inventing a popularity field on the fixture.
     const items = (alphaUnits: number, betaUnits: number) => [

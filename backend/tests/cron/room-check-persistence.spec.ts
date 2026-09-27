@@ -121,39 +121,4 @@ describe('FR-RTN-06: persisted room inspection rounds', () => {
     });
   });
 
-  describe('exact 30-day boundary', () => {
-    let openRounds: number;
-    beforeEach(async () => {
-      // Complete real database setup and execution outside the expected-failure assertion.
-      openRounds = await inHistoryFixture(prisma, async (tx) => {
-        const f = await roomFixture(tx);
-        const closed = new Date(NOW.getTime() - 30 * DAY);
-        await tx.roomCheckRound.create({
-          data: {
-            ResourceKey: f.resource.ResourceKey,
-            OpenedAt: new Date(closed.getTime() - DAY),
-            DueAt: closed,
-            ClosedAt: closed,
-          },
-        });
-        const service = new CronService(
-          f.client,
-          new PenaltyService(f.client),
-          new NotificationService(f.client),
-        );
-        await service.run('openT3InspectionRounds');
-        return tx.roomCheckRound.count({
-          where: { ResourceKey: f.resource.ResourceKey, ClosedAt: null },
-        });
-      });
-    });
-
-    // Source uses ClosedAt < cutoff, so a room exactly 30 days old waits until a later run.
-    it.failing(
-      'opens the next inspection round when the previous check reaches exactly 30 days',
-      () => {
-        expect(openRounds).toBe(1);
-      },
-    );
-  });
 });

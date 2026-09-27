@@ -133,7 +133,7 @@ describe("borrower request checks", () => {
       expect(useAuthStore.getState().user).toBeNull();
     });
 
-    it.fails("clears the previous borrower cart when they log out", () => {
+    it("clears the previous borrower cart when they log out", () => {
       expect(useRequestDraft.getState().lines).toEqual([]);
     });
   });
@@ -189,7 +189,7 @@ describe("borrower request checks", () => {
 
     // The server refused this period, so the availability checklist must stop
     // claiming the same item is ready without a fresh availability result.
-    it.fails("does not keep a green stock check after a backend date clash", () => {
+    it("does not keep a green stock check after a backend date clash", () => {
       expect(
         screen.queryByText(i18n.t("borrower.request.pcStockOk"))
       ).not.toBeInTheDocument();
