@@ -1028,6 +1028,27 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 			};
 			meta: object;
 		}>;
+		borrowerHistory: import("@trpc/server").TRPCQueryProcedure<{
+			input: {
+				accountKey: number;
+			};
+			output: {
+				totalLoans: number;
+				lateReturns: number;
+				damageIncidents: number;
+				lastDamageDate: string | null;
+				items: {
+					usageKey: number;
+					itemName: string;
+					serialNo: string | null;
+					checkoutAt: string;
+					returnedAt: string | null;
+					overdueDays: number;
+					status: string;
+				}[];
+			};
+			meta: object;
+		}>;
 		retirementQueue: import("@trpc/server").TRPCQueryProcedure<{
 			input: {
 				page?: number | undefined;

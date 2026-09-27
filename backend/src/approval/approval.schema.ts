@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { dbId } from '../common/schemas/id.schema';
 import {
   paginated,
   paginationInput,
@@ -158,3 +159,30 @@ export type DecideRetirementInput = z.infer<typeof decideRetirementInput>;
 export const decideRetirementOutput = retirementRequestOutput;
 
 export { retirementRequestIdInput, retirementRequestOutput };
+
+/**
+ * FR-APV-01: a borrower's past loans, for the person deciding their request.
+ * Covers every department, because credit behaviour is about the person.
+ */
+export const borrowerHistoryInput = z.object({ accountKey: dbId });
+export type BorrowerHistoryInput = z.infer<typeof borrowerHistoryInput>;
+
+export const borrowerHistoryOutput = z.object({
+  totalLoans: z.number().int().min(0),
+  lateReturns: z.number().int().min(0),
+  /** Returns inspected at B1 or worse. */
+  damageIncidents: z.number().int().min(0),
+  lastDamageDate: isoDateTimeNullable,
+  /** Newest first, at most HISTORY_ITEMS. */
+  items: z.array(
+    z.object({
+      usageKey: z.number().int(),
+      itemName: z.string(),
+      serialNo: z.string().nullable(),
+      checkoutAt: isoDateTime,
+      returnedAt: isoDateTimeNullable,
+      overdueDays: z.number().int().min(0),
+      status: z.string(),
+    }),
+  ),
+});

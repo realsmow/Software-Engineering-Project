@@ -35,6 +35,9 @@ import {
   toRetirementRequestOutput,
 } from '../item/item.management.service';
 import type { TrpcUser } from '../trpc/context';
+
+/** How many past loans the approval desk lists. */
+const HISTORY_ITEMS = 50;
 import type {
   DecideApprovalInput,
   DecideRetirementInput,
@@ -629,6 +632,86 @@ export class ApprovalService {
         startTime: toIso(c.StartTime),
         endTime: toIso(c.EndTime),
       })),
+    };
+  }
+
+  /**
+   * FR-APV-01. Loan history is personal, so staff and supervisors see it only
+   * for a borrower with a request in their departments; admin sees anyone.
+   *
+   * ponytail: reads the borrower's whole history to count late returns in JS;
+   * a borrower has tens of loans. Move the counts to SQL if that stops holding.
+   */
+  async borrowerHistory(user: TrpcUser, accountKey: number) {
+    const groups = await this.scope.resolveGroupKeys(user);
+    if (groups !== null) {
+      const inScope = await this.prisma.reservations.count({
+        where: {
+          ReservedBy: accountKey,
+          Resource: { ManagedBy: { in: groups } },
+        },
+      });
+      if (inScope === 0) {
+        throw new BusinessError('OUT_OF_MANAGEMENT_SCOPE', { accountKey });
+      }
+    }
+
+    const [loans, damage] = await Promise.all([
+      this.prisma.usageLog.findMany({
+        where: { AccountKey: accountKey },
+        orderBy: { CheckoutTime: 'desc' },
+        select: {
+          UsageKey: true,
+          CheckoutTime: true,
+          CheckInTime: true,
+          DueTime: true,
+          CurrentStatus: true,
+          Resource: {
+            select: {
+              Item: {
+                select: { ItemID: true, Item: { select: { ItemName: true } } },
+              },
+              Room: { select: { RoomName: true } },
+            },
+          },
+        },
+      }),
+      this.prisma.inspection.findMany({
+        where: {
+          Usage: { AccountKey: accountKey },
+          Condition: {
+            Condition: { in: ['MinorDamage', 'MajorDamage', 'Broken'] },
+          },
+        },
+        orderBy: { ActionTime: 'desc' },
+        select: { ActionTime: true },
+      }),
+    ]);
+
+    const now = new Date();
+    const items = loans.map((loan) => {
+      // Still out counts as late too, measured to now.
+      const back =
+        loan.CheckInTime ?? (loan.CurrentStatus === 'Lended' ? now : null);
+      return {
+        usageKey: loan.UsageKey,
+        itemName: resourceName(loan.Resource),
+        serialNo: loan.Resource.Item?.ItemID ?? null,
+        checkoutAt: toIso(loan.CheckoutTime),
+        returnedAt: loan.CheckInTime ? toIso(loan.CheckInTime) : null,
+        overdueDays: back ? daysBetween(loan.DueTime, back) : 0,
+        status: loan.CurrentStatus,
+      };
+    });
+
+    return {
+      totalLoans: loans.length,
+      lateReturns: items.filter((item) => item.overdueDays > 0).length,
+      damageIncidents: damage.length,
+      lastDamageDate: damage[0]?.ActionTime
+        ? toIso(damage[0].ActionTime)
+        : null,
+      items: items.slice(0, HISTORY_ITEMS),
     };
   }
 }

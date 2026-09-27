@@ -126,7 +126,7 @@ export interface ExtensionReviewRow {
   status: string;
 }
 
-//Adding New one
+/** FR-APV-01: `approval.borrowerHistory`. */
 export interface BorrowerHistoryData {
   totalLoans: number;
   lateReturns: number;

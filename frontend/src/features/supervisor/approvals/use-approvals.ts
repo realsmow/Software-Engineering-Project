@@ -169,8 +169,7 @@ export function useDecideRetirement() {
   });
 }
 
-
-//Add new function useBorrowerHistory
+/** FR-APV-01: the requester's past loans, opened from a queue row. */
 export function useBorrowerHistory(accountKey: number | undefined) {
   const trpc = useTRPCClient();
 
@@ -178,7 +177,7 @@ export function useBorrowerHistory(accountKey: number | undefined) {
     queryKey: [...APPROVALS_KEY, "borrowerHistory", accountKey],
     queryFn: async (): Promise<BorrowerHistoryData> => {
       if (!accountKey) throw new Error("Missing account key");
-      return trpc.staff.borrowerHistory.query({ accountKey }); 
+      return trpc.approval.borrowerHistory.query({ accountKey });
     },
     enabled: !!accountKey,
     staleTime: 5 * 60 * 1000
