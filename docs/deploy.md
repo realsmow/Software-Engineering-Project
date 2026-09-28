@@ -94,3 +94,75 @@ These are optional, env-driven features with placeholders in
 - **SMTP relay** - `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`,
   `SMTP_PASS`. Leave empty to keep disabled; password-reset and
   registration mail will not be sent without it.
+
+## Demo on Render (free)
+
+For a grading demo without a server. Everything in the app works; the free
+plan adds these limits:
+
+- The free database expires about 30 days after it is created and its data is
+  deleted. Deploy close to the grading date.
+- Uploaded photos are lost when the backend restarts or redeploys (no
+  persistent disk on the free plan).
+- The backend sleeps after about 15 minutes idle; the first request after
+  that takes about a minute. A free uptime monitor (for example UptimeRobot)
+  requesting the backend URL every 10 minutes keeps it awake.
+- Scheduled jobs run only while the backend is awake. An admin can run any
+  job by hand from `/admin/status`.
+
+You need two free accounts: Render and Brevo (email). They can belong to
+different people; only the values are shared.
+
+### 1. Email (Brevo)
+
+Create an SMTP key for this deploy (Settings -> SMTP & API) and note host,
+port, login and key. Verify the sender address you will use as `MAIL_FROM`.
+Give these to whoever creates the Render services privately, never in git or a
+group chat. A leaked key can be deleted in Brevo and replaced.
+
+### 2. Services and database (Render)
+
+1. Render -> New -> Blueprint -> this repository, on a stable branch (Render
+   redeploys on every push to it). If the repository belongs to a GitHub
+   organization, an owner may need to approve Render's GitHub app first.
+2. Render reads `render.yaml` and creates `ulms-db`, `ulms-backend` and
+   `ulms-frontend`. The database URL is wired in automatically. Fill in the
+   values it asks for:
+   - `CORS_ORIGINS`, `PUBLIC_APP_URL`, `PUBLIC_API_URL`: the frontend URL,
+     e.g. `https://ulms-frontend.onrender.com` (the frontend forwards API and
+     photo paths to the backend, so all three are the frontend).
+   - `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `MAIL_FROM`: from
+     Brevo.
+3. If Render gave the backend a URL other than
+   `https://ulms-backend.onrender.com`, change the rewrite destinations in
+   `render.yaml` and push.
+
+The backend runs `prisma migrate deploy` on every start, so the tables are
+created on the first deploy.
+
+### 3. First admin
+
+A new database has no accounts. Render's free plan has no shell, so seed from
+your own machine, using the database's **External Database URL** (Render ->
+ulms-db -> Connect), after the first deploy has created the tables:
+
+```
+cd backend
+DATABASE_URL='<external url>?sslmode=require' ADMIN_EMAIL=... ADMIN_USER_ID=... \
+  ADMIN_PASSWORD=... ADMIN_FIRST_NAME=... ADMIN_LAST_NAME=... \
+  npm run seed:prod
+```
+
+`ADMIN_PASSWORD` needs at least 12 characters. Running it again is safe; it
+leaves an existing admin alone. Then sign in as that admin and create one
+account per role for the teacher.
+
+### 4. Check before sharing the link
+
+- Sign in, register a new account and receive its email.
+- Borrow, hand over with a photo, return, inspect.
+- Fail a login a few times from one browser, then sign in from another
+  network: it must still work. If it is locked out too, every visitor shares
+  one IP behind Render's proxy and `TRUST_PROXY_HOPS` needs adjusting.
+- If registration email never arrives, Render may be blocking SMTP ports on
+  the free plan; the fix is sending through Brevo's HTTP API instead.
