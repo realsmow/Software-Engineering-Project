@@ -183,6 +183,12 @@
    Base
    ============================================================ */
 @layer base {
+  /* Edge draws its own reveal eye in password boxes; ours is the Show button. */
+  input::-ms-reveal,
+  input::-ms-clear {
+    display: none;
+  }
+
   * {
     box-sizing: border-box;
   }

@@ -247,7 +247,10 @@
         "Lended": "On loan",
         "Returned": "Returned",
         "Inspected": "Inspected"
-      }
+      },
+      "selfLocked": "You can't disable or change the role of your own account.",
+      "createdOk": "Account created for {{name}} ({{email}})",
+      "tempPasswordOnce": "Copy it now; it will not be shown again."
     },
     "status": {
       "subtitle": "System health and scheduled jobs. Refreshes every 30 seconds.",
