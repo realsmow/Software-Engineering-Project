@@ -109,3 +109,25 @@ function itemKey(id: string | undefined): number | null {
   const n = Number(id);
   return Number.isInteger(n) && n > 0 ? n : null;
 }
+
+/**
+ * Types whose name, description or unit asset tag match `q`, by the server's
+ * own search. A list row carries no asset tags, so the catalogue's local
+ * filter cannot find an item by the tag printed on it.
+ */
+export function useCatalogSearch(q: string) {
+  const trpc = useTRPCClient();
+  const term = q.trim();
+
+  return useQuery({
+    queryKey: ["equipment-types", "search", term] as const,
+    queryFn: async (): Promise<Set<string>> => {
+      const rows = await fetchAllPages((page, pageSize) =>
+        trpc.item.list.query({ page, pageSize, q: term }),
+      );
+      return new Set(rows.map((row) => String(row.id)));
+    },
+    enabled: term.length >= 2,
+    staleTime: 30_000,
+  });
+}

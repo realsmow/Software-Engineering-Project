@@ -433,7 +433,16 @@ export class CronService {
         ReservationExpiration: { lt: now },
         UsageLogs: { none: {} },
       },
-      select: { ReservationKey: true },
+      select: {
+        ReservationKey: true,
+        ReservedBy: true,
+        Resource: {
+          select: {
+            Item: { select: { Item: { select: { ItemName: true } } } },
+            Room: { select: { RoomName: true } },
+          },
+        },
+      },
     });
     const keys = stale.map((r) => r.ReservationKey);
     if (keys.length > 0) {
@@ -454,7 +463,21 @@ export class CronService {
           ReservationExpiration: { lt: now },
         },
       },
-      select: { UsageKey: true, ReservationKey: true },
+      select: {
+        UsageKey: true,
+        ReservationKey: true,
+        Reservation: {
+          select: {
+            ReservedBy: true,
+            Resource: {
+              select: {
+                Item: { select: { Item: { select: { ItemName: true } } } },
+                Room: { select: { RoomName: true } },
+              },
+            },
+          },
+        },
+      },
     });
     for (const usage of noShows) {
       await this.prisma.$transaction([
@@ -465,6 +488,22 @@ export class CronService {
           data: { ApproveStatus: 'Canceled' },
         }),
       ]);
+    }
+
+    // FR-APV-06 / FR-NTF-01: the borrower hears their request was cancelled.
+    const expired = [
+      ...stale,
+      ...noShows.map((u) => ({
+        ReservationKey: u.ReservationKey!,
+        ...u.Reservation!,
+      })),
+    ];
+    for (const r of expired) {
+      await this.notifications.requestExpired(this.prisma, {
+        accountKey: r.ReservedBy,
+        reservationKey: r.ReservationKey,
+        itemName: resourceName(r.Resource),
+      });
     }
 
     const released = keys.length + noShows.length;

@@ -1,13 +1,13 @@
 import { sortItems } from './item.service';
-import type { ItemSummary } from './item.schema';
+import type { CatalogItem } from './item.schema';
 
 /** Only the fields the comparator reads; the rest never affects ordering. */
 function item(
   name: string,
   availableUnits: number,
-  totalUnits: number,
+  borrowCount: number,
   creditWeight = 0,
-): ItemSummary {
+): CatalogItem {
   return {
     id: 1,
     name,
@@ -15,8 +15,9 @@ function item(
     imageUrl: null,
     tier: 'T1',
     creditWeight,
-    totalUnits,
+    totalUnits: availableUnits,
     availableUnits,
+    borrowCount,
     stockStatus: availableUnits > 0 ? 'ok' : 'queue',
     nextAvailableAt: null,
     prepDays: 0,
@@ -26,7 +27,7 @@ function item(
   };
 }
 
-const names = (items: ItemSummary[]) => items.map((i) => i.name);
+const names = (items: CatalogItem[]) => items.map((i) => i.name);
 
 describe('sortItems', () => {
   describe('available (the catalogue default)', () => {
@@ -60,11 +61,18 @@ describe('sortItems', () => {
     });
   });
 
-  it('popular sorts by how many units exist, most first', () => {
+  it('popular sorts by how often the type was borrowed, most first', () => {
     const items = [item('few', 1, 2), item('many', 0, 20), item('some', 5, 7)];
     sortItems(items, 'popular');
 
     expect(names(items)).toEqual(['many', 'some', 'few']);
+  });
+
+  it('popular ignores stock: more units on the shelf is not demand', () => {
+    const items = [item('stocked', 50, 1), item('wanted', 1, 9)];
+    sortItems(items, 'popular');
+
+    expect(names(items)).toEqual(['wanted', 'stocked']);
   });
 
   it('creditWeight sorts cheapest first', () => {
@@ -95,7 +103,7 @@ describe('sortItems', () => {
   });
 
   it('handles an empty catalogue without complaint', () => {
-    const items: ItemSummary[] = [];
+    const items: CatalogItem[] = [];
     expect(() => sortItems(items, 'available')).not.toThrow();
     expect(items).toEqual([]);
   });

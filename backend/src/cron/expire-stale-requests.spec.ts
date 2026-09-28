@@ -7,10 +7,7 @@ import type { NotificationService } from '../notification/notification.service';
  * FR-PKP-05: a request not collected by its deadline is cancelled and the unit
  * goes back to the pool, whether or not staff had already set it aside.
  */
-function build(
-  unprepared: { ReservationKey: number }[],
-  noShows: { UsageKey: number; ReservationKey: number }[],
-) {
+function build(unprepared: unknown[], noShows: unknown[]) {
   const prisma = {
     reservations: {
       findMany: jest.fn().mockResolvedValue(unprepared),
@@ -28,18 +25,26 @@ function build(
       update: jest.fn().mockResolvedValue({}),
     },
   };
+  const notifications = { requestExpired: jest.fn() };
   const service = new CronService(
     prisma as unknown as PrismaService,
     {} as PenaltyService,
-    {} as NotificationService,
+    notifications as unknown as NotificationService,
   );
-  return { service, prisma };
+  return { service, prisma, notify: notifications.requestExpired };
 }
 
 it('releases a prepared no-show along with the unprepared ones', async () => {
+  const item = { Item: { Item: { ItemName: 'Multimeter' } }, Room: null };
   const t = build(
-    [{ ReservationKey: 1 }],
-    [{ UsageKey: 9, ReservationKey: 2 }],
+    [{ ReservationKey: 1, ReservedBy: 3, Resource: item }],
+    [
+      {
+        UsageKey: 9,
+        ReservationKey: 2,
+        Reservation: { ReservedBy: 4, Resource: item },
+      },
+    ],
   );
 
   const outcome = await t.service.run('expireStaleRequests');
@@ -56,6 +61,8 @@ it('releases a prepared no-show along with the unprepared ones', async () => {
     data: { ApproveStatus: 'Canceled' },
   });
   expect(outcome.affected).toBe(2);
+  // Both borrowers hear their request was cancelled.
+  expect(t.notify).toHaveBeenCalledTimes(2);
 });
 
 it('does nothing when nothing is past its hold', async () => {

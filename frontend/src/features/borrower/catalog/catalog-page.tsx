@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { ShoppingCart, SlidersHorizontal, X } from "lucide-react";
@@ -35,7 +35,7 @@ import {
 } from "../request/request-draft.store";
 import { AddButton } from "./add-button";
 import { toAvailabilityWindow } from "./availability-window";
-import { useEquipmentTypes } from "./use-equipment-types";
+import { useCatalogSearch, useEquipmentTypes } from "./use-equipment-types";
 
 /** Facet groups, in rail order. Keys namespace the option keys ("owner:12"). */
 const GROUP_KEYS = ["owner", "tier", "st"] as const;
@@ -60,6 +60,13 @@ export default function CatalogPage() {
   const navigate = useNavigate();
 
   const [query, setQuery] = useState("");
+  // The server search (asset tags included) waits until typing pauses.
+  const [serverQuery, setServerQuery] = useState("");
+  useEffect(() => {
+    const id = setTimeout(() => setServerQuery(query), 300);
+    return () => clearTimeout(id);
+  }, [query]);
+  const { data: serverMatches } = useCatalogSearch(serverQuery);
   const [sort, setSort] = useState<SortKey>("avail");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -158,7 +165,13 @@ export default function CatalogPage() {
     })).filter((p) => p.keys.length > 0);
 
     const list = items.filter((it) => {
-      if (q && !`${it.name} ${it.code}`.toLowerCase().includes(q)) return false;
+      if (
+        q &&
+        !`${it.name} ${it.code}`.toLowerCase().includes(q) &&
+        !serverMatches?.has(it.id)
+      ) {
+        return false;
+      }
       // Available to this borrower: in stock and something they may borrow.
       if (availableOnly && (it.availableUnits === 0 || !it.eligible)) return false;
       return picked.every((p) => p.keys.includes(`${p.group}:${facetOf(it, p.group)}`));
@@ -166,14 +179,16 @@ export default function CatalogPage() {
 
     return [...list].sort((a, b) => {
       if (sort === "name") return a.name.localeCompare(b.name, "th");
-      if (sort === "popular") return b.totalUnits - a.totalUnits;
+      if (sort === "popular") {
+        return b.borrowCount - a.borrowCount || a.name.localeCompare(b.name, "th");
+      }
       // "avail": in-stock first, then by how many units are free.
       return (
         Number(b.availableUnits > 0) - Number(a.availableUnits > 0) ||
         b.availableUnits - a.availableUnits
       );
     });
-  }, [availableOnly, items, query, selected, sort]);
+  }, [availableOnly, items, query, selected, serverMatches, sort]);
 
   const chips = useMemo(
     () =>

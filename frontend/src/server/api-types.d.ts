@@ -1700,6 +1700,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 						name: string | null;
 						type: "Club" | "Faculty";
 					} | null;
+					borrowCount: number;
 				}[];
 				total: number;
 				page: number;

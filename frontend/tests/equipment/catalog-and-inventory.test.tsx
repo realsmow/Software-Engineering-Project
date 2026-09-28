@@ -22,6 +22,8 @@ import { toCatalogItem } from "../../src/features/borrower/catalog/item.adapter"
 
 vi.mock("../../src/features/borrower/catalog/use-equipment-types", () => ({
   useEquipmentTypes: vi.fn(),
+  // Server search is not under test here; the local filter is.
+  useCatalogSearch: vi.fn(() => ({ data: undefined })),
 }));
 
 vi.mock("../../src/features/staff/inventory/use-inventory", () => ({

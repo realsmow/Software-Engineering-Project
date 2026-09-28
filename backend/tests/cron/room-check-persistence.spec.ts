@@ -120,5 +120,4 @@ describe('FR-RTN-06: persisted room inspection rounds', () => {
       ).toBe(0);
     });
   });
-
 });

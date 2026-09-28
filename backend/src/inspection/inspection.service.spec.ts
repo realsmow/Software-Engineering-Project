@@ -51,6 +51,9 @@ function service(overrides: {
       create: jest.fn().mockResolvedValue({ InspectionKey: 700 }),
     },
     usageLog: { update: jest.fn().mockResolvedValue({}) },
+    accountInfo: {
+      findUniqueOrThrow: jest.fn().mockResolvedValue({ UserCredit: 80 }),
+    },
     resourceInfo: { update: jest.fn().mockResolvedValue({}) },
     images: { createMany: jest.fn().mockResolvedValue({}) },
     repairLog: {
@@ -119,6 +122,7 @@ function service(overrides: {
     penalties,
     images,
     audit as never,
+    { creditDeducted: jest.fn() } as never,
   );
   return { svc, prisma, scope, penalties, images, audit, tx };
 }
