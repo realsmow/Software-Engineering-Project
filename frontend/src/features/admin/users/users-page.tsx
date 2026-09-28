@@ -39,18 +39,19 @@ import {
   useUserLoans,
 } from "./use-admin-users";
 import { penaltyReasonText } from "@/features/borrower/appeals/penalty-reason";
+import { useAuthStore } from "@/features/auth/auth.store";
+import { getErrorMessage } from "@/lib/error-messages";
 
 /**
  * Turns a failed mutation into something readable.
  *
  * The backend puts a business code in `message` (CANNOT_MODIFY_SELF,
  * EMAIL_ALREADY_IN_USE, ...) rather than prose, because wording is the
- * client's job. Anything unrecognised is shown as-is, which is better than
- * swallowing it.
+ * client's job. Known codes get their message; anything unrecognised is shown
+ * as-is, which is better than swallowing it.
  */
 function mutationMessage(error: unknown): string {
-  const code = error instanceof Error ? error.message : String(error);
-  return code.split("\n")[0];
+  return getErrorMessage(error).split("\n")[0];
 }
 
 /** One department the refused role change would have left uncovered. */
@@ -197,8 +198,16 @@ export default function AdminUsersPage() {
   const [roleFilter, setRoleFilter] = useState<Role | "all">("all");
   const [statusFilter, setStatusFilter] = useState<AccountStatus | "all">("all");
   const [selected, setSelected] = useState<AdminUser | null>(null);
+  // An admin may not disable or demote themself; keep the controls from offering it.
+  const myId = useAuthStore((s) => s.user?.id);
+  const isSelf = selected !== null && String(selected.id) === String(myId);
   const [createOpen, setCreateOpen] = useState(false);
   const [form, setForm] = useState<NewUserForm>(EMPTY_FORM);
+  // Shown inside the create form: the drawer's notice is not on screen then,
+  // and a generated password is shown only once.
+  const [createResult, setCreateResult] = useState<
+    { ok: true; text: string; password: string | null } | { ok: false; text: string } | null
+  >(null);
   // Transient "…sent" confirmation shown in the detail slide-over.
   const [notice, setNotice] = useState<string | null>(null);
 
@@ -361,14 +370,16 @@ export default function AdminUsersPage() {
       },
       {
         onSuccess: (result) => {
-          setCreateOpen(false);
+          // Stay open with empty fields, ready for the next account.
           setForm(EMPTY_FORM);
-          // Shown once and never retrievable again, so it must not be missed.
-          if (result.temporaryPassword) {
-            setNotice(`${t("admin.users.tempPassword")}: ${result.temporaryPassword}`);
-          }
+          setCreateResult({
+            ok: true,
+            text: t("admin.users.createdOk", { name, email: form.email.trim() }),
+            password: result.temporaryPassword ?? null,
+          });
         },
-        onError: (e) => setNotice(mutationMessage(e)),
+        // Fields are kept so the admin can correct and retry.
+        onError: (e) => setCreateResult({ ok: false, text: mutationMessage(e) }),
       },
     );
   };
@@ -445,7 +456,13 @@ export default function AdminUsersPage() {
       <PageHeader
         title={t("admin.users.title")}
         actions={
-          <Button type="button" onClick={() => setCreateOpen(true)}>
+          <Button
+            type="button"
+            onClick={() => {
+              setCreateResult(null);
+              setCreateOpen(true);
+            }}
+          >
             <Plus size={15} strokeWidth={2} />
             {t("admin.users.createUser")}
           </Button>
@@ -592,7 +609,9 @@ export default function AdminUsersPage() {
                   type="button"
                   variant="destructive"
                   onClick={() => disable(selected.id, false)}
-                  disabled={setActive.isPending}
+                  // The server refuses it too (CANNOT_MODIFY_SELF).
+                  disabled={setActive.isPending || isSelf}
+                  title={isSelf ? t("admin.users.selfLocked") : undefined}
                 >
                   {t("admin.users.deactivate")}
                 </Button>
@@ -814,8 +833,12 @@ export default function AdminUsersPage() {
 
             <div className="mt-5 flex flex-col gap-1.5">
               <Label>{t("admin.users.changeRole")}</Label>
-              <Select value={selected.role} onValueChange={(v) => setRole(selected.id, v as Role)}>
-                <SelectTrigger>
+              <Select
+                value={selected.role}
+                onValueChange={(v) => setRole(selected.id, v as Role)}
+                disabled={isSelf}
+              >
+                <SelectTrigger title={isSelf ? t("admin.users.selfLocked") : undefined}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -878,7 +901,7 @@ export default function AdminUsersPage() {
             </Button>
             <Button
               type="button"
-              disabled={!form.name.trim() || !form.email.trim()}
+              disabled={!form.name.trim() || !form.email.trim() || createUser.isPending}
               onClick={submitCreate}
             >
               {t("admin.users.createSubmit")}
@@ -926,6 +949,28 @@ export default function AdminUsersPage() {
             </Select>
           </div>
           <div className="text-xs text-muted-foreground">{t("admin.users.createUserSub")}</div>
+          {createResult && (
+            <div
+              role={createResult.ok ? "status" : "alert"}
+              className={
+                createResult.ok
+                  ? "rounded-md border border-[var(--s-ok-b)] bg-[var(--s-ok-bg)] px-3 py-2 text-sm text-[var(--s-ok-t)]"
+                  : "rounded-md border border-[var(--s-warn-b)] bg-[var(--s-warn-bg)] px-3 py-2 text-sm text-[var(--s-warn-t)]"
+              }
+            >
+              <div className="flex items-center gap-2">
+                {createResult.ok && <Check size={15} strokeWidth={2.5} />}
+                {createResult.text}
+              </div>
+              {createResult.ok && createResult.password && (
+                <div className="mt-1.5 text-xs">
+                  {t("admin.users.tempPassword")}:{" "}
+                  <span className="select-all font-mono text-sm font-semibold">{createResult.password}</span>
+                  <div className="mt-0.5 opacity-80">{t("admin.users.tempPasswordOnce")}</div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </Modal>
     </div>
