@@ -49,14 +49,21 @@ test.describe('Admin self-modification guard', () => {
     await search.fill(ADMIN_EMAIL);
     const panel = await openAccount(page, ADMIN_EMAIL);
 
-    await panel.getByRole('button', { name: 'Deactivate', exact: true }).click();
-    await expect(panel.getByText('CANNOT_MODIFY_SELF')).toBeVisible();
-
+    // The screen does not offer what the server would refuse.
+    const deactivate = panel.getByRole('button', { name: 'Deactivate', exact: true });
+    await expect(deactivate).toBeDisabled();
+    await expect(deactivate).toHaveAttribute('title', /own account/);
     const roleSelect = panel.getByRole('combobox');
-    await roleSelect.click();
-    await page.getByRole('option', { name: 'Borrower', exact: true }).click();
-    await expect(panel.getByText('CANNOT_MODIFY_SELF')).toBeVisible();
+    await expect(roleSelect).toBeDisabled();
     await expect(roleSelect).toContainText('System administrator');
+
+    // The real guard is the server: a direct call is still refused.
+    const me = await (await page.request.get('http://localhost:3000/trpc/auth.me')).json();
+    const res = await page.request.post('http://localhost:3000/trpc/admin.setUserActive', {
+      data: { id: Number(me.result.data.id), active: false },
+    });
+    expect(res.status()).toBe(403);
+    expect((await res.json()).error.data.businessCode).toBe('CANNOT_MODIFY_SELF');
 
     await closePanel(page);
     await expect(rowFor(page, ADMIN_EMAIL)).toContainText('System administrator');
