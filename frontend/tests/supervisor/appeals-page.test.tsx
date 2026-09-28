@@ -55,7 +55,12 @@ const appeal = appealOutput.strict().parse({
   replacementPenalty: null,
   creditRestored: 0,
   inspectorKeys: [3],
-  inspection: null,
+  inspection: {
+    grade: "B2",
+    notes: "Lens crack documented at return",
+    inspectorName: "Independent Inspector",
+    inspectedAt: "2026-09-25T08:00:00.000Z",
+  },
   revisedGrade: null,
 });
 
@@ -115,6 +120,13 @@ describe("supervisor appeal regression", () => {
     expect(hooks.useAppeals).toHaveBeenCalledWith("pending");
     expect(hooks.useUsagePhotos).toHaveBeenCalledWith(42);
     expect(screen.getByText(appeal.appealReason!)).toBeInTheDocument();
+    expect(screen.getByText(appeal.inspection!.notes!)).toBeInTheDocument();
+    expect(screen.getByText(/Independent Inspector/)).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        i18n.t("supervisor.appeals.gradedAs", { grade: `B2 ${i18n.t("damage.B2")}` })
+      )
+    ).toBeInTheDocument();
     expect(
       Array.from(container.querySelectorAll("img")).map((image) =>
         image.getAttribute("src")
@@ -173,5 +185,110 @@ describe("supervisor appeal regression", () => {
     render(<SupervisorAppealsPage />);
     expect(hooks.useUsagePhotos).toHaveBeenCalledWith(null);
     expect(screen.getByText(i18n.t("supervisor.appeals.noUsage"))).toBeInTheDocument();
+  });
+
+  it("offers only lower grades and sends a grade instead of a previously entered refund amount", async () => {
+    decide.mockResolvedValue(
+      appealOutput.strict().parse({
+        ...appeal,
+        status: "approved",
+        revisedGrade: "B1",
+        creditRestored: 4,
+        resolvedBy: { ...appeal.filedBy, accountKey: 9 },
+        resolvedAt: "2026-09-26T09:00:00.000Z",
+        penalty: { ...appeal.penalty, inEffect: false },
+        replacementPenalty: { ...appeal.penalty, penaltyKey: 21, creditDeducted: 4 },
+      })
+    );
+    render(<SupervisorAppealsPage />);
+    expect(screen.queryByRole("button", { name: /^B2/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^B3/ })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^B0/ })).toBeInTheDocument();
+    fireEvent.change(screen.getByRole("spinbutton"), { target: { value: "3" } });
+    const grade = screen.getByRole("button", { name: /^B1/ });
+    fireEvent.click(grade);
+    expect(grade).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("spinbutton")).toHaveValue(null);
+    fireEvent.click(
+      screen.getByRole("button", { name: i18n.t("supervisor.appeals.approve") })
+    );
+    await waitFor(() =>
+      expect(decide).toHaveBeenCalledWith({
+        appealKey: 44,
+        decision: "approve",
+        revisedGrade: "B1",
+      })
+    );
+    expect(
+      screen.getByText(i18n.t("supervisor.appeals.doneApprove", { credit: 4 }))
+    ).toBeInTheDocument();
+  });
+
+  it("clears a selected grade when entering a credit amount and submits only that amount", async () => {
+    decide.mockResolvedValue(
+      appealOutput.strict().parse({
+        ...appeal,
+        status: "approved",
+        creditRestored: 5,
+        resolvedBy: { ...appeal.filedBy, accountKey: 9 },
+        resolvedAt: "2026-09-26T09:00:00.000Z",
+        penalty: { ...appeal.penalty, inEffect: false },
+        replacementPenalty: { ...appeal.penalty, penaltyKey: 21, creditDeducted: 3 },
+      })
+    );
+    render(<SupervisorAppealsPage />);
+    const grade = screen.getByRole("button", { name: /^B1/ });
+    fireEvent.click(grade);
+    fireEvent.change(screen.getByRole("spinbutton"), { target: { value: "3" } });
+    expect(grade).toHaveAttribute("aria-pressed", "false");
+    fireEvent.click(
+      screen.getByRole("button", { name: i18n.t("supervisor.appeals.approve") })
+    );
+    await waitFor(() =>
+      expect(decide).toHaveBeenCalledWith({
+        appealKey: 44,
+        decision: "approve",
+        reducedCreditDeducted: 3,
+      })
+    );
+  });
+
+  it("shows the revised grade, replacement deduction and restored credit on an approved appeal", () => {
+    hooks.useAppeals.mockReturnValue(
+      queryResult([
+        appealOutput.strict().parse({
+          ...appeal,
+          status: "approved",
+          revisedGrade: "B1",
+          creditRestored: 4,
+          resolvedBy: { ...appeal.filedBy, accountKey: 9 },
+          resolvedAt: "2026-09-26T09:00:00.000Z",
+          penalty: { ...appeal.penalty, inEffect: false },
+          replacementPenalty: { ...appeal.penalty, penaltyKey: 21, creditDeducted: 4 },
+        }),
+      ])
+    );
+    render(<SupervisorAppealsPage />);
+    expect(
+      screen.getByText(
+        i18n.t("supervisor.appeals.revisedTo", { grade: `B1 ${i18n.t("damage.B1")}` })
+      )
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(i18n.t("supervisor.appeals.replacedBy", { credit: 4 }))
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(i18n.t("supervisor.appeals.creditReturned", { credit: 4 }))
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^B1/ })).not.toBeInTheDocument();
+  });
+
+  it("does not offer a grade revision when the original inspection is unavailable", () => {
+    hooks.useAppeals.mockReturnValue(
+      queryResult([appealOutput.strict().parse({ ...appeal, inspection: null })])
+    );
+    render(<SupervisorAppealsPage />);
+    expect(screen.queryByRole("button", { name: /^B[0-3]/ })).not.toBeInTheDocument();
+    expect(screen.getByRole("spinbutton")).toBeEnabled();
   });
 });

@@ -191,12 +191,6 @@ test.describe("Module 5 equipment browser flows", () => {
     await page
       .getByRole("searchbox", { name: "Search by name, code or brand" })
       .fill(tag);
-    // All setup above succeeded against the real API. The known failure is
-    // limited to the desired search assertion, not login, fixtures or loading.
-    test.fail(
-      true,
-      "PDF p.4: the catalogue summary search drops unit asset tags",
-    );
     await expect(row).toBeVisible();
   });
 });

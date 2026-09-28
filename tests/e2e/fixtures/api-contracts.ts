@@ -23,6 +23,7 @@ import {
 } from "../../../backend/src/notification/notification.schema";
 import {
   approvalCounts,
+  borrowerHistoryOutput,
   decideApprovalOutput,
   paginatedApprovalQueue,
   paginatedRetirementQueue,
@@ -132,6 +133,7 @@ const contracts: Record<string, OutputSchema> = {
   "loan.decideExtension": extensionOutput,
   "approval.queue": paginatedApprovalQueue,
   "approval.counts": approvalCounts,
+  "approval.borrowerHistory": borrowerHistoryOutput,
   "approval.decide": decideApprovalOutput,
   "approval.retirementQueue": paginatedRetirementQueue,
   "approval.decideRetirement": decideRetirementOutput,

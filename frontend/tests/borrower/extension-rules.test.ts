@@ -84,6 +84,24 @@ describe("extensionStateFromServer", () => {
     expect(state.values).toEqual({ date: fmtDateTime(MAX) });
   });
 
+  it("keeps a D3 refusal blocked even when the preview carries a supervisor route and unused quota", () => {
+    const state = extensionStateFromServer(
+      options({
+        canRequest: false,
+        blockedBy: "CREDIT_TOO_LOW",
+        route: "supervisor",
+        requiresInspection: true,
+        extensionsUsed: 0,
+        extensionsAllowed: 2,
+      })
+    );
+
+    expect(state.mode).toBe("blocked");
+    expect(state.canRequest).toBe(false);
+    expect(state.isPending).toBe(false);
+    expect(state.reasonKey).toBe("borrower.myRequests.extQuotaBlocked");
+  });
+
   it.each([
     ["CREDIT_TOO_LOW", "borrower.myRequests.extQuotaBlocked"],
     ["EXTENSION_QUOTA_EXCEEDED", "borrower.myRequests.extBlockedQuota"],
@@ -91,6 +109,7 @@ describe("extensionStateFromServer", () => {
     ["INVALID_EXTENSION_WINDOW", "borrower.myRequests.extBlockedOverdue"],
     ["WRONG_LOAN_STATE", "borrower.myRequests.extBlockedNotCollected"],
     ["NOT_ELIGIBLE", "borrower.myRequests.extBlockedOther"],
+    ["ROOM_NOT_EXTENDABLE", "borrower.myRequests.extBlockedRoom"],
   ])("explains a %s refusal with %s", (code, key) => {
     const state = extensionStateFromServer(
       options({ canRequest: false, blockedBy: code, route: null })
