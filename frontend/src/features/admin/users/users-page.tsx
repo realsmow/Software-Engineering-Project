@@ -50,6 +50,9 @@ import { getErrorMessage } from "@/lib/error-messages";
  * client's job. Known codes get their message; anything unrecognised is shown
  * as-is, which is better than swallowing it.
  */
+/** Rough email shape, so the form does not send what the server will refuse. */
+const EMAIL_SHAPE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
 function mutationMessage(error: unknown): string {
   return getErrorMessage(error).split("\n")[0];
 }
@@ -209,7 +212,8 @@ export default function AdminUsersPage() {
     { ok: true; text: string; password: string | null } | { ok: false; text: string } | null
   >(null);
   // Transient "…sent" confirmation shown in the detail slide-over.
-  const [notice, setNotice] = useState<string | null>(null);
+  // `bad` picks the warning style; a refusal must not look like a success.
+  const [notice, setNotice] = useState<{ text: string; bad?: boolean } | null>(null);
 
   // Who is actually doing things, counted from the audit trail. This used to
   // be a hand-written TOP_ACTIVE_USERS array, so the bars were invented while
@@ -253,12 +257,12 @@ export default function AdminUsersPage() {
       {
         onSuccess: () => {
           setEditing(false);
-          setNotice(t("admin.users.detailsSaved"));
+          setNotice({ text: t("admin.users.detailsSaved") });
           setSelected((prev) =>
             prev ? { ...prev, name: `${edit.firstName} ${edit.lastName}`.trim(), email: edit.email, govId: edit.studentId } : prev,
           );
         },
-        onError: (e) => setNotice(coverageMessage(e)),
+        onError: (e) => setNotice({ text: coverageMessage(e), bad: true }),
       },
     );
   };
@@ -298,7 +302,7 @@ export default function AdminUsersPage() {
       { id, active },
       {
         onSuccess: () => setSelected(null),
-        onError: (e) => setNotice(coverageMessage(e)),
+        onError: (e) => setNotice({ text: coverageMessage(e), bad: true }),
       },
     );
   };
@@ -345,7 +349,7 @@ export default function AdminUsersPage() {
       { id, role },
       {
         onSuccess: () => setSelected((prev) => (prev && prev.id === id ? { ...prev, role } : prev)),
-        onError: (e) => setNotice(coverageMessage(e)),
+        onError: (e) => setNotice({ text: coverageMessage(e), bad: true }),
       },
     );
   };
@@ -824,7 +828,11 @@ export default function AdminUsersPage() {
                   <Button type="button" variant="outline" onClick={() => setEditing(false)}>
                     {t("common.cancel")}
                   </Button>
-                  <Button type="button" onClick={saveEdit} disabled={updateUser.isPending}>
+                  <Button
+                    type="button"
+                    onClick={saveEdit}
+                    disabled={updateUser.isPending || !EMAIL_SHAPE.test(edit.email.trim())}
+                  >
                     {t("common.save")}
                   </Button>
                 </div>
@@ -865,12 +873,12 @@ export default function AdminUsersPage() {
                       // Shown once. There is no way to retrieve it again, so
                       // it goes on screen rather than into a "sent" message
                       // for a mail system that does not exist yet.
-                      setNotice(
-                        result.temporaryPassword
+                      setNotice({
+                        text: result.temporaryPassword
                           ? `${t("admin.users.tempPassword")}: ${result.temporaryPassword}`
                           : t("admin.users.resetSent"),
-                      ),
-                    onError: (e) => setNotice(mutationMessage(e)),
+                      }),
+                    onError: (e) => setNotice({ text: mutationMessage(e), bad: true }),
                   },
                 )
               }
@@ -879,9 +887,16 @@ export default function AdminUsersPage() {
             </Button>
 
             {notice && (
-              <div className="mt-3 flex items-center gap-2 rounded-md border border-[var(--s-ok-b)] bg-[var(--s-ok-bg)] px-3 py-2 text-sm text-[var(--s-ok-t)]">
-                <Check size={15} strokeWidth={2.5} />
-                {notice}
+              <div
+                role={notice.bad ? "alert" : "status"}
+                className={
+                  notice.bad
+                    ? "mt-3 rounded-md border border-[var(--s-warn-b)] bg-[var(--s-warn-bg)] px-3 py-2 text-sm text-[var(--s-warn-t)]"
+                    : "mt-3 flex items-center gap-2 rounded-md border border-[var(--s-ok-b)] bg-[var(--s-ok-bg)] px-3 py-2 text-sm text-[var(--s-ok-t)]"
+                }
+              >
+                {!notice.bad && <Check size={15} strokeWidth={2.5} />}
+                {notice.text}
               </div>
             )}
           </div>
@@ -901,7 +916,7 @@ export default function AdminUsersPage() {
             </Button>
             <Button
               type="button"
-              disabled={!form.name.trim() || !form.email.trim() || createUser.isPending}
+              disabled={!form.name.trim() || !EMAIL_SHAPE.test(form.email.trim()) || createUser.isPending}
               onClick={submitCreate}
             >
               {t("admin.users.createSubmit")}

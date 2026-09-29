@@ -305,6 +305,8 @@ describe('Admin users page', () => {
     await waitFor(() => {
       expect(screen.getByText(readable)).toBeInTheDocument();
     });
+    // A refusal is styled as a warning, not the green success box.
+    expect(screen.getByRole('alert')).toHaveTextContent(readable);
     expect(screen.getByRole('dialog')).toBeInTheDocument();
   });
 

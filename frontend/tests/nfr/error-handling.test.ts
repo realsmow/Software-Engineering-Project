@@ -46,4 +46,16 @@ describe("frontend error handling and localization boundary", () => {
     expect(getErrorMessage(knownRuntimeError)).not.toContain("\n");
     expect(getErrorMessage({ unexpected: true })).toBeTruthy();
   });
+
+  it("turns the server's raw input-check list into a readable message naming the field", () => {
+    // What tRPC hands back when zod rejects the input: code BAD_REQUEST and
+    // the issues as JSON in the message.
+    const rejected = Object.assign(
+      new Error(JSON.stringify([{ code: "invalid_format", path: ["email"], message: "Invalid email" }], null, 2)),
+      { data: { code: "BAD_REQUEST" } },
+    );
+    const text = getErrorMessage(rejected);
+    expect(text).not.toMatch(/^\[/);
+    expect(text).toContain("email");
+  });
 });

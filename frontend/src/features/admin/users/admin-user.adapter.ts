@@ -19,6 +19,10 @@ export interface ServerAdminUser {
   role: Role;
   status: AccountStatus;
   creditScore: number;
+  /** Null for accounts made before creation times were recorded. */
+  createdAt?: string | null;
+  /** Newest sign-in; null if the account never signed in. */
+  lastActiveAt?: string | null;
   managementGroup: { id: number; name: string | null; type: string } | null;
 }
 
@@ -42,11 +46,10 @@ export function toAdminUser(s: ServerAdminUser): AdminUser {
     // signs in, and both methods hit the same password check anyway.
     auth: authMethodFor(s.email),
     status: s.status,
-    // AccountInfo has no timestamps at all - no createdAt, no last-seen. These
-    // stay blank until the schema grows them rather than being faked, since a
-    // made-up "last active" is worse than an obvious gap.
-    lastActiveAt: "-",
-    createdAt: "-",
+    // "-" when unknown: an old account's creation time was never recorded, and
+    // an account that never signed in has no last-active time.
+    lastActiveAt: s.lastActiveAt ?? "-",
+    createdAt: s.createdAt ?? "-",
   };
 }
 

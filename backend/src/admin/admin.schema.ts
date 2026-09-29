@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { dbId } from '../common/schemas/id.schema';
+import { isoDateTimeNullable } from '../common/schemas/datetime.schema';
 import {
   paginated,
   paginationInput,
@@ -69,6 +70,10 @@ export const adminUserSummary = z.object({
   role: userRole,
   status: accountStatus,
   creditScore: z.number().int(),
+  /** Null for accounts made before creation times were recorded. */
+  createdAt: isoDateTimeNullable.default(null),
+  /** Newest sign-in; null for an account that has never signed in. */
+  lastActiveAt: isoDateTimeNullable.default(null),
   /** First group the account holds an Authority in; null for plain borrowers. */
   managementGroup: managementGroupRef.nullable(),
 });

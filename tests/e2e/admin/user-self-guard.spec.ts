@@ -64,6 +64,11 @@ test.describe('Admin self-modification guard', () => {
     });
     expect(res.status()).toBe(403);
     expect((await res.json()).error.data.businessCode).toBe('CANNOT_MODIFY_SELF');
+    const demote = await page.request.post('http://localhost:3000/trpc/admin.changeRole', {
+      data: { id: Number(me.result.data.id), role: 'borrower' },
+    });
+    expect(demote.status()).toBe(403);
+    expect((await demote.json()).error.data.businessCode).toBe('CANNOT_MODIFY_SELF');
 
     await closePanel(page);
     await expect(rowFor(page, ADMIN_EMAIL)).toContainText('System administrator');

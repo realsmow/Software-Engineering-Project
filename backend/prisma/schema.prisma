@@ -116,6 +116,8 @@ model AccountInfo {
   UserFName      String
   UserLName      String
   UserCredit     Int
+  // Null for accounts made before this column existed.
+  CreatedAt      DateTime? @default(now()) @db.Timestamptz(3)
   RoleKey        Int
   // Student / Professor / Staff / Supervisor / Admin
 
