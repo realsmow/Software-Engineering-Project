@@ -30,6 +30,8 @@ const account: AdminAccountRow = {
   Role: { RoleName: "Student" },
   UserCredit: 91,
   IsActive: true,
+  CreatedAt: null,
+  Sessions: [],
   Authorities: [],
   Penalties: [
     {

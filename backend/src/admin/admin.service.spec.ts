@@ -95,6 +95,8 @@ function serviceWith(options: {
       Email: 'ana@ku.th',
       UserCredit: 100,
       IsActive: true,
+      CreatedAt: null,
+      Sessions: [],
       Role: { RoleName: options.currentRoleName ?? 'Staff' },
       Authorities: [],
       Penalties: [],

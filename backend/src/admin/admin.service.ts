@@ -74,7 +74,14 @@ const ACCOUNT_SCALARS = {
   Email: true,
   UserCredit: true,
   IsActive: true,
+  CreatedAt: true,
   Role: { select: { RoleName: true } },
+  // Last active = newest sign-in; a session row is written at each login.
+  Sessions: {
+    orderBy: { IssuedAt: 'desc' },
+    take: 1,
+    select: { IssuedAt: true },
+  },
 } satisfies Prisma.AccountInfoSelect;
 
 /** Which management group an account holds authority in, and at what level. */

@@ -244,9 +244,30 @@ export function getErrorPayload(error: unknown): Record<string, unknown> | undef
   return undefined;
 }
 
+/**
+ * The server's input check (zod) rejects with its issues as a JSON array in
+ * `message`. Shown raw that is `[` plus JSON; say which field was wrong instead.
+ */
+function inputProblem(error: unknown): string | null {
+  const message = error instanceof Error ? error.message : "";
+  if (!message.trimStart().startsWith("[")) return null;
+  try {
+    const issues = JSON.parse(message) as { path?: unknown[] }[];
+    if (!Array.isArray(issues)) return null;
+    const field = issues[0]?.path?.join(".");
+    return field
+      ? `${ERROR_MESSAGES.VALIDATION_ERROR} (${field})`
+      : ERROR_MESSAGES.VALIDATION_ERROR;
+  } catch {
+    return null;
+  }
+}
+
 export function getErrorMessage(error: unknown): string {
   const code = extractErrorCode(error);
   if (code && ERROR_MESSAGES[code]) return ERROR_MESSAGES[code];
+  const problem = inputProblem(error);
+  if (problem) return problem;
   if (error instanceof ApiClientError) {
     return error.message || ERROR_MESSAGES.UNKNOWN_ERROR;
   }

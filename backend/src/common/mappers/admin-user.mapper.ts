@@ -42,6 +42,9 @@ export interface AdminAccountRow {
   /** Penalties in force (InEffect + not expired). Detail view only. */
   Penalties: PenaltyRow[];
   IsActive: boolean;
+  CreatedAt: Date | null;
+  /** Newest session only. */
+  Sessions: { IssuedAt: Date }[];
 }
 
 /** A ManagementGroup's name lives on whichever of its two optional sides exists. */
@@ -63,6 +66,8 @@ export function toAdminUserSummary(
     role: mapUserRole(row.Role.RoleName),
     status: row.IsActive ? 'active' : 'disabled',
     creditScore: row.UserCredit,
+    createdAt: row.CreatedAt?.toISOString() ?? null,
+    lastActiveAt: row.Sessions[0]?.IssuedAt.toISOString() ?? null,
     managementGroup: first
       ? {
           id: first.ManageGroupKey,
