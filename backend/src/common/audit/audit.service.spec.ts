@@ -1,6 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { PrismaService } from '../../prisma.service';
 import { AuditService } from './audit.service';
+import {
+  createIsolatedDatabase,
+  type IsolatedTestDatabase,
+} from '../../../tests/fixtures/isolated-database';
 
 /**
  * Against a real database, because the whole value of this table is that rows
@@ -10,14 +14,19 @@ import { AuditService } from './audit.service';
 describe('AuditService', () => {
   let service: AuditService;
   let prisma: PrismaService;
+  let database: IsolatedTestDatabase | undefined;
 
   let roleKey: number;
   let actorKey: number;
 
   beforeAll(async () => {
+    database = await createIsolatedDatabase('audit');
     const module: TestingModule = await Test.createTestingModule({
       providers: [AuditService, PrismaService],
-    }).compile();
+    })
+      .overrideProvider(PrismaService)
+      .useValue(database.client)
+      .compile();
 
     service = module.get(AuditService);
     prisma = module.get(PrismaService);
@@ -37,7 +46,7 @@ describe('AuditService', () => {
       },
     });
     actorKey = actor.AccountKey;
-  }, 30_000);
+  }, 60_000);
 
   afterAll(async () => {
     try {
@@ -51,7 +60,7 @@ describe('AuditService', () => {
           where: { RoleKey: roleKey, Accounts: { none: {} } },
         });
     } finally {
-      await prisma?.$disconnect();
+      await database?.dispose();
     }
   }, 30_000);
 

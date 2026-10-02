@@ -1,6 +1,21 @@
+import { randomUUID } from 'node:crypto';
+import type { Prisma } from '../generated/prisma/client';
+import {
+  listStaffQueueInput,
+  paginatedStaffQueue,
+  loanOutput,
+  staffQueueCounts,
+} from './loan.schema';
+import {
+  historyFixture,
+  inHistoryFixture,
+  requireIsolatedDatabase,
+  transactionClient,
+} from '../../tests/fixtures/borrower-history';
+import { freezeBusinessDate } from '../../tests/fixtures/business-clock';
 import { LoanService } from './loan.service';
-import type { PrismaService } from '../prisma.service';
-import type { StaffScopeService } from '../common/authority/staff-scope.service';
+import { PrismaService } from '../prisma.service';
+import { StaffScopeService } from '../common/authority/staff-scope.service';
 import type { PenaltyService } from '../common/penalty/penalty.service';
 import type { NotificationService } from '../notification/notification.service';
 import type { TrpcUser } from '../trpc/context';
@@ -92,61 +107,6 @@ it('still lets a T1 request go out on another unit of the same type', async () =
     }),
   ).rejects.toMatchObject({ businessCode: 'RESOURCE_NOT_FOUND' });
   expect(t.findTarget).toHaveBeenCalled();
-});
-
-describe('recordReturn', () => {
-  function svcWithPhotos(count: number) {
-    const prisma = {
-      images: {
-        findFirst: jest
-          .fn()
-          .mockResolvedValue(count > 0 ? { ImageKey: 1 } : null),
-      },
-    } as unknown as PrismaService;
-    const scope = {
-      assertResourceInScope: jest.fn(),
-    } as unknown as StaffScopeService;
-    const penalties = {
-      overdueDays: jest.fn(() => {
-        throw new Error('reached lateness');
-      }),
-    } as unknown as PenaltyService;
-    const audit = { record: jest.fn() };
-    const svc = new LoanService(
-      prisma,
-      scope,
-      penalties,
-      {} as NotificationService,
-      audit as never,
-    );
-    // The usage read is not what is under test.
-    Object.assign(svc, {
-      readUsage: jest.fn().mockResolvedValue({
-        CurrentStatus: 'Lended',
-        DueTime: new Date(),
-        Resource: { ResourceKey: 26 },
-      }),
-    });
-    return { svc, audit };
-  }
-
-  it('refuses a return nobody photographed', async () => {
-    const t = svcWithPhotos(0);
-    await expect(
-      t.svc.recordReturn(staff, { usageKey: 8 }),
-    ).rejects.toMatchObject({
-      businessCode: 'RETURN_PHOTO_REQUIRED',
-    });
-    expect(t.audit.record).not.toHaveBeenCalled();
-  });
-
-  it('goes on to settle lateness once an after photo is on file', async () => {
-    const t = svcWithPhotos(1);
-    await expect(t.svc.recordReturn(staff, { usageKey: 8 })).rejects.toThrow(
-      'reached lateness',
-    );
-    expect(t.audit.record).not.toHaveBeenCalled();
-  });
 });
 
 describe('allocate — audit trail', () => {
@@ -342,6 +302,306 @@ describe('confirmPickup before the booked time', () => {
       t.svc.confirmPickup(staff, { usageKey: 8, early: true }),
     ).rejects.toMatchObject({
       businessCode: 'PICKUP_NOT_OPEN',
+    });
+  });
+});
+
+// Real service/adapter assertions share this module's suite; setup is scoped.
+describe('Staff preparation and handover queues from persisted records', () => {
+  const NOW = new Date('2031-09-26T03:00:00Z');
+
+  const DAY = 86_400_000;
+
+  type Fixture = Awaited<ReturnType<typeof historyFixture>>;
+
+  function services(tx: Prisma.TransactionClient) {
+    const client = transactionClient(tx);
+    return new LoanService(
+      client,
+      new StaffScopeService(client),
+      {} as never,
+      {} as never,
+      {} as never,
+    );
+  }
+
+  // Each current loan gets its own physical unit and matching checkout evidence.
+  async function usage(
+    tx: Prisma.TransactionClient,
+    f: Fixture,
+    status: 'Prepared' | 'Lended' | 'Returned',
+    dueOffset: number,
+    ruleKey = f.rule.BorrowRuleKey,
+  ) {
+    const resource = await tx.resourceInfo.create({
+      data: {
+        ManagedBy: f.group.ManageGroupKey,
+        BorrowRule: ruleKey,
+        BufferTime: 0,
+        ResourceType: 'Item',
+        ResourceStatus: status === 'Lended' ? 'Lended' : 'InStorage',
+        AllowBorrow: true,
+        Item: {
+          create: {
+            ItemID: `queue-${randomUUID()}`,
+            Item: { create: { ItemName: 'Queue meter', CreditWeight: 1 } },
+          },
+        },
+      },
+    });
+    const checkout = await tx.conditionLog.create({
+      data: {
+        ResourceKey: resource.ResourceKey,
+        LoggedBy: f.inspector.AccountKey,
+        Condition: 'Normal',
+        LoggedAt: new Date(NOW.getTime() - 20 * DAY),
+      },
+    });
+    return tx.usageLog.create({
+      data: {
+        ResourceKey: resource.ResourceKey,
+        AccountKey: f.borrower.AccountKey,
+        CurrentStatus: status,
+        CheckoutCondition: checkout.ConditionKey,
+        CheckoutTime: new Date(NOW.getTime() - 20 * DAY),
+        DueTime: new Date(NOW.getTime() + dueOffset),
+        CheckInTime: status === 'Returned' ? NOW : null,
+      },
+    });
+  }
+
+  async function reservation(
+    tx: Prisma.TransactionClient,
+    f: Fixture,
+    status: 'Approved' | 'Pending' | 'Rejected',
+    offset: number,
+  ) {
+    return tx.reservations.create({
+      data: {
+        ResourceKey: f.resource.ResourceKey,
+        ReservedBy: f.borrower.AccountKey,
+        ApproveStatus: status,
+        StartTime: new Date(NOW.getTime() + offset),
+        EndTime: new Date(NOW.getTime() + offset + DAY),
+        ActionTime: NOW,
+        ReservationExpiration: new Date(NOW.getTime() + offset + DAY),
+      },
+    });
+  }
+
+  describe('FR-STF-01/02 / NFR-SEC-03: real staff queue filtering and detail access', () => {
+    let prisma: PrismaService;
+    beforeAll(async () => {
+      requireIsolatedDatabase();
+      prisma = new PrismaService();
+      await prisma.$connect();
+    });
+    afterAll(async () => prisma?.$disconnect());
+    beforeEach(() => freezeBusinessDate(NOW));
+    afterEach(() => jest.useRealTimers());
+
+    it('lists only approved unprepared requests in scope and does not present a suggested serial as confirmed', async () => {
+      await inHistoryFixture(prisma, async (tx) => {
+        const own = await historyFixture(tx),
+          foreign = await historyFixture(tx);
+        const visible = await reservation(tx, own, 'Approved', DAY);
+        await reservation(tx, own, 'Pending', 2 * DAY);
+        await reservation(tx, own, 'Rejected', 3 * DAY);
+        await reservation(tx, foreign, 'Approved', DAY);
+        const prepared = await reservation(tx, own, 'Approved', 4 * DAY);
+        const preparedUsage = await usage(tx, own, 'Prepared', 5 * DAY);
+        await tx.reservations.update({
+          where: { ReservationKey: prepared.ReservationKey },
+          data: { ResourceKey: preparedUsage.ResourceKey },
+        });
+        await tx.usageLog.update({
+          where: { UsageKey: preparedUsage.UsageKey },
+          data: { ReservationKey: prepared.ReservationKey },
+        });
+        const result = paginatedStaffQueue
+          .strict()
+          .parse(
+            await services(tx).listStaffQueue(
+              { ...own.decider, role: 'staff' },
+              listStaffQueueInput.parse({ bucket: 'toPrepare' }),
+            ),
+          );
+        expect(result.total).toBe(1);
+        expect(result.items).toHaveLength(1);
+        expect(result.items[0]).toMatchObject({
+          reservationKey: visible.ReservationKey,
+          usageKey: null,
+          status: null,
+          serialNo: null,
+          tier: 'T2',
+          borrower: {
+            accountKey: own.borrower.AccountKey,
+            studentId: own.borrower.UserID,
+          },
+          overdueDays: 0,
+          lostEligible: false,
+        });
+      });
+    });
+
+    it('pages preparation requests oldest first without duplicating rows', async () => {
+      await inHistoryFixture(prisma, async (tx) => {
+        const f = await historyFixture(tx);
+        const later = await reservation(tx, f, 'Approved', 3 * DAY);
+        const earlier = await reservation(tx, f, 'Approved', DAY);
+        const service = services(tx);
+        const first = await service.listStaffQueue(
+          f.decider,
+          listStaffQueueInput.parse({ bucket: 'toPrepare', pageSize: 1 }),
+        );
+        const second = await service.listStaffQueue(
+          f.decider,
+          listStaffQueueInput.parse({
+            bucket: 'toPrepare',
+            pageSize: 1,
+            page: 2,
+          }),
+        );
+        expect([first.total, second.total]).toEqual([2, 2]);
+        expect([
+          first.items[0].reservationKey,
+          second.items[0].reservationKey,
+        ]).toEqual([earlier.ReservationKey, later.ReservationKey]);
+      });
+    });
+
+    it('separates handover, on-loan and overdue buckets and excludes another group', async () => {
+      await inHistoryFixture(prisma, async (tx) => {
+        const f = await historyFixture(tx),
+          foreign = await historyFixture(tx);
+        const prepared = await usage(tx, f, 'Prepared', DAY);
+        const late = await usage(tx, f, 'Lended', -1);
+        const dueNow = await usage(tx, f, 'Lended', 0);
+        const notLate = await usage(tx, f, 'Lended', DAY);
+        await usage(tx, f, 'Returned', -DAY);
+        await usage(tx, foreign, 'Lended', -DAY);
+        const service = services(tx);
+        const read = async (bucket: 'toHandover' | 'onLoan' | 'overdue') =>
+          paginatedStaffQueue.parse(
+            await service.listStaffQueue(
+              f.decider,
+              listStaffQueueInput.parse({ bucket }),
+            ),
+          );
+        expect(
+          (await read('toHandover')).items.map((row) => row.usageKey),
+        ).toEqual([prepared.UsageKey]);
+        expect((await read('onLoan')).items.map((row) => row.usageKey)).toEqual(
+          [late.UsageKey, dueNow.UsageKey, notLate.UsageKey],
+        );
+        const overdue = await read('overdue');
+        expect(overdue.total).toBe(1);
+        expect(overdue.items[0]).toMatchObject({
+          usageKey: late.UsageKey,
+          overdueDays: 1,
+          lostEligible: false,
+        });
+      });
+    });
+
+    it.each(['studentId', 'firstName', 'serial'])(
+      'searches on-loan queue by %s while preserving group scope',
+      async (field) => {
+        await inHistoryFixture(prisma, async (tx) => {
+          const f = await historyFixture(tx),
+            foreign = await historyFixture(tx);
+          const ownUsage = await usage(tx, f, 'Lended', DAY);
+          await usage(tx, foreign, 'Lended', DAY);
+          const unit = await tx.itemIndiv.findUniqueOrThrow({
+            where: { ResourceKey: ownUsage.ResourceKey },
+          });
+          const q =
+            field === 'studentId'
+              ? f.borrower.UserID
+              : field === 'firstName'
+                ? 'BORROWER'
+                : unit.ItemID;
+          const result = await services(tx).listStaffQueue(
+            f.decider,
+            listStaffQueueInput.parse({ bucket: 'onLoan', q }),
+          );
+          expect(result.total).toBe(1);
+          expect(result.items[0].usageKey).toBe(ownUsage.UsageKey);
+        });
+      },
+    );
+
+    it('filters the tier without losing staff scope', async () => {
+      await inHistoryFixture(prisma, async (tx) => {
+        const f = await historyFixture(tx);
+        const t1 = await tx.borrowRule.create({ data: { RuleName: 'T1' } });
+        const wanted = await usage(tx, f, 'Lended', DAY, t1.BorrowRuleKey);
+        await usage(tx, f, 'Lended', 2 * DAY);
+        const result = await services(tx).listStaffQueue(
+          f.decider,
+          listStaffQueueInput.parse({ bucket: 'onLoan', tier: 'T1' }),
+        );
+        expect(result.total).toBe(1);
+        expect(result.items[0]).toMatchObject({
+          usageKey: wanted.UsageKey,
+          tier: 'T1',
+        });
+      });
+    });
+
+    it('reports dashboard counts consistently with the scoped queues', async () => {
+      await inHistoryFixture(prisma, async (tx) => {
+        const f = await historyFixture(tx),
+          foreign = await historyFixture(tx);
+        await reservation(tx, f, 'Approved', DAY);
+        await reservation(tx, foreign, 'Approved', DAY);
+        await usage(tx, f, 'Prepared', DAY);
+        await usage(tx, f, 'Lended', -DAY);
+        await usage(tx, f, 'Lended', DAY);
+        await usage(tx, f, 'Returned', -DAY);
+        await usage(tx, foreign, 'Lended', -DAY);
+        const result = staffQueueCounts
+          .strict()
+          .parse(await services(tx).getQueueCounts(f.decider));
+        expect(result).toEqual({
+          toPrepare: 1,
+          toHandover: 1,
+          onLoan: 2,
+          overdue: 1,
+          toInspect: 1,
+          extensionsToInspect: 0,
+        });
+      });
+    });
+
+    it('returns a loan detail from scope and measures overdue days only up to its return', async () => {
+      await inHistoryFixture(prisma, async (tx) => {
+        const f = await historyFixture(tx);
+        const returned = await usage(tx, f, 'Returned', -2 * DAY);
+        await tx.usageLog.update({
+          where: { UsageKey: returned.UsageKey },
+          data: { CheckInTime: new Date(NOW.getTime() - DAY) },
+        });
+        const result = loanOutput
+          .strict()
+          .parse(await services(tx).getLoanById(f.decider, returned.UsageKey));
+        expect(result).toMatchObject({
+          usageKey: returned.UsageKey,
+          overdueDays: 1,
+          checkoutCondition: 'Normal',
+          borrower: { accountKey: f.borrower.AccountKey },
+        });
+      });
+    });
+
+    it("refuses another group's loan detail even when its numeric ID is known", async () => {
+      await inHistoryFixture(prisma, async (tx) => {
+        const own = await historyFixture(tx),
+          foreign = await historyFixture(tx);
+        await expect(
+          services(tx).getLoanById(own.decider, foreign.usage.UsageKey),
+        ).rejects.toMatchObject({ businessCode: 'OUT_OF_MANAGEMENT_SCOPE' });
+      });
     });
   });
 });

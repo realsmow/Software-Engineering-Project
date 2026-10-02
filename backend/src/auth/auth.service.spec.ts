@@ -4,6 +4,7 @@ import { CreditTierService } from '../common/credit/credit-tier.service';
 import { hashPassword } from '../common/crypto/password';
 import { AuthService } from './auth.service';
 import { userOutput } from '../common/schemas/user.schema';
+import { requireIsolatedDatabase } from '../../tests/fixtures/isolated-database';
 
 describe('AuthService', () => {
   let service: AuthService;
@@ -18,6 +19,7 @@ describe('AuthService', () => {
   const PASSWORD = 'correct horse battery staple';
 
   beforeAll(async () => {
+    requireIsolatedDatabase();
     const module: TestingModule = await Test.createTestingModule({
       // CreditTierService: the credit-score-to-borrow-limit lookup moved out
       // of AuthService so admin.getUserById can reuse it.

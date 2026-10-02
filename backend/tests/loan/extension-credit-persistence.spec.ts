@@ -1,4 +1,5 @@
 import { PrismaService } from '../../src/prisma.service';
+import { requireIsolatedDatabase } from '../fixtures/isolated-database';
 import { LoanRequestService } from '../../src/loan/loan.request.service';
 import {
   extensionOptionsOutput,
@@ -15,6 +16,7 @@ import { creditLoanFixture } from '../fixtures/loan-extension';
 describe('SDS renewal credit gates and persistence', () => {
   let prisma: PrismaService;
   beforeAll(async () => {
+    requireIsolatedDatabase();
     prisma = new PrismaService();
     await prisma.$connect();
   });

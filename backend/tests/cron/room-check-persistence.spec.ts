@@ -1,4 +1,5 @@
 import { PrismaService } from '../../src/prisma.service';
+import { requireIsolatedDatabase } from '../fixtures/isolated-database';
 import type { Prisma } from '../../src/generated/prisma/client';
 import { CronService } from '../../src/cron/cron.service';
 import { PenaltyService } from '../../src/common/penalty/penalty.service';
@@ -52,6 +53,7 @@ async function roomFixture(tx: Prisma.TransactionClient, allowBorrow = true) {
 describe('FR-RTN-06: persisted room inspection rounds', () => {
   let prisma: PrismaService;
   beforeAll(async () => {
+    requireIsolatedDatabase();
     prisma = new PrismaService();
     await prisma.$connect();
   });

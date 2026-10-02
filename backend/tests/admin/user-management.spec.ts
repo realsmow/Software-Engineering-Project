@@ -1,13 +1,26 @@
-import { INestApplication } from '@nestjs/common';
-import { Test, TestingModule } from '@nestjs/testing';
-import { AppModule } from '../../src/app.module';
+import { randomUUID } from 'node:crypto';
+import type { Prisma } from '../../src/generated/prisma/client';
 import {
+  userLoanHistory,
   adminUserDetail,
   createUserInput,
   createUserOutput,
   listUsersInput,
   paginatedAdminUsers,
 } from '../../src/admin/admin.schema';
+import { CreditTierService } from '../../src/common/credit/credit-tier.service';
+import { StaffScopeService } from '../../src/common/authority/staff-scope.service';
+import {
+  inHistoryFixture,
+  requireIsolatedDatabase,
+  transactionClient,
+} from '../fixtures/borrower-history';
+import { requestFixture } from '../fixtures/loan-request';
+import { pickupFixture } from '../fixtures/pickup';
+import { freezeBusinessDate } from '../fixtures/business-clock';
+import { INestApplication } from '@nestjs/common';
+import { Test, TestingModule } from '@nestjs/testing';
+import { AppModule } from '../../src/app.module';
 import { AdminService } from '../../src/admin/admin.service';
 import type { AuditActor } from '../../src/common/audit/audit.service';
 import { BusinessError } from '../../src/common/errors/business-error';
@@ -151,6 +164,7 @@ describe('AdminService user management', () => {
   }
 
   beforeAll(async () => {
+    requireIsolatedDatabase();
     const module: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
     }).compile();
@@ -521,5 +535,260 @@ describe('AdminService user management', () => {
     expect(
       await prisma.penaltyInfo.count({ where: { AccountKey: result.user.id } }),
     ).toBe(0);
+  });
+});
+
+// Real service/adapter assertions share this module's suite; setup is scoped.
+describe('Persisted business records', () => {
+  const NOW = new Date('2031-09-26T03:00:00Z');
+
+  const DAY = 86_400_000;
+
+  function service(tx: Prisma.TransactionClient) {
+    const client = transactionClient(tx);
+    return new AdminService(
+      client,
+      new CreditTierService(client),
+      {} as never,
+      {} as never,
+      new StaffScopeService(client),
+      {} as never,
+      {} as never,
+    );
+  }
+
+  describe('FR-ADM-01 / NFR-SEC-03: account details and search from actual records', () => {
+    let prisma: PrismaService;
+    beforeAll(async () => {
+      requireIsolatedDatabase();
+      prisma = new PrismaService();
+      await prisma.$connect();
+    });
+    afterAll(async () => prisma?.$disconnect());
+    beforeEach(() => freezeBusinessDate(NOW));
+    afterEach(() => jest.useRealTimers());
+
+    it('reads creation time and the newest sign-in while excluding expired and revoked penalties', async () => {
+      await inHistoryFixture(prisma, async (tx) => {
+        const f = await requestFixture(tx),
+          accountKey = f.accounts[0].AccountKey;
+        const createdAt = new Date(NOW.getTime() - 10 * DAY),
+          recent = new Date(NOW.getTime() - DAY);
+        await tx.accountInfo.update({
+          where: { AccountKey: accountKey },
+          data: { CreatedAt: createdAt, UserCredit: 88 },
+        });
+        for (const [issuedAt, revoked] of [
+          [new Date(NOW.getTime() - 2 * DAY), false],
+          [recent, true],
+        ] as const) {
+          await tx.sessionInfo.create({
+            data: {
+              AccountKey: accountKey,
+              TokenHash: randomUUID(),
+              IssuedAt: issuedAt,
+              ExpiresAt: new Date(NOW.getTime() + DAY),
+              RevokedAt: revoked ? NOW : null,
+            },
+          });
+        }
+        const active = await tx.penaltyInfo.create({
+          data: {
+            AccountKey: accountKey,
+            CreditDeducted: 12,
+            Reason: 'ReturnLate',
+            ActionTime: NOW,
+            ExpirationTime: new Date(NOW.getTime() + DAY),
+            InEffect: true,
+            Appealed: false,
+          },
+        });
+        await tx.penaltyInfo.create({
+          data: {
+            AccountKey: accountKey,
+            CreditDeducted: 40,
+            ExpirationTime: NOW,
+            InEffect: true,
+          },
+        });
+        await tx.penaltyInfo.create({
+          data: {
+            AccountKey: accountKey,
+            CreditDeducted: 40,
+            ExpirationTime: new Date(NOW.getTime() + DAY),
+            InEffect: false,
+          },
+        });
+        const extra = await tx.managementGroup.create({
+          data: { GroupType: 'Club' },
+        });
+        await tx.authority.create({
+          data: {
+            AccountKey: accountKey,
+            ManageGroupKey: extra.ManageGroupKey,
+            AuthorityRoleKey: f.authorityRole.AuthorityRoleKey,
+          },
+        });
+        const output = adminUserDetail
+          .strict()
+          .parse(await service(tx).getUserById(accountKey));
+        expect(output).toMatchObject({
+          id: accountKey,
+          createdAt: createdAt.toISOString(),
+          lastActiveAt: recent.toISOString(),
+          creditScore: 88,
+          creditTier: 'D0',
+        });
+        expect(output.activePenalties.map((row) => row.id)).toEqual([
+          active.PenaltyKey,
+        ]);
+        expect(
+          output.authorities.map((row) => row.manageGroupKey).sort(),
+        ).toEqual([f.group.ManageGroupKey, extra.ManageGroupKey].sort());
+        expect(output).not.toHaveProperty('HashedPassword');
+      });
+    });
+
+    it('reports no last active time for an account that has never signed in', async () => {
+      await inHistoryFixture(prisma, async (tx) => {
+        const f = await requestFixture(tx);
+        expect(
+          await service(tx).getUserById(f.accounts[0].AccountKey),
+        ).toMatchObject({ lastActiveAt: null, activePenalties: [] });
+      });
+    });
+
+    it('combines role, active status, case-insensitive search and pagination', async () => {
+      await inHistoryFixture(prisma, async (tx) => {
+        const f = await requestFixture(tx);
+        await tx.accountInfo.update({
+          where: { AccountKey: f.accounts[1].AccountKey },
+          data: { IsActive: false },
+        });
+        const svc = service(tx);
+        const visible = paginatedAdminUsers.strict().parse(
+          await svc.listUsers(
+            listUsersInput.parse({
+              q: f.item.ItemName!.toUpperCase(),
+              role: 'borrower',
+              status: 'active',
+            }),
+          ),
+        );
+        expect(visible.total).toBe(1);
+        expect(visible.items[0]).toMatchObject({
+          id: f.accounts[0].AccountKey,
+          role: 'borrower',
+          status: 'active',
+        });
+        const first = await svc.listUsers(
+          listUsersInput.parse({ q: f.item.ItemName!, pageSize: 1 }),
+        );
+        const second = await svc.listUsers(
+          listUsersInput.parse({ q: f.item.ItemName!, pageSize: 1, page: 2 }),
+        );
+        expect([first.total, second.total]).toEqual([2, 2]);
+        expect([first.items[0].id, second.items[0].id]).toEqual(
+          f.accounts.map((row) => row.AccountKey),
+        );
+      });
+    });
+
+    it('excludes matching borrowers in another department from the staff lookup', async () => {
+      await inHistoryFixture(prisma, async (tx) => {
+        const own = await pickupFixture(tx),
+          foreign = await requestFixture(tx);
+        const q = `scope-${randomUUID()}`;
+        await tx.accountInfo.updateMany({
+          where: {
+            AccountKey: {
+              in: [own.accounts[0].AccountKey, foreign.accounts[0].AccountKey],
+            },
+          },
+          data: { UserFName: q },
+        });
+        const output = paginatedAdminUsers.parse(
+          await service(tx).listUsersInScope(
+            own.staff,
+            listUsersInput.parse({ q, role: 'borrower' }),
+          ),
+        );
+        expect(output.total).toBe(1);
+        expect(output.items[0].id).toBe(own.accounts[0].AccountKey);
+      });
+    });
+
+    it("returns only the addressed account's real loan history with nullable check-in time", async () => {
+      await inHistoryFixture(prisma, async (tx) => {
+        const f = await pickupFixture(tx);
+        const condition = await tx.conditionLog.create({
+          data: {
+            ResourceKey: f.units[0].ResourceKey,
+            LoggedBy: f.staff.accountKey,
+            Condition: 'Normal',
+            LoggedAt: NOW,
+          },
+        });
+        const create = (
+          accountKey: number,
+          resourceKey: number,
+          checkout: Date,
+          returned: boolean,
+        ) =>
+          tx.usageLog.create({
+            data: {
+              AccountKey: accountKey,
+              ResourceKey: resourceKey,
+              CheckoutCondition: condition.ConditionKey,
+              CheckoutTime: checkout,
+              DueTime: NOW,
+              CurrentStatus: returned ? 'Inspected' : 'Lended',
+              CheckInTime: returned ? NOW : null,
+            },
+          });
+        const old = await create(
+          f.accounts[0].AccountKey,
+          f.units[0].ResourceKey,
+          new Date(NOW.getTime() - 2 * DAY),
+          true,
+        );
+        const current = await create(
+          f.accounts[0].AccountKey,
+          f.units[0].ResourceKey,
+          new Date(NOW.getTime() - DAY),
+          false,
+        );
+        const otherCondition = await tx.conditionLog.create({
+          data: {
+            ResourceKey: f.units[1].ResourceKey,
+            LoggedBy: f.staff.accountKey,
+            Condition: 'Normal',
+            LoggedAt: NOW,
+          },
+        });
+        await tx.usageLog.create({
+          data: {
+            AccountKey: f.accounts[1].AccountKey,
+            ResourceKey: f.units[1].ResourceKey,
+            CheckoutCondition: otherCondition.ConditionKey,
+            CheckoutTime: NOW,
+            DueTime: new Date(NOW.getTime() + DAY),
+            CurrentStatus: 'Lended',
+          },
+        });
+        const output = userLoanHistory.parse(
+          await service(tx).getUserLoans(f.accounts[0].AccountKey),
+        );
+        expect(output.map((row) => row.id)).toEqual([
+          current.UsageKey,
+          old.UsageKey,
+        ]);
+        expect(output[0]).toMatchObject({
+          itemName: f.item.ItemName,
+          checkInTime: null,
+        });
+        expect(output[1].checkInTime).toBe(NOW.toISOString());
+      });
+    });
   });
 });

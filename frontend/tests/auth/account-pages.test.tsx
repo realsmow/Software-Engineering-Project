@@ -1,3 +1,5 @@
+import { creditOutput } from "../../../backend/src/credit/credit.schema";
+import { toMyCredit } from "../../src/features/account/credit.adapter";
 import { StrictMode, type ReactElement } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
@@ -239,5 +241,82 @@ describe("profile account actions through real hooks", () => {
     expect(screen.getByLabelText(i18n.t("profile.currentPassword"))).toHaveValue(
       "wrong-password"
     );
+  });
+});
+
+// Real service/adapter assertions share this module's suite; setup is scoped.
+describe("Credit and penalty view model", () => {
+  const standing = () =>
+    creditOutput.strict().parse({
+      accountId: 42,
+      score: 88,
+      tier: "D0",
+      maxBorrowDays: 14,
+      maxExtendTimes: 3,
+      totalDeducted: 12,
+      activePenalties: [
+        {
+          id: 1,
+          reason: "DamagedItem",
+          usageKey: 7,
+          creditDeducted: 12,
+          issuedAt: "2031-09-26T03:00:00.000Z",
+          expiresAt: "2031-10-01T03:00:00.000Z",
+          appealed: true,
+        },
+        {
+          id: 2,
+          reason: null,
+          usageKey: null,
+          creditDeducted: null,
+          issuedAt: null,
+          expiresAt: "2031-10-02T03:00:00.000Z",
+          appealed: false,
+        },
+      ],
+    });
+
+  describe("FR-CRD-07/08: credit penalties shown to the borrower", () => {
+    it("shows a nullable deduction as zero and retains missing reasons and issue times", () => {
+      expect(toMyCredit(standing()).penalties[0]).toEqual({
+        id: "2",
+        reason: null,
+        creditDeducted: 0,
+        issuedAt: null,
+        expiresAt: "2031-10-02T03:00:00.000Z",
+        appealed: false,
+      });
+    });
+    it("orders penalties by newest expiry without reordering the server response", () => {
+      const input = standing();
+      expect(toMyCredit(input).penalties.map((penalty) => penalty.id)).toEqual([
+        "2",
+        "1",
+      ]);
+      expect(input.activePenalties.map((penalty) => penalty.id)).toEqual([1, 2]);
+      expect(toMyCredit(input).penalties[1].appealed).toBe(true);
+    });
+    it("preserves the server's score, band, limits and total deduction", () => {
+      expect(toMyCredit(standing())).toMatchObject({
+        accountId: 42,
+        score: 88,
+        band: "D0",
+        maxBorrowDays: 14,
+        maxExtendTimes: 3,
+        totalDeducted: 12,
+      });
+    });
+    it("supports an account with no active penalties", () => {
+      expect(
+        toMyCredit(
+          creditOutput.parse({
+            ...standing(),
+            score: 100,
+            totalDeducted: 0,
+            activePenalties: [],
+          })
+        )
+      ).toMatchObject({ score: 100, penalties: [], totalDeducted: 0 });
+    });
   });
 });

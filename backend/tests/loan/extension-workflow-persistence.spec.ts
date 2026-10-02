@@ -1,4 +1,5 @@
 import { PrismaService } from '../../src/prisma.service';
+import { requireIsolatedDatabase } from '../fixtures/isolated-database';
 import type { Prisma } from '../../src/generated/prisma/client';
 import {
   extensionOptionsOutput,
@@ -55,6 +56,7 @@ async function nextBooking(
 describe('SDS renewal workflow: gates before routing and persisted decisions', () => {
   let prisma: PrismaService;
   beforeAll(async () => {
+    requireIsolatedDatabase();
     prisma = new PrismaService();
     await prisma.$connect();
   });

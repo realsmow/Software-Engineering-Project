@@ -1,6 +1,21 @@
+import { PrismaService } from '../../src/prisma.service';
+import type { ResourceInfo } from '../../src/generated/prisma/client';
+import { ItemService } from '../../src/item/item.service';
+import { StaffScopeService } from '../../src/common/authority/staff-scope.service';
+import {
+  listManagedRoomsInput,
+  paginatedManagedRooms,
+  roomSummary,
+  roomOutput,
+} from '../../src/item/item.schema';
+import {
+  historyFixture,
+  inHistoryFixture,
+  requireIsolatedDatabase,
+  transactionClient,
+} from '../fixtures/borrower-history';
 import type { TrpcUser } from '../../src/trpc/context';
 import { ItemManagementService } from '../../src/item/item.management.service';
-import { roomOutput } from '../../src/item/item.schema';
 import { withOutputContracts } from '../fixtures/output-contracts';
 
 function objectContaining(value: Record<string, unknown>): unknown {
@@ -241,5 +256,120 @@ describe('Dynamic room eligibility after item.createRoom', () => {
         data: objectContaining({ AllowBorrow: false }),
       }),
     );
+  });
+});
+
+// Real service/adapter assertions share this module's suite; setup is scoped.
+describe('Persisted business records', () => {
+  describe('FR-AUTH-05 / FR-EQP-01: staff room reads and borrower room detail', () => {
+    let prisma: PrismaService;
+    beforeAll(async () => {
+      requireIsolatedDatabase();
+      prisma = new PrismaService();
+      await prisma.$connect();
+    });
+    afterAll(async () => prisma?.$disconnect());
+
+    function service(client: PrismaService) {
+      return new ItemManagementService(
+        client,
+        new StaffScopeService(client),
+        { toPublicUrl: (url: string | null) => url } as never,
+        { record: jest.fn() } as never,
+        {} as never,
+      );
+    }
+
+    it.each([true, false])(
+      'filters managed rooms by lendable=%s and location within the caller scope',
+      async (lendable) => {
+        await inHistoryFixture(prisma, async (tx) => {
+          const own = await historyFixture(tx),
+            foreign = await historyFixture(tx);
+          const rule = await tx.borrowRule.create({ data: { RuleName: 'T3' } });
+          const rooms: ResourceInfo[] = [];
+          for (const [f, allowed] of [
+            [own, true],
+            [own, false],
+            [foreign, lendable],
+          ] as const) {
+            rooms.push(
+              await tx.resourceInfo.create({
+                data: {
+                  ManagedBy: f.group.ManageGroupKey,
+                  BorrowRule: rule.BorrowRuleKey,
+                  BufferTime: 0,
+                  ResourceType: 'Room',
+                  ResourceStatus: 'InStorage',
+                  AllowBorrow: allowed,
+                  Room: {
+                    create: {
+                      RoomName: 'QA room',
+                      RoomLocation: 'QA building',
+                      CreditWeight: 1,
+                    },
+                  },
+                },
+              }),
+            );
+          }
+          const output = paginatedManagedRooms
+            .strict()
+            .parse(
+              await service(transactionClient(tx)).listManagedRooms(
+                own.decider,
+                listManagedRoomsInput.parse({ q: 'QA BUILDING', lendable }),
+              ),
+            );
+          expect(output.total).toBe(1);
+          expect(output.items[0]).toMatchObject({
+            resourceKey: rooms[lendable ? 0 : 1].ResourceKey,
+            capacity: null,
+            tier: 'T3',
+            lendable,
+          });
+        });
+      },
+    );
+
+    it('returns a real room with unknown capacity and makes a retired room unavailable through its old ID', async () => {
+      await inHistoryFixture(prisma, async (tx) => {
+        const f = await historyFixture(tx);
+        const rule = await tx.borrowRule.create({ data: { RuleName: 'T3' } });
+        const room = await tx.roomInfo.create({
+          data: {
+            RoomName: 'QA detail room',
+            CreditWeight: 1,
+            Resource: {
+              create: {
+                ManagedBy: f.group.ManageGroupKey,
+                BorrowRule: rule.BorrowRuleKey,
+                BufferTime: 0,
+                ResourceType: 'Room',
+                ResourceStatus: 'InStorage',
+                AllowBorrow: true,
+              },
+            },
+          },
+        });
+        const catalog = new ItemService(transactionClient(tx));
+        expect(
+          roomSummary.strict().parse(await catalog.getRoomById(room.RoomKey)),
+        ).toMatchObject({
+          id: room.RoomKey,
+          name: 'QA detail room',
+          capacity: null,
+          bookable: true,
+          tier: 'T3',
+        });
+        await tx.resourceInfo.update({
+          where: { ResourceKey: room.ResourceKey },
+          data: { ResourceStatus: 'Retired', AllowBorrow: false },
+        });
+        await expect(catalog.getRoomById(room.RoomKey)).rejects.toMatchObject({
+          businessCode: 'ROOM_NOT_FOUND',
+        });
+      });
+    });
   });
 });

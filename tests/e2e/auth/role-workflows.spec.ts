@@ -1,6 +1,11 @@
-import type { Page } from "@playwright/test";
+import { createHash } from "node:crypto";
+import { createRequire } from "node:module";
+import { resolve } from "node:path";
+import { errors, type Page } from "@playwright/test";
+import type { Client as PostgresClient } from "../../../backend/node_modules/@types/pg";
+import { userOutput } from "../../../backend/src/common/schemas/user.schema";
+import { liveCall, login, mutationData, mutationResponse } from "../fixtures/live-workflow";
 import { expect, test } from "../fixtures/api-contracts";
-import { mutationData, mutationResponse } from "../fixtures/live-workflow";
 import { loginOutput } from "../../../backend/src/auth/auth.schema";
 
 const USERS = {
@@ -109,4 +114,142 @@ test.describe("Staff and supervisor workspaces", () => {
     expect((await notifications).ok()).toBeTruthy();
     await expect(page.getByText("Notifications", { exact: true }).last()).toBeVisible();
   });
+});
+
+const backendRequire = createRequire(
+  resolve(__dirname, "../../../backend/package.json"),
+);
+
+const { Client } = backendRequire("pg") as { Client: typeof PostgresClient };
+
+test("FR-AUTH-06: redirects an expired session to login on menu navigation without reloading", async ({
+  page,
+}) => {
+  // This test expires a real database row. Refuse the development database
+  // even when ordinary Playwright is pointed at a running local application.
+  const databaseUrl = new URL(process.env.DATABASE_URL ?? "");
+  if (
+    process.env.NODE_ENV !== "test" ||
+    !["localhost", "127.0.0.1", "::1"].includes(databaseUrl.hostname) ||
+    !/^\/ulms_test_\d+_\d+$/.test(databaseUrl.pathname)
+  ) {
+    throw new Error(
+      "Session expiry requires the isolated E2E runner and its disposable database",
+    );
+  }
+
+  const database = new Client({ connectionString: databaseUrl.toString() });
+  let tokenHash: string | undefined;
+  let accountKey: number | undefined;
+  let redirectedWithoutReload = false;
+  await database.connect();
+  try {
+    await page.addInitScript(() => localStorage.setItem("ulms-locale", "en"));
+    const user = await login(page.request, "borrower");
+    accountKey = user.id;
+    expect(await liveCall(page.request, "auth.me", userOutput)).toMatchObject({
+      id: accountKey,
+    });
+    await page.goto("/");
+    const catalogMenu = page.getByRole("button", {
+      name: "Equipment catalog",
+      exact: true,
+    });
+    await expect(catalogMenu).toBeVisible();
+
+    const cookie = (await page.context().cookies("http://localhost:3000")).find(
+      (row) => row.name === "ulms_session",
+    );
+    expect(cookie, "Login must issue a real session cookie").toBeDefined();
+    const separator = cookie!.value.lastIndexOf(".");
+    expect(separator).toBeGreaterThan(0);
+    const sessionId = Buffer.from(
+      cookie!.value.slice(0, separator),
+      "base64url",
+    ).toString("utf8");
+    tokenHash = createHash("sha256").update(sessionId).digest("hex");
+    const now = new Date();
+    const expiredAt = new Date(now.getTime() - 1_000);
+    const expired = await database.query(
+      `UPDATE "SessionInfo" SET "ExpiresAt" = $1
+       WHERE "TokenHash" = $2 AND "AccountKey" = $3
+         AND "RevokedAt" IS NULL AND "ExpiresAt" > $4
+       RETURNING "SessionKey"`,
+      [expiredAt, tokenHash, accountKey, now],
+    );
+    expect(
+      expired.rowCount,
+      "Expire only the session issued for this browser",
+    ).toBe(1);
+    const stored = await database.query<{
+      ExpiresAt: Date;
+      RevokedAt: Date | null;
+    }>(
+      `SELECT "ExpiresAt", "RevokedAt" FROM "SessionInfo" WHERE "TokenHash" = $1`,
+      [tokenHash],
+    );
+    expect(stored.rows[0].ExpiresAt.getTime()).toBe(expiredAt.getTime());
+    expect(stored.rows[0].RevokedAt).toBeNull();
+
+    // APIRequestContext shares the cookie but does not notify the frontend.
+    // Prove expiry is real before testing the SPA's response to its own 401.
+    const me = await page.request.get("http://localhost:3000/trpc/auth.me");
+    expect(me.status()).toBe(401);
+    const denied = page.waitForResponse(
+      (response) =>
+        new URL(response.url()).pathname
+          .split("/trpc/")[1]
+          ?.split(",")
+          .includes("item.list") === true && response.status() === 401,
+    );
+    await catalogMenu.click();
+    const response = await denied;
+    await test.info().attach("expired-session-api-refusal", {
+      body: JSON.stringify(
+        { status: response.status(), body: await response.json() },
+        null,
+        2,
+      ),
+      contentType: "application/json",
+    });
+
+    // Observe the desired redirect without recording an assertion failure yet.
+    // Bootstrap and cleanup must succeed before the expected-defect marker.
+    try {
+      await page.waitForURL(/\/login(?:\?.*)?$/, { timeout: 10_000 });
+      redirectedWithoutReload = true;
+    } catch (error) {
+      if (!(error instanceof errors.TimeoutError)) throw error;
+    }
+    if (!redirectedWithoutReload) {
+      await test.info().attach("expired-session-before-reload", {
+        body: await page.screenshot(),
+        contentType: "image/png",
+      });
+      await page.reload();
+      await expect(page).toHaveURL(/\/login(?:\?.*)?$/);
+    }
+    await expect(page.locator("#m-local .login-method-header")).toBeVisible();
+    await expect(catalogMenu).toHaveCount(0);
+  } finally {
+    try {
+      if (tokenHash && accountKey !== undefined) {
+        await database.query(
+          `DELETE FROM "SessionInfo" WHERE "TokenHash" = $1 AND "AccountKey" = $2`,
+          [tokenHash, accountKey],
+        );
+      }
+    } finally {
+      await database.end();
+    }
+  }
+
+  test.fail(
+    true,
+    "FR-AUTH-06: an expired session stays on /catalog until reload",
+  );
+  expect(
+    redirectedWithoutReload,
+    "a browser API 401 must end the authenticated UI without reload",
+  ).toBe(true);
 });

@@ -1,5 +1,4 @@
 import type { Prisma } from '../../src/generated/prisma/client';
-import { PrismaService } from '../../src/prisma.service';
 import { LoanService } from '../../src/loan/loan.service';
 import { StaffScopeService } from '../../src/common/authority/staff-scope.service';
 import { PenaltyService } from '../../src/common/penalty/penalty.service';
@@ -10,6 +9,7 @@ import {
 } from '../../src/loan/loan.schema';
 import type { TrpcUser } from '../../src/trpc/context';
 import { requestFixture } from './loan-request';
+import { transactionClient } from './borrower-history';
 
 export const PICKUP_NOW = new Date('2031-09-26T00:00:00.000Z');
 export const PICKUP_START = new Date('2031-09-26T02:00:00.000Z');
@@ -46,37 +46,7 @@ export async function pickupFixture(tx: Prisma.TransactionClient) {
     facultyKey: null,
     creditScore: 100,
   };
-  // The enclosing transaction rolls back the fixture. Real PostgreSQL
-  // savepoints also preserve each service transaction's rollback semantics.
-  let transactionNo = 0;
-  const client = new Proxy(tx, {
-    get(target, property) {
-      if (property === '$transaction')
-        return async (
-          work:
-            | ((transaction: Prisma.TransactionClient) => Promise<unknown>)
-            | Promise<unknown>[],
-        ) => {
-          const savepoint = `pickup_${++transactionNo}`;
-          await tx.$executeRawUnsafe(`SAVEPOINT "${savepoint}"`);
-          try {
-            let result: unknown;
-            if (Array.isArray(work)) {
-              const rows: unknown[] = [];
-              for (const query of work) rows.push(await query);
-              result = rows;
-            } else result = await work(tx);
-            await tx.$executeRawUnsafe(`RELEASE SAVEPOINT "${savepoint}"`);
-            return result;
-          } catch (error) {
-            await tx.$executeRawUnsafe(`ROLLBACK TO SAVEPOINT "${savepoint}"`);
-            await tx.$executeRawUnsafe(`RELEASE SAVEPOINT "${savepoint}"`);
-            throw error;
-          }
-        };
-      return Reflect.get(target, property) as unknown;
-    },
-  }) as unknown as PrismaService;
+  const client = transactionClient(tx);
   const notifications = new NotificationService(client);
   const loan = new LoanService(
     client,

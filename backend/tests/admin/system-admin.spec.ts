@@ -1,3 +1,5 @@
+import type { ConfigService } from '@nestjs/config';
+import { GoogleOAuthService } from '../../src/auth/google-oauth.service';
 import { withOutputContracts } from '../fixtures/output-contracts';
 import { adminContracts } from '../fixtures/service-contracts';
 import { AdminService } from '../../src/admin/admin.service';
@@ -225,6 +227,10 @@ describe('IT admin system status, cron, config, and audit procedures', () => {
     const technicalConfig = service.getConfig();
 
     expect(technicalConfig.auth.sessionTimeoutMinutes).toBe(480);
+    expect(
+      new GoogleOAuthService(config as never, {} as never).isEnabled(),
+    ).toBe(false);
+    expect(technicalConfig.auth.googleOauthEnabled).toBe(false);
     expect(technicalConfig.storage.provider).toBe('local-disk');
     expect(technicalConfig.storage.bucket).toBe('/srv/media');
     // A From header value is reported as its address, or the schema rejects it.
@@ -311,6 +317,51 @@ describe('IT admin system status, cron, config, and audit procedures', () => {
     await expect(service.getAuditById({ id: 999 })).rejects.toMatchObject({
       businessCode: 'AUDIT_EVENT_NOT_FOUND',
       details: { id: 999 },
+    });
+  });
+});
+
+// Real service/adapter assertions share this module's suite; setup is scoped.
+describe('OAuth runtime and technical configuration consistency', () => {
+  const configured = {
+    NODE_ENV: 'test',
+    GOOGLE_CLIENT_ID: 'qa-client',
+    GOOGLE_CLIENT_SECRET: 'qa-secret',
+    GOOGLE_REDIRECT_URI: 'http://localhost:3000/auth/google/callback',
+  };
+
+  function services(values: Record<string, string>) {
+    const config = { get: (key: string) => values[key] } as ConfigService;
+    return {
+      google: new GoogleOAuthService(config, {} as never),
+      admin: new AdminService(
+        {} as never,
+        {} as never,
+        {} as never,
+        {} as never,
+        {} as never,
+        config,
+        {} as never,
+      ),
+    };
+  }
+
+  describe('FR-ADM-05 : deployed OAuth configuration is reported consistently', () => {
+    describe('known defect', () => {
+      let enabled: ReturnType<typeof services>;
+      beforeEach(() => {
+        enabled = services(configured);
+        // Setup and provider checks must pass normally; only the product
+        // assertion below is expected to fail until the configuration is fixed.
+        expect(enabled.google.isEnabled()).toBe(true);
+        technicalConfigOutput.strict().parse(enabled.admin.getConfig());
+      });
+      it.failing(
+        'reports OAuth enabled when the deployed provider is enabled',
+        () => {
+          expect(enabled.admin.getConfig().auth.googleOauthEnabled).toBe(true);
+        },
+      );
     });
   });
 });

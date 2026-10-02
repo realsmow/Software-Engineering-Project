@@ -161,27 +161,10 @@ jobs:
           git diff --exit-code frontend/src/server/api-types.d.ts
         working-directory: backend
 
-      # migrate deploy, not migrate dev: dev is interactive and would hang the
-      # runner.
-      - name: migrate
-        run: npx prisma migrate deploy
-        working-directory: backend
-        env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/app
-
-      # Seed the reference roles and credit tiers before integration tests.
-      - name: seed
-        run: npm run seed
-        working-directory: backend
-        env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/app
-
-      # One run covers src specs and tests; serial execution avoids shared DB races.
+      # The runner migrates and seeds reference data in its own disposable DB.
+      # This also satisfies persistence-test guards without using the app DB.
       - name: test
-        run: npm test -- --runInBand
-        working-directory: backend
-        env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/app
+        run: node tests/run-isolated.mjs --backend --no-coverage
 
   frontend:
     name: frontend

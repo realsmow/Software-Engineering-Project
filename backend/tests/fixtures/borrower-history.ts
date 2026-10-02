@@ -8,6 +8,45 @@ import { PenaltyService } from '../../src/common/penalty/penalty.service';
 import { NotificationService } from '../../src/notification/notification.service';
 import type { TrpcUser } from '../../src/trpc/context';
 
+export { requireIsolatedDatabase } from './isolated-database';
+
+/**
+ * Reuse the enclosing fixture transaction for actual service SQL. This is the
+ * savepoint adapter originally used by pickupFixture, shared by read fixtures
+ * too because Prisma services use both callback and array transactions.
+ */
+export function transactionClient(tx: Prisma.TransactionClient): PrismaService {
+  let transactionNo = 0;
+  return new Proxy(tx, {
+    get(target, property) {
+      if (property === '$transaction')
+        return async (
+          work:
+            | ((transaction: Prisma.TransactionClient) => Promise<unknown>)
+            | Promise<unknown>[],
+        ) => {
+          const savepoint = `fixture_${++transactionNo}`;
+          await tx.$executeRawUnsafe(`SAVEPOINT "${savepoint}"`);
+          try {
+            let result: unknown;
+            if (Array.isArray(work)) {
+              const rows: unknown[] = [];
+              for (const query of work) rows.push(await query);
+              result = rows;
+            } else result = await work(tx);
+            await tx.$executeRawUnsafe(`RELEASE SAVEPOINT "${savepoint}"`);
+            return result;
+          } catch (error) {
+            await tx.$executeRawUnsafe(`ROLLBACK TO SAVEPOINT "${savepoint}"`);
+            await tx.$executeRawUnsafe(`RELEASE SAVEPOINT "${savepoint}"`);
+            throw error;
+          }
+        };
+      return Reflect.get(target, property) as unknown;
+    },
+  }) as unknown as PrismaService;
+}
+
 // Every fixture is rolled back, including when a setup assertion fails.
 export async function inHistoryFixture<T>(
   prisma: PrismaService,

@@ -1,4 +1,5 @@
 import { PrismaService } from '../../src/prisma.service';
+import { requireIsolatedDatabase } from '../fixtures/isolated-database';
 import type { Prisma } from '../../src/generated/prisma/client';
 import { CronService } from '../../src/cron/cron.service';
 import { PenaltyService } from '../../src/common/penalty/penalty.service';
@@ -56,6 +57,7 @@ describe('FR-APV-06 / FR-NTF-01: no-show cancellation notifications', () => {
   let prisma: PrismaService;
   let termEnd: string | undefined;
   beforeAll(async () => {
+    requireIsolatedDatabase();
     prisma = new PrismaService();
     await prisma.$connect();
     termEnd = process.env.TERM_END_DATE;

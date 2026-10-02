@@ -1,4 +1,5 @@
 import { PrismaService } from '../../src/prisma.service';
+import { requireIsolatedDatabase } from '../fixtures/isolated-database';
 import { ReportService } from '../../src/report/report.service';
 import { reportSummaryOutput } from '../../src/report/report.schema';
 import { StaffScopeService } from '../../src/common/authority/staff-scope.service';
@@ -13,6 +14,7 @@ const NOW = new Date('2031-09-26T03:00:00.000Z'); // 10:00 Bangkok, inside room 
 describe('FR-ADM-06: reports aggregated from persisted rows', () => {
   let prisma: PrismaService;
   beforeAll(async () => {
+    requireIsolatedDatabase();
     prisma = new PrismaService();
     await prisma.$connect();
   });
