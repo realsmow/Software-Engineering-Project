@@ -20,8 +20,15 @@ import {
   auditEventIdInput,
   auditEventOutput,
   changeRoleInput,
+  createFacultyInput,
+  createGroupInput,
   createUserInput,
   createUserOutput,
+  orgFaculty,
+  orgGroup,
+  orgOutput,
+  type CreateFacultyInput,
+  type CreateGroupInput,
   cronJobOutput,
   lendingSettingsOutput,
   listAuditInput,
@@ -124,6 +131,25 @@ export class AdminRouter {
   @Mutation({ input: createUserInput, output: createUserOutput })
   createUser(@Input() input: CreateUserInput, @Ctx() ctx: TrpcContext) {
     return this.adminService.createUser(input, AdminRouter.actorFrom(ctx));
+  }
+
+  // Faculties, departments and clubs. Items need one as their owner.
+  @UseMiddlewares(AdminMiddleware)
+  @Query({ output: orgOutput })
+  listOrg() {
+    return this.adminService.listOrg();
+  }
+
+  @UseMiddlewares(AdminMiddleware)
+  @Mutation({ input: createFacultyInput, output: orgFaculty })
+  createFaculty(@Input() input: CreateFacultyInput, @Ctx() ctx: TrpcContext) {
+    return this.adminService.createFaculty(input, AdminRouter.actorFrom(ctx));
+  }
+
+  @UseMiddlewares(AdminMiddleware)
+  @Mutation({ input: createGroupInput, output: orgGroup })
+  createGroup(@Input() input: CreateGroupInput, @Ctx() ctx: TrpcContext) {
+    return this.adminService.createGroup(input, AdminRouter.actorFrom(ctx));
   }
 
   @UseMiddlewares(AdminMiddleware)

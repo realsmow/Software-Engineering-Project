@@ -25,6 +25,7 @@ function accountRow(overrides: Partial<AdminAccountRow> = {}): AdminAccountRow {
     Authorities: [],
     Penalties: [],
     CreatedAt: null,
+    FacultyKey: null,
     Sessions: [],
     ...overrides,
   };

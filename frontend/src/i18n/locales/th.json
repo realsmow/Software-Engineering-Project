@@ -178,7 +178,8 @@
     "thisPage": "หน้านี้",
     "systemOverview": "ภาพรวมระบบ",
     "technicalConfig": "ตั้งค่าเชิงเทคนิค",
-    "repairs": "งานซ่อม"
+    "repairs": "งานซ่อม",
+    "organization": "โครงสร้างหน่วยงาน"
   },
   "theme": {
     "darkMode": "โหมดมืด",
@@ -250,7 +251,11 @@
       },
       "selfLocked": "แก้ไขบทบาทหรือระงับบัญชีของตัวเองไม่ได้",
       "createdOk": "สร้างบัญชีให้ {{name}} ({{email}}) แล้ว",
-      "tempPasswordOnce": "คัดลอกเก็บไว้ตอนนี้ จะไม่แสดงอีก"
+      "tempPasswordOnce": "คัดลอกเก็บไว้ตอนนี้ จะไม่แสดงอีก",
+      "faculty": "คณะ",
+      "facultyNone": "ไม่มี",
+      "groups": "ภาควิชาและชมรม",
+      "noGroups": "ยังไม่มีภาควิชาหรือชมรม"
     },
     "status": {
       "subtitle": "สถานะระบบและงานตามกำหนดเวลา อัปเดตทุก 30 วินาที",
@@ -400,6 +405,21 @@
       "topUsers": "ผู้ใช้ที่มีกิจกรรมมากสุด",
       "actions": "การกระทำ",
       "events": "เหตุการณ์"
+    },
+    "org": {
+      "title": "โครงสร้างหน่วยงาน",
+      "faculties": "คณะและภาควิชา",
+      "clubs": "ชมรม",
+      "addFaculty": "เพิ่มคณะ",
+      "addDepartment": "เพิ่มภาควิชา",
+      "addClub": "เพิ่มชมรม",
+      "name": "ชื่อ",
+      "faculty": "คณะ",
+      "pickFaculty": "เลือกคณะ",
+      "noFaculties": "ยังไม่มีคณะ",
+      "noDepartments": "ยังไม่มีภาควิชา",
+      "noClubs": "ยังไม่มีชมรม",
+      "created": "สร้าง {{name}} แล้ว"
     }
   },
   "borrower": {

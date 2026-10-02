@@ -43,6 +43,7 @@ export interface AdminAccountRow {
   Penalties: PenaltyRow[];
   IsActive: boolean;
   CreatedAt: Date | null;
+  FacultyKey: number | null;
   /** Newest session only. */
   Sessions: { IssuedAt: Date }[];
 }
@@ -86,6 +87,7 @@ export function toAdminUserDetail(
     ...toAdminUserSummary(row),
 
     creditTier: limits.creditTier,
+    facultyId: row.FacultyKey,
     maxBorrowDays: limits.maxBorrowDays,
     maxExtendTimes: limits.maxExtendTimes,
 

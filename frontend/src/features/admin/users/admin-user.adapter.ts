@@ -83,6 +83,7 @@ export interface ServerActivePenalty {
 }
 
 export interface ServerAdminUserDetail extends ServerAdminUser {
+  facultyId: number | null;
   creditTier: string;
   maxBorrowDays: number;
   maxExtendTimes: number;
@@ -94,6 +95,7 @@ export interface AdminUserDetail extends AdminUser {
   /** Kept apart from the combined `name`, because the edit form writes them separately. */
   firstName: string;
   lastName: string;
+  facultyId: number | null;
   creditScore: number;
   creditTier: string;
   maxBorrowDays: number;
@@ -107,6 +109,7 @@ export function toAdminUserDetail(s: ServerAdminUserDetail): AdminUserDetail {
     ...toAdminUser(s),
     firstName: s.firstName,
     lastName: s.lastName,
+    facultyId: s.facultyId,
     creditScore: s.creditScore,
     creditTier: s.creditTier,
     maxBorrowDays: s.maxBorrowDays,
