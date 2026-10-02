@@ -115,6 +115,8 @@ const ERROR_MESSAGES: Record<string, string> = {
   AUDIT_EVENT_NOT_FOUND: "ไม่พบรายการบันทึกนี้",
   EMAIL_ALREADY_IN_USE: "อีเมลนี้ถูกใช้กับบัญชีอื่นแล้ว",
   USER_ID_ALREADY_IN_USE: "รหัสผู้ใช้นี้ถูกใช้กับบัญชีอื่นแล้ว",
+  FACULTY_NOT_FOUND: "ไม่พบคณะนี้",
+  GROUP_NOT_FOUND: "ไม่พบภาควิชาหรือชมรมนี้",
   CANNOT_MODIFY_SELF: "คุณแก้ไขบทบาทหรือระงับบัญชีของตัวเองไม่ได้",
   // The generic wording. The admin user screen replaces it with a version that
   // names the departments, which ride in the error payload as `details.groups`.

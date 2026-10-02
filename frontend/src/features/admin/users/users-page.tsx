@@ -41,6 +41,7 @@ import {
 import { penaltyReasonText } from "@/features/borrower/appeals/penalty-reason";
 import { useAuthStore } from "@/features/auth/auth.store";
 import { getErrorMessage } from "@/lib/error-messages";
+import { useAdminOrg, type AdminOrg } from "../org/use-org";
 
 /**
  * Turns a failed mutation into something readable.
@@ -132,13 +133,95 @@ interface NewUserForm {
   name: string;
   email: string;
   role: Role;
+  facultyId: number | null;
+  groupIds: number[];
 }
 
 const EMPTY_FORM: NewUserForm = {
   name: "",
   email: "",
   role: "borrower",
+  facultyId: null,
+  groupIds: [],
 };
+
+const NO_FACULTY = "none";
+
+function sameIds(a: number[], b: number[]): boolean {
+  return a.length === b.length && a.every((id) => b.includes(id));
+}
+
+/** Faculty select plus a checkbox per department or club; no boxes ticked means none. */
+function OrgFields({
+  org,
+  facultyId,
+  groupIds,
+  onChange,
+}: {
+  org: AdminOrg | undefined;
+  facultyId: number | null;
+  groupIds: number[];
+  onChange: (next: { facultyId: number | null; groupIds: number[] }) => void;
+}) {
+  const { t } = useTranslation();
+  const faculties = org?.faculties ?? [];
+  const groups = org?.groups ?? [];
+  const facultyName = (id: number | null) =>
+    faculties.find((f) => f.id === id)?.name ?? (id === null ? "" : `#${id}`);
+  const toggle = (id: number) =>
+    onChange({
+      facultyId,
+      groupIds: groupIds.includes(id) ? groupIds.filter((g) => g !== id) : [...groupIds, id],
+    });
+
+  return (
+    <>
+      <div className="flex flex-col gap-1.5">
+        <Label>{t("admin.users.faculty")}</Label>
+        <Select
+          value={facultyId === null ? NO_FACULTY : String(facultyId)}
+          onValueChange={(v) =>
+            onChange({ facultyId: v === NO_FACULTY ? null : Number(v), groupIds })
+          }
+        >
+          <SelectTrigger aria-label={t("admin.users.faculty")}>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={NO_FACULTY}>{t("admin.users.facultyNone")}</SelectItem>
+            {faculties.map((f) => (
+              <SelectItem key={f.id} value={String(f.id)}>
+                {f.name ?? `#${f.id}`}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <fieldset className="flex flex-col gap-1.5">
+        <legend className="mb-1 text-sm font-medium">{t("admin.users.groups")}</legend>
+        {groups.length === 0 ? (
+          <p className="text-xs text-muted-foreground">{t("admin.users.noGroups")}</p>
+        ) : (
+          <div className="flex max-h-40 flex-col gap-1 overflow-y-auto">
+            {groups.map((g) => (
+              <label key={g.id} className="flex items-center gap-2 text-[13px]">
+                <input
+                  type="checkbox"
+                  checked={groupIds.includes(g.id)}
+                  onChange={() => toggle(g.id)}
+                />
+                <span>{g.name ?? `#${g.id}`}</span>
+                {g.facultyId !== null && (
+                  <span className="text-xs text-muted-foreground">{facultyName(g.facultyId)}</span>
+                )}
+              </label>
+            ))}
+          </div>
+        )}
+      </fieldset>
+    </>
+  );
+}
 
 /**
  * Clickable summary chip that doubles as a status quick-filter. `active` draws
@@ -197,6 +280,7 @@ export default function AdminUsersPage() {
   const changeRole = useChangeRole();
   const resetPassword = useResetPassword();
   const createUser = useCreateUser();
+  const { data: org } = useAdminOrg();
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<Role | "all">("all");
   const [statusFilter, setStatusFilter] = useState<AccountStatus | "all">("all");
@@ -228,7 +312,15 @@ export default function AdminUsersPage() {
   const { data: loans } = useUserLoans(selected?.id ?? null);
   const updateUser = useUpdateUser();
   const [editing, setEditing] = useState(false);
-  const [edit, setEdit] = useState({ firstName: "", lastName: "", email: "", studentId: "" });
+  const [edit, setEdit] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    studentId: "",
+    facultyId: null as number | null,
+    groupIds: [] as number[],
+  });
+  const detailGroupIds = detail ? detail.authorities.map((a) => a.manageGroupKey) : [];
 
   const openEdit = () => {
     if (!detail) return;
@@ -237,6 +329,8 @@ export default function AdminUsersPage() {
       lastName: detail.lastName,
       email: detail.email,
       studentId: detail.govId,
+      facultyId: detail.facultyId,
+      groupIds: detail.authorities.map((a) => a.manageGroupKey),
     });
     setEditing(true);
   };
@@ -245,11 +339,21 @@ export default function AdminUsersPage() {
     if (!detail) return;
     // Only what actually changed: resubmitting an unchanged email still trips
     // the uniqueness check against the account's own row.
-    const changed: Record<string, string> = {};
+    const changed: {
+      firstName?: string;
+      lastName?: string;
+      email?: string;
+      studentId?: string;
+      facultyId?: number | null;
+      groupIds?: number[];
+    } = {};
     if (edit.firstName !== detail.firstName) changed.firstName = edit.firstName.trim();
     if (edit.lastName !== detail.lastName) changed.lastName = edit.lastName.trim();
     if (edit.email !== detail.email) changed.email = edit.email.trim();
     if (edit.studentId !== detail.govId) changed.studentId = edit.studentId.trim();
+    if (edit.facultyId !== detail.facultyId) changed.facultyId = edit.facultyId;
+    // groupIds replaces every membership server-side, so it is sent only when the set changed.
+    if (!sameIds(edit.groupIds, detailGroupIds)) changed.groupIds = edit.groupIds;
     if (Object.keys(changed).length === 0) { setEditing(false); return; }
 
     updateUser.mutate(
@@ -371,6 +475,8 @@ export default function AdminUsersPage() {
         firstName,
         lastName: rest.join(" ") || "-",
         role: form.role,
+        facultyId: form.facultyId,
+        groupIds: form.groupIds,
       },
       {
         onSuccess: (result) => {
@@ -824,6 +930,12 @@ export default function AdminUsersPage() {
                     onChange={(e) => setEdit((f) => ({ ...f, studentId: e.target.value }))}
                   />
                 </div>
+                <OrgFields
+                  org={org}
+                  facultyId={edit.facultyId}
+                  groupIds={edit.groupIds}
+                  onChange={(next) => setEdit((f) => ({ ...f, ...next }))}
+                />
                 <div className="flex justify-end gap-2">
                   <Button type="button" variant="outline" onClick={() => setEditing(false)}>
                     {t("common.cancel")}
@@ -963,6 +1075,12 @@ export default function AdminUsersPage() {
               </SelectContent>
             </Select>
           </div>
+          <OrgFields
+            org={org}
+            facultyId={form.facultyId}
+            groupIds={form.groupIds}
+            onChange={(next) => setForm({ ...form, ...next })}
+          />
           <div className="text-xs text-muted-foreground">{t("admin.users.createUserSub")}</div>
           {createResult && (
             <div

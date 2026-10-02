@@ -75,6 +75,7 @@ const AdminDashboardPage = lazy(
   () => import("@/features/admin/dashboard/dashboard-page"),
 );
 const AdminUsersPage = lazy(() => import("@/features/admin/users/users-page"));
+const AdminOrgPage = lazy(() => import("@/features/admin/org/org-page"));
 const AdminStatusPage = lazy(() => import("@/features/admin/status/status-page"));
 const AdminAuditPage = lazy(() => import("@/features/admin/audit/audit-page"));
 const AdminConfigPage = lazy(() => import("@/features/admin/config/config-page"));
@@ -166,6 +167,7 @@ export function AppRouter() {
           <Route element={<RoleGuard allowedRoles={["admin"]} />}>
             <Route path={ROUTES.ADMIN_DASHBOARD} element={<AdminDashboardPage />} />
             <Route path={ROUTES.ADMIN_USERS} element={<AdminUsersPage />} />
+            <Route path={ROUTES.ADMIN_ORG} element={<AdminOrgPage />} />
             <Route path={ROUTES.ADMIN_STATUS} element={<AdminStatusPage />} />
             <Route path={ROUTES.ADMIN_AUDIT} element={<AdminAuditPage />} />
             <Route path={ROUTES.ADMIN_CONFIG} element={<AdminConfigPage />} />

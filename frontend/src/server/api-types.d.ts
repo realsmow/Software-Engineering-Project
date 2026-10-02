@@ -109,6 +109,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 					type: "Club" | "Faculty";
 				} | null;
 				creditTier: "D0" | "D1" | "D2" | "D3";
+				facultyId: number | null;
 				maxBorrowDays: number;
 				maxExtendTimes: number;
 				authorities: {
@@ -152,6 +153,8 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 				lastName: string;
 				role: "borrower" | "staff" | "supervisor" | "admin";
 				password?: string | undefined;
+				facultyId?: number | null | undefined;
+				groupIds?: number[] | undefined;
 			};
 			output: {
 				user: {
@@ -171,6 +174,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 						type: "Club" | "Faculty";
 					} | null;
 					creditTier: "D0" | "D1" | "D2" | "D3";
+					facultyId: number | null;
 					maxBorrowDays: number;
 					maxExtendTimes: number;
 					authorities: {
@@ -194,6 +198,45 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 			};
 			meta: object;
 		}>;
+		listOrg: import("@trpc/server").TRPCQueryProcedure<{
+			input: void;
+			output: {
+				faculties: {
+					id: number;
+					name: string | null;
+				}[];
+				groups: {
+					id: number;
+					name: string | null;
+					type: "Club" | "Faculty";
+					facultyId: number | null;
+				}[];
+			};
+			meta: object;
+		}>;
+		createFaculty: import("@trpc/server").TRPCMutationProcedure<{
+			input: {
+				name: string;
+			};
+			output: {
+				id: number;
+				name: string | null;
+			};
+			meta: object;
+		}>;
+		createGroup: import("@trpc/server").TRPCMutationProcedure<{
+			input: {
+				name: string;
+				facultyId?: number | undefined;
+			};
+			output: {
+				id: number;
+				name: string | null;
+				type: "Club" | "Faculty";
+				facultyId: number | null;
+			};
+			meta: object;
+		}>;
 		updateUser: import("@trpc/server").TRPCMutationProcedure<{
 			input: {
 				id: number;
@@ -201,6 +244,8 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 				studentId?: string | undefined;
 				firstName?: string | undefined;
 				lastName?: string | undefined;
+				facultyId?: number | null | undefined;
+				groupIds?: number[] | undefined;
 			};
 			output: {
 				id: number;
@@ -219,6 +264,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 					type: "Club" | "Faculty";
 				} | null;
 				creditTier: "D0" | "D1" | "D2" | "D3";
+				facultyId: number | null;
 				maxBorrowDays: number;
 				maxExtendTimes: number;
 				authorities: {
@@ -262,6 +308,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 					type: "Club" | "Faculty";
 				} | null;
 				creditTier: "D0" | "D1" | "D2" | "D3";
+				facultyId: number | null;
 				maxBorrowDays: number;
 				maxExtendTimes: number;
 				authorities: {

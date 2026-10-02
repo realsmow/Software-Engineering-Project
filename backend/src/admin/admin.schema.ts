@@ -92,6 +92,7 @@ export const authorityGrant = z.object({
 /** One account in full. Costs several joins, so it is the detail view only. */
 export const adminUserDetail = adminUserSummary.extend({
   creditTier,
+  facultyId: z.number().int().nullable(),
   maxBorrowDays: z.number().int().positive(),
   maxExtendTimes: z.number().int().min(0),
   authorities: z.array(authorityGrant),
@@ -117,6 +118,9 @@ export const createUserInput = z.object({
   role: userRole,
   /** Omit to have the server generate one and return it once. */
   password: z.string().min(8).max(200).optional(),
+  facultyId: z.number().int().nullable().optional(),
+  /** Departments/clubs the account belongs to; empty means none. */
+  groupIds: z.array(z.number().int()).max(50).optional(),
 });
 
 /**
@@ -134,6 +138,31 @@ export const updateUserInput = accountIdInput.extend({
   studentId: z.string().trim().min(1).max(50).optional(),
   firstName: z.string().trim().min(1).max(100).optional(),
   lastName: z.string().trim().min(1).max(100).optional(),
+  facultyId: z.number().int().nullable().optional(),
+  /** Replaces the account's memberships when sent. */
+  groupIds: z.array(z.number().int()).max(50).optional(),
+});
+
+// Faculties, departments (BranchInfo) and clubs, so items have an owner.
+export const orgFaculty = z.object({
+  id: z.number().int(),
+  name: z.string().nullable(),
+});
+export const orgGroup = managementGroupRef.extend({
+  /** Null for a club. */
+  facultyId: z.number().int().nullable(),
+});
+export const orgOutput = z.object({
+  faculties: z.array(orgFaculty),
+  groups: z.array(orgGroup),
+});
+export const createFacultyInput = z.object({
+  name: z.string().trim().min(1).max(100),
+});
+/** With facultyId: a department in that faculty. Without: a club. */
+export const createGroupInput = z.object({
+  name: z.string().trim().min(1).max(100),
+  facultyId: z.number().int().optional(),
 });
 
 export const changeRoleInput = accountIdInput.extend({ role: userRole });
@@ -396,6 +425,8 @@ export const auditEventIdInput = z.object({ id: dbId });
 export type ListUsersInput = z.infer<typeof listUsersInput>;
 export type CreateUserInput = z.infer<typeof createUserInput>;
 export type UpdateUserInput = z.infer<typeof updateUserInput>;
+export type CreateGroupInput = z.infer<typeof createGroupInput>;
+export type CreateFacultyInput = z.infer<typeof createFacultyInput>;
 export type ChangeRoleInput = z.infer<typeof changeRoleInput>;
 export type ResetPasswordInput = z.infer<typeof resetPasswordInput>;
 export type SetUserActiveInput = z.infer<typeof setUserActiveInput>;

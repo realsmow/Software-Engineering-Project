@@ -147,6 +147,7 @@ export const ROUTES = {
   ADMIN_AUDIT: "/admin/audit",
   ADMIN_CONFIG: "/admin/config",
   ADMIN_REPORTS: "/admin/reports",
+  ADMIN_ORG: "/admin/org",
 } as const;
 
 /**
@@ -200,6 +201,7 @@ export const ROLE_ROUTES = {
     ROUTES.ADMIN_AUDIT,
     ROUTES.ADMIN_CONFIG,
     ROUTES.ADMIN_REPORTS,
+    ROUTES.ADMIN_ORG,
   ],
 } as const;
 

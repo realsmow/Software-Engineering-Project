@@ -31,6 +31,7 @@ const account: AdminAccountRow = {
   UserCredit: 91,
   IsActive: true,
   CreatedAt: null,
+  FacultyKey: null,
   Sessions: [],
   Authorities: [],
   Penalties: [

@@ -178,7 +178,8 @@
     "thisPage": "This page",
     "systemOverview": "System overview",
     "technicalConfig": "Technical config",
-    "repairs": "Repairs"
+    "repairs": "Repairs",
+    "organization": "Organization"
   },
   "theme": {
     "darkMode": "Dark mode",
@@ -250,7 +251,11 @@
       },
       "selfLocked": "You can't disable or change the role of your own account.",
       "createdOk": "Account created for {{name}} ({{email}})",
-      "tempPasswordOnce": "Copy it now; it will not be shown again."
+      "tempPasswordOnce": "Copy it now; it will not be shown again.",
+      "faculty": "Faculty",
+      "facultyNone": "None",
+      "groups": "Departments and clubs",
+      "noGroups": "No departments or clubs exist yet"
     },
     "status": {
       "subtitle": "System health and scheduled jobs. Refreshes every 30 seconds.",
@@ -400,6 +405,21 @@
       "topUsers": "Most active users",
       "actions": "Actions",
       "events": "Events"
+    },
+    "org": {
+      "title": "Organization",
+      "faculties": "Faculties and departments",
+      "clubs": "Clubs",
+      "addFaculty": "Add faculty",
+      "addDepartment": "Add department",
+      "addClub": "Add club",
+      "name": "Name",
+      "faculty": "Faculty",
+      "pickFaculty": "Choose a faculty",
+      "noFaculties": "No faculties yet",
+      "noDepartments": "No departments yet",
+      "noClubs": "No clubs yet",
+      "created": "Created {{name}}"
     }
   },
   "borrower": {
