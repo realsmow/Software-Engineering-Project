@@ -16,13 +16,13 @@ export const HOLDING_APPROVE_STATES = ['Pending', 'Approved'] as const;
  * A reservation that still holds its window.
  *
  * Approved stays Approved after the loan ends, so status alone kept a unit
- * returned early blocked until the original end date. Once the loan is checked
- * in the reservation is spent; heldUsageFilter keeps the unit blocked until
- * inspection.
+ * returned early blocked until the original end date. The booking is spent
+ * once its loan is inspected, not merely returned: room slots read only
+ * bookings, and a returned room may still go to repair.
  */
 export const HOLDING_RESERVATION = {
   ApproveStatus: { in: [...HOLDING_APPROVE_STATES] },
-  UsageLogs: { none: { CheckInTime: { not: null } } },
+  UsageLogs: { none: { CurrentStatus: 'Inspected' } },
 } satisfies Prisma.ReservationsWhereInput;
 
 /**
