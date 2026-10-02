@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { PageHeader } from "@/components/shared/page-header";
 import { Badge } from "@/components/ui/badge";
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useTechnicalConfig, useUpdateWorkHours, useWorkHours } from "./use-config";
@@ -203,18 +203,25 @@ function WorkHoursCard() {
       <p className="mt-0.5 text-xs text-t3">{t("admin.config.workHoursHint")}</p>
       <div className="mt-2.5 flex flex-wrap items-center gap-2">
         {(["start", "end"] as const).map((k) => (
-          <Input
-            key={k}
-            type="number"
-            min={0}
-            max={23}
-            className="w-20"
-            aria-label={t(`admin.config.work_${k}`)}
-            value={hours[k]}
-            onChange={(e) => setDraft({ ...hours, [k]: Number(e.target.value) })}
-          />
+          <Fragment key={k}>
+            {k === "end" && <span className="text-xs text-t3">-</span>}
+            {/* Whole hours only, so ":00" sits inside the box as a fixed suffix. */}
+            <div className="relative">
+              <Input
+                type="number"
+                min={0}
+                max={23}
+                className="w-20 pr-[34px] text-right [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                aria-label={t(`admin.config.work_${k}`)}
+                value={hours[k]}
+                onChange={(e) => setDraft({ ...hours, [k]: Number(e.target.value) })}
+              />
+              <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-sm text-t3">
+                :00
+              </span>
+            </div>
+          </Fragment>
         ))}
-        <span className="text-xs text-t3">:00</span>
         <Button
           type="button"
           disabled={!draft || !valid || save.isPending}

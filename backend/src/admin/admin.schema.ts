@@ -92,7 +92,7 @@ export const authorityGrant = z.object({
 /** One account in full. Costs several joins, so it is the detail view only. */
 export const adminUserDetail = adminUserSummary.extend({
   creditTier,
-  facultyId: z.number().int().nullable(),
+  facultyId: z.number().int().nullable().default(null),
   maxBorrowDays: z.number().int().positive(),
   maxExtendTimes: z.number().int().min(0),
   authorities: z.array(authorityGrant),
