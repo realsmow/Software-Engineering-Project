@@ -222,13 +222,13 @@ describe('confirmPickup before the booked time', () => {
         findFirst: jest.fn().mockResolvedValue(photo ? { ImageKey: 1 } : null),
       },
       $transaction: jest.fn((work: (t: typeof tx) => unknown) => work(tx)),
-    } as unknown as PrismaService;
+    };
     const scope = {
       assertResourceInScope: jest.fn(),
     } as unknown as StaffScopeService;
     const audit = { record: jest.fn() };
     const svc = new LoanService(
-      prisma,
+      prisma as unknown as PrismaService,
       scope,
       {} as PenaltyService,
       {} as NotificationService,
@@ -238,7 +238,7 @@ describe('confirmPickup before the booked time', () => {
       readUsage: jest.fn().mockResolvedValue(usage),
       toLoan: jest.fn().mockReturnValue({}),
     });
-    return { svc, tx, audit };
+    return { svc, tx, audit, prisma };
   }
 
   beforeEach(() =>
@@ -256,11 +256,11 @@ describe('confirmPickup before the booked time', () => {
     expect(t.tx.usageLog.update).not.toHaveBeenCalled();
   });
 
-  it('hands over early with the same loan length when the unit is free', async () => {
+  it('moves the due date one day earlier and keeps its clock time when pickup is at the planned clock time', async () => {
     const t = svcFor(prepared());
     await t.svc.confirmPickup(staff, { usageKey: 8, early: true });
 
-    const due = new Date('2099-01-10T09:00:00Z'); // 31 hours from now, as booked
+    const due = new Date('2099-01-10T09:00:00Z');
     expect(t.tx.reservations.update).toHaveBeenCalledWith({
       where: { ReservationKey: 11 },
       data: { StartTime: now, EndTime: due },
@@ -276,14 +276,29 @@ describe('confirmPickup before the booked time', () => {
     );
   });
 
-  it('refuses an early handover that runs into another booking', async () => {
-    const t = svcFor(prepared(), { ReservationKey: 12 });
+  it('refuses an early handover when the added window including BufferTime clashes with another booking', async () => {
+    const usage = prepared();
+    usage.Resource.BufferTime = 1;
+    const t = svcFor(usage, { ReservationKey: 12 });
     await expect(
       t.svc.confirmPickup(staff, { usageKey: 8, early: true }),
     ).rejects.toMatchObject({
       businessCode: 'WINDOW_NOT_AVAILABLE',
     });
+    expect(t.tx.reservations.findFirst).toHaveBeenCalledWith({
+      where: {
+        ResourceKey: 26,
+        ApproveStatus: { in: ['Pending', 'Approved'] },
+        StartTime: { lt: new Date('2099-01-11T02:00:00Z') },
+        EndTime: { gt: new Date('2099-01-08T02:00:00Z') },
+        ReservationKey: { not: 11 },
+      },
+      select: { ReservationKey: true },
+    });
+    expect(t.tx.reservations.update).not.toHaveBeenCalled();
     expect(t.tx.usageLog.update).not.toHaveBeenCalled();
+    expect(t.tx.resourceInfo.update).not.toHaveBeenCalled();
+    expect(t.audit.record).not.toHaveBeenCalled();
   });
 
   it('refuses a handover nobody photographed (FR-PKP-03)', async () => {
@@ -303,7 +318,137 @@ describe('confirmPickup before the booked time', () => {
     ).rejects.toMatchObject({
       businessCode: 'PICKUP_NOT_OPEN',
     });
+    expect(t.prisma.$transaction).not.toHaveBeenCalled();
+    expect(t.tx.reservations.update).not.toHaveBeenCalled();
+    expect(t.tx.usageLog.update).not.toHaveBeenCalled();
+    expect(t.audit.record).not.toHaveBeenCalled();
   });
+
+  // Explicit Bangkok offsets and fixed expected dates are the requirement's
+  // oracle. Do not derive expectations using the service's duration formula.
+  const earlyDateCases = [
+    {
+      name: 'pickup a day earlier at a different clock time',
+      planned: '2026-10-05T09:00:00+07:00',
+      actual: '2026-10-04T13:00:00+07:00',
+      originalDue: '2026-10-08T17:00:00+07:00',
+      expectedDue: '2026-10-07T17:00:00+07:00',
+    },
+    {
+      name: 'pickup earlier on the same Bangkok calendar day',
+      planned: '2026-10-05T09:00:00+07:00',
+      actual: '2026-10-05T08:00:00+07:00',
+      originalDue: '2026-10-08T17:00:00+07:00',
+      expectedDue: '2026-10-08T17:00:00+07:00',
+    },
+    {
+      name: 'different Bangkok dates within the same UTC calendar day',
+      planned: '2026-10-05T00:30:00+07:00',
+      actual: '2026-10-04T23:30:00+07:00',
+      originalDue: '2026-10-08T17:00:00+07:00',
+      expectedDue: '2026-10-07T17:00:00+07:00',
+    },
+    {
+      name: 'pickup two calendar days earlier across a month boundary',
+      planned: '2026-10-01T09:00:00+07:00',
+      actual: '2026-09-29T13:00:00+07:00',
+      originalDue: '2026-10-03T17:15:37.456+07:00',
+      expectedDue: '2026-10-01T17:15:37.456+07:00',
+    },
+  ];
+
+  describe.each(['T0', 'T1', 'T2'])(
+    'FR-PKP-06 / known defect / %s: early pickup preserves the original due clock time',
+    (tier) => {
+      describe.each(earlyDateCases)('$name', (scenario) => {
+        let writes: { due: Date; reservationEnd: Date };
+
+        beforeEach(async () => {
+          const actual = new Date(scenario.actual);
+          jest.setSystemTime(actual);
+          const usage = {
+            ...prepared(),
+            CheckoutTime: new Date(scenario.planned),
+            DueTime: new Date(scenario.originalDue),
+            Resource: {
+              ...prepared().Resource,
+              BorrowRuleInfo: { RuleName: tier },
+            },
+          };
+          const t = svcFor(usage);
+          await t.svc.confirmPickup(staff, { usageKey: 8, early: true });
+
+          // Setup and the unaffected handover contract must pass normally.
+          // An expected defect must never hide a thrown error or missing write.
+          expect(t.prisma.images.findFirst).toHaveBeenCalledWith({
+            where: { UsageKey: 8, SubmissionType: 'BeforePicture' },
+            select: { ImageKey: true },
+          });
+          expect(t.prisma.$transaction).toHaveBeenCalledTimes(1);
+          expect(t.tx.reservations.findFirst).toHaveBeenCalledTimes(1);
+          expect(t.tx.reservations.update).toHaveBeenCalledTimes(1);
+          expect(t.tx.usageLog.update).toHaveBeenCalledTimes(1);
+          expect(t.tx.usageLog.update).toHaveBeenCalledWith({
+            where: { UsageKey: 8 },
+            data: {
+              CurrentStatus: 'Lended',
+              CheckoutTime: actual,
+              DueTime: expect.any(Date),
+            },
+          });
+          expect(t.tx.reservations.update).toHaveBeenCalledWith({
+            where: { ReservationKey: 11 },
+            data: { StartTime: actual, EndTime: expect.any(Date) },
+          });
+          expect(t.tx.resourceInfo.update).toHaveBeenCalledWith({
+            where: { ResourceKey: 26 },
+            data: { ResourceStatus: 'Lended' },
+          });
+          expect(t.audit.record).toHaveBeenCalledTimes(1);
+
+          const due = t.tx.usageLog.update.mock.calls[0][0].data
+            .DueTime as Date;
+          const reservationEnd = t.tx.reservations.update.mock.calls[0][0].data
+            .EndTime as Date;
+          expect(reservationEnd).toEqual(due);
+          writes = { due, reservationEnd };
+        });
+
+        // Confirmed red for all four scenarios in each of T0-T2 on 2 Oct 2026.
+        // Remove the marker once a product fix makes this assertion pass.
+        it.failing(
+          'shifts only the due calendar date in Asia/Bangkok and preserves the original time in both records',
+          () => {
+            const expected = new Date(scenario.expectedDue);
+            expect(writes).toEqual({ due: expected, reservationEnd: expected });
+          },
+        );
+      });
+    },
+  );
+
+  it.each([
+    ['on time', '2099-01-10T02:00:00Z'],
+    ['inside the 15-minute pickup grace window', '2099-01-10T01:50:00Z'],
+    ['late', '2099-01-10T04:00:00Z'],
+  ])(
+    'keeps the original due date and time when pickup is %s',
+    async (_, iso) => {
+      const actual = new Date(iso);
+      jest.setSystemTime(actual);
+      const usage = prepared();
+      const t = svcFor(usage);
+      await t.svc.confirmPickup(staff, { usageKey: 8 });
+      expect(t.tx.usageLog.update).toHaveBeenCalledWith({
+        where: { UsageKey: 8 },
+        data: {
+          CurrentStatus: 'Lended',
+          CheckoutTime: actual,
+          DueTime: usage.DueTime,
+        },
+      });
+    },
+  );
 });
 
 // Real service/adapter assertions share this module's suite; setup is scoped.
