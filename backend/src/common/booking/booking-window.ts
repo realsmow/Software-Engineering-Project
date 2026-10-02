@@ -13,6 +13,19 @@ import { UNAVAILABLE_USAGE_STATES } from '../usage/usage-states';
 export const HOLDING_APPROVE_STATES = ['Pending', 'Approved'] as const;
 
 /**
+ * A reservation that still holds its window.
+ *
+ * Approved stays Approved after the loan ends, so status alone kept a unit
+ * returned early blocked until the original end date. Once the loan is checked
+ * in the reservation is spent; heldUsageFilter keeps the unit blocked until
+ * inspection.
+ */
+export const HOLDING_RESERVATION = {
+  ApproveStatus: { in: [...HOLDING_APPROVE_STATES] },
+  UsageLogs: { none: { CheckInTime: { not: null } } },
+} satisfies Prisma.ReservationsWhereInput;
+
+/**
  * When an approved request stops being held for its borrower.
  *
  * §5.9: a request not collected within a day is cancelled. The day starts when
@@ -76,7 +89,7 @@ export function clashingWindowFilter(
 ): Prisma.ReservationsWhereInput {
   return {
     ResourceKey: resourceKey,
-    ApproveStatus: { in: [...HOLDING_APPROVE_STATES] },
+    ...HOLDING_RESERVATION,
     StartTime: { lt: to },
     EndTime: { gt: from },
     ...(excludeReservationKey === undefined

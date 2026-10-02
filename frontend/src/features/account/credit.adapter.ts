@@ -24,6 +24,8 @@ export interface ServerActivePenalty {
   id: number;
   /** PenaltyInfo.Reason - free text, not an enum. */
   reason: string | null;
+  /** Optional so an older server without the field still parses. */
+  itemName?: string | null;
   /** The loan it came from; null for a ban. */
   usageKey: number | null;
   creditDeducted: number | null;
@@ -46,6 +48,8 @@ export interface MyCredit {
 export interface Penalty {
   id: string;
   reason: string | null;
+  /** The item or room the penalty came from; null for a ban. */
+  itemName: string | null;
   creditDeducted: number;
   issuedAt: string | null;
   expiresAt: string;
@@ -73,6 +77,7 @@ function toPenalty(p: ServerActivePenalty): Penalty {
   return {
     id: String(p.id),
     reason: p.reason,
+    itemName: p.itemName ?? null,
     // Nullable in the DB; a penalty that deducted nothing reads as 0, not blank.
     creditDeducted: p.creditDeducted ?? 0,
     issuedAt: p.issuedAt,

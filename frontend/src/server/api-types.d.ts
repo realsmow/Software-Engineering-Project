@@ -124,6 +124,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 					reason: string | null;
 					usageKey: number | null;
 					creditDeducted: number | null;
+					itemName: string | null;
 					issuedAt: string | null;
 					expiresAt: string;
 					appealed: boolean;
@@ -189,6 +190,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 						reason: string | null;
 						usageKey: number | null;
 						creditDeducted: number | null;
+						itemName: string | null;
 						issuedAt: string | null;
 						expiresAt: string;
 						appealed: boolean;
@@ -279,6 +281,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 					reason: string | null;
 					usageKey: number | null;
 					creditDeducted: number | null;
+					itemName: string | null;
 					issuedAt: string | null;
 					expiresAt: string;
 					appealed: boolean;
@@ -323,6 +326,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 					reason: string | null;
 					usageKey: number | null;
 					creditDeducted: number | null;
+					itemName: string | null;
 					issuedAt: string | null;
 					expiresAt: string;
 					appealed: boolean;
@@ -1312,6 +1316,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 					reason: string | null;
 					usageKey: number | null;
 					creditDeducted: number | null;
+					itemName: string | null;
 					issuedAt: string | null;
 					expiresAt: string;
 					appealed: boolean;
@@ -1335,6 +1340,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 					reason: string | null;
 					usageKey: number | null;
 					creditDeducted: number | null;
+					itemName: string | null;
 					issuedAt: string | null;
 					expiresAt: string;
 					appealed: boolean;

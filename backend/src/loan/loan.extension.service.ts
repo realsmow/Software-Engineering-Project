@@ -576,6 +576,7 @@ export class LoanExtensionService {
 
     const now = new Date();
     const approved = input.decision === 'approve';
+    const inspected = route === 'staff';
 
     await runSerializable(this.prisma, async (tx) => {
       if (approved) {
@@ -585,23 +586,27 @@ export class LoanExtensionService {
         await this.assertHoldableUntil(tx, row.Usage, row.RequestedDueTime);
       }
 
-      // Written on both outcomes: somebody physically looked at the unit, and
-      // that observation is true whichever way the decision went.
-      const condition = await tx.conditionLog.create({
-        data: {
-          ResourceKey: row.Usage.Resource.ResourceKey,
-          LoggedBy: user.accountKey,
-          Condition: input.condition,
-          Notes: input.note ?? null,
-          LoggedAt: now,
-        },
-        select: { ConditionKey: true },
-      });
+      // Only the staff route has the unit on the counter. A supervisor
+      // decides without seeing it, so recording a condition there would
+      // overwrite the unit's real one with a guess.
+      if (inspected) {
+        // Written on both outcomes: the observation is true either way.
+        const condition = await tx.conditionLog.create({
+          data: {
+            ResourceKey: row.Usage.Resource.ResourceKey,
+            LoggedBy: user.accountKey,
+            Condition: input.condition,
+            Notes: input.note ?? null,
+            LoggedAt: now,
+          },
+          select: { ConditionKey: true },
+        });
 
-      await tx.resourceInfo.update({
-        where: { ResourceKey: row.Usage.Resource.ResourceKey },
-        data: { ConditionKey: condition.ConditionKey },
-      });
+        await tx.resourceInfo.update({
+          where: { ResourceKey: row.Usage.Resource.ResourceKey },
+          data: { ConditionKey: condition.ConditionKey },
+        });
+      }
 
       await tx.extensionRequest.update({
         where: { ExtensionKey: input.extensionKey },
@@ -649,7 +654,7 @@ export class LoanExtensionService {
       { accountKey: user.accountKey },
       'update',
       `extension/${input.extensionKey}`,
-      `${approved ? 'Approved' : 'Rejected'} extension on loan/${row.UsageKey}, condition ${input.condition}${input.note ? `: ${input.note}` : ''}`,
+      `${approved ? 'Approved' : 'Rejected'} extension on loan/${row.UsageKey}${inspected ? `, condition ${input.condition}` : ''}${input.note ? `: ${input.note}` : ''}`,
     );
 
     return this.renderOne(input.extensionKey);

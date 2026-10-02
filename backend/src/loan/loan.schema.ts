@@ -319,7 +319,10 @@ export type ListExtensionReviewsInput = z.infer<
 export const decideExtensionInput = z.object({
   extensionKey: dbId,
   decision: z.enum(['approve', 'reject']),
-  /** Condition found on the counter. Required to approve — that is the point. */
+  /**
+   * Condition found on the counter. Only the staff route inspects the unit;
+   * a supervisor decides on paper and this is ignored.
+   */
   condition: conditionType.default('Normal'),
   note: z.string().trim().max(500).optional(),
 });
