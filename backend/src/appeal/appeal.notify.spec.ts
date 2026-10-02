@@ -31,6 +31,7 @@ function penaltyRow(usageKey: number | null) {
     AccountKey: BORROWER.accountKey,
     UsageKey: usageKey,
     OriginalAppeal: null,
+    ReplacedByAppeals: [],
   };
 }
 

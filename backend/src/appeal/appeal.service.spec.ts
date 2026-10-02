@@ -405,7 +405,11 @@ describe('AppealService.create', () => {
   const filing = { penaltyKey: 55, appealReason: 'ผมไม่ได้ทำ' };
 
   it('files it, flags the penalty and points the grading back at it', async () => {
-    const { prisma, tx } = prismaWith({ ...PENALTY, OriginalAppeal: null });
+    const { prisma, tx } = prismaWith({
+      ...PENALTY,
+      OriginalAppeal: null,
+      ReplacedByAppeals: [],
+    });
     const { service, audit } = build(prisma);
 
     await service.create(BORROWER, filing);
@@ -433,6 +437,7 @@ describe('AppealService.create', () => {
       ...PENALTY,
       AccountKey: 999,
       OriginalAppeal: null,
+      ReplacedByAppeals: [],
     });
     const { service, audit } = build(prisma);
 
@@ -446,6 +451,20 @@ describe('AppealService.create', () => {
     const { prisma } = prismaWith({
       ...PENALTY,
       OriginalAppeal: { AppealKey: 3 },
+      ReplacedByAppeals: [],
+    });
+    const { service } = build(prisma);
+
+    await expect(service.create(BORROWER, filing)).rejects.toThrow(
+      /ALREADY_APPEALED/,
+    );
+  });
+
+  it('refuses to appeal the reduced penalty an approved appeal left behind', async () => {
+    const { prisma } = prismaWith({
+      ...PENALTY,
+      OriginalAppeal: null,
+      ReplacedByAppeals: [{ AppealKey: 4 }],
     });
     const { service } = build(prisma);
 
@@ -463,6 +482,7 @@ describe('AppealService.create', () => {
         ...PENALTY,
         Reason: reason,
         OriginalAppeal: null,
+        ReplacedByAppeals: [],
       });
       const { service, audit } = build(prisma);
 
@@ -478,6 +498,7 @@ describe('AppealService.create', () => {
       ...PENALTY,
       InEffect: false,
       OriginalAppeal: null,
+      ReplacedByAppeals: [],
     });
     const { service } = build(prisma);
 
@@ -494,6 +515,7 @@ describe('AppealService.create', () => {
       ...PENALTY,
       ActionTime: longAgo,
       OriginalAppeal: null,
+      ReplacedByAppeals: [],
     });
     const { service } = build(prisma);
 

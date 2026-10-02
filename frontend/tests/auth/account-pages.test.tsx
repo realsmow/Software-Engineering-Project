@@ -281,6 +281,7 @@ describe("Credit and penalty view model", () => {
       expect(toMyCredit(standing()).penalties[0]).toEqual({
         id: "2",
         reason: null,
+        itemName: null,
         creditDeducted: 0,
         issuedAt: null,
         expiresAt: "2031-10-02T03:00:00.000Z",

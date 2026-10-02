@@ -4,6 +4,7 @@ import { CreditTierService } from '../common/credit/credit-tier.service';
 import { BusinessError } from '../common/errors/business-error';
 import {
   activePenaltyWhere,
+  PENALTY_ITEM_SELECT,
   toActivePenalty,
 } from '../common/schemas/penalty.schema';
 import type { CreditOutput } from './credit.schema';
@@ -32,6 +33,7 @@ export class CreditService {
             ActionTime: true,
             ExpirationTime: true,
             Appealed: true,
+            Usage: PENALTY_ITEM_SELECT,
           },
         },
         // HashedPassword deliberately not selected.

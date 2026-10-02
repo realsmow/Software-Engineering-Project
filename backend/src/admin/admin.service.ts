@@ -18,7 +18,10 @@ import {
   toAdminUserSummary,
   type AdminAccountRow,
 } from '../common/mappers/admin-user.mapper';
-import { activePenaltyWhere } from '../common/schemas/penalty.schema';
+import {
+  activePenaltyWhere,
+  PENALTY_ITEM_SELECT,
+} from '../common/schemas/penalty.schema';
 import { MAX_UPLOAD_BYTES } from '../common/schemas/image.schema';
 import { allowedOrigins } from '../bootstrap';
 import { BASE_CREDIT } from '../common/credit/recompute-credit';
@@ -112,6 +115,7 @@ const PENALTY_SELECT = {
   ActionTime: true,
   ExpirationTime: true,
   Appealed: true,
+  Usage: PENALTY_ITEM_SELECT,
 } satisfies Prisma.PenaltyInfoSelect;
 
 /**
