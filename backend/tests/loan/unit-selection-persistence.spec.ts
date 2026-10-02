@@ -1,5 +1,6 @@
 import type { Prisma } from '../../src/generated/prisma/client';
 import { PrismaService } from '../../src/prisma.service';
+import { requireIsolatedDatabase } from '../fixtures/isolated-database';
 import { BusinessError } from '../../src/common/errors/business-error';
 import {
   clashingWindowFilter,
@@ -91,6 +92,7 @@ describe('NFR-REL-02 / SDS 4.4: unit selection preserves reserved windows', () =
   let prisma: PrismaService;
   let termEnd: string | undefined;
   beforeAll(async () => {
+    requireIsolatedDatabase();
     prisma = new PrismaService();
     await prisma.$connect();
     termEnd = process.env.TERM_END_DATE;

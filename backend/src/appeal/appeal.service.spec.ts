@@ -1,8 +1,22 @@
+import type { Prisma } from '../generated/prisma/client';
+import {
+  appealablePenalty,
+  listAppealsInput,
+  listMyAppealsInput,
+  paginatedAppeals,
+  APPEAL_WINDOW_DAYS,
+} from './appeal.schema';
+import {
+  historyFixture,
+  inHistoryFixture,
+  requireIsolatedDatabase,
+  transactionClient,
+} from '../../tests/fixtures/borrower-history';
+import { freezeBusinessDate } from '../../tests/fixtures/business-clock';
 import { AppealService } from './appeal.service';
-import { APPEAL_WINDOW_DAYS } from './appeal.schema';
-import type { StaffScopeService } from '../common/authority/staff-scope.service';
+import { StaffScopeService } from '../common/authority/staff-scope.service';
 import type { NotificationService } from '../notification/notification.service';
-import type { PrismaService } from '../prisma.service';
+import { PrismaService } from '../prisma.service';
 import type { TrpcUser } from '../trpc/context';
 
 /**
@@ -532,5 +546,148 @@ describe('AppealService — reaching the evidence', () => {
     const appeal = await service.getById(SUPERVISOR, 9);
 
     expect(appeal.penalty.usageKey).toBeNull();
+  });
+});
+
+// Real service/adapter assertions share this module's suite; setup is scoped.
+describe('Persisted business records', () => {
+  const NOW = new Date('2031-09-26T03:00:00Z');
+
+  const DAY = 86_400_000;
+
+  function service(tx: Prisma.TransactionClient) {
+    const client = transactionClient(tx);
+    return new AppealService(
+      client,
+      new StaffScopeService(client),
+      {} as never,
+      {} as never,
+      {} as never,
+    );
+  }
+
+  describe('FR-APL-01/03 / NFR-SEC-03: appeal lists from actual penalties and inspections', () => {
+    let prisma: PrismaService;
+    beforeAll(async () => {
+      requireIsolatedDatabase();
+      prisma = new PrismaService();
+      await prisma.$connect();
+    });
+    afterAll(async () => prisma?.$disconnect());
+    beforeEach(() => freezeBusinessDate(NOW));
+    afterEach(() => jest.useRealTimers());
+
+    it.each([
+      ['recent damage', 'DamagedItem: scratch', 0, DAY, true, 1],
+      ['deadline exactly now', 'BrokenItem', -7 * DAY, DAY, true, 1],
+      [
+        'past the declared appeal window',
+        'DamagedItem',
+        -7 * DAY - 1,
+        DAY,
+        true,
+        0,
+      ],
+      ['non-damage penalty', 'ReturnLate', 0, DAY, true, 0],
+      ['expired penalty', 'DamagedItem', 0, 0, true, 0],
+      ['revoked penalty', 'DamagedItem', 0, DAY, false, 0],
+    ] as const)(
+      'offers %s (reason=%s, action=%s, expiry=%s, active=%s) as %s appealable penalties',
+      async (_name, reason, actionOffset, expiryOffset, inEffect, count) => {
+        await inHistoryFixture(prisma, async (tx) => {
+          const f = await historyFixture(tx);
+          const penalty = await tx.penaltyInfo.create({
+            data: {
+              AccountKey: f.borrower.AccountKey,
+              UsageKey: f.usage.UsageKey,
+              Reason: reason,
+              CreditDeducted: 4,
+              ActionTime: new Date(NOW.getTime() + actionOffset),
+              ExpirationTime: new Date(NOW.getTime() + expiryOffset),
+              InEffect: inEffect,
+              Appealed: null,
+            },
+          });
+          // The fixture's original damage penalty already has an appeal, so it
+          // must never appear here even though it is recent and still active.
+          const rows = (
+            await service(tx).listAppealable({
+              ...f.decider,
+              accountKey: f.borrower.AccountKey,
+              role: 'borrower',
+            })
+          ).map((row) => appealablePenalty.strict().parse(row));
+          expect(rows).toHaveLength(count);
+          if (count)
+            expect(rows[0]).toMatchObject({
+              penaltyKey: penalty.PenaltyKey,
+              reason,
+              appealableUntil: new Date(
+                NOW.getTime() + actionOffset + 7 * DAY,
+              ).toISOString(),
+            });
+        });
+      },
+    );
+
+    it("returns the supervisor's pending appeals with original inspection evidence and excludes another group", async () => {
+      await inHistoryFixture(prisma, async (tx) => {
+        const own = await historyFixture(tx),
+          foreign = await historyFixture(tx);
+        await tx.inspection.updateMany({
+          where: { AppealKey: own.appeal.AppealKey },
+          data: { Notes: 'Screen cracked before review' },
+        });
+        const output = paginatedAppeals
+          .strict()
+          .parse(
+            await service(tx).listQueue(
+              own.decider,
+              listAppealsInput.parse({}),
+            ),
+          );
+        expect(output.total).toBe(1);
+        expect(output.items[0]).toMatchObject({
+          appealKey: own.appeal.AppealKey,
+          status: 'pending',
+          penalty: {
+            penaltyKey: own.penalty.PenaltyKey,
+            usageKey: own.usage.UsageKey,
+          },
+          inspection: { grade: 'B2', notes: 'Screen cracked before review' },
+          inspectorKeys: [own.inspector.AccountKey],
+        });
+        expect(output.items.map((row) => row.appealKey)).not.toContain(
+          foreign.appeal.AppealKey,
+        );
+      });
+    });
+
+    it("returns only the borrower's own appeals and honors their status filter", async () => {
+      await inHistoryFixture(prisma, async (tx) => {
+        const own = await historyFixture(tx);
+        await historyFixture(tx);
+        const user = {
+          ...own.decider,
+          accountKey: own.borrower.AccountKey,
+          role: 'borrower' as const,
+        };
+        const svc = service(tx);
+        const output = paginatedAppeals.parse(
+          await svc.listMine(
+            user,
+            listMyAppealsInput.parse({ status: 'pending' }),
+          ),
+        );
+        expect(output.total).toBe(1);
+        expect(output.items[0].appealKey).toBe(own.appeal.AppealKey);
+        expect(
+          await svc.listMine(
+            user,
+            listMyAppealsInput.parse({ status: 'approved' }),
+          ),
+        ).toMatchObject({ total: 0, items: [] });
+      });
+    });
   });
 });

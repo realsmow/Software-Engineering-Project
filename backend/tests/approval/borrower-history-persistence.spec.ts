@@ -1,4 +1,5 @@
 import { PrismaService } from '../../src/prisma.service';
+import { requireIsolatedDatabase } from '../fixtures/isolated-database';
 import { borrowerHistoryOutput } from '../../src/approval/approval.schema';
 import { appealOutput } from '../../src/appeal/appeal.schema';
 import { inHistoryFixture, historyFixture } from '../fixtures/borrower-history';
@@ -6,6 +7,7 @@ import { inHistoryFixture, historyFixture } from '../fixtures/borrower-history';
 describe('FR-APV-01 / FR-APL-06 real history and appeal persistence', () => {
   let prisma: PrismaService;
   beforeAll(async () => {
+    requireIsolatedDatabase();
     prisma = new PrismaService();
     await prisma.$connect();
   });

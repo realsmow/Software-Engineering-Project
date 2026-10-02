@@ -9,6 +9,7 @@ import { AdminService } from '../../src/admin/admin.service';
 import type { AuditActor } from '../../src/common/audit/audit.service';
 import { BusinessError } from '../../src/common/errors/business-error';
 import { PrismaService } from '../../src/prisma.service';
+import { requireIsolatedDatabase } from '../fixtures/isolated-database';
 
 describe('AdminService lending settings', () => {
   let app: INestApplication;
@@ -26,6 +27,7 @@ describe('AdminService lending settings', () => {
   const actor = (): AuditActor => ({ accountKey: actorKey });
 
   beforeAll(async () => {
+    requireIsolatedDatabase();
     const module: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
     }).compile();
@@ -79,28 +81,34 @@ describe('AdminService lending settings', () => {
   }, 30_000);
 
   afterEach(async () => {
-    await prisma.penaltyRule.deleteMany({
-      where: { BorrowRuleKey: borrowRuleKey },
-    });
-    await prisma.borrowConstraints.deleteMany({
-      where: { BorrowRuleKey: borrowRuleKey },
-    });
-  });
-
-  afterAll(async () => {
-    try {
+    if (borrowRuleKey) {
       await prisma.penaltyRule.deleteMany({
         where: { BorrowRuleKey: borrowRuleKey },
       });
       await prisma.borrowConstraints.deleteMany({
         where: { BorrowRuleKey: borrowRuleKey },
       });
-      await prisma.borrowRule.deleteMany({
-        where: { BorrowRuleKey: borrowRuleKey },
-      });
-      await prisma.creditTier.deleteMany({
-        where: { CreditTierKey: creditTierKey },
-      });
+    }
+  });
+
+  afterAll(async () => {
+    try {
+      if (borrowRuleKey) {
+        await prisma.penaltyRule.deleteMany({
+          where: { BorrowRuleKey: borrowRuleKey },
+        });
+        await prisma.borrowConstraints.deleteMany({
+          where: { BorrowRuleKey: borrowRuleKey },
+        });
+        await prisma.borrowRule.deleteMany({
+          where: { BorrowRuleKey: borrowRuleKey },
+        });
+      }
+      if (creditTierKey) {
+        await prisma.creditTier.deleteMany({
+          where: { CreditTierKey: creditTierKey },
+        });
+      }
 
       if (actorKeys.size > 0) {
         await prisma.auditLog.deleteMany({

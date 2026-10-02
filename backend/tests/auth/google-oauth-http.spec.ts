@@ -15,6 +15,10 @@ import { SessionService, SESSION_COOKIE } from '../../src/auth/session.service';
 import { AuditService } from '../../src/common/audit/audit.service';
 import { ImageService } from '../../src/image/image.service';
 import { historyFixture, inHistoryFixture } from '../fixtures/borrower-history';
+import {
+  createIsolatedDatabase,
+  type IsolatedTestDatabase,
+} from '../fixtures/isolated-database';
 import { freezeBusinessDate } from '../fixtures/business-clock';
 
 const CLIENT_ID = 'fixture.apps.googleusercontent.com';
@@ -66,12 +70,15 @@ class SessionProbe {
 
 describe('FR-AUTH-01/02 and FR-ADM-05: enabled Google OAuth over HTTP', () => {
   let prisma: PrismaService;
+  let database: IsolatedTestDatabase | undefined;
   let clock = Date.parse('2031-09-26T00:00:00.000Z');
   beforeAll(async () => {
-    prisma = new PrismaService();
-    await prisma.$connect();
-  });
-  afterAll(async () => prisma?.$disconnect());
+    database = await createIsolatedDatabase('oauth', {
+      seedReferenceData: true,
+    });
+    prisma = database.client;
+  }, 60_000);
+  afterAll(async () => database?.dispose());
   beforeEach(() => {
     clock += 61_000;
     freezeBusinessDate(new Date(clock));

@@ -1,14 +1,26 @@
+import type { Prisma } from '../../src/generated/prisma/client';
+import { PrismaService } from '../../src/prisma.service';
+import { ApprovalService } from '../../src/approval/approval.service';
 import {
+  approvalCounts,
   decideApprovalInput,
   listApprovalQueueInput,
 } from '../../src/approval/approval.schema';
+import { StaffScopeService } from '../../src/common/authority/staff-scope.service';
+import { CreditTierService } from '../../src/common/credit/credit-tier.service';
+import {
+  historyFixture,
+  inHistoryFixture,
+  requireIsolatedDatabase,
+  transactionClient,
+} from '../fixtures/borrower-history';
+import { freezeBusinessDate } from '../fixtures/business-clock';
 import type { TrpcUser } from '../../src/trpc/context';
+import { setup, reservation, start, end } from '../fixtures/approval-harness';
 
 function objectContaining(value: Record<string, unknown>): unknown {
   return expect.objectContaining(value) as unknown;
 }
-
-import { setup, reservation, start, end } from '../fixtures/approval-harness';
 
 const supervisor: TrpcUser = {
   accountKey: 99,
@@ -268,5 +280,148 @@ describe('ApprovalService decisions', () => {
         }),
       }),
     );
+  });
+});
+
+// Real service/adapter assertions share this module's suite; setup is scoped.
+describe('Persisted business records', () => {
+  const NOW = new Date('2031-09-26T03:00:00Z');
+
+  function service(tx: Prisma.TransactionClient) {
+    const client = transactionClient(tx);
+    return new ApprovalService(
+      client,
+      new StaffScopeService(client),
+      new CreditTierService(client),
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+    );
+  }
+
+  async function request(
+    tx: Prisma.TransactionClient,
+    resourceKey: number,
+    accountKey: number,
+    start: Date,
+  ) {
+    return tx.reservations.create({
+      data: {
+        ResourceKey: resourceKey,
+        ReservedBy: accountKey,
+        StartTime: start,
+        EndTime: new Date(start.getTime() + 3_600_000),
+        ApproveStatus: 'Pending',
+        ActionTime: NOW,
+        ReservationExpiration: new Date(start.getTime() + 3_600_000),
+      },
+    });
+  }
+
+  describe('FR-APV-01: approval dashboard counts, scope and Bangkok day boundary', () => {
+    let prisma: PrismaService;
+    beforeAll(async () => {
+      requireIsolatedDatabase();
+      prisma = new PrismaService();
+      await prisma.$connect();
+    });
+    afterAll(async () => prisma?.$disconnect());
+    beforeEach(() => freezeBusinessDate(NOW));
+    afterEach(() => jest.useRealTimers());
+
+    it('counts supervisor and fallback staff routes only in scope, with strict overdue boundary', async () => {
+      await inHistoryFixture(prisma, async (tx) => {
+        const own = await historyFixture(tx),
+          legacy = await historyFixture(tx),
+          foreign = await historyFixture(tx);
+        // A rule outside T0-T3 is legacy/unconfigured data and needs a staff look.
+        await tx.borrowRule.update({
+          where: { BorrowRuleKey: legacy.rule.BorrowRuleKey },
+          data: { RuleName: 'legacy-unconfigured' },
+        });
+        await tx.resourceInfo.update({
+          where: { ResourceKey: legacy.resource.ResourceKey },
+          data: { ManagedBy: own.group.ManageGroupKey },
+        });
+        await request(
+          tx,
+          own.resource.ResourceKey,
+          own.borrower.AccountKey,
+          NOW,
+        );
+        await request(
+          tx,
+          legacy.resource.ResourceKey,
+          legacy.borrower.AccountKey,
+          new Date(NOW.getTime() - 1),
+        );
+        await request(
+          tx,
+          foreign.resource.ResourceKey,
+          foreign.borrower.AccountKey,
+          new Date(NOW.getTime() - 1),
+        );
+        const output = approvalCounts
+          .strict()
+          .parse(await service(tx).counts(own.decider));
+        expect(output).toMatchObject({
+          staff: 1,
+          supervisor: 1,
+          overdueToDecide: 1,
+          autoApprovedToday: 0,
+          retirement: 0,
+          asOf: NOW.toISOString(),
+        });
+      });
+    });
+
+    it('includes auto approvals from Bangkok midnight, excludes the previous day, and scopes retirement requests', async () => {
+      await inHistoryFixture(prisma, async (tx) => {
+        const own = await historyFixture(tx),
+          foreign = await historyFixture(tx);
+        await tx.borrowRule.update({
+          where: { BorrowRuleKey: own.rule.BorrowRuleKey },
+          data: { RuleName: 'T1' },
+        });
+        const midnight = new Date('2031-09-25T17:00:00.000Z');
+        for (const [index, approvedAt] of [
+          midnight,
+          new Date(midnight.getTime() - 1),
+        ].entries()) {
+          const row = await request(
+            tx,
+            own.resource.ResourceKey,
+            own.borrower.AccountKey,
+            new Date(NOW.getTime() + (index + 1) * 86_400_000),
+          );
+          await tx.reservations.update({
+            where: { ReservationKey: row.ReservationKey },
+            data: {
+              ApproveStatus: 'Approved',
+              AutoApproved: true,
+              ApprovedAt: approvedAt,
+            },
+          });
+        }
+        for (const f of [own, foreign])
+          await tx.retirementRequest.create({
+            data: {
+              ResourceKey: f.resource.ResourceKey,
+              RequestedBy: f.decider.accountKey,
+              Reason: 'Beyond repair',
+              ApproveStatus: 'Pending',
+              RequestedAt: NOW,
+            },
+          });
+        expect(await service(tx).counts(own.decider)).toMatchObject({
+          staff: 0,
+          supervisor: 0,
+          overdueToDecide: 0,
+          autoApprovedToday: 1,
+          retirement: 1,
+        });
+      });
+    });
   });
 });

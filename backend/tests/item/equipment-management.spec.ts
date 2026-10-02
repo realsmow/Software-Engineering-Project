@@ -1,3 +1,20 @@
+import { PrismaService } from '../../src/prisma.service';
+import { StaffScopeService } from '../../src/common/authority/staff-scope.service';
+import {
+  listManagedItemsInput,
+  itemTypeDetail,
+  paginatedItemTypes,
+  listManagedUnitsInput,
+  updateItemUnitInput,
+  itemUnitOutput,
+} from '../../src/item/item.schema';
+import { pickupFixture } from '../fixtures/pickup';
+import {
+  historyFixture,
+  inHistoryFixture,
+  requireIsolatedDatabase,
+  transactionClient,
+} from '../fixtures/borrower-history';
 import { BusinessError } from '../../src/common/errors/business-error';
 import type { TrpcUser } from '../../src/trpc/context';
 import { ItemManagementService } from '../../src/item/item.management.service';
@@ -790,6 +807,254 @@ describe('Department isolation — staff scope checks (Audit #17 / FR-AUTH-05)',
 
     await expect(service.getManagedItemById(user(), 50)).rejects.toMatchObject({
       businessCode: 'OUT_OF_MANAGEMENT_SCOPE',
+    });
+  });
+});
+
+// Real service/adapter assertions share this module's suite; setup is scoped.
+describe('Persisted business records', () => {
+  describe('FR-AUTH-05 / FR-EQP-01: staff inventory reads respect department ownership', () => {
+    let prisma: PrismaService;
+    beforeAll(async () => {
+      requireIsolatedDatabase();
+      prisma = new PrismaService();
+      await prisma.$connect();
+    });
+    afterAll(async () => prisma?.$disconnect());
+
+    function service(client: PrismaService) {
+      return new ItemManagementService(
+        client,
+        new StaffScopeService(client),
+        { toPublicUrl: (url: string | null) => url } as never,
+        { record: jest.fn() } as never,
+        {} as never,
+      );
+    }
+
+    it.each(['name', 'description', 'serial'] as const)(
+      'finds a managed type by %s without leaking a matching foreign type',
+      async (field) => {
+        await inHistoryFixture(prisma, async (tx) => {
+          const f = await historyFixture(tx);
+          const foreign = await historyFixture(tx);
+          const ownItem = await tx.itemIndiv.findUniqueOrThrow({
+            where: { ResourceKey: f.resource.ResourceKey },
+          });
+          const foreignItem = await tx.itemIndiv.findUniqueOrThrow({
+            where: { ResourceKey: foreign.resource.ResourceKey },
+          });
+          const value = `inventory-search-${f.resource.ResourceKey}`;
+          if (field === 'serial') {
+            await tx.itemIndiv.updateMany({
+              where: {
+                ResourceKey: {
+                  in: [f.resource.ResourceKey, foreign.resource.ResourceKey],
+                },
+              },
+              data: { ItemID: value },
+            });
+          } else {
+            await tx.itemInfo.updateMany({
+              where: {
+                ItemKey: { in: [ownItem.ItemKey, foreignItem.ItemKey] },
+              },
+              data:
+                field === 'name' ? { ItemName: value } : { ItemDesc: value },
+            });
+          }
+          const result = paginatedItemTypes
+            .strict()
+            .parse(
+              await service(transactionClient(tx)).listManagedItems(
+                f.decider,
+                listManagedItemsInput.parse({ q: value, tier: 'T2' }),
+              ),
+            );
+          expect(result.total).toBe(1);
+          expect(result.items.map((item) => item.id)).toEqual([
+            ownItem.ItemKey,
+          ]);
+          expect(result.items[0]).toMatchObject({
+            totalUnits: 1,
+            tiers: ['T2'],
+          });
+        });
+      },
+    );
+
+    it('refuses details of stock owned entirely by another department', async () => {
+      await inHistoryFixture(prisma, async (tx) => {
+        const own = await historyFixture(tx);
+        const foreign = await historyFixture(tx);
+        const item = await tx.itemIndiv.findUniqueOrThrow({
+          where: { ResourceKey: foreign.resource.ResourceKey },
+        });
+        await expect(
+          service(transactionClient(tx)).getManagedItemById(
+            own.decider,
+            item.ItemKey,
+          ),
+        ).rejects.toMatchObject({ businessCode: 'OUT_OF_MANAGEMENT_SCOPE' });
+      });
+    });
+
+    it('returns schema-valid details and permits an administrator to read all scopes', async () => {
+      await inHistoryFixture(prisma, async (tx) => {
+        const f = await historyFixture(tx);
+        const item = await tx.itemIndiv.findUniqueOrThrow({
+          where: { ResourceKey: f.resource.ResourceKey },
+        });
+        const result = itemTypeDetail
+          .strict()
+          .parse(
+            await service(transactionClient(tx)).getManagedItemById(
+              f.admin,
+              item.ItemKey,
+            ),
+          );
+        expect(result.units.map((unit) => unit.resourceKey)).toEqual([
+          f.resource.ResourceKey,
+        ]);
+      });
+    });
+
+    it('offers only the caller departments and recognized resource tiers', async () => {
+      await inHistoryFixture(prisma, async (tx) => {
+        const f = await historyFixture(tx);
+        const foreign = await historyFixture(tx);
+        const custom = await tx.borrowRule.create({
+          data: { RuleName: `custom-${f.resource.ResourceKey}` },
+        });
+        const svc = service(transactionClient(tx));
+        const groups = await svc.listManagementGroups(f.decider);
+        expect(groups.map((group) => group.id)).toEqual([
+          f.group.ManageGroupKey,
+        ]);
+        expect(groups.map((group) => group.id)).not.toContain(
+          foreign.group.ManageGroupKey,
+        );
+        const tiers = await svc.listTiers();
+        expect(tiers.map((tier) => tier.borrowRuleKey)).toContain(
+          f.rule.BorrowRuleKey,
+        );
+        expect(tiers.map((tier) => tier.borrowRuleKey)).not.toContain(
+          custom.BorrowRuleKey,
+        );
+        expect(await svc.listAuthorityRoles()).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              authorityRoleKey: f.authorityRole.AuthorityRoleKey,
+              level: 1,
+            }),
+          ]),
+        );
+      });
+    });
+
+    it('filters individual units by lendability and excludes other departments even for the same item type', async () => {
+      await inHistoryFixture(prisma, async (tx) => {
+        const own = await pickupFixture(tx),
+          foreign = await pickupFixture(tx);
+        await tx.itemIndiv.update({
+          where: { ResourceKey: foreign.units[0].ResourceKey },
+          data: { ItemKey: own.item.ItemKey },
+        });
+        await tx.resourceInfo.update({
+          where: { ResourceKey: own.units[1].ResourceKey },
+          data: { AllowBorrow: false },
+        });
+        const rows = itemUnitOutput.array().parse(
+          await service(transactionClient(tx)).listManagedUnits(
+            own.staff,
+            listManagedUnitsInput.parse({
+              itemKey: own.item.ItemKey,
+              status: 'InStorage',
+              lendable: true,
+            }),
+          ),
+        );
+        expect(rows.map((row) => row.resourceKey)).toEqual([
+          own.units[0].ResourceKey,
+        ]);
+      });
+    });
+
+    it('persists an edited serial and preparation days together while retaining the other unit', async () => {
+      await inHistoryFixture(prisma, async (tx) => {
+        const f = await pickupFixture(tx);
+        const other = await tx.itemIndiv.findUniqueOrThrow({
+          where: { ResourceKey: f.units[1].ResourceKey },
+        });
+        const output = itemUnitOutput.strict().parse(
+          await service(transactionClient(tx)).updateItemUnit(
+            f.staff,
+            updateItemUnitInput.parse({
+              resourceKey: f.units[0].ResourceKey,
+              serialNo: 'EDITED-SERIAL',
+              prepDays: 3,
+            }),
+          ),
+        );
+        expect(output).toMatchObject({
+          resourceKey: f.units[0].ResourceKey,
+          serialNo: 'EDITED-SERIAL',
+          prepDays: 3,
+        });
+        expect(
+          (
+            await tx.itemIndiv.findUniqueOrThrow({
+              where: { ResourceKey: f.units[0].ResourceKey },
+            })
+          ).ItemID,
+        ).toBe('EDITED-SERIAL');
+        expect(
+          (
+            await tx.resourceInfo.findUniqueOrThrow({
+              where: { ResourceKey: f.units[0].ResourceKey },
+            })
+          ).BufferTime,
+        ).toBe(3);
+        expect(
+          await tx.itemIndiv.findUniqueOrThrow({
+            where: { ResourceKey: f.units[1].ResourceKey },
+          }),
+        ).toEqual(other);
+      });
+    });
+
+    it('refuses a duplicate serial edit without partially changing preparation days', async () => {
+      await inHistoryFixture(prisma, async (tx) => {
+        const f = await pickupFixture(tx);
+        const original = await tx.itemIndiv.findUniqueOrThrow({
+          where: { ResourceKey: f.units[0].ResourceKey },
+        });
+        const other = await tx.itemIndiv.findUniqueOrThrow({
+          where: { ResourceKey: f.units[1].ResourceKey },
+        });
+        await expect(
+          service(transactionClient(tx)).updateItemUnit(
+            f.staff,
+            updateItemUnitInput.parse({
+              resourceKey: f.units[0].ResourceKey,
+              serialNo: other.ItemID,
+              prepDays: 9,
+            }),
+          ),
+        ).rejects.toMatchObject({ businessCode: 'SERIAL_ALREADY_IN_USE' });
+        expect(
+          await tx.itemIndiv.findUniqueOrThrow({
+            where: { ResourceKey: f.units[0].ResourceKey },
+          }),
+        ).toEqual(original);
+        expect(
+          (
+            await tx.resourceInfo.findUniqueOrThrow({
+              where: { ResourceKey: f.units[0].ResourceKey },
+            })
+          ).BufferTime,
+        ).toBe(0);
+      });
     });
   });
 });

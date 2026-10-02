@@ -6,6 +6,10 @@ import {
 } from '../../src/loan/loan.schema';
 import { inHistoryFixture } from '../fixtures/borrower-history';
 import {
+  createIsolatedDatabase,
+  type IsolatedTestDatabase,
+} from '../fixtures/isolated-database';
+import {
   deleteRequestFixture,
   requestFixture,
   requestService,
@@ -22,17 +26,20 @@ function windowInput(resourceKey: number) {
 
 describe('persisted reservation conflict handling', () => {
   let prisma: PrismaService;
+  let database: IsolatedTestDatabase | undefined;
   let termEnd: string | undefined;
   beforeAll(async () => {
-    prisma = new PrismaService();
-    await prisma.$connect();
     termEnd = process.env.TERM_END_DATE;
     delete process.env.TERM_END_DATE;
-  });
+    database = await createIsolatedDatabase('reservation', {
+      seedReferenceData: true,
+    });
+    prisma = database.client;
+  }, 60_000);
   afterAll(async () => {
     if (termEnd === undefined) delete process.env.TERM_END_DATE;
     else process.env.TERM_END_DATE = termEnd;
-    await prisma?.$disconnect();
+    await database?.dispose();
   });
 
   describe('FR-REQ-09: two real Serializable transactions reaching commit together', () => {

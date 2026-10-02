@@ -8,6 +8,7 @@ const report = JSON.parse(readFileSync(path, "utf8"));
 const expectedDefects = new Set([
   "finds a seeded equipment type by a real unit asset tag",
   "sends a damage-credit notification after independent inspection",
+  "FR-AUTH-06: redirects an expired session to login on menu navigation without reloading",
 ]);
 const tests = [];
 function visit(suite) {

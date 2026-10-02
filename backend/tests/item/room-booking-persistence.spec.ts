@@ -6,6 +6,7 @@ import {
 } from '../fixtures/service-contracts';
 import { randomUUID } from 'node:crypto';
 import { PrismaService } from '../../src/prisma.service';
+import { requireIsolatedDatabase } from '../fixtures/isolated-database';
 import { ItemService } from '../../src/item/item.service';
 import { LoanRequestService } from '../../src/loan/loan.request.service';
 import { EligibilityService } from '../../src/common/authority/eligibility.service';
@@ -30,6 +31,7 @@ describe('PDF p. 9: room bookings persist in the database', () => {
   > = {};
 
   beforeAll(async () => {
+    requireIsolatedDatabase();
     prisma = new PrismaService();
     await prisma.$connect();
   });

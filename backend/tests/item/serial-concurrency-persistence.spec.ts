@@ -1,11 +1,11 @@
 import { randomUUID } from 'node:crypto';
-import { execFile } from 'node:child_process';
 import { mkdirSync, writeFileSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
-import { promisify } from 'node:util';
-import { PrismaPg } from '@prisma/adapter-pg';
-import { PrismaClient } from '../../src/generated/prisma/client';
+import { dirname } from 'node:path';
 import type { PrismaService } from '../../src/prisma.service';
+import {
+  createIsolatedDatabase,
+  type IsolatedTestDatabase,
+} from '../fixtures/isolated-database';
 import { StaffScopeService } from '../../src/common/authority/staff-scope.service';
 import { AuditService } from '../../src/common/audit/audit.service';
 import { BusinessError } from '../../src/common/errors/business-error';
@@ -78,16 +78,9 @@ type Observation = {
   auditCount: number;
 };
 
-function databaseClient(connectionString: string) {
-  return new PrismaClient({
-    adapter: new PrismaPg({ connectionString, max: 3 }),
-  });
-}
-
 describe('FR-EQP-02 / P2: serial uniqueness with concurrent staff registration', () => {
   let prisma: PrismaService;
-  let databaseAdmin: PrismaClient | undefined;
-  let ownedDatabase: string | undefined;
+  let database: IsolatedTestDatabase | undefined;
   let clients: PrismaService[] = [];
   let services: ItemManagementService[];
   let fixture:
@@ -105,46 +98,9 @@ describe('FR-EQP-02 / P2: serial uniqueness with concurrent staff registration',
   const evidence: Observation[] = [];
 
   beforeAll(async () => {
-    const url = new URL(process.env.DATABASE_URL!);
-    if (
-      process.env.NODE_ENV !== 'test' ||
-      !['localhost', '127.0.0.1', '::1'].includes(url.hostname)
-    ) {
-      throw new Error(
-        'Serial concurrency tests require NODE_ENV=test and local PostgreSQL',
-      );
-    }
-
-    // Ordinary npm test may point at /app. Own a separate database rather than
-    // requiring a runner-specific name or writing fixtures into that database.
-    // Never change process.env.DATABASE_URL: other suites keep their own clients.
-    databaseAdmin = databaseClient(url.toString());
-    const name = `ulms_test_serial_${process.pid}_${randomUUID().replaceAll('-', '')}`;
-    await databaseAdmin.$executeRawUnsafe(`CREATE DATABASE "${name}"`);
-    ownedDatabase = name;
-    url.pathname = `/${name}`;
-    const backendRoot = resolve(__dirname, '../..');
-    await promisify(execFile)(
-      process.execPath,
-      [
-        resolve(backendRoot, 'node_modules/prisma/build/index.js'),
-        'migrate',
-        'deploy',
-      ],
-      {
-        cwd: backendRoot,
-        env: { ...process.env, DATABASE_URL: url.toString() },
-        windowsHide: true,
-        timeout: 45_000,
-      },
-    );
-    // PrismaService adds only Nest lifecycle hooks; the real Prisma clients
-    // expose the same database methods consumed by the services under test.
-    prisma = databaseClient(url.toString()) as PrismaService;
-    clients = [
-      databaseClient(url.toString()),
-      databaseClient(url.toString()),
-    ] as PrismaService[];
+    database = await createIsolatedDatabase('serial');
+    prisma = database.client;
+    clients = [database.createClient(), database.createClient()];
     await Promise.all([prisma, ...clients].map((client) => client.$connect()));
     const versions = await prisma.$queryRaw<
       { version: string }[]
@@ -263,33 +219,8 @@ describe('FR-EQP-02 / P2: serial uniqueness with concurrent staff registration',
     });
   });
 
-  async function dropOwnedDatabase() {
-    if (!ownedDatabase || !databaseAdmin) return;
-    // This name is generated above, never taken from DATABASE_URL.
-    if (!/^ulms_test_serial_\d+_[a-f0-9]{32}$/.test(ownedDatabase)) {
-      throw new Error('Refusing to drop an unowned serial-test database');
-    }
-    await databaseAdmin.$queryRaw`
-      SELECT pg_terminate_backend(pid) FROM pg_stat_activity
-      WHERE datname = ${ownedDatabase} AND pid <> pg_backend_pid()
-    `;
-    await databaseAdmin.$executeRawUnsafe(`DROP DATABASE "${ownedDatabase}"`);
-  }
-
   afterAll(async () => {
-    try {
-      await Promise.all(
-        [prisma, ...clients]
-          .filter(Boolean)
-          .map((client) => client.$disconnect()),
-      );
-    } finally {
-      try {
-        await dropOwnedDatabase();
-      } finally {
-        await databaseAdmin?.$disconnect();
-      }
-    }
+    await database?.dispose();
     const reportPath = process.env.SERIAL_TEST_REPORT;
     if (reportPath) {
       mkdirSync(dirname(reportPath), { recursive: true });

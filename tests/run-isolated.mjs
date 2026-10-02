@@ -21,6 +21,9 @@ const require = createRequire(resolve(root, "backend/package.json"));
 require("dotenv").config({ path: resolve(root, "backend/.env"), quiet: true });
 const { Client } = require("pg");
 const mode = process.argv[2] ?? "--all";
+const backendArguments = process.argv
+  .slice(3)
+  .filter((arg) => arg !== "--no-coverage");
 if (!["--all", "--backend", "--e2e", "--load"].includes(mode))
   throw new Error("Use --all, --backend, --e2e or --load");
 const url = new URL(process.env.DATABASE_URL);
@@ -107,17 +110,27 @@ try {
   );
   if (mode === "--backend" || mode === "--all") {
     await run(
+      "backend/node_modules/tsx/dist/cli.mjs",
+      [resolve(root, "backend/tests/fixtures/seed-reference.ts")],
+      resolve(root, "backend"),
+    );
+    await run(
       "backend/node_modules/jest/bin/jest.js",
       [
         "--runInBand",
         "--silent",
-        "--coverage",
-        "--collectCoverageFrom=src/**/*.ts",
-        "--collectCoverageFrom=!src/generated/**",
-        "--collectCoverageFrom=!src/**/*.spec.ts",
-        "--coverageReporters=text-summary",
-        "--coverageReporters=json-summary",
-        "--coverageReporters=json",
+        ...(process.argv.includes("--no-coverage")
+          ? []
+          : [
+              "--coverage",
+              "--collectCoverageFrom=src/**/*.ts",
+              "--collectCoverageFrom=!src/generated/**",
+              "--collectCoverageFrom=!src/**/*.spec.ts",
+              "--coverageReporters=text-summary",
+              "--coverageReporters=json-summary",
+              "--coverageReporters=json",
+            ]),
+        ...(mode === "--backend" ? backendArguments : []),
       ],
       resolve(root, "backend"),
       { ...env, NODE_OPTIONS: "--experimental-vm-modules" },

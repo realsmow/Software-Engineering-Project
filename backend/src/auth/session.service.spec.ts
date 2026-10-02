@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import type { CookieOptions, Request, Response } from 'express';
 import { PrismaService } from '../prisma.service';
 import { SESSION_COOKIE, SessionService } from './session.service';
+import { requireIsolatedDatabase } from '../../tests/fixtures/isolated-database';
 
 const SECRET = 'a-test-secret-that-is-at-least-32-characters-long';
 
@@ -38,6 +39,7 @@ describe('SessionService', () => {
   let accountKey: number;
 
   beforeAll(async () => {
+    requireIsolatedDatabase();
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         SessionService,

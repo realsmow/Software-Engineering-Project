@@ -121,6 +121,9 @@ describe('recordReturn', () => {
     await expect(
       t.svc.recordReturn(staff, { usageKey: 8 }),
     ).rejects.toMatchObject({ businessCode: 'RETURN_PHOTO_REQUIRED' });
+    expect(t.audit.record).not.toHaveBeenCalled();
+    expect(t.prisma.$transaction).not.toHaveBeenCalled();
+    expect(t.penalties.apply).not.toHaveBeenCalled();
   });
 
   it('refuses a return for a loan that is not out', async () => {
