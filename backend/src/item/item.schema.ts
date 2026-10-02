@@ -607,8 +607,7 @@ export const itemDetail = itemSummary.extend({
  *                 order by a *filtered* relation count), so the service pays
  *                 for it differently; see item.service.ts.
  *   name        — Thai alphabetical
- *   popular     — most units held, as a stand-in for demand until loan
- *                 history is available to count
+ *   popular     — most loans ever made on the type's units
  *   creditWeight— cheapest first
  */
 export const itemSortKey = z.enum([
@@ -646,7 +645,13 @@ export const listItemsInput = paginationInput
   })
   .extend(availabilityWindow.shape);
 
-export const paginatedItems = paginated(itemSummary).extend({
+/** A catalogue row: the summary plus what only the list needs. */
+export const catalogItem = itemSummary.extend({
+  /** Loans ever made on this type's units; what "Most popular" sorts by. */
+  borrowCount: z.number().int().min(0),
+});
+
+export const paginatedItems = paginated(catalogItem).extend({
   /**
    * Pass back as `cursor` to fetch the next page by keyset instead of by
    * offset. Null once the caller has the last row. See item.service.ts for
@@ -767,5 +772,6 @@ export const availabilityOutput = z.object({
 export type ListItemsInput = z.infer<typeof listItemsInput>;
 export type ListRoomsInput = z.infer<typeof listRoomsInput>;
 export type ItemSummary = z.infer<typeof itemSummary>;
+export type CatalogItem = z.infer<typeof catalogItem>;
 export type ItemDetail = z.infer<typeof itemDetail>;
 export type RoomSummary = z.infer<typeof roomSummary>;

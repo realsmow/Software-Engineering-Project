@@ -204,17 +204,11 @@ describe('FR-APV-01 / FR-APL-06 real history and appeal persistence', () => {
           );
       });
     });
-    it(
-      'excludes the incident revised to B0 from the damage count',
-      () => {
-        expect(actual.damageIncidents).toBe(1);
-      },
-    );
-    it(
-      'uses the latest remaining B1–B3 inspection date after a B0 revision',
-      () => {
-        expect(actual.lastDamageDate).toBe(lastRemainingDamage);
-      },
-    );
+    it('excludes the incident revised to B0 from the damage count', () => {
+      expect(actual.damageIncidents).toBe(1);
+    });
+    it('uses the latest remaining B1–B3 inspection date after a B0 revision', () => {
+      expect(actual.lastDamageDate).toBe(lastRemainingDamage);
+    });
   });
 });

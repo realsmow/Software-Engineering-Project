@@ -94,6 +94,9 @@ function setup(usage = subject()) {
       update: jest.fn().mockResolvedValue(usage),
     },
     penaltyRule: { findUnique: jest.fn().mockResolvedValue(null) },
+    accountInfo: {
+      findUniqueOrThrow: jest.fn().mockResolvedValue({ UserCredit: 64 }),
+    },
     resourceInfo: { update: jest.fn().mockResolvedValue({}) },
     images: { createMany: jest.fn().mockResolvedValue({ count: 1 }) },
     $transaction: jest.fn(),
@@ -121,6 +124,7 @@ function setup(usage = subject()) {
     penalties,
     images as never,
     audit as never,
+    { creditDeducted: jest.fn() } as never,
   );
   withOutputContracts(service, { createInspection: inspectionOutput });
   return { service, prisma, scope, penalties: penaltySpies, images, audit };

@@ -161,7 +161,12 @@ describe('allocate — audit trail', () => {
       reservations: { update: jest.fn().mockResolvedValue({}) },
     };
     const prisma = {
-      reservations: { findUnique: jest.fn().mockResolvedValue(row) },
+      reservations: {
+        findUnique: jest.fn().mockResolvedValue(row),
+        // The double-booking check (NFR-REL-02): no other booking clashes.
+        findUniqueOrThrow: jest.fn().mockResolvedValue(row),
+        findFirst: jest.fn().mockResolvedValue(null),
+      },
       resourceInfo: {
         findUniqueOrThrow: jest.fn().mockResolvedValue({
           ResourceStatus: 'InStorage',

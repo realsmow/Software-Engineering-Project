@@ -259,6 +259,24 @@ export class NotificationService {
   }
 
   /**
+   * FR-APV-06: an approved request nobody collected in time was cancelled.
+   * Shares `RequestRejected` so the frontend needs no new type.
+   */
+  requestExpired(
+    tx: Prisma.TransactionClient,
+    params: { accountKey: number; reservationKey: number; itemName: string },
+  ) {
+    return this.emit(tx, {
+      accountKey: params.accountKey,
+      type: 'RequestRejected',
+      title: 'คำขอยืมถูกยกเลิก',
+      body: `${params.itemName} · ไม่ได้มารับภายในกำหนด`,
+      linkTo: ROUTE_MY_LOANS,
+      dedupeKey: reservationKeyOf(params.reservationKey),
+    });
+  }
+
+  /**
    * "คำขอต่ออายุได้รับการอนุมัติ" — the loan now runs to a later date.
    *
    * Sent for the extensions a person granted *and* for the ones the system

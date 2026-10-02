@@ -1,0 +1,88 @@
+# Render Blueprint for the free demo deploy. See docs/deploy.md, "Demo on Render (free)".
+# Render's free Postgres expires about 30 days after creation and its data is
+# deleted, so deploy close to the grading date.
+# Secrets are `sync: false`: Render asks for them when the Blueprint is created.
+databases:
+  - name: ulms-db
+    plan: free
+    region: singapore
+    postgresMajorVersion: "16"
+
+services:
+  - type: web
+    name: ulms-backend
+    runtime: docker
+    plan: free
+    region: singapore
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    healthCheckPath: /
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: COOKIE_SECURE
+        value: "true"
+      - key: COOKIE_SAMESITE
+        value: lax
+      # The free database allows few connections.
+      - key: DB_POOL_MAX
+        value: "5"
+      - key: TRUST_PROXY_HOPS
+        value: "2"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: ulms-db
+          property: connectionString
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: CORS_ORIGINS
+        sync: false
+      - key: PUBLIC_APP_URL
+        sync: false
+      - key: PUBLIC_API_URL
+        sync: false
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        sync: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: MAIL_FROM
+        sync: false
+
+  - type: web
+    name: ulms-frontend
+    runtime: static
+    rootDir: frontend
+    # vite build only: the tsc step also checks tests, which import ../backend.
+    # CI type-checks everything.
+    buildCommand: npm ci && npx vite build
+    staticPublishPath: dist
+    envVars:
+      - key: VITE_TRPC_URL
+        value: /trpc
+      - key: VITE_API_URL
+        value: /api
+    # Same origin for the browser, so the session cookie works. Replace the
+    # host if Render gave the backend a different URL. API rules come first.
+    routes:
+      - type: rewrite
+        source: /trpc/*
+        destination: https://ulms-backend.onrender.com/trpc/*
+      - type: rewrite
+        source: /api/*
+        destination: https://ulms-backend.onrender.com/api/*
+      - type: rewrite
+        source: /auth/*
+        destination: https://ulms-backend.onrender.com/auth/*
+      - type: rewrite
+        source: /media/*
+        destination: https://ulms-backend.onrender.com/media/*
+      - type: rewrite
+        source: /uploads/*
+        destination: https://ulms-backend.onrender.com/uploads/*
+      - type: rewrite
+        source: /*
+        destination: /index.html

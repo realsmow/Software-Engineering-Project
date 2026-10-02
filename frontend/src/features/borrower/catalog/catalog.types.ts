@@ -16,6 +16,8 @@ export interface CatalogItem extends Omit<EquipmentType, "tier"> {
    * applies. False means every request for it would be refused NOT_ELIGIBLE.
    */
   eligible: boolean;
+  /** Loans ever made on the type; "Most popular" sorts by it. */
+  borrowCount: number;
   /**
    * Null when the server cannot determine one: a type with no units yet, or
    * units sitting on a BorrowRule outside T0-T3. A tier decides who approves a

@@ -6,6 +6,8 @@ import i18n from '../../src/i18n';
 import UsersPage from '../../src/features/admin/users/users-page';
 import { ADMIN_USERS } from '../fixtures/admin-users';
 import * as adminUsersHooks from '../../src/features/admin/users/use-admin-users';
+import { useAuthStore } from '../../src/features/auth/auth.store';
+import { getErrorMessage } from '../../src/lib/error-messages';
 
 const useAuditEventsMock = vi.hoisted(() => vi.fn());
 
@@ -203,6 +205,32 @@ describe('Admin users page', () => {
     });
   });
 
+  it('stays open after creating, shows the one-time password and clears the fields', async () => {
+    createMutate.mockImplementation((_input, options) => {
+      options.onSuccess({ user: {}, temporaryPassword: 'Tmp-Pass-1234' });
+    });
+    renderPage();
+    fireEvent.click(screen.getByRole('button', { name: t('admin.users.createUser') }));
+
+    const dialog = screen.getByRole('dialog');
+    const name = screen.getByPlaceholderText(t('admin.users.namePlaceholder'));
+    const email = screen.getByPlaceholderText('name@ku.th');
+    fireEvent.change(name, { target: { value: 'New Test User' } });
+    fireEvent.change(email, { target: { value: 'new.test@ku.th' } });
+    fireEvent.click(within(dialog).getByRole('button', { name: t('admin.users.createSubmit') }));
+
+    await waitFor(() => {
+      expect(
+        within(dialog).getByText(
+          i18n.t('admin.users.createdOk', { name: 'New Test User', email: 'new.test@ku.th' }),
+        ),
+      ).toBeInTheDocument();
+    });
+    expect(within(dialog).getByText('Tmp-Pass-1234')).toBeInTheDocument();
+    expect(name).toHaveValue('');
+    expect(email).toHaveValue('');
+  });
+
   it('requests account deactivation for the selected active account', () => {
     renderPage();
     openUser(STAFF_USER.name);
@@ -260,8 +288,14 @@ describe('Admin users page', () => {
   });
 
   it('surfaces a self-modification error when deactivating the current account', async () => {
+    const selfError = Object.assign(new Error('CANNOT_MODIFY_SELF'), {
+      data: { businessCode: 'CANNOT_MODIFY_SELF' },
+    });
+    const readable = getErrorMessage(selfError);
+    expect(readable).not.toBe('CANNOT_MODIFY_SELF');
     setUserActiveMutate.mockImplementation((_input, options) => {
-      options.onError(new Error('CANNOT_MODIFY_SELF'));
+      // Shaped like a tRPC error: the business code rides in data.
+      options.onError(selfError);
     });
     renderPage();
     openUser(STAFF_USER.name);
@@ -269,9 +303,20 @@ describe('Admin users page', () => {
     fireEvent.click(screen.getByRole('button', { name: t('admin.users.deactivate') }));
 
     await waitFor(() => {
-      expect(screen.getByText('CANNOT_MODIFY_SELF')).toBeInTheDocument();
+      expect(screen.getByText(readable)).toBeInTheDocument();
     });
+    // A refusal is styled as a warning, not the green success box.
+    expect(screen.getByRole('alert')).toHaveTextContent(readable);
     expect(screen.getByRole('dialog')).toBeInTheDocument();
+  });
+
+  it('does not offer deactivation or a role change on the admin\'s own account', () => {
+    useAuthStore.setState({ user: { ...useAuthStore.getState().user, id: String(STAFF_USER.id) } as never });
+    renderPage();
+    openUser(STAFF_USER.name);
+
+    expect(screen.getByRole('button', { name: t('admin.users.deactivate') })).toBeDisabled();
+    useAuthStore.setState({ user: null });
   });
 
   it('explains which department blocks a role demotion and includes queued work', async () => {

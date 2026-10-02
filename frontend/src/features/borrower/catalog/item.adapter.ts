@@ -24,6 +24,8 @@ export interface ServerItem {
   creditWeight: number;
   totalUnits: number;
   availableUnits: number;
+  /** List rows only: loans ever made on the type. */
+  borrowCount?: number;
   stockStatus: StockStatus;
   nextAvailableAt: string | null;
   prepDays: number;
@@ -48,6 +50,7 @@ export function toCatalogItem(s: ServerItem): CatalogItem {
     prepDays: s.prepDays,
     totalUnits: s.totalUnits,
     availableUnits: s.availableUnits,
+    borrowCount: s.borrowCount ?? 0,
     nextAvailableAt: s.nextAvailableAt ?? undefined,
     allowBorrow: s.allowBorrow,
     eligible: s.eligible,

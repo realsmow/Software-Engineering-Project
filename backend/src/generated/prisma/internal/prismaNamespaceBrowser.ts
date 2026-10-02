@@ -112,6 +112,7 @@ export const AccountInfoScalarFieldEnum = {
   UserFName: 'UserFName',
   UserLName: 'UserLName',
   UserCredit: 'UserCredit',
+  CreatedAt: 'CreatedAt',
   RoleKey: 'RoleKey',
   FacultyKey: 'FacultyKey',
   IsActive: 'IsActive'

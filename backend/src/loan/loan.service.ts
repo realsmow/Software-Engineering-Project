@@ -289,7 +289,7 @@ export class LoanService {
             input.resourceKey,
           );
 
-    await this.assertUnitFree(target.ResourceKey);
+    await this.assertUnitFree(target.ResourceKey, reservation.ReservationKey);
 
     const usageKey = await this.prisma.$transaction(async (tx) => {
       const condition = await tx.conditionLog.create({
@@ -380,7 +380,7 @@ export class LoanService {
       usage.Resource,
       input.resourceKey,
     );
-    await this.assertUnitFree(target.ResourceKey);
+    await this.assertUnitFree(target.ResourceKey, usage.ReservationKey);
 
     await this.prisma.$transaction(async (tx) => {
       const condition = await tx.conditionLog.create({
@@ -1032,12 +1032,20 @@ export class LoanService {
   }
 
   /** On the shelf, offered, and not already promised to somebody. */
-  private async assertUnitFree(resourceKey: number): Promise<void> {
+  /**
+   * The unit must be on the shelf, and (NFR-REL-02) not promised to anyone
+   * else over this booking's window widened by the unit's preparation days.
+   */
+  private async assertUnitFree(
+    resourceKey: number,
+    reservationKey: number | null,
+  ): Promise<void> {
     const resource = await this.prisma.resourceInfo.findUniqueOrThrow({
       where: { ResourceKey: resourceKey },
       select: {
         ResourceStatus: true,
         AllowBorrow: true,
+        BufferTime: true,
         UsageLogs: {
           where: { CurrentStatus: { in: UNAVAILABLE_USAGE_STATES } },
           take: 1,
@@ -1058,6 +1066,28 @@ export class LoanService {
         lendable: resource.AllowBorrow,
         blockedBy: blocking?.UsageKey ?? null,
         nextAvailableAt: null,
+      });
+    }
+
+    if (reservationKey === null) return;
+    const own = await this.prisma.reservations.findUniqueOrThrow({
+      where: { ReservationKey: reservationKey },
+      select: { StartTime: true, EndTime: true },
+    });
+    const { from, to } = withBuffer(
+      own.StartTime,
+      own.EndTime,
+      resource.BufferTime,
+    );
+    const clash = await this.prisma.reservations.findFirst({
+      where: clashingWindowFilter(resourceKey, from, to, reservationKey),
+      select: { ReservationKey: true },
+    });
+    if (clash) {
+      throw new BusinessError('WINDOW_NOT_AVAILABLE', {
+        resourceKey,
+        reservationKey,
+        blockedBy: clash.ReservationKey,
       });
     }
   }

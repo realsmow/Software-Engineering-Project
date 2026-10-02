@@ -40,6 +40,8 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 					role: "borrower" | "staff" | "supervisor" | "admin";
 					status: "active" | "disabled";
 					creditScore: number;
+					createdAt: string | null;
+					lastActiveAt: string | null;
 					managementGroup: {
 						id: number;
 						name: string | null;
@@ -72,6 +74,8 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 					role: "borrower" | "staff" | "supervisor" | "admin";
 					status: "active" | "disabled";
 					creditScore: number;
+					createdAt: string | null;
+					lastActiveAt: string | null;
 					managementGroup: {
 						id: number;
 						name: string | null;
@@ -97,6 +101,8 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 				role: "borrower" | "staff" | "supervisor" | "admin";
 				status: "active" | "disabled";
 				creditScore: number;
+				createdAt: string | null;
+				lastActiveAt: string | null;
 				managementGroup: {
 					id: number;
 					name: string | null;
@@ -157,6 +163,8 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 					role: "borrower" | "staff" | "supervisor" | "admin";
 					status: "active" | "disabled";
 					creditScore: number;
+					createdAt: string | null;
+					lastActiveAt: string | null;
 					managementGroup: {
 						id: number;
 						name: string | null;
@@ -203,6 +211,8 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 				role: "borrower" | "staff" | "supervisor" | "admin";
 				status: "active" | "disabled";
 				creditScore: number;
+				createdAt: string | null;
+				lastActiveAt: string | null;
 				managementGroup: {
 					id: number;
 					name: string | null;
@@ -244,6 +254,8 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 				role: "borrower" | "staff" | "supervisor" | "admin";
 				status: "active" | "disabled";
 				creditScore: number;
+				createdAt: string | null;
+				lastActiveAt: string | null;
 				managementGroup: {
 					id: number;
 					name: string | null;
@@ -1700,6 +1712,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 						name: string | null;
 						type: "Club" | "Faculty";
 					} | null;
+					borrowCount: number;
 				}[];
 				total: number;
 				page: number;

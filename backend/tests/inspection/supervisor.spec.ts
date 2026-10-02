@@ -77,6 +77,7 @@ function buildInspectionService() {
     {} as never,
     { toPublicUrl: (url: string) => `http://localhost:3000${url}` } as never,
     {} as never,
+    {} as never,
   );
 }
 

@@ -1,3 +1,8 @@
+import {
+  NotificationService,
+  resourceName,
+} from '../notification/notification.service';
+import { addDays } from '../common/schemas/datetime.schema';
 import { Injectable } from '@nestjs/common';
 import type { Prisma } from '../generated/prisma/client';
 import { PrismaService } from '../prisma.service';
@@ -100,6 +105,7 @@ export class InspectionService {
     // catalogue ones — see image.schema.ts.
     private readonly images: ImageService,
     private readonly audit: AuditService,
+    private readonly notifications: NotificationService,
   ) {}
 
   // =========================================================================
@@ -313,6 +319,23 @@ export class InspectionService {
         effectiveFrom: now,
         note: input.note,
       });
+
+      // FR-NTF-01: tell the borrower, as the late-return penalty does.
+      if (penaltyKey !== null) {
+        const account = await tx.accountInfo.findUniqueOrThrow({
+          where: { AccountKey: usage.Account.AccountKey },
+          select: { UserCredit: true },
+        });
+        await this.notifications.creditDeducted(tx, {
+          accountKey: usage.Account.AccountKey,
+          penaltyKey,
+          amount: quote.amount,
+          reason: quote.reason,
+          newScore: account.UserCredit,
+          expiresAt: addDays(now, quote.lengthDays),
+          itemName: resourceName(usage.Resource),
+        });
+      }
 
       const inspection = await tx.inspection.create({
         data: {

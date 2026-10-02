@@ -39,5 +39,7 @@ export function sqlAggregates(units: Unit[]) {
     ).length,
     readyAt: ready.length ? new Date(Math.min(...ready)) : null,
     tier: tiered?.Resource.BorrowRuleInfo.RuleName ?? null,
+    // Loan history is not in these fixtures.
+    borrowCount: 0,
   };
 }

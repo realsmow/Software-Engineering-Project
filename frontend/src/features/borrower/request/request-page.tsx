@@ -86,6 +86,9 @@ export default function RequestPage() {
   const clear = useRequestDraft((s) => s.clear);
   const createRequest = useCreateEquipmentRequest();
   const [submitMessage, setSubmitMessage] = useState<string | null>(null);
+  // Items the server refused for these exact dates. Changing the dates clears
+  // it, so the checklist never shows green for what the server just refused.
+  const [refused, setRefused] = useState<{ window: string; itemIds: string[] } | null>(null);
 
   // The draft stores item ids only, so the catalogue is what turns a line into
   // something renderable. Same query as the catalogue page, so switching
@@ -135,7 +138,11 @@ export default function RequestPage() {
     ),
   );
 
-  const short = rows.filter((r) => r.qty > r.item.availableUnits);
+  const windowKey = JSON.stringify(availabilityWindow);
+  const refusedIds = refused?.window === windowKey ? refused.itemIds : [];
+  const short = rows.filter(
+    (r) => r.qty > r.item.availableUnits || refusedIds.includes(r.itemId),
+  );
   const missingSerials = t2Rows.filter((r) => r.serials.length !== r.qty);
   const tooManyUnits = totalUnits > MAX_REQUEST_UNITS;
   const startTime = requestInstant(startDate, pickupTime);
@@ -290,6 +297,10 @@ export default function RequestPage() {
 
       const rejectedKeys = new Set(result.rejected.map((row) => row.resourceKey));
       const rejectedUnits = result.selectedUnits.filter((unit) => rejectedKeys.has(unit.resourceKey));
+      setRefused({
+        window: windowKey,
+        itemIds: [...new Set(rejectedUnits.map((unit) => unit.itemId))],
+      });
       replaceLines(
         rows.flatMap((row) => {
           const left = rejectedUnits.filter((unit) => unit.itemId === row.itemId);

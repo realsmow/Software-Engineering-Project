@@ -33,7 +33,7 @@ import {
 import { toIso } from '../common/schemas/datetime.schema';
 import { toPage, toSkipTake } from '../common/schemas/pagination.schema';
 import type {
-  ItemSummary,
+  CatalogItem,
   ListItemsInput,
   ListUnitsInput,
   ListRoomsInput,
@@ -122,6 +122,7 @@ interface LightItemRow {
   totalUnits: number;
   availableUnits: number;
   borrowableUnits: number;
+  borrowCount: number;
   /** Earliest due date plus prep days among units out on loan. */
   readyAt: Date | null;
   tier: string | null;
@@ -236,9 +237,11 @@ export class ItemService {
       window.endTime,
     );
 
+    const borrowed = await this.borrowCounts(rows.map((row) => row.ItemKey));
     let summaries = rows.map((row) => ({
       ...toItemSummary(row, freeInWindowPredicate(free)),
       eligible: mayBorrowAny(row.Items, held),
+      borrowCount: borrowed.get(row.ItemKey) ?? 0,
     }));
     // "Available only" over a window means available for that period, which
     // SQL cannot answer; itemWhere leaves the filter to here in that case.
@@ -399,6 +402,7 @@ export class ItemService {
         COALESCE(u."totalUnits", 0)::int AS "totalUnits",
         COALESCE(u."availableUnits", 0)::int AS "availableUnits",
         COALESCE(u."borrowableUnits", 0)::int AS "borrowableUnits",
+        COALESCE(b."borrowCount", 0)::int AS "borrowCount",
         n."readyAt" AS "readyAt",
         t."RuleName" AS tier,
         COALESCE(u.eligible, false) AS eligible
@@ -439,6 +443,12 @@ export class ItemService {
           AND r."ResourceStatus" != 'Retired'::"ResourceStatus"
       ) n ON true
       LEFT JOIN LATERAL (
+        SELECT COUNT(*) AS "borrowCount"
+        FROM "UsageLog" ul
+        JOIN "ItemIndiv" ii ON ii."ResourceKey" = ul."ResourceKey"
+        WHERE ii."ItemKey" = i."ItemKey"
+      ) b ON true
+      LEFT JOIN LATERAL (
         -- typeTier: the first unit whose rule names a tier.
         SELECT br."RuleName"
         FROM "ItemIndiv" ii
@@ -459,7 +469,22 @@ export class ItemService {
    * and its first unit (owner, prep days). NFR-PRF-05: loading every unit here
    * cost a query over all 10,000 units' loans just to count them again.
    */
-  private async hydratePage(page: LightItemRow[]): Promise<ItemSummary[]> {
+  /** Loans ever made per item type, for the "popular" sort. */
+  private async borrowCounts(itemKeys: number[]): Promise<Map<number, number>> {
+    if (itemKeys.length === 0) return new Map();
+    const rows = await this.prisma.$queryRaw<{ id: number; n: number }[]>(
+      Prisma.sql`
+        SELECT ii."ItemKey" AS id, COUNT(*)::int AS n
+        FROM "UsageLog" ul
+        JOIN "ItemIndiv" ii ON ii."ResourceKey" = ul."ResourceKey"
+        WHERE ii."ItemKey" IN (${Prisma.join(itemKeys)})
+        GROUP BY ii."ItemKey"
+      `,
+    );
+    return new Map(rows.map((row) => [row.id, row.n]));
+  }
+
+  private async hydratePage(page: LightItemRow[]): Promise<CatalogItem[]> {
     if (page.length === 0) return [];
     const rows = await this.prisma.itemInfo.findMany({
       where: { ItemKey: { in: page.map((p) => p.id) } },
@@ -498,6 +523,7 @@ export class ItemService {
           creditWeight: p.creditWeight,
           totalUnits: p.totalUnits,
           availableUnits: p.availableUnits,
+          borrowCount: p.borrowCount,
           stockStatus:
             p.availableUnits > 0
               ? 'ok'
@@ -888,8 +914,8 @@ export type { ItemTypeRow };
 
 /** The fields any sort key or the pagination cursor can read. */
 type SortableItem = Pick<
-  ItemSummary,
-  'id' | 'name' | 'availableUnits' | 'totalUnits' | 'creditWeight'
+  CatalogItem,
+  'id' | 'name' | 'availableUnits' | 'borrowCount' | 'creditWeight'
 >;
 
 /** Thai collation, so ก sorts before ข rather than by code point. */
@@ -922,7 +948,7 @@ function compareItems(
         a.id - b.id
       );
     case 'popular':
-      return b.totalUnits - a.totalUnits || byName(a, b) || a.id - b.id;
+      return b.borrowCount - a.borrowCount || byName(a, b) || a.id - b.id;
     case 'creditWeight':
       return a.creditWeight - b.creditWeight || byName(a, b) || a.id - b.id;
     case 'name':
@@ -974,7 +1000,7 @@ function encodeCursor(
     id: item.id,
     name: item.name,
     availableUnits: item.availableUnits,
-    totalUnits: item.totalUnits,
+    borrowCount: item.borrowCount,
     creditWeight: item.creditWeight,
   };
   return Buffer.from(JSON.stringify(payload), 'utf8').toString('base64url');
@@ -994,7 +1020,7 @@ function decodeCursor(
       typeof (raw as ListCursor).id !== 'number' ||
       typeof (raw as ListCursor).name !== 'string' ||
       typeof (raw as ListCursor).availableUnits !== 'number' ||
-      typeof (raw as ListCursor).totalUnits !== 'number' ||
+      typeof (raw as ListCursor).borrowCount !== 'number' ||
       typeof (raw as ListCursor).creditWeight !== 'number' ||
       (raw as ListCursor).sort !== sort
     ) {

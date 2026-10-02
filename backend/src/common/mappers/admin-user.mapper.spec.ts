@@ -24,9 +24,28 @@ function accountRow(overrides: Partial<AdminAccountRow> = {}): AdminAccountRow {
     Role: { RoleName: 'Student' },
     Authorities: [],
     Penalties: [],
+    CreatedAt: null,
+    Sessions: [],
     ...overrides,
   };
 }
+
+it('reports creation time and newest sign-in, or null when unknown', () => {
+  const created = new Date('2026-09-01T02:00:00.000Z');
+  const signedIn = new Date('2026-09-28T09:30:00.000Z');
+  expect(
+    toAdminUserSummary(
+      accountRow({ CreatedAt: created, Sessions: [{ IssuedAt: signedIn }] }),
+    ),
+  ).toMatchObject({
+    createdAt: created.toISOString(),
+    lastActiveAt: signedIn.toISOString(),
+  });
+  expect(toAdminUserSummary(accountRow())).toMatchObject({
+    createdAt: null,
+    lastActiveAt: null,
+  });
+});
 
 const branchAuthority = {
   ManageGroupKey: 7,

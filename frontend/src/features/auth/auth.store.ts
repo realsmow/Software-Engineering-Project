@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import type { User, Role } from "@/types/domain";
+import { useRequestDraft } from "@/features/borrower/request/request-draft.store";
 
 /**
  * Global auth state
@@ -28,7 +29,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   setUser: (user) => set({ user, isLoading: false }),
   setLoading: (isLoading) => set({ isLoading }),
 
-  logout: () => set({ user: null }),
+  // The draft is per person; the next user of this browser must not inherit it.
+  logout: () => {
+    useRequestDraft.getState().clear();
+    set({ user: null });
+  },
 
   hasRole: (role) => {
     const user = get().user;

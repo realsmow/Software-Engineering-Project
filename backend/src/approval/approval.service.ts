@@ -682,6 +682,12 @@ export class ApprovalService {
           Condition: {
             Condition: { in: ['MinorDamage', 'MajorDamage', 'Broken'] },
           },
+          // An approved appeal that revised the grade to B0 means no damage.
+          NOT: {
+            Appeal: {
+              is: { ApproveStatus: 'Approved', RevisedCondition: 'Normal' },
+            },
+          },
         },
         orderBy: { ActionTime: 'desc' },
         select: { ActionTime: true },

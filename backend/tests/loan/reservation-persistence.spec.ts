@@ -162,7 +162,6 @@ describe('persisted reservation conflict handling', () => {
     it('persists exactly one reservation rather than double-booking the unit', () => {
       expect(committed).toBe(1);
     });
-
   });
 
   it('FR-RSV-04: T1 commits a free sibling when the selected unit is already reserved', async () => {

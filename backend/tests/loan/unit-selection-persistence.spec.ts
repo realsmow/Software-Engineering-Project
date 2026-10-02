@@ -230,12 +230,9 @@ describe('NFR-REL-02 / SDS 4.4: unit selection preserves reserved windows', () =
         // Confirmed against SRS NFR-REL-02 and SDS 4.4: allocation must not
         // promise the same unit twice. FR-RSV-06 also preserves preparation days.
         // assertUnitFree currently checks UsageLog, but not Reservations.
-        it(
-          'rejects the unavailable target without moving the reservation or writing pickup state',
-          () => {
-            expect(actual).toEqual(expected);
-          },
-        );
+        it('rejects the unavailable target without moving the reservation or writing pickup state', () => {
+          expect(actual).toEqual(expected);
+        });
       },
     );
   });
