@@ -1,7 +1,8 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { Component, type ReactNode } from "react";
 import i18n from "../../src/i18n";
 import RequestPage from "../../src/features/borrower/request/request-page";
 import {
@@ -63,14 +64,45 @@ const units = [
 ];
 let client: QueryClient;
 
-function renderPage() {
+// Observe product render failures without leaving an unhandled React exception.
+// This boundary is test instrumentation; the application has no such fallback.
+class RenderFailureProbe extends Component<
+  {
+    children: ReactNode;
+    onError: (error: Error) => void;
+  },
+  { failed: boolean }
+> {
+  state = { failed: false };
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+  componentDidCatch(error: Error) {
+    this.props.onError(error);
+  }
+  render() {
+    return this.state.failed ? (
+      <div data-testid="render-failure">QA render failure</div>
+    ) : (
+      this.props.children
+    );
+  }
+}
+
+function renderPage(onRenderError?: (error: Error) => void) {
   client = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
   return render(
     <QueryClientProvider client={client}>
       <MemoryRouter>
-        <RequestPage />
+        {onRenderError ? (
+          <RenderFailureProbe onError={onRenderError}>
+            <RequestPage />
+          </RenderFailureProbe>
+        ) : (
+          <RequestPage />
+        )}
       </MemoryRouter>
     </QueryClientProvider>
   );
@@ -116,6 +148,97 @@ describe("borrower request checks", () => {
         startTime: expect.stringContaining(isoOffset(1)),
         endTime: expect.stringContaining(later),
       })
+    );
+  });
+
+  describe("FR-REQ-02: pickup and return date/time order", () => {
+    const chooseTime = (field: "pickupTime" | "returnTime", time: string) =>
+      fireEvent.click(
+        within(
+          screen.getByRole("group", {
+            name: i18n.t(`borrower.request.${field}`),
+          })
+        ).getByRole("button", { name: time })
+      );
+    const submitButton = () =>
+      screen.getByRole("button", {
+        name: i18n.t("borrower.request.submit"),
+      });
+
+    it.each(["08:00", "13:00", "16:00"])(
+      "allows the same clock time %s on different calendar days",
+      (time) => {
+        useRequestDraft.getState().addItem(item.id, item.availableUnits);
+        renderPage();
+        chooseTime("pickupTime", time);
+        chooseTime("returnTime", time);
+        expect(submitButton()).toBeEnabled();
+        expect(
+          screen.queryByText(i18n.t("borrower.request.pcTimeOrder"))
+        ).not.toBeInTheDocument();
+      }
+    );
+
+    it("allows a later return time on the same date", () => {
+      useRequestDraft.getState().addItem(item.id, item.availableUnits);
+      renderPage();
+      fireEvent.change(screen.getByLabelText(i18n.t("borrower.request.returnDate")), {
+        target: { value: isoOffset(1) },
+      });
+      chooseTime("returnTime", "13:00");
+      expect(submitButton()).toBeEnabled();
+    });
+
+    describe.each([
+      { pickup: "08:00", returned: "08:00" },
+      { pickup: "13:00", returned: "13:00" },
+      { pickup: "16:00", returned: "16:00" },
+      { pickup: "16:00", returned: "13:00" },
+    ] as const)(
+      "known defect / QA-REQ-01: same-date pickup $pickup / return $returned",
+      ({ pickup, returned }) => {
+        let renderError: Error | null;
+        beforeEach(() => {
+          renderError = null;
+          useRequestDraft.getState().addItem(item.id, item.availableUnits);
+          renderPage((error) => {
+            renderError = error;
+          });
+          chooseTime("pickupTime", pickup);
+          chooseTime("returnTime", returned);
+          // Setup starts with a valid next-day return and an enabled submit button.
+          expect(submitButton()).toBeEnabled();
+          fireEvent.change(screen.getByLabelText(i18n.t("borrower.request.returnDate")), {
+            target: { value: isoOffset(1) },
+          });
+          expect(useRequestDraft.getState()).toMatchObject({
+            startDate: isoOffset(1),
+            endDate: isoOffset(1),
+            pickupTime: pickup,
+            returnTime: returned,
+          });
+          if (renderError !== null) {
+            // Unexpected render errors must fail setup, outside any defect marker.
+            expect(renderError).toBeInstanceOf(TypeError);
+            expect((renderError as Error).message).toMatch(/itemIds/);
+            expect(screen.getByTestId("render-failure")).toBeInTheDocument();
+          }
+          expect(api.create).not.toHaveBeenCalled();
+          expect(api.listUnits).not.toHaveBeenCalled();
+        });
+
+        // The exact render failure was reproduced before marking this assertion.
+        it.fails(
+          "keeps the page usable, explains the invalid time order and disables submission",
+          () => {
+            expect(renderError).toBeNull();
+            expect(
+              screen.getAllByText(i18n.t("borrower.request.pcTimeOrder")).length
+            ).toBeGreaterThan(0);
+            expect(submitButton()).toBeDisabled();
+          }
+        );
+      }
     );
   });
 

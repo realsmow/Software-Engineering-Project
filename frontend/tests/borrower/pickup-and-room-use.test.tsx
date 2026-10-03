@@ -164,6 +164,100 @@ afterEach(() => {
 });
 
 describe("borrower pickup page through its real API hooks", () => {
+  it("reuses an attached pickup photo after reopening the page without uploading or taking another photo", async () => {
+    const respond = api.getMockImplementation()!;
+    let refuseConfirmation = true;
+    api.mockImplementation((path, input) => {
+      if (path === "loan.confirmMyPickup" && refuseConfirmation) {
+        refuseConfirmation = false;
+        throw new Error("Pickup confirmation interrupted");
+      }
+      return respond(path, input);
+    });
+    const first = renderPage("pickup");
+    const initialConfirm = await screen.findByRole("button", {
+      name: i18n.t("borrower.pickup.confirm"),
+    });
+    choosePhoto(first.container);
+    fireEvent.click(initialConfirm);
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Pickup confirmation interrupted"
+    );
+    // The upload and attachment succeeded; only confirmation was interrupted.
+    expect(photos.before).toHaveLength(1);
+    expect(requests[0].status).toBe("ready");
+    expect(api).toHaveBeenCalledWith("image.attachUsagePhotos", {
+      usageKey: 42,
+      stage: "before",
+      imageUrls: ["/media/before.png"],
+    });
+    const photoReads = api.mock.calls.filter(
+      ([path]) => path === "image.usagePhotos"
+    ).length;
+    first.unmount();
+
+    // A new QueryClient and a new component discard both the cache and local shots.
+    const reopened = renderPage("pickup");
+    const confirm = await screen.findByRole("button", {
+      name: i18n.t("borrower.pickup.confirm"),
+    });
+    await waitFor(() => {
+      expect(
+        api.mock.calls.filter(([path]) => path === "image.usagePhotos").length
+      ).toBeGreaterThan(photoReads);
+      expect(
+        reopened.container.querySelector('img[src="/media/before.png"]')
+      ).toBeInTheDocument();
+    });
+    expect(
+      reopened.container.querySelector<HTMLInputElement>('input[type="file"]')?.files
+    ).toHaveLength(0);
+    await waitFor(() => expect(confirm).toBeEnabled());
+    fireEvent.click(confirm);
+    await screen.findByRole("heading", { name: "My requests destination" });
+    expect(upload).toHaveBeenCalledTimes(1);
+    expect(
+      api.mock.calls.filter(([path]) => path === "image.attachUsagePhotos")
+    ).toHaveLength(1);
+    expect(api.mock.calls.filter(([path]) => path === "loan.confirmMyPickup")).toEqual([
+      ["loan.confirmMyPickup", { usageKey: 42 }],
+      ["loan.confirmMyPickup", { usageKey: 42 }],
+    ]);
+  });
+
+  it.each(["after", "inspection"] as const)(
+    "does not treat a stored %s photo as pickup evidence",
+    async (stage) => {
+      photos = usagePhotosOutput.parse({
+        ...photos,
+        [stage]: [
+          {
+            imageKey: 17,
+            imageUrl: `/media/${stage}.png`,
+            stage,
+            submittedBy: 7,
+            submittedAt: "2026-09-28T01:00:00.000Z",
+          },
+        ],
+      });
+      const { container } = renderPage("pickup");
+      const confirm = await screen.findByRole("button", {
+        name: i18n.t("borrower.pickup.confirm"),
+      });
+      await waitFor(() =>
+        expect(
+          container.querySelector(`img[src="/media/${stage}.png"]`)
+        ).toBeInTheDocument()
+      );
+      expect(confirm).toBeDisabled();
+      fireEvent.click(confirm);
+      expect(upload).not.toHaveBeenCalled();
+      expect(api.mock.calls.some(([path]) => path === "loan.confirmMyPickup")).toBe(
+        false
+      );
+    }
+  );
+
   it("requires a photo per selected item, uploads it before confirmation, and opens my requests", async () => {
     const { container } = renderPage("pickup");
     const confirm = await screen.findByRole("button", {

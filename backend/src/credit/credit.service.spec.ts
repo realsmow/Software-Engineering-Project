@@ -278,5 +278,61 @@ describe('Persisted business records', () => {
         ).rejects.toMatchObject({ businessCode: 'USER_NOT_FOUND' });
       });
     });
+
+    it.each(['item', 'room', 'no loan'] as const)(
+      'reads the %s name linked to an actual penalty without changing credit',
+      async (kind) => {
+        await inHistoryFixture(prisma, async (tx) => {
+          const f = await historyFixture(tx);
+          let expectedName: string | null = null;
+          if (kind === 'item') {
+            await tx.itemInfo.updateMany({
+              where: {
+                Items: { some: { ResourceKey: f.resource.ResourceKey } },
+              },
+              data: { ItemName: 'QA equipment name' },
+            });
+            expectedName = 'QA equipment name';
+          } else if (kind === 'room') {
+            await tx.itemIndiv.deleteMany({
+              where: { ResourceKey: f.resource.ResourceKey },
+            });
+            await tx.resourceInfo.update({
+              where: { ResourceKey: f.resource.ResourceKey },
+              data: { ResourceType: 'Room' },
+            });
+            await tx.roomInfo.create({
+              data: {
+                ResourceKey: f.resource.ResourceKey,
+                RoomName: 'QA laboratory',
+                CreditWeight: 4,
+              },
+            });
+            expectedName = 'QA laboratory';
+          } else {
+            await tx.penaltyInfo.update({
+              where: { PenaltyKey: f.penalty.PenaltyKey },
+              data: { UsageKey: null },
+            });
+          }
+          const client = transactionClient(tx);
+          const result = creditOutput
+            .strict()
+            .parse(
+              await new CreditService(
+                client,
+                new CreditTierService(client),
+              ).getCredit(f.borrower.AccountKey),
+            );
+          expect(result.activePenalties).toHaveLength(1);
+          expect(result.activePenalties[0]).toMatchObject({
+            id: f.penalty.PenaltyKey,
+            itemName: expectedName,
+            creditDeducted: 12,
+          });
+          expect(result).toMatchObject({ score: 88, totalDeducted: 12 });
+        });
+      },
+    );
   });
 });
