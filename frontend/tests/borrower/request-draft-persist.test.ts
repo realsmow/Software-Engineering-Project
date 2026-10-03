@@ -22,7 +22,10 @@ describe("request draft survives a reload", () => {
     useRequestDraft.getState().addItem("item-7", 3);
 
     const saved = JSON.parse(sessionStorage.getItem("ulms-request-draft") ?? "{}");
-    expect(saved.state).toEqual({ lines: [{ itemId: "item-7", qty: 2, serials: [] }] });
+    expect(saved.state).toEqual({
+      lines: [{ itemId: "item-7", qty: 2, serials: [] }],
+      owner: null,
+    });
 
     // What a reload does: memory is gone, storage is read back. Clearing
     // memory also writes storage, so put the saved copy back first.
@@ -41,7 +44,7 @@ describe("request draft survives a reload", () => {
     useRequestDraft.getState().setPickupTime("13:00");
     useRequestDraft.getState().setReturnTime("08:00");
     const saved = JSON.parse(sessionStorage.getItem("ulms-request-draft") ?? "{}");
-    expect(saved.state).toEqual({ lines: [] });
+    expect(saved.state).toEqual({ lines: [], owner: null });
   });
 
   async function reloadDraft() {
@@ -98,7 +101,7 @@ describe("request draft survives a reload", () => {
     expect(restored.getState().lines).toEqual([]);
   });
 
-  describe("known defect: account isolation after reload and expired session", () => {
+  describe("account isolation after reload and expired session", () => {
     let inheritedLines: DraftLine[];
     beforeEach(async () => {
       const draft = await reloadDraft();
@@ -120,7 +123,7 @@ describe("request draft survives a reload", () => {
       expect(nextAuth.getState().user).toEqual(nextUser);
       inheritedLines = restored.getState().lines;
     });
-    it.fails("does not show account A's restored selection to account B", () => {
+    it("does not show account A's restored selection to account B", () => {
       expect(inheritedLines).toEqual([]);
     });
   });

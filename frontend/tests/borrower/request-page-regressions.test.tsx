@@ -195,7 +195,7 @@ describe("borrower request checks", () => {
       { pickup: "16:00", returned: "16:00" },
       { pickup: "16:00", returned: "13:00" },
     ] as const)(
-      "known defect / QA-REQ-01: same-date pickup $pickup / return $returned",
+      "QA-REQ-01: same-date pickup $pickup / return $returned",
       ({ pickup, returned }) => {
         let renderError: Error | null;
         beforeEach(() => {
@@ -217,18 +217,11 @@ describe("borrower request checks", () => {
             pickupTime: pickup,
             returnTime: returned,
           });
-          if (renderError !== null) {
-            // Unexpected render errors must fail setup, outside any defect marker.
-            expect(renderError).toBeInstanceOf(TypeError);
-            expect((renderError as Error).message).toMatch(/itemIds/);
-            expect(screen.getByTestId("render-failure")).toBeInTheDocument();
-          }
           expect(api.create).not.toHaveBeenCalled();
           expect(api.listUnits).not.toHaveBeenCalled();
         });
 
-        // The exact render failure was reproduced before marking this assertion.
-        it.fails(
+        it(
           "keeps the page usable, explains the invalid time order and disables submission",
           () => {
             expect(renderError).toBeNull();

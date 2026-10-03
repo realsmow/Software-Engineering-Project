@@ -139,7 +139,9 @@ export default function RequestPage() {
   );
 
   const windowKey = JSON.stringify(availabilityWindow);
-  const refusedIds = refused?.window === windowKey ? refused.itemIds : [];
+  // `refused &&` first: an invalid window stringifies to undefined, which would
+  // otherwise equal `refused?.window` when nothing was refused (QA-REQ-01).
+  const refusedIds = refused && refused.window === windowKey ? refused.itemIds : [];
   const short = rows.filter(
     (r) => r.qty > r.item.availableUnits || refusedIds.includes(r.itemId),
   );

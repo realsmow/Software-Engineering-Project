@@ -25,6 +25,8 @@ export type RequestTime = (typeof REQUEST_TIMES)[number];
 
 interface RequestDraftState {
   lines: DraftLine[];
+  /** Account the saved lines belong to, so a reload never shows them to someone else. */
+  owner: string | null;
   /** Pickup date, ISO yyyy-MM-dd. Defaults to today. */
   startDate: string;
   /** Time at which the borrower plans to collect the equipment. */
@@ -51,6 +53,8 @@ interface RequestDraftState {
   setEndDate: (iso: string | null) => void;
   setReturnTime: (time: RequestTime) => void;
   clear: () => void;
+  /** Called on sign-in: drops lines saved by a different account. */
+  claim: (userId: string) => void;
 }
 
 /**
@@ -85,6 +89,7 @@ export const useRequestDraft = create<RequestDraftState>()(
   persist(
     (set) => ({
       lines: [],
+      owner: null,
       startDate: todayIso(),
       pickupTime: "08:00",
       endDate: todayIso(),
@@ -138,6 +143,9 @@ export const useRequestDraft = create<RequestDraftState>()(
       setEndDate: (iso) => set({ endDate: iso }),
       setReturnTime: (time) => set({ returnTime: time }),
 
+      claim: (userId) =>
+        set((s) => (s.owner === userId ? s : { lines: [], owner: userId })),
+
       clear: () =>
         set({
           lines: [],
@@ -150,7 +158,7 @@ export const useRequestDraft = create<RequestDraftState>()(
     {
       name: "ulms-request-draft",
       storage: createJSONStorage(() => sessionStorage),
-      partialize: (s) => ({ lines: s.lines }),
+      partialize: (s) => ({ lines: s.lines, owner: s.owner }),
     }
   )
 );
