@@ -32,7 +32,33 @@ const CREDIT_TIERS = [
   { name: 'D3', min: 0, max: 29, maxBorrowDays: 5, maxExtendTimes: 0 },
 ];
 
+/** AuthorityRole rows an account holds in a department or club. Same names as the dev seed. */
+export const MEMBER_ROLES = [
+  { name: 'Student', level: 0 },
+  { name: 'Lab staff', level: 2 },
+];
+
+/** Creates any missing MEMBER_ROLES row; returns name -> AuthorityRoleKey. */
+export async function seedMemberRoles(
+  prisma: Pick<PrismaClient, 'authorityRole'>,
+): Promise<Map<string, number>> {
+  const keys = new Map<string, number>();
+  for (const r of MEMBER_ROLES) {
+    const row =
+      (await prisma.authorityRole.findFirst({
+        where: { AuthorityName: r.name },
+      })) ??
+      (await prisma.authorityRole.create({
+        data: { AuthorityName: r.name, AuthorityLevel: r.level },
+      }));
+    keys.set(r.name, row.AuthorityRoleKey);
+  }
+  return keys;
+}
+
 export async function seedReference(prisma: PrismaClient): Promise<void> {
+  await seedMemberRoles(prisma);
+
   for (const name of ROLES) {
     const existing = await prisma.roleInfo.findFirst({
       where: { RoleName: name },

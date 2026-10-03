@@ -1,4 +1,11 @@
-import { useEffect, useRef, useState, type ChangeEvent, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type ReactNode,
+} from "react";
 import { useTranslation } from "react-i18next";
 import { fmtDayMonth, fmtDayNum } from "@/lib/datetime";
 import { useNavigate } from "react-router-dom";
@@ -55,13 +62,24 @@ export default function PickupPage() {
   const [uploadError, setUploadError] = useState<string | null>(null);
   const shotsRef = useRef(shots);
   shotsRef.current = shots;
+  /** Rows that already have a pickup photo on the server, e.g. from an earlier visit. */
+  const [onFile, setOnFile] = useState<Set<string>>(new Set());
+  const markOnFile = useCallback((id: string, has: boolean) => {
+    setOnFile((prev) => {
+      if (prev.has(id) === has) return prev;
+      const next = new Set(prev);
+      if (has) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  }, []);
 
   useEffect(() => {
     return () => releaseBorrowerImages(Object.values(shotsRef.current));
   }, []);
 
   const selected = rows.filter((r) => !dropped.has(r.id));
-  const missingShots = selected.filter((r) => !shots[r.id]);
+  const missingShots = selected.filter((r) => !shots[r.id] && !onFile.has(r.id));
   const missingUsage = selected.some((r) => r.usageKey == null);
   const canConfirm =
     selected.length > 0 &&
@@ -101,8 +119,9 @@ export default function PickupPage() {
     for (const row of selected) {
       const usageKey = row.usageKey;
       const image = shotsRef.current[row.id];
-      if (usageKey == null || !image) return;
-      if (image.status === "uploaded") continue;
+      if (usageKey == null) return;
+      // No new shot means the photo on file from an earlier visit counts.
+      if (!image || image.status === "uploaded") continue;
 
       patchShot(row.id, { status: "uploading", error: undefined });
       try {
@@ -118,7 +137,7 @@ export default function PickupPage() {
 
     try {
       await finalizePickup.mutateAsync(
-        selected.flatMap((row) => (row.usageKey == null ? [] : [row.usageKey])),
+        selected.flatMap((row) => (row.usageKey == null ? [] : [row.usageKey]))
       );
       navigate(ROUTES.MY_LOANS);
     } catch (error) {
@@ -190,6 +209,7 @@ export default function PickupPage() {
                     key={row.id}
                     row={row}
                     image={shots[row.id]}
+                    onExisting={markOnFile}
                     disabled={
                       uploadPickupImage.isPending ||
                       finalizePickup.isPending ||
@@ -247,8 +267,8 @@ export default function PickupPage() {
                 {finalizePickup.isPending
                   ? t("borrower.pickup.finalizing")
                   : uploadPickupImage.isPending
-                  ? t("borrower.pickup.uploading")
-                  : t("borrower.pickup.confirm")}
+                    ? t("borrower.pickup.uploading")
+                    : t("borrower.pickup.confirm")}
               </Button>
             </div>
 
@@ -290,7 +310,7 @@ function PickRow({
     <div
       className={cn(
         "flex items-start gap-3 rounded border border-border p-3 shadow-[inset_3px_0_0_transparent]",
-        selected && "bg-accent-soft shadow-[inset_3px_0_0_var(--accent)]",
+        selected && "bg-accent-soft shadow-[inset_3px_0_0_var(--accent)]"
       )}
     >
       <input
@@ -314,7 +334,9 @@ function PickRow({
 
         {canSwap ? (
           <p className="mt-1.5 text-[11.5px] leading-relaxed text-t4">
-            {photographed ? t("borrower.pickup.swapNote") : t("borrower.pickup.swapAtCounter")}
+            {photographed
+              ? t("borrower.pickup.swapNote")
+              : t("borrower.pickup.swapAtCounter")}
           </p>
         ) : null}
       </div>
@@ -333,11 +355,13 @@ function PhotoBox({
   image,
   disabled,
   onPicked,
+  onExisting,
 }: {
   row: MyRequest;
   image?: PreparedBorrowerImage;
   disabled: boolean;
   onPicked: (image: PreparedBorrowerImage) => void;
+  onExisting: (id: string, has: boolean) => void;
 }) {
   const { t } = useTranslation();
   const [error, setError] = useState<string | null>(null);
@@ -346,13 +370,15 @@ function PhotoBox({
   // request staff have not allocated a unit for yet.
   const { data: existingPhotos } = useUsagePhotos(row.usageKey ?? null);
   const detachPhoto = useDetachUsagePhoto();
+  const hasOnFile = (existingPhotos?.before.length ?? 0) > 0;
+  useEffect(() => onExisting(row.id, hasOnFile), [onExisting, row.id, hasOnFile]);
 
   function removePhoto(imageKey: number) {
     if (row.usageKey == null) return;
     setError(null);
     detachPhoto.mutate(
       { usageKey: row.usageKey, imageKey },
-      { onError: (e) => setError(getErrorMessage(e)) },
+      { onError: (e) => setError(getErrorMessage(e)) }
     );
   }
 
@@ -367,7 +393,7 @@ function PhotoBox({
       setError(
         result.code === "FILE_TOO_LARGE"
           ? t("borrower.pickup.photoTooLarge", { max: UPLOAD.MAX_MB })
-          : t("borrower.pickup.photoBadType"),
+          : t("borrower.pickup.photoBadType")
       );
       return;
     }
@@ -391,7 +417,7 @@ function PhotoBox({
           taken
             ? "border-[var(--s-ok-t)] bg-[var(--s-ok-bg)] text-[var(--s-ok-t)]"
             : "border-line-strong bg-surface-inset text-t4",
-          disabled && "cursor-default opacity-80",
+          disabled && "cursor-default opacity-80"
         )}
       >
         <input
@@ -418,14 +444,18 @@ function PhotoBox({
       </label>
 
       {error ? (
-        <p className="mt-1.5 text-[11.5px] leading-relaxed text-[var(--s-alert-t)]">{error}</p>
+        <p className="mt-1.5 text-[11.5px] leading-relaxed text-[var(--s-alert-t)]">
+          {error}
+        </p>
       ) : null}
 
       {existingPhotos ? (
         <UsagePhotoGallery
           photos={existingPhotos}
           disabled={disabled}
-          pendingImageKey={detachPhoto.isPending ? detachPhoto.variables?.imageKey : undefined}
+          pendingImageKey={
+            detachPhoto.isPending ? detachPhoto.variables?.imageKey : undefined
+          }
           onRemove={removePhoto}
         />
       ) : null}
@@ -520,7 +550,9 @@ function SumRow({
   return (
     <div className="flex justify-between gap-3">
       <span className="text-t3">{label}</span>
-      <span className={cn("text-right font-medium text-foreground", !plain && "font-mono")}>
+      <span
+        className={cn("text-right font-medium text-foreground", !plain && "font-mono")}
+      >
         {children}
       </span>
     </div>

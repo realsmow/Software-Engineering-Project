@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { createJSONStorage, persist } from "zustand/middleware";
 import { toLocalDayKey, todayLocalDayKey } from "@/lib/datetime";
 
 /**
@@ -8,8 +9,8 @@ import { toLocalDayKey, todayLocalDayKey } from "@/lib/datetime";
  * page edits quantities, serials, and dates. Zustand rather than context so
  * adding a line from a table row doesn't re-render the whole catalog.
  *
- * NOTE: memory only - a refresh clears the draft. Persisting is the backend's
- * job (POST /loan-requests as status "draft"); revisit when that lands.
+ * The lines survive a reload in sessionStorage; closing the tab or signing
+ * out clears them. Dates are not kept, since a saved pickup day can be past.
  */
 export interface DraftLine {
   /** CatalogItem id. */
@@ -59,7 +60,7 @@ interface RequestDraftState {
  */
 export function remainingUnits(
   lines: DraftLine[],
-  item: { id: string; availableUnits: number },
+  item: { id: string; availableUnits: number }
 ): number {
   const qty = lines.find((l) => l.itemId === item.id)?.qty ?? 0;
   return Math.max(0, item.availableUnits - qty);
@@ -80,63 +81,76 @@ export function isoOffset(days: number): string {
   return toLocalDayKey(new Date(Date.now() + days * 86_400_000));
 }
 
-export const useRequestDraft = create<RequestDraftState>((set) => ({
-  lines: [],
-  startDate: todayIso(),
-  pickupTime: "08:00",
-  endDate: todayIso(),
-  returnTime: "16:00",
+export const useRequestDraft = create<RequestDraftState>()(
+  persist(
+    (set) => ({
+      lines: [],
+      startDate: todayIso(),
+      pickupTime: "08:00",
+      endDate: todayIso(),
+      returnTime: "16:00",
 
-  addItem: (itemId, stock) =>
-    set((s) => {
-      // Nothing on the shelf: adding it would only fail the pre-submit check.
-      if (stock === 0) return s;
+      addItem: (itemId, stock) =>
+        set((s) => {
+          // Nothing on the shelf: adding it would only fail the pre-submit check.
+          if (stock === 0) return s;
 
-      const existing = s.lines.find((l) => l.itemId === itemId);
-      if (!existing) return { lines: [...s.lines, { itemId, qty: 1, serials: [] }] };
-      if (existing.qty >= stock) return s;
-      return {
-        lines: s.lines.map((l) => (l.itemId === itemId ? { ...l, qty: l.qty + 1 } : l)),
-      };
+          const existing = s.lines.find((l) => l.itemId === itemId);
+          if (!existing) return { lines: [...s.lines, { itemId, qty: 1, serials: [] }] };
+          if (existing.qty >= stock) return s;
+          return {
+            lines: s.lines.map((l) =>
+              l.itemId === itemId ? { ...l, qty: l.qty + 1 } : l
+            ),
+          };
+        }),
+
+      setQty: (itemId, qty, stock) =>
+        set((s) => ({
+          lines: s.lines.map((l) => {
+            if (l.itemId !== itemId) return l;
+            // Never below one unit, never past what is on the shelf.
+            const next = Math.min(Math.max(1, qty), Math.max(1, stock));
+            // Dropping the quantity must drop any serials that no longer fit.
+            return { ...l, qty: next, serials: l.serials.slice(0, next) };
+          }),
+        })),
+
+      removeItem: (itemId) =>
+        set((s) => ({ lines: s.lines.filter((l) => l.itemId !== itemId) })),
+      replaceLines: (lines) => set({ lines }),
+
+      toggleSerial: (itemId, serial) =>
+        set((s) => ({
+          lines: s.lines.map((l) => {
+            if (l.itemId !== itemId) return l;
+            if (l.serials.includes(serial)) {
+              return { ...l, serials: l.serials.filter((sn) => sn !== serial) };
+            }
+            // One serial per unit requested - ignore the click once the line is full.
+            if (l.serials.length >= l.qty) return l;
+            return { ...l, serials: [...l.serials, serial] };
+          }),
+        })),
+
+      setStartDate: (iso) => set({ startDate: iso }),
+      setPickupTime: (time) => set({ pickupTime: time }),
+      setEndDate: (iso) => set({ endDate: iso }),
+      setReturnTime: (time) => set({ returnTime: time }),
+
+      clear: () =>
+        set({
+          lines: [],
+          startDate: todayIso(),
+          pickupTime: "08:00",
+          endDate: todayIso(),
+          returnTime: "16:00",
+        }),
     }),
-
-  setQty: (itemId, qty, stock) =>
-    set((s) => ({
-      lines: s.lines.map((l) => {
-        if (l.itemId !== itemId) return l;
-        // Never below one unit, never past what is on the shelf.
-        const next = Math.min(Math.max(1, qty), Math.max(1, stock));
-        // Dropping the quantity must drop any serials that no longer fit.
-        return { ...l, qty: next, serials: l.serials.slice(0, next) };
-      }),
-    })),
-
-  removeItem: (itemId) => set((s) => ({ lines: s.lines.filter((l) => l.itemId !== itemId) })),
-  replaceLines: (lines) => set({ lines }),
-
-  toggleSerial: (itemId, serial) =>
-    set((s) => ({
-      lines: s.lines.map((l) => {
-        if (l.itemId !== itemId) return l;
-        if (l.serials.includes(serial)) {
-          return { ...l, serials: l.serials.filter((sn) => sn !== serial) };
-        }
-        // One serial per unit requested - ignore the click once the line is full.
-        if (l.serials.length >= l.qty) return l;
-        return { ...l, serials: [...l.serials, serial] };
-      }),
-    })),
-
-  setStartDate: (iso) => set({ startDate: iso }),
-  setPickupTime: (time) => set({ pickupTime: time }),
-  setEndDate: (iso) => set({ endDate: iso }),
-  setReturnTime: (time) => set({ returnTime: time }),
-
-  clear: () => set({
-    lines: [],
-    startDate: todayIso(),
-    pickupTime: "08:00",
-    endDate: todayIso(),
-    returnTime: "16:00",
-  }),
-}));
+    {
+      name: "ulms-request-draft",
+      storage: createJSONStorage(() => sessionStorage),
+      partialize: (s) => ({ lines: s.lines }),
+    }
+  )
+);

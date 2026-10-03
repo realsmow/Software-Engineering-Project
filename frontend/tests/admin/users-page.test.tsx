@@ -15,6 +15,18 @@ vi.mock('../../src/features/admin/audit/use-audit-events', () => ({
   useAuditEvents: useAuditEventsMock,
 }));
 
+const ORG = {
+  faculties: [{ id: 1, name: 'Engineering' }],
+  groups: [
+    { id: 10, name: 'Computer Engineering', type: 'Faculty' as const, facultyId: 1 },
+    { id: 20, name: 'Robotics Club', type: 'Club' as const, facultyId: null },
+  ],
+};
+
+vi.mock('../../src/features/admin/org/use-org', () => ({
+  useAdminOrg: () => ({ data: ORG, isLoading: false }),
+}));
+
 const ADMIN_USER = ADMIN_USERS.find((user) => user.role === 'admin')!;
 const STAFF_USER = ADMIN_USERS.find((user) => user.role === 'staff' && user.status === 'active')!;
 const BORROWER_USER = ADMIN_USERS.find((user) => user.id === '1006')!;
@@ -160,9 +172,10 @@ describe('Admin users page', () => {
 
     const dialog = screen.getByRole('dialog');
     const submit = within(dialog).getByRole('button', { name: t('admin.users.createSubmit') });
-    // Only the role is chosen here; departments come from authority, not this form.
-    const [roleSelect] = within(dialog).getAllByRole('combobox');
-    expect(within(dialog).getAllByRole('combobox')).toHaveLength(1);
+    // Role and faculty selects; departments and clubs are checkboxes.
+    const [roleSelect, facultySelect] = within(dialog).getAllByRole('combobox');
+    expect(within(dialog).getAllByRole('combobox')).toHaveLength(2);
+    expect(facultySelect).toHaveTextContent(t('admin.users.facultyNone'));
 
     expect(submit).toBeDisabled();
     expect(roleSelect).toHaveTextContent(t('nav.borrower'));
@@ -199,7 +212,32 @@ describe('Admin users page', () => {
           firstName: 'New',
           lastName: 'Test User',
           role: 'borrower',
+          facultyId: null,
+          groupIds: [],
         },
+        expect.any(Object),
+      );
+    });
+  });
+
+  it('sends the ticked departments and clubs as groupIds on create', async () => {
+    renderPage();
+    fireEvent.click(screen.getByRole('button', { name: t('admin.users.createUser') }));
+
+    const dialog = screen.getByRole('dialog');
+    fireEvent.change(screen.getByPlaceholderText(t('admin.users.namePlaceholder')), {
+      target: { value: 'Club Member' },
+    });
+    fireEvent.change(screen.getByPlaceholderText('name@ku.th'), {
+      target: { value: 'club.member@ku.th' },
+    });
+    fireEvent.click(within(dialog).getByRole('checkbox', { name: /Computer Engineering/ }));
+    fireEvent.click(within(dialog).getByRole('checkbox', { name: /Robotics Club/ }));
+    fireEvent.click(within(dialog).getByRole('button', { name: t('admin.users.createSubmit') }));
+
+    await waitFor(() => {
+      expect(createMutate).toHaveBeenCalledWith(
+        expect.objectContaining({ facultyId: null, groupIds: [10, 20] }),
         expect.any(Object),
       );
     });

@@ -289,6 +289,30 @@ describe("borrower pickup page through its real API hooks", () => {
     expect(api).toHaveBeenCalledWith("loan.confirmMyPickup", { usageKey: 42 });
   });
 
+  it("counts a pickup photo already on file from an earlier visit (TC-07)", async () => {
+    photos = usagePhotosOutput.parse({
+      ...photos,
+      before: [
+        {
+          imageKey: 5,
+          imageUrl: "/media/earlier.png",
+          stage: "before",
+          submittedBy: 7,
+          submittedAt: "2026-09-28T00:30:00.000Z",
+        },
+      ],
+    });
+    renderPage("pickup");
+    const confirm = await screen.findByRole("button", {
+      name: i18n.t("borrower.pickup.confirm"),
+    });
+    await waitFor(() => expect(confirm).toBeEnabled());
+    fireEvent.click(confirm);
+    await screen.findByRole("heading", { name: "My requests destination" });
+    expect(upload).not.toHaveBeenCalled();
+    expect(api).toHaveBeenCalledWith("loan.confirmMyPickup", { usageKey: 42 });
+  });
+
   it("does not collect unchecked items or display room bookings in the equipment pickup list", async () => {
     requests.push(
       requestResponse({

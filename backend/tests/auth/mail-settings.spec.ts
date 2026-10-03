@@ -12,9 +12,16 @@ const config = (values: Record<string, string>) =>
 
 describe('FR-AUTH-04/07 / NFR-SEC-01: outbound account mail configuration', () => {
   beforeEach(() => jest.clearAllMocks());
+  // A stuck relay must not hang the request that sends the mail.
+  const FAIL_FAST = {
+    connectionTimeout: 10_000,
+    greetingTimeout: 10_000,
+    socketTimeout: 15_000,
+  };
   it('uses the local mail sink without SMTP login when credentials are absent', () => {
     const result = mailSettings(config({}));
     expect(createTransport).toHaveBeenCalledWith({
+      ...FAIL_FAST,
       host: 'localhost',
       port: 1025,
       secure: false,
@@ -38,6 +45,7 @@ describe('FR-AUTH-04/07 / NFR-SEC-01: outbound account mail configuration', () =
       }),
     );
     expect(createTransport).toHaveBeenCalledWith({
+      ...FAIL_FAST,
       host: 'smtp.example.test',
       port: 465,
       secure: true,
@@ -57,6 +65,7 @@ describe('FR-AUTH-04/07 / NFR-SEC-01: outbound account mail configuration', () =
       }),
     );
     expect(createTransport).toHaveBeenCalledWith({
+      ...FAIL_FAST,
       host: 'localhost',
       port: 587,
       secure: false,

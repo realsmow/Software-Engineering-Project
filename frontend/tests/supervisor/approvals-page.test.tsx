@@ -384,7 +384,7 @@ describe("SupervisorApprovalsPage", () => {
     confirm.mockRestore();
   });
 
-  it("submits the selected condition with a supervisor extension decision", async () => {
+  it("asks for no condition on a supervisor-route extension, which is decided unseen", async () => {
     decideExtension.mockResolvedValue(
       extensionResponse({
         extensionKey: extension.extensionKey,
@@ -408,9 +408,8 @@ describe("SupervisorApprovalsPage", () => {
     fireEvent.click(screen.getByText(i18n.t("supervisor.approvals.viewExtensions")));
     const row = screen.getByText("Oscilloscope").closest("tr");
     expect(row).not.toBeNull();
-    fireEvent.change(within(row!).getByRole("combobox"), {
-      target: { value: "MinorDamage" },
-    });
+    // TC-19: the supervisor never has the unit in hand, so no condition picker.
+    expect(within(row!).queryByRole("combobox")).toBeNull();
     fireEvent.click(
       within(row!).getByRole("button", { name: i18n.t("supervisor.approvals.approve") })
     );
@@ -419,7 +418,6 @@ describe("SupervisorApprovalsPage", () => {
       expect(decideExtension).toHaveBeenCalledWith({
         extensionKey: 12,
         decision: "approve",
-        condition: "MinorDamage",
       })
     );
   });

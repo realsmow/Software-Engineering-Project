@@ -53,7 +53,9 @@ export default function SupervisorApprovalsPage() {
   const [busyKey, setBusyKey] = useState<number | null>(null);
   const [result, setResult] = useState<{ tone: "ok" | "bad"; text: string } | null>(null);
   // FR-APV-01: clicking a row opens the requester's loan history.
-  const [historyBorrower, setHistoryBorrower] = useState<ApprovalQueueRow["borrower"] | null>(null);
+  const [historyBorrower, setHistoryBorrower] = useState<
+    ApprovalQueueRow["borrower"] | null
+  >(null);
 
   const { data: counts } = useApprovalCounts();
   // No route filter: the server already scopes the queue to what this caller
@@ -84,7 +86,7 @@ export default function SupervisorApprovalsPage() {
       await decideExtension.mutateAsync({
         extensionKey: row.extensionKey,
         decision,
-        condition: conditionOf(row.extensionKey),
+        ...(row.route === "staff" ? { condition: conditionOf(row.extensionKey) } : {}),
         ...(why ? { note: why } : {}),
       });
       setResult({
@@ -93,7 +95,7 @@ export default function SupervisorApprovalsPage() {
           decision === "approve"
             ? "supervisor.approvals.doneExtApprove"
             : "supervisor.approvals.doneExtReject",
-          { item: row.itemName ?? "" },
+          { item: row.itemName ?? "" }
         ),
       });
       setRejecting(null);
@@ -123,7 +125,7 @@ export default function SupervisorApprovalsPage() {
           decision === "approve"
             ? "supervisor.approvals.doneRetireApprove"
             : "supervisor.approvals.doneRetireReject",
-          { item: row.resourceName ?? "" },
+          { item: row.resourceName ?? "" }
         ),
       });
       setRejecting(null);
@@ -144,7 +146,9 @@ export default function SupervisorApprovalsPage() {
       render: (r) => (
         <div className="min-w-0">
           <div className="truncate text-foreground">{r.resourceName ?? "-"}</div>
-          <div className="mt-0.5 font-mono text-[11px] text-t4">{r.serialNo ?? r.kind}</div>
+          <div className="mt-0.5 font-mono text-[11px] text-t4">
+            {r.serialNo ?? r.kind}
+          </div>
         </div>
       ),
     },
@@ -163,7 +167,9 @@ export default function SupervisorApprovalsPage() {
       render: (r) => (
         <div className="min-w-0">
           <div className="truncate text-foreground">{r.requestedBy.name}</div>
-          <div className="mt-0.5 font-mono text-[11px] text-t4">{fmtDateTime(r.requestedAt)}</div>
+          <div className="mt-0.5 font-mono text-[11px] text-t4">
+            {fmtDateTime(r.requestedAt)}
+          </div>
         </div>
       ),
     },
@@ -220,7 +226,12 @@ export default function SupervisorApprovalsPage() {
             >
               {t("supervisor.approvals.reject")}
             </Button>
-            <Button type="button" size="sm" disabled={busy} onClick={() => void decideRet(r, "approve")}>
+            <Button
+              type="button"
+              size="sm"
+              disabled={busy}
+              onClick={() => void decideRet(r, "approve")}
+            >
               {busy ? t("common.loading") : t("supervisor.approvals.approve")}
             </Button>
           </div>
@@ -238,7 +249,9 @@ export default function SupervisorApprovalsPage() {
           <div className="truncate font-medium text-foreground">
             {r.borrower.firstName} {r.borrower.lastName}
           </div>
-          <div className="mono truncate text-xs text-muted-foreground">{r.borrower.studentId}</div>
+          <div className="mono truncate text-xs text-muted-foreground">
+            {r.borrower.studentId}
+          </div>
         </div>
       ),
     },
@@ -250,7 +263,9 @@ export default function SupervisorApprovalsPage() {
           {r.tier ? <TierDot tier={r.tier} /> : null}
           <div className="min-w-0">
             <div className="truncate text-foreground">{r.itemName ?? "-"}</div>
-            <div className="mono truncate text-xs text-muted-foreground">{r.serialNo ?? "-"}</div>
+            <div className="mono truncate text-xs text-muted-foreground">
+              {r.serialNo ?? "-"}
+            </div>
           </div>
         </div>
       ),
@@ -269,7 +284,9 @@ export default function SupervisorApprovalsPage() {
       header: t("supervisor.approvals.colDueChange"),
       render: (r) => (
         <div className="mono whitespace-nowrap text-xs">
-          <span className="text-muted-foreground line-through">{fmtDateTime(r.previousDueAt)}</span>
+          <span className="text-muted-foreground line-through">
+            {fmtDateTime(r.previousDueAt)}
+          </span>
           <span className="mx-1 text-muted-foreground">&rarr;</span>
           <span className="text-foreground">{fmtDateTime(r.requestedDueAt)}</span>
         </div>
@@ -278,22 +295,29 @@ export default function SupervisorApprovalsPage() {
     {
       key: "condition",
       header: t("supervisor.approvals.colCondition"),
-      render: (r) => (
-        <select
-          className="rounded border border-border bg-transparent px-1.5 py-1 text-xs text-foreground"
-          value={conditionOf(r.extensionKey)}
-          onChange={(e) =>
-            setConditions((c) => ({ ...c, [r.extensionKey]: e.target.value as ConditionType }))
-          }
-          aria-label={t("supervisor.approvals.colCondition")}
-        >
-          {CONDITIONS.map((c) => (
-            <option key={c} value={c}>
-              {t(`supervisor.approvals.cond${c}`)}
-            </option>
-          ))}
-        </select>
-      ),
+      // Only the staff route has the unit in hand; a supervisor decides on paper.
+      render: (r) =>
+        r.route !== "staff" ? (
+          <span className="text-xs text-muted-foreground">-</span>
+        ) : (
+          <select
+            className="rounded border border-border bg-transparent px-1.5 py-1 text-xs text-foreground"
+            value={conditionOf(r.extensionKey)}
+            onChange={(e) =>
+              setConditions((c) => ({
+                ...c,
+                [r.extensionKey]: e.target.value as ConditionType,
+              }))
+            }
+            aria-label={t("supervisor.approvals.colCondition")}
+          >
+            {CONDITIONS.map((c) => (
+              <option key={c} value={c}>
+                {t(`supervisor.approvals.cond${c}`)}
+              </option>
+            ))}
+          </select>
+        ),
     },
     {
       key: "actions",
@@ -317,7 +341,12 @@ export default function SupervisorApprovalsPage() {
             >
               {t("supervisor.approvals.reject")}
             </Button>
-            <Button type="button" size="sm" variant="outline" onClick={() => setRejecting(null)}>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => setRejecting(null)}
+            >
               {t("common.cancel")}
             </Button>
           </div>
@@ -350,7 +379,9 @@ export default function SupervisorApprovalsPage() {
   async function approve(row: ApprovalQueueRow) {
     if (
       row.clashesWith.length > 0 &&
-      !window.confirm(t("supervisor.approvals.confirmClash", { count: row.clashesWith.length }))
+      !window.confirm(
+        t("supervisor.approvals.confirmClash", { count: row.clashesWith.length })
+      )
     ) {
       return;
     }
@@ -392,7 +423,10 @@ export default function SupervisorApprovalsPage() {
         decision: "reject",
         reason: why,
       });
-      setResult({ tone: "ok", text: t("supervisor.approvals.doneReject", { item: row.itemName ?? "" }) });
+      setResult({
+        tone: "ok",
+        text: t("supervisor.approvals.doneReject", { item: row.itemName ?? "" }),
+      });
       setRejecting(null);
       setReason("");
     } catch (error) {
@@ -438,7 +472,9 @@ export default function SupervisorApprovalsPage() {
       render: (r) => (
         <div className="whitespace-nowrap font-mono text-xs text-t2">
           {fmtDateTime(r.startTime)}
-          <div className="text-t4">{t("supervisor.approvals.days", { count: r.requestedDays })}</div>
+          <div className="text-t4">
+            {t("supervisor.approvals.days", { count: r.requestedDays })}
+          </div>
         </div>
       ),
     },
@@ -469,7 +505,10 @@ export default function SupervisorApprovalsPage() {
         const busy = busyKey === r.reservationKey;
         if (rejecting === r.reservationKey) {
           return (
-            <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
+            <div
+              className="flex items-center justify-end gap-2"
+              onClick={(e) => e.stopPropagation()}
+            >
               <Input
                 autoFocus
                 value={reason}
@@ -513,7 +552,12 @@ export default function SupervisorApprovalsPage() {
             >
               {t("supervisor.approvals.reject")}
             </Button>
-            <Button type="button" size="sm" disabled={busy} onClick={() => void approve(r)}>
+            <Button
+              type="button"
+              size="sm"
+              disabled={busy}
+              onClick={() => void approve(r)}
+            >
               {busy ? t("common.loading") : t("supervisor.approvals.approve")}
             </Button>
           </div>
@@ -524,14 +568,30 @@ export default function SupervisorApprovalsPage() {
 
   return (
     <div>
-      <PageHeader title={t("nav.approvals")} subtitle={t("supervisor.approvals.subtitle")} />
+      <PageHeader
+        title={t("nav.approvals")}
+        subtitle={t("supervisor.approvals.subtitle")}
+      />
 
       <div className="mb-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
-        <Tile label={t("supervisor.approvals.tileSupervisor")} value={counts?.supervisor} />
+        <Tile
+          label={t("supervisor.approvals.tileSupervisor")}
+          value={counts?.supervisor}
+        />
         <Tile label={t("supervisor.approvals.tileStaff")} value={counts?.staff} />
-        <Tile label={t("supervisor.approvals.tileOverdue")} value={counts?.overdueToDecide} warn />
-        <Tile label={t("supervisor.approvals.tileAuto")} value={counts?.autoApprovedToday} />
-        <Tile label={t("supervisor.approvals.tileRetirement")} value={counts?.retirement} />
+        <Tile
+          label={t("supervisor.approvals.tileOverdue")}
+          value={counts?.overdueToDecide}
+          warn
+        />
+        <Tile
+          label={t("supervisor.approvals.tileAuto")}
+          value={counts?.autoApprovedToday}
+        />
+        <Tile
+          label={t("supervisor.approvals.tileRetirement")}
+          value={counts?.retirement}
+        />
       </div>
 
       {result ? (
@@ -580,9 +640,15 @@ export default function SupervisorApprovalsPage() {
               />
             </div>
           }
-          emptyTitle={extLoading ? t("common.loading") : t("supervisor.approvals.extEmptyTitle")}
-          emptyDescription={extLoading ? undefined : t("supervisor.approvals.extEmptyDesc")}
-          rangeLabel={(start, end, total) => t("common.showingRange", { start, end, total })}
+          emptyTitle={
+            extLoading ? t("common.loading") : t("supervisor.approvals.extEmptyTitle")
+          }
+          emptyDescription={
+            extLoading ? undefined : t("supervisor.approvals.extEmptyDesc")
+          }
+          rangeLabel={(start, end, total) =>
+            t("common.showingRange", { start, end, total })
+          }
         />
       ) : view === "retirements" ? (
         <DataTable
@@ -590,9 +656,17 @@ export default function SupervisorApprovalsPage() {
           rows={retirementRows ?? []}
           rowKey={(r) => String(r.requestKey)}
           pageSize={15}
-          emptyTitle={retirementLoading ? t("common.loading") : t("supervisor.approvals.retirementEmptyTitle")}
-          emptyDescription={retirementLoading ? undefined : t("supervisor.approvals.retirementEmptyDesc")}
-          rangeLabel={(start, end, total) => t("common.showingRange", { start, end, total })}
+          emptyTitle={
+            retirementLoading
+              ? t("common.loading")
+              : t("supervisor.approvals.retirementEmptyTitle")
+          }
+          emptyDescription={
+            retirementLoading ? undefined : t("supervisor.approvals.retirementEmptyDesc")
+          }
+          rangeLabel={(start, end, total) =>
+            t("common.showingRange", { start, end, total })
+          }
         />
       ) : (
         <DataTable
@@ -612,9 +686,13 @@ export default function SupervisorApprovalsPage() {
               />
             </div>
           }
-          emptyTitle={isLoading ? t("common.loading") : t("supervisor.approvals.emptyTitle")}
+          emptyTitle={
+            isLoading ? t("common.loading") : t("supervisor.approvals.emptyTitle")
+          }
           emptyDescription={isLoading ? undefined : t("supervisor.approvals.emptyDesc")}
-          rangeLabel={(start, end, total) => t("common.showingRange", { start, end, total })}
+          rangeLabel={(start, end, total) =>
+            t("common.showingRange", { start, end, total })
+          }
         />
       )}
 
@@ -679,15 +757,30 @@ function BorrowerHistoryDialog({
         {isLoading ? (
           <div className="py-8 text-center text-t3">{t("common.loading")}</div>
         ) : !history ? (
-          <div className="py-8 text-center text-t3">{t("supervisor.approvals.history.failed")}</div>
+          <div className="py-8 text-center text-t3">
+            {t("supervisor.approvals.history.failed")}
+          </div>
         ) : (
           <div className="space-y-4">
             <div className="grid grid-cols-4 gap-2">
-              <Tile label={t("supervisor.approvals.history.total")} value={history.totalLoans} />
-              <Tile label={t("supervisor.approvals.history.late")} value={history.lateReturns} warn={history.lateReturns > 0} />
-              <Tile label={t("supervisor.approvals.history.damage")} value={history.damageIncidents} warn={history.damageIncidents > 0} />
+              <Tile
+                label={t("supervisor.approvals.history.total")}
+                value={history.totalLoans}
+              />
+              <Tile
+                label={t("supervisor.approvals.history.late")}
+                value={history.lateReturns}
+                warn={history.lateReturns > 0}
+              />
+              <Tile
+                label={t("supervisor.approvals.history.damage")}
+                value={history.damageIncidents}
+                warn={history.damageIncidents > 0}
+              />
               <div className="rounded-lg border border-border bg-card px-3 py-2.5">
-                <div className="text-xs text-t3">{t("supervisor.approvals.history.lastDamage")}</div>
+                <div className="text-xs text-t3">
+                  {t("supervisor.approvals.history.lastDamage")}
+                </div>
                 <div className="mt-0.5 font-mono text-sm font-semibold tabular-nums text-foreground">
                   {history.lastDamageDate ? fmtDate(history.lastDamageDate) : "-"}
                 </div>
@@ -695,15 +788,25 @@ function BorrowerHistoryDialog({
             </div>
 
             <div className="mt-4">
-              <h4 className="mb-2 text-sm font-medium">{t("supervisor.approvals.history.pastLoans")}</h4>
+              <h4 className="mb-2 text-sm font-medium">
+                {t("supervisor.approvals.history.pastLoans")}
+              </h4>
               <div className="max-h-[300px] overflow-y-auto rounded-md border border-border">
                 <table className="w-full text-left text-sm">
                   <thead className="sticky top-0 bg-muted px-3 py-2 text-xs text-muted-foreground">
                     <tr>
-                      <th className="px-3 py-2 font-medium">{t("supervisor.approvals.history.item")}</th>
-                      <th className="px-3 py-2 font-medium">{t("supervisor.approvals.history.borrowed")}</th>
-                      <th className="px-3 py-2 font-medium">{t("supervisor.approvals.history.returned")}</th>
-                      <th className="px-3 py-2 font-medium">{t("supervisor.approvals.history.status")}</th>
+                      <th className="px-3 py-2 font-medium">
+                        {t("supervisor.approvals.history.item")}
+                      </th>
+                      <th className="px-3 py-2 font-medium">
+                        {t("supervisor.approvals.history.borrowed")}
+                      </th>
+                      <th className="px-3 py-2 font-medium">
+                        {t("supervisor.approvals.history.returned")}
+                      </th>
+                      <th className="px-3 py-2 font-medium">
+                        {t("supervisor.approvals.history.status")}
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
@@ -717,18 +820,30 @@ function BorrowerHistoryDialog({
                       history.items.map((item) => (
                         <tr key={item.usageKey} className="border-t border-border">
                           <td className="px-3 py-2">
-                            <div className="truncate text-foreground">{item.itemName}</div>
-                            <div className="font-mono text-[11px] text-t4">{item.serialNo ?? "-"}</div>
+                            <div className="truncate text-foreground">
+                              {item.itemName}
+                            </div>
+                            <div className="font-mono text-[11px] text-t4">
+                              {item.serialNo ?? "-"}
+                            </div>
                           </td>
-                          <td className="px-3 py-2 font-mono text-xs">{fmtDateTime(item.checkoutAt)}</td>
+                          <td className="px-3 py-2 font-mono text-xs">
+                            {fmtDateTime(item.checkoutAt)}
+                          </td>
                           <td className="px-3 py-2 font-mono text-xs">
                             {item.returnedAt ? fmtDateTime(item.returnedAt) : "-"}
                           </td>
                           <td className="px-3 py-2">
                             {item.overdueDays > 0 ? (
-                              <Badge tone="warn">{t("supervisor.approvals.history.lateDays", { n: item.overdueDays })}</Badge>
+                              <Badge tone="warn">
+                                {t("supervisor.approvals.history.lateDays", {
+                                  n: item.overdueDays,
+                                })}
+                              </Badge>
                             ) : (
-                              <Badge tone="neutral">{t(`admin.users.loanStatus.${item.status}`)}</Badge>
+                              <Badge tone="neutral">
+                                {t(`admin.users.loanStatus.${item.status}`)}
+                              </Badge>
                             )}
                           </td>
                         </tr>

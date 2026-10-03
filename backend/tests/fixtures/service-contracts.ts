@@ -11,6 +11,9 @@ import {
   systemStatusOutput,
   technicalConfigOutput,
   userLoanHistory,
+  orgFaculty,
+  orgGroup,
+  orgOutput,
 } from '../../src/admin/admin.schema';
 import {
   availabilityOutput,
@@ -56,6 +59,9 @@ export const adminContracts = {
   getConfig: technicalConfigOutput,
   listAudit: paginatedAuditEvents,
   getAuditById: auditEventOutput,
+  listOrg: orgOutput,
+  createFaculty: orgFaculty,
+  createGroup: orgGroup,
 };
 
 export const managementContracts = {

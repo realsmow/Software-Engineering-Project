@@ -44,6 +44,7 @@ function serviceWith(options: {
     UserCredit: 100,
     IsActive: true,
     CreatedAt: null,
+    FacultyKey: null,
     Sessions: [],
     Role: { RoleName: 'Staff' },
     Authorities: [],

@@ -18,10 +18,14 @@ import {
   toAdminUserSummary,
   type AdminAccountRow,
 } from '../common/mappers/admin-user.mapper';
-import { activePenaltyWhere } from '../common/schemas/penalty.schema';
+import {
+  activePenaltyWhere,
+  PENALTY_ITEM_SELECT,
+} from '../common/schemas/penalty.schema';
 import { MAX_UPLOAD_BYTES } from '../common/schemas/image.schema';
 import { allowedOrigins } from '../bootstrap';
 import { BASE_CREDIT } from '../common/credit/recompute-credit';
+import { seedMemberRoles } from '../seed/reference';
 import {
   toOrderBy,
   toPage,
@@ -38,6 +42,8 @@ import { workHours } from '../common/schemas/datetime.schema';
 import { resourceName } from '../notification/notification.service';
 import type {
   ChangeRoleInput,
+  CreateFacultyInput,
+  CreateGroupInput,
   CreateUserInput,
   ListAuditInput,
   ListUsersInput,
@@ -75,6 +81,7 @@ const ACCOUNT_SCALARS = {
   UserCredit: true,
   IsActive: true,
   CreatedAt: true,
+  FacultyKey: true,
   Role: { select: { RoleName: true } },
   // Last active = newest sign-in; a session row is written at each login.
   Sessions: {
@@ -108,6 +115,7 @@ const PENALTY_SELECT = {
   ActionTime: true,
   ExpirationTime: true,
   Appealed: true,
+  Usage: PENALTY_ITEM_SELECT,
 } satisfies Prisma.PenaltyInfoSelect;
 
 /**
@@ -361,6 +369,7 @@ export class AdminService implements OnModuleInit {
 
   async createUser(input: CreateUserInput, actor: AuditActor) {
     await this.assertIdentifiersFree(input.email, input.studentId, null);
+    await this.assertGroupsExist(input.groupIds);
 
     // A password the admin typed is theirs to communicate; a generated one is
     // returned once and never again, so it must be handed back to the caller.
@@ -377,9 +386,13 @@ export class AdminService implements OnModuleInit {
         // FR-CRD-01: everyone starts at 100 (no penalties yet).
         UserCredit: BASE_CREDIT,
         RoleKey: await this.roleKeyFor(input.role),
+        FacultyKey: await this.facultyKeyOrNull(input.facultyId),
       },
       select: { AccountKey: true },
     });
+    if (input.groupIds) {
+      await this.setMemberships(created.AccountKey, input.role, input.groupIds);
+    }
 
     await this.audit.record(
       actor,
@@ -397,19 +410,31 @@ export class AdminService implements OnModuleInit {
   async updateUser(input: UpdateUserInput, actor: AuditActor) {
     await this.assertAccountExists(input.id);
     await this.assertIdentifiersFree(input.email, input.studentId, input.id);
+    await this.assertGroupsExist(input.groupIds);
 
     // Only the fields actually sent - Prisma treats an explicit `undefined` as
     // "leave alone", so a partial update needs no branching.
-    await this.prisma.accountInfo.update({
+    const updated = await this.prisma.accountInfo.update({
       where: { AccountKey: input.id },
       data: {
         Email: input.email,
         UserID: input.studentId,
         UserFName: input.firstName,
         UserLName: input.lastName,
+        FacultyKey:
+          input.facultyId === undefined
+            ? undefined
+            : await this.facultyKeyOrNull(input.facultyId),
       },
-      select: { AccountKey: true },
+      select: { AccountKey: true, Role: { select: { RoleName: true } } },
     });
+    if (input.groupIds) {
+      await this.setMemberships(
+        input.id,
+        mapUserRole(updated.Role.RoleName),
+        input.groupIds,
+      );
+    }
 
     await this.audit.record(
       actor,
@@ -1102,6 +1127,148 @@ export class AdminService implements OnModuleInit {
    * The table has a handful of rows, so reading all of it is cheaper than
    * being clever.
    */
+  async listOrg() {
+    const [faculties, groups] = await Promise.all([
+      this.prisma.facultyInfo.findMany({ orderBy: { FacultyName: 'asc' } }),
+      this.prisma.managementGroup.findMany({
+        orderBy: { ManageGroupKey: 'asc' },
+        select: {
+          ManageGroupKey: true,
+          GroupType: true,
+          Branch: { select: { BranchName: true, FacultyKey: true } },
+          Club: { select: { ClubName: true } },
+        },
+      }),
+    ]);
+    return {
+      faculties: faculties.map((f) => ({
+        id: f.FacultyKey,
+        name: f.FacultyName,
+      })),
+      groups: groups.map((g) => ({
+        id: g.ManageGroupKey,
+        name: g.Branch?.BranchName ?? g.Club?.ClubName ?? null,
+        type: g.GroupType,
+        facultyId: g.Branch?.FacultyKey ?? null,
+      })),
+    };
+  }
+
+  async createFaculty(input: CreateFacultyInput, actor: AuditActor) {
+    const row = await this.prisma.facultyInfo.create({
+      data: { FacultyName: input.name },
+    });
+    await this.audit.record(
+      actor,
+      'create',
+      `faculty/${row.FacultyKey}`,
+      `Created faculty ${input.name}`,
+    );
+    return { id: row.FacultyKey, name: row.FacultyName };
+  }
+
+  /** A department (BranchInfo) when facultyId is given, otherwise a club. */
+  async createGroup(input: CreateGroupInput, actor: AuditActor) {
+    // The eligibility editor needs these roles before any member exists.
+    await seedMemberRoles(this.prisma);
+    const facultyKey =
+      input.facultyId === undefined
+        ? null
+        : await this.facultyKeyOrNull(input.facultyId);
+    const id = await this.prisma.$transaction(async (tx) => {
+      const group = await tx.managementGroup.create({
+        data: { GroupType: facultyKey === null ? 'Club' : 'Faculty' },
+      });
+      if (facultyKey === null) {
+        await tx.clubInfo.create({
+          data: { ClubName: input.name, ManageGroupKey: group.ManageGroupKey },
+        });
+      } else {
+        await tx.branchInfo.create({
+          data: {
+            BranchName: input.name,
+            FacultyKey: facultyKey,
+            ManageGroupKey: group.ManageGroupKey,
+          },
+        });
+      }
+      return group.ManageGroupKey;
+    });
+    await this.audit.record(
+      actor,
+      'create',
+      `group/${id}`,
+      `Created ${facultyKey === null ? 'club' : 'department'} ${input.name}`,
+    );
+    return {
+      id,
+      name: input.name,
+      type: facultyKey === null ? ('Club' as const) : ('Faculty' as const),
+      facultyId: facultyKey,
+    };
+  }
+
+  private async facultyKeyOrNull(
+    id: number | null | undefined,
+  ): Promise<number | null> {
+    if (id === null || id === undefined) return null;
+    const row = await this.prisma.facultyInfo.findUnique({
+      where: { FacultyKey: id },
+    });
+    if (!row) throw new BusinessError('FACULTY_NOT_FOUND', { id });
+    return id;
+  }
+
+  /** Checked before any write, so a bad id cannot leave a half-made account. */
+  private async assertGroupsExist(groupIds: number[] | undefined) {
+    if (!groupIds?.length) return;
+    const ids = [...new Set(groupIds)];
+    const found = await this.prisma.managementGroup.count({
+      where: { ManageGroupKey: { in: ids } },
+    });
+    if (found !== ids.length) {
+      throw new BusinessError('GROUP_NOT_FOUND', { groupIds: ids });
+    }
+  }
+
+  /**
+   * Replace the account's department/club memberships. Borrowers join as
+   * 'Student', everyone else as 'Lab staff' (the levels eligibility rules use).
+   */
+  private async setMemberships(
+    accountKey: number,
+    role: UserRole,
+    groupIds: number[],
+  ) {
+    const ids = [...new Set(groupIds)];
+    // Created on demand: production was bootstrapped before these rows existed.
+    const roleKeys = await seedMemberRoles(this.prisma);
+    const authorityRoleKey = roleKeys.get(
+      role === 'borrower' ? 'Student' : 'Lab staff',
+    )!;
+    await this.prisma.$transaction([
+      this.prisma.authority.deleteMany({
+        where: { AccountKey: accountKey, ManageGroupKey: { notIn: ids } },
+      }),
+      ...ids.map((ManageGroupKey) =>
+        this.prisma.authority.upsert({
+          where: {
+            AccountKey_ManageGroupKey: {
+              AccountKey: accountKey,
+              ManageGroupKey,
+            },
+          },
+          update: { AuthorityRoleKey: authorityRoleKey },
+          create: {
+            AccountKey: accountKey,
+            ManageGroupKey,
+            AuthorityRoleKey: authorityRoleKey,
+          },
+        }),
+      ),
+    ]);
+  }
+
   private async roleKeysFor(role: UserRole): Promise<number[]> {
     const rows = await this.prisma.roleInfo.findMany({
       select: { RoleKey: true, RoleName: true },

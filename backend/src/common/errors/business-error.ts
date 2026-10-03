@@ -48,6 +48,8 @@ export const BUSINESS_ERROR_CODES = {
   AUDIT_EVENT_NOT_FOUND: 'NOT_FOUND',
   EMAIL_ALREADY_IN_USE: 'CONFLICT',
   USER_ID_ALREADY_IN_USE: 'CONFLICT',
+  FACULTY_NOT_FOUND: 'NOT_FOUND',
+  GROUP_NOT_FOUND: 'NOT_FOUND',
   /** RoleInfo has no row for the requested role - seed data problem, not user error */
   ROLE_NOT_CONFIGURED: 'PRECONDITION_FAILED',
   /** An admin may not strip their own admin role or ban themselves */

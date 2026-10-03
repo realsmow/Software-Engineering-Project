@@ -22,6 +22,8 @@ export const activePenalty = z.object({
   /** The loan it came from, so a page can show it beside that loan. Null for a ban. */
   usageKey: z.number().int().nullable(),
   creditDeducted: z.number().int().nullable(),
+  /** What the loan was for; null for a ban or when the caller did not load it. */
+  itemName: z.string().nullable().default(null),
   issuedAt: z.iso.datetime().nullable(),
   expiresAt: z.iso.datetime(),
   appealed: z.boolean(),
@@ -39,7 +41,25 @@ export interface PenaltyRow {
   ActionTime: Date | null;
   ExpirationTime: Date;
   Appealed: boolean | null;
+  Usage?: {
+    Resource: {
+      Item: { Item: { ItemName: string | null } } | null;
+      Room: { RoomName: string | null } | null;
+    };
+  } | null;
 }
+
+/** Usage select that gives toActivePenalty the item name. */
+export const PENALTY_ITEM_SELECT = {
+  select: {
+    Resource: {
+      select: {
+        Item: { select: { Item: { select: { ItemName: true } } } },
+        Room: { select: { RoomName: true } },
+      },
+    },
+  },
+} as const;
 
 export function toActivePenalty(row: PenaltyRow): ActivePenalty {
   return {
@@ -47,6 +67,10 @@ export function toActivePenalty(row: PenaltyRow): ActivePenalty {
     reason: row.Reason,
     usageKey: row.UsageKey,
     creditDeducted: row.CreditDeducted,
+    itemName:
+      row.Usage?.Resource.Item?.Item.ItemName ??
+      row.Usage?.Resource.Room?.RoomName ??
+      null,
     issuedAt: row.ActionTime?.toISOString() ?? null,
     expiresAt: row.ExpirationTime.toISOString(),
     // Appealed is nullable; "never appealed" and "explicitly false" are the

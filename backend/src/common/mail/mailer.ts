@@ -23,6 +23,11 @@ export function mailSettings(config: ConfigService): {
       port: Number(config.get<string>('SMTP_PORT') ?? 1025),
       // true for port 465; 587 upgrades with STARTTLS on its own.
       secure: config.get<string>('SMTP_SECURE') === 'true',
+      // Nodemailer waits minutes by default; callers await the send inside a
+      // user request, so a stuck relay must fail fast and get logged.
+      connectionTimeout: 10_000,
+      greetingTimeout: 10_000,
+      socketTimeout: 15_000,
       // MailHog needs no login; a real relay does.
       auth: config.get<string>('SMTP_USER')
         ? {

@@ -213,6 +213,8 @@ export class AppealService {
         // real constraint, and `Appealed` is a nullable boolean that a legacy
         // row may have left unset.
         OriginalAppeal: { is: null },
+        // A replacement from a decided appeal is that appeal's outcome.
+        ReplacedByAppeals: { none: {} },
         ActionTime: { gte: addDays(new Date(), -APPEAL_WINDOW_DAYS) },
         ...DAMAGE_PENALTY_WHERE,
       },
@@ -242,6 +244,7 @@ export class AppealService {
         ...PENALTY_SELECT,
         AccountKey: true,
         OriginalAppeal: { select: { AppealKey: true } },
+        ReplacedByAppeals: { select: { AppealKey: true }, take: 1 },
       },
     });
 
@@ -262,10 +265,14 @@ export class AppealService {
         penaltyKey: input.penaltyKey,
       });
     }
-    if (penalty.OriginalAppeal) {
+    // A replacement penalty is the result of an appeal already decided, so
+    // appealing it would argue the same assessment twice.
+    const decidedBy =
+      penalty.OriginalAppeal ?? penalty.ReplacedByAppeals[0] ?? null;
+    if (decidedBy) {
       throw new BusinessError('ALREADY_APPEALED', {
         penaltyKey: input.penaltyKey,
-        appealKey: penalty.OriginalAppeal.AppealKey,
+        appealKey: decidedBy.AppealKey,
       });
     }
     if (!penalty.InEffect || penalty.ExpirationTime <= new Date()) {

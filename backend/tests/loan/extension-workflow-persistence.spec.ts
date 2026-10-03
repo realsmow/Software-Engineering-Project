@@ -460,6 +460,11 @@ describe('SDS renewal workflow: gates before routing and persisted decisions', (
         const pending = extensionOutput
           .strict()
           .parse(await f.extensions.request(f.user, input));
+        const conditionBefore = (
+          await tx.resourceInfo.findUniqueOrThrow({
+            where: { ResourceKey: f.activeLoan.ResourceKey },
+          })
+        ).ConditionKey;
         const result = extensionOutput.strict().parse(
           await f.extensions.decide(
             decider,
@@ -501,15 +506,20 @@ describe('SDS renewal workflow: gates before routing and persisted decisions', (
         const resource = await tx.resourceInfo.findUniqueOrThrow({
           where: { ResourceKey: f.activeLoan.ResourceKey },
         });
-        expect(
-          await tx.conditionLog.findUniqueOrThrow({
-            where: { ConditionKey: resource.ConditionKey! },
-          }),
-        ).toMatchObject({
-          LoggedBy: decider.accountKey,
-          Condition: 'Normal',
-          Notes: 'Inspected at the counter',
-        });
+        if (role === 'staff') {
+          expect(
+            await tx.conditionLog.findUniqueOrThrow({
+              where: { ConditionKey: resource.ConditionKey! },
+            }),
+          ).toMatchObject({
+            LoggedBy: decider.accountKey,
+            Condition: 'Normal',
+            Notes: 'Inspected at the counter',
+          });
+        } else {
+          // TC-19: a supervisor decides without the unit, so its condition stays.
+          expect(resource.ConditionKey).toBe(conditionBefore);
+        }
         expect(
           await tx.notification.count({
             where: {

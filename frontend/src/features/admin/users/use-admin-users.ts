@@ -126,6 +126,8 @@ export function useUpdateUser() {
       studentId?: string;
       firstName?: string;
       lastName?: string;
+      facultyId?: number | null;
+      groupIds?: number[];
     }) => trpc.admin.updateUser.mutate({ id: Number(id), ...fields }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ADMIN_USERS_KEY }),
   });
@@ -142,6 +144,8 @@ export function useCreateUser() {
       firstName: string;
       lastName: string;
       role: Role;
+      facultyId?: number | null;
+      groupIds?: number[];
     }) => trpc.admin.createUser.mutate(input),
     onSuccess: invalidate,
   });

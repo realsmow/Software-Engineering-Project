@@ -8,7 +8,7 @@ import {
   HELD_USAGE_STATES,
   UNAVAILABLE_USAGE_STATES,
 } from '../common/usage/usage-states';
-import { HOLDING_APPROVE_STATES } from '../common/booking/booking-window';
+import { HOLDING_RESERVATION } from '../common/booking/booking-window';
 import {
   DEFAULT_ROOM_HOURS,
   assertValidRoomHours,
@@ -1231,7 +1231,7 @@ export class ItemManagementService {
       this.prisma.reservations.findFirst({
         where: {
           ResourceKey: resourceKey,
-          ApproveStatus: { in: [...HOLDING_APPROVE_STATES] },
+          ...HOLDING_RESERVATION,
           EndTime: { gt: now },
         },
         select: { ReservationKey: true, StartTime: true, EndTime: true },

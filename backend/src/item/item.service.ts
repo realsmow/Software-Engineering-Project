@@ -19,7 +19,7 @@ import {
 } from '../common/mappers/item.mapper';
 import { tryMapTier } from '../common/schemas/status.schema';
 import {
-  HOLDING_APPROVE_STATES,
+  clashingWindowFilter,
   resourcesFreeInWindow,
 } from '../common/booking/booking-window';
 import {
@@ -770,12 +770,9 @@ export class ItemService {
     const { from, to } = dayWindow(hours, input.date);
     const booked = await this.prisma.reservations.findMany({
       where: {
-        ResourceKey: room.Resource.ResourceKey,
-        ApproveStatus: { in: [...HOLDING_APPROVE_STATES] },
         // Half-open, matching clashingWindowFilter: a booking that ends as the
         // day's first slot begins does not touch it.
-        StartTime: { lt: to },
-        EndTime: { gt: from },
+        ...clashingWindowFilter(room.Resource.ResourceKey, from, to),
       },
       select: { StartTime: true, EndTime: true },
     });
