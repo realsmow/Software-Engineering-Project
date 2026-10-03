@@ -7,7 +7,9 @@ import {
   staffQueueRow,
   staffQueueCounts,
   recordReturnOutput,
+  extensionReviewRow,
 } from "../../../backend/src/loan/loan.schema";
+import type { StaffQueueBucket } from "../../src/features/staff/queue/queue.types";
 import { usagePhotosOutput } from "../../../backend/src/image/image.schema";
 import { loanResponse } from "../fixtures/api-responses";
 import { queryResult, mutationResult } from "../fixtures/query-results";
@@ -233,5 +235,143 @@ describe("StaffQueuePage", () => {
 
     await waitFor(() => expect(recordReturn).toHaveBeenCalledWith({ usageKey: 9 }));
     expect(screen.getByRole("status")).toHaveTextContent("5");
+  });
+
+  describe("Work queue navigation", () => {
+    const buckets = [
+      { bucket: "toPrepare", label: "staff.queue.bucketToPrepare" },
+      { bucket: "toHandover", label: "staff.queue.bucketToHandover" },
+      { bucket: "onLoan", label: "staff.queue.bucketOnLoan" },
+      { bucket: "overdue", label: "staff.queue.bucketOverdue" },
+    ] as const;
+    const extension = extensionReviewRow.strict().parse({
+      extensionKey: 12,
+      usageKey: 9,
+      borrower: row.borrower,
+      creditTier: "D1",
+      route: "staff",
+      itemName: "QA extension equipment",
+      serialNo: "EXT-001",
+      tier: "T1",
+      extendNo: 2,
+      previousDueAt: "2026-10-02T06:00:00.000Z",
+      requestedDueAt: "2026-10-03T06:00:00.000Z",
+      requestedAt: "2026-09-24T08:00:00.000Z",
+      reason: null,
+      status: "Pending",
+    });
+    const tile = (label: string) =>
+      screen.getByRole("button", { name: new RegExp(`^${i18n.t(label)}\\s`) });
+    const backButton = () =>
+      screen.getByRole("button", { name: i18n.t("staff.queue.backToQueue") });
+    const expectQueue = (bucket: StaffQueueBucket) => {
+      expect(screen.queryByText(`QA queue ${bucket}`)).toBeInTheDocument();
+      expect(
+        screen.queryByRole("button", { name: i18n.t("staff.queue.backToQueue") })
+      ).not.toBeInTheDocument();
+      expect(screen.queryByText(extension.itemName!)).not.toBeInTheDocument();
+      expect(
+        screen.queryByText(i18n.t("staff.queue.extEmptyTitle"))
+      ).not.toBeInTheDocument();
+    };
+
+    beforeEach(() => {
+      mocks.useStaffQueue.mockImplementation((bucket: StaffQueueBucket) =>
+        queryResult([
+          staffQueueRow.strict().parse({
+            ...row,
+            itemName: `QA queue ${bucket}`,
+            usageKey: bucket === "toPrepare" ? null : 9,
+            reservationKey: bucket === "toPrepare" ? 77 : null,
+            status:
+              bucket === "toPrepare"
+                ? null
+                : bucket === "toHandover"
+                  ? "Prepared"
+                  : "Lended",
+            serialNo: bucket === "toPrepare" ? null : "QUEUE-001",
+            overdueDays: bucket === "overdue" ? 2 : 0,
+          }),
+        ])
+      );
+    });
+
+    it.each(buckets)(
+      "switches to $bucket using its count tile from the main queue",
+      ({ bucket, label }) => {
+        renderPage();
+        expectQueue("toPrepare");
+        fireEvent.click(tile(label));
+        expect(mocks.useStaffQueue).toHaveBeenLastCalledWith(bucket, "");
+        expectQueue(bucket);
+      }
+    );
+
+    describe.each(["populated", "empty"] as const)("%s extensions queue", (contents) => {
+      let mounted: ReturnType<typeof renderPage>;
+      beforeEach(() => {
+        mocks.useStaffExtensionQueue.mockReturnValue(
+          queryResult(contents === "populated" ? [extension] : [])
+        );
+        mocks.useStaffQueueCounts.mockReturnValue(
+          queryResult(
+            staffQueueCounts.strict().parse({
+              toPrepare: 1,
+              toHandover: 1,
+              onLoan: 1,
+              overdue: 1,
+              toInspect: 0,
+              extensionsToInspect: contents === "populated" ? 1 : 0,
+            })
+          )
+        );
+        mounted = renderPage();
+        expectQueue("toPrepare");
+        fireEvent.click(tile("staff.queue.tileExtensions"));
+        expect(
+          screen.getByText(
+            contents === "populated"
+              ? extension.itemName!
+              : i18n.t("staff.queue.extEmptyTitle")
+          )
+        ).toBeInTheDocument();
+      });
+
+      it("starts in the main queue after the page is unmounted and reopened", () => {
+        mounted.unmount();
+        renderPage();
+        expectQueue("toPrepare");
+      });
+
+      // Confirmed absent before marking: DataTable drops headerActions without title.
+      it.fails("QA-STF-02: displays a usable Back to the main queue action", () => {
+        expect(backButton()).toBeEnabled();
+        fireEvent.click(backButton());
+        expectQueue("toPrepare");
+      });
+
+      describe.each(buckets)("QA-STF-01 / extensions to $bucket", ({ bucket, label }) => {
+        beforeEach(() => {
+          fireEvent.click(tile(label));
+          // Verify the click reaches the target hook outside the defect marker.
+          expect(mocks.useStaffQueue).toHaveBeenLastCalledWith(bucket, "");
+          for (const hook of [
+            mocks.useAllocate,
+            mocks.useConfirmPickup,
+            mocks.useRecordReturn,
+            mocks.useMarkLost,
+            mocks.useStaffDecideExtension,
+            mocks.usePickupImageUpload,
+          ]) {
+            expect(hook.mock.results.at(-1)?.value.mutateAsync).not.toHaveBeenCalled();
+          }
+        });
+
+        // All eight cases failed at the missing target row before adding .fails.
+        it.fails("shows the selected main queue after clicking its count tile", () => {
+          expectQueue(bucket);
+        });
+      });
+    });
   });
 });
