@@ -289,6 +289,7 @@ describe('confirmPickup before the booked time', () => {
       where: {
         ResourceKey: 26,
         ApproveStatus: { in: ['Pending', 'Approved'] },
+        UsageLogs: { none: { CurrentStatus: 'Inspected' } },
         StartTime: { lt: new Date('2099-01-11T02:00:00Z') },
         EndTime: { gt: new Date('2099-01-08T02:00:00Z') },
         ReservationKey: { not: 11 },

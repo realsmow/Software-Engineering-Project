@@ -367,87 +367,55 @@ describe('Persisted business records', () => {
         });
       });
 
-      describe('known defect: stale reservation in catalogue search', () => {
-        let availableUnits: number;
-        beforeEach(async () => {
-          await inHistoryFixture(prisma, async (tx) => {
-            const f = await earlyReturn(tx);
-            await inspectNormal(f);
-            const catalog = new ItemService(f.client);
-            expect(await catalog.getAvailability(f.item.ItemKey)).toMatchObject(
-              {
-                availableUnits: 1,
-              },
-            );
-            const selected = paginatedItems
-              .strict()
-              .parse(
-                await catalog.list(
-                  f.users[1],
-                  listItemsInput.parse({ q: f.item.ItemName!, ...nextWindow }),
-                ),
-              );
-            expect(selected.items).toHaveLength(1);
-            availableUnits = selected.items[0].availableUnits;
+      it('offers an inspected early return for dates before its original due date', async () => {
+        await inHistoryFixture(prisma, async (tx) => {
+          const f = await earlyReturn(tx);
+          await inspectNormal(f);
+          const catalog = new ItemService(f.client);
+          expect(await catalog.getAvailability(f.item.ItemKey)).toMatchObject({
+            availableUnits: 1,
           });
-        });
-        // Setup, schema checks and rollback must pass normally.
-        it.failing(
-          'offers an inspected early return for dates before its original due date',
-          () => {
-            expect(availableUnits).toBe(1);
-          },
-        );
-      });
-
-      describe('known defect: stale reservation refuses the next borrower', () => {
-        let next: ReturnType<typeof createRequestOutput.parse>;
-        let resourceKey: number;
-        beforeEach(async () => {
-          await inHistoryFixture(prisma, async (tx) => {
-            const f = await earlyReturn(tx);
-            await inspectNormal(f);
-            resourceKey = f.units[0].ResourceKey;
-            next = createRequestOutput.strict().parse(
-              await f.service.create(
+          const selected = paginatedItems
+            .strict()
+            .parse(
+              await catalog.list(
                 f.users[1],
-                createRequestInput.parse({
-                  ...nextWindow,
-                  lines: [{ resourceKey: f.units[0].ResourceKey }],
-                }),
+                listItemsInput.parse({ q: f.item.ItemName!, ...nextWindow }),
               ),
             );
-            if (next.rejected.length > 0) {
-              expect(next.rejected).toEqual([
-                expect.objectContaining({
-                  resourceKey,
-                  code: 'WINDOW_NOT_AVAILABLE',
-                }),
-              ]);
-            }
-            if (next.created.length > 0) {
-              expect(next.created).toHaveLength(1);
-              expect(
-                await tx.reservations.findUniqueOrThrow({
-                  where: { ReservationKey: next.created[0].reservationKey },
-                }),
-              ).toMatchObject({
-                ResourceKey: f.units[0].ResourceKey,
-                ReservedBy: f.users[1].accountKey,
-                StartTime: nextStart,
-                EndTime: nextEnd,
-              });
-            }
+          expect(selected.items).toHaveLength(1);
+          expect(selected.items[0].availableUnits).toBe(1);
+        });
+      });
+
+      it('accepts another borrower on the same inspected unit before its original due date', async () => {
+        await inHistoryFixture(prisma, async (tx) => {
+          const f = await earlyReturn(tx);
+          await inspectNormal(f);
+          const resourceKey = f.units[0].ResourceKey;
+          const next = createRequestOutput.strict().parse(
+            await f.service.create(
+              f.users[1],
+              createRequestInput.parse({
+                ...nextWindow,
+                lines: [{ resourceKey: f.units[0].ResourceKey }],
+              }),
+            ),
+          );
+          expect(next.rejected).toEqual([]);
+          expect(next.created).toHaveLength(1);
+          expect(next.created[0].resource.resourceKey).toBe(resourceKey);
+          expect(
+            await tx.reservations.findUniqueOrThrow({
+              where: { ReservationKey: next.created[0].reservationKey },
+            }),
+          ).toMatchObject({
+            ResourceKey: f.units[0].ResourceKey,
+            ReservedBy: f.users[1].accountKey,
+            StartTime: nextStart,
+            EndTime: nextEnd,
           });
         });
-        it.failing(
-          'accepts another borrower on the same inspected unit before its original due date',
-          () => {
-            expect(next.rejected).toEqual([]);
-            expect(next.created).toHaveLength(1);
-            expect(next.created[0].resource.resourceKey).toBe(resourceKey);
-          },
-        );
       });
     });
 
