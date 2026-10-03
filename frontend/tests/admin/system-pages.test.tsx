@@ -119,6 +119,13 @@ describe("IT admin status and technical configuration pages", () => {
       data: workHoursSetting.parse({ start: 8, end: 17 }),
     });
     render(<AdminConfigPage />);
+    for (const field of ["start", "end"]) {
+      const input = screen.getByRole("spinbutton", {
+        name: i18n.t(`admin.config.work_${field}`),
+      });
+      expect(input).toHaveValue(field === "start" ? 8 : 17);
+      expect(within(input.parentElement!).getByText(":00")).toBeInTheDocument();
+    }
     const save = screen.getByRole("button", { name: i18n.t("common.save") });
     expect(save).toBeDisabled();
     fireEvent.change(

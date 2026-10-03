@@ -42,10 +42,15 @@ describe('clashingWindowFilter', () => {
     at('2026-09-13T00:00:00Z'),
   );
 
-  it('looks only at requests that still hold the unit', () => {
+  it('looks only at holding requests whose loan has not been inspected', () => {
     // Rejected and Canceled rows are history; a query that counted them would
     // block a unit forever after one refusal.
     expect(filter.ApproveStatus).toEqual({ in: ['Pending', 'Approved'] });
+    // Approved stays Approved after return: an inspected loan releases the
+    // original window, while Returned alone still holds it for inspection.
+    expect(filter.UsageLogs).toEqual({
+      none: { CurrentStatus: 'Inspected' },
+    });
   });
 
   it('is half-open, so back-to-back bookings do not collide', () => {

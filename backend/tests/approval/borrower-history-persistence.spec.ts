@@ -15,6 +15,58 @@ describe('FR-APV-01 / FR-APL-06 real history and appeal persistence', () => {
     await prisma?.$disconnect();
   });
 
+  it('refuses re-appealing a persisted replacement penalty and removes it from the appealable list', async () => {
+    await inHistoryFixture(prisma, async (tx) => {
+      const f = await historyFixture(tx);
+      const approved = appealOutput.strict().parse(
+        await f.appeals.decide(f.decider, {
+          appealKey: f.appeal.AppealKey,
+          decision: 'approve',
+          revisedGrade: 'B1',
+        }),
+      );
+      const replacementKey = approved.replacementPenalty!.penaltyKey;
+      expect(approved.replacementPenalty).toMatchObject({
+        creditDeducted: 4,
+        inEffect: true,
+      });
+      const borrower = {
+        ...f.decider,
+        accountKey: f.borrower.AccountKey,
+        role: 'borrower' as const,
+      };
+      expect(
+        (await f.appeals.listAppealable(borrower)).map((p) => p.penaltyKey),
+      ).not.toContain(replacementKey);
+      const count = await tx.appealInfo.count({
+        where: { FiledBy: f.borrower.AccountKey },
+      });
+      const credit = (
+        await tx.accountInfo.findUniqueOrThrow({
+          where: { AccountKey: f.borrower.AccountKey },
+        })
+      ).UserCredit;
+      await expect(
+        f.appeals.create(borrower, {
+          penaltyKey: replacementKey,
+          appealReason: 'Appeal the reduction again',
+        }),
+      ).rejects.toMatchObject({ businessCode: 'ALREADY_APPEALED' });
+      expect(
+        await tx.appealInfo.count({
+          where: { FiledBy: f.borrower.AccountKey },
+        }),
+      ).toBe(count);
+      expect(
+        (
+          await tx.accountInfo.findUniqueOrThrow({
+            where: { AccountKey: f.borrower.AccountKey },
+          })
+        ).UserCredit,
+      ).toBe(credit);
+    });
+  });
+
   it('orders actual database rows newest first and counts all loans beyond the 50-row display limit', async () => {
     await inHistoryFixture(prisma, async (tx) => {
       const f = await historyFixture(tx);

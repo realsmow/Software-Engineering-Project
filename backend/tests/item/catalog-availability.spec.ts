@@ -8,6 +8,27 @@ import {
 } from '../../src/item/item.schema';
 import { requestFixture } from '../fixtures/loan-request';
 import {
+  pickupFixture,
+  pickupRequest,
+  PICKUP_NOW,
+  PICKUP_START,
+  PICKUP_END,
+} from '../fixtures/pickup';
+import type { Prisma } from '../../src/generated/prisma/client';
+import {
+  allocateLoanInput,
+  createRequestInput,
+  createRequestOutput,
+  recordReturnOutput,
+} from '../../src/loan/loan.schema';
+import { InspectionService } from '../../src/inspection/inspection.service';
+import {
+  createInspectionInput,
+  inspectionOutput,
+} from '../../src/inspection/inspection.schema';
+import { StaffScopeService } from '../../src/common/authority/staff-scope.service';
+import { PenaltyService } from '../../src/common/penalty/penalty.service';
+import {
   inHistoryFixture,
   requireIsolatedDatabase,
   transactionClient,
@@ -228,6 +249,175 @@ describe('Persisted business records', () => {
     afterAll(async () => prisma?.$disconnect());
     beforeEach(() => freezeBusinessDate(NOW));
     afterEach(() => jest.useRealTimers());
+
+    describe('regression: equipment returned before its original due date', () => {
+      const returnedAt = new Date(PICKUP_START.getTime() + 86_400_000);
+      const nextStart = new Date(returnedAt.getTime() + 3_600_000);
+      const nextEnd = new Date(nextStart.getTime() + 3_600_000);
+
+      async function earlyReturn(tx: Prisma.TransactionClient) {
+        freezeBusinessDate(PICKUP_NOW);
+        const f = await pickupFixture(tx);
+        // No spare unit may hide a stale hold by satisfying a T1 request instead.
+        await tx.resourceInfo.update({
+          where: { ResourceKey: f.units[1].ResourceKey },
+          data: { AllowBorrow: false },
+        });
+        const reservation = await pickupRequest(f);
+        const prepared = await f.loan.allocate(
+          f.staff,
+          allocateLoanInput.parse({
+            reservationKey: reservation.reservationKey,
+          }),
+        );
+        await tx.images.createMany({
+          data: (['BeforePicture', 'AfterPicture'] as const).map((stage) => ({
+            UsageKey: prepared.usageKey,
+            ResourceKey: f.units[0].ResourceKey,
+            SubmittedBy: f.users[0].accountKey,
+            SubmissionType: stage,
+            ImageURL: `/media/regression-${stage}.png`,
+            ActionTime: PICKUP_START,
+          })),
+        });
+        freezeBusinessDate(PICKUP_START);
+        const collected = await f.service.confirmMyPickup(
+          f.users[0],
+          prepared.usageKey,
+        );
+        expect(collected.status).toBe('inUse');
+
+        freezeBusinessDate(returnedAt);
+        const returned = recordReturnOutput
+          .strict()
+          .parse(
+            await f.loan.recordReturn(f.staff, { usageKey: prepared.usageKey }),
+          );
+        expect(returned.loan.status).toBe('Returned');
+        expect(returned.latePenalty).toBeNull();
+        expect(
+          await tx.usageLog.findUniqueOrThrow({
+            where: { UsageKey: prepared.usageKey },
+          }),
+        ).toMatchObject({ CheckInTime: returnedAt, DueTime: PICKUP_END });
+        expect(nextEnd.getTime()).toBeLessThan(PICKUP_END.getTime());
+
+        const inspection = new InspectionService(
+          f.client,
+          new StaffScopeService(f.client),
+          new PenaltyService(f.client),
+          { toPublicUrl: (url: string | null) => url } as never,
+          f.audit as never,
+          f.notifications,
+        );
+        return { ...f, prepared, inspection };
+      }
+
+      async function inspectNormal(f: Awaited<ReturnType<typeof earlyReturn>>) {
+        const result = inspectionOutput.strict().parse(
+          await f.inspection.createInspection(
+            f.staff,
+            createInspectionInput.parse({
+              usageKey: f.prepared.usageKey,
+              level: 'B0',
+            }),
+          ),
+        );
+        expect(result.returnedToPool).toBe(true);
+        expect(
+          await f.client.usageLog.findUniqueOrThrow({
+            where: { UsageKey: f.prepared.usageKey },
+          }),
+        ).toMatchObject({ CurrentStatus: 'Inspected' });
+      }
+
+      const nextWindow = {
+        startTime: nextStart.toISOString(),
+        endTime: nextEnd.toISOString(),
+      };
+
+      it('keeps an early return unavailable until staff have inspected it', async () => {
+        await inHistoryFixture(prisma, async (tx) => {
+          const f = await earlyReturn(tx);
+          const catalog = new ItemService(f.client);
+          expect(await catalog.getAvailability(f.item.ItemKey)).toMatchObject({
+            availableUnits: 0,
+          });
+          const selected = await catalog.list(
+            f.users[1],
+            listItemsInput.parse({ q: f.item.ItemName!, ...nextWindow }),
+          );
+          expect(selected.items[0].availableUnits).toBe(0);
+          const attempted = createRequestOutput.strict().parse(
+            await f.service.create(
+              f.users[1],
+              createRequestInput.parse({
+                ...nextWindow,
+                lines: [{ resourceKey: f.units[0].ResourceKey }],
+              }),
+            ),
+          );
+          expect(attempted.created).toHaveLength(0);
+          expect(attempted.rejected).toHaveLength(1);
+          expect(
+            await tx.usageLog.findUniqueOrThrow({
+              where: { UsageKey: f.prepared.usageKey },
+            }),
+          ).toMatchObject({ CurrentStatus: 'Returned' });
+        });
+      });
+
+      it('offers an inspected early return for dates before its original due date', async () => {
+        await inHistoryFixture(prisma, async (tx) => {
+          const f = await earlyReturn(tx);
+          await inspectNormal(f);
+          const catalog = new ItemService(f.client);
+          expect(await catalog.getAvailability(f.item.ItemKey)).toMatchObject({
+            availableUnits: 1,
+          });
+          const selected = paginatedItems
+            .strict()
+            .parse(
+              await catalog.list(
+                f.users[1],
+                listItemsInput.parse({ q: f.item.ItemName!, ...nextWindow }),
+              ),
+            );
+          expect(selected.items).toHaveLength(1);
+          expect(selected.items[0].availableUnits).toBe(1);
+        });
+      });
+
+      it('accepts another borrower on the same inspected unit before its original due date', async () => {
+        await inHistoryFixture(prisma, async (tx) => {
+          const f = await earlyReturn(tx);
+          await inspectNormal(f);
+          const resourceKey = f.units[0].ResourceKey;
+          const next = createRequestOutput.strict().parse(
+            await f.service.create(
+              f.users[1],
+              createRequestInput.parse({
+                ...nextWindow,
+                lines: [{ resourceKey: f.units[0].ResourceKey }],
+              }),
+            ),
+          );
+          expect(next.rejected).toEqual([]);
+          expect(next.created).toHaveLength(1);
+          expect(next.created[0].resource.resourceKey).toBe(resourceKey);
+          expect(
+            await tx.reservations.findUniqueOrThrow({
+              where: { ReservationKey: next.created[0].reservationKey },
+            }),
+          ).toMatchObject({
+            ResourceKey: f.units[0].ResourceKey,
+            ReservedBy: f.users[1].accountKey,
+            StartTime: nextStart,
+            EndTime: nextEnd,
+          });
+        });
+      });
+    });
 
     it.each([
       ['Approved', '2031-09-28T03:00:00Z', '2031-09-30T03:00:00Z', 0, 1],

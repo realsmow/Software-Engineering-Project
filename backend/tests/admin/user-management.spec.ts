@@ -5,6 +5,10 @@ import {
   adminUserDetail,
   createUserInput,
   createUserOutput,
+  updateUserInput,
+  createFacultyInput,
+  createGroupInput,
+  orgOutput,
   listUsersInput,
   paginatedAdminUsers,
 } from '../../src/admin/admin.schema';
@@ -544,18 +548,381 @@ describe('Persisted business records', () => {
 
   const DAY = 86_400_000;
 
-  function service(tx: Prisma.TransactionClient) {
-    const client = transactionClient(tx);
+  function service(
+    tx: Prisma.TransactionClient,
+    client = transactionClient(tx),
+  ) {
     return new AdminService(
       client,
       new CreditTierService(client),
       {} as never,
-      {} as never,
+      { record: jest.fn() } as never,
       new StaffScopeService(client),
       {} as never,
       {} as never,
     );
   }
+
+  describe('FR-ADM-01/02: organizations and account memberships', () => {
+    let prisma: PrismaService;
+    const actor: AuditActor = { accountKey: 99 };
+    beforeAll(async () => {
+      requireIsolatedDatabase();
+      prisma = new PrismaService();
+      await prisma.$connect();
+    });
+    afterAll(async () => prisma?.$disconnect());
+
+    const accountInput = (
+      role: 'borrower' | 'staff' | 'supervisor' | 'admin' = 'borrower',
+    ) => {
+      const token = randomUUID();
+      return createUserInput.parse({
+        email: `org-${token}@ku.th`,
+        studentId: token,
+        firstName: 'Organization',
+        lastName: 'QA',
+        role,
+        password: 'QaTest123!',
+      });
+    };
+
+    async function organization(tx: Prisma.TransactionClient) {
+      const svc = service(tx);
+      const name = `org-${randomUUID()}`;
+      const faculty = await svc.createFaculty(
+        createFacultyInput.parse({ name }),
+        actor,
+      );
+      const department = await svc.createGroup(
+        createGroupInput.parse({
+          name: `${name}-department`,
+          facultyId: faculty.id,
+        }),
+        actor,
+      );
+      const club = await svc.createGroup(
+        createGroupInput.parse({ name: `${name}-club` }),
+        actor,
+      );
+      expect(department).toMatchObject({
+        type: 'Faculty',
+        facultyId: faculty.id,
+      });
+      expect(club).toMatchObject({ type: 'Club', facultyId: null });
+      return { svc, faculty, department, club };
+    }
+
+    it('reads the faculty, its department and the independent club from persisted records', async () => {
+      await inHistoryFixture(prisma, async (tx) => {
+        const f = await organization(tx);
+        const listed = orgOutput.strict().parse(await f.svc.listOrg());
+        expect(listed.faculties).toContainEqual(f.faculty);
+        expect(listed.groups).toEqual(
+          expect.arrayContaining([f.department, f.club]),
+        );
+        expect(
+          await tx.branchInfo.findUniqueOrThrow({
+            where: { ManageGroupKey: f.department.id },
+          }),
+        ).toMatchObject({ FacultyKey: f.faculty.id });
+        expect(
+          await tx.clubInfo.findUniqueOrThrow({
+            where: { ManageGroupKey: f.club.id },
+          }),
+        ).toMatchObject({ ClubName: f.club.name });
+      });
+    });
+
+    it.each(['borrower', 'staff', 'supervisor', 'admin'] as const)(
+      'persists faculty and deduplicated memberships for a %s account with the correct member role',
+      async (role) => {
+        await inHistoryFixture(prisma, async (tx) => {
+          const f = await organization(tx);
+          const result = createUserOutput.strict().parse(
+            await f.svc.createUser(
+              {
+                ...accountInput(role),
+                facultyId: f.faculty.id,
+                groupIds: [f.department.id, f.club.id, f.department.id],
+              },
+              actor,
+            ),
+          );
+          expect(result.user).toMatchObject({ facultyId: f.faculty.id, role });
+          expect(result.user.authorities).toHaveLength(2);
+          const members = await tx.authority.findMany({
+            where: { AccountKey: result.user.id },
+            include: { AuthorityRole: true },
+          });
+          expect(
+            members.map((m) => m.ManageGroupKey).sort((a, b) => a - b),
+          ).toEqual([f.department.id, f.club.id].sort((a, b) => a - b));
+          expect(
+            members.every(
+              (m) =>
+                m.AuthorityRole.AuthorityName ===
+                (role === 'borrower' ? 'Student' : 'Lab staff'),
+            ),
+          ).toBe(true);
+        });
+      },
+    );
+
+    it('keeps memberships and member roles when a profile-only edit omits groupIds', async () => {
+      await inHistoryFixture(prisma, async (tx) => {
+        const f = await organization(tx);
+        const created = await f.svc.createUser(
+          {
+            ...accountInput(),
+            facultyId: f.faculty.id,
+            groupIds: [f.department.id],
+          },
+          actor,
+        );
+        const before = await tx.authority.findMany({
+          where: { AccountKey: created.user.id },
+        });
+        const updated = adminUserDetail.strict().parse(
+          await f.svc.updateUser(
+            updateUserInput.parse({
+              id: created.user.id,
+              firstName: 'Edited',
+            }),
+            actor,
+          ),
+        );
+        expect(updated).toMatchObject({
+          firstName: 'Edited',
+          facultyId: f.faculty.id,
+        });
+        expect(
+          await tx.authority.findMany({
+            where: { AccountKey: created.user.id },
+          }),
+        ).toEqual(before);
+      });
+    });
+
+    it('allows clearing borrower memberships and faculty without changing the account role', async () => {
+      await inHistoryFixture(prisma, async (tx) => {
+        const f = await organization(tx);
+        const created = await f.svc.createUser(
+          {
+            ...accountInput(),
+            facultyId: f.faculty.id,
+            groupIds: [f.department.id, f.club.id],
+          },
+          actor,
+        );
+        const updated = await f.svc.updateUser(
+          updateUserInput.parse({
+            id: created.user.id,
+            facultyId: null,
+            groupIds: [],
+          }),
+          actor,
+        );
+        expect(updated).toMatchObject({
+          role: 'borrower',
+          facultyId: null,
+          authorities: [],
+        });
+        expect(
+          await tx.authority.count({ where: { AccountKey: created.user.id } }),
+        ).toBe(0);
+      });
+    });
+
+    it.each(['faculty', 'group'] as const)(
+      'refuses an unknown %s before changing profile or memberships',
+      async (field) => {
+        await inHistoryFixture(prisma, async (tx) => {
+          const f = await organization(tx);
+          const created = await f.svc.createUser(
+            {
+              ...accountInput(),
+              facultyId: f.faculty.id,
+              groupIds: [f.department.id],
+            },
+            actor,
+          );
+          const before = await tx.accountInfo.findUniqueOrThrow({
+            where: { AccountKey: created.user.id },
+          });
+          const members = await tx.authority.findMany({
+            where: { AccountKey: created.user.id },
+          });
+          await expect(
+            f.svc.updateUser(
+              updateUserInput.parse({
+                id: created.user.id,
+                firstName: 'Must not save',
+                ...(field === 'faculty'
+                  ? { facultyId: 2_147_483_600 }
+                  : { groupIds: [2_147_483_600] }),
+              }),
+              actor,
+            ),
+          ).rejects.toMatchObject({
+            businessCode:
+              field === 'faculty' ? 'FACULTY_NOT_FOUND' : 'GROUP_NOT_FOUND',
+          });
+          expect(
+            await tx.accountInfo.findUniqueOrThrow({
+              where: { AccountKey: created.user.id },
+            }),
+          ).toEqual(before);
+          expect(
+            await tx.authority.findMany({
+              where: { AccountKey: created.user.id },
+            }),
+          ).toEqual(members);
+        });
+      },
+    );
+
+    it('allows staff membership removal when another enabled staff member still covers the department', async () => {
+      await inHistoryFixture(prisma, async (tx) => {
+        const f = await organization(tx);
+        const target = await f.svc.createUser(
+          { ...accountInput('staff'), groupIds: [f.department.id] },
+          actor,
+        );
+        const peer = await f.svc.createUser(
+          { ...accountInput('staff'), groupIds: [f.department.id] },
+          actor,
+        );
+        const updated = await f.svc.updateUser(
+          updateUserInput.parse({ id: target.user.id, groupIds: [] }),
+          actor,
+        );
+        expect(updated.authorities).toEqual([]);
+        expect(
+          await tx.authority.findMany({
+            where: { ManageGroupKey: f.department.id },
+          }),
+        ).toEqual([expect.objectContaining({ AccountKey: peer.user.id })]);
+      });
+    });
+
+    describe('known defect: membership removal bypasses the last-staff coverage guard', () => {
+      let removed: boolean;
+      beforeEach(async () => {
+        await inHistoryFixture(prisma, async (tx) => {
+          const f = await organization(tx);
+          const target = await f.svc.createUser(
+            { ...accountInput('staff'), groupIds: [f.department.id] },
+            actor,
+          );
+          // Existing policy controls: the same account cannot be demoted or disabled.
+          await expect(
+            f.svc.changeRole({ id: target.user.id, role: 'borrower' }, actor),
+          ).rejects.toMatchObject({
+            businessCode: 'ROLE_CHANGE_WOULD_ORPHAN_GROUP',
+          });
+          await expect(
+            f.svc.setUserActive({ id: target.user.id, active: false }, actor),
+          ).rejects.toMatchObject({
+            businessCode: 'DISABLE_WOULD_ORPHAN_GROUP',
+          });
+          try {
+            await f.svc.updateUser(
+              updateUserInput.parse({ id: target.user.id, groupIds: [] }),
+              actor,
+            );
+          } catch (error) {
+            expect(error).toBeInstanceOf(BusinessError);
+            expect((error as BusinessError).businessCode).toMatch(
+              /ORPHAN_GROUP/,
+            );
+          }
+          const members = await tx.authority.findMany({
+            where: { AccountKey: target.user.id },
+          });
+          removed = !members.some((m) => m.ManageGroupKey === f.department.id);
+          expect(
+            await tx.accountInfo.findUniqueOrThrow({
+              where: { AccountKey: target.user.id },
+            }),
+          ).toMatchObject({ IsActive: true });
+        });
+      });
+      // Reproduced against PostgreSQL before marking this product assertion.
+      it.failing(
+        'retains the last enabled staff member in the department',
+        () => {
+          expect(removed).toBe(false);
+        },
+      );
+    });
+
+    describe.each(['create', 'update'] as const)(
+      'known defect: membership write failure during account %s',
+      (operation) => {
+        let accountChanged: boolean;
+        beforeEach(async () => {
+          await inHistoryFixture(prisma, async (tx) => {
+            const f = await organization(tx);
+            const input = accountInput();
+            const initial =
+              operation === 'update'
+                ? await f.svc.createUser(input, actor)
+                : null;
+            const failure = new Error('QA injected membership storage failure');
+            const client = transactionClient(tx);
+            const failingClient = new Proxy(client, {
+              get(target, key) {
+                if (key === '$transaction')
+                  return (work: unknown) => {
+                    // Fail only the membership transaction. Profile/account SQL stays real.
+                    if (Array.isArray(work)) return Promise.reject(failure);
+                    return target.$transaction(
+                      work as (t: Prisma.TransactionClient) => Promise<unknown>,
+                    );
+                  };
+                return Reflect.get(target, key) as unknown;
+              },
+            });
+            const svc = service(tx, failingClient);
+            const attempted =
+              operation === 'create'
+                ? svc.createUser(
+                    { ...input, groupIds: [f.department.id] },
+                    actor,
+                  )
+                : svc.updateUser(
+                    updateUserInput.parse({
+                      id: initial!.user.id,
+                      firstName: 'Partial save',
+                      groupIds: [f.department.id],
+                    }),
+                    actor,
+                  );
+            await expect(attempted).rejects.toBe(failure);
+            const saved = await tx.accountInfo.findUnique({
+              where: { Email: input.email },
+            });
+            accountChanged =
+              operation === 'create'
+                ? saved !== null
+                : saved?.UserFName !== input.firstName;
+            expect(
+              await tx.authority.count({
+                where: { Account: { Email: input.email } },
+              }),
+            ).toBe(0);
+          });
+        });
+        it.failing(
+          'leaves no partial account/profile changes when the operation fails',
+          () => {
+            expect(accountChanged).toBe(false);
+          },
+        );
+      },
+    );
+  });
 
   describe('FR-ADM-01 / NFR-SEC-03: account details and search from actual records', () => {
     let prisma: PrismaService;

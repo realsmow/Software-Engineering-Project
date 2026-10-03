@@ -384,6 +384,27 @@ describe("SupervisorApprovalsPage", () => {
     confirm.mockRestore();
   });
 
+  it("still sends the chosen condition for a staff-route extension", async () => {
+    hooks.useExtensionQueue.mockReturnValue(
+      queryResult([extensionReviewRow.strict().parse({ ...extension, route: "staff" })])
+    );
+    decideExtension.mockResolvedValue(extensionResponse({ status: "Approved" }));
+    render(<SupervisorApprovalsPage />);
+    fireEvent.click(screen.getByText(i18n.t("supervisor.approvals.viewExtensions")));
+    const row = within(screen.getByText("Oscilloscope").closest("tr")!);
+    fireEvent.change(row.getByRole("combobox"), { target: { value: "MinorDamage" } });
+    fireEvent.click(
+      row.getByRole("button", { name: i18n.t("supervisor.approvals.approve") })
+    );
+    await waitFor(() =>
+      expect(decideExtension).toHaveBeenCalledWith({
+        extensionKey: 12,
+        decision: "approve",
+        condition: "MinorDamage",
+      })
+    );
+  });
+
   it("asks for no condition on a supervisor-route extension, which is decided unseen", async () => {
     decideExtension.mockResolvedValue(
       extensionResponse({

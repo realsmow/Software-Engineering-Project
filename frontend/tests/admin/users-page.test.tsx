@@ -8,6 +8,9 @@ import { ADMIN_USERS } from '../fixtures/admin-users';
 import * as adminUsersHooks from '../../src/features/admin/users/use-admin-users';
 import { useAuthStore } from '../../src/features/auth/auth.store';
 import { getErrorMessage } from '../../src/lib/error-messages';
+import { adminUserDetail } from '../../../backend/src/admin/admin.schema';
+import { toAdminUserDetail } from '../../src/features/admin/users/admin-user.adapter';
+import { queryResult } from '../fixtures/query-results';
 
 const useAuditEventsMock = vi.hoisted(() => vi.fn());
 
@@ -267,6 +270,59 @@ describe('Admin users page', () => {
     expect(within(dialog).getByText('Tmp-Pass-1234')).toBeInTheDocument();
     expect(name).toHaveValue('');
     expect(email).toHaveValue('');
+  });
+
+  describe('editing of faculty and memberships', () => {
+    beforeEach(() => {
+      const detail = toAdminUserDetail(adminUserDetail.strict().parse({
+        id: Number(BORROWER_USER.id), studentId: BORROWER_USER.govId,
+        firstName: 'Account', lastName: 'QA', email: BORROWER_USER.email,
+        role: 'borrower', status: 'active', creditScore: 100,
+        createdAt: null, lastActiveAt: null, managementGroup: null,
+        facultyId: 1, creditTier: 'D0', maxBorrowDays: 14, maxExtendTimes: 2,
+        activePenalties: [], authorities: ORG.groups.map((g) => ({
+          manageGroupKey: g.id, groupName: g.name, groupType: g.type,
+          authorityName: 'Student', authorityLevel: 0,
+        })),
+      }));
+      vi.mocked(adminUsersHooks.useUserDetail).mockReturnValue(queryResult(detail));
+      renderPage();
+      openUser(BORROWER_USER.name);
+      fireEvent.click(screen.getByRole('button', { name: t('admin.users.editDetails') }));
+    });
+
+    it('preselects the current faculty and memberships without sending an unchanged save', () => {
+      const dialog = within(screen.getByRole('dialog'));
+      expect(dialog.getByRole('checkbox', { name: /Computer Engineering/ })).toBeChecked();
+      expect(dialog.getByRole('checkbox', { name: /Robotics Club/ })).toBeChecked();
+      expect(dialog.getAllByRole('combobox')[0]).toHaveTextContent('Engineering');
+      fireEvent.click(dialog.getByRole('button', { name: t('common.save') }));
+      expect(updateUserMutate).not.toHaveBeenCalled();
+    });
+
+    it('sends only changed profile fields and preserves memberships', () => {
+      const dialog = within(screen.getByRole('dialog'));
+      fireEvent.change(dialog.getByDisplayValue('Account'), { target: { value: 'Edited' } });
+      fireEvent.click(dialog.getByRole('button', { name: t('common.save') }));
+      expect(updateUserMutate).toHaveBeenCalledWith({ id: BORROWER_USER.id, firstName: 'Edited' }, expect.any(Object));
+    });
+
+    it('sends the remaining group and a null faculty when both selections change', () => {
+      const dialog = within(screen.getByRole('dialog'));
+      fireEvent.click(dialog.getByRole('checkbox', { name: /Robotics Club/ }));
+      fireEvent.click(dialog.getAllByRole('combobox')[0]);
+      fireEvent.click(screen.getByRole('option', { name: t('admin.users.facultyNone') }));
+      fireEvent.click(dialog.getByRole('button', { name: t('common.save') }));
+      expect(updateUserMutate).toHaveBeenCalledWith({ id: BORROWER_USER.id, facultyId: null, groupIds: [10] }, expect.any(Object));
+    });
+
+    it('sends an explicit empty group set when every membership is unticked', () => {
+      const dialog = within(screen.getByRole('dialog'));
+      fireEvent.click(dialog.getByRole('checkbox', { name: /Computer Engineering/ }));
+      fireEvent.click(dialog.getByRole('checkbox', { name: /Robotics Club/ }));
+      fireEvent.click(dialog.getByRole('button', { name: t('common.save') }));
+      expect(updateUserMutate).toHaveBeenCalledWith({ id: BORROWER_USER.id, groupIds: [] }, expect.any(Object));
+    });
   });
 
   it('requests account deactivation for the selected active account', () => {

@@ -26,7 +26,11 @@ interface AuthState {
 export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   isLoading: true,
-  setUser: (user) => set({ user, isLoading: false }),
+  setUser: (user) => {
+    // An expired session sets null first; the next sign-in may be someone else.
+    if (user) useRequestDraft.getState().claim(user.id);
+    set({ user, isLoading: false });
+  },
   setLoading: (isLoading) => set({ isLoading }),
 
   // The draft is per person; the next user of this browser must not inherit it.
