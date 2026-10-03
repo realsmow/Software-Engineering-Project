@@ -277,6 +277,16 @@ describe("Credit and penalty view model", () => {
     });
 
   describe("FR-CRD-07/08: credit penalties shown to the borrower", () => {
+    it.each(["QA equipment", "QA laboratory"])(
+      "retains the server's penalty resource name: %s",
+      (itemName) => {
+        const input = standing();
+        input.activePenalties[0].itemName = itemName;
+        const output = toMyCredit(creditOutput.strict().parse(input));
+        expect(output.penalties.find((p) => p.id === "1")?.itemName).toBe(itemName);
+        expect(output.totalDeducted).toBe(12);
+      }
+    );
     it("shows a nullable deduction as zero and retains missing reasons and issue times", () => {
       expect(toMyCredit(standing()).penalties[0]).toEqual({
         id: "2",

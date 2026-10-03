@@ -6,9 +6,32 @@ import type { SessionService } from '../auth/session.service';
 import type { StaffScopeService } from '../common/authority/staff-scope.service';
 import type { CronService } from '../cron/cron.service';
 import type { ConfigService } from '@nestjs/config';
+import { createFacultyInput, createGroupInput } from './admin.schema';
 
 // Faculties, departments, clubs, and attaching accounts to them.
 const ACTOR: AuditActor = { accountKey: 99, ip: null, userAgent: null };
+
+describe('NFR-SEC-03: organization create input boundaries', () => {
+  it.each(['', '   ', 'x'.repeat(101)])(
+    'refuses an empty or oversized organization name (%s)',
+    (name) => {
+      expect(createFacultyInput.safeParse({ name }).success).toBe(false);
+      expect(createGroupInput.safeParse({ name, facultyId: 1 }).success).toBe(
+        false,
+      );
+    },
+  );
+  it('trims names and refuses non-integer faculty references', () => {
+    expect(createFacultyInput.parse({ name: '  Engineering  ' })).toEqual({
+      name: 'Engineering',
+    });
+    for (const facultyId of [1.5, '1', null]) {
+      expect(
+        createGroupInput.safeParse({ name: 'CPE', facultyId }).success,
+      ).toBe(false);
+    }
+  });
+});
 
 function setup(
   options: { facultyExists?: boolean; groupsFound?: number } = {},
