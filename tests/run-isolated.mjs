@@ -15,6 +15,7 @@ import { resolve, dirname, basename, sep } from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { createServer } from "node:net";
+import { isolatedMailEnv } from "./e2e/fixtures/isolated-mail.cjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const require = createRequire(resolve(root, "backend/package.json"));
@@ -97,6 +98,9 @@ async function ready(address, child) {
   throw new Error(`Server did not become ready: ${address}`);
 }
 try {
+  if (mode !== "--backend") {
+    await run("tests/runner/mail-isolation.test.mjs", []);
+  }
   await admin.connect();
   await admin.query(`CREATE DATABASE "${database}"`);
   created = true;
@@ -203,10 +207,7 @@ try {
       ULMS_TEST_NOW: "2031-09-26T00:00:00.000Z",
       ULMS_TEST_CLOCK_FILE: clockFile,
     };
-    const backend = await serve(
-      resolve(runtime, "dist/main.js"),
-      [],
-      resolve(root, "backend"),
+    const backendEnv = isolatedMailEnv(
       mode === "--load"
         ? {
             ...serverEnv,
@@ -214,6 +215,12 @@ try {
             ULMS_TEST_CLOCK_FILE: undefined,
           }
         : { ...serverEnv, NODE_OPTIONS: clockOptions },
+    );
+    const backend = await serve(
+      resolve(runtime, "dist/main.js"),
+      [],
+      resolve(root, "backend"),
+      backendEnv,
       "backend",
     );
     await ready("http://localhost:3000/trpc/auth.providers", backend);
