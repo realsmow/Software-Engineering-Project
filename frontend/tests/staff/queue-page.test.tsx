@@ -417,7 +417,9 @@ describe("StaffQueuePage", () => {
             mocks.useStaffDecideExtension,
             mocks.usePickupImageUpload,
           ]) {
-            expect(hook.mock.results.at(-1)?.value.mutateAsync).not.toHaveBeenCalled();
+            // A hook this view never rendered cannot have fired either.
+            const last = hook.mock.results.at(-1);
+            if (last) expect(last.value.mutateAsync).not.toHaveBeenCalled();
           }
         });
 
