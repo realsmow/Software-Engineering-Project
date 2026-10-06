@@ -30,6 +30,10 @@ export const userOutput = z.object({
   maxBorrowDays: z.number().int().positive(),
   /** Max extension count at the current credit tier (BorrowConstraints.MaxExtendTime) */
   maxExtendTimes: z.number().int().min(0),
+  /** How the current session signed in; null when unknown (#170). */
+  signInMethod: z.enum(['password', 'google']).nullable().default(null),
+  /** Profile picture URL; null shows initials (#135). */
+  avatarUrl: z.string().nullable().default(null),
 });
 
 export type UserOutput = z.infer<typeof userOutput>;

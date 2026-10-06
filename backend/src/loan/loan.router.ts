@@ -13,6 +13,7 @@ import {
   cancelExtensionInput,
   confirmPickupInput,
   decideExtensionInput,
+  inspectExtensionInput,
   extensionOptionsOutput,
   extensionOutput,
   listExtensionReviewsInput,
@@ -33,6 +34,7 @@ import {
   type CancelExtensionInput,
   type ConfirmPickupInput,
   type DecideExtensionInput,
+  type InspectExtensionInput,
   type ListExtensionReviewsInput,
   type ListMyExtensionsInput,
   type ListStaffQueueInput,
@@ -291,5 +293,18 @@ export class LoanRouter {
     @Ctx() ctx: TrpcContext,
   ) {
     return this.extensions.decide(ctx.user!, input);
+  }
+
+  /**
+   * Record the unit's condition on a supervisor-routed extension (#156).
+   * The supervisor approves only after this; staff do not decide it.
+   */
+  @UseMiddlewares(StaffMiddleware)
+  @Mutation({ input: inspectExtensionInput, output: extensionOutput })
+  inspectExtension(
+    @Input() input: InspectExtensionInput,
+    @Ctx() ctx: TrpcContext,
+  ) {
+    return this.extensions.inspect(ctx.user!, input);
   }
 }

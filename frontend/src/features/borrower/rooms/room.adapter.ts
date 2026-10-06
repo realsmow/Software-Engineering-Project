@@ -46,6 +46,8 @@ export interface RoomDay {
   roomKey: number;
   date: string;
   slots: RoomSlot[];
+  /** False when no eligibility rule names this borrower; every slot is then unavailable. */
+  eligible: boolean;
   /** Echoed by the server so the chip limit cannot drift from the rule. */
   maxSlotsPerBooking: number;
   slotMinutes: number;

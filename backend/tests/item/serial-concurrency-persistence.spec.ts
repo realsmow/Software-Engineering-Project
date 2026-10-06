@@ -433,7 +433,7 @@ describe('FR-EQP-02 / P2: serial uniqueness with concurrent staff registration',
     expect(new Set(actual.units.map((unit) => unit.ItemID)).size).toBe(1);
   });
 
-  describe.each(['T2', 'T0', 'T1'] as const)('known P2 defect / %s', (tier) => {
+  describe.each(['T2', 'T0', 'T1'] as const)('concurrent save / %s', (tier) => {
     let actual: Observation;
     beforeEach(async () => {
       const request = input({
@@ -446,29 +446,24 @@ describe('FR-EQP-02 / P2: serial uniqueness with concurrent staff registration',
       );
     });
 
-    // Mark the confirmed defect as expected until the product fix lands. The
-    // real DB setup and duplicate readback happen in beforeEach, so setup errors
-    // still fail normally. Jest reports an unexpected pass after the fix.
-    it.failing(
-      'never persists duplicate serials and reports any refused write as a serial conflict',
-      () => {
-        expect(actual.duplicateSerials).toEqual([]);
-        expect(actual.orphanResources).toBe(0);
-        expect(actual.resourceCount).toBe(actual.fulfilled);
-        expect(actual.fulfilled).toBeGreaterThanOrEqual(1);
-        expect(actual.rejectionCodes).toEqual(
-          Array(actual.rejected).fill('SERIAL_ALREADY_IN_USE'),
-        );
-        if (tier === 'T2') {
-          expect(actual).toMatchObject({
-            fulfilled: 1,
-            rejected: 1,
-            resourceCount: 1,
-          });
-        }
-        // For generated tags either retrying with fresh unique numbers, or
-        // refusing a conflicting write with the business error, is acceptable.
-      },
-    );
+    // Fixed by the unique index on (ItemKey, ItemID) (#136).
+    it('never persists duplicate serials and reports any refused write as a serial conflict', () => {
+      expect(actual.duplicateSerials).toEqual([]);
+      expect(actual.orphanResources).toBe(0);
+      expect(actual.resourceCount).toBe(actual.fulfilled);
+      expect(actual.fulfilled).toBeGreaterThanOrEqual(1);
+      expect(actual.rejectionCodes).toEqual(
+        Array(actual.rejected).fill('SERIAL_ALREADY_IN_USE'),
+      );
+      if (tier === 'T2') {
+        expect(actual).toMatchObject({
+          fulfilled: 1,
+          rejected: 1,
+          resourceCount: 1,
+        });
+      }
+      // For generated tags either retrying with fresh unique numbers, or
+      // refusing a conflicting write with the business error, is acceptable.
+    });
   });
 });

@@ -22,6 +22,8 @@ export interface ServerUser {
   creditTier: User["creditBand"];
   maxBorrowDays: number;
   maxExtendTimes: number;
+  signInMethod?: "password" | "google" | null;
+  avatarUrl?: string | null;
 }
 
 export function toClientUser(u: ServerUser): User {
@@ -32,10 +34,12 @@ export function toClientUser(u: ServerUser): User {
     name: `${u.firstName} ${u.lastName}`.trim(),
     email: u.email,
     role: u.role,
-    // AccountInfo has no faculty relation yet, so the server always sends
-    // null here. Empty string keeps the field's type honest until it does.
+    // The server sends the faculty name, not a department; empty when the
+    // account has no faculty.
     departmentId: u.facultyName ?? "",
     creditScore: u.creditScore,
     creditBand: u.creditTier,
+    signInMethod: u.signInMethod ?? null,
+    avatarUrl: u.avatarUrl ?? null,
   };
 }

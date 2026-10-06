@@ -35,8 +35,13 @@ import {
   addDays,
   daysBetween,
   localTimeToUtc,
+  isWeekend,
+  rollDueOffWeekend,
+  weekdayEndBefore,
   toIso,
   toLocalDayKey,
+  withinWorkHours,
+  workHours,
 } from '../common/schemas/datetime.schema';
 import { toPage, toSkipTake } from '../common/schemas/pagination.schema';
 import {
@@ -256,8 +261,9 @@ export class LoanRequestService {
     resourceKey: number,
     reason: string | null,
     startTime: Date,
-    endTime: Date,
+    requestedEnd: Date,
   ): Promise<RequestRow> {
+    let endTime = requestedEnd;
     const resource = await this.prisma.resourceInfo.findUnique({
       where: { ResourceKey: resourceKey },
       select: RESOURCE_SELECT,
@@ -265,16 +271,44 @@ export class LoanRequestService {
     if (!resource) {
       throw new BusinessError('RESOURCE_NOT_FOUND', { resourceKey });
     }
-    if (!resource.AllowBorrow || resource.ResourceStatus === 'Missing') {
+    // Retired is checked on its own: AllowBorrow alone can be flipped back.
+    if (
+      !resource.AllowBorrow ||
+      resource.ResourceStatus === 'Missing' ||
+      resource.ResourceStatus === 'Retired'
+    ) {
       throw new BusinessError('ITEM_UNAVAILABLE', {
         resourceKey,
-        reason: resource.AllowBorrow ? 'MISSING' : 'NOT_LENDABLE',
+        reason:
+          resource.ResourceStatus === 'Retired'
+            ? 'RETIRED'
+            : resource.AllowBorrow
+              ? 'MISSING'
+              : 'NOT_LENDABLE',
       });
     }
 
     // Same rule whether the window came from chips or from raw instants.
     if (resource.Room) {
       assertRoomWindow(toRoomHours(resource.Room), startTime, endTime);
+    } else {
+      // Items are collected and returned at the counter; rooms keep their own
+      // opening hours above.
+      for (const [edge, at] of [
+        ['START', startTime],
+        ['END', endTime],
+      ] as const) {
+        // A weekend pickup is refused too: the counter is shut. A weekend
+        // return is fine, it rolls to Monday (#178).
+        if (!withinWorkHours(at) || (edge === 'START' && isWeekend(at))) {
+          throw new BusinessError('OUTSIDE_WORK_HOURS', {
+            edge,
+            at: toIso(at),
+            opensAt: workHours.start,
+            closesAt: workHours.end,
+          });
+        }
+      }
     }
 
     const tier = tryMapTier(resource.BorrowRuleInfo.RuleName);
@@ -305,6 +339,9 @@ export class LoanRequestService {
         creditTier,
       });
     }
+    // After the day limit: the borrower asked for a weekday-sized loan, and
+    // the weekend the counter is shut is not theirs to be charged for.
+    if (!resource.Room) endTime = rollDueOffWeekend(endTime);
 
     // FR-RSV-04 (G1, T1): a T1 unit that is not free for the window is swapped
     // for a free sibling rather than refused outright. T2 binds a specific
@@ -509,7 +546,7 @@ export class LoanRequestService {
       where: {
         ManagedBy: resource.ManagedBy,
         AllowBorrow: true,
-        ResourceStatus: { not: 'Missing' },
+        ResourceStatus: { notIn: ['Missing', 'Retired'] },
         ResourceKey: { not: resource.ResourceKey },
         Item: { ItemKey: resource.Item.ItemKey },
       },
@@ -750,6 +787,10 @@ export class LoanRequestService {
    * not prepared. Once staff have set a unit aside the borrower cannot undo it
    * from here - that unit is off the shelf and someone has to put it back, so
    * it goes through the counter instead.
+   *
+   * A room is the exception (#162): preparing it moves nothing, so the booking
+   * stays cancellable until check-in, and the prepared row is removed exactly
+   * as the no-show job does, which frees the slots.
    */
   async cancel(user: TrpcUser, input: CancelRequestInput) {
     const row = await this.read(input.reservationKey);
@@ -766,22 +807,35 @@ export class LoanRequestService {
         decidedAt: row.ResolvedAt ? toIso(row.ResolvedAt) : null,
       });
     }
-    if (row.UsageLogs.length > 0) {
+    const usage = row.UsageLogs[0] ?? null;
+    if (usage && !LoanRequestService.preparedRoom(row)) {
       throw new BusinessError('CANNOT_CANCEL', {
         reservationKey: input.reservationKey,
-        usageKey: row.UsageLogs[0].UsageKey,
+        usageKey: usage.UsageKey,
         reason: 'ALREADY_PREPARED',
       });
     }
 
-    await this.prisma.reservations.update({
-      where: { ReservationKey: input.reservationKey },
-      data: {
-        ApproveStatus: 'Canceled',
-        ResolvedAt: new Date(),
-        DecisionNote: input.reason ?? null,
-      },
-    });
+    const cancelled = {
+      ApproveStatus: 'Canceled' as const,
+      ResolvedAt: new Date(),
+      DecisionNote: input.reason ?? null,
+    };
+    if (usage) {
+      await this.prisma.$transaction(async (tx) => {
+        await tx.images.deleteMany({ where: { UsageKey: usage.UsageKey } });
+        await tx.usageLog.delete({ where: { UsageKey: usage.UsageKey } });
+        await tx.reservations.update({
+          where: { ReservationKey: input.reservationKey },
+          data: cancelled,
+        });
+      });
+    } else {
+      await this.prisma.reservations.update({
+        where: { ReservationKey: input.reservationKey },
+        data: cancelled,
+      });
+    }
 
     await this.audit.record(
       { accountKey: user.accountKey },
@@ -799,6 +853,14 @@ export class LoanRequestService {
   // =========================================================================
   // Internals
   // =========================================================================
+
+  /** A room set up but not yet checked into: still the borrower's to cancel. */
+  private static preparedRoom(row: RequestRow): boolean {
+    return (
+      row.Resource.Room !== null &&
+      row.UsageLogs[0]?.CurrentStatus === 'Prepared'
+    );
+  }
 
   private assertWindowShape(startTime: Date, endTime: Date): void {
     if (endTime <= startTime) {
@@ -841,7 +903,12 @@ export class LoanRequestService {
       if (clash.StartTime.getTime() > startTime.getTime()) {
         throw new BusinessError('WINDOW_CROSSES_RESERVATION', {
           resourceKey: resource.ResourceKey,
-          maxEndTime: toIso(addDays(clash.StartTime, -resource.BufferTime)),
+          maxEndTime: toIso(
+            weekdayEndBefore(
+              addDays(clash.StartTime, -resource.BufferTime),
+              startTime,
+            ),
+          ),
         });
       }
       throw new BusinessError('WINDOW_NOT_AVAILABLE', {
@@ -933,7 +1000,7 @@ export class LoanRequestService {
       dueAt: usage ? toIso(usage.DueTime) : null,
       cancellable:
         (row.ApproveStatus === 'Pending' || row.ApproveStatus === 'Approved') &&
-        usage === null,
+        (usage === null || LoanRequestService.preparedRoom(row)),
     };
   }
 

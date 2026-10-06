@@ -68,6 +68,9 @@ export const notificationOutput = z.object({
   type: notificationType,
   title: z.string(),
   body: z.string(),
+  /** English text, absent on rows written before it existed (issue 175). */
+  titleEn: z.string().optional(),
+  bodyEn: z.string().optional(),
   createdAt: isoDateTime,
   /**
    * Optional rather than nullable, because the frontend declares `readAt?:

@@ -39,12 +39,17 @@ export default function LendingSettingsPage() {
   if (!data || data.borrowRules.length === 0) {
     return (
       <div>
-        <PageHeader title={t("nav.lendingSettings")} subtitle={t("staff.settings.subtitle")} />
+        <PageHeader
+          title={t("nav.lendingSettings")}
+          subtitle={t("staff.settings.subtitle")}
+        />
         <div className="rounded-lg border border-border bg-card px-4 py-10 text-center">
           <div className="text-sm font-semibold text-foreground">
             {t("staff.settings.emptyTitle")}
           </div>
-          <p className="mt-1 text-xs leading-relaxed text-t3">{t("staff.settings.emptyDesc")}</p>
+          <p className="mt-1 text-xs leading-relaxed text-t3">
+            {t("staff.settings.emptyDesc")}
+          </p>
         </div>
       </div>
     );
@@ -52,7 +57,10 @@ export default function LendingSettingsPage() {
 
   return (
     <div>
-      <PageHeader title={t("nav.lendingSettings")} subtitle={t("staff.settings.subtitle")} />
+      <PageHeader
+        title={t("nav.lendingSettings")}
+        subtitle={t("staff.settings.subtitle")}
+      />
 
       <p className="mb-4 rounded border border-border bg-secondary px-3 py-2 text-xs leading-relaxed text-t2">
         {t("staff.settings.reachNote")}
@@ -106,7 +114,11 @@ function RuleCard({
   saving: boolean;
   onSave: (input: {
     borrowRuleKey: number;
-    constraints: { creditTierKey: number; maxBorrowDays: number; maxExtendTimes: number }[];
+    constraints: {
+      creditTierKey: number;
+      maxBorrowDays: number;
+      maxExtendTimes: number;
+    }[];
     penalties: { reason: PenaltyReason; amount: number; lengthDays: number }[];
   }) => Promise<void>;
 }) {
@@ -116,15 +128,24 @@ function RuleCard({
   // save elsewhere is picked up instead of being masked by stale local state.
   const [days, setDays] = useState<Record<number, number>>({});
   const [extends_, setExtends] = useState<Record<number, number>>({});
-  const [penalties, setPenalties] = useState<Record<string, { amount: number; lengthDays: number }>>({});
+  const [penalties, setPenalties] = useState<
+    Record<string, { amount: number; lengthDays: number }>
+  >({});
 
   useEffect(() => {
-    setDays(Object.fromEntries(rule.constraints.map((c) => [c.creditTierKey, c.maxBorrowDays])));
-    setExtends(Object.fromEntries(rule.constraints.map((c) => [c.creditTierKey, c.maxExtendTimes])));
+    setDays(
+      Object.fromEntries(rule.constraints.map((c) => [c.creditTierKey, c.maxBorrowDays]))
+    );
+    setExtends(
+      Object.fromEntries(rule.constraints.map((c) => [c.creditTierKey, c.maxExtendTimes]))
+    );
     setPenalties(
       Object.fromEntries(
-        rule.penalties.map((p) => [p.reason, { amount: p.amount, lengthDays: p.lengthDays }]),
-      ),
+        rule.penalties.map((p) => [
+          p.reason,
+          { amount: p.amount, lengthDays: p.lengthDays },
+        ])
+      )
     );
   }, [rule]);
 
@@ -133,12 +154,12 @@ function RuleCard({
     rule.constraints.some(
       (c) =>
         days[c.creditTierKey] !== c.maxBorrowDays ||
-        extends_[c.creditTierKey] !== c.maxExtendTimes,
+        extends_[c.creditTierKey] !== c.maxExtendTimes
     ) ||
     rule.penalties.some(
       (p) =>
         penalties[p.reason]?.amount !== p.amount ||
-        penalties[p.reason]?.lengthDays !== p.lengthDays,
+        penalties[p.reason]?.lengthDays !== p.lengthDays
     );
 
   return (
@@ -148,7 +169,9 @@ function RuleCard({
           <TierDot tier={tier} />
           {rule.name ?? t("staff.settings.unnamedRule", { id: rule.id })}
           {tier ? (
-            <span className="font-normal text-t3">· {t(`borrower.catalog.tierNote${tier}`)}</span>
+            <span className="font-normal text-t3">
+              · {t(`borrower.catalog.tierNote${tier}`)}
+            </span>
           ) : null}
         </div>
         <Button
@@ -189,7 +212,10 @@ function RuleCard({
           </thead>
           <tbody>
             {rule.constraints.map((c) => (
-              <tr key={c.creditTierKey} className="border-b border-border last:border-b-0">
+              <tr
+                key={c.creditTierKey}
+                className="border-b border-border last:border-b-0"
+              >
                 <td className="px-3.5 py-2 font-mono text-xs text-foreground">
                   {c.creditTierName ?? `#${c.creditTierKey}`}
                 </td>
@@ -197,6 +223,7 @@ function RuleCard({
                   <NumField
                     value={days[c.creditTierKey] ?? c.maxBorrowDays}
                     min={1}
+                    label={`${t("staff.settings.colDays")} · ${c.creditTierName ?? c.creditTierKey}`}
                     onChange={(n) => setDays((s) => ({ ...s, [c.creditTierKey]: n }))}
                   />
                 </td>
@@ -204,6 +231,7 @@ function RuleCard({
                   <NumField
                     value={extends_[c.creditTierKey] ?? c.maxExtendTimes}
                     min={0}
+                    label={`${t("staff.settings.colExtends")} · ${c.creditTierName ?? c.creditTierKey}`}
                     onChange={(n) => setExtends((s) => ({ ...s, [c.creditTierKey]: n }))}
                   />
                 </td>
@@ -230,19 +258,27 @@ function RuleCard({
               </tr>
             </thead>
             <tbody>
-              {PENALTY_REASONS.filter((r) => rule.penalties.some((p) => p.reason === r)).map((r) => {
+              {PENALTY_REASONS.filter((r) =>
+                rule.penalties.some((p) => p.reason === r)
+              ).map((r) => {
                 const row = rule.penalties.find((p) => p.reason === r)!;
                 return (
                   <tr key={r} className="border-b border-border last:border-b-0">
-                    <td className="px-3.5 py-2 text-foreground">{t(`staff.settings.reason${r}`)}</td>
+                    <td className="px-3.5 py-2 text-foreground">
+                      {t(`staff.settings.reason${r}`)}
+                    </td>
                     <td className="px-3.5 py-2 text-right">
                       <NumField
                         value={penalties[r]?.amount ?? row.amount}
                         min={0}
+                        label={`${t("staff.settings.colAmount")} · ${t(`staff.settings.reason${r}`)}`}
                         onChange={(n) =>
                           setPenalties((s) => ({
                             ...s,
-                            [r]: { amount: n, lengthDays: s[r]?.lengthDays ?? row.lengthDays },
+                            [r]: {
+                              amount: n,
+                              lengthDays: s[r]?.lengthDays ?? row.lengthDays,
+                            },
                           }))
                         }
                       />
@@ -251,6 +287,7 @@ function RuleCard({
                       <NumField
                         value={penalties[r]?.lengthDays ?? row.lengthDays}
                         min={0}
+                        label={`${t("staff.settings.colLength")} · ${t(`staff.settings.reason${r}`)}`}
                         onChange={(n) =>
                           setPenalties((s) => ({
                             ...s,
@@ -273,15 +310,19 @@ function RuleCard({
 function NumField({
   value,
   min,
+  label,
   onChange,
 }: {
   value: number;
   min: number;
+  /** Column and row together; a grid of bare number boxes is unreadable by ear (#174). */
+  label: string;
   onChange: (n: number) => void;
 }) {
   return (
     <Input
       type="number"
+      aria-label={label}
       className="ml-auto h-8 w-20 text-right font-mono"
       value={String(value)}
       min={min}

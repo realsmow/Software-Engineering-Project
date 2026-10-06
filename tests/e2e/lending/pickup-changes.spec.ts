@@ -106,8 +106,8 @@ test("FR-PKP-04: a staff T1 swap changes the saved serial and the borrower's pic
   try {
     await page.goto(`/staff/handover/${prepared.usageKey}`);
     await page
-      .getByLabel("New unit's resource key")
-      .fill(String(f.alternative.resourceKey));
+      .getByLabel("New unit's serial number")
+      .fill(f.alternative.serialNo!);
     await page
       .locator("#swap-reason")
       .fill("Borrower requests the other unit before collection");

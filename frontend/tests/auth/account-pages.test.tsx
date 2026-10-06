@@ -180,6 +180,79 @@ describe("registration and token pages", () => {
 });
 
 describe("profile account actions through real hooks", () => {
+  it("shows credit to staff accounts too (#132)", async () => {
+    useAuthStore.getState().setUser(toClientUser(userResponse({ role: "staff" })));
+    mount(<ProfilePage />);
+    expect(await screen.findByText(i18n.t("profile.credit"))).toBeInTheDocument();
+    await screen.findByText(i18n.t("borrower.detail.days", { count: 9 }));
+  });
+
+  it("labels the faculty, falls back to not specified and hides the account key (#170)", () => {
+    mount(<ProfilePage />);
+    expect(screen.getByText(i18n.t("profile.faculty"))).toBeInTheDocument();
+    expect(screen.getByText(i18n.t("profile.notSpecified"))).toBeInTheDocument();
+    expect(screen.queryByText("7")).not.toBeInTheDocument();
+    expect(screen.queryByText(/backend/i)).not.toBeInTheDocument();
+  });
+
+  it.each([
+    ["google", "profile.authGoogle"],
+    ["password", "profile.authPassword"],
+    [null, "profile.authUnknown"],
+  ] as const)(
+    "shows the recorded sign-in method %s, not a guess from the email (#170)",
+    (method, key) => {
+      useAuthStore
+        .getState()
+        .setUser(
+          toClientUser(
+            userResponse({ email: "ana@ku.th", signInMethod: method } as never)
+          )
+        );
+      mount(<ProfilePage />);
+      expect(screen.getByText(i18n.t(key))).toBeInTheDocument();
+    }
+  );
+
+  it("uploads, saves and shows a profile picture, then removes it (#135)", async () => {
+    const { apiClient } = await import("../../src/lib/api-client");
+    const upload = vi
+      .spyOn(apiClient, "uploadFile")
+      .mockResolvedValue(undefined as never);
+    const saved = "http://localhost:3000/media/avatar/me.png";
+    const fallback = api.getMockImplementation()!;
+    api.mockImplementation((path, input) => {
+      if (path === "auth.requestAvatarUpload")
+        return {
+          uploadUrl: "http://localhost:3000/uploads/ticket",
+          imageUrl: "/media/avatar/me.png",
+          previewUrl: saved,
+          expiresAt: "2026-10-06T10:00:00.000Z",
+          maxBytes: 5_000_000,
+        };
+      if (path === "auth.setAvatar")
+        return userResponse({
+          avatarUrl: (input as { imageUrl: string | null }).imageUrl ? saved : null,
+        } as never);
+      return fallback(path, input);
+    });
+    const { container } = mount(<ProfilePage />);
+    const file = new File(["x"], "me.png", { type: "image/png" });
+    fireEvent.change(container.querySelector('input[type="file"]')!, {
+      target: { files: [file] },
+    });
+    await waitFor(() =>
+      expect(container.querySelector(`img[src="${saved}"]`)).toBeInTheDocument()
+    );
+    expect(upload).toHaveBeenCalledWith("http://localhost:3000/uploads/ticket", file);
+    expect(api).toHaveBeenCalledWith("auth.setAvatar", {
+      imageUrl: "/media/avatar/me.png",
+    });
+    fireEvent.click(screen.getByRole("button", { name: i18n.t("profile.avatarRemove") }));
+    await waitFor(() => expect(container.querySelector("img")).not.toBeInTheDocument());
+    expect(api).toHaveBeenCalledWith("auth.setAvatar", { imageUrl: null });
+  });
+
   it("shows the server borrowing allowance and changes a password with the current password", async () => {
     mount(<ProfilePage />);
     await screen.findByText(i18n.t("borrower.detail.days", { count: 9 }));

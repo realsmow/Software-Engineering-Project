@@ -118,6 +118,8 @@ model AccountInfo {
   UserCredit     Int
   // Null for accounts made before this column existed.
   CreatedAt      DateTime? @default(now()) @db.Timestamptz(3)
+  /// Profile picture, a /media/avatar/... path. Null shows initials.
+  AvatarUrl      String?
   RoleKey        Int
   // Student / Professor / Staff / Supervisor / Admin
 
@@ -209,6 +211,8 @@ model SessionInfo {
   ExpiresAt  DateTime  @db.Timestamptz(3)
   /// Set when signed out or revoked by an admin. Null means still usable.
   RevokedAt  DateTime? @db.Timestamptz(3)
+  /// 'password' or 'google'. Null for sessions issued before this was recorded.
+  Method     String?
 
   Account AccountInfo @relation(fields: [AccountKey], references: [AccountKey], onDelete: Cascade)
 
@@ -347,6 +351,9 @@ model ItemIndiv {
   /// `lightweightItemRows`) join every unit of a type by ItemKey; unindexed,
   /// that is a seq scan of ItemIndiv for each type in the result.
   @@index([ItemKey])
+  /// #136: one serial per type, enforced by the database so two staff saving
+  /// the same serial at once cannot both succeed.
+  @@unique([ItemKey, ItemID])
 }
 
 model RoomInfo {
@@ -479,6 +486,7 @@ model ConditionLog {
   ClosedCheckRounds    RoomCheckRound[] @relation("RoomCheckRoundCondition")
   UsageCheckouts       UsageLog[]       @relation("UsageCheckoutCondition")
   Inspections          Inspection[]     @relation("InspectionCondition")
+  ExtensionChecks      ExtensionRequest[] @relation("ExtensionInspectionCondition")
   RepairsBefore        RepairLog[]      @relation("RepairConditionBefore")
   RepairsAfter         RepairLog[]      @relation("RepairConditionAfter")
 }
@@ -655,9 +663,14 @@ model ExtensionRequest {
   /// queuing for, and there was nowhere to put the sentence they judge.
   Reason String?
 
+  /// #156: the staff condition check a supervisor-routed extension needs
+  /// before it may be approved. Null until staff have looked at the unit.
+  InspectedCondition Int?
+
   Usage           UsageLog     @relation("ExtensionRequestUsage", fields: [UsageKey], references: [UsageKey])
   RequestedByUser AccountInfo  @relation("ExtensionRequestedBy", fields: [RequestedBy], references: [AccountKey])
   ApprovedByUser  AccountInfo? @relation("ExtensionApprovedBy", fields: [ApprovedBy], references: [AccountKey])
+  Inspection      ConditionLog? @relation("ExtensionInspectionCondition", fields: [InspectedCondition], references: [ConditionKey])
 
   PendingOnUsageLogs UsageLog[] @relation("UsagePendingExtension")
 
@@ -779,6 +792,9 @@ model Notification {
   NotificationType NotificationType
   Title            String
   Body             String
+  // English twins of Title and Body. Null on rows written before they existed.
+  TitleEn          String?
+  BodyEn           String?
   // Frontend route the entry opens, e.g. `/my/loans`. Null for informational
   // items with nowhere to drill into.
   LinkTo           String?

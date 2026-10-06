@@ -241,6 +241,7 @@ export type ItemIndivOrderByWithRelationInput = {
 export type ItemIndivWhereUniqueInput = Prisma.AtLeast<{
   IndivKey?: number
   ResourceKey?: number
+  ItemKey_ItemID?: Prisma.ItemIndivItemKeyItemIDCompoundUniqueInput
   AND?: Prisma.ItemIndivWhereInput | Prisma.ItemIndivWhereInput[]
   OR?: Prisma.ItemIndivWhereInput[]
   NOT?: Prisma.ItemIndivWhereInput | Prisma.ItemIndivWhereInput[]
@@ -249,7 +250,7 @@ export type ItemIndivWhereUniqueInput = Prisma.AtLeast<{
   ImageURL?: Prisma.StringNullableFilter<"ItemIndiv"> | string | null
   Item?: Prisma.XOR<Prisma.ItemInfoScalarRelationFilter, Prisma.ItemInfoWhereInput>
   Resource?: Prisma.XOR<Prisma.ResourceInfoScalarRelationFilter, Prisma.ResourceInfoWhereInput>
-}, "IndivKey" | "ResourceKey">
+}, "IndivKey" | "ResourceKey" | "ItemKey_ItemID">
 
 export type ItemIndivOrderByWithAggregationInput = {
   IndivKey?: Prisma.SortOrder
@@ -334,6 +335,11 @@ export type ItemIndivListRelationFilter = {
 
 export type ItemIndivOrderByRelationAggregateInput = {
   _count?: Prisma.SortOrder
+}
+
+export type ItemIndivItemKeyItemIDCompoundUniqueInput = {
+  ItemKey: number
+  ItemID: string
 }
 
 export type ItemIndivCountOrderByAggregateInput = {

@@ -1,4 +1,5 @@
 import { Moon, Sun } from "lucide-react";
+import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
 import { ROUTE_TITLE_KEYS, routeTitleKey } from "@/constants/navigation";
@@ -28,6 +29,11 @@ export function Topbar() {
   const current = t(routeTitleKey(location.pathname) ?? "nav.overview");
   const atHome = location.pathname === homeRoute;
 
+  // One tab title per page, so several open tabs stay apart (#176, WCAG 2.4.2).
+  useEffect(() => {
+    document.title = `${current} · ULMs`;
+  }, [current]);
+
   return (
     <header className="top">
       <div className="top-crumb">
@@ -35,7 +41,11 @@ export function Topbar() {
           <span className="cur">{current}</span>
         ) : (
           <>
-            <button type="button" className="lbl lbl-link" onClick={() => navigate(homeRoute)}>
+            <button
+              type="button"
+              className="lbl lbl-link"
+              onClick={() => navigate(homeRoute)}
+            >
               {homeLabel}
             </button>
             <span className="sep">›</span>
@@ -56,7 +66,11 @@ export function Topbar() {
           title={t("theme.toggle")}
           aria-label={t("theme.toggle")}
         >
-          {isDark ? <Sun size={15} strokeWidth={2} /> : <Moon size={15} strokeWidth={2} />}
+          {isDark ? (
+            <Sun size={15} strokeWidth={2} />
+          ) : (
+            <Moon size={15} strokeWidth={2} />
+          )}
         </button>
 
         <NotificationsMenu />

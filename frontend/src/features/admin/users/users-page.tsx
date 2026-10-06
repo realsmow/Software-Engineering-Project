@@ -86,17 +86,23 @@ interface OrphanedGroup {
  * server raises two codes with one payload shape. The code is carried out with
  * the groups because only it knows which sentence to open with.
  */
-type OrphanCode = "ROLE_CHANGE_WOULD_ORPHAN_GROUP" | "DISABLE_WOULD_ORPHAN_GROUP";
+type OrphanCode =
+  | "ROLE_CHANGE_WOULD_ORPHAN_GROUP"
+  | "DISABLE_WOULD_ORPHAN_GROUP"
+  | "MEMBERSHIP_REMOVAL_WOULD_ORPHAN_GROUP";
+const ORPHAN_BLOCKED_KEY: Record<OrphanCode, string> = {
+  ROLE_CHANGE_WOULD_ORPHAN_GROUP: "admin.users.roleChangeBlocked",
+  DISABLE_WOULD_ORPHAN_GROUP: "admin.users.disableBlocked",
+  MEMBERSHIP_REMOVAL_WOULD_ORPHAN_GROUP: "admin.users.membershipRemovalBlocked",
+};
 
 function orphanedGroups(error: unknown): { code: OrphanCode; groups: OrphanedGroup[] } | null {
   if (!error || typeof error !== "object") return null;
   const data = (error as { data?: { businessCode?: string; details?: unknown } }).data;
   const code = data?.businessCode;
-  if (code !== "ROLE_CHANGE_WOULD_ORPHAN_GROUP" && code !== "DISABLE_WOULD_ORPHAN_GROUP") {
-    return null;
-  }
+  if (!code || !(code in ORPHAN_BLOCKED_KEY)) return null;
   const groups = (data?.details as { groups?: unknown } | undefined)?.groups;
-  return Array.isArray(groups) ? { code, groups: groups as OrphanedGroup[] } : null;
+  return Array.isArray(groups) ? { code: code as OrphanCode, groups: groups as OrphanedGroup[] } : null;
 }
 
 /**
@@ -434,12 +440,7 @@ export default function AdminUsersPage() {
       }),
       { requests: 0, extensions: 0, loans: 0, repairs: 0 },
     );
-    const blocked = t(
-      code === "DISABLE_WOULD_ORPHAN_GROUP"
-        ? "admin.users.disableBlocked"
-        : "admin.users.roleChangeBlocked",
-      { groups: names },
-    );
+    const blocked = t(ORPHAN_BLOCKED_KEY[code], { groups: names });
 
     // A department with nothing queued is still being left uncovered, but the
     // second sentence would read as four zeros, so it is only added when there

@@ -1,3 +1,4 @@
+import { requestUploadInput } from '../image/image.schema';
 import { z } from 'zod';
 import { userOutput } from '../common/schemas/user.schema';
 
@@ -91,3 +92,15 @@ export type VerifyEmailInput = z.infer<typeof verifyEmailInput>;
  */
 export const providersOutput = z.object({ google: z.boolean() });
 export type ProvidersOutput = z.infer<typeof providersOutput>;
+
+/** Upload ticket for the caller's own picture; the purpose is fixed server-side. */
+export const requestAvatarUploadInput = requestUploadInput.omit({
+  purpose: true,
+});
+export type RequestAvatarUploadInput = z.infer<typeof requestAvatarUploadInput>;
+
+/** The uploaded file's imageUrl, or null to go back to initials. */
+export const setAvatarInput = z.object({
+  imageUrl: z.string().max(500).nullable(),
+});
+export type SetAvatarInput = z.infer<typeof setAvatarInput>;

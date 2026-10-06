@@ -13,7 +13,8 @@ import { transactionClient } from './borrower-history';
 
 export const PICKUP_NOW = new Date('2031-09-26T00:00:00.000Z');
 export const PICKUP_START = new Date('2031-09-26T02:00:00.000Z');
-export const PICKUP_END = new Date('2031-09-28T10:00:00.000Z');
+// Monday 17:00 Bangkok: a weekend due date would roll to Monday anyway (#178).
+export const PICKUP_END = new Date('2031-09-29T10:00:00.000Z');
 
 export async function pickupFixture(tx: Prisma.TransactionClient) {
   const f = await requestFixture(tx, 'T1', 2);

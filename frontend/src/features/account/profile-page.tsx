@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Mail, IdCard, Building2, KeyRound, Award, Camera, X } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
@@ -18,6 +18,9 @@ import { useChangePassword } from "@/features/auth/use-change-password";
 import { useMyCredit } from "./use-my-credit";
 import { penaltyReasonText } from "@/features/borrower/appeals/penalty-reason";
 import { validateUploadFile, uploadAcceptAttr } from "@/lib/upload-validation";
+import { useTRPCClient } from "@/lib/trpc";
+import { apiClient } from "@/lib/api-client";
+import { toClientUser } from "@/features/auth/user.adapter";
 import type { Role } from "@/types/domain";
 
 /** Role → badge tone. */
@@ -28,18 +31,10 @@ const ROLE_TONE: Record<Role, "info" | "ok" | "warn" | "neutral"> = {
   admin: "neutral",
 };
 
-/** Friendly department labels (mock - backend will provide the real name). */
-const DEPT_LABEL: Record<string, string> = {
-  cpe: "วิศวกรรมคอมพิวเตอร์ (CPE)",
-  it: "IT Services",
-};
-
 /**
  * Account profile - reached from the sidebar's lower-left user button.
  *
- * Reads the current user from the auth store (mock until the backend lands).
- * Editing is intentionally disabled; the tRPC `auth.me` / profile procedures
- * will back this page once connected.
+ * Reads the current user from the auth store, which `auth.me` fills.
  */
 export default function ProfilePage() {
   const { t } = useTranslation();
@@ -51,7 +46,6 @@ export default function ProfilePage() {
   if (!user) return null;
 
   const role = user.role;
-  const isKuEmail = /@ku\.(ac\.)?th$/i.test(user.email);
   const creditBand = credit?.band ?? user.creditBand;
   const band = CREDIT_BANDS.find((b) => b.band === creditBand) ?? CREDIT_BANDS[0];
   const initials = user.name.trim().slice(0, 2);
@@ -84,11 +78,6 @@ export default function ProfilePage() {
           <CardContent className="grid gap-x-6 gap-y-4 py-4 sm:grid-cols-2">
             <DetailRow
               icon={<IdCard size={15} />}
-              label={t("profile.userId")}
-              value={user.id}
-            />
-            <DetailRow
-              icon={<IdCard size={15} />}
               label={t("profile.studentId")}
               value={user.studentId}
             />
@@ -99,93 +88,101 @@ export default function ProfilePage() {
             />
             <DetailRow
               icon={<Building2 size={15} />}
-              label={t("profile.department")}
-              value={DEPT_LABEL[user.departmentId] ?? user.departmentId}
+              label={t("profile.faculty")}
+              // auth.me sends the faculty name only; departmentId carries it.
+              value={user.departmentId || t("profile.notSpecified")}
             />
             <DetailRow
               icon={<KeyRound size={15} />}
               label={t("profile.authMethod")}
-              value={isKuEmail ? t("profile.authKu") : t("profile.authLocal")}
+              // Recorded on the session at sign-in (#170), not guessed from the email.
+              value={t(
+                user.signInMethod === "google"
+                  ? "profile.authGoogle"
+                  : user.signInMethod === "password"
+                    ? "profile.authPassword"
+                    : "profile.authUnknown"
+              )}
             />
           </CardContent>
         </Card>
 
-        {/* Credit (borrowers) */}
-        {role === "borrower" && (
-          <Card className="lg:col-span-3">
-            <CardHeader>
-              <CardTitle>{t("profile.credit")}</CardTitle>
-            </CardHeader>
-            <CardContent className="flex flex-wrap items-center gap-8 py-5">
-              <div className="flex items-center gap-3">
-                <Award size={22} className="text-muted-foreground" />
-                <div>
-                  <div className="text-xs text-muted-foreground">
-                    {t("profile.creditScore")}
-                  </div>
-                  <div className="text-2xl font-semibold tabular-nums text-foreground">
-                    {user.creditScore}
-                  </div>
-                </div>
-              </div>
+        {/* Credit. Every role can borrow, so every account has a standing. */}
+        <Card className="lg:col-span-3">
+          <CardHeader>
+            <CardTitle>{t("profile.credit")}</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-wrap items-center gap-8 py-5">
+            <div className="flex items-center gap-3">
+              <Award size={22} className="text-muted-foreground" />
               <div>
                 <div className="text-xs text-muted-foreground">
-                  {t("profile.creditBand")}
+                  {t("profile.creditScore")}
                 </div>
-                <div className="mt-1 flex items-center gap-2">
-                  <span className="font-mono text-sm font-semibold text-foreground">
-                    {band.band}
-                  </span>
-                  <span className="text-sm text-muted-foreground">{band.label}</span>
+                <div className="text-2xl font-semibold tabular-nums text-foreground">
+                  {user.creditScore}
                 </div>
               </div>
-              {/* The real window, from BorrowConstraints - not the static
-                  CREDIT_BANDS row, which is only a fallback. */}
-              {credit ? (
-                <div>
-                  <div className="text-xs text-muted-foreground">
-                    {t("profile.borrowWindow")}
-                  </div>
-                  <div className="mt-1 font-mono text-sm font-semibold tabular-nums text-foreground">
-                    {t("borrower.detail.days", { count: credit.maxBorrowDays })}
-                  </div>
+            </div>
+            <div>
+              <div className="text-xs text-muted-foreground">
+                {t("profile.creditBand")}
+              </div>
+              <div className="mt-1 flex items-center gap-2">
+                <span className="font-mono text-sm font-semibold text-foreground">
+                  {band.band}
+                </span>
+                <span className="text-sm text-muted-foreground">
+                  {t(`creditBand.${band.band}`)}
+                </span>
+              </div>
+            </div>
+            {/* The real window, from BorrowConstraints - not the static
+                CREDIT_BANDS row, which is only a fallback. */}
+            {credit ? (
+              <div>
+                <div className="text-xs text-muted-foreground">
+                  {t("profile.borrowWindow")}
                 </div>
-              ) : null}
-            </CardContent>
-
-            {/* Only when there are any - an empty list is the normal case and
-                does not need a heading of its own. */}
-            {credit && credit.penalties.length > 0 ? (
-              <CardContent className="border-t border-border py-4">
-                <div className="mb-2 text-xs text-muted-foreground">
-                  {t("profile.activePenalties", {
-                    count: credit.penalties.length,
-                    total: credit.totalDeducted,
-                  })}
+                <div className="mt-1 font-mono text-sm font-semibold tabular-nums text-foreground">
+                  {t("borrower.detail.days", { count: credit.maxBorrowDays })}
                 </div>
-                <ul className="flex flex-col gap-1.5">
-                  {credit.penalties.map((p) => (
-                    <li
-                      key={p.id}
-                      className="flex items-baseline justify-between gap-3 text-sm"
-                    >
-                      <span className="min-w-0 truncate text-foreground">
-                        {p.itemName ? `${p.itemName} · ` : ""}
-                        {penaltyReasonText(p.reason, t)}
-                      </span>
-                      <span className="shrink-0 font-mono text-xs tabular-nums text-muted-foreground">
-                        -{p.creditDeducted} ·{" "}
-                        {t("profile.penaltyUntil", {
-                          date: fmtDate(p.expiresAt),
-                        })}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
+              </div>
             ) : null}
-          </Card>
-        )}
+          </CardContent>
+
+          {/* Only when there are any - an empty list is the normal case and
+              does not need a heading of its own. */}
+          {credit && credit.penalties.length > 0 ? (
+            <CardContent className="border-t border-border py-4">
+              <div className="mb-2 text-xs text-muted-foreground">
+                {t("profile.activePenalties", {
+                  count: credit.penalties.length,
+                  total: credit.totalDeducted,
+                })}
+              </div>
+              <ul className="flex flex-col gap-1.5">
+                {credit.penalties.map((p) => (
+                  <li
+                    key={p.id}
+                    className="flex items-baseline justify-between gap-3 text-sm"
+                  >
+                    <span className="min-w-0 truncate text-foreground">
+                      {p.itemName ? `${p.itemName} · ` : ""}
+                      {penaltyReasonText(p.reason, t)}
+                    </span>
+                    <span className="shrink-0 font-mono text-xs tabular-nums text-muted-foreground">
+                      -{p.creditDeducted} ·{" "}
+                      {t("profile.penaltyUntil", {
+                        date: fmtDate(p.expiresAt),
+                      })}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          ) : null}
+        </Card>
 
         {/* Sessions. Placed last because it is the thing you come here to do
             deliberately, not something to read in passing. */}
@@ -355,25 +352,25 @@ function SignOutEverywhere() {
 }
 
 /**
- * Avatar with a photo-upload control. Validates size/type client-side via
- * {@link validateUploadFile} and shows a local preview. Persisting the image
- * needs the backend profile procedures (see chat note) - for now this is a
- * preview-only affordance so the flow is testable end-to-end on the client.
+ * Profile picture (#135): picked, uploaded and saved in one step, then shown
+ * from the server. Remove goes back to initials.
  */
 function AvatarUpload({ initials }: { initials: string }) {
   const { t } = useTranslation();
+  const trpc = useTRPCClient();
+  const user = useAuthStore((s) => s.user);
+  const setUser = useAuthStore((s) => s.setUser);
   const inputRef = useRef<HTMLInputElement>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const avatarUrl = user?.avatarUrl ?? null;
 
-  // Revoke the object URL when it changes or the component unmounts.
-  useEffect(() => {
-    return () => {
-      if (previewUrl) URL.revokeObjectURL(previewUrl);
-    };
-  }, [previewUrl]);
+  async function save(imageUrl: string | null) {
+    const updated = await trpc.auth.setAvatar.mutate({ imageUrl });
+    setUser(toClientUser(updated));
+  }
 
-  function onPick(e: React.ChangeEvent<HTMLInputElement>) {
+  async function onPick(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     e.target.value = ""; // allow re-picking the same file
     if (!file) return;
@@ -387,26 +384,39 @@ function AvatarUpload({ initials }: { initials: string }) {
       return;
     }
     setError(null);
-    setPreviewUrl((prev) => {
-      if (prev) URL.revokeObjectURL(prev);
-      return URL.createObjectURL(file);
-    });
+    setBusy(true);
+    try {
+      const ticket = await trpc.auth.requestAvatarUpload.mutate({
+        contentType: file.type as never,
+        sizeBytes: file.size,
+      });
+      await apiClient.uploadFile(ticket.uploadUrl, file);
+      await save(ticket.imageUrl);
+    } catch (err) {
+      setError(getErrorMessage(err));
+    } finally {
+      setBusy(false);
+    }
   }
 
-  function onRemove() {
-    setPreviewUrl((prev) => {
-      if (prev) URL.revokeObjectURL(prev);
-      return null;
-    });
+  async function onRemove() {
     setError(null);
+    setBusy(true);
+    try {
+      await save(null);
+    } catch (err) {
+      setError(getErrorMessage(err));
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
     <div className="flex flex-col items-center gap-2">
       <div className="relative">
         <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-full bg-secondary text-2xl font-semibold text-foreground">
-          {previewUrl ? (
-            <img src={previewUrl} alt="" className="h-full w-full object-cover" />
+          {avatarUrl ? (
+            <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
           ) : (
             initials
           )}
@@ -414,27 +424,28 @@ function AvatarUpload({ initials }: { initials: string }) {
         <button
           type="button"
           onClick={() => inputRef.current?.click()}
+          disabled={busy}
           aria-label={t("profile.avatarChange")}
-          className="hover:bg-primary/90 absolute -bottom-1 -right-1 flex h-8 w-8 items-center justify-center rounded-full border-2 border-background bg-primary text-primary-foreground shadow-sm transition-colors"
+          className="hover:bg-primary/90 absolute -bottom-1 -right-1 flex h-8 w-8 items-center justify-center rounded-full border-2 border-background bg-primary text-primary-foreground shadow-sm transition-colors disabled:opacity-60"
         >
           <Camera size={15} />
         </button>
         <input
           ref={inputRef}
           type="file"
+          aria-label={t("profile.avatarChange")}
           accept={uploadAcceptAttr()}
           onChange={onPick}
           className="sr-only"
         />
       </div>
 
-      {previewUrl && (
+      {avatarUrl && (
         <button
           type="button"
           onClick={onRemove}
+          disabled={busy}
           // min-h-9 and horizontal padding give this a finger-sized hit area.
-          // As bare 12px text it measured 18px tall - readable, but a target
-          // most people miss on a phone.
           className="-mx-2 inline-flex min-h-9 items-center gap-1 rounded px-2 text-xs text-muted-foreground transition-colors hover:text-foreground"
         >
           <X size={13} />
@@ -444,12 +455,10 @@ function AvatarUpload({ initials }: { initials: string }) {
 
       {error ? (
         <p className="max-w-[12rem] text-xs text-destructive">{error}</p>
-      ) : previewUrl ? (
-        <p className="max-w-[12rem] text-xs text-muted-foreground">
-          {t("profile.avatarPreviewNotice")}
-        </p>
       ) : (
-        <p className="text-xs text-muted-foreground">{t("profile.avatarHint")}</p>
+        <p className="text-xs text-muted-foreground">
+          {busy ? t("common.loading") : t("profile.avatarHint")}
+        </p>
       )}
     </div>
   );

@@ -149,6 +149,17 @@ test.describe("live lending lifecycle across roles", () => {
         .click();
       expect((await renewal).ok()).toBeTruthy();
 
+      // #156: staff check the unit before the supervisor may approve.
+      await visitAs(page, "staff", "/staff");
+      await page.getByRole("button", { name: /Extensions to check/ }).click();
+      const inspectExtension = mutationResponse(page, "loan.inspectExtension");
+      await page
+        .getByRole("row")
+        .filter({ hasText: name })
+        .getByRole("button", { name: "Record condition" })
+        .click();
+      expect((await inspectExtension).ok()).toBeTruthy();
+
       await visitAs(page, "supervisor", "/supervisor/approvals");
       await page.getByRole("tab", { name: /Extensions/ }).click();
       const extensionRow = page.getByRole("row").filter({ hasText: name });

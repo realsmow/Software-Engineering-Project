@@ -1,4 +1,6 @@
+import i18n from "i18next";
 import { ApiClientError } from "./api-client";
+import { ERROR_MESSAGES_EN } from "./error-messages.en";
 
 /**
  * แปลง error code จาก backend เป็นข้อความไทยที่ user เข้าใจ
@@ -8,14 +10,14 @@ const ERROR_MESSAGES: Record<string, string> = {
   // Auth
   UNAUTHORIZED: "กรุณาเข้าสู่ระบบใหม่",
   FORBIDDEN: "คุณไม่มีสิทธิ์เข้าถึงส่วนนี้",
-  INVALID_DOMAIN: "รองรับเฉพาะอีเมล @ku.th เท่านั้น",
+  INVALID_DOMAIN: "รองรับเฉพาะอีเมล @ku.th หรือ @ku.ac.th เท่านั้น",
   // Google sign-in (FR-AUTH-01): a verified KU identity with no matching account.
   ACCOUNT_NOT_FOUND: "ไม่พบบัญชีผู้ใช้สำหรับอีเมลนี้ กรุณาติดต่อผู้ดูแลระบบให้สร้างบัญชีก่อน",
 
   // Loan request
   CONFLICT_UNIT_TAKEN: "อุปกรณ์ชิ้นนี้ถูกยืมไปแล้ว กรุณาเลือกใหม่",
   INSUFFICIENT_CREDIT: "เครดิตของคุณไม่เพียงพอสำหรับการยืมนี้",
-  ELIGIBILITY_NOT_MET: "คุณไม่ตรงเงื่อนไขการยืมอุปกรณ์นี้",
+  ELIGIBILITY_NOT_MET: "คุณไม่ตรงเงื่อนไขการยืมหรือจองรายการนี้",
   MAX_CONCURRENT_EXCEEDED: "คุณมีของค้างอยู่เกินจำนวนที่กำหนด",
   ALREADY_HAS_PENDING: "คุณมีคำขอที่รออนุมัติอยู่แล้ว",
 
@@ -35,10 +37,11 @@ const ERROR_MESSAGES: Record<string, string> = {
   // Reservation horizon (FR-RSV-01, FR-RSV-03)
   T0_NOT_RESERVABLE: "อุปกรณ์ระดับนี้ยืมได้ทันทีตามของคงเหลือเท่านั้น ไม่รองรับการจองล่วงหน้าข้ามวัน",
   RESERVATION_PAST_TERM_END: "จองล่วงหน้าได้ไม่เกินสิ้นภาคเรียนปัจจุบัน",
+  OUTSIDE_WORK_HOURS: "เวลารับหรือเวลาคืนอยู่นอกเวลาทำการของเคาน์เตอร์ กรุณาเลือกเวลาใหม่",
 
   // Renewal
-  RENEWAL_LIMIT_REACHED: "คุณต่ออายุออนไลน์ครบแล้ว ต้องนำอุปกรณ์มาให้เจ้าหน้าที่ตรวจ",
-  RENEWAL_REQUIRES_SUPERVISOR: "การต่ออายุนี้ต้องได้รับอนุมัติจากอาจารย์",
+  RENEWAL_LIMIT_REACHED: "คุณต่อเวลาออนไลน์ครบแล้ว ต้องนำอุปกรณ์มาให้เจ้าหน้าที่ตรวจ",
+  RENEWAL_REQUIRES_SUPERVISOR: "การต่อเวลานี้ต้องได้รับอนุมัติจากอาจารย์",
 
   // Pickup / Return
   PICKUP_EXPIRED: "หมดเวลารับของแล้ว คำขอถูกยกเลิก",
@@ -57,29 +60,29 @@ const ERROR_MESSAGES: Record<string, string> = {
   WINDOW_CROSSES_RESERVATION: "ช่วงเวลานี้ไปชนกับการจองอื่นที่มีอยู่แล้วบนเครื่องนี้ กรุณาย่อระยะเวลายืมหรือเลือกช่วงเวลาใหม่",
   TRANSACTION_CONFLICT: "ตอนนี้มีคนจองพร้อมกันหลายคน กรุณากดใหม่อีกครั้ง",
   SLOT_LIMIT_EXCEEDED: "จองห้อง/สล็อตพร้อมกันได้ไม่เกิน 2 รายการ",
-  NOT_ELIGIBLE: "คุณไม่ตรงเงื่อนไขการยืมอุปกรณ์นี้", // → ELIGIBILITY_NOT_MET
+  NOT_ELIGIBLE: "คุณไม่ตรงเงื่อนไขการยืมหรือจองรายการนี้", // → ELIGIBILITY_NOT_MET
   ALREADY_DECIDED: "คำขอนี้ถูกดำเนินการไปแล้ว ไม่สามารถแก้ไขได้",
   SERIAL_REQUIRED_FOR_TIER: "อุปกรณ์ระดับนี้ต้องระบุหมายเลขประจำอุปกรณ์",
   BULK_NOT_ALLOWED_FOR_TIER:
     "อุปกรณ์ระดับ T2 ลงทะเบียนได้ครั้งละ 1 ชิ้น เพราะแต่ละชิ้นผูกกับหมายเลขจริงบนตัวอุปกรณ์",
   LOAN_PERIOD_EXCEEDS_LIMIT: "ระยะเวลายืมเกินสิทธิ์ที่คุณได้รับ",
-  EXTENSION_QUOTA_EXCEEDED: "คุณต่ออายุออนไลน์ครบแล้ว ต้องนำอุปกรณ์มาให้เจ้าหน้าที่ตรวจ", // → RENEWAL_LIMIT_REACHED
+  EXTENSION_QUOTA_EXCEEDED: "คุณต่อเวลาออนไลน์ครบแล้ว ต้องนำอุปกรณ์มาให้เจ้าหน้าที่ตรวจ", // → RENEWAL_LIMIT_REACHED
   APPEAL_WINDOW_CLOSED: "หมดเวลายื่นอุทธรณ์สำหรับรายการนี้แล้ว",
   ALREADY_APPEALED: "โทษนี้ยื่นอุทธรณ์ไปแล้ว",
   PENALTY_NOT_FOUND: "ไม่พบรายการโทษนี้",
   NOT_YOUR_PENALTY: "อุทธรณ์ได้เฉพาะโทษของตัวเอง",
   PENALTY_NOT_IN_EFFECT: "โทษนี้ไม่มีผลแล้ว จึงไม่ต้องอุทธรณ์",
   PENALTY_NOT_APPEALABLE: "อุทธรณ์ได้เฉพาะผลการประเมินความเสียหาย ส่วนโทษคืนช้าหรือสูญหายคิดจากเวลา อุทธรณ์ไม่ได้",
-  EXTENSION_ALREADY_PENDING: "มีคำขอต่ออายุที่รอพิจารณาอยู่แล้ว",
-  INVALID_EXTENSION_WINDOW: "วันที่ขอต่ออายุไม่อยู่ในช่วงที่ต่อได้",
+  EXTENSION_ALREADY_PENDING: "มีคำขอต่อเวลาที่รอพิจารณาอยู่แล้ว",
+  INVALID_EXTENSION_WINDOW: "วันที่ขอต่อเวลาไม่อยู่ในช่วงที่ต่อได้",
 
   // Staff counter (loan.*) - written for someone reading this with a student
   // standing in front of them, so each one says what to do next.
   WRONG_LOAN_STATE:
     "รายการนี้ถูกดำเนินการไปแล้ว (อาจมีเจ้าหน้าที่อีกคนทำไปก่อน) กรุณารีเฟรชคิว",
   LOAN_NOT_FOUND: "ไม่พบรายการยืมนี้ อาจถูกยกเลิกหรือดำเนินการไปแล้ว",
-  PICKUP_PHOTO_REQUIRED: "กรุณาถ่ายรูปครุภัณฑ์ก่อนยืนยันการรับของ",
-  RETURN_PHOTO_REQUIRED: "กรุณาถ่ายรูปครุภัณฑ์ตอนรับคืนก่อนบันทึกการคืน",
+  PICKUP_PHOTO_REQUIRED: "กรุณาถ่ายรูปอุปกรณ์ก่อนยืนยันการรับของ",
+  RETURN_PHOTO_REQUIRED: "กรุณาถ่ายรูปอุปกรณ์ตอนรับคืนก่อนบันทึกการคืน",
   RESERVATION_NOT_FOUND: "ไม่พบคำขอนี้ อาจถูกยกเลิกไปแล้ว",
   RESOURCE_NOT_FOUND: "ไม่พบอุปกรณ์ชิ้นนี้ในระบบ",
   NOT_APPROVED_YET: "คำขอนี้ยังไม่ผ่านการอนุมัติ จึงยังจัดเตรียมไม่ได้",
@@ -96,8 +99,10 @@ const ERROR_MESSAGES: Record<string, string> = {
   CREDIT_TOO_LOW: "เครดิตของผู้ยืมไม่ถึงเกณฑ์สำหรับรายการนี้",
   INVALID_BORROW_WINDOW: "ช่วงเวลาที่ขอยืมไม่ถูกต้อง",
   CANNOT_CANCEL: "คำขอนี้ยกเลิกไม่ได้แล้ว",
-  EXTENSION_NOT_FOUND: "ไม่พบคำขอต่ออายุนี้",
-  EXTENSION_NEEDS_SUPERVISOR: "การต่ออายุนี้ต้องได้รับอนุมัติจากอาจารย์",
+  EXTENSION_NOT_FOUND: "ไม่พบคำขอต่อเวลานี้",
+  EXTENSION_NEEDS_SUPERVISOR: "การต่อเวลานี้ต้องได้รับอนุมัติจากอาจารย์",
+  EXTENSION_NOT_INSPECTED: "ต้องให้เจ้าหน้าที่ตรวจสภาพอุปกรณ์ก่อนจึงจะอนุมัติการต่อเวลาได้",
+  EXTENSION_INSPECTION_NOT_NEEDED: "คำขอนี้บันทึกสภาพพร้อมการอนุมัติที่เคาน์เตอร์ได้เลย",
   TOO_MANY_ATTEMPTS: "พยายามหลายครั้งเกินไป กรุณารอสักครู่แล้วลองใหม่",
 
   // File upload
@@ -127,6 +132,8 @@ const ERROR_MESSAGES: Record<string, string> = {
   // replaces this with a version naming the departments.
   DISABLE_WOULD_ORPHAN_GROUP:
     "ปิดการใช้งานบัญชีนี้ไม่ได้ เพราะหน่วยงานที่ผู้ใช้นี้ดูแลจะไม่เหลือผู้ดูแล กรุณามอบสิทธิ์ให้ผู้อื่นในหน่วยงานนั้นก่อน",
+  MEMBERSHIP_REMOVAL_WOULD_ORPHAN_GROUP:
+    "นำผู้ใช้นี้ออกจากหน่วยงานไม่ได้ เพราะหน่วยงานนั้นจะไม่เหลือผู้ดูแล กรุณามอบสิทธิ์ให้ผู้อื่นในหน่วยงานนั้นก่อน",
 
   // Departmental scope (staff)
   OUT_OF_MANAGEMENT_SCOPE: "อุปกรณ์ชิ้นนี้อยู่นอกหน่วยงานที่คุณดูแล",
@@ -246,6 +253,14 @@ export function getErrorPayload(error: unknown): Record<string, unknown> | undef
   return undefined;
 }
 
+/** English when the UI is in English and the code has an English entry, else Thai. */
+function messageFor(code: string): string {
+  if (i18n.language?.startsWith("en") && ERROR_MESSAGES_EN[code]) {
+    return ERROR_MESSAGES_EN[code];
+  }
+  return ERROR_MESSAGES[code];
+}
+
 /**
  * The server's input check (zod) rejects with its issues as a JSON array in
  * `message`. Shown raw that is `[` plus JSON; say which field was wrong instead.
@@ -258,8 +273,8 @@ function inputProblem(error: unknown): string | null {
     if (!Array.isArray(issues)) return null;
     const field = issues[0]?.path?.join(".");
     return field
-      ? `${ERROR_MESSAGES.VALIDATION_ERROR} (${field})`
-      : ERROR_MESSAGES.VALIDATION_ERROR;
+      ? `${messageFor("VALIDATION_ERROR")} (${field})`
+      : messageFor("VALIDATION_ERROR");
   } catch {
     return null;
   }
@@ -267,14 +282,14 @@ function inputProblem(error: unknown): string | null {
 
 export function getErrorMessage(error: unknown): string {
   const code = extractErrorCode(error);
-  if (code && ERROR_MESSAGES[code]) return ERROR_MESSAGES[code];
+  if (code && ERROR_MESSAGES[code]) return messageFor(code);
   const problem = inputProblem(error);
   if (problem) return problem;
   if (error instanceof ApiClientError) {
-    return error.message || ERROR_MESSAGES.UNKNOWN_ERROR;
+    return error.message || messageFor("UNKNOWN_ERROR");
   }
   if (error instanceof Error) {
-    return error.message || ERROR_MESSAGES.UNKNOWN_ERROR;
+    return error.message || messageFor("UNKNOWN_ERROR");
   }
-  return ERROR_MESSAGES.UNKNOWN_ERROR;
+  return messageFor("UNKNOWN_ERROR");
 }

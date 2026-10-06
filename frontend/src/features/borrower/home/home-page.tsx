@@ -19,6 +19,7 @@ import {
 // Notification interface, which type-checks and then fails at every field.
 import type { Notification } from "@/types/domain";
 import { getErrorMessage } from "@/lib/error-messages";
+import { notificationText } from "@/lib/notification-text";
 import { cn } from "@/lib/utils";
 import { STATUS_TAB, type MyRequest, type MyRequestStatus } from "../request-status";
 import { useLoanExtension } from "../loans/use-extensions";
@@ -451,13 +452,13 @@ function NoticesPanel() {
                   <span className="min-w-0 flex-1 whitespace-normal [overflow-wrap:anywhere]">
                     <span className="flex items-center gap-1.5">
                       <span className="min-w-0 text-[13px] font-medium leading-snug text-foreground">
-                        {n.title}
+                        {notificationText(n).title}
                       </span>
                       {!n.readAt ? (
                         <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-accent" aria-hidden />
                       ) : null}
                     </span>
-                    <span className="mt-0.5 block text-xs leading-relaxed text-t3">{n.body}</span>
+                    <span className="mt-0.5 block text-xs leading-relaxed text-t3">{notificationText(n).body}</span>
                     <span className="mt-1 block font-mono text-[11px] text-t4">
                       {fmtDay(n.createdAt)}
                     </span>

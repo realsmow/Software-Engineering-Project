@@ -113,6 +113,7 @@ export const AccountInfoScalarFieldEnum = {
   UserLName: 'UserLName',
   UserCredit: 'UserCredit',
   CreatedAt: 'CreatedAt',
+  AvatarUrl: 'AvatarUrl',
   RoleKey: 'RoleKey',
   FacultyKey: 'FacultyKey',
   IsActive: 'IsActive'
@@ -151,7 +152,8 @@ export const SessionInfoScalarFieldEnum = {
   TokenHash: 'TokenHash',
   IssuedAt: 'IssuedAt',
   ExpiresAt: 'ExpiresAt',
-  RevokedAt: 'RevokedAt'
+  RevokedAt: 'RevokedAt',
+  Method: 'Method'
 } as const
 
 export type SessionInfoScalarFieldEnum = (typeof SessionInfoScalarFieldEnum)[keyof typeof SessionInfoScalarFieldEnum]
@@ -428,7 +430,8 @@ export const ExtensionRequestScalarFieldEnum = {
   ApprovedBy: 'ApprovedBy',
   RequestedAt: 'RequestedAt',
   ResolvedAt: 'ResolvedAt',
-  Reason: 'Reason'
+  Reason: 'Reason',
+  InspectedCondition: 'InspectedCondition'
 } as const
 
 export type ExtensionRequestScalarFieldEnum = (typeof ExtensionRequestScalarFieldEnum)[keyof typeof ExtensionRequestScalarFieldEnum]
@@ -500,6 +503,8 @@ export const NotificationScalarFieldEnum = {
   NotificationType: 'NotificationType',
   Title: 'Title',
   Body: 'Body',
+  TitleEn: 'TitleEn',
+  BodyEn: 'BodyEn',
   LinkTo: 'LinkTo',
   CreatedAt: 'CreatedAt',
   ReadAt: 'ReadAt',

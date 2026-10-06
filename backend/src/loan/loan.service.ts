@@ -16,6 +16,8 @@ import { BusinessError } from '../common/errors/business-error';
 import {
   addDays,
   daysBetween,
+  rollDueOffWeekend,
+  startOfLocalDay,
   toIso,
   toIsoNullable,
 } from '../common/schemas/datetime.schema';
@@ -375,10 +377,26 @@ export class LoanService {
       });
     }
 
+    // A serial is unique within its type, so look it up among this one only.
+    const unit = usage.Resource.Item
+      ? await this.prisma.itemIndiv.findFirst({
+          where: {
+            ItemKey: usage.Resource.Item.ItemKey,
+            ItemID: input.serialNo,
+          },
+          select: { ResourceKey: true },
+        })
+      : null;
+    if (!unit) {
+      throw new BusinessError('RESOURCE_NOT_FOUND', {
+        serialNo: input.serialNo,
+      });
+    }
+
     const target = await this.resolveSwapTarget(
       user,
       usage.Resource,
-      input.resourceKey,
+      unit.ResourceKey,
     );
     await this.assertUnitFree(target.ResourceKey, usage.ReservationKey);
 
@@ -458,12 +476,18 @@ export class LoanService {
         opensAt: toIso(pickupOpensAt(plannedStart)),
       });
     }
-    // Same length as booked, so no band's day limit is exceeded.
-    const dueTime = early
-      ? new Date(
-          now.getTime() + (usage.DueTime.getTime() - plannedStart.getTime()),
-        )
-      : usage.DueTime;
+    // Moved back by the same number of calendar days, keeping the booked
+    // return hour: sliding by hours would put a 17:00 return at 21:00 for a
+    // 13:00 pickup (#150). Same number of days, so no band's limit is exceeded.
+    const daysEarly = Math.round(
+      (startOfLocalDay(plannedStart).getTime() -
+        startOfLocalDay(now).getTime()) /
+        86_400_000,
+    );
+    const dueTime =
+      early && daysEarly > 0
+        ? rollDueOffWeekend(addDays(usage.DueTime, -daysEarly))
+        : usage.DueTime;
 
     await this.prisma.$transaction(async (tx) => {
       if (early) {

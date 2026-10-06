@@ -155,3 +155,14 @@ describe('generated serials', () => {
     expect(t.audit.record).not.toHaveBeenCalled();
   });
 });
+
+it('answers SERIAL_ALREADY_IN_USE when a concurrent save wins the unique index (#136)', async () => {
+  const t = harness([]);
+  t.tx.itemIndiv.create.mockRejectedValueOnce(
+    Object.assign(new Error('Unique constraint failed'), { code: 'P2002' }),
+  );
+
+  await expect(t.service.createItemUnits(staff, input)).rejects.toMatchObject({
+    businessCode: 'SERIAL_ALREADY_IN_USE',
+  });
+});

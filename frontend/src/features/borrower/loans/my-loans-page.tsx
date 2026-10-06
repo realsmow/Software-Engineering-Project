@@ -101,10 +101,17 @@ export default function MyLoansPage() {
 
   return (
     <div>
-      <PageHeader title={t("nav.myRequests")} subtitle={t("borrower.myRequests.subtitle")} />
+      <PageHeader
+        title={t("nav.myRequests")}
+        subtitle={t("borrower.myRequests.subtitle")}
+      />
 
       <section className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
-        <div className="flex items-center gap-0.5 overflow-x-auto border-b border-border px-1.5">
+        <div
+          role="tablist"
+          aria-label={t("nav.myRequests")}
+          className="flex items-center gap-0.5 overflow-x-auto border-b border-border px-1.5"
+        >
           {REQUEST_TABS.map((key) => (
             <button
               key={key}
@@ -116,7 +123,7 @@ export default function MyLoansPage() {
                 "flex items-center gap-2 whitespace-nowrap border-b-2 px-3.5 py-3 text-[13px] transition-colors",
                 key === tab
                   ? "border-accent font-semibold text-foreground"
-                  : "border-transparent text-t3 hover:text-foreground",
+                  : "border-transparent text-t3 hover:text-foreground"
               )}
             >
               {t(TAB_LABEL[key])}
@@ -151,7 +158,9 @@ export default function MyLoansPage() {
             <RequestCard
               key={row.id}
               row={row}
-              penalties={row.usageKey != null ? (penaltiesByUsage.get(row.usageKey) ?? []) : []}
+              penalties={
+                row.usageKey != null ? (penaltiesByUsage.get(row.usageKey) ?? []) : []
+              }
               cancelling={
                 cancelRequest.isPending &&
                 cancelRequest.variables?.reservationKey === row.reservationKey
@@ -261,7 +270,9 @@ function RequestCard({
         <Badge tone={STATUS_TONE[row.status]}>{t(statusKey(row.status))}</Badge>
       </div>
 
-      <h3 className="mt-2 text-[15px] font-semibold leading-snug text-foreground">{row.name}</h3>
+      <h3 className="mt-2 text-[15px] font-semibold leading-snug text-foreground">
+        {row.name}
+      </h3>
       <div className="mt-1 font-mono text-xs text-t3">
         {row.serial} · {requestWindow(row, t)}
       </div>
@@ -316,7 +327,12 @@ function LoanInfo({ row, extension }: { row: MyRequest; extension: LoanExtension
   ].filter(Boolean);
 
   return (
-    <p className={cn("mt-2 text-xs leading-relaxed", left <= 1 ? "text-[var(--s-warn-t)]" : "text-t2")}>
+    <p
+      className={cn(
+        "mt-2 text-xs leading-relaxed",
+        left <= 1 ? "text-[var(--s-warn-t)]" : "text-t2"
+      )}
+    >
       {parts.join(" · ")}
     </p>
   );
@@ -383,7 +399,7 @@ function ProgressTrack({
               i < at && "text-t1",
               i === at && !stalled && "font-semibold text-accent",
               i === at && stalled && "font-semibold text-t4",
-              i > at && "text-t4",
+              i > at && "text-t4"
             )}
           >
             {t(`borrower.myRequests.${key}`)}
@@ -432,10 +448,15 @@ function Actions({
           {t("borrower.myRequests.goUseRoom")}
         </Button>
       ) : (
-        <Button key="pickup" type="button" size="sm" onClick={() => navigate(ROUTES.PICKUP)}>
+        <Button
+          key="pickup"
+          type="button"
+          size="sm"
+          onClick={() => navigate(ROUTES.PICKUP)}
+        >
           {t("borrower.myRequests.goPickup")}
         </Button>
-      ),
+      )
     );
   }
   if (onLoan && asking && ext.canRequest) {
@@ -460,7 +481,7 @@ function Actions({
         onClick={() => setAsking(false)}
       >
         {t("borrower.myRequests.extAskNo")}
-      </Button>,
+      </Button>
     );
   } else if (onLoan && ext.canRequest) {
     buttons.push(
@@ -474,7 +495,7 @@ function Actions({
         onClick={() => setAsking(true)}
       >
         {extension.busy ? t("common.loading") : t(ext.labelKey)}
-      </Button>,
+      </Button>
     );
   }
   if (onLoan && ext.isPending) {
@@ -488,7 +509,7 @@ function Actions({
         onClick={extension.withdraw}
       >
         {t("borrower.myRequests.cancelExt")}
-      </Button>,
+      </Button>
     );
   }
   if (appealable) {
@@ -500,7 +521,7 @@ function Actions({
         onClick={() => navigate(`${ROUTES.APPEALS}?penalty=${appealable.penaltyKey}`)}
       >
         {t("borrower.myRequests.appeal")}
-      </Button>,
+      </Button>
     );
   }
   // Last, so the action the borrower came for leads and the destructive one
@@ -518,8 +539,12 @@ function Actions({
       >
         {cancelling
           ? t("common.loading")
-          : t(row.kind === "room" ? "borrower.roomUse.cancel" : "borrower.myRequests.cancel")}
-      </Button>,
+          : t(
+              row.kind === "room"
+                ? "borrower.roomUse.cancel"
+                : "borrower.myRequests.cancel"
+            )}
+      </Button>
     );
   }
 
@@ -540,7 +565,9 @@ function Actions({
           {error}
         </p>
       ) : null}
-      {buttons.length > 0 ? <div className="mt-3 flex flex-wrap gap-2">{buttons}</div> : null}
+      {buttons.length > 0 ? (
+        <div className="mt-3 flex flex-wrap gap-2">{buttons}</div>
+      ) : null}
     </>
   );
 }
@@ -558,7 +585,9 @@ function DraftCard({
   return (
     <article className="rounded-md border border-dashed border-line-strong p-3.5 sm:px-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <span className="font-mono text-xs text-t3">{t("borrower.myRequests.draftTitle")}</span>
+        <span className="font-mono text-xs text-t3">
+          {t("borrower.myRequests.draftTitle")}
+        </span>
         <Badge tone="neutral">{t("borrower.myRequests.draftStatus")}</Badge>
       </div>
 
@@ -569,7 +598,11 @@ function DraftCard({
         {draft.title}
       </h3>
       <div className="mt-1 font-mono text-xs text-t3">
-        {t("borrower.myRequests.draftSummary", { lines: draft.lines, units: draft.units })} ·{" "}
+        {t("borrower.myRequests.draftSummary", {
+          lines: draft.lines,
+          units: draft.units,
+        })}{" "}
+        ·{" "}
         {draft.endDate
           ? t("borrower.myRequests.requestWindow", {
               pickupDate: fmtDay(draft.startDate),
@@ -648,7 +681,10 @@ function fmtDay(iso: string): string {
   return fmtDayMonth(iso);
 }
 
-function requestWindow(row: MyRequest, t: (key: string, values?: Record<string, unknown>) => string): string {
+function requestWindow(
+  row: MyRequest,
+  t: (key: string, values?: Record<string, unknown>) => string
+): string {
   if (row.kind !== "equipment" || !row.pickupTime || !row.returnTime) {
     return fmtRange(row.startDate, dueDateOf(row));
   }
@@ -661,11 +697,20 @@ function requestWindow(row: MyRequest, t: (key: string, values?: Record<string, 
 }
 
 function exportCsv(requests: MyRequest[]): void {
-  const header = ["requestId", "kind", "tier", "name", "serial", "status", "start", "end"];
+  const header = [
+    "requestId",
+    "kind",
+    "tier",
+    "name",
+    "serial",
+    "status",
+    "start",
+    "end",
+  ];
   const rows = requests.map((r) =>
     [r.id, r.kind, r.tier ?? "", r.name, r.serial, r.status, r.startDate, dueDateOf(r)]
       .map((v) => `"${String(v).replace(/"/g, '""')}"`)
-      .join(","),
+      .join(",")
   );
   const csv = "﻿" + [header.join(","), ...rows].join("\n");
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });

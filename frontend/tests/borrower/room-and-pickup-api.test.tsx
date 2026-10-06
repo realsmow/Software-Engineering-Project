@@ -293,6 +293,7 @@ describe("Room detail and dated slot availability", () => {
     return roomAvailabilityOutput.strict().parse({
       roomKey,
       date,
+      eligible: true,
       maxSlotsPerBooking: MAX_ROOM_BOOKING_SLOTS,
       slotMinutes: 30,
       slots: [true, false, true].map((available, index) => {

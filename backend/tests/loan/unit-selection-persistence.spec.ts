@@ -40,13 +40,18 @@ async function selection(
             ),
           )
       : null;
+  // Staff swap by the serial on the label (#149).
+  const serial = await f.client.itemIndiv.findUniqueOrThrow({
+    where: { ResourceKey: f.units[1].ResourceKey },
+    select: { ItemID: true },
+  });
   return () =>
     action === 'swap'
       ? f.loan.swapUnit(
           f.staff,
           swapUnitInput.parse({
             usageKey: prepared!.usageKey,
-            resourceKey: f.units[1].ResourceKey,
+            serialNo: serial.ItemID,
             reason: 'Borrower requests a replacement',
           }),
         )

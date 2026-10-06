@@ -116,6 +116,15 @@ function service(overrides: {
 }
 
 describe('recordReturn', () => {
+  // A fixed clock keeps the dates in these cases stable.
+  beforeEach(() =>
+    jest.useFakeTimers({
+      now: new Date('2099-01-09T03:00:00Z'),
+      doNotFake: ['nextTick', 'setImmediate'],
+    }),
+  );
+  afterEach(() => jest.useRealTimers());
+
   it('refuses a return without an after photo (FR-RTN-01)', async () => {
     const t = service({ afterPhoto: null });
     await expect(

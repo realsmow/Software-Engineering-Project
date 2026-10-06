@@ -124,6 +124,16 @@ export interface ExtensionReviewRow {
   requestedAt: string;
   reason: string | null;
   status: string;
+  /**
+   * #156: the staff condition check a supervisor-routed extension needs
+   * before it may be approved. Null until staff have looked at the unit.
+   */
+  inspection: {
+    condition: ConditionType | "Missing";
+    note: string | null;
+    loggedAt: string | null;
+    loggedBy: string;
+  } | null;
 }
 
 /** FR-APV-01: `approval.borrowerHistory`. */

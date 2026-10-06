@@ -685,6 +685,8 @@ function UnitRow({ unit }: { unit: ManagedUnit }) {
   const busy = setLendable.isPending;
   // A unit in someone's hands cannot be withdrawn; the server refuses it too.
   const outOnLoan = unit.status === "Lended";
+  // Retirement is final; the server refuses lending or retiring it again.
+  const retired = unit.status === "Retired";
 
   async function toggle() {
     setError(null);
@@ -758,19 +760,23 @@ function UnitRow({ unit }: { unit: ManagedUnit }) {
             <Button type="button" variant="outline" size="sm" onClick={() => setMode("condition")}>
               {t("staff.inventory.setCondition")}
             </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={busy || outOnLoan}
-              title={outOnLoan ? t("staff.inventory.outOnLoanHint") : undefined}
-              onClick={() => setMode("withdraw")}
-            >
-              {unit.lendable ? t("staff.inventory.withdraw") : t("staff.inventory.restore")}
-            </Button>
-            <Button type="button" variant="outline" size="sm" onClick={() => setMode("retire")}>
-              {t("staff.inventory.retireUnit")}
-            </Button>
+            {retired ? null : (
+              <>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={busy || outOnLoan}
+                  title={outOnLoan ? t("staff.inventory.outOnLoanHint") : undefined}
+                  onClick={() => setMode("withdraw")}
+                >
+                  {unit.lendable ? t("staff.inventory.withdraw") : t("staff.inventory.restore")}
+                </Button>
+                <Button type="button" variant="outline" size="sm" onClick={() => setMode("retire")}>
+                  {t("staff.inventory.retireUnit")}
+                </Button>
+              </>
+            )}
             <DeleteUnitButton unit={unit} onRequestRetirement={() => setMode("retire")} />
           </div>
         )}

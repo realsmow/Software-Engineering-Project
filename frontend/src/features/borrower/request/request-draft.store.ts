@@ -20,7 +20,8 @@ export interface DraftLine {
   serials: string[];
 }
 
-export const REQUEST_TIMES = ["08:00", "13:00", "16:00"] as const;
+// 17:00 is the counter closing time, so a borrower can still ask after 16:00 (#161).
+export const REQUEST_TIMES = ["08:00", "13:00", "16:00", "17:00"] as const;
 export type RequestTime = (typeof REQUEST_TIMES)[number];
 
 interface RequestDraftState {

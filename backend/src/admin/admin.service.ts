@@ -4,6 +4,8 @@ import type { Prisma } from '../generated/prisma/client';
 import { PrismaService } from '../prisma.service';
 import type { TrpcUser } from '../trpc/context';
 import { SessionService } from '../auth/session.service';
+import { googleOauthConfigured } from '../auth/google-oauth.service';
+import { allowedDomainsFromConfig } from '../auth/domain-policy';
 import { AuditService, type AuditActor } from '../common/audit/audit.service';
 import { CreditTierService } from '../common/credit/credit-tier.service';
 import { StaffScopeService } from '../common/authority/staff-scope.service';
@@ -376,23 +378,33 @@ export class AdminService implements OnModuleInit {
     const generated = input.password ? null : generateTemporaryPassword();
     const password = input.password ?? generated!;
 
-    const created = await this.prisma.accountInfo.create({
-      data: {
-        Email: input.email,
-        HashedPassword: await hashPassword(password),
-        UserID: input.studentId,
-        UserFName: input.firstName,
-        UserLName: input.lastName,
-        // FR-CRD-01: everyone starts at 100 (no penalties yet).
-        UserCredit: BASE_CREDIT,
-        RoleKey: await this.roleKeyFor(input.role),
-        FacultyKey: await this.facultyKeyOrNull(input.facultyId),
-      },
-      select: { AccountKey: true },
+    const data = {
+      Email: input.email,
+      HashedPassword: await hashPassword(password),
+      UserID: input.studentId,
+      UserFName: input.firstName,
+      UserLName: input.lastName,
+      // FR-CRD-01: everyone starts at 100 (no penalties yet).
+      UserCredit: BASE_CREDIT,
+      RoleKey: await this.roleKeyFor(input.role),
+      FacultyKey: await this.facultyKeyOrNull(input.facultyId),
+    };
+    // One transaction, so a failed membership write leaves no bare account.
+    const created = await this.prisma.$transaction(async (tx) => {
+      const row = await tx.accountInfo.create({
+        data,
+        select: { AccountKey: true },
+      });
+      if (input.groupIds) {
+        await this.setMemberships(
+          tx,
+          row.AccountKey,
+          input.role,
+          input.groupIds,
+        );
+      }
+      return row;
     });
-    if (input.groupIds) {
-      await this.setMemberships(created.AccountKey, input.role, input.groupIds);
-    }
 
     await this.audit.record(
       actor,
@@ -408,33 +420,45 @@ export class AdminService implements OnModuleInit {
   }
 
   async updateUser(input: UpdateUserInput, actor: AuditActor) {
-    await this.assertAccountExists(input.id);
+    const role = await this.readAccountRole(input.id);
     await this.assertIdentifiersFree(input.email, input.studentId, input.id);
     await this.assertGroupsExist(input.groupIds);
 
-    // Only the fields actually sent - Prisma treats an explicit `undefined` as
-    // "leave alone", so a partial update needs no branching.
-    const updated = await this.prisma.accountInfo.update({
-      where: { AccountKey: input.id },
-      data: {
-        Email: input.email,
-        UserID: input.studentId,
-        UserFName: input.firstName,
-        UserLName: input.lastName,
-        FacultyKey:
-          input.facultyId === undefined
-            ? undefined
-            : await this.facultyKeyOrNull(input.facultyId),
-      },
-      select: { AccountKey: true, Role: { select: { RoleName: true } } },
-    });
     if (input.groupIds) {
-      await this.setMemberships(
+      // Leaving a department is a demotion within it: the same cover rule as
+      // changeRole and setUserActive, applied to the groups being dropped.
+      await this.assertGroupsStayCovered(
         input.id,
-        mapUserRole(updated.Role.RoleName),
+        role,
+        'borrower',
+        'membership',
         input.groupIds,
       );
     }
+
+    const facultyKey =
+      input.facultyId === undefined
+        ? undefined
+        : await this.facultyKeyOrNull(input.facultyId);
+    // One transaction, so a failed membership write keeps the old profile too.
+    await this.prisma.$transaction(async (tx) => {
+      // Only the fields actually sent - Prisma treats an explicit `undefined`
+      // as "leave alone", so a partial update needs no branching.
+      await tx.accountInfo.update({
+        where: { AccountKey: input.id },
+        data: {
+          Email: input.email,
+          UserID: input.studentId,
+          UserFName: input.firstName,
+          UserLName: input.lastName,
+          FacultyKey: facultyKey,
+        },
+        select: { AccountKey: true },
+      });
+      if (input.groupIds) {
+        await this.setMemberships(tx, input.id, role, input.groupIds);
+      }
+    });
 
     await this.audit.record(
       actor,
@@ -823,13 +847,11 @@ export class AdminService implements OnModuleInit {
 
     return {
       auth: {
-        // No OIDC integration exists yet; see docs/adr-001-authentication.md.
-        googleOauthEnabled: false,
+        // Same check the Google sign-in routes use.
+        googleOauthEnabled: googleOauthConfigured(this.config),
         localFallbackEnabled: true,
-        // Not enforced by a list: `auth.login` accepts any account row, and
-        // the KU-email path is a frontend affordance. Reported empty rather
-        // than inventing a restriction the server does not apply.
-        allowedEmailDomains: [],
+        // The list registration and Google sign-in enforce, default included.
+        allowedEmailDomains: allowedDomainsFromConfig(this.config),
         sessionTimeoutMinutes:
           Number(env('SESSION_TTL_HOURS') ?? DEFAULT_SESSION_TTL_HOURS) * 60,
       },
@@ -847,10 +869,9 @@ export class AdminService implements OnModuleInit {
         // MAIL_FROM is a header value ("ULMs <no-reply@ku.th>"); the page
         // reports the address, which is what the schema declares.
         fromAddress: mailAddress(env('MAIL_FROM') ?? 'ULMs <no-reply@ku.th>'),
-        // Mail is sent for password resets and registration confirmations.
-        // Due-soon reminders are not among them: dueSoonReminder writes in-app
-        // notifications, so there is no email to enable or disable.
-        dueReminderEnabled: false,
+        // dueSoonReminder mails each borrower once per loan (FR-NTF-02), with
+        // no switch to turn it off.
+        dueReminderEnabled: true,
       },
       // The polling intervals the contract fixes (SRS §"ช่วงเวลา polling").
       // The server does not enforce them - the client sets its own timers - so
@@ -940,13 +961,26 @@ export class AdminService implements OnModuleInit {
     accountKey: number,
     from: UserRole,
     to: UserRole,
-    intent: 'role' | 'disable' = 'role',
+    intent: 'role' | 'disable' | 'membership' = 'role',
+    // Membership edits: only the groups not in this list are being left.
+    keeping?: number[],
   ): Promise<void> {
     // A promotion, or the same role again, can only add cover.
     if (ROLE_RANK[to] >= ROLE_RANK[from]) return;
 
-    const held = await this.prisma.authority.findMany({
+    // A disabled account covers nothing already, so tidying up a leaver's
+    // role or memberships cannot take cover away.
+    const self = await this.prisma.accountInfo.findUnique({
       where: { AccountKey: accountKey },
+      select: { IsActive: true },
+    });
+    if (self && !self.IsActive) return;
+
+    const held = await this.prisma.authority.findMany({
+      where: {
+        AccountKey: accountKey,
+        ...(keeping && { ManageGroupKey: { notIn: keeping } }),
+      },
       select: {
         ManageGroupKey: true,
         ManageGroup: {
@@ -1015,6 +1049,13 @@ export class AdminService implements OnModuleInit {
       })),
     );
 
+    if (intent === 'membership') {
+      throw new BusinessError('MEMBERSHIP_REMOVAL_WOULD_ORPHAN_GROUP', {
+        accountKey,
+        from,
+        groups,
+      });
+    }
     if (intent === 'disable') {
       throw new BusinessError('DISABLE_WOULD_ORPHAN_GROUP', {
         accountKey,
@@ -1236,37 +1277,33 @@ export class AdminService implements OnModuleInit {
    * 'Student', everyone else as 'Lab staff' (the levels eligibility rules use).
    */
   private async setMemberships(
+    tx: Prisma.TransactionClient,
     accountKey: number,
     role: UserRole,
     groupIds: number[],
   ) {
     const ids = [...new Set(groupIds)];
     // Created on demand: production was bootstrapped before these rows existed.
-    const roleKeys = await seedMemberRoles(this.prisma);
+    const roleKeys = await seedMemberRoles(tx);
     const authorityRoleKey = roleKeys.get(
       role === 'borrower' ? 'Student' : 'Lab staff',
     )!;
-    await this.prisma.$transaction([
-      this.prisma.authority.deleteMany({
-        where: { AccountKey: accountKey, ManageGroupKey: { notIn: ids } },
-      }),
-      ...ids.map((ManageGroupKey) =>
-        this.prisma.authority.upsert({
-          where: {
-            AccountKey_ManageGroupKey: {
-              AccountKey: accountKey,
-              ManageGroupKey,
-            },
-          },
-          update: { AuthorityRoleKey: authorityRoleKey },
-          create: {
-            AccountKey: accountKey,
-            ManageGroupKey,
-            AuthorityRoleKey: authorityRoleKey,
-          },
-        }),
-      ),
-    ]);
+    await tx.authority.deleteMany({
+      where: { AccountKey: accountKey, ManageGroupKey: { notIn: ids } },
+    });
+    for (const ManageGroupKey of ids) {
+      await tx.authority.upsert({
+        where: {
+          AccountKey_ManageGroupKey: { AccountKey: accountKey, ManageGroupKey },
+        },
+        update: { AuthorityRoleKey: authorityRoleKey },
+        create: {
+          AccountKey: accountKey,
+          ManageGroupKey,
+          AuthorityRoleKey: authorityRoleKey,
+        },
+      });
+    }
   }
 
   private async roleKeysFor(role: UserRole): Promise<number[]> {

@@ -17,8 +17,7 @@ import { AppRouter } from "./router";
  *
  * Session bootstrap: on mount we ask the server who we are via `auth.me`.
  * The session is an httpOnly cookie, so this is the only way to find out -
- * the client cannot read it. A 401 is the normal "not signed in" answer, not
- * an error, so it resolves to `null` rather than surfacing.
+ * the client cannot read it. Signed out, it answers null.
  */
 export function App() {
   const setUser = useAuthStore((s) => s.setUser);
@@ -31,10 +30,9 @@ export function App() {
     trpcClient.auth.me
       .query()
       .then((u) => {
-        if (!cancelled) setUser(toClientUser(u));
+        if (!cancelled) setUser(u ? toClientUser(u) : null);
       })
       .catch(() => {
-        // 401 NOT_AUTHENTICATED lands here on every signed-out page load.
         if (!cancelled) setUser(null);
       });
     return () => {

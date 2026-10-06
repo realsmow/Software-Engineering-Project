@@ -7,12 +7,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DAMAGE_LEVELS } from "@/constants";
 import { getErrorMessage } from "@/lib/error-messages";
+import { uploadAcceptAttr, validateUploadFile } from "@/lib/upload-validation";
 import { fmtDateTime } from "@/features/borrower/format";
 import type { DamageLevel } from "@/types/domain";
 import {
   useCreateInspection,
   useInspectionQueue,
   useInspectionSubject,
+  useUploadInspectionPhoto,
 } from "./use-inspection";
 import type { InspectionQueueRow } from "./inspection.types";
 
@@ -130,11 +132,14 @@ function Subject({ usageKey }: { usageKey: number }) {
   const { t } = useTranslation();
   const { data: subject, isLoading } = useInspectionSubject(usageKey);
   const create = useCreateInspection();
+  const upload = useUploadInspectionPhoto();
 
   const [level, setLevel] = useState<DamageLevel | null>(null);
   const [note, setNote] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null);
+  // #137: uploaded before grading, filed as InspectionPicture by the grade.
+  const [photos, setPhotos] = useState<{ previewUrl: string; imageUrl: string }[]>([]);
 
   if (isLoading) {
     return <div className="border-t border-border px-3.5 py-6 text-center text-sm text-t3">{t("common.loading")}</div>;
@@ -165,6 +170,23 @@ function Subject({ usageKey }: { usageKey: number }) {
   const preview =
     level === null ? null : Math.round(subject.creditWeight * DAMAGE_LEVELS[level].weight);
 
+  async function addPhoto(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (!validateUploadFile(file).ok) {
+      setError(t("staff.queue.returnPhotoBad"));
+      return;
+    }
+    setError(null);
+    try {
+      const imageUrl = await upload.mutateAsync({ usageKey: s.usageKey, file });
+      setPhotos((list) => [...list, { previewUrl: URL.createObjectURL(file), imageUrl }]);
+    } catch (err) {
+      setError(getErrorMessage(err));
+    }
+  }
+
   async function grade() {
     setError(null);
     if (level === null) {
@@ -176,6 +198,7 @@ function Subject({ usageKey }: { usageKey: number }) {
         usageKey: s.usageKey,
         level,
         note: note.trim() || undefined,
+        ...(photos.length > 0 ? { imageUrls: photos.map((p) => p.imageUrl) } : {}),
       });
       setDone(
         out.penalty
@@ -283,9 +306,36 @@ function Subject({ usageKey }: { usageKey: number }) {
           className="mb-2.5 max-w-xl"
         />
 
+        <div className="mb-2.5 flex flex-wrap items-center gap-2">
+          {photos.map((p) => (
+            <img
+              key={p.imageUrl}
+              src={p.previewUrl}
+              alt=""
+              className="h-16 w-20 rounded border border-border bg-surface-inset object-cover"
+            />
+          ))}
+          <label className="inline-flex h-8 cursor-pointer items-center rounded-md border border-border bg-card px-2.5 text-xs font-medium text-t2 hover:text-foreground">
+            <input
+              type="file"
+              accept={uploadAcceptAttr()}
+              capture="environment"
+              className="sr-only"
+              disabled={upload.isPending || photos.length >= 10}
+              onChange={(e) => void addPhoto(e)}
+            />
+            {upload.isPending ? t("common.loading") : t("staff.inspection.addPhoto")}
+          </label>
+        </div>
+
         {error ? <p className="mb-2.5 text-xs text-[var(--s-warn-t)]">{error}</p> : null}
 
-        <Button type="button" size="sm" disabled={create.isPending} onClick={() => void grade()}>
+        <Button
+          type="button"
+          size="sm"
+          disabled={create.isPending || upload.isPending}
+          onClick={() => void grade()}
+        >
           {create.isPending ? t("common.loading") : t("staff.inspection.recordGrade")}
         </Button>
       </div>

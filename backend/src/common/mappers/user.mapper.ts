@@ -20,6 +20,7 @@ export interface AccountRow {
   // optional, so this is null at two levels: no faculty, or a faculty with no
   // name recorded. Both collapse to facultyName: null downstream.
   Faculty?: { FacultyName: string | null } | null;
+  AvatarUrl?: string | null;
 }
 
 /**
@@ -49,5 +50,9 @@ export function toUserOutput(
     creditTier: limits.creditTier,
     maxBorrowDays: limits.maxBorrowDays,
     maxExtendTimes: limits.maxExtendTimes,
+    // A property of the session, not the account; auth.me fills it in.
+    signInMethod: null,
+    // Stored path; the router turns it into a public URL.
+    avatarUrl: row.AvatarUrl ?? null,
   };
 }

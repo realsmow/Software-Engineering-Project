@@ -103,6 +103,52 @@ export function toDueDate(isoDateOnly: string): Date {
   return new Date(`${isoDateOnly}T${dueTimeOfDayUtc()}Z`);
 }
 
+/**
+ * Whether `at` is inside the counter's working hours, closing minute included
+ * (a loan due at 17:00 is returned at 17:00). Pickup and return both happen at
+ * the counter, so neither may fall outside it (FR-ADM-04).
+ */
+export function withinWorkHours(at: Date): boolean {
+  const minuteOfDay =
+    ((at.getTime() + APP_UTC_OFFSET_MS) % 86_400_000) / 60_000;
+  return (
+    minuteOfDay >= workHours.start * 60 && minuteOfDay <= workHours.end * 60
+  );
+}
+
+/** Saturday or Sunday in Bangkok, when the counter is shut. */
+export function isWeekend(at: Date): boolean {
+  const weekday = new Date(at.getTime() + APP_UTC_OFFSET_MS).getUTCDay();
+  return weekday === 0 || weekday === 6;
+}
+
+/**
+ * A due instant that lands on a Saturday or Sunday in Bangkok moves to closing
+ * time the following Monday. The counter is shut at weekends, so a loan due
+ * then could only come back on Monday and would be counted late (#178).
+ */
+export function rollDueOffWeekend(due: Date): Date {
+  if (!isWeekend(due)) return due;
+  const weekday = new Date(due.getTime() + APP_UTC_OFFSET_MS).getUTCDay();
+  return toDueDate(toLocalDayKey(addDays(due, weekday === 6 ? 2 : 1)));
+}
+
+/**
+ * The latest end on or before `limit` that the weekend roll leaves alone.
+ *
+ * An end offered on a Saturday or Sunday would roll forward to Monday and back
+ * into the booking that capped it, so the offer moves back to Friday at
+ * closing instead. Unchanged if that would not be after `start`.
+ */
+export function weekdayEndBefore(limit: Date, start: Date): Date {
+  const weekday = new Date(limit.getTime() + APP_UTC_OFFSET_MS).getUTCDay();
+  if (weekday !== 0 && weekday !== 6) return limit;
+  const friday = toDueDate(
+    toLocalDayKey(addDays(limit, weekday === 6 ? -1 : -2)),
+  );
+  return friday > start ? friday : limit;
+}
+
 /** `from` plus N whole days, keeping the time of day. */
 export function addDays(from: Date, days: number): Date {
   return new Date(from.getTime() + days * 86_400_000);

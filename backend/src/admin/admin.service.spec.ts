@@ -62,6 +62,8 @@ function serviceWith(options: {
   openWork?: number[];
   /** false makes the account read as missing. */
   exists?: boolean;
+  /** IsActive of the account being changed; defaults to enabled. */
+  active?: boolean;
 }) {
   const held = options.held ?? [];
   const peers = options.peers ?? [];
@@ -85,6 +87,7 @@ function serviceWith(options: {
     if (select.AccountKey !== true) {
       return Promise.resolve({
         Role: { RoleName: options.currentRoleName ?? 'Staff' },
+        IsActive: options.active ?? true,
       });
     }
     return Promise.resolve({
@@ -108,21 +111,33 @@ function serviceWith(options: {
   const record = jest.fn().mockResolvedValue(undefined);
   const counts = openWork.map((n) => jest.fn().mockResolvedValue(n));
 
-  const prisma = {
+  const prisma: Record<string, unknown> = {
     accountInfo: { findUnique: findAccount, update: updateAccount },
-    authority: { findMany: findAuthorities },
+    authority: {
+      findMany: findAuthorities,
+      deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
+      upsert: jest.fn().mockResolvedValue({}),
+    },
+    authorityRole: {
+      findFirst: jest.fn().mockResolvedValue({ AuthorityRoleKey: 11 }),
+    },
     roleInfo: { findMany: jest.fn().mockResolvedValue(ROLE_ROWS) },
     reservations: { count: counts[0] },
     extensionRequest: { count: counts[1] },
     usageLog: { count: counts[2] },
     repairLog: { count: counts[3] },
     // The service passes an array of pending queries; running them is what the
-    // real client does, and keeps the count mocks above meaningful.
-    $transaction: jest.fn((ops: Promise<unknown>[]) => Promise.all(ops)),
-  } as unknown as PrismaService;
+    // real client does, and keeps the count mocks above meaningful. A callback
+    // transaction runs against the same mocks.
+    $transaction: jest.fn((ops: unknown) =>
+      typeof ops === 'function'
+        ? (ops as (tx: unknown) => unknown)(prisma)
+        : Promise.all(ops as Promise<unknown>[]),
+    ),
+  };
 
   const service = new AdminService(
-    prisma,
+    prisma as unknown as PrismaService,
     {
       resolveBorrowLimits: jest.fn().mockResolvedValue({
         creditTier: 'D0',
@@ -163,6 +178,18 @@ describe('changeRole - departmental cover', () => {
     });
     // Refused before the column is written, not rolled back afterwards.
     expect(updateAccount).not.toHaveBeenCalled();
+  });
+
+  it('lets a disabled leaver be demoted: they cover nothing already', async () => {
+    const { service, updateAccount } = serviceWith({
+      currentRoleName: 'Staff',
+      held: [branch(4, 'วิศวกรรมคอมพิวเตอร์')],
+      peers: [],
+      active: false,
+    });
+
+    await service.changeRole(input(7, 'borrower'), ACTOR);
+    expect(updateAccount).toHaveBeenCalled();
   });
 
   it('names the group and the work stuck in it', async () => {
@@ -458,5 +485,42 @@ describe('setUserActive - departmental cover', () => {
     ).rejects.toThrow(BusinessError);
     expect(findAuthorities).not.toHaveBeenCalled();
     expect(updateAccount).not.toHaveBeenCalled();
+  });
+});
+
+describe('updateUser - departmental cover (#152)', () => {
+  it('refuses dropping the last staff member from a department', async () => {
+    const { service, findAuthorities, updateAccount } = serviceWith({
+      currentRoleName: 'Staff',
+      held: [branch(4, 'ภาควิชาวิศวกรรมคอมพิวเตอร์')],
+      peers: [],
+    });
+
+    const error = await service
+      .updateUser({ id: 7, groupIds: [] }, ACTOR)
+      .catch((e: unknown) => e as BusinessError);
+
+    expect((error as BusinessError).businessCode).toBe(
+      'MEMBERSHIP_REMOVAL_WOULD_ORPHAN_GROUP',
+    );
+    // Only the groups being left are checked.
+    expect(findAuthorities.mock.calls[0][0].where).toMatchObject({
+      AccountKey: 7,
+      ManageGroupKey: { notIn: [] },
+    });
+    expect(updateAccount).not.toHaveBeenCalled();
+  });
+
+  it('allows it when a colleague still covers the department', async () => {
+    const { service, updateAccount } = serviceWith({
+      currentRoleName: 'Staff',
+      held: [branch(4, 'ภาควิชาวิศวกรรมคอมพิวเตอร์')],
+      peers: [{ ManageGroupKey: 4, RoleName: 'Staff' }],
+    });
+
+    await expect(
+      service.updateUser({ id: 7, groupIds: [] }, ACTOR),
+    ).resolves.toBeDefined();
+    expect(updateAccount).toHaveBeenCalled();
   });
 });

@@ -17,6 +17,14 @@ export class AuthService {
     private readonly creditTiers: CreditTierService,
   ) {}
 
+  /** Sets or clears the caller's own picture; the path is checked by the router. */
+  async setAvatar(accountKey: number, storedUrl: string | null): Promise<void> {
+    await this.prisma.accountInfo.update({
+      where: { AccountKey: accountKey },
+      data: { AvatarUrl: storedUrl },
+    });
+  }
+
   async getProfile(accountKey: number): Promise<UserOutput> {
     const row = await this.prisma.accountInfo.findUniqueOrThrow({
       where: { AccountKey: accountKey },
@@ -29,6 +37,7 @@ export class AuthService {
         UserCredit: true,
         Role: { select: { RoleName: true } },
         Faculty: { select: { FacultyName: true } },
+        AvatarUrl: true,
         // HashedPassword intentionally not selected - cannot leak by accident
       },
     });

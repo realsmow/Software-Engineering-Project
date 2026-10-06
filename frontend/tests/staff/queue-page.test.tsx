@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import i18n from "../../src/i18n";
@@ -23,6 +23,7 @@ const mocks = vi.hoisted(() => ({
   useRecordReturn: vi.fn(),
   useMarkLost: vi.fn(),
   useStaffDecideExtension: vi.fn(),
+  useStaffInspectExtension: vi.fn(),
   useUsagePhotos: vi.fn(),
   usePickupImageUpload: vi.fn(),
 }));
@@ -88,6 +89,7 @@ describe("StaffQueuePage", () => {
     mocks.useRecordReturn.mockReturnValue(mutationResult(recordReturn));
     mocks.useMarkLost.mockReturnValue(mutationResult(vi.fn()));
     mocks.useStaffDecideExtension.mockReturnValue(mutationResult(vi.fn()));
+    mocks.useStaffInspectExtension.mockReturnValue(mutationResult(vi.fn()));
     mocks.useUsagePhotos.mockReturnValue(
       queryResult(
         usagePhotosOutput
@@ -112,6 +114,59 @@ describe("StaffQueuePage", () => {
       }
     );
     expect(mocks.useStaffQueue).toHaveBeenLastCalledWith("toPrepare", "S12345");
+  });
+
+  it("leaves the extensions pile from a bucket tile or the back button (#158)", () => {
+    renderPage();
+    const extTile = () =>
+      screen.getByRole("button", { name: new RegExp(i18n.t("staff.queue.tileExtensions")) });
+
+    fireEvent.click(extTile());
+    expect(screen.queryByText("Ada Lovelace")).not.toBeInTheDocument();
+    fireEvent.click(screen.getAllByRole("button", { name: /To prepare/i })[0]);
+    expect(screen.getByText("Ada Lovelace")).toBeInTheDocument();
+
+    fireEvent.click(extTile());
+    fireEvent.click(screen.getByRole("button", { name: i18n.t("staff.queue.backToQueue") }));
+    expect(screen.getByText("Ada Lovelace")).toBeInTheDocument();
+  });
+
+  it("lets staff record the condition on a supervisor-routed extension (#156)", async () => {
+    const inspect = vi.fn().mockResolvedValue({});
+    const decide = vi.fn();
+    mocks.useStaffInspectExtension.mockReturnValue(mutationResult(inspect));
+    mocks.useStaffDecideExtension.mockReturnValue(mutationResult(decide));
+    mocks.useStaffExtensionQueue.mockReturnValue(
+      queryResult([
+        extensionReviewRow.strict().parse({
+          extensionKey: 12,
+          usageKey: 9,
+          borrower: row.borrower,
+          creditTier: "D1",
+          route: "supervisor",
+          itemName: "Oscilloscope",
+          serialNo: "OSC-001",
+          tier: "T2",
+          extendNo: 1,
+          previousDueAt: "2026-10-02T06:00:00.000Z",
+          requestedDueAt: "2026-10-03T06:00:00.000Z",
+          requestedAt: "2026-09-24T08:00:00.000Z",
+          reason: null,
+          status: "Pending",
+          inspection: null,
+        }),
+      ])
+    );
+    renderPage();
+    fireEvent.click(screen.getByRole("button", { name: new RegExp(i18n.t("staff.queue.tileExtensions")) }));
+    const line = within(screen.getByText("Oscilloscope").closest("tr")!);
+    fireEvent.change(line.getByRole("combobox"), { target: { value: "MajorDamage" } });
+    fireEvent.click(line.getByRole("button", { name: i18n.t("staff.queue.extRecordCheck") }));
+
+    await waitFor(() =>
+      expect(inspect).toHaveBeenCalledWith({ extensionKey: 12, condition: "MajorDamage" })
+    );
+    expect(decide).not.toHaveBeenCalled();
   });
 
   it("allocates the selected request and reports the assigned serial", async () => {

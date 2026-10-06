@@ -34,18 +34,38 @@ describe('NFR-SEC-03: organization create input boundaries', () => {
 });
 
 function setup(
-  options: { facultyExists?: boolean; groupsFound?: number } = {},
+  options: {
+    facultyExists?: boolean;
+    groupsFound?: number;
+    membershipFails?: boolean;
+  } = {},
 ) {
+  const authority = {
+    deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
+    upsert: options.membershipFails
+      ? jest.fn().mockRejectedValue(new Error('membership write failed'))
+      : jest.fn().mockResolvedValue({}),
+  };
+  const authorityRole = {
+    findFirst: jest.fn().mockImplementation(({ where }) =>
+      Promise.resolve({
+        AuthorityRoleKey: where.AuthorityName === 'Student' ? 10 : 11,
+      }),
+    ),
+  };
+  // Account and membership writes must go through the transaction client.
   const tx = {
     managementGroup: {
       create: jest.fn().mockResolvedValue({ ManageGroupKey: 5 }),
     },
     branchInfo: { create: jest.fn() },
     clubInfo: { create: jest.fn() },
-  };
-  const authority = {
-    deleteMany: jest.fn().mockReturnValue('delete'),
-    upsert: jest.fn().mockReturnValue('upsert'),
+    accountInfo: {
+      create: jest.fn().mockResolvedValue({ AccountKey: 7 }),
+      update: jest.fn().mockResolvedValue({ AccountKey: 7 }),
+    },
+    authority,
+    authorityRole,
   };
   const prisma = {
     facultyInfo: {
@@ -58,14 +78,8 @@ function setup(
     managementGroup: {
       count: jest.fn().mockResolvedValue(options.groupsFound ?? 2),
     },
-    authorityRole: {
-      findFirst: jest.fn().mockImplementation(({ where }) =>
-        Promise.resolve({
-          AuthorityRoleKey: where.AuthorityName === 'Student' ? 10 : 11,
-        }),
-      ),
-    },
-    authority,
+    authorityRole,
+    authority: { findMany: jest.fn().mockResolvedValue([]) },
     accountInfo: {
       findFirst: jest.fn().mockResolvedValue(null),
       findUnique: jest.fn().mockResolvedValue({
@@ -83,7 +97,8 @@ function setup(
         Authorities: [],
         Penalties: [],
       }),
-      create: jest.fn().mockResolvedValue({ AccountKey: 7 }),
+      create: jest.fn(),
+      update: jest.fn(),
     },
     roleInfo: {
       findMany: jest
@@ -98,6 +113,7 @@ function setup(
           : Promise.resolve(arg),
       ),
   };
+  const audit = { record: jest.fn() };
   const service = new AdminService(
     prisma as unknown as PrismaService,
     {
@@ -108,12 +124,12 @@ function setup(
       }),
     } as unknown as CreditTierService,
     {} as SessionService,
-    { record: jest.fn() } as unknown as AuditService,
+    audit as unknown as AuditService,
     {} as StaffScopeService,
     {} as ConfigService,
     {} as CronService,
   );
-  return { service, prisma, tx, authority };
+  return { service, prisma, tx, authority, audit };
 }
 
 describe('createGroup', () => {
@@ -166,9 +182,7 @@ describe('createUser memberships', () => {
       { ...base, facultyId: 2, groupIds: [5, 6] },
       ACTOR,
     );
-    expect(t.prisma.accountInfo.create.mock.calls[0][0].data.FacultyKey).toBe(
-      2,
-    );
+    expect(t.tx.accountInfo.create.mock.calls[0][0].data.FacultyKey).toBe(2);
     expect(t.authority.deleteMany).toHaveBeenCalledWith({
       where: { AccountKey: 7, ManageGroupKey: { notIn: [5, 6] } },
     });
@@ -184,5 +198,35 @@ describe('createUser memberships', () => {
       t.service.createUser({ ...base, groupIds: [5, 6] }, ACTOR),
     ).rejects.toMatchObject({ businessCode: 'GROUP_NOT_FOUND' });
     expect(t.prisma.accountInfo.create).not.toHaveBeenCalled();
+  });
+});
+
+describe('account and memberships in one transaction (#153)', () => {
+  const base = {
+    email: 'ana@ku.th',
+    studentId: 's1',
+    firstName: 'Ana',
+    lastName: 'Lek',
+    role: 'borrower' as const,
+  };
+
+  it('creates nothing outside the transaction when a membership write fails', async () => {
+    const t = setup({ membershipFails: true, groupsFound: 1 });
+    await expect(
+      t.service.createUser({ ...base, groupIds: [5] }, ACTOR),
+    ).rejects.toThrow('membership write failed');
+    expect(t.tx.accountInfo.create).toHaveBeenCalled();
+    expect(t.prisma.accountInfo.create).not.toHaveBeenCalled();
+    expect(t.audit.record).not.toHaveBeenCalled();
+  });
+
+  it('updates nothing outside the transaction when a membership write fails', async () => {
+    const t = setup({ membershipFails: true, groupsFound: 1 });
+    await expect(
+      t.service.updateUser({ id: 7, firstName: 'New', groupIds: [5] }, ACTOR),
+    ).rejects.toThrow('membership write failed');
+    expect(t.tx.accountInfo.update).toHaveBeenCalled();
+    expect(t.prisma.accountInfo.update).not.toHaveBeenCalled();
+    expect(t.audit.record).not.toHaveBeenCalled();
   });
 });

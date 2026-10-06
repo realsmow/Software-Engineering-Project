@@ -34,8 +34,8 @@
 
     --s-t1: #1a1d20;
     --s-t2: #495057;
-    --s-t3: #6b7075;
-    --s-t4: #6f757b;
+    --s-t3: #656a6f; /* 4.5:1 on every surface (#174) */
+    --s-t4: #646a70;
 
     /* Chart series: one hue, five steps. Multi-series charts still separate
        cleanly, without six competing colours implying six unrelated things. */
@@ -133,7 +133,7 @@
     --s-t1: #e6edf3;
     --s-t2: #b3bcc6;
     --s-t3: #8b949e;
-    --s-t4: #6e7681;
+    --s-t4: #838b96; /* 4.5:1 on every surface (#174) */
 
     --c-1: #3da270;
     --c-2: #5898bf;
@@ -661,10 +661,16 @@ body.dark .login-left {
   border-top: 1px solid var(--s-line);
   background: var(--s-subtle);
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
+  /* Longer English labels need room and must wrap between links, not inside them (#130). */
+  gap: 6px 16px;
   font-size: 11px;
   color: var(--s-t4);
   font-family: var(--font-mono);
+}
+.login-footer > * {
+  white-space: nowrap;
 }
 /* The help entry in the footer is a button, because it opens a dialog rather
    than navigating. Stripped back to match the plain anchors beside it. */

@@ -449,7 +449,7 @@ export class ItemManagementService {
     );
     await this.assertSerialsFree(input.itemKey, serials);
 
-    const created = await this.prisma.$transaction(async (tx) => {
+    const created = await this.serialTx(input.itemKey, serials, async (tx) => {
       const keys: number[] = [];
 
       // Who may already borrow this type here. Rules hang off each unit rather
@@ -550,7 +550,8 @@ export class ItemManagementService {
         ? undefined
         : await this.resolveTierRuleKey(input.tier);
 
-    await this.prisma.$transaction(async (tx) => {
+    const newSerial = input.serialNo === undefined ? [] : [input.serialNo];
+    await this.serialTx(unit.ItemKey, newSerial, async (tx) => {
       if (input.serialNo !== undefined || input.imageUrl !== undefined) {
         await tx.itemIndiv.update({
           where: { IndivKey: unit.IndivKey },
@@ -597,6 +598,7 @@ export class ItemManagementService {
       select: {
         ResourceKey: true,
         ConditionKey: true,
+        ResourceStatus: true,
         UsageLogs: {
           // HELD, not UNAVAILABLE: a unit that is back but ungraded is exactly
           // the one staff want to pull out for repair.
@@ -608,6 +610,14 @@ export class ItemManagementService {
     });
     if (!resource) {
       throw new BusinessError('RESOURCE_NOT_FOUND', {
+        resourceKey: input.resourceKey,
+      });
+    }
+
+    // Retirement is a supervisor's decision (FR-EQP-08) and terminal, so staff
+    // may not lend the unit again from here.
+    if (input.lendable && resource.ResourceStatus === 'Retired') {
+      throw new BusinessError('RESOURCE_ALREADY_RETIRED', {
         resourceKey: input.resourceKey,
       });
     }
@@ -1560,10 +1570,8 @@ export class ItemManagementService {
   /**
    * Refuses a serial already used by another unit of the same type.
    *
-   * Checked in the service because ItemIndiv.ItemID has no unique constraint,
-   * which means this is a read-then-write race: two staff registering the same
-   * serial at the same moment both pass. Only the database can close that —
-   * see docs/staff.md.
+   * Checked here for a clear answer up front; the unique index on
+   * (ItemKey, ItemID) closes the race where two staff save at once (serialTx).
    */
   private async assertSerialsFree(
     itemKey: number,
@@ -1586,6 +1594,29 @@ export class ItemManagementService {
         itemKey,
         serialNo: clash.ItemID,
       });
+    }
+  }
+
+  /**
+   * A transaction that writes serials. The unique index on (ItemKey, ItemID)
+   * catches a serial another save took after assertSerialsFree (#136); this
+   * gives that the same answer as the check, not a database error.
+   */
+  private async serialTx<T>(
+    itemKey: number,
+    serials: string[],
+    work: (tx: Prisma.TransactionClient) => Promise<T>,
+  ): Promise<T> {
+    try {
+      return await this.prisma.$transaction(work);
+    } catch (error) {
+      if ((error as { code?: unknown } | null)?.code === 'P2002') {
+        throw new BusinessError('SERIAL_ALREADY_IN_USE', {
+          itemKey,
+          serialNo: serials.join(', '),
+        });
+      }
+      throw error;
     }
   }
 

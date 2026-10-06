@@ -57,6 +57,11 @@ export function resourceName(resource: NotifiableResource): string {
   return resource.Item?.Item.ItemName ?? resource.Room?.RoomName ?? 'อุปกรณ์';
 }
 
+/** English twin of the fallback noun above, for the English text. */
+function resourceNameEn(resource: NotifiableResource): string {
+  return resource.Item?.Item.ItemName ?? resource.Room?.RoomName ?? 'Equipment';
+}
+
 /**
  * Thai wording for a penalty reason.
  *
@@ -68,10 +73,54 @@ export function resourceName(resource: NotifiableResource): string {
 const PENALTY_REASON_TH: Record<PenaltyReason, string> = {
   ReturnLate: 'คืนล่าช้า',
   DidntReturn: 'ไม่นำอุปกรณ์มาคืน',
-  DamagedItem: 'อุปกรณ์ชำรุด',
-  BrokenItem: 'อุปกรณ์เสียหาย',
+  DamagedItem: 'อุปกรณ์เสียหาย',
+  BrokenItem: 'อุปกรณ์ชำรุด',
   LostItem: 'อุปกรณ์สูญหาย',
 };
+
+const PENALTY_REASON_EN: Record<PenaltyReason, string> = {
+  ReturnLate: 'Late return',
+  DidntReturn: 'Item not returned',
+  DamagedItem: 'Damaged item',
+  BrokenItem: 'Broken item',
+  LostItem: 'Lost item',
+};
+
+/**
+ * English wording uses the Gregorian year ("5 Oct 2026 16:11"). The Thai text
+ * keeps the Buddhist era. Formatted from parts so the output does not depend
+ * on the ICU build's en-GB comma and "at" rules.
+ */
+export function englishDateTime(at: Date): string {
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat('en-GB', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hourCycle: 'h23',
+      timeZone: 'Asia/Bangkok',
+    })
+      .formatToParts(at)
+      .map((p) => [p.type, p.value]),
+  );
+  return `${parts.day} ${parts.month} ${parts.year} ${parts.hour}:${parts.minute}`;
+}
+
+export function englishDate(at: Date): string {
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat('en-GB', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      timeZone: 'Asia/Bangkok',
+    })
+      .formatToParts(at)
+      .map((p) => [p.type, p.value]),
+  );
+  return `${parts.day} ${parts.month} ${parts.year}`;
+}
 
 /** A moment, as a Thai reader expects to see it. Bangkok time, never UTC. */
 function thaiDateTime(at: Date): string {
@@ -226,6 +275,8 @@ export class NotificationService {
       type: 'RequestApproved',
       title: 'คำขอยืมได้รับการอนุมัติ',
       body: `${params.itemName} · กรุณามารับภายใน ${thaiDateTime(params.collectBy)}`,
+      titleEn: 'Borrow request approved',
+      bodyEn: `${params.itemName} · Please collect by ${englishDateTime(params.collectBy)}`,
       linkTo: ROUTE_PICKUP,
       dedupeKey: reservationKeyOf(params.reservationKey),
     });
@@ -253,6 +304,10 @@ export class NotificationService {
       body: params.reason
         ? `${params.itemName} · ${params.reason}`
         : `${params.itemName} · คำขอนี้ถูกปฏิเสธ`,
+      titleEn: 'Borrow request not approved',
+      bodyEn: params.reason
+        ? `${params.itemName} · ${params.reason}`
+        : `${params.itemName} · This request was rejected`,
       linkTo: ROUTE_MY_LOANS,
       dedupeKey: reservationKeyOf(params.reservationKey),
     });
@@ -271,13 +326,15 @@ export class NotificationService {
       type: 'RequestRejected',
       title: 'คำขอยืมถูกยกเลิก',
       body: `${params.itemName} · ไม่ได้มารับภายในกำหนด`,
+      titleEn: 'Borrow request cancelled',
+      bodyEn: `${params.itemName} · Not collected by the deadline`,
       linkTo: ROUTE_MY_LOANS,
       dedupeKey: reservationKeyOf(params.reservationKey),
     });
   }
 
   /**
-   * "คำขอต่ออายุได้รับการอนุมัติ" — the loan now runs to a later date.
+   * "คำขอต่อเวลาได้รับการอนุมัติ" — the loan now runs to a later date.
    *
    * Sent for the extensions a person granted *and* for the ones the system
    * granted on the spot (§5.4's online renewal): the borrower asked from a
@@ -305,16 +362,18 @@ export class NotificationService {
       accountKey: params.accountKey,
       type: 'RequestApproved',
       title: params.automatic
-        ? 'ต่ออายุการยืมเรียบร้อยแล้ว'
-        : 'คำขอต่ออายุได้รับการอนุมัติ',
+        ? 'ต่อเวลาการยืมเรียบร้อยแล้ว'
+        : 'คำขอต่อเวลาได้รับการอนุมัติ',
       body: `${params.itemName} · กำหนดคืนใหม่ ${thaiDateTime(params.dueAt)}`,
+      titleEn: params.automatic ? 'Loan renewed' : 'Extension request approved',
+      bodyEn: `${params.itemName} · New due date ${englishDateTime(params.dueAt)}`,
       linkTo: ROUTE_MY_LOANS,
       dedupeKey: extensionKeyOf(params.extensionKey),
     });
   }
 
   /**
-   * "คำขอต่ออายุไม่ได้รับอนุมัติ" — the original due date still stands.
+   * "คำขอต่อเวลาไม่ได้รับอนุมัติ" — the original due date still stands.
    *
    * The due date is repeated in the body on purpose. A borrower who asked for
    * more time and hears only "no" has to work out for themselves what they are
@@ -334,8 +393,10 @@ export class NotificationService {
     return this.emit(tx, {
       accountKey: params.accountKey,
       type: 'RequestRejected',
-      title: 'คำขอต่ออายุไม่ได้รับอนุมัติ',
+      title: 'คำขอต่อเวลาไม่ได้รับอนุมัติ',
       body: `${params.itemName} · กำหนดคืนเดิม ${thaiDateTime(params.dueAt)}${why}`,
+      titleEn: 'Extension request not approved',
+      bodyEn: `${params.itemName} · Original due date ${englishDateTime(params.dueAt)}${why}`,
       linkTo: ROUTE_MY_LOANS,
       dedupeKey: extensionKeyOf(params.extensionKey),
     });
@@ -361,6 +422,8 @@ export class NotificationService {
       type: 'PickupReminder',
       title: 'อุปกรณ์พร้อมให้รับแล้ว',
       body: `${params.itemName} · รับได้ที่เคาน์เตอร์ภาควิชา ตั้งแต่ ${thaiDateTime(params.collectFrom)}`,
+      titleEn: 'Equipment ready for pickup',
+      bodyEn: `${params.itemName} · Collect at the department counter from ${englishDateTime(params.collectFrom)}`,
       linkTo: ROUTE_PICKUP,
       dedupeKey: usageKeyOf(params.usageKey),
     });
@@ -388,6 +451,8 @@ export class NotificationService {
   ) {
     const why = PENALTY_REASON_TH[params.reason];
     const about = params.itemName ? `${why} (${params.itemName})` : why;
+    const whyEn = PENALTY_REASON_EN[params.reason];
+    const aboutEn = params.itemName ? `${whyEn} (${params.itemName})` : whyEn;
     return this.emit(tx, {
       accountKey: params.accountKey,
       type: 'CreditDeducted',
@@ -395,6 +460,10 @@ export class NotificationService {
       body:
         `สาเหตุ: ${about} · เครดิตคงเหลือ ${params.newScore} คะแนน` +
         ` · บทลงโทษมีผลถึง ${thaiDate(params.expiresAt)}`,
+      titleEn: `${params.amount} credit points deducted`,
+      bodyEn:
+        `Reason: ${aboutEn} · Remaining credit ${params.newScore} points` +
+        ` · Penalty in effect until ${englishDate(params.expiresAt)}`,
       linkTo: ROUTE_PROFILE,
       dedupeKey: `penalty:${params.penaltyKey}`,
     });
@@ -427,6 +496,10 @@ export class NotificationService {
       body:
         `${about}คืนเครดิต ${params.creditRestored} คะแนน` +
         (params.note ? ` · ${params.note}` : ''),
+      titleEn: 'Appeal approved',
+      bodyEn:
+        `${about}${params.creditRestored} credit points restored` +
+        (params.note ? ` · ${params.note}` : ''),
       linkTo: ROUTE_PROFILE,
       dedupeKey: appealKeyOf(params.appealKey),
     });
@@ -456,6 +529,10 @@ export class NotificationService {
       body: params.reason
         ? `${about}${params.reason}`
         : `${about}บทลงโทษเดิมยังมีผลอยู่`,
+      titleEn: 'Appeal not approved',
+      bodyEn: params.reason
+        ? `${about}${params.reason}`
+        : `${about}The original penalty still applies`,
       linkTo: ROUTE_PROFILE,
       dedupeKey: appealKeyOf(params.appealKey),
     });
@@ -485,6 +562,8 @@ export class NotificationService {
       type: 'RetirementRequested',
       title: 'มีคำขอเลิกใช้งานอุปกรณ์รอการอนุมัติ',
       body: `${params.resourceName} · ขอโดย ${params.requestedBy} · เหตุผล: ${params.reason}`,
+      titleEn: 'Equipment retirement request awaiting approval',
+      bodyEn: `${params.resourceName} · Requested by ${params.requestedBy} · Reason: ${params.reason}`,
       linkTo: ROUTE_SUPERVISOR_APPROVALS,
       dedupeKey: retirementRequestKeyOf(params.requestKey),
     });
@@ -513,6 +592,11 @@ export class NotificationService {
         ? 'คำขอเลิกใช้งานอุปกรณ์ได้รับการอนุมัติ'
         : 'คำขอเลิกใช้งานอุปกรณ์ไม่ได้รับการอนุมัติ',
       body: `${params.resourceName}` + (params.note ? ` · ${params.note}` : ''),
+      titleEn: approved
+        ? 'Equipment retirement request approved'
+        : 'Equipment retirement request not approved',
+      bodyEn:
+        `${params.resourceName}` + (params.note ? ` · ${params.note}` : ''),
       linkTo: ROUTE_STAFF_INVENTORY,
       dedupeKey: retirementRequestKeyOf(params.requestKey),
     });
@@ -538,13 +622,15 @@ export class NotificationService {
       type: 'SupervisorApprovalNeeded',
       title: 'มีคำขอยืมรอการอนุมัติ',
       body: `${params.itemName} · รอการอนุมัติ`,
+      titleEn: 'Borrow request awaiting approval',
+      bodyEn: `${params.itemName} · Awaiting approval`,
       linkTo: ROUTE_SUPERVISOR_APPROVALS,
       dedupeKey: reservationKeyOf(params.reservationKey),
     });
   }
 
   /**
-   * "มีคำขอต่ออายุรอการอนุมัติ" — FR-NTF-04, the extension counterpart of
+   * "มีคำขอต่อเวลารอการอนุมัติ" — FR-NTF-04, the extension counterpart of
    * `requestNeedsSupervisor`. Shares `SupervisorApprovalNeeded` rather than a
    * type of its own, the same way `extensionApproved` shares `RequestApproved`
    * — the desk is one pile, whichever domain the row came from.
@@ -560,8 +646,10 @@ export class NotificationService {
     return this.emit(tx, {
       accountKey: params.accountKey,
       type: 'SupervisorApprovalNeeded',
-      title: 'มีคำขอต่ออายุรอการอนุมัติ',
+      title: 'มีคำขอต่อเวลารอการอนุมัติ',
       body: `${params.itemName} · รอการอนุมัติ`,
+      titleEn: 'Extension request awaiting approval',
+      bodyEn: `${params.itemName} · Awaiting approval`,
       linkTo: ROUTE_SUPERVISOR_APPROVALS,
       dedupeKey: extensionKeyOf(params.extensionKey),
     });
@@ -574,7 +662,14 @@ export class NotificationService {
   private async staffTask(
     tx: Prisma.TransactionClient,
     manageGroupKey: number,
-    note: { title: string; body: string; linkTo: string; dedupeKey: string },
+    note: {
+      title: string;
+      body: string;
+      titleEn: string;
+      bodyEn: string;
+      linkTo: string;
+      dedupeKey: string;
+    },
   ): Promise<void> {
     const staff = await supervisorsForGroup(tx, manageGroupKey, 'Staff');
     await Promise.all(
@@ -596,6 +691,8 @@ export class NotificationService {
     return this.staffTask(tx, params.manageGroupKey, {
       title: 'มีรายการต้องเตรียม',
       body: `${params.itemName} · อนุมัติแล้ว รอเตรียมของ`,
+      titleEn: 'Item to prepare',
+      bodyEn: `${params.itemName} · Approved, waiting to be prepared`,
       linkTo: ROUTE_STAFF_QUEUE,
       dedupeKey: reservationKeyOf(params.reservationKey),
     });
@@ -614,6 +711,8 @@ export class NotificationService {
     return this.staffTask(tx, params.manageGroupKey, {
       title: 'มีรายการรอรับคืน',
       body: `${params.itemName} · ครบกำหนดคืน ${thaiDateTime(params.due)}`,
+      titleEn: 'Return to receive',
+      bodyEn: `${params.itemName} · Due back ${englishDateTime(params.due)}`,
       linkTo: ROUTE_STAFF_QUEUE,
       dedupeKey: usageKeyOf(params.usageKey),
     });
@@ -632,6 +731,8 @@ export class NotificationService {
     return this.staffTask(tx, params.manageGroupKey, {
       title: 'มีห้องต้องตรวจสภาพ',
       body: `${params.roomName} · ตรวจภายใน ${thaiDateTime(params.dueAt)}`,
+      titleEn: 'Room to inspect',
+      bodyEn: `${params.roomName} · Inspect by ${englishDateTime(params.dueAt)}`,
       linkTo: ROUTE_STAFF_ROOM_CHECKS,
       // One per round: a room gets a new round at most once a month.
       dedupeKey: `roomcheck:${params.resourceKey}:${params.dueAt.toISOString().slice(0, 10)}`,
@@ -659,6 +760,8 @@ export class NotificationService {
       type: 'AppealFiled',
       title: 'มีคำขออุทธรณ์รอการพิจารณา',
       body: `เหตุผล: ${params.reason}`,
+      titleEn: 'Appeal awaiting review',
+      bodyEn: `Reason: ${params.reason}`,
       linkTo: ROUTE_SUPERVISOR_APPEALS,
       dedupeKey: appealKeyOf(params.appealKey),
     });
@@ -712,6 +815,7 @@ export class NotificationService {
 
       for (const loan of open) {
         const name = resourceName(loan.Resource);
+        const nameEn = resourceNameEn(loan.Resource);
         const overdue = loan.DueTime < now;
 
         if (overdue) {
@@ -721,6 +825,8 @@ export class NotificationService {
             type: 'Overdue',
             title: 'เกินกำหนดคืนแล้ว',
             body: `${name} · เกินกำหนด ${days} วัน กรุณานำมาคืนโดยเร็วที่สุด`,
+            titleEn: 'Overdue',
+            bodyEn: `${nameEn} · ${days} ${days === 1 ? 'day' : 'days'} overdue, please return it as soon as possible`,
             linkTo: ROUTE_MY_LOANS,
             dedupeKey: usageKeyOf(loan.UsageKey),
           });
@@ -744,6 +850,8 @@ export class NotificationService {
           type: 'DueSoon',
           title: 'ใกล้ครบกำหนดคืน',
           body: `${name} · ครบกำหนดคืน ${thaiDateTime(loan.DueTime)}`,
+          titleEn: 'Due soon',
+          bodyEn: `${nameEn} · Due back ${englishDateTime(loan.DueTime)}`,
           linkTo: ROUTE_MY_LOANS,
           dedupeKey: usageKeyOf(loan.UsageKey),
         });
@@ -778,7 +886,7 @@ export class NotificationService {
         from,
         to: account.Email,
         subject: 'ULMs: ใกล้ครบกำหนดคืน',
-        text: `${name} ครบกำหนดคืน ${thaiDateTime(due)}\n\n${appUrl}${ROUTE_MY_LOANS}`,
+        text: `เรียนผู้ยืม\n\n${name} ครบกำหนดคืน ${thaiDateTime(due)} กรุณานำมาคืนที่เคาน์เตอร์ก่อนเวลาดังกล่าว หรือขอต่อเวลาในระบบหากยังใช้งานอยู่ การคืนช้าจะถูกหักเครดิต\n\nดูรายการยืมของคุณ: ${appUrl}${ROUTE_MY_LOANS}`,
       });
     } catch (error) {
       this.logger.warn(
@@ -813,6 +921,9 @@ export class NotificationService {
       type: DbNotificationType;
       title: string;
       body: string;
+      /** English twin of title and body (issue 175). */
+      titleEn: string;
+      bodyEn: string;
       linkTo?: string | null;
       dedupeKey?: string | null;
     },
@@ -822,6 +933,8 @@ export class NotificationService {
       NotificationType: params.type,
       Title: params.title,
       Body: params.body,
+      TitleEn: params.titleEn,
+      BodyEn: params.bodyEn,
       LinkTo: params.linkTo ?? null,
       DedupeKey: params.dedupeKey ?? null,
     };
@@ -850,6 +963,8 @@ export class NotificationService {
     NotificationType: DbNotificationType;
     Title: string;
     Body: string;
+    TitleEn: string | null;
+    BodyEn: string | null;
     LinkTo: string | null;
     CreatedAt: Date;
     ReadAt: Date | null;
@@ -860,6 +975,9 @@ export class NotificationService {
       type: toWireType(row.NotificationType),
       title: row.Title,
       body: row.Body,
+      // Rows from before the English columns stay NULL and show Thai only.
+      ...(row.TitleEn ? { titleEn: row.TitleEn } : {}),
+      ...(row.BodyEn ? { bodyEn: row.BodyEn } : {}),
       createdAt: toIso(row.CreatedAt),
       // Omitted, not null: the frontend declares both of these optional.
       ...(row.ReadAt ? { readAt: toIso(row.ReadAt) } : {}),

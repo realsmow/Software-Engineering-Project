@@ -139,10 +139,10 @@ function JobRow({ job }: { job: CronJob }) {
   return (
     <tr className="border-b border-border last:border-b-0">
       <td className="px-3.5 py-2">
-        <div className="text-foreground">{job.name}</div>
+        <div className="text-foreground">{t(`admin.status.jobs.${job.id}.name`, { defaultValue: job.name })}</div>
         <div className="mt-0.5 font-mono text-[11px] text-t4">{job.id}</div>
       </td>
-      <td className="whitespace-nowrap px-3.5 py-2 font-mono text-xs text-t2">{job.schedule}</td>
+      <td className="whitespace-nowrap px-3.5 py-2 font-mono text-xs text-t2">{t(`admin.status.jobs.${job.id}.schedule`, { defaultValue: job.schedule })}</td>
       <td className="whitespace-nowrap px-3.5 py-2 font-mono text-xs text-t2">
         {job.lastRunAt ? fmtDateTime(job.lastRunAt) : "-"}
         {job.durationMs !== null ? (

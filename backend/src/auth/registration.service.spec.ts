@@ -99,6 +99,12 @@ describe('register', () => {
     expect(token).not.toBe(stored);
   });
 
+  it('accepts a @ku.ac.th address with no domain list configured (#171)', async () => {
+    const t = build();
+    await t.service.register({ ...input, email: 'staff.member@ku.ac.th' });
+    expect(t.accountCreate).toHaveBeenCalledTimes(1);
+  });
+
   it('refuses an email outside the allowed domain (C-01) before touching the database', async () => {
     const t = build();
     await expect(

@@ -28,6 +28,7 @@ import {
   useRecordReturn,
   useStaffDecideExtension,
   useStaffExtensionQueue,
+  useStaffInspectExtension,
   useStaffQueue,
   useStaffQueueCounts,
 } from "./use-staff-queue";
@@ -93,6 +94,7 @@ export default function StaffQueuePage() {
     view === "extensions" ? search : "",
   );
   const decideExtension = useStaffDecideExtension();
+  const inspectExtension = useStaffInspectExtension();
   const [extBusyKey, setExtBusyKey] = useState<number | null>(null);
   const [extRejecting, setExtRejecting] = useState<number | null>(null);
   const [extReason, setExtReason] = useState("");
@@ -121,6 +123,24 @@ export default function StaffQueuePage() {
       });
       setExtRejecting(null);
       setExtReason("");
+    } catch (error) {
+      setResult({ tone: "bad", text: getErrorMessage(error) });
+    } finally {
+      setExtBusyKey(null);
+    }
+  }
+
+  // #156: a supervisor-routed extension gets its condition check here, and
+  // the supervisor decides it afterwards with this record on screen.
+  async function checkExt(row: ExtensionReviewRow) {
+    setExtBusyKey(row.extensionKey);
+    setResult(null);
+    try {
+      await inspectExtension.mutateAsync({
+        extensionKey: row.extensionKey,
+        condition: extConditionOf(row.extensionKey),
+      });
+      setResult({ tone: "ok", text: t("staff.queue.doneExtCheck", { item: row.itemName ?? "" }) });
     } catch (error) {
       setResult({ tone: "bad", text: getErrorMessage(error) });
     } finally {
@@ -199,7 +219,19 @@ export default function StaffQueuePage() {
       align: "right",
       className: "sticky right-0 bg-card",
       render: (r) =>
-        extRejecting === r.extensionKey ? (
+        r.route === "supervisor" ? (
+          <div className="flex items-center justify-end gap-2">
+            <Badge tone="neutral">{t("staff.queue.extForSupervisor")}</Badge>
+            <Button
+              type="button"
+              size="sm"
+              disabled={extBusyKey === r.extensionKey}
+              onClick={() => void checkExt(r)}
+            >
+              {extBusyKey === r.extensionKey ? t("common.loading") : t("staff.queue.extRecordCheck")}
+            </Button>
+          </div>
+        ) : extRejecting === r.extensionKey ? (
           <div className="flex items-center justify-end gap-2">
             <Input
               autoFocus
@@ -439,8 +471,13 @@ export default function StaffQueuePage() {
             key={b}
             label={t(BUCKET_LABEL[b])}
             value={counts?.[b]}
-            active={b === bucket}
-            onClick={() => setBucket(b)}
+            active={view === "queue" && b === bucket}
+            // #158: the table follows `view`, so a bucket tile has to leave
+            // the extensions pile as well as pick the bucket.
+            onClick={() => {
+              setBucket(b);
+              setView("queue");
+            }}
           />
         ))}
         {/* toInspect belongs to the inspection desk's own page and is shown
@@ -474,13 +511,9 @@ export default function StaffQueuePage() {
           rows={extRows ?? []}
           rowKey={(r) => String(r.extensionKey)}
           pageSize={15}
-          headerActions={
-            <Button type="button" variant="outline" size="sm" onClick={() => setView("queue")}>
-              {t("staff.queue.backToQueue")}
-            </Button>
-          }
+          // Not `headerActions`: DataTable only renders those with a title.
           beforeRows={
-            <div className="border-b border-border px-3.5 py-2.5">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-3.5 py-2.5">
               <Input
                 type="search"
                 value={search}
@@ -488,6 +521,9 @@ export default function StaffQueuePage() {
                 placeholder={t("staff.queue.searchPlaceholder")}
                 className="max-w-sm"
               />
+              <Button type="button" variant="outline" size="sm" onClick={() => setView("queue")}>
+                {t("staff.queue.backToQueue")}
+              </Button>
             </div>
           }
           emptyTitle={extLoading ? t("common.loading") : t("staff.queue.extEmptyTitle")}

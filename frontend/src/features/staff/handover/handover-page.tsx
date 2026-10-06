@@ -29,24 +29,23 @@ export default function StaffHandoverPage() {
   const { data: loan, isLoading } = useLoanForStaff(validKey);
   const swapUnit = useSwapUnit();
 
-  const [resourceKey, setResourceKey] = useState("");
+  const [serialNo, setSerialNo] = useState("");
   const [reason, setReason] = useState("");
   const [result, setResult] = useState<{ tone: "ok" | "bad"; text: string } | null>(null);
 
   async function submitSwap() {
-    if (validKey === null) return;
-    const target = Number(resourceKey);
-    if (!Number.isFinite(target) || target <= 0) return;
+    const serial = serialNo.trim();
+    if (validKey === null || !serial) return;
 
     setResult(null);
     try {
       await swapUnit.mutateAsync({
         usageKey: validKey,
-        resourceKey: target,
+        serialNo: serial,
         reason: reason.trim() || undefined,
       });
       setResult({ tone: "ok", text: t("staff.handover.doneSwap") });
-      setResourceKey("");
+      setSerialNo("");
       setReason("");
     } catch (e) {
       setResult({ tone: "bad", text: getErrorMessage(e) });
@@ -123,15 +122,13 @@ export default function StaffHandoverPage() {
 
                 <div className="mt-3 flex flex-wrap items-end gap-2">
                   <div>
-                    <label className="text-xs text-t3" htmlFor="swap-resource-key">
-                      {t("staff.handover.newResourceKey")}
+                    <label className="text-xs text-t3" htmlFor="swap-serial-no">
+                      {t("staff.handover.newSerialNo")}
                     </label>
                     <Input
-                      id="swap-resource-key"
-                      type="number"
-                      min={1}
-                      value={resourceKey}
-                      onChange={(e) => setResourceKey(e.target.value)}
+                      id="swap-serial-no"
+                      value={serialNo}
+                      onChange={(e) => setSerialNo(e.target.value)}
                       className="mt-1 h-9 w-40"
                     />
                   </div>
@@ -150,7 +147,7 @@ export default function StaffHandoverPage() {
                   <Button
                     type="button"
                     size="sm"
-                    disabled={!resourceKey.trim() || swapUnit.isPending}
+                    disabled={!serialNo.trim() || swapUnit.isPending}
                     onClick={() => void submitSwap()}
                   >
                     {swapUnit.isPending ? t("common.loading") : t("staff.handover.confirmSwap")}

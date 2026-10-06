@@ -6,7 +6,7 @@ const CALIPER = "เวอร์เนียคาลิปเปอร์ดิ
 const JUMPER_WIRES = "สายจัมเปอร์ชุดใหญ่";
 
 /** Mirrors REQUEST_TIMES in request-draft.store.ts. */
-const PICKUP_TIME_SLOTS = ["08:00", "13:00", "16:00"];
+const PICKUP_TIME_SLOTS = ["08:00", "13:00", "16:00", "17:00"];
 
 /** Today's date and current time-of-day in Asia/Bangkok, regardless of the
  * host machine's own timezone. */

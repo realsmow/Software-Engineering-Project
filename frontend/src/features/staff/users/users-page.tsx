@@ -80,7 +80,7 @@ function CreditDetail({ user, onClose }: { user: DepartmentUser | null; onClose:
                 <span className="font-mono text-sm font-semibold text-foreground">
                   {credit.band}
                 </span>
-                {band ? <span className="text-sm text-muted-foreground">{band.label}</span> : null}
+                {band ? <span className="text-sm text-muted-foreground">{t(`creditBand.${band.band}`)}</span> : null}
               </div>
             </div>
             <div>

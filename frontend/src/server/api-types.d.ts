@@ -1056,6 +1056,12 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 					requestedAt: string;
 					reason: string | null;
 					status: "Pending" | "Approved" | "Rejected" | "Canceled";
+					inspection: {
+						condition: "Normal" | "MinorDamage" | "MajorDamage" | "Broken" | "Missing";
+						note: string | null;
+						loggedAt: string | null;
+						loggedBy: string;
+					} | null;
 				}[];
 				total: number;
 				page: number;
@@ -1205,6 +1211,43 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 				creditTier: "D0" | "D1" | "D2" | "D3";
 				maxBorrowDays: number;
 				maxExtendTimes: number;
+				signInMethod: "password" | "google" | null;
+				avatarUrl: string | null;
+			} | null;
+			meta: object;
+		}>;
+		requestAvatarUpload: import("@trpc/server").TRPCMutationProcedure<{
+			input: {
+				contentType: "image/jpeg" | "image/png";
+				sizeBytes: number;
+			};
+			output: {
+				uploadUrl: string;
+				imageUrl: string;
+				previewUrl: string;
+				expiresAt: string;
+				maxBytes: number;
+			};
+			meta: object;
+		}>;
+		setAvatar: import("@trpc/server").TRPCMutationProcedure<{
+			input: {
+				imageUrl: string | null;
+			};
+			output: {
+				id: number;
+				studentId: string;
+				firstName: string;
+				lastName: string;
+				email: string;
+				role: "borrower" | "staff" | "supervisor" | "admin";
+				facultyName: string | null;
+				creditScore: number;
+				creditTier: "D0" | "D1" | "D2" | "D3";
+				maxBorrowDays: number;
+				maxExtendTimes: number;
+				signInMethod: "password" | "google" | null;
+				avatarUrl: string | null;
 			};
 			meta: object;
 		}>;
@@ -1226,6 +1269,8 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 					creditTier: "D0" | "D1" | "D2" | "D3";
 					maxBorrowDays: number;
 					maxExtendTimes: number;
+					signInMethod: "password" | "google" | null;
+					avatarUrl: string | null;
 				};
 			};
 			meta: object;
@@ -1358,7 +1403,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 	}, import("@trpc/server").TRPCDecorateCreateRouterOptions<{
 		requestUpload: import("@trpc/server").TRPCMutationProcedure<{
 			input: {
-				purpose: "room" | "inspection" | "itemType" | "itemUnit";
+				purpose: "inspection" | "room" | "itemType" | "itemUnit" | "avatar";
 				contentType: "image/jpeg" | "image/png";
 				sizeBytes: number;
 			};
@@ -1895,6 +1940,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 					endTime: string;
 					available: boolean;
 				}[];
+				eligible: boolean;
 				maxSlotsPerBooking: number;
 				slotMinutes: number;
 			};
@@ -2993,7 +3039,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 		swapUnit: import("@trpc/server").TRPCMutationProcedure<{
 			input: {
 				usageKey: number;
-				resourceKey: number;
+				serialNo: string;
 				reason?: string | undefined;
 			};
 			output: {
@@ -3155,6 +3201,12 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 					requestedAt: string;
 					reason: string | null;
 					status: "Pending" | "Approved" | "Rejected" | "Canceled";
+					inspection: {
+						condition: "Normal" | "MinorDamage" | "MajorDamage" | "Broken" | "Missing";
+						note: string | null;
+						loggedAt: string | null;
+						loggedBy: string;
+					} | null;
 				}[];
 				total: number;
 				page: number;
@@ -3167,6 +3219,33 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 				extensionKey: number;
 				decision: "approve" | "reject";
 				condition?: "Normal" | "MinorDamage" | "MajorDamage" | "Broken" | "Missing" | undefined;
+				note?: string | undefined;
+			};
+			output: {
+				extensionKey: number;
+				usageKey: number;
+				status: "Pending" | "Approved" | "Rejected" | "Canceled";
+				route: "staff" | "supervisor" | "auto";
+				requiresInspection: boolean;
+				autoApproved: boolean;
+				extendNo: number | null;
+				previousDueAt: string;
+				requestedDueAt: string;
+				dueAt: string;
+				requestedAt: string;
+				resolvedAt: string | null;
+				itemName: string | null;
+				serialNo: string | null;
+				tier: "T0" | "T1" | "T2" | "T3" | null;
+				extensionsUsed: number;
+				extensionsAllowed: number;
+			};
+			meta: object;
+		}>;
+		inspectExtension: import("@trpc/server").TRPCMutationProcedure<{
+			input: {
+				extensionKey: number;
+				condition: "Normal" | "MinorDamage" | "MajorDamage" | "Broken" | "Missing";
 				note?: string | undefined;
 			};
 			output: {
@@ -3214,6 +3293,8 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 					title: string;
 					body: string;
 					createdAt: string;
+					titleEn?: string | undefined;
+					bodyEn?: string | undefined;
 					readAt?: string | undefined;
 					linkTo?: string | undefined;
 				}[];

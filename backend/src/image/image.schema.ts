@@ -40,6 +40,8 @@ export const uploadPurpose = z.enum([
   'room',
   /** Images.InspectionPicture — what the inspector saw at grading */
   'inspection',
+  /** AccountInfo.AvatarUrl — a user's own profile picture (#135) */
+  'avatar',
 ]);
 export type UploadPurpose = z.infer<typeof uploadPurpose>;
 

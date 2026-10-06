@@ -131,8 +131,14 @@ group chat. A leaked key can be deleted in Brevo and replaced.
    - `CORS_ORIGINS`, `PUBLIC_APP_URL`, `PUBLIC_API_URL`: the frontend URL,
      e.g. `https://ulms-frontend.onrender.com` (the frontend forwards API and
      photo paths to the backend, so all three are the frontend).
-   - `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `MAIL_FROM`: from
-     Brevo.
+   - `SMTP_HOST`, `SMTP_USER`, `SMTP_PASS`: from Brevo. `SMTP_USER` is the
+     SMTP login Brevo shows, not your account email.
+   - `SMTP_PORT`: `2525`. Render's free plan blocks outgoing ports 25, 465
+     and 587, so Brevo's usual 587 times out; 2525 is the same relay.
+   - `MAIL_FROM`: `ULMs <the sender you verified in Brevo>`. Not an `@ku.th`
+     address: ku.th publishes DMARC `p=quarantine` and only lets KU's own
+     servers send for it, so mail sent "from" ku.th through Brevo lands in
+     quarantine or spam.
 3. If Render gave the backend a URL other than
    `https://ulms-backend.onrender.com`, change the rewrite destinations in
    `render.yaml` and push.
@@ -164,5 +170,10 @@ account per role for the teacher.
 - Fail a login a few times from one browser, then sign in from another
   network: it must still work. If it is locked out too, every visitor shares
   one IP behind Render's proxy and `TRUST_PROXY_HOPS` needs adjusting.
-- If registration email never arrives, Render may be blocking SMTP ports on
-  the free plan; the fix is sending through Brevo's HTTP API instead.
+- Send a password reset to a real `@ku.th` inbox and check it arrives (also
+  look in junk). If it does not, check Brevo -> Transactional -> Logs: nothing
+  there means the backend never reached Brevo (see `SMTP_PORT` above); a
+  blocked or bounced entry means the sender or recipient was refused.
+- The first send from Render may be held by Brevo as a new IP. Approve it under
+  Security -> Authorized IPs, or turn off IP blocking for SMTP keys, since the
+  free plan's outgoing IP can change.

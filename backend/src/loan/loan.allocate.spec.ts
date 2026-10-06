@@ -256,11 +256,13 @@ describe('confirmPickup before the booked time', () => {
     expect(t.tx.usageLog.update).not.toHaveBeenCalled();
   });
 
-  it('moves the due date one day earlier and keeps its clock time when pickup is at the planned clock time', async () => {
+  it('moves the due date one day earlier, and off a weekend to Monday closing time (#178)', async () => {
     const t = svcFor(prepared());
     await t.svc.confirmPickup(staff, { usageKey: 8, early: true });
 
-    const due = new Date('2099-01-10T09:00:00Z');
+    // Sunday 11 Jan 16:00 one day earlier is Saturday, which the counter is
+    // shut on, so it lands on Monday 12 Jan 17:00 Bangkok.
+    const due = new Date('2099-01-12T10:00:00Z');
     expect(t.tx.reservations.update).toHaveBeenCalledWith({
       where: { ReservationKey: 11 },
       data: { StartTime: now, EndTime: due },
@@ -343,9 +345,10 @@ describe('confirmPickup before the booked time', () => {
       expectedDue: '2026-10-08T17:00:00+07:00',
     },
     {
-      name: 'different Bangkok dates within the same UTC calendar day',
-      planned: '2026-10-05T00:30:00+07:00',
-      actual: '2026-10-04T23:30:00+07:00',
+      name: 'pickup the previous evening at closing time',
+      // Kept inside counter hours: Oct 5 08:00 vs Oct 4 17:00 (#179).
+      planned: '2026-10-05T08:00:00+07:00',
+      actual: '2026-10-04T17:00:00+07:00',
       originalDue: '2026-10-08T17:00:00+07:00',
       expectedDue: '2026-10-07T17:00:00+07:00',
     },
@@ -359,7 +362,7 @@ describe('confirmPickup before the booked time', () => {
   ];
 
   describe.each(['T0', 'T1', 'T2'])(
-    'FR-PKP-06 / known defect / %s: early pickup preserves the original due clock time',
+    'FR-PKP-06 / %s: early pickup preserves the original due clock time',
     (tier) => {
       describe.each(earlyDateCases)('$name', (scenario) => {
         let writes: { due: Date; reservationEnd: Date };
@@ -415,15 +418,11 @@ describe('confirmPickup before the booked time', () => {
           writes = { due, reservationEnd };
         });
 
-        // Confirmed red for all four scenarios in each of T0-T2 on 2 Oct 2026.
-        // Remove the marker once a product fix makes this assertion pass.
-        it.failing(
-          'shifts only the due calendar date in Asia/Bangkok and preserves the original time in both records',
-          () => {
-            const expected = new Date(scenario.expectedDue);
-            expect(writes).toEqual({ due: expected, reservationEnd: expected });
-          },
-        );
+        // #150: these were red before the due date moved by calendar days.
+        it('shifts only the due calendar date in Asia/Bangkok and preserves the original time in both records', () => {
+          const expected = new Date(scenario.expectedDue);
+          expect(writes).toEqual({ due: expected, reservationEnd: expected });
+        });
       });
     },
   );

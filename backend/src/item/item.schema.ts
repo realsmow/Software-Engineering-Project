@@ -736,6 +736,12 @@ export const roomAvailabilityOutput = z.object({
   roomKey: z.number().int(),
   date: isoDate,
   slots: z.array(roomSlotOutput),
+  /**
+   * Whether this borrower matches one of the room's eligibility rules. When
+   * false every slot reads unavailable, since booking one would be refused
+   * with NOT_ELIGIBLE (#163).
+   */
+  eligible: z.boolean(),
   /** Echoed so the client's "เลือกได้สูงสุด N ช่วง" line cannot drift from the rule. */
   maxSlotsPerBooking: z.number().int().positive(),
   slotMinutes: z.number().int().positive(),

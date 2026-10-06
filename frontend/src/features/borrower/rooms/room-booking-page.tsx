@@ -46,10 +46,17 @@ export default function RoomBookingPage() {
   const [error, setError] = useState<string | null>(null);
 
   const slots: RoomSlot[] = useMemo(() => day?.slots ?? [], [day]);
+  // The room's own break, if it has one: the gap between two slots (#172).
+  const breakGap = useMemo(() => {
+    const i = slots.findIndex(
+      (s, n) => n + 1 < slots.length && s.end !== slots[n + 1].start
+    );
+    return i < 0 ? null : { from: slots[i].end, to: slots[i + 1].start };
+  }, [slots]);
   // Taken by someone else, or already in the past.
   const booked = useMemo(
     () => new Set(slots.filter((s) => !s.available).map((s) => s.index)),
-    [slots],
+    [slots]
   );
 
   // One room at a time: a booking already in flight closes this form.
@@ -66,11 +73,19 @@ export default function RoomBookingPage() {
     return (
       <Panel>
         <div className="flex flex-col items-center gap-1.5 px-6 py-12 text-center">
-          <div className="text-sm font-semibold text-foreground">{t("borrower.booking.notFound")}</div>
+          <div className="text-sm font-semibold text-foreground">
+            {t("borrower.booking.notFound")}
+          </div>
           <div className="max-w-sm text-xs leading-relaxed text-t3">
             {t("borrower.booking.notFoundDesc")}
           </div>
-          <Button type="button" variant="outline" size="sm" className="mt-3" onClick={backToList}>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="mt-3"
+            onClick={backToList}
+          >
             {t("borrower.booking.back")}
           </Button>
         </div>
@@ -125,7 +140,11 @@ export default function RoomBookingPage() {
   }
 
   const canSubmit =
-    room.bookable && picked.size > 0 && !roomFull && heldBooking === null && !create.isPending;
+    room.bookable &&
+    picked.size > 0 &&
+    !roomFull &&
+    heldBooking === null &&
+    !create.isPending;
 
   const timeLabel =
     pickedIdx.length === 0
@@ -156,7 +175,10 @@ export default function RoomBookingPage() {
 
   return (
     <div>
-      <PageHeader title={t("nav.roomBooking")} subtitle={t("borrower.booking.subtitle")} />
+      <PageHeader
+        title={t("nav.roomBooking")}
+        subtitle={t("borrower.booking.subtitle")}
+      />
 
       <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_312px]">
         <div className="flex min-w-0 flex-col gap-4">
@@ -197,9 +219,17 @@ export default function RoomBookingPage() {
                   </span>
                   {/* Same-day only: locked rather than hidden so the borrower can
                       still read which date the booking lands on. */}
-                  <Input type="date" className="font-mono" value={today} readOnly disabled />
+                  <Input
+                    type="date"
+                    className="font-mono"
+                    value={today}
+                    readOnly
+                    disabled
+                  />
                 </label>
-                <p className="mt-1.5 text-[11.5px] text-t4">{t("borrower.booking.sameDay")}</p>
+                <p className="mt-1.5 text-[11.5px] text-t4">
+                  {t("borrower.booking.sameDay")}
+                </p>
               </div>
 
               <div className="mt-4 text-sm font-semibold text-foreground">
@@ -211,6 +241,13 @@ export default function RoomBookingPage() {
                   hours: maxHours,
                 })}
               </p>
+
+              {/* The server greys every slot for a room this borrower may not book (#163). */}
+              {day?.eligible === false ? (
+                <p className="mt-2.5 rounded-md border border-border bg-surface-inset px-3 py-2 text-xs text-t2">
+                  {t("borrower.booking.notEligible")}
+                </p>
+              ) : null}
 
               <div className="mt-2.5 overflow-x-auto pb-1">
                 <div className="grid min-w-[730px] grid-cols-10 gap-1.5">
@@ -228,10 +265,17 @@ export default function RoomBookingPage() {
                         className={cn(
                           "inline-flex min-h-[34px] min-w-[68px] items-center justify-center rounded border px-2.5 font-mono text-xs font-medium transition-colors",
                           isPicked && "border-accent bg-accent text-white",
-                          !isPicked && locked === "booked" && "border-border bg-surface-inset text-t4",
-                          !isPicked && locked !== "booked" && locked !== null && "border-border bg-card text-t4 opacity-50",
-                          !isPicked && locked === null && "border-border bg-card text-t2 hover:border-line-strong hover:text-foreground",
-                          locked !== null && "cursor-not-allowed",
+                          !isPicked &&
+                            locked === "booked" &&
+                            "border-border bg-surface-inset text-t4",
+                          !isPicked &&
+                            locked !== "booked" &&
+                            locked !== null &&
+                            "border-border bg-card text-t4 opacity-50",
+                          !isPicked &&
+                            locked === null &&
+                            "border-border bg-card text-t2 hover:border-line-strong hover:text-foreground",
+                          locked !== null && "cursor-not-allowed"
                         )}
                       >
                         {slot.start}
@@ -241,13 +285,21 @@ export default function RoomBookingPage() {
                 </div>
               </div>
 
-              <p className="mt-2.5 text-xs leading-relaxed text-t3">
-                {t("borrower.booking.slotBreak")}
-              </p>
+              {breakGap && (
+                <p className="mt-2.5 text-xs leading-relaxed text-t3">
+                  {t("borrower.booking.slotBreak", breakGap)}
+                </p>
+              )}
 
               <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1.5 text-xs text-t3">
-                <LegendSwatch className="border-border bg-card" label={t("borrower.booking.slotFree")} />
-                <LegendSwatch className="border-accent bg-accent" label={t("borrower.booking.slotPicked")} />
+                <LegendSwatch
+                  className="border-border bg-card"
+                  label={t("borrower.booking.slotFree")}
+                />
+                <LegendSwatch
+                  className="border-accent bg-accent"
+                  label={t("borrower.booking.slotPicked")}
+                />
                 <LegendSwatch
                   className="border-border bg-surface-inset"
                   label={t("borrower.booking.slotTaken")}
@@ -310,7 +362,12 @@ export default function RoomBookingPage() {
             </div>
 
             <div className="flex flex-col gap-2 border-t border-border px-3.5 py-3">
-              <Button type="button" className="h-10" disabled={!canSubmit} onClick={() => void submit()}>
+              <Button
+                type="button"
+                className="h-10"
+                disabled={!canSubmit}
+                onClick={() => void submit()}
+              >
                 {create.isPending ? t("common.loading") : t("borrower.booking.submit")}
               </Button>
             </div>
@@ -321,7 +378,9 @@ export default function RoomBookingPage() {
               <span className="mt-0.5 shrink-0 text-accent">
                 <Check size={15} strokeWidth={2.4} />
               </span>
-              <p className="text-xs leading-relaxed text-t3">{t("borrower.booking.autoNote")}</p>
+              <p className="text-xs leading-relaxed text-t3">
+                {t("borrower.booking.autoNote")}
+              </p>
             </div>
           </div>
         </aside>
@@ -352,7 +411,9 @@ function StepsBar() {
             <span
               className={cn(
                 "inline-flex h-[22px] w-[22px] items-center justify-center rounded border font-mono text-xs font-semibold",
-                active ? "border-accent bg-accent text-white" : "border-border bg-transparent text-t3",
+                active
+                  ? "border-accent bg-accent text-white"
+                  : "border-border bg-transparent text-t3"
               )}
             >
               {i + 1}
@@ -360,7 +421,7 @@ function StepsBar() {
             <span
               className={cn(
                 "whitespace-nowrap text-[13px]",
-                active ? "font-semibold text-foreground" : "text-t3",
+                active ? "font-semibold text-foreground" : "text-t3"
               )}
             >
               {label}
@@ -382,7 +443,9 @@ function RoomCard({ room }: { room: Room }) {
     <div className="flex items-start gap-3">
       <ImageThumb src={room.imageUrl} alt={room.name} size={64} icon={Building2} />
       <div className="min-w-0">
-        <div className="text-[15px] font-semibold leading-snug text-foreground">{room.name}</div>
+        <div className="text-[15px] font-semibold leading-snug text-foreground">
+          {room.name}
+        </div>
         {room.description ? (
           <div className="mt-1 text-[11px] text-t4">{room.description}</div>
         ) : null}
@@ -397,7 +460,10 @@ function RoomCard({ room }: { room: Room }) {
 function LegendSwatch({ className, label }: { className: string; label: string }) {
   return (
     <span className="inline-flex items-center gap-2">
-      <span className={cn("inline-block h-[9px] w-[9px] border", className)} aria-hidden />
+      <span
+        className={cn("inline-block h-[9px] w-[9px] border", className)}
+        aria-hidden
+      />
       {label}
     </span>
   );
@@ -411,7 +477,7 @@ function Notice({ tone, children }: { tone: "warn" | "alert"; children: ReactNod
         "mt-3 rounded border border-l-[3px] px-3 py-2.5 text-xs leading-relaxed",
         tone === "warn"
           ? "border-border border-l-accent-orange bg-[var(--s-hot-bg)] text-[var(--s-hot-t)]"
-          : "border-border border-l-[var(--s-alert-t)] bg-[var(--s-alert-bg)] text-[var(--s-alert-t)]",
+          : "border-border border-l-[var(--s-alert-t)] bg-[var(--s-alert-bg)] text-[var(--s-alert-t)]"
       )}
     >
       <span className="inline-flex items-start gap-2">
@@ -449,7 +515,9 @@ function SumRow({
   return (
     <div className="flex justify-between gap-3">
       <span className="text-t3">{label}</span>
-      <span className={cn("text-right font-medium text-foreground", !plain && "font-mono")}>
+      <span
+        className={cn("text-right font-medium text-foreground", !plain && "font-mono")}
+      >
         {children}
       </span>
     </div>

@@ -139,6 +139,16 @@ describe("Authentication flow — Module 1.4", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("#147 terms and privacy open with their text, not an empty frame", async () => {
+    render(
+      <MemoryRouter initialEntries={["/login"]}>
+        <LoginPage />
+      </MemoryRouter>
+    );
+    fireEvent.click(screen.getByRole("button", { name: "auth.termsOfUse" }));
+    expect(await screen.findByText("auth.termsBody")).toBeInTheDocument();
+  });
+
   it("1.4.1 KU login → tRPC → cookie/session response → redirect", async () => {
     mocks.login.mockResolvedValue({ user: borrower });
     render(
@@ -197,6 +207,15 @@ describe("Authentication flow — Module 1.4", () => {
     mocks.me.mockRejectedValue(new Error("NOT_AUTHENTICATED"));
     render(<App />);
     await waitFor(() => expect(useAuthStore.getState().user).toBeNull());
+  });
+
+  it("1.4.5b auth.me answering null (signed out, #184) leaves no user", async () => {
+    useAuthStore.setState({ user: { id: "1" } as never, isLoading: true });
+    mocks.me.mockResolvedValue(null);
+    render(<App />);
+    await waitFor(() =>
+      expect(useAuthStore.getState()).toMatchObject({ user: null, isLoading: false })
+    );
   });
 
   it("1.4.6 logout calls auth.logout, clears store, and leaves authenticated state", async () => {

@@ -122,8 +122,9 @@ export class RegistrationService {
     const link = `${this.appUrl}/verify-email?token=${token}`;
     await this.send(
       email,
-      'Confirm your ULMs account',
-      `Open this link to finish creating your account. It expires in 24 hours and works once.\n\n${link}\n\nIf you did not sign up, ignore this message. The account cannot be used until the link is opened.`,
+      // Thai first (NFR-USB-01), English below for staff without Thai (#168).
+      'ULMs: ยืนยันบัญชีของคุณ / Confirm your account',
+      `เปิดลิงก์นี้เพื่อยืนยันและเปิดใช้บัญชี ลิงก์ใช้ได้ภายใน 24 ชั่วโมงและใช้ได้ครั้งเดียว\n\n${link}\n\nหากคุณไม่ได้สมัคร ไม่ต้องทำอะไร บัญชีจะใช้งานไม่ได้จนกว่าจะเปิดลิงก์นี้\n\n---\nOpen the link above to confirm your account. It expires in 24 hours and works once. If you did not sign up, ignore this message.`,
     );
   }
 
@@ -178,8 +179,8 @@ export class RegistrationService {
   private sendAlreadyRegistered(to: string): Promise<void> {
     return this.send(
       to,
-      'Someone tried to sign up with your ULMs address',
-      `An account already exists for this address, so nothing was created.\n\nIf that was you, sign in instead, or use the forgotten-password link if you cannot remember it: ${this.appUrl}/forgot-password\n\nIf it was not you, no action is needed.`,
+      'ULMs: มีการสมัครด้วยอีเมลของคุณ / Sign-up attempt with your address',
+      `อีเมลนี้มีบัญชีอยู่แล้ว ระบบจึงไม่ได้สร้างบัญชีใหม่\n\nหากเป็นคุณ ให้เข้าสู่ระบบตามปกติ หรือตั้งรหัสผ่านใหม่หากจำไม่ได้: ${this.appUrl}/forgot-password\n\nหากไม่ใช่คุณ ไม่ต้องทำอะไร\n\n---\nAn account already exists for this address, so nothing was created. If that was you, sign in or reset your password at the link above. If not, no action is needed.`,
     );
   }
 
