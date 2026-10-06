@@ -320,7 +320,7 @@ export const extensionReviewRow = z.object({
   reason: z.string().nullable(),
   status: approveStatus,
   /** Staff condition check. Always null on the staff route, which records it on decide. */
-  inspection: extensionInspection.nullable(),
+  inspection: extensionInspection.nullable().default(null),
 });
 
 export const paginatedExtensionReviews = paginated(extensionReviewRow);
