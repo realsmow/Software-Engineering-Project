@@ -398,8 +398,7 @@ describe("StaffQueuePage", () => {
         expectQueue("toPrepare");
       });
 
-      // Confirmed absent before marking: DataTable drops headerActions without title.
-      it.fails("QA-STF-02: displays a usable Back to the main queue action", () => {
+      it("QA-STF-02: displays a usable Back to the main queue action", () => {
         expect(backButton()).toBeEnabled();
         fireEvent.click(backButton());
         expectQueue("toPrepare");
@@ -422,8 +421,7 @@ describe("StaffQueuePage", () => {
           }
         });
 
-        // All eight cases failed at the missing target row before adding .fails.
-        it.fails("shows the selected main queue after clicking its count tile", () => {
+        it("shows the selected main queue after clicking its count tile", () => {
           expectQueue(bucket);
         });
       });
