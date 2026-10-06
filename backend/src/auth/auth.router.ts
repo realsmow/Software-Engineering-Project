@@ -20,6 +20,10 @@ import {
   requestPasswordResetInput,
   resetPasswordWithTokenInput,
   verifyEmailInput,
+  requestAvatarUploadInput,
+  setAvatarInput,
+  type RequestAvatarUploadInput,
+  type SetAvatarInput,
   type ChangePasswordInput,
   type LoginInput,
   type RegisterInput,
@@ -28,7 +32,13 @@ import {
   type VerifyEmailInput,
 } from './auth.schema';
 import { AuthService } from './auth.service';
-import { SESSION_COOKIE, SessionService } from './session.service';
+import {
+  SESSION_COOKIE,
+  SessionService,
+  type SignInMethod,
+} from './session.service';
+import { ImageService } from '../image/image.service';
+import { requestUploadOutput } from '../image/image.schema';
 import { LoginThrottleService } from './login-throttle.service';
 import { PasswordResetService } from './password-reset.service';
 import { RegistrationService } from './registration.service';
@@ -51,7 +61,18 @@ export class AuthRouter {
     private readonly passwordReset: PasswordResetService,
     private readonly registration: RegistrationService,
     private readonly google: GoogleOAuthService,
+    private readonly images: ImageService,
   ) {}
+
+  /** The profile as clients see it: picture as a public URL, plus how they signed in. */
+  private async profile(accountKey: number, signInMethod: SignInMethod | null) {
+    const user = await this.authService.getProfile(accountKey);
+    return {
+      ...user,
+      avatarUrl: this.images.toPublicUrl(user.avatarUrl),
+      signInMethod,
+    };
+  }
 
   /**
    * FR-AUTH-01: so the login page shows the Google button only when it
@@ -73,11 +94,53 @@ export class AuthRouter {
     return { google: this.google.isEnabled() };
   }
 
-  /** Own profile: role, faculty, and the borrow limits of the current credit tier */
+  /**
+   * Own profile: role, faculty, and the borrow limits of the current credit tier.
+   *
+   * Null when signed out rather than 401: every public page asks this, and
+   * "nobody yet" is the normal answer there, not an error (#184).
+   */
+  @Query({ output: userOutput.nullable() })
+  async me(@Ctx() ctx: TrpcContext) {
+    if (!ctx.user) return null;
+    return this.profile(
+      ctx.user.accountKey,
+      await this.session.methodOf(ctx.req),
+    );
+  }
+
+  /** #135: somewhere to upload the caller's own profile picture. */
   @UseMiddlewares(AuthMiddleware)
-  @Query({ output: userOutput })
-  me(@Ctx() ctx: TrpcContext) {
-    return this.authService.getProfile(ctx.user!.accountKey);
+  @Mutation({ input: requestAvatarUploadInput, output: requestUploadOutput })
+  requestAvatarUpload(
+    @Input() input: RequestAvatarUploadInput,
+    @Ctx() ctx: TrpcContext,
+  ) {
+    return this.images.issueTicket(
+      { ...input, purpose: 'avatar' },
+      ctx.user!.accountKey,
+    );
+  }
+
+  /**
+   * #135: keep (or clear) the uploaded picture. Only a path under our own
+   * avatar folder is accepted, so this cannot point a profile at anything else.
+   */
+  @UseMiddlewares(AuthMiddleware)
+  @Mutation({ input: setAvatarInput, output: userOutput })
+  async setAvatar(@Input() input: SetAvatarInput, @Ctx() ctx: TrpcContext) {
+    const stored =
+      input.imageUrl === null ? null : this.images.toStoredUrl(input.imageUrl);
+    if (stored !== null && !stored.startsWith('/media/avatar/')) {
+      throw new BusinessError('AVATAR_URL_INVALID', {
+        imageUrl: input.imageUrl,
+      });
+    }
+    await this.authService.setAvatar(ctx.user!.accountKey, stored);
+    return this.profile(
+      ctx.user!.accountKey,
+      await this.session.methodOf(ctx.req),
+    );
   }
 
   /**
@@ -129,7 +192,7 @@ export class AuthRouter {
       'Signed in',
     );
 
-    return { user: await this.authService.getProfile(accountKey) };
+    return { user: await this.profile(accountKey, 'password') };
   }
 
   /**

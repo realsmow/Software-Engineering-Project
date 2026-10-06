@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import i18n from "../../src/i18n";
 import AdminConfigPage from "../../src/features/admin/config/config-page";
 import AdminStatusPage from "../../src/features/admin/status/status-page";
+import AdminDashboardPage from "../../src/features/admin/dashboard/dashboard-page";
 import type { TechnicalConfig } from "../../src/features/admin/config/config.types";
 import type { CronJob, SystemStatus } from "../../src/features/admin/status/status.types";
 import { getErrorMessage } from "../../src/lib/error-messages";
@@ -20,6 +21,14 @@ vi.mock("../../src/features/admin/status/use-system-status", () => ({
   useSystemStatus: useSystemStatusMock,
   useCronJobs: useCronJobsMock,
   useRunCronJob: useRunCronJobMock,
+}));
+
+vi.mock("../../src/features/admin/users/use-admin-users", () => ({
+  useAdminUsers: () => ({ data: [] }),
+}));
+
+vi.mock("../../src/features/admin/audit/use-audit-events", () => ({
+  useAuditEvents: () => ({ data: [] }),
 }));
 
 vi.mock("../../src/features/admin/config/use-config", () => ({
@@ -168,9 +177,23 @@ describe("IT admin status and technical configuration pages", () => {
     expect(screen.getByText("Operational")).toBeInTheDocument();
     expect(screen.getByText("v22.14.0")).toBeInTheDocument();
     expect(screen.getByText("42")).toBeInTheDocument();
-    expect(screen.getByText("Open T3 inspection rounds")).toBeInTheDocument();
+    expect(screen.getByText(i18n.t("admin.status.jobs.openT3InspectionRounds.name"))).toBeInTheDocument();
     expect(screen.getByText("Not implemented")).toBeInTheDocument();
     expect(screen.getByText("Success")).toBeInTheDocument();
+  });
+
+  it("summarises the jobs on the overview without a development counter (#134)", () => {
+    render(
+      <MemoryRouter>
+        <AdminDashboardPage />
+      </MemoryRouter>
+    );
+
+    expect(
+      screen.getByText(i18n.t("admin.overview.jobsSummary", { total: 2 }))
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/not implemented$/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/read from the server/)).not.toBeInTheDocument();
   });
 
   it("shows loading and unavailable status states", () => {
@@ -207,7 +230,7 @@ describe("IT admin status and technical configuration pages", () => {
         <AdminStatusPage />
       </MemoryRouter>
     );
-    const row = screen.getByText("Open T3 inspection rounds").closest("tr");
+    const row = screen.getByText(i18n.t("admin.status.jobs.openT3InspectionRounds.name")).closest("tr");
     expect(row).not.toBeNull();
     fireEvent.click(within(row as HTMLElement).getByRole("button", { name: "Run now" }));
 

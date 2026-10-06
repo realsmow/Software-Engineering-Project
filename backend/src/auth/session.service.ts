@@ -27,6 +27,8 @@ const DEFAULT_TTL_HOURS = 12;
  * This is the only class that knows a cookie is involved. Everything upstream
  * sees an account key, everything downstream sees ctx.user.
  */
+export type SignInMethod = 'password' | 'google';
+
 @Injectable()
 export class SessionService {
   private readonly logger = new Logger(SessionService.name);
@@ -77,6 +79,7 @@ export class SessionService {
     res: Response,
     accountKey: number,
     persist = true,
+    method: SignInMethod = 'password',
   ): Promise<string> {
     const sessionId = randomBytes(32).toString('base64url');
     const expiresAt = new Date(Date.now() + this.ttlMs);
@@ -86,6 +89,7 @@ export class SessionService {
         AccountKey: accountKey,
         TokenHash: SessionService.hash(sessionId),
         ExpiresAt: expiresAt,
+        Method: method,
       },
     });
 
@@ -120,6 +124,21 @@ export class SessionService {
     if (session.ExpiresAt.getTime() <= Date.now()) return null;
 
     return session.AccountKey;
+  }
+
+  /** How the caller's session signed in, or null if unknown or not signed in. */
+  async methodOf(req: Request): Promise<SignInMethod | null> {
+    const token: unknown = req.cookies?.[SESSION_COOKIE];
+    if (typeof token !== 'string' || token.length === 0) return null;
+    const sessionId = verifyToken(token, this.secret);
+    if (sessionId === null) return null;
+    const row = await this.prisma.sessionInfo.findUnique({
+      where: { TokenHash: SessionService.hash(sessionId) },
+      select: { Method: true },
+    });
+    return row?.Method === 'password' || row?.Method === 'google'
+      ? row.Method
+      : null;
   }
 
   /**

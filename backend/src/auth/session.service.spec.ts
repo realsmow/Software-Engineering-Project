@@ -104,6 +104,20 @@ describe('SessionService', () => {
     ).resolves.toBe(accountKey);
   });
 
+  it('records how the session signed in (#170)', async () => {
+    const { res } = responseSpy();
+    const google = await service.issue(res, accountKey, true, 'google');
+    const local = await service.issue(res, accountKey);
+
+    await expect(
+      service.methodOf(requestWith({ [SESSION_COOKIE]: google })),
+    ).resolves.toBe('google');
+    await expect(
+      service.methodOf(requestWith({ [SESSION_COOKIE]: local })),
+    ).resolves.toBe('password');
+    await expect(service.methodOf(requestWith({}))).resolves.toBeNull();
+  });
+
   it('stores a hash, never the token itself', async () => {
     const { res } = responseSpy();
     const token = await service.issue(res, accountKey);

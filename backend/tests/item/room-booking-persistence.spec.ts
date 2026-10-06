@@ -45,6 +45,12 @@ describe('PDF p. 9: room bookings persist in the database', () => {
       await prisma.eligibility.deleteMany({
         where: { ResourceKey: keys.resource },
       });
+      await prisma.usageLog.deleteMany({
+        where: { ResourceKey: keys.resource },
+      });
+      await prisma.conditionLog.deleteMany({
+        where: { ResourceKey: keys.resource },
+      });
       await prisma.roomInfo.deleteMany({
         where: { ResourceKey: keys.resource },
       });
@@ -267,7 +273,7 @@ describe('PDF p. 9: room bookings persist in the database', () => {
         status: 'approved',
         approval: { route: 'auto', status: 'Approved', autoApproved: true },
       });
-      const held = await catalog.roomAvailability({
+      const held = await catalog.roomAvailability(user, {
         roomKey: keys.room,
         date: '2031-09-26',
       });
@@ -276,8 +282,36 @@ describe('PDF p. 9: room bookings persist in the database', () => {
           .filter((slot) => [2, 3].includes(slot.index))
           .map((slot) => slot.available),
       ).toEqual([false, false]);
+      // Staff prepare the room (#162): the borrower can still cancel until
+      // check-in, and the prepared row goes with the booking.
+      const condition = await prisma.conditionLog.create({
+        data: {
+          ResourceKey: keys.resource,
+          LoggedBy: keys.account,
+          Condition: 'Normal',
+          LoggedAt: new Date(),
+        },
+      });
+      await prisma.usageLog.create({
+        data: {
+          ReservationKey: key,
+          AccountKey: keys.account,
+          ResourceKey: keys.resource,
+          CurrentStatus: 'Prepared',
+          DueTime: new Date('2031-09-26T04:00:00.000Z'),
+          CheckoutTime: new Date(),
+          CheckoutCondition: condition.ConditionKey,
+        },
+      });
+      expect(
+        (await service().listMine(user, { page: 1, pageSize: 20 })).items[0]
+          .cancellable,
+      ).toBe(true);
       await service().cancel(user, { reservationKey: key });
-      const released = await catalog.roomAvailability({
+      expect(
+        await prisma.usageLog.count({ where: { ReservationKey: key } }),
+      ).toBe(0);
+      const released = await catalog.roomAvailability(user, {
         roomKey: keys.room,
         date: '2031-09-26',
       });

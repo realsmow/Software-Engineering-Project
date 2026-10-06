@@ -6,7 +6,10 @@ import {
   extensionOutput,
   requestExtensionInput,
   decideExtensionInput,
+  inspectExtensionInput,
+  paginatedExtensionReviews,
 } from '../../src/loan/loan.schema';
+import { rollDueOffWeekend } from '../../src/common/schemas/datetime.schema';
 import { inHistoryFixture } from '../fixtures/borrower-history';
 import { creditLoanFixture } from '../fixtures/loan-extension';
 
@@ -32,6 +35,22 @@ async function assertUnchanged(tx: Prisma.TransactionClient, f: Fixture) {
       where: { ReservationKey: f.reservation.ReservationKey },
     }),
   ).toMatchObject({ EndTime: f.due });
+}
+
+/** The fixture's inspector as a staff member over the loan's department. */
+async function staffInScope(tx: Prisma.TransactionClient, f: Fixture) {
+  await tx.authority.create({
+    data: {
+      AccountKey: f.f.inspector.AccountKey,
+      ManageGroupKey: f.f.group.ManageGroupKey,
+      AuthorityRoleKey: f.f.authorityRole.AuthorityRoleKey,
+    },
+  });
+  return {
+    ...f.f.decider,
+    accountKey: f.f.inspector.AccountKey,
+    role: 'staff' as const,
+  };
 }
 
 async function nextBooking(
@@ -426,6 +445,33 @@ describe('SDS renewal workflow: gates before routing and persisted decisions', (
     },
   );
 
+  it('a supervisor deciding a staff-route extension records no condition', async () => {
+    await inHistoryFixture(prisma, async (tx) => {
+      const f = await creditLoanFixture(tx, 'T1', 'D0', 1);
+      const pending = extensionOutput
+        .strict()
+        .parse(await f.extensions.request(f.user, requestFor(f)));
+      const before = await tx.resourceInfo.findUniqueOrThrow({
+        where: { ResourceKey: f.activeLoan.ResourceKey },
+      });
+      await f.extensions.decide(
+        f.f.decider,
+        decideExtensionInput.parse({
+          extensionKey: pending.extensionKey,
+          decision: 'approve',
+        }),
+      );
+      // Decided from the desk without the unit in hand, so nothing is logged.
+      expect(
+        (
+          await tx.resourceInfo.findUniqueOrThrow({
+            where: { ResourceKey: f.activeLoan.ResourceKey },
+          })
+        ).ConditionKey,
+      ).toBe(before.ConditionKey);
+    });
+  });
+
   it.each(
     (
       [
@@ -460,6 +506,17 @@ describe('SDS renewal workflow: gates before routing and persisted decisions', (
         const pending = extensionOutput
           .strict()
           .parse(await f.extensions.request(f.user, input));
+        if (role === 'supervisor') {
+          // #156: staff check the unit before the supervisor decides.
+          await f.extensions.inspect(
+            await staffInScope(tx, f),
+            inspectExtensionInput.parse({
+              extensionKey: pending.extensionKey,
+              condition: 'MinorDamage',
+              note: 'Scratch on the lid',
+            }),
+          );
+        }
         const conditionBefore = (
           await tx.resourceInfo.findUniqueOrThrow({
             where: { ResourceKey: f.activeLoan.ResourceKey },
@@ -517,8 +574,16 @@ describe('SDS renewal workflow: gates before routing and persisted decisions', (
             Notes: 'Inspected at the counter',
           });
         } else {
-          // TC-19: a supervisor decides without the unit, so its condition stays.
+          // The supervisor's decision leaves the staff-recorded condition alone.
           expect(resource.ConditionKey).toBe(conditionBefore);
+          expect(
+            await tx.conditionLog.findUniqueOrThrow({
+              where: { ConditionKey: resource.ConditionKey! },
+            }),
+          ).toMatchObject({
+            LoggedBy: f.f.inspector.AccountKey,
+            Condition: 'MinorDamage',
+          });
         }
         expect(
           await tx.notification.count({
@@ -540,6 +605,13 @@ describe('SDS renewal workflow: gates before routing and persisted decisions', (
       const pending = extensionOutput
         .strict()
         .parse(await f.extensions.request(f.user, requestFor(f)));
+      await f.extensions.inspect(
+        await staffInScope(tx, f),
+        inspectExtensionInput.parse({
+          extensionKey: pending.extensionKey,
+          condition: 'Normal',
+        }),
+      );
       const booking = await nextBooking(tx, f, 'Approved');
       f.audit.record.mockClear();
       await expect(
@@ -562,6 +634,132 @@ describe('SDS renewal workflow: gates before routing and persisted decisions', (
       ).toMatchObject({ ApproveStatus: 'Pending', ApprovedBy: null });
       await assertUnchanged(tx, f);
       expect(f.audit.record).not.toHaveBeenCalled();
+    });
+  });
+
+  it('needs a staff condition check before a supervisor approves a T2 extension (#156)', async () => {
+    await inHistoryFixture(prisma, async (tx) => {
+      const f = await creditLoanFixture(tx, 'T2', 'D0');
+      const pending = extensionOutput
+        .strict()
+        .parse(await f.extensions.request(f.user, requestFor(f)));
+      const staff = await staffInScope(tx, f);
+      const approve = decideExtensionInput.parse({
+        extensionKey: pending.extensionKey,
+        decision: 'approve',
+      });
+
+      await expect(
+        f.extensions.decide(f.f.decider, approve),
+      ).rejects.toMatchObject({
+        businessCode: 'EXTENSION_NOT_INSPECTED',
+      });
+      await assertUnchanged(tx, f);
+
+      // Staff see it waiting for their check, the supervisor sees it unchecked.
+      const staffPile = paginatedExtensionReviews.parse(
+        await f.extensions.listReviews(staff, { page: 1, pageSize: 20 }),
+      );
+      expect(staffPile.items).toEqual([
+        expect.objectContaining({
+          extensionKey: pending.extensionKey,
+          route: 'supervisor',
+          inspection: null,
+        }),
+      ]);
+
+      await f.extensions.inspect(
+        staff,
+        inspectExtensionInput.parse({
+          extensionKey: pending.extensionKey,
+          condition: 'Normal',
+          note: 'Works, no marks',
+        }),
+      );
+      const extension = await tx.extensionRequest.findUniqueOrThrow({
+        where: { ExtensionKey: pending.extensionKey },
+      });
+      expect(extension.ApproveStatus).toBe('Pending');
+      expect(
+        await tx.conditionLog.findUniqueOrThrow({
+          where: { ConditionKey: extension.InspectedCondition! },
+        }),
+      ).toMatchObject({ LoggedBy: staff.accountKey, Notes: 'Works, no marks' });
+
+      // Checked: gone from the staff pile, shown read-only to the supervisor.
+      expect(
+        (await f.extensions.listReviews(staff, { page: 1, pageSize: 20 }))
+          .items,
+      ).toEqual([]);
+      const supervisorPile = paginatedExtensionReviews.parse(
+        await f.extensions.listReviews(f.f.decider, {
+          page: 1,
+          pageSize: 20,
+          route: 'supervisor',
+        }),
+      );
+      expect(supervisorPile.items[0].inspection).toMatchObject({
+        condition: 'Normal',
+        note: 'Works, no marks',
+      });
+      await expect(f.extensions.decide(staff, approve)).rejects.toMatchObject({
+        businessCode: 'EXTENSION_NEEDS_SUPERVISOR',
+      });
+
+      const result = extensionOutput
+        .strict()
+        .parse(await f.extensions.decide(f.f.decider, approve));
+      expect(result.status).toBe('Approved');
+    });
+  });
+
+  it('rolls a weekend due date to Monday closing time (#178)', async () => {
+    await inHistoryFixture(prisma, async (tx) => {
+      const f = await creditLoanFixture(tx, 'T2', 'D0');
+      // First Saturday (Bangkok) after the current due date.
+      let asked = new Date(f.due.getTime() + DAY);
+      while (new Date(asked.getTime() + 7 * 3_600_000).getUTCDay() !== 6) {
+        asked = new Date(asked.getTime() + DAY);
+      }
+      const pending = extensionOutput.strict().parse(
+        await f.extensions.request(
+          f.user,
+          requestExtensionInput.parse({
+            usageKey: f.activeLoan.UsageKey,
+            requestedDueAt: asked.toISOString(),
+            reason: 'Finish the laboratory project',
+          }),
+        ),
+      );
+      const stored = await tx.extensionRequest.findUniqueOrThrow({
+        where: { ExtensionKey: pending.extensionKey },
+      });
+      expect(stored.RequestedDueTime.getTime()).toBe(
+        rollDueOffWeekend(asked).getTime(),
+      );
+      expect(
+        new Date(stored.RequestedDueTime.getTime() + 7 * 3_600_000).getUTCDay(),
+      ).toBe(1);
+    });
+  });
+
+  it('refuses a separate check on a staff-routed extension', async () => {
+    await inHistoryFixture(prisma, async (tx) => {
+      const f = await creditLoanFixture(tx, 'T1', 'D0', 1);
+      const pending = extensionOutput
+        .strict()
+        .parse(await f.extensions.request(f.user, requestFor(f)));
+      await expect(
+        f.extensions.inspect(
+          await staffInScope(tx, f),
+          inspectExtensionInput.parse({
+            extensionKey: pending.extensionKey,
+            condition: 'Normal',
+          }),
+        ),
+      ).rejects.toMatchObject({
+        businessCode: 'EXTENSION_INSPECTION_NOT_NEEDED',
+      });
     });
   });
 });

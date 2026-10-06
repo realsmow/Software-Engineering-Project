@@ -98,7 +98,7 @@ export class GoogleAuthController {
 
     try {
       const accountKey = await this.google.signIn(code);
-      await this.session.issue(res, accountKey);
+      await this.session.issue(res, accountKey, true, 'google');
 
       // Same audit trail as password login (auth.router.ts's login mutation).
       await this.audit.record(

@@ -48,7 +48,7 @@ test.describe("Admin console pages", () => {
 
     await expect(page.getByRole("heading", { name: "Technical config" })).toBeVisible();
     await expect(
-      page.getByText(/Every value below comes from an environment variable/i)
+      page.getByText(/The values below come from environment variables/i)
     ).toBeVisible();
     await expect(page.getByRole("heading", { name: "Security" })).toBeVisible();
   });

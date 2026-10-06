@@ -71,7 +71,8 @@ export function LoginPage() {
   };
 
   // KU email → the email is the identifier.
-  const handleKuLogin = (values: KuLoginValues) => signIn(values.email.trim(), values.password);
+  const handleKuLogin = (values: KuLoginValues) =>
+    signIn(values.email.trim(), values.password);
 
   // Local account → the assigned username (AccountInfo.UserID).
   const handleLocalLogin = (values: LocalLoginValues) =>
@@ -111,7 +112,11 @@ export function LoginPage() {
             title={isDark ? t("theme.lightMode") : t("theme.darkMode")}
             aria-label={isDark ? t("theme.lightMode") : t("theme.darkMode")}
           >
-            {isDark ? <Sun size={16} strokeWidth={2} /> : <Moon size={16} strokeWidth={2} />}
+            {isDark ? (
+              <Sun size={16} strokeWidth={2} />
+            ) : (
+              <Moon size={16} strokeWidth={2} />
+            )}
           </button>
         </div>
 
@@ -146,8 +151,8 @@ export function LoginPage() {
             <Link to={ROUTES.REGISTER} className="login-footer-link">
               {t("auth.createAccount")}
             </Link>
-            <LegalDialog label={t("auth.termsOfUse")} />
-            <LegalDialog label={t("auth.privacyPolicy")} />
+            <LegalDialog label={t("auth.termsOfUse")} body={t("auth.termsBody")} />
+            <LegalDialog label={t("auth.privacyPolicy")} body={t("auth.privacyBody")} />
             <SignInHelp className="login-footer-link" />
           </div>
         </div>
@@ -157,17 +162,15 @@ export function LoginPage() {
 }
 
 /**
- * Terms of use and privacy policy.
+ * Terms of use and privacy policy (#147).
  *
- * Empty on purpose. A PDPA privacy notice has to state what this university
- * actually collects and how long it keeps it, which is a decision rather than
- * a paragraph to invent - so the frame is here and the text is not.
+ * The privacy text lists only what the schema actually stores. Retention is
+ * not promised because none is configured; deletion goes through an admin.
  *
  * Closing on a click outside comes from Radix; the backdrop blur lives on the
  * shared DialogOverlay so every modal in the app behaves the same way.
  */
-function LegalDialog({ label }: { label: string }) {
-  const { t } = useTranslation();
+function LegalDialog({ label, body }: { label: string; body: string }) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -177,10 +180,10 @@ function LegalDialog({ label }: { label: string }) {
       </button>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-h-[85vh] max-w-lg overflow-y-auto">
           <DialogTitle>{label}</DialogTitle>
-          <p className="py-8 text-center text-sm text-muted-foreground">
-            {t("auth.legalPending")}
+          <p className="whitespace-pre-line text-sm leading-relaxed text-foreground">
+            {body}
           </p>
         </DialogContent>
       </Dialog>

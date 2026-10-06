@@ -14,12 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { DataTable, type Column } from "@/components/ui/data-table";
 import { BUSINESS, ROUTES } from "@/constants";
 import { cn } from "@/lib/utils";
@@ -88,12 +83,13 @@ export default function CatalogPage() {
     startDate,
     pickupTime,
     endDate,
-    returnTime,
+    returnTime
   );
   const { data: items = [], isLoading } = useEquipmentTypes(availabilityWindow);
 
   function decreaseItem(item: CatalogItem) {
-    const qty = useRequestDraft.getState().lines.find((line) => line.itemId === item.id)?.qty ?? 0;
+    const qty =
+      useRequestDraft.getState().lines.find((line) => line.itemId === item.id)?.qty ?? 0;
     if (qty <= 1) removeItem(item.id);
     else setQty(item.id, qty - 1, item.availableUnits);
   }
@@ -196,7 +192,7 @@ export default function CatalogPage() {
         .flatMap((g) => g.options)
         .filter((o) => selected.has(o.key))
         .map((o) => ({ key: o.key, label: o.chipLabel ?? o.label })),
-    [groups, selected],
+    [groups, selected]
   );
 
   const draftTotal = draftLines.reduce((sum, l) => sum + l.qty, 0);
@@ -326,7 +322,12 @@ export default function CatalogPage() {
         </Button>
         <SortSelect value={sort} onChange={setSort} />
       </div>
-      <ChipsStrip chips={chips} shown={rows.length} total={items.length} onRemove={toggleFilter} />
+      <ChipsStrip
+        chips={chips}
+        shown={rows.length}
+        total={items.length}
+        onRemove={toggleFilter}
+      />
       <LegendStrip />
     </>
   );
@@ -387,7 +388,9 @@ export default function CatalogPage() {
                   onRowClick={openDetail}
                   pageSize={PAGE_SIZE}
                   emptyTitle={t("common.loading")}
-                  rangeLabel={(s, e, total) => t("table.range", { start: s, end: e, total })}
+                  rangeLabel={(s, e, total) =>
+                    t("table.range", { start: s, end: e, total })
+                  }
                 />
               )}
             </div>
@@ -419,7 +422,12 @@ export default function CatalogPage() {
             {chips.length > 0 ? (
               <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
                 {chips.map((c) => (
-                  <Chip key={c.key} label={c.label} rounded onRemove={() => toggleFilter(c.key)} />
+                  <Chip
+                    key={c.key}
+                    label={c.label}
+                    rounded
+                    onRemove={() => toggleFilter(c.key)}
+                  />
                 ))}
               </div>
             ) : null}
@@ -450,7 +458,11 @@ export default function CatalogPage() {
       </div>
 
       <Sheet open={filtersOpen} onOpenChange={setFiltersOpen}>
-        <SheetContent side="left" className="flex flex-col gap-0 p-0" aria-describedby={undefined}>
+        <SheetContent
+          side="left"
+          className="flex flex-col gap-0 p-0"
+          aria-describedby={undefined}
+        >
           <SheetHeader className="border-b border-border px-4 py-3.5">
             <SheetTitle>{t("borrower.filters.title")}</SheetTitle>
           </SheetHeader>
@@ -464,10 +476,19 @@ export default function CatalogPage() {
             />
           </div>
           <div className="flex items-center gap-2 border-t border-border bg-secondary px-4 py-3">
-            <Button type="button" variant="outline" className="flex-1" onClick={clearFilters}>
+            <Button
+              type="button"
+              variant="outline"
+              className="flex-1"
+              onClick={clearFilters}
+            >
               {t("borrower.filters.clear")}
             </Button>
-            <Button type="button" className="flex-1" onClick={() => setFiltersOpen(false)}>
+            <Button
+              type="button"
+              className="flex-1"
+              onClick={() => setFiltersOpen(false)}
+            >
               {t("borrower.catalog.showing", { shown: rows.length, total: items.length })}
             </Button>
           </div>
@@ -570,6 +591,7 @@ function CatalogDateTimeField({
       <div className="grid grid-cols-[minmax(0,1fr)_112px] gap-2">
         <Input
           type="date"
+          aria-label={label}
           value={date}
           min={min}
           max={max}
@@ -604,7 +626,10 @@ function SortSelect({
   const { t } = useTranslation();
   return (
     <Select value={value} onValueChange={(v) => onChange(v as SortKey)}>
-      <SelectTrigger className={cn("w-44 shrink-0", className)} aria-label={t("borrower.catalog.sortLabel")}>
+      <SelectTrigger
+        className={cn("w-44 shrink-0", className)}
+        aria-label={t("borrower.catalog.sortLabel")}
+      >
         <SelectValue />
       </SelectTrigger>
       <SelectContent>
@@ -659,7 +684,7 @@ function Chip({
     <span
       className={cn(
         "inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap border border-border bg-card px-2.5 py-1 text-xs font-medium text-t2",
-        rounded ? "rounded-full" : "rounded",
+        rounded ? "rounded-full" : "rounded"
       )}
     >
       {label}
@@ -710,7 +735,9 @@ function ItemCard({
       <div className="flex items-start gap-3">
         <ImageThumb src={item.imageUrl} size={64} />
         <div className="min-w-0">
-          <div className="text-sm font-semibold leading-snug text-foreground">{item.name}</div>
+          <div className="text-sm font-semibold leading-snug text-foreground">
+            {item.name}
+          </div>
           <div className="mt-1 font-mono text-[11px] text-t4">
             {item.code} ·{" "}
             {item.owner?.name ??
@@ -747,13 +774,12 @@ function ItemCard({
   );
 }
 
-
 function AvailCount({ item }: { item: CatalogItem }) {
   return (
     <span
       className={cn(
         "whitespace-nowrap font-mono text-xs tabular-nums",
-        item.availableUnits === 0 ? "text-t4" : "text-foreground",
+        item.availableUnits === 0 ? "text-t4" : "text-foreground"
       )}
     >
       {item.availableUnits} / {item.totalUnits}
@@ -769,7 +795,13 @@ function EmptyState({ onClear }: { onClear: () => void }) {
         {t("borrower.catalog.emptyTitle")}
       </div>
       <div className="text-xs text-t3">{t("borrower.catalog.emptyDesc")}</div>
-      <Button type="button" variant="outline" size="sm" className="mt-3" onClick={onClear}>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        className="mt-3"
+        onClick={onClear}
+      >
         {t("borrower.filters.clearAll")}
       </Button>
     </div>

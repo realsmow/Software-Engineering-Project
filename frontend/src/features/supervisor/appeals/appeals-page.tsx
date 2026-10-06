@@ -52,7 +52,10 @@ export default function SupervisorAppealsPage() {
 
   return (
     <div>
-      <PageHeader title={t("nav.appealsReview")} subtitle={t("supervisor.appeals.subtitle")} />
+      <PageHeader
+        title={t("nav.appealsReview")}
+        subtitle={t("supervisor.appeals.subtitle")}
+      />
 
       <div className="mb-4">
         <Segmented
@@ -142,12 +145,14 @@ function AppealCard({
         decision,
         ...(note.trim() ? { note: note.trim() } : {}),
         ...(decision === "approve" && grade ? { revisedGrade: grade } : {}),
-        ...(decision === "approve" && !grade && parsed ? { reducedCreditDeducted: parsed } : {}),
+        ...(decision === "approve" && !grade && parsed
+          ? { reducedCreditDeducted: parsed }
+          : {}),
       });
       onDecided(
         decision === "approve"
           ? t("supervisor.appeals.doneApprove", { credit: decided.creditRestored })
-          : t("supervisor.appeals.doneReject"),
+          : t("supervisor.appeals.doneReject")
       );
     } catch (err) {
       const key = DECIDE_ERRORS[extractErrorCode(err) ?? ""];
@@ -164,7 +169,8 @@ function AppealCard({
             : t("supervisor.appeals.noStaffNote")}
         </div>
         <div className="font-mono text-[11px] text-t4">
-          {appeal.filedBy.firstName} {appeal.filedBy.lastName} · {appeal.filedBy.studentId} ·{" "}
+          {appeal.filedBy.firstName} {appeal.filedBy.lastName} ·{" "}
+          {appeal.filedBy.studentId} ·{" "}
           {t("staff.queue.credit", { score: appeal.filedBy.creditScore })}
         </div>
       </div>
@@ -175,14 +181,18 @@ function AppealCard({
           <div className="mb-1.5 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.05em] text-t3">
             {t("supervisor.appeals.staffSide")}
             {deducted > 0 ? (
-              <Badge tone="warn">{t("supervisor.appeals.deducted", { credit: deducted })}</Badge>
+              <Badge tone="warn">
+                {t("supervisor.appeals.deducted", { credit: deducted })}
+              </Badge>
             ) : (
               <Badge tone="neutral">{t("supervisor.appeals.noDeduction")}</Badge>
             )}
           </div>
           <p className="font-mono text-[11px] text-t4">
             {appeal.penalty.issuedAt
-              ? t("supervisor.appeals.issuedAt", { when: fmtDateTime(appeal.penalty.issuedAt) })
+              ? t("supervisor.appeals.issuedAt", {
+                  when: fmtDateTime(appeal.penalty.issuedAt),
+                })
               : null}
           </p>
           <p className="font-mono text-[11px] text-t4">
@@ -246,7 +256,9 @@ function AppealCard({
             <>
               {lowerGrades.length > 0 ? (
                 <div className="mb-2.5 flex flex-wrap items-center gap-2">
-                  <span className="text-xs text-t3">{t("supervisor.appeals.reviseGrade")}</span>
+                  <span className="text-xs text-t3">
+                    {t("supervisor.appeals.reviseGrade")}
+                  </span>
                   {lowerGrades.map((g) => (
                     <Button
                       key={g}
@@ -266,9 +278,12 @@ function AppealCard({
               ) : null}
 
               <div className="mb-1 flex flex-wrap items-center gap-2">
-                <span className="text-xs text-t3">{t("supervisor.appeals.reduceLabel")}</span>
+                <span className="text-xs text-t3">
+                  {t("supervisor.appeals.reduceLabel")}
+                </span>
                 <Input
                   type="number"
+                  aria-label={t("supervisor.appeals.reduceLabel")}
                   inputMode="numeric"
                   min={1}
                   max={Math.max(deducted - 1, 1)}
@@ -290,15 +305,20 @@ function AppealCard({
                   </span>
                 ) : deducted > 0 ? (
                   <span className="text-xs text-t2">
-                    {t("supervisor.appeals.restores", { credit: deducted - (parsed ?? 0) })}
+                    {t("supervisor.appeals.restores", {
+                      credit: deducted - (parsed ?? 0),
+                    })}
                   </span>
                 ) : null}
               </div>
-              <p className="mb-2.5 text-[11px] text-t4">{t("supervisor.appeals.reduceHint")}</p>
+              <p className="mb-2.5 text-[11px] text-t4">
+                {t("supervisor.appeals.reduceHint")}
+              </p>
 
               <Input
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
+                aria-label={t("supervisor.appeals.notePlaceholder")}
                 placeholder={t("supervisor.appeals.notePlaceholder")}
                 maxLength={1000}
                 className="mb-2.5 max-w-xl"
@@ -309,7 +329,9 @@ function AppealCard({
                   {t("supervisor.appeals.noDeductionToRefund")}
                 </p>
               ) : null}
-              {error ? <p className="mb-2.5 text-xs text-[var(--s-warn-t)]">{error}</p> : null}
+              {error ? (
+                <p className="mb-2.5 text-xs text-[var(--s-warn-t)]">{error}</p>
+              ) : null}
 
               <div className="flex flex-wrap gap-2">
                 <Button

@@ -13,6 +13,7 @@ const hooks = vi.hoisted(() => ({
   useInspectionQueue: vi.fn(),
   useInspectionSubject: vi.fn(),
   useCreateInspection: vi.fn(),
+  useUploadInspectionPhoto: vi.fn(),
 }));
 
 vi.mock("../../src/features/staff/inspection/use-inspection", () => hooks);
@@ -64,6 +65,7 @@ const subject = inspectionSubjectOutput.strict().parse({
 
 describe("StaffInspectionPage", () => {
   const create = vi.fn();
+  const upload = vi.fn();
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -71,6 +73,7 @@ describe("StaffInspectionPage", () => {
     hooks.useInspectionQueue.mockReturnValue(queryResult([row]));
     hooks.useInspectionSubject.mockReturnValue(queryResult(subject));
     hooks.useCreateInspection.mockReturnValue(mutationResult(create));
+    hooks.useUploadInspectionPhoto.mockReturnValue(mutationResult(upload));
   });
 
   it("shows the returned-item backlog and loads detail only when opened", () => {
@@ -133,6 +136,36 @@ describe("StaffInspectionPage", () => {
       })
     );
     expect(screen.getByText(/36/)).toBeInTheDocument();
+  });
+
+  it("uploads a chosen photo and files its URL with the grade (#137)", async () => {
+    upload.mockResolvedValue("/media/inspection-1.jpg");
+    create.mockResolvedValue(
+      inspectionResponse({ level: "B1", condition: "MinorDamage", returnedToPool: true })
+    );
+    URL.createObjectURL = vi.fn(() => "blob:preview");
+    const { container } = render(<StaffInspectionPage />);
+    fireEvent.click(screen.getByRole("button", { name: /Oscilloscope/ }));
+
+    const file = new File([new Uint8Array(8)], "after.jpg", { type: "image/jpeg" });
+    fireEvent.change(container.querySelector('input[type="file"]')!, {
+      target: { files: [file] },
+    });
+    await waitFor(() =>
+      expect(upload).toHaveBeenCalledWith({ usageKey: 42, file })
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /B1/ }));
+    fireEvent.click(
+      screen.getByRole("button", { name: i18n.t("staff.inspection.recordGrade") })
+    );
+    await waitFor(() =>
+      expect(create).toHaveBeenCalledWith({
+        usageKey: 42,
+        level: "B1",
+        imageUrls: ["/media/inspection-1.jpg"],
+      })
+    );
   });
 
   it("does not offer a second grade when the server says the return was inspected", () => {

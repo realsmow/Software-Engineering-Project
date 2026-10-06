@@ -8,11 +8,11 @@ describe('parseAllowedDomains', () => {
     ]);
   });
 
-  it('falls back to ku.th when unset, empty, or all-blank', () => {
-    expect(parseAllowedDomains(undefined)).toEqual(['ku.th']);
-    expect(parseAllowedDomains(null)).toEqual(['ku.th']);
-    expect(parseAllowedDomains('')).toEqual(['ku.th']);
-    expect(parseAllowedDomains(' , , ')).toEqual(['ku.th']);
+  it('falls back to both KU domains when unset, empty, or all-blank', () => {
+    expect(parseAllowedDomains(undefined)).toEqual(['ku.th', 'ku.ac.th']);
+    expect(parseAllowedDomains(null)).toEqual(['ku.th', 'ku.ac.th']);
+    expect(parseAllowedDomains('')).toEqual(['ku.th', 'ku.ac.th']);
+    expect(parseAllowedDomains(' , , ')).toEqual(['ku.th', 'ku.ac.th']);
   });
 });
 

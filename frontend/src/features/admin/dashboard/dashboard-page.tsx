@@ -62,8 +62,6 @@ export default function AdminDashboardPage() {
     return [...counts.entries()].sort((a, b) => b[1] - a[1]);
   }, [users]);
 
-  const jobsNeverRun = (jobs ?? []).filter((j) => !j.implemented).length;
-
   /**
    * Changes only. A sign-in is not a change, and on a log where most rows are
    * logins they crowd out the handful of entries a weekly visitor is actually
@@ -153,19 +151,14 @@ export default function AdminDashboardPage() {
             title={t("admin.status.scheduledJobs")}
             action={
               <span className="font-mono text-xs text-t4">
-                {jobs
-                  ? t("admin.overview.jobsSummary", {
-                      total: jobs.length,
-                      pending: jobsNeverRun,
-                    })
-                  : ""}
+                {jobs ? t("admin.overview.jobsSummary", { total: jobs.length }) : ""}
               </span>
             }
           >
             {(jobs ?? []).map((job) => (
               <Row
                 key={job.id}
-                label={job.name}
+                label={t(`admin.status.jobs.${job.id}.name`, { defaultValue: job.name })}
                 mono
                 value={
                   !job.implemented ? (
@@ -186,7 +179,7 @@ export default function AdminDashboardPage() {
                     </Badge>
                   )
                 }
-                trailing={job.schedule}
+                trailing={t(`admin.status.jobs.${job.id}.schedule`, { defaultValue: job.schedule })}
               />
             ))}
           </Ledger>

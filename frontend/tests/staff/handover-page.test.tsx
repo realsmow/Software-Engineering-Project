@@ -57,8 +57,8 @@ describe("staff handover regression", () => {
     swap.mockResolvedValue(loanResponse({ ...loan, resourceKey: 9, serialNo: "MM-002" }));
     renderPage();
 
-    fireEvent.change(screen.getByLabelText(i18n.t("staff.handover.newResourceKey")), {
-      target: { value: "9" },
+    fireEvent.change(screen.getByLabelText(i18n.t("staff.handover.newSerialNo")), {
+      target: { value: "MM-002" },
     });
     fireEvent.change(
       screen.getByLabelText(i18n.t("staff.handover.swapReasonPlaceholder")),
@@ -73,7 +73,7 @@ describe("staff handover regression", () => {
     await waitFor(() =>
       expect(swap).toHaveBeenCalledWith({
         usageKey: 42,
-        resourceKey: 9,
+        serialNo: "MM-002",
         reason: "Borrower requested another unit",
       })
     );

@@ -26,7 +26,13 @@ import { Badge, type BadgeTone } from "@/components/ui/badge";
 import { SlideOver } from "@/components/ui/modal";
 import { ChartCard } from "@/components/ui/chart-card";
 import { Segmented } from "@/components/ui/segmented";
-import { ChartTooltip, CHART_COLOR, CHART_SERIES, axisProps, gridProps } from "@/components/ui/chart-kit";
+import {
+  ChartTooltip,
+  CHART_COLOR,
+  CHART_SERIES,
+  axisProps,
+  gridProps,
+} from "@/components/ui/chart-kit";
 import { type AuditAction, type AuditEvent } from "../admin-constants";
 import { useAuditEvents } from "./use-audit-events";
 import { activityByRole, eventsByAction, eventsByHour, ROLE_KEYS } from "./audit-stats";
@@ -81,9 +87,8 @@ export default function AdminAuditPage() {
   const byRole = useMemo(() => activityByRole(events), [events]);
   const peakEvents = useMemo(
     () => byHour.reduce((max, h) => Math.max(max, h.events), 0),
-    [byHour],
+    [byHour]
   );
-
 
   const rows = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -101,10 +106,7 @@ export default function AdminAuditPage() {
     });
   }, [events, query, action, range, refreshedAt]);
 
-  const lastUpdated = useMemo(
-    () => fmtTime(new Date(refreshedAt)),
-    [refreshedAt],
-  );
+  const lastUpdated = useMemo(() => fmtTime(new Date(refreshedAt)), [refreshedAt]);
 
   const exportRows = () => exportCsv(rows);
 
@@ -159,10 +161,14 @@ export default function AdminAuditPage() {
               <Download size={15} strokeWidth={2} />
               {t("common.export")}
             </Button>
-            <Button type="button" variant="outline" onClick={() => {
-              setRefreshedAt(Date.now());
-              void refetch();
-            }}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setRefreshedAt(Date.now());
+                void refetch();
+              }}
+            >
               <RefreshCw size={15} strokeWidth={2} />
               {t("common.refresh")}
             </Button>
@@ -196,17 +202,31 @@ export default function AdminAuditPage() {
           {view === "hour" ? (
             <BarChart data={byHour} margin={{ top: 6, right: 8, left: -8, bottom: 0 }}>
               <CartesianGrid {...gridProps} />
-              <XAxis dataKey="hour" tickFormatter={(h) => fmtHour(h as number)} interval={1} {...axisProps} />
+              <XAxis
+                dataKey="hour"
+                tickFormatter={(h) => fmtHour(h as number)}
+                interval={1}
+                {...axisProps}
+              />
               <YAxis {...axisProps} width={40} allowDecimals={false} />
               <Tooltip
                 content={<ChartTooltip labelFormatter={(l) => fmtHour(l as number)} />}
                 cursor={{ fill: "var(--s-inset)", opacity: 0.5 }}
               />
-              <Bar dataKey="events" name={t("admin.charts.events")} radius={[3, 3, 0, 0]} maxBarSize={22}>
+              <Bar
+                dataKey="events"
+                name={t("admin.charts.events")}
+                radius={[3, 3, 0, 0]}
+                maxBarSize={22}
+              >
                 {byHour.map((h) => (
                   <Cell
                     key={h.hour}
-                    fill={h.events === peakEvents && peakEvents > 0 ? CHART_COLOR.highlight : CHART_COLOR.accent}
+                    fill={
+                      h.events === peakEvents && peakEvents > 0
+                        ? CHART_COLOR.highlight
+                        : CHART_COLOR.accent
+                    }
                   />
                 ))}
               </Bar>
@@ -221,22 +241,40 @@ export default function AdminAuditPage() {
               />
               <YAxis {...axisProps} width={44} allowDecimals={false} />
               <Tooltip
-                content={<ChartTooltip labelFormatter={(l) => t(`admin.audit.act${cap(l as string)}`)} />}
+                content={
+                  <ChartTooltip
+                    labelFormatter={(l) => t(`admin.audit.act${cap(l as string)}`)}
+                  />
+                }
                 cursor={{ fill: "var(--s-inset)", opacity: 0.5 }}
               />
-              <Bar dataKey="count" name={t("admin.charts.events")} radius={[3, 3, 0, 0]} maxBarSize={48}>
+              <Bar
+                dataKey="count"
+                name={t("admin.charts.events")}
+                radius={[3, 3, 0, 0]}
+                maxBarSize={48}
+              >
                 {byAction.map((a) => (
-                  <Cell key={a.action} fill={CHART_SERIES[ACTIONS.indexOf(a.action) % CHART_SERIES.length]} />
+                  <Cell
+                    key={a.action}
+                    fill={CHART_SERIES[ACTIONS.indexOf(a.action) % CHART_SERIES.length]}
+                  />
                 ))}
               </Bar>
             </BarChart>
           ) : (
             <BarChart data={byRole} margin={{ top: 6, right: 8, left: -8, bottom: 0 }}>
               <CartesianGrid {...gridProps} />
-              <XAxis dataKey="date" tickFormatter={(d) => fmtDayShort(d as string)} {...axisProps} />
+              <XAxis
+                dataKey="date"
+                tickFormatter={(d) => fmtDayShort(d as string)}
+                {...axisProps}
+              />
               <YAxis {...axisProps} width={44} allowDecimals={false} />
               <Tooltip
-                content={<ChartTooltip labelFormatter={(l) => fmtDayShort(l as string)} />}
+                content={
+                  <ChartTooltip labelFormatter={(l) => fmtDayShort(l as string)} />
+                }
                 cursor={{ fill: "var(--s-inset)", opacity: 0.5 }}
               />
               <Legend />
@@ -265,7 +303,7 @@ export default function AdminAuditPage() {
           onChange={(e) => setQuery(e.target.value)}
         />
         <Select value={action} onValueChange={(v) => setAction(v as AuditAction | "all")}>
-          <SelectTrigger className="w-44">
+          <SelectTrigger className="w-44" aria-label={t("admin.audit.allActions")}>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -317,7 +355,9 @@ export default function AdminAuditPage() {
               </KvRow>
               <KvRow label={t("admin.audit.colActor")}>
                 {selected.actorName}{" "}
-                <Badge tone={ROLE_TONE[selected.actorRole]}>{t(`nav.${selected.actorRole}`)}</Badge>
+                <Badge tone={ROLE_TONE[selected.actorRole]}>
+                  {t(`nav.${selected.actorRole}`)}
+                </Badge>
               </KvRow>
               <KvRow label={t("admin.audit.colAction")}>
                 <Badge tone={ACTION_TONE[selected.action]} dot>
@@ -337,7 +377,9 @@ export default function AdminAuditPage() {
             </div>
 
             <div className="pt-4">
-              <div className="mb-1.5 text-xs font-medium text-muted-foreground">{t("admin.audit.changes")}</div>
+              <div className="mb-1.5 text-xs font-medium text-muted-foreground">
+                {t("admin.audit.changes")}
+              </div>
               <div className="min-h-[44px] whitespace-pre-wrap rounded-md border border-border bg-secondary px-3 py-2 text-sm text-foreground">
                 {selected.detail}
               </div>
@@ -367,7 +409,7 @@ function exportCsv(events: AuditEvent[]): void {
   const lines = events.map((e) =>
     [e.id, e.at, e.actorName, e.actorRole, e.action, e.target, e.ip, e.detail]
       .map((v) => `"${String(v).replace(/"/g, '""')}"`)
-      .join(","),
+      .join(",")
   );
   const csv = "﻿" + [header.join(","), ...lines].join("\n");
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });

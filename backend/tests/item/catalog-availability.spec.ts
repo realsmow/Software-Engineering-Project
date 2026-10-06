@@ -235,9 +235,10 @@ describe('PDF pp. 13 and 15: borrower/staff availability parity', () => {
 describe('Persisted business records', () => {
   const NOW = new Date('2031-09-26T03:00:00Z');
 
-  const start = '2031-09-27T03:00:00.000Z';
+  // Monday: a weekend pickup is refused now that the counter's days count (#179).
+  const start = '2031-09-29T03:00:00.000Z';
 
-  const end = '2031-09-29T03:00:00.000Z';
+  const end = '2031-10-01T03:00:00.000Z';
 
   describe('FR-BRW-01/02 / FR-EQP-07: catalogue availability for selected dates', () => {
     let prisma: PrismaService;
@@ -251,7 +252,9 @@ describe('Persisted business records', () => {
     afterEach(() => jest.useRealTimers());
 
     describe('regression: equipment returned before its original due date', () => {
-      const returnedAt = new Date(PICKUP_START.getTime() + 86_400_000);
+      // Monday 09:00, still before the Monday 17:00 due date; the weekend
+      // between is shut, so the next pickup cannot fall on it (#179).
+      const returnedAt = new Date(PICKUP_START.getTime() + 3 * 86_400_000);
       const nextStart = new Date(returnedAt.getTime() + 3_600_000);
       const nextEnd = new Date(nextStart.getTime() + 3_600_000);
 

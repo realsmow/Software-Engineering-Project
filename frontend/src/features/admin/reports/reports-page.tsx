@@ -66,8 +66,14 @@ export default function AdminReportsPage() {
             <h2 className="border-b border-border px-3.5 py-2.5 text-sm font-semibold text-foreground">
               {t("admin.reports.byDepartment")}
             </h2>
-            {/* Scrolls inside its own frame rather than pushing the page wide. */}
-            <div className="overflow-x-auto">
+            {/* Scrolls inside its own frame rather than pushing the page wide;
+                focusable so keyboard users can scroll it too (#174). */}
+            <div
+              className="overflow-x-auto"
+              tabIndex={0}
+              role="region"
+              aria-label={t("admin.reports.byDepartment")}
+            >
               <table className="w-full min-w-[34rem] border-collapse text-[13px]">
                 <thead>
                   <tr className="bg-secondary">
@@ -80,7 +86,10 @@ export default function AdminReportsPage() {
                 </thead>
                 <tbody>
                   {data.departments.map((d) => (
-                    <tr key={d.manageGroupKey} className="border-b border-border last:border-b-0">
+                    <tr
+                      key={d.manageGroupKey}
+                      className="border-b border-border last:border-b-0"
+                    >
                       <td className="px-3.5 py-2 text-foreground">
                         {d.name ?? t("admin.reports.unnamedGroup")}
                       </td>
@@ -131,7 +140,9 @@ export default function AdminReportsPage() {
               {t("admin.reports.mostBorrowed")}
             </h2>
             {data.topEquipment.length === 0 ? (
-              <p className="px-3.5 py-4 text-[13px] text-t3">{t("admin.reports.noBorrowing")}</p>
+              <p className="px-3.5 py-4 text-[13px] text-t3">
+                {t("admin.reports.noBorrowing")}
+              </p>
             ) : (
               <div className="divide-y divide-border">
                 {data.topEquipment.map((e) => (
@@ -173,7 +184,9 @@ function Fact({
         {value}
       </span>
       {trailing ? (
-        <span className="w-24 shrink-0 text-right font-mono text-[11px] text-t4">{trailing}</span>
+        <span className="w-24 shrink-0 text-right font-mono text-[11px] text-t4">
+          {trailing}
+        </span>
       ) : null}
     </div>
   );

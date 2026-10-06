@@ -168,8 +168,11 @@ export class ItemRouter {
    */
   @UseMiddlewares(AuthMiddleware)
   @Query({ input: roomAvailabilityInput, output: roomAvailabilityOutput })
-  roomAvailability(@Input() input: RoomAvailabilityInput) {
-    return this.itemService.roomAvailability(input);
+  roomAvailability(
+    @Input() input: RoomAvailabilityInput,
+    @Ctx() ctx: TrpcContext,
+  ) {
+    return this.itemService.roomAvailability(ctx.user!, input);
   }
 
   @UseMiddlewares(AuthMiddleware)

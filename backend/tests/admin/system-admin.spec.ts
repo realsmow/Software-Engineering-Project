@@ -347,7 +347,7 @@ describe('OAuth runtime and technical configuration consistency', () => {
   }
 
   describe('FR-ADM-05 : deployed OAuth configuration is reported consistently', () => {
-    describe('known defect', () => {
+    describe('reported consistently (#141)', () => {
       let enabled: ReturnType<typeof services>;
       beforeEach(() => {
         enabled = services(configured);
@@ -356,12 +356,9 @@ describe('OAuth runtime and technical configuration consistency', () => {
         expect(enabled.google.isEnabled()).toBe(true);
         technicalConfigOutput.strict().parse(enabled.admin.getConfig());
       });
-      it.failing(
-        'reports OAuth enabled when the deployed provider is enabled',
-        () => {
-          expect(enabled.admin.getConfig().auth.googleOauthEnabled).toBe(true);
-        },
-      );
+      it('reports OAuth enabled when the deployed provider is enabled', () => {
+        expect(enabled.admin.getConfig().auth.googleOauthEnabled).toBe(true);
+      });
     });
   });
 });

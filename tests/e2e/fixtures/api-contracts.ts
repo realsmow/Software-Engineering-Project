@@ -8,6 +8,7 @@ import { writeBusinessClock } from "./business-clock";
 import {
   adminContracts,
   catalogContracts,
+  extensionContracts,
   managementContracts,
   requestContracts,
 } from "../../../backend/tests/fixtures/service-contracts";
@@ -82,7 +83,9 @@ const contracts: Record<string, OutputSchema> = {
   ),
   "auth.providers": providersOutput,
   "auth.login": loginOutput,
-  "auth.me": userOutput,
+  "auth.me": userOutput.nullable(),
+  "auth.requestAvatarUpload": requestUploadOutput,
+  "auth.setAvatar": userOutput,
   "auth.logout": okOutput,
   "auth.logoutAll": okOutput,
   "auth.register": okOutput,
@@ -131,6 +134,7 @@ const contracts: Record<string, OutputSchema> = {
   "loan.cancelExtension": extensionOutput,
   "loan.extensionReviews": paginatedExtensionReviews,
   "loan.decideExtension": extensionOutput,
+  "loan.inspectExtension": extensionContracts.inspectExtension,
   "approval.queue": paginatedApprovalQueue,
   "approval.counts": approvalCounts,
   "approval.borrowerHistory": borrowerHistoryOutput,

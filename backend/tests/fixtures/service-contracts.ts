@@ -35,6 +35,7 @@ import {
 } from '../../src/item/item.schema';
 import {
   createRequestOutput,
+  extensionOutput,
   paginatedRequests,
   requestOutput,
 } from '../../src/loan/loan.schema';
@@ -104,4 +105,9 @@ export const requestContracts = {
   getAsDecider: requestOutput,
   confirmMyPickup: requestOutput,
   cancel: requestOutput,
+};
+
+/** #156: the staff condition check on a supervisor-routed extension. */
+export const extensionContracts = {
+  inspectExtension: extensionOutput,
 };

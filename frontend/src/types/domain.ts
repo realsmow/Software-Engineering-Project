@@ -15,6 +15,10 @@ export interface User {
   departmentId: string;
   creditScore: number;
   creditBand: CreditBand;
+  /** How this session signed in; null when the server has no record of it. */
+  signInMethod?: "password" | "google" | null;
+  /** Profile picture URL; null or absent shows initials. */
+  avatarUrl?: string | null;
 }
 
 // ==================== Credit System ====================
@@ -31,12 +35,7 @@ export interface CreditBandConfig {
 // ==================== Equipment ====================
 export type Tier = "T0" | "T1" | "T2" | "T3";
 
-export type UnitStatus =
-  | "available"
-  | "reserved"
-  | "borrowed"
-  | "maintenance"
-  | "lost";
+export type UnitStatus = "available" | "reserved" | "borrowed" | "maintenance" | "lost";
 
 export interface EquipmentType {
   id: string;
@@ -67,19 +66,9 @@ export interface EquipmentUnit {
 
 // ==================== Loan Request & Loan ====================
 export type RequestStatus =
-  | "draft"
-  | "requested"
-  | "approved"
-  | "rejected"
-  | "cancelled"
-  | "expired";
+  "draft" | "requested" | "approved" | "rejected" | "cancelled" | "expired";
 
-export type LoanStatus =
-  | "allocated"
-  | "borrowed"
-  | "returned"
-  | "overdue"
-  | "lost";
+export type LoanStatus = "allocated" | "borrowed" | "returned" | "overdue" | "lost";
 
 export interface LoanRequest {
   id: string;
@@ -179,6 +168,9 @@ export interface Notification {
   type: NotificationType;
   title: string;
   body: string;
+  /** English text; absent on older rows, which show Thai. */
+  titleEn?: string;
+  bodyEn?: string;
   readAt?: string;
   createdAt: string;
   linkTo?: string;

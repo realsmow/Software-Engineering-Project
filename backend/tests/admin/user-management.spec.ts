@@ -806,7 +806,7 @@ describe('Persisted business records', () => {
       });
     });
 
-    describe('known defect: membership removal bypasses the last-staff coverage guard', () => {
+    describe('membership removal keeps the last-staff coverage guard (#152)', () => {
       let removed: boolean;
       beforeEach(async () => {
         await inHistoryFixture(prisma, async (tx) => {
@@ -848,17 +848,13 @@ describe('Persisted business records', () => {
           ).toMatchObject({ IsActive: true });
         });
       });
-      // Reproduced against PostgreSQL before marking this product assertion.
-      it.failing(
-        'retains the last enabled staff member in the department',
-        () => {
-          expect(removed).toBe(false);
-        },
-      );
+      it('retains the last enabled staff member in the department', () => {
+        expect(removed).toBe(false);
+      });
     });
 
     describe.each(['create', 'update'] as const)(
-      'known defect: membership write failure during account %s',
+      'membership write failure during account %s (#153)',
       (operation) => {
         let accountChanged: boolean;
         beforeEach(async () => {
@@ -874,13 +870,25 @@ describe('Persisted business records', () => {
             const failingClient = new Proxy(client, {
               get(target, key) {
                 if (key === '$transaction')
-                  return (work: unknown) => {
-                    // Fail only the membership transaction. Profile/account SQL stays real.
-                    if (Array.isArray(work)) return Promise.reject(failure);
-                    return target.$transaction(
-                      work as (t: Prisma.TransactionClient) => Promise<unknown>,
+                  return (
+                    work: (t: Prisma.TransactionClient) => Promise<unknown>,
+                  ) =>
+                    // Fail only the membership write inside the transaction;
+                    // the account SQL before it stays real and must roll back.
+                    target.$transaction((t: Prisma.TransactionClient) =>
+                      work(
+                        new Proxy(t, {
+                          get(inner, innerKey) {
+                            if (innerKey === 'authority')
+                              return {
+                                ...inner.authority,
+                                upsert: () => Promise.reject(failure),
+                              };
+                            return Reflect.get(inner, innerKey) as unknown;
+                          },
+                        }),
+                      ),
                     );
-                  };
                 return Reflect.get(target, key) as unknown;
               },
             });
@@ -914,12 +922,9 @@ describe('Persisted business records', () => {
             ).toBe(0);
           });
         });
-        it.failing(
-          'leaves no partial account/profile changes when the operation fails',
-          () => {
-            expect(accountChanged).toBe(false);
-          },
-        );
+        it('leaves no partial account/profile changes when the operation fails', () => {
+          expect(accountChanged).toBe(false);
+        });
       },
     );
   });

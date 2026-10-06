@@ -96,6 +96,17 @@ const extension = extensionReviewRow.strict().parse({
   requestedAt: "2026-09-24T08:00:00.000Z",
   reason: null,
   status: "Pending",
+  inspection: null,
+});
+
+const checked = extensionReviewRow.strict().parse({
+  ...extension,
+  inspection: {
+    condition: "MinorDamage",
+    note: "Scratch on the lid",
+    loggedAt: "2026-09-25T07:00:00.000Z",
+    loggedBy: "Sam Staff",
+  },
 });
 
 const history = borrowerHistoryOutput.strict().parse({
@@ -384,7 +395,7 @@ describe("SupervisorApprovalsPage", () => {
     confirm.mockRestore();
   });
 
-  it("still sends the chosen condition for a staff-route extension", async () => {
+  it("has no condition picker and sends none for a staff-route extension (#164)", async () => {
     hooks.useExtensionQueue.mockReturnValue(
       queryResult([extensionReviewRow.strict().parse({ ...extension, route: "staff" })])
     );
@@ -392,7 +403,7 @@ describe("SupervisorApprovalsPage", () => {
     render(<SupervisorApprovalsPage />);
     fireEvent.click(screen.getByText(i18n.t("supervisor.approvals.viewExtensions")));
     const row = within(screen.getByText("Oscilloscope").closest("tr")!);
-    fireEvent.change(row.getByRole("combobox"), { target: { value: "MinorDamage" } });
+    expect(row.queryByRole("combobox")).toBeNull();
     fireEvent.click(
       row.getByRole("button", { name: i18n.t("supervisor.approvals.approve") })
     );
@@ -400,41 +411,32 @@ describe("SupervisorApprovalsPage", () => {
       expect(decideExtension).toHaveBeenCalledWith({
         extensionKey: 12,
         decision: "approve",
-        condition: "MinorDamage",
       })
     );
   });
 
-  it("asks for no condition on a supervisor-route extension, which is decided unseen", async () => {
-    decideExtension.mockResolvedValue(
-      extensionResponse({
-        extensionKey: extension.extensionKey,
-        usageKey: extension.usageKey,
-        status: "Approved",
-        itemName: extension.itemName,
-        serialNo: extension.serialNo,
-        tier: extension.tier,
-        extendNo: extension.extendNo,
-        previousDueAt: extension.previousDueAt,
-        requestedDueAt: extension.requestedDueAt,
-        dueAt: extension.requestedDueAt,
-        requestedAt: extension.requestedAt,
-        resolvedAt: "2026-09-25T08:00:00.000Z",
-        extensionsUsed: 1,
-        extensionsAllowed: 1,
-      })
-    );
+  it("blocks approval until staff have recorded the condition (#156)", () => {
     render(<SupervisorApprovalsPage />);
-
     fireEvent.click(screen.getByText(i18n.t("supervisor.approvals.viewExtensions")));
-    const row = screen.getByText("Oscilloscope").closest("tr");
-    expect(row).not.toBeNull();
-    // TC-19: the supervisor never has the unit in hand, so no condition picker.
-    expect(within(row!).queryByRole("combobox")).toBeNull();
-    fireEvent.click(
-      within(row!).getByRole("button", { name: i18n.t("supervisor.approvals.approve") })
-    );
+    const row = within(screen.getByText("Oscilloscope").closest("tr")!);
+    expect(row.getByText(i18n.t("supervisor.approvals.awaitingCheck"))).toBeInTheDocument();
+    expect(
+      row.getByRole("button", { name: i18n.t("supervisor.approvals.approve") })
+    ).toBeDisabled();
+  });
 
+  it("shows the staff-recorded condition read-only and then allows approval (#156)", async () => {
+    hooks.useExtensionQueue.mockReturnValue(queryResult([checked]));
+    decideExtension.mockResolvedValue(extensionResponse({ status: "Approved" }));
+    render(<SupervisorApprovalsPage />);
+    fireEvent.click(screen.getByText(i18n.t("supervisor.approvals.viewExtensions")));
+    const row = within(screen.getByText("Oscilloscope").closest("tr")!);
+    expect(row.getByText(i18n.t("staff.inspection.condMinorDamage"))).toBeInTheDocument();
+    expect(row.getByText(/Sam Staff/)).toBeInTheDocument();
+    expect(row.queryByRole("combobox")).toBeNull();
+    fireEvent.click(
+      row.getByRole("button", { name: i18n.t("supervisor.approvals.approve") })
+    );
     await waitFor(() =>
       expect(decideExtension).toHaveBeenCalledWith({
         extensionKey: 12,

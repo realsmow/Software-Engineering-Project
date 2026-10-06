@@ -165,7 +165,7 @@ describe("borrower request checks", () => {
         name: i18n.t("borrower.request.submit"),
       });
 
-    it.each(["08:00", "13:00", "16:00"])(
+    it.each(["08:00", "13:00", "16:00", "17:00"])(
       "allows the same clock time %s on different calendar days",
       (time) => {
         useRequestDraft.getState().addItem(item.id, item.availableUnits);

@@ -117,3 +117,27 @@ describe('toLocalDayKey', () => {
     }
   });
 });
+
+// FR-RSV-06 with #178: an offered end on a weekend would roll into the clash.
+describe('weekdayEndBefore', () => {
+  const { weekdayEndBefore } =
+    jest.requireActual<typeof import('./datetime.schema')>('./datetime.schema');
+  const start = new Date('2031-09-25T01:00:00.000Z'); // Thu 08:00 Bangkok
+
+  it('moves a Sunday cap back to Friday closing', () => {
+    const friday = weekdayEndBefore(
+      new Date('2031-09-28T01:00:00.000Z'),
+      start,
+    );
+    expect(new Date(friday.getTime() + 7 * 3_600_000).getUTCDay()).toBe(5);
+  });
+
+  it('keeps a weekday cap, and a cap whose Friday is not after the start', () => {
+    const tuesday = new Date('2031-09-30T01:00:00.000Z');
+    expect(weekdayEndBefore(tuesday, start)).toEqual(tuesday);
+    const sunday = new Date('2031-09-28T01:00:00.000Z');
+    expect(
+      weekdayEndBefore(sunday, new Date('2031-09-27T01:00:00.000Z')),
+    ).toEqual(sunday);
+  });
+});

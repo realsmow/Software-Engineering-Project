@@ -19,6 +19,7 @@ import {
   type RequestUploadInput,
   type UploadPurpose,
 } from './image.schema';
+import { stripImageMetadata } from './strip-metadata';
 
 /** How long an upload ticket stays good. Long enough to pick a file, not to hoard. */
 const TICKET_TTL_MS = 10 * 60 * 1000;
@@ -177,7 +178,12 @@ export class ImageService {
       // wx: never overwrite. Keys carry a UUID, so a collision is a replayed
       // ticket rather than bad luck, and letting a replay rewrite a file some
       // row already points at would swap the photo under an existing record.
-      await writeFile(destination, body, { flag: 'wx' });
+      // #177: GPS and device details must not reach whoever opens the photo.
+      await writeFile(
+        destination,
+        stripImageMetadata(body, ticket.contentType),
+        { flag: 'wx' },
+      );
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code === 'EEXIST') {
         // Expected, so it gets a business code rather than escaping as a 500

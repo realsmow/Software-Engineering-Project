@@ -23,6 +23,7 @@ import { BusinessError } from '../common/errors/business-error';
 import {
   addDays,
   daysBetween,
+  rollDueOffWeekend,
   toIso,
   toIsoNullable,
 } from '../common/schemas/datetime.schema';
@@ -37,6 +38,7 @@ import type { TrpcUser } from '../trpc/context';
 import type {
   CancelExtensionInput,
   DecideExtensionInput,
+  InspectExtensionInput,
   ListExtensionReviewsInput,
   ListMyExtensionsInput,
   RequestExtensionInput,
@@ -86,6 +88,15 @@ const EXTENSION_SELECT = {
   RequestedAt: true,
   ResolvedAt: true,
   Reason: true,
+  InspectedCondition: true,
+  Inspection: {
+    select: {
+      Condition: true,
+      Notes: true,
+      LoggedAt: true,
+      LoggedByUser: { select: { UserFName: true, UserLName: true } },
+    },
+  },
   RequestedByUser: { select: BORROWER_SELECT },
   Usage: { select: USAGE_SELECT },
 } satisfies Prisma.ExtensionRequestSelect;
@@ -305,12 +316,11 @@ export class LoanExtensionService {
       });
     }
 
-    const requestedDue = new Date(input.requestedDueAt);
-    this.assertExtensionWindow(
-      usage.DueTime,
-      requestedDue,
-      allowance.maxBorrowDays,
-    );
+    // Rolled after the window check so the borrower is judged on the day
+    // they asked for; the stored due date is the Monday it rolls to (#178).
+    const asked = new Date(input.requestedDueAt);
+    this.assertExtensionWindow(usage.DueTime, asked, allowance.maxBorrowDays);
+    const requestedDue = rollDueOffWeekend(asked);
 
     const extendNo = allowance.used + 1;
     const route = extensionRouteFor({
@@ -500,9 +510,16 @@ export class LoanExtensionService {
     });
 
     const toBand = await this.creditTiers.tierMapper();
+    const role = this.deciderRole(user);
     const visible = rows
       .map((row) => ({ row, ...this.routeOf(row, toBand) }))
-      .filter(({ route }) => canDecide(route, this.deciderRole(user)))
+      // Staff also see supervisor-routed ones still waiting on their
+      // condition check (#156); they record it, the supervisor decides.
+      .filter(
+        ({ row, route }) =>
+          canDecide(route, role) ||
+          (route === 'supervisor' && row.InspectedCondition === null),
+      )
       .filter(({ route }) => input.route === undefined || route === input.route)
       .filter(
         ({ row }) =>
@@ -528,6 +545,14 @@ export class LoanExtensionService {
         requestedAt: toIso(row.RequestedAt),
         reason: row.Reason,
         status: row.ApproveStatus,
+        inspection: row.Inspection
+          ? {
+              condition: row.Inspection.Condition,
+              note: row.Inspection.Notes,
+              loggedAt: toIsoNullable(row.Inspection.LoggedAt),
+              loggedBy: `${row.Inspection.LoggedByUser.UserFName} ${row.Inspection.LoggedByUser.UserLName}`,
+            }
+          : null,
       }));
 
     return toPage(page, visible.length, input);
@@ -574,9 +599,19 @@ export class LoanExtensionService {
       });
     }
 
-    const now = new Date();
     const approved = input.decision === 'approve';
-    const inspected = route === 'staff';
+    if (approved && route === 'supervisor' && row.InspectedCondition === null) {
+      // #156: the supervisor does not have the unit; staff must have looked
+      // at it first. Refusing needs no check, so a reject is still allowed.
+      throw new BusinessError('EXTENSION_NOT_INSPECTED', {
+        extensionKey: input.extensionKey,
+      });
+    }
+
+    const now = new Date();
+    // Only staff at the counter have the unit in hand; a supervisor deciding
+    // a staff-route request from their desk has not seen it either.
+    const inspected = route === 'staff' && this.deciderRole(user) === 'staff';
 
     await runSerializable(this.prisma, async (tx) => {
       if (approved) {
@@ -586,9 +621,9 @@ export class LoanExtensionService {
         await this.assertHoldableUntil(tx, row.Usage, row.RequestedDueTime);
       }
 
-      // Only the staff route has the unit on the counter. A supervisor
-      // decides without seeing it, so recording a condition there would
-      // overwrite the unit's real one with a guess.
+      // Only the staff route has the unit on the counter here. A
+      // supervisor-routed unit was already checked by staff in `inspect`, so
+      // writing a condition now would overwrite that with a guess.
       if (inspected) {
         // Written on both outcomes: the observation is true either way.
         const condition = await tx.conditionLog.create({
@@ -655,6 +690,76 @@ export class LoanExtensionService {
       'update',
       `extension/${input.extensionKey}`,
       `${approved ? 'Approved' : 'Rejected'} extension on loan/${row.UsageKey}${inspected ? `, condition ${input.condition}` : ''}${input.note ? `: ${input.note}` : ''}`,
+    );
+
+    return this.renderOne(input.extensionKey);
+  }
+
+  /**
+   * The staff condition check on a supervisor-routed extension (#156).
+   *
+   * The borrower brings the unit to the counter, staff record what they find,
+   * and the supervisor then decides with that on screen. Written the same way
+   * the staff route writes it in `decide`: a ConditionLog that also becomes
+   * the unit's current condition. Repeating it while the request is pending
+   * replaces the earlier check, so a mistake at the counter can be corrected.
+   */
+  async inspect(user: TrpcUser, input: InspectExtensionInput) {
+    const row = await this.readExtension(input.extensionKey);
+    await this.scope.assertResourceInScope(
+      user,
+      row.Usage.Resource.ResourceKey,
+    );
+
+    if (row.ApproveStatus !== 'Pending') {
+      throw new BusinessError('ALREADY_DECIDED', {
+        extensionKey: input.extensionKey,
+        status: row.ApproveStatus,
+        decidedAt: toIsoNullable(row.ResolvedAt),
+      });
+    }
+    if (row.RequestedBy === user.accountKey) {
+      throw new BusinessError('CANNOT_APPROVE_OWN_REQUEST', {
+        extensionKey: input.extensionKey,
+      });
+    }
+
+    const toBand = await this.creditTiers.tierMapper();
+    const { route } = this.routeOf(row, toBand);
+    if (route !== 'supervisor') {
+      // The staff route records the condition when it decides.
+      throw new BusinessError('EXTENSION_INSPECTION_NOT_NEEDED', {
+        extensionKey: input.extensionKey,
+        route,
+      });
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      const condition = await tx.conditionLog.create({
+        data: {
+          ResourceKey: row.Usage.Resource.ResourceKey,
+          LoggedBy: user.accountKey,
+          Condition: input.condition,
+          Notes: input.note ?? null,
+          LoggedAt: new Date(),
+        },
+        select: { ConditionKey: true },
+      });
+      await tx.resourceInfo.update({
+        where: { ResourceKey: row.Usage.Resource.ResourceKey },
+        data: { ConditionKey: condition.ConditionKey },
+      });
+      await tx.extensionRequest.update({
+        where: { ExtensionKey: input.extensionKey },
+        data: { InspectedCondition: condition.ConditionKey },
+      });
+    });
+
+    await this.audit.record(
+      { accountKey: user.accountKey },
+      'update',
+      `extension/${input.extensionKey}`,
+      `Checked unit for supervisor-routed extension on loan/${row.UsageKey}, condition ${input.condition}${input.note ? `: ${input.note}` : ''}`,
     );
 
     return this.renderOne(input.extensionKey);

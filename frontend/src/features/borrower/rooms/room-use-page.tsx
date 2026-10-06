@@ -7,11 +7,10 @@ import { ImageThumb } from "@/components/shared/image-thumb";
 import { Badge, type BadgeTone } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
-import { BUSINESS, ROUTES, UPLOAD } from "@/constants";
+import { ROUTES, UPLOAD } from "@/constants";
 import { getErrorMessage } from "@/lib/error-messages";
 import { cn } from "@/lib/utils";
 import { uploadAcceptAttr, validateUploadFile } from "@/lib/upload-validation";
-import { TIME_SLOTS } from "../rooms/room-slots";
 import type { MyRequest } from "../request-status";
 import { fmtDayMonth } from "../format";
 import { useMyRequests, type LoanRow } from "../loans/use-my-requests";
@@ -76,7 +75,7 @@ export default function RoomUsePage() {
 }
 
 /** Which part of the visit a status puts the booking in. */
-type Phase = "waiting" | "before" | "using" | "returned" | "done";
+type Phase = "waiting" | "confirmed" | "before" | "using" | "returned" | "done";
 
 /**
  * Only these statuses belong on this page. Cancelled and rejected bookings have
@@ -84,8 +83,9 @@ type Phase = "waiting" | "before" | "using" | "returned" | "done";
  */
 const PHASE_OF: Partial<Record<MyRequest["status"], Phase>> = {
   pending: "waiting",
-  approved: "waiting",
-  preparing: "waiting",
+  // Approved but not yet opened by staff: confirmed, not awaiting approval (#165).
+  approved: "confirmed",
+  preparing: "confirmed",
   ready: "before",
   inUse: "using",
   returned: "returned",
@@ -94,6 +94,7 @@ const PHASE_OF: Partial<Record<MyRequest["status"], Phase>> = {
 
 const PHASE_TONE: Record<Phase, BadgeTone> = {
   waiting: "warn",
+  confirmed: "info",
   before: "info",
   using: "ok",
   returned: "neutral",
@@ -102,6 +103,7 @@ const PHASE_TONE: Record<Phase, BadgeTone> = {
 
 const PHASE_LABEL: Record<Phase, string> = {
   waiting: "borrower.roomUse.stWaiting",
+  confirmed: "borrower.roomUse.stAwaitOpen",
   before: "borrower.roomUse.stBooked",
   using: "borrower.roomUse.stUsing",
   returned: "borrower.roomUse.stReturned",
@@ -123,13 +125,14 @@ function BookingCard({ row }: { row: LoanRow }) {
   // The server says whether it can still be called off; the button follows it.
   const cancellable = "cancellable" in row && row.cancellable === true;
 
-  const slots = row.slots ?? [];
-  const first = slots.length > 0 ? Math.min(...slots) : null;
-  const last = slots.length > 0 ? Math.max(...slots) : null;
+  // From the booking's own times, not the fixed slot list: a room open past
+  // 18:00 has bookings no slot-list entry covers, which read as "-" and 0 (#165).
   const timeLabel =
-    first === null || last === null
-      ? "-"
-      : `${TIME_SLOTS[first].start}–${TIME_SLOTS[last].end}`;
+    row.pickupTime && row.returnTime ? `${row.pickupTime}–${row.returnTime}` : "-";
+  const bookedMinutes =
+    row.pickupTime && row.returnTime
+      ? clockMinutes(row.returnTime) - clockMinutes(row.pickupTime)
+      : 0;
 
   async function doCheckIn() {
     if (usageKey === null) return;
@@ -162,7 +165,9 @@ function BookingCard({ row }: { row: LoanRow }) {
               {row.tier}
             </span>
           </div>
-          <div className="mt-1 font-mono text-[11.5px] text-t4">{row.id}</div>
+          <div className="mt-1 text-[11.5px] text-t4">
+            {t("borrower.roomUse.requestNo")} <span className="font-mono">{row.id}</span>
+          </div>
         </div>
         <Badge tone={PHASE_TONE[phase]}>{t(PHASE_LABEL[phase])}</Badge>
       </header>
@@ -172,7 +177,7 @@ function BookingCard({ row }: { row: LoanRow }) {
         <Field label={t("borrower.roomUse.timeCol")}>{timeLabel}</Field>
         <Field label={t("borrower.roomUse.totalCol")}>
           {t("borrower.roomUse.hours", {
-            count: (slots.length * BUSINESS.ROOM_SLOT_MINUTES) / 60,
+            count: bookedMinutes / 60,
           })}
         </Field>
       </div>
@@ -204,10 +209,10 @@ function BookingCard({ row }: { row: LoanRow }) {
         </div>
       ) : null}
 
-      {phase === "waiting" ? (
+      {phase === "waiting" || phase === "confirmed" ? (
         <div className="px-4 pb-4">
           <p className="mb-2.5 rounded bg-secondary px-3 py-2.5 text-xs leading-relaxed text-t3">
-            {t("borrower.roomUse.waitStaff")}
+            {t(phase === "confirmed" ? "borrower.roomUse.waitStaff" : "borrower.roomUse.stWaiting")}
           </p>
           {cancellable ? (
             <Button
@@ -433,4 +438,10 @@ function EmptyState({ onBrowse }: { onBrowse: () => void }) {
       </Button>
     </div>
   );
+}
+
+/** "18:30" -> minutes past midnight. */
+function clockMinutes(hhmm: string): number {
+  const [h, m] = hhmm.split(":").map(Number);
+  return h * 60 + m;
 }

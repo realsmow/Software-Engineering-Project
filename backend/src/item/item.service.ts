@@ -750,7 +750,7 @@ export class ItemService {
    * to the client means every client has to know the counter's timezone to
    * work out which chips are behind them.
    */
-  async roomAvailability(input: RoomAvailabilityInput) {
+  async roomAvailability(user: TrpcUser, input: RoomAvailabilityInput) {
     const room = await this.prisma.roomInfo.findUnique({
       where: { RoomKey: input.roomKey },
       select: {
@@ -759,13 +759,26 @@ export class ItemService {
         CloseTime: true,
         BreakStart: true,
         BreakEnd: true,
-        Resource: { select: { ResourceKey: true, ResourceStatus: true } },
+        Resource: {
+          select: {
+            ResourceKey: true,
+            ResourceStatus: true,
+            Eligibilities: { select: { GroupKey: true, RoleKey: true } },
+          },
+        },
       },
     });
     if (!room || room.Resource.ResourceStatus === 'Retired') {
       throw new BusinessError('ROOM_NOT_FOUND', { id: input.roomKey });
     }
     const hours = toRoomHours(room);
+    // Same comparison loan.create makes, so no slot is offered that the
+    // booking would then refuse (#163). A room with no rules is closed.
+    const eligible =
+      matchingRules(
+        room.Resource.Eligibilities,
+        await heldPairs(this.prisma, user.accountKey),
+      ).length > 0;
 
     const { from, to } = dayWindow(hours, input.date);
     const booked = await this.prisma.reservations.findMany({
@@ -790,7 +803,7 @@ export class ItemService {
         end: slot.end,
         startTime: toIso(window.startTime),
         endTime: toIso(window.endTime),
-        available: slot.available && window.startTime > now,
+        available: eligible && slot.available && window.startTime > now,
       };
     });
 
@@ -798,6 +811,7 @@ export class ItemService {
       roomKey: input.roomKey,
       date: input.date,
       slots,
+      eligible,
       maxSlotsPerBooking: MAX_ROOM_BOOKING_SLOTS,
       slotMinutes: ROOM_SLOT_MINUTES,
     };

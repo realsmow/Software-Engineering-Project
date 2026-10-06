@@ -18,8 +18,10 @@ import {
 const DAY = 86_400_000;
 function windowInput(resourceKey: number) {
   return createRequestInput.parse({
-    startTime: new Date(Date.now() + DAY).toISOString(),
-    endTime: new Date(Date.now() + 3 * DAY).toISOString(),
+    // Fixed weekday hours: the server refuses times outside the counter's
+    // hours and rolls weekend returns (#179, #178), so "now + 1 day" was flaky.
+    startTime: '2031-09-29T02:00:00.000Z',
+    endTime: '2031-10-01T02:00:00.000Z',
     lines: [{ resourceKey, reason: 'Laboratory project' }],
   });
 }

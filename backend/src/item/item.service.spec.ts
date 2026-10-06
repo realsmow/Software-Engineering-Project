@@ -1,4 +1,6 @@
-import { sortItems } from './item.service';
+import { ItemService, sortItems } from './item.service';
+import type { PrismaService } from '../prisma.service';
+import type { TrpcUser } from '../trpc/context';
 import type { CatalogItem } from './item.schema';
 
 /** Only the fields the comparator reads; the rest never affects ordering. */
@@ -106,5 +108,52 @@ describe('sortItems', () => {
     const items: CatalogItem[] = [];
     expect(() => sortItems(items, 'available')).not.toThrow();
     expect(items).toEqual([]);
+  });
+});
+
+describe('roomAvailability eligibility (#163)', () => {
+  const user = { accountKey: 7 } as TrpcUser;
+  function catalog(rules: { GroupKey: number; RoleKey: number }[]) {
+    const prisma = {
+      roomInfo: {
+        findUnique: jest.fn().mockResolvedValue({
+          RoomKey: 1,
+          OpenTime: 420,
+          CloseTime: 1080,
+          BreakStart: null,
+          BreakEnd: null,
+          Resource: {
+            ResourceKey: 5,
+            ResourceStatus: 'InStorage',
+            Eligibilities: rules,
+          },
+        }),
+      },
+      reservations: { findMany: jest.fn().mockResolvedValue([]) },
+      authority: {
+        findMany: jest
+          .fn()
+          .mockResolvedValue([{ ManageGroupKey: 3, AuthorityRoleKey: 1 }]),
+      },
+    } as unknown as PrismaService;
+    return new ItemService(prisma);
+  }
+
+  it('offers no slot in a room with no eligibility rules', async () => {
+    const day = await catalog([]).roomAvailability(user, {
+      roomKey: 1,
+      date: '2099-01-12',
+    });
+    expect(day.eligible).toBe(false);
+    expect(day.slots.some((slot) => slot.available)).toBe(false);
+  });
+
+  it('offers free slots to a borrower a rule names', async () => {
+    const day = await catalog([{ GroupKey: 3, RoleKey: 1 }]).roomAvailability(
+      user,
+      { roomKey: 1, date: '2099-01-12' },
+    );
+    expect(day.eligible).toBe(true);
+    expect(day.slots.every((slot) => slot.available)).toBe(true);
   });
 });

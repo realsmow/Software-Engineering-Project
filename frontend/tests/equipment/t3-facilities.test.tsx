@@ -50,6 +50,7 @@ function buildRoomDay(unavailable: number[] = []): RoomDay {
       endTime: s.end,
       available: !closed.has(index),
     })),
+    eligible: true,
     maxSlotsPerBooking: MAX_SLOTS_PER_BOOKING,
     slotMinutes: 30,
   };
@@ -62,7 +63,7 @@ function renderBookingPage() {
         <Route path={ROUTES.ROOM_BOOKING} element={<RoomBookingPage />} />
         <Route path={ROUTES.MY_LOANS} element={<div>My requests</div>} />
       </Routes>
-    </MemoryRouter>,
+    </MemoryRouter>
   );
 }
 
@@ -72,9 +73,18 @@ describe("Module 5 T3 facilities", () => {
   beforeEach(() => {
     i18n.changeLanguage("en");
     vi.clearAllMocks();
-    vi.mocked(roomHooks.useRooms).mockReturnValue({ data: [ROOM], isLoading: false } as never);
-    vi.mocked(roomHooks.useRoom).mockReturnValue({ data: ROOM, isLoading: false } as never);
-    vi.mocked(roomHooks.useRoomDay).mockReturnValue({ data: buildRoomDay(), isLoading: false } as never);
+    vi.mocked(roomHooks.useRooms).mockReturnValue({
+      data: [ROOM],
+      isLoading: false,
+    } as never);
+    vi.mocked(roomHooks.useRoom).mockReturnValue({
+      data: ROOM,
+      isLoading: false,
+    } as never);
+    vi.mocked(roomHooks.useRoomDay).mockReturnValue({
+      data: buildRoomDay(),
+      isLoading: false,
+    } as never);
     vi.mocked(roomHooks.useFreeSlots).mockReturnValue(new Map([[ROOM.id, 14]]));
     vi.mocked(roomHooks.useCreateRoomBooking).mockReturnValue({
       mutateAsync,
@@ -87,15 +97,16 @@ describe("Module 5 T3 facilities", () => {
     render(
       <MemoryRouter>
         <RoomListPage />
-      </MemoryRouter>,
+      </MemoryRouter>
     );
 
     expect(screen.getAllByText(ROOM.name).length).toBeGreaterThan(0);
     expect(screen.getAllByText(ROOM.location as string).length).toBeGreaterThan(0);
     expect(screen.getAllByText(String(ROOM.capacity)).length).toBeGreaterThan(0);
     expect(
-      screen.getAllByText(i18n.t("borrower.rooms.slots", { free: 14, total: TIME_SLOTS.length }))
-        .length,
+      screen.getAllByText(
+        i18n.t("borrower.rooms.slots", { free: 14, total: TIME_SLOTS.length })
+      ).length
     ).toBeGreaterThan(0);
   });
 
@@ -113,14 +124,19 @@ describe("Module 5 T3 facilities", () => {
         i18n.t("borrower.booking.dateHelp", {
           minutes: 30,
           hours: (3 * 30) / 60,
-        }),
-      ),
+        })
+      )
     ).toBeInTheDocument();
-    expect(screen.getByText(i18n.t("borrower.booking.slotBreak"))).toBeInTheDocument();
+    // The break is read from the gap in the slots, not a fixed sentence (#172).
+    expect(
+      screen.getByText(
+        i18n.t("borrower.booking.slotBreak", { from: "12:00", to: "13:00" })
+      )
+    ).toBeInTheDocument();
     expect(
       screen.getByText(i18n.t("borrower.booking.seats", { count: ROOM.capacity }), {
         exact: false,
-      }),
+      })
     ).toBeInTheDocument();
   });
 
@@ -134,6 +150,16 @@ describe("Module 5 T3 facilities", () => {
     expect(screen.getByRole("button", { name: TIME_SLOTS[5].start })).toBeDisabled();
   });
 
+  it("says the room is not open to a borrower no rule names (#163)", () => {
+    vi.mocked(roomHooks.useRoomDay).mockReturnValue({
+      data: { ...buildRoomDay(TIME_SLOTS.map((_, i) => i)), eligible: false },
+      isLoading: false,
+    } as never);
+    renderBookingPage();
+
+    expect(screen.getByText(i18n.t("borrower.booking.notEligible"))).toBeInTheDocument();
+  });
+
   it("caps picking at the server's maxSlotsPerBooking, not the frontend constant", () => {
     renderBookingPage();
 
@@ -142,9 +168,11 @@ describe("Module 5 T3 facilities", () => {
     }
 
     expect(
-      screen.getByRole("button", { name: TIME_SLOTS[MAX_SLOTS_PER_BOOKING].start }),
+      screen.getByRole("button", { name: TIME_SLOTS[MAX_SLOTS_PER_BOOKING].start })
     ).toBeDisabled();
-    expect(screen.getByRole("button", { name: i18n.t("borrower.booking.submit") })).toBeEnabled();
+    expect(
+      screen.getByRole("button", { name: i18n.t("borrower.booking.submit") })
+    ).toBeEnabled();
   });
 
   it("does not allow a booking to cross the lunch break", () => {
@@ -160,7 +188,9 @@ describe("Module 5 T3 facilities", () => {
     renderBookingPage();
 
     fireEvent.click(screen.getByRole("button", { name: "07:00" }));
-    fireEvent.click(screen.getByRole("button", { name: i18n.t("borrower.booking.submit") }));
+    fireEvent.click(
+      screen.getByRole("button", { name: i18n.t("borrower.booking.submit") })
+    );
 
     await waitFor(() => {
       expect(mutateAsync).toHaveBeenCalledWith({
@@ -183,10 +213,14 @@ describe("Module 5 T3 facilities", () => {
     renderBookingPage();
 
     fireEvent.click(screen.getByRole("button", { name: "07:00" }));
-    fireEvent.click(screen.getByRole("button", { name: i18n.t("borrower.booking.submit") }));
+    fireEvent.click(
+      screen.getByRole("button", { name: i18n.t("borrower.booking.submit") })
+    );
 
     await waitFor(() => {
-      expect(screen.getByText(getErrorMessage("WINDOW_NOT_AVAILABLE"))).toBeInTheDocument();
+      expect(
+        screen.getByText(getErrorMessage("WINDOW_NOT_AVAILABLE"))
+      ).toBeInTheDocument();
     });
     expect(screen.queryByText("My requests")).not.toBeInTheDocument();
   });

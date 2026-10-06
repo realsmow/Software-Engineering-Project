@@ -164,8 +164,9 @@ describe('SDS renewal credit gates and persistence', () => {
         audit as never,
       );
       const input = createRequestInput.parse({
-        startTime: new Date(Date.now() + 86_400_000).toISOString(),
-        endTime: new Date(Date.now() + 2 * 86_400_000).toISOString(),
+        // Monday to Tuesday, 09:00 Bangkok: inside counter hours (#179).
+        startTime: '2031-09-29T02:00:00.000Z',
+        endTime: '2031-09-30T02:00:00.000Z',
         lines: [{ resourceKey: available.ResourceKey }],
       });
       const refused = createRequestOutput

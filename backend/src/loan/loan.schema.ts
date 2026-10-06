@@ -190,9 +190,12 @@ export const allocateLoanInput = reservationIdInput.extend({
 });
 export type AllocateLoanInput = z.infer<typeof allocateLoanInput>;
 
-/** Swap the reserved unit for another of the same type. T1 only (§5.4). */
+/**
+ * Swap the reserved unit for another of the same type. T1 only (§5.4).
+ * Staff read the serial off the unit's label, so that is what they send (#149).
+ */
 export const swapUnitInput = usageIdInput.extend({
-  resourceKey: dbId,
+  serialNo: z.string().trim().min(1).max(100),
   reason: z.string().trim().max(500).optional(),
 });
 export type SwapUnitInput = z.infer<typeof swapUnitInput>;
@@ -276,6 +279,21 @@ export type ExtensionRouteWire = z.infer<typeof extensionRoute>;
 export const extensionIdInput = z.object({ extensionKey: dbId });
 
 /**
+ * The staff condition check on a supervisor-routed extension (#156).
+ *
+ * T2 and D2 extensions go to a supervisor, who does not have the unit in
+ * front of them. Staff look at it first and record what they found, and the
+ * supervisor decides with that on screen.
+ */
+export const extensionInspection = z.object({
+  condition: conditionType,
+  note: z.string().nullable(),
+  loggedAt: isoDateTimeNullable,
+  /** Display name of the staff member who checked it. */
+  loggedBy: z.string(),
+});
+
+/**
  * The extension requests a person has to settle.
  *
  * T1 alternates: one extension online, then the item must be brought in for a
@@ -301,6 +319,8 @@ export const extensionReviewRow = z.object({
   /** Why the borrower asked. Carried on the loan's own Reason column. */
   reason: z.string().nullable(),
   status: approveStatus,
+  /** Staff condition check. Always null on the staff route, which records it on decide. */
+  inspection: extensionInspection.nullable(),
 });
 
 export const paginatedExtensionReviews = paginated(extensionReviewRow);
@@ -320,13 +340,22 @@ export const decideExtensionInput = z.object({
   extensionKey: dbId,
   decision: z.enum(['approve', 'reject']),
   /**
-   * Condition found on the counter. Only the staff route inspects the unit;
-   * a supervisor decides on paper and this is ignored.
+   * Condition found on the counter. Only the staff route inspects the unit
+   * here; a supervisor-routed one was checked by `inspectExtension` and this
+   * is ignored.
    */
   condition: conditionType.default('Normal'),
   note: z.string().trim().max(500).optional(),
 });
 export type DecideExtensionInput = z.infer<typeof decideExtensionInput>;
+
+/** Staff record the condition of a supervisor-routed extension's unit (#156). */
+export const inspectExtensionInput = z.object({
+  extensionKey: dbId,
+  condition: conditionType,
+  note: z.string().trim().max(500).optional(),
+});
+export type InspectExtensionInput = z.infer<typeof inspectExtensionInput>;
 
 // ---------------------------------------------------------------------------
 // Extensions, from the borrower's side (§5.4 "ขอต่ออายุการยืม")

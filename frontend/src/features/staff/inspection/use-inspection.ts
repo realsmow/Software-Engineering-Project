@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { apiClient } from "@/lib/api-client";
 import { useTRPCClient } from "@/lib/trpc";
 import { fetchAllPages } from "@/lib/paging";
 import type {
@@ -60,6 +61,28 @@ export function useCreateInspection() {
       void queryClient.invalidateQueries({ queryKey: INSPECTION_KEY });
       void queryClient.invalidateQueries({ queryKey: ["staff", "queue"] });
       void queryClient.invalidateQueries({ queryKey: ["equipment-types"] });
+    },
+  });
+}
+
+/**
+ * Upload one inspection photo and hand back the URL to grade with (#137).
+ *
+ * Only the ticket and the PUT: `inspection.create` is what files the URL as an
+ * InspectionPicture, so nothing is attached to the loan until the grade is.
+ */
+export function useUploadInspectionPhoto() {
+  const trpc = useTRPCClient();
+
+  return useMutation({
+    mutationFn: async (input: { usageKey: number; file: File }): Promise<string> => {
+      const ticket = await trpc.image.requestUsagePhotoUpload.mutate({
+        usageKey: input.usageKey,
+        contentType: input.file.type as "image/jpeg" | "image/png",
+        sizeBytes: input.file.size,
+      });
+      await apiClient.uploadFile(ticket.uploadUrl, input.file);
+      return ticket.imageUrl;
     },
   });
 }

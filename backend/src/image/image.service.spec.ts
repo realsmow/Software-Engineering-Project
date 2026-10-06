@@ -167,6 +167,26 @@ describe('ImageService', () => {
       );
     });
 
+    it('stores a JPEG without its EXIF block (#177)', async () => {
+      const exif = Buffer.concat([
+        Buffer.from([0xff, 0xe1, 0x00, 0x15]),
+        Buffer.from('Exif\0\0GPS iPhone 15', 'latin1'),
+      ]);
+      const scan = Buffer.from([0xff, 0xda, 0x00, 0x04, 1, 2, 3, 0xff, 0xd9]);
+      const body = Buffer.concat([Buffer.from([0xff, 0xd8]), exif, scan]);
+      const ticket = ticketFor({
+        ...REQUEST,
+        contentType: 'image/jpeg',
+        sizeBytes: body.length,
+      });
+
+      await service.store(ticket, body, 'image/jpeg');
+
+      await expect(readFile(join(mediaRoot, ticket.key))).resolves.toEqual(
+        Buffer.concat([Buffer.from([0xff, 0xd8]), scan]),
+      );
+    });
+
     it('refuses a Content-Type other than the one the ticket was issued for', async () => {
       const ticket = ticketFor();
 

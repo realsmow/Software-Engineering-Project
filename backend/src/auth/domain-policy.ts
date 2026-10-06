@@ -1,7 +1,10 @@
 import type { ConfigService } from '@nestjs/config';
 
-/** C-01: every account must carry a KU e-mail. Used when nothing is configured. */
-const DEFAULT_ALLOWED_DOMAINS = ['ku.th'];
+/**
+ * C-01: every account must carry a KU e-mail. Used when nothing is configured.
+ * Both KU domains, since staff still use @ku.ac.th and the login page says so.
+ */
+const DEFAULT_ALLOWED_DOMAINS = ['ku.th', 'ku.ac.th'];
 
 /**
  * Parses ALLOWED_EMAIL_DOMAINS ("ku.th,ku.ac.th") into a lowercase list.

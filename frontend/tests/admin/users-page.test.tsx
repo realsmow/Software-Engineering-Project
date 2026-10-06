@@ -323,6 +323,37 @@ describe('Admin users page', () => {
       fireEvent.click(dialog.getByRole('button', { name: t('common.save') }));
       expect(updateUserMutate).toHaveBeenCalledWith({ id: BORROWER_USER.id, groupIds: [] }, expect.any(Object));
     });
+
+    it('names the department when removing the membership would leave it uncovered (#152)', async () => {
+      updateUserMutate.mockImplementation((_input, options) => {
+        options.onError({
+          data: {
+            businessCode: 'MEMBERSHIP_REMOVAL_WOULD_ORPHAN_GROUP',
+            details: {
+              groups: [
+                {
+                  manageGroupKey: 10,
+                  groupName: 'Computer Engineering',
+                  losing: 'staff',
+                  openWork: { pendingRequests: 0, pendingExtensions: 0, openLoans: 0, openRepairs: 0 },
+                },
+              ],
+            },
+          },
+        });
+      });
+      const dialog = within(screen.getByRole('dialog'));
+      fireEvent.click(dialog.getByRole('checkbox', { name: /Computer Engineering/ }));
+      fireEvent.click(dialog.getByRole('button', { name: t('common.save') }));
+
+      await waitFor(() => {
+        expect(
+          screen.getByText(
+            i18n.t('admin.users.membershipRemovalBlocked', { groups: 'Computer Engineering' }),
+          ),
+        ).toBeInTheDocument();
+      });
+    });
   });
 
   it('requests account deactivation for the selected active account', () => {

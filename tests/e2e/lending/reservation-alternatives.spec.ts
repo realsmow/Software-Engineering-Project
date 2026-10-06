@@ -48,7 +48,10 @@ test("FR-RSV-06: accepts the offered shorter period after a real booking race", 
   const blocker = await playwright.request.newContext();
   await login(blocker, "staff");
   const reservations: { key: number; owner: "borrower" | "staff" }[] = [];
-  const maxEndTime = "2031-09-28T01:00:00.000Z"; // 08:00 Bangkok.
+  // Monday 08:00 Bangkok. All on weekdays: the counter is shut at weekends,
+  // so neither booking may be collected on one (#179).
+  const maxEndTime = "2031-09-29T01:00:00.000Z";
+  const offeredEnd = maxEndTime;
   let injected = false;
   let dialogMessage = "";
   page.on("dialog", async (dialog) => {
@@ -64,7 +67,7 @@ test("FR-RSV-06: accepts the offered shorter period after a real booking race", 
         createRequestOutput,
         {
           startTime: maxEndTime,
-          endTime: "2031-09-29T09:00:00.000Z",
+          endTime: "2031-09-30T09:00:00.000Z",
           lines: [{ resourceKey: fixture.unit.resourceKey }],
         },
         true
@@ -83,9 +86,10 @@ test("FR-RSV-06: accepts the offered shorter period after a real booking race", 
     await row.getByRole("button", { name: "Add", exact: true }).click();
     await page.getByRole("button", { name: "1 selected", exact: true }).click();
     await expect(page.getByRole("heading", { name: "New borrow request" })).toBeVisible();
-    await page.getByLabel("Pickup date").fill("2031-09-27");
+    // Friday 26th: the test clock's today, before the Monday booking.
+    await page.getByLabel("Pickup date").fill("2031-09-26");
     await page.getByRole("button", { name: "08:00", exact: true }).first().click();
-    await page.getByLabel("Return date").fill("2031-09-29");
+    await page.getByLabel("Return date").fill("2031-09-30");
     await page.getByRole("button", { name: "16:00", exact: true }).last().click();
     await page.getByRole("checkbox", { name: new RegExp(fixture.unit.serialNo) }).check();
     const refusedResponse = mutationResponse(page, "loan.create");
@@ -93,20 +97,20 @@ test("FR-RSV-06: accepts the offered shorter period after a real booking race", 
       (response) =>
         response.request().method() === "POST" &&
         new URL(response.url()).pathname.includes("loan.create") &&
-        response.request().postData()?.includes(maxEndTime) === true
+        response.request().postData()?.includes(offeredEnd) === true
     );
     await page.getByRole("button", { name: "Submit request", exact: true }).click();
     const refused = await mutationData(await refusedResponse, createRequestOutput);
     expect(refused.created).toEqual([]);
     expect(refused.rejected).toMatchObject([
-      { code: "WINDOW_CROSSES_RESERVATION", detail: { maxEndTime } },
+      { code: "WINDOW_CROSSES_RESERVATION", detail: { maxEndTime: offeredEnd } },
     ]);
     const retried = await mutationData(await retryResponse, createRequestOutput);
     expect(retried.rejected).toEqual([]);
     expect(retried.created).toHaveLength(1);
     reservations.push({ key: retried.created[0].reservationKey, owner: "borrower" });
     expect(retried.created[0]).toMatchObject({
-      endTime: maxEndTime,
+      endTime: offeredEnd,
       resource: {
         resourceKey: fixture.unit.resourceKey,
         serialNo: fixture.unit.serialNo,
@@ -122,7 +126,7 @@ test("FR-RSV-06: accepts the offered shorter period after a real booking race", 
       persisted.items.find(
         (row) => row.reservationKey === retried.created[0].reservationKey
       )
-    ).toMatchObject({ endTime: maxEndTime });
+    ).toMatchObject({ endTime: offeredEnd });
   } finally {
     await page.unroute("**/trpc/loan.create*", handler);
     for (const reservation of reservations)
@@ -151,9 +155,10 @@ test("NFR usability: completes a real equipment request from the mobile catalogu
   await page.getByRole("button", { name: "Add", exact: true }).click();
   await page.getByRole("button", { name: "1 selected", exact: true }).click();
   await expect(page.getByRole("heading", { name: "New borrow request" })).toBeVisible();
-  await page.getByLabel("Pickup date").fill("2031-09-27");
+  // Weekdays: the counter is shut at weekends (#179).
+  await page.getByLabel("Pickup date").fill("2031-09-29");
   await page.getByRole("button", { name: "08:00", exact: true }).first().click();
-  await page.getByLabel("Return date").fill("2031-09-28");
+  await page.getByLabel("Return date").fill("2031-09-30");
   await page.getByRole("button", { name: "16:00", exact: true }).last().click();
   const response = mutationResponse(page, "loan.create");
   await page.getByRole("button", { name: "Submit request", exact: true }).click();

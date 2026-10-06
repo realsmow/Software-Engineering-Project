@@ -18,14 +18,14 @@ function dbFor(resource = baseResource) {
     ReservationKey: 101,
     ReservedBy: 10,
     Reason: null,
-    StartTime: new Date('2099-01-10T08:00:00Z'),
-    EndTime: new Date('2099-01-10T13:00:00Z'),
+    StartTime: new Date('2099-01-14T08:00:00Z'),
+    EndTime: new Date('2099-01-14T13:00:00Z'),
     ApproveStatus: 'Approved',
     ApprovedBy: null,
     AutoApproved: true,
-    ApprovedAt: new Date('2099-01-01T00:00:00Z'),
-    ReservationExpiration: new Date('2099-01-02T00:00:00Z'),
-    ActionTime: new Date('2099-01-01T00:00:00Z'),
+    ApprovedAt: new Date('2099-01-05T00:00:00Z'),
+    ReservationExpiration: new Date('2099-01-06T00:00:00Z'),
+    ActionTime: new Date('2099-01-05T00:00:00Z'),
     ResolvedAt: null,
     Resource: resource,
     ReservedByUser: { UserCredit: 80 },
@@ -39,6 +39,7 @@ function dbFor(resource = baseResource) {
         row.ApproveStatus = data.ApproveStatus;
         row.AutoApproved = data.AutoApproved;
         row.ApprovedAt = data.ApprovedAt;
+        row.EndTime = data.EndTime;
         row.Resource = resource;
         return Promise.resolve({ ReservationKey: 101 });
       }),
@@ -111,19 +112,19 @@ function service(
 }
 
 const future = {
-  startTime: '2099-01-10T08:00:00.000Z',
-  endTime: '2099-01-10T13:00:00.000Z',
+  startTime: '2099-01-14T02:00:00.000Z',
+  endTime: '2099-01-14T08:00:00.000Z',
   lines: [{ resourceKey: 7 }],
 };
 
-// `future`'s Bangkok day is 2099-01-10. FR-RSV-03 now compares a T0 line's
+// `future`'s Bangkok day is 2099-01-14. FR-RSV-03 now compares a T0 line's
 // start against today, so "today" has to be pinned to that same day for
 // every fixture above that borrows on it - same pattern the room describes
 // below already use.
 describe('Module 6 request validation', () => {
   beforeEach(() =>
     jest.useFakeTimers({
-      now: new Date('2099-01-10T01:00:00Z'),
+      now: new Date('2099-01-14T01:00:00Z'),
       doNotFake: ['nextTick', 'setImmediate'],
     }),
   );
@@ -194,7 +195,7 @@ describe('Module 6 request validation', () => {
       {
         UsageKey: 501,
         CurrentStatus: 'Prepared',
-        DueTime: new Date('2099-01-10T13:00:00.000Z'),
+        DueTime: new Date('2099-01-14T08:00:00.000Z'),
       },
     ];
     db.usageLog.findUnique = jest.fn().mockResolvedValue({
@@ -349,13 +350,13 @@ describe('one room held at a time', () => {
   // Rooms are same-day only, so the clock is pinned to the morning of the
   // fixture's day and the window is 09:00-10:00 Bangkok, on the slot grid.
   const roomWindow = {
-    startTime: '2099-01-10T02:00:00.000Z',
-    endTime: '2099-01-10T03:00:00.000Z',
+    startTime: '2099-01-14T02:00:00.000Z',
+    endTime: '2099-01-14T03:00:00.000Z',
     lines: [{ resourceKey: 7 }],
   };
   beforeEach(() =>
     jest.useFakeTimers({
-      now: new Date('2099-01-10T01:00:00Z'),
+      now: new Date('2099-01-14T01:00:00Z'),
       doNotFake: ['nextTick', 'setImmediate'],
     }),
   );
@@ -430,14 +431,14 @@ describe('room windows sent as raw instants', () => {
   };
   beforeEach(() =>
     jest.useFakeTimers({
-      now: new Date('2099-01-10T01:00:00Z'),
+      now: new Date('2099-01-14T01:00:00Z'),
       doNotFake: ['nextTick', 'setImmediate'],
     }),
   );
   afterEach(() => jest.useRealTimers());
   const at = (s: string, e: string) => ({
-    startTime: `2099-01-10T${s}:00.000Z`,
-    endTime: `2099-01-10T${e}:00.000Z`,
+    startTime: `2099-01-14T${s}:00.000Z`,
+    endTime: `2099-01-14T${e}:00.000Z`,
     lines: [{ resourceKey: 7 }],
   });
 
@@ -452,8 +453,8 @@ describe('room windows sent as raw instants', () => {
     [
       'another day',
       {
-        startTime: '2099-01-15T02:00:00.000Z',
-        endTime: '2099-01-15T03:00:00.000Z',
+        startTime: '2099-01-19T02:00:00.000Z',
+        endTime: '2099-01-19T03:00:00.000Z',
         lines: [{ resourceKey: 7 }],
       },
       'ROOM_BOOKING_SAME_DAY_ONLY',
@@ -470,10 +471,10 @@ describe('room windows sent as raw instants', () => {
 
 describe('audit trail', () => {
   // Same reason as Module 6 above: these fixtures borrow a T0 default
-  // resource on `future`'s day, 2099-01-10.
+  // resource on `future`'s day, 2099-01-14.
   beforeEach(() =>
     jest.useFakeTimers({
-      now: new Date('2099-01-10T01:00:00Z'),
+      now: new Date('2099-01-14T01:00:00Z'),
       doNotFake: ['nextTick', 'setImmediate'],
     }),
   );
@@ -507,7 +508,7 @@ describe('audit trail', () => {
 describe('reservation horizon (FR-RSV-01, FR-RSV-03)', () => {
   beforeEach(() =>
     jest.useFakeTimers({
-      now: new Date('2099-01-10T01:00:00Z'),
+      now: new Date('2099-01-14T01:00:00Z'),
       doNotFake: ['nextTick', 'setImmediate'],
     }),
   );
@@ -519,8 +520,8 @@ describe('reservation horizon (FR-RSV-01, FR-RSV-03)', () => {
   it('refuses a T0 line whose start is on a later Bangkok day than today', async () => {
     const db = dbFor(); // default resource is T0
     const result = await service(db).create(user as never, {
-      startTime: '2099-01-11T08:00:00.000Z',
-      endTime: '2099-01-11T13:00:00.000Z',
+      startTime: '2099-01-15T02:00:00.000Z',
+      endTime: '2099-01-15T08:00:00.000Z',
       lines: [{ resourceKey: 7 }],
     });
 
@@ -529,13 +530,13 @@ describe('reservation horizon (FR-RSV-01, FR-RSV-03)', () => {
   });
 
   it('refuses a T1 request ending after TERM_END_DATE when the var is set', async () => {
-    process.env.TERM_END_DATE = '2099-01-12';
+    process.env.TERM_END_DATE = '2099-01-16';
     const resource = { ...baseResource, BorrowRuleInfo: { RuleName: 'T1' } };
     const db = dbFor(resource);
 
     const result = await service(db).create(user as never, {
-      startTime: '2099-01-10T08:00:00.000Z',
-      endTime: '2099-01-20T08:00:00.000Z',
+      startTime: '2099-01-14T02:00:00.000Z',
+      endTime: '2099-01-24T08:00:00.000Z',
       lines: [{ resourceKey: 7 }],
     });
 
@@ -574,8 +575,8 @@ describe('T1 unit swap (FR-RSV-04)', () => {
     // The requested unit (7) is already booked over the window.
     db.reservations.findFirst = jest.fn().mockResolvedValue({
       ReservationKey: 900,
-      StartTime: new Date('2099-01-10T08:00:00Z'),
-      EndTime: new Date('2099-01-10T13:00:00Z'),
+      StartTime: new Date('2099-01-14T08:00:00Z'),
+      EndTime: new Date('2099-01-14T13:00:00Z'),
     });
     // resourcesFreeInWindow's own reads: nothing blocks the sibling.
     db.reservations.findMany = jest.fn().mockResolvedValue([]);
@@ -611,7 +612,7 @@ describe('T1 unit swap (FR-RSV-04)', () => {
 describe('window crosses a later reservation (FR-RSV-06, G2)', () => {
   beforeEach(() =>
     jest.useFakeTimers({
-      now: new Date('2099-01-10T01:00:00Z'),
+      now: new Date('2099-01-14T01:00:00Z'),
       doNotFake: ['nextTick', 'setImmediate'],
     }),
   );
@@ -623,8 +624,8 @@ describe('window crosses a later reservation (FR-RSV-06, G2)', () => {
       ReservationKey: 77,
       // Starts after the requested start (08:00) but before the requested
       // end (13:00) - the unit is free at the start, not for the whole window.
-      StartTime: new Date('2099-01-10T10:00:00Z'),
-      EndTime: new Date('2099-01-10T14:00:00Z'),
+      StartTime: new Date('2099-01-14T10:00:00Z'),
+      EndTime: new Date('2099-01-14T14:00:00Z'),
     });
 
     const result = await service(db).create(user as never, future);
@@ -633,7 +634,64 @@ describe('window crosses a later reservation (FR-RSV-06, G2)', () => {
     expect(result.rejected[0].code).toBe('WINDOW_CROSSES_RESERVATION');
     expect(result.rejected[0].detail).toMatchObject({
       resourceKey: 7,
-      maxEndTime: '2099-01-10T10:00:00.000Z',
+      maxEndTime: '2099-01-14T10:00:00.000Z',
     });
+  });
+});
+
+describe('counter hours and weekends (#179, #178)', () => {
+  // Friday 9 Jan 2099, 08:00 Bangkok.
+  beforeEach(() =>
+    jest.useFakeTimers({
+      now: new Date('2099-01-09T01:00:00Z'),
+      doNotFake: ['nextTick', 'setImmediate'],
+    }),
+  );
+  afterEach(() => jest.useRealTimers());
+
+  it('refuses a pickup or return outside working hours', async () => {
+    const db = dbFor();
+    const result = await service(db).create(user as never, {
+      // 18:11-20:11 Bangkok, after the counter closed.
+      startTime: '2099-01-09T11:11:00.000Z',
+      endTime: '2099-01-09T13:11:00.000Z',
+      lines: [{ resourceKey: 7 }],
+    });
+    expect(result.created).toHaveLength(0);
+    expect(result.rejected[0].code).toBe('OUTSIDE_WORK_HOURS');
+    expect(result.rejected[0].detail).toMatchObject({ edge: 'START' });
+  });
+
+  it('accepts a return at the closing minute', async () => {
+    const db = dbFor();
+    const result = await service(db).create(user as never, {
+      startTime: '2099-01-09T09:00:00.000Z',
+      endTime: '2099-01-09T10:00:00.000Z',
+      lines: [{ resourceKey: 7 }],
+    });
+    expect(result.rejected).toHaveLength(0);
+  });
+
+  it('refuses a weekend pickup: the counter is shut', async () => {
+    const db = dbFor();
+    const result = await service(db).create(user as never, {
+      // Saturday 10 Jan, 09:00-13:00 Bangkok: inside the hours, wrong day.
+      startTime: '2099-01-10T02:00:00.000Z',
+      endTime: '2099-01-10T06:00:00.000Z',
+      lines: [{ resourceKey: 7 }],
+    });
+    expect(result.rejected[0].code).toBe('OUTSIDE_WORK_HOURS');
+    expect(result.rejected[0].detail).toMatchObject({ edge: 'START' });
+  });
+
+  it('moves a Saturday return to Monday at closing time', async () => {
+    const db = dbFor({ ...baseResource, BorrowRuleInfo: { RuleName: 'T1' } });
+    const result = await service(db).create(user as never, {
+      startTime: '2099-01-09T02:00:00.000Z',
+      // Saturday 10 Jan, 13:00 Bangkok.
+      endTime: '2099-01-10T06:00:00.000Z',
+      lines: [{ resourceKey: 7 }],
+    });
+    expect(result.created[0].endTime).toBe('2099-01-12T10:00:00.000Z');
   });
 });

@@ -69,8 +69,8 @@ export class PasswordResetService {
       await this.mailer.sendMail({
         to: account.Email,
         from: this.from,
-        subject: 'Reset your ULMs password',
-        text: `Open this link to choose a new password. It expires in 30 minutes and works once.\n\n${link}\n\nIf you did not ask for this, ignore this message; nothing has changed.`,
+        subject: 'ULMs: ตั้งรหัสผ่านใหม่ / Reset your password',
+        text: `เปิดลิงก์นี้เพื่อตั้งรหัสผ่านใหม่ ลิงก์ใช้ได้ภายใน 30 นาทีและใช้ได้ครั้งเดียว\n\n${link}\n\nหากคุณไม่ได้ขอ ไม่ต้องทำอะไร รหัสผ่านเดิมยังใช้ได้\n\n---\nOpen the link above to choose a new password. It expires in 30 minutes and works once. If you did not ask for this, ignore this message; nothing has changed.`,
       });
     } catch (error) {
       // The row is already written, so the link works even if the mail did not

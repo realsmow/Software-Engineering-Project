@@ -389,6 +389,24 @@ describe("room use page through its real API hooks", () => {
     expect(screen.queryByRole("button", { name: /check.out/i })).not.toBeInTheDocument();
   });
 
+  it("labels an approved booking as waiting for staff and shows its evening times (#165)", async () => {
+    requests = [
+      requestResponse({
+        ...readyRoom(),
+        status: "approved",
+        usageKey: null,
+        // 18:30-19:00 Bangkok, past the last fixed slot.
+        startTime: "2026-09-28T11:30:00.000Z",
+        endTime: "2026-09-28T12:00:00.000Z",
+      }),
+    ];
+    renderPage("room");
+    await screen.findByText(i18n.t("borrower.roomUse.stAwaitOpen"));
+    expect(screen.queryByText(i18n.t("borrower.roomUse.stWaiting"))).not.toBeInTheDocument();
+    expect(screen.getByText("18:30–19:00")).toBeInTheDocument();
+    expect(screen.getByText(i18n.t("borrower.roomUse.hours", { count: 0.5 }))).toBeInTheDocument();
+  });
+
   it("asks for cancellation confirmation and sends only a cancellable booking's reservation key", async () => {
     requests = [
       requestResponse({

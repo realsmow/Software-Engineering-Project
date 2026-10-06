@@ -15,13 +15,24 @@ const logger = new Logger('HTTP');
  * HTTP 200 (batched responses carry per-call errors in the body), so this is
  * a companion to TrpcErrorLogger, not a replacement for it.
  */
+/**
+ * The path without its query, with upload tickets masked.
+ *
+ * tRPC GET calls carry their input in the query (search terms, student IDs),
+ * the Google callback carries an auth code, and an upload path is itself a
+ * signed ticket. None of that belongs in a log.
+ */
+export function loggablePath(url: string): string {
+  return url.split('?')[0].replace(/^\/uploads\/[^/]+/, '/uploads/:token');
+}
+
 export function requestLogger(req: Request, res: Response, next: NextFunction) {
   const startedAt = Date.now();
 
   // 'finish' fires once the response is fully sent, so the status and
   // duration are final by then.
   res.once('finish', () => {
-    const line = `${req.method} ${req.originalUrl} ${res.statusCode} ${Date.now() - startedAt}ms`;
+    const line = `${req.method} ${loggablePath(req.originalUrl)} ${res.statusCode} ${Date.now() - startedAt}ms`;
 
     if (res.statusCode >= 500) logger.error(line);
     else if (res.statusCode >= 400) logger.warn(line);

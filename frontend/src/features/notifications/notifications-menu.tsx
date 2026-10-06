@@ -5,6 +5,7 @@ import { Bell, CheckCheck, ChevronRight } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { NavIcon } from "@/components/layout/nav-icon";
 import type { BadgeTone } from "@/components/ui/badge";
+import { notificationText } from "@/lib/notification-text";
 import type { Notification } from "@/types/domain";
 import { NOTIFICATION_META } from "./notification.meta";
 import {
@@ -26,7 +27,7 @@ function toneStyle(tone: BadgeTone): React.CSSProperties {
 function useRelativeTime() {
   const { i18n } = useTranslation();
   return useMemo(() => {
-    const rtf = new Intl.RelativeTimeFormat(i18n.language === "th" ? "th" : "en", {
+    const rtf = new Intl.RelativeTimeFormat(i18n.language.startsWith("th") ? "th" : "en", {
       numeric: "auto",
     });
     return (iso: string) => {
@@ -150,13 +151,13 @@ export function NotificationsMenu() {
                     </span>
                     <div className="min-w-0 flex-1 whitespace-normal [overflow-wrap:anywhere]">
                       <div className="flex items-start justify-between gap-2">
-                        <span className="min-w-0 text-sm font-medium text-foreground">{n.title}</span>
+                        <span className="min-w-0 text-sm font-medium text-foreground">{notificationText(n).title}</span>
                         {!n.readAt ? (
                           <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--accent-red)]" />
                         ) : null}
                       </div>
                       <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-                        {n.body}
+                        {notificationText(n).body}
                       </p>
                       <div className="mt-1 flex items-center justify-between">
                         <span className="text-[11px] text-muted-foreground">

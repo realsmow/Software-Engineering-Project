@@ -1,7 +1,15 @@
 import { useMemo, useState, type ReactNode } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 export interface Column<T> {
   key: string;
@@ -62,6 +70,7 @@ export function DataTable<T>({
   emptyDescription,
   rangeLabel = (s, e, t) => `${s}–${e} of ${t}`,
 }: DataTableProps<T>) {
+  const { t } = useTranslation();
   const [page, setPage] = useState(1);
   const total = rows.length;
   const pageCount = Math.max(1, Math.ceil(total / pageSize));
@@ -88,7 +97,9 @@ export function DataTable<T>({
       {title ? (
         <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
           <span className="text-sm font-semibold text-foreground">{title}</span>
-          {headerActions ? <div className="flex items-center gap-2">{headerActions}</div> : null}
+          {headerActions ? (
+            <div className="flex items-center gap-2">{headerActions}</div>
+          ) : null}
         </div>
       ) : null}
 
@@ -99,7 +110,12 @@ export function DataTable<T>({
           <TableRow className="hover:bg-transparent">
             {columns.map((c) => (
               <TableHead key={c.key} className={cn(alignClass(c.align), c.className)}>
-                {c.header}
+                {/* An action column has no visible title; give it one for screen readers (#174). */}
+                {c.header === "" ? (
+                  <span className="sr-only">{t("common.actions")}</span>
+                ) : (
+                  c.header
+                )}
               </TableHead>
             ))}
           </TableRow>
@@ -111,7 +127,9 @@ export function DataTable<T>({
                 <div className="flex flex-col items-center gap-1 py-10 text-center">
                   <div className="text-sm font-medium text-foreground">{emptyTitle}</div>
                   {emptyDescription ? (
-                    <div className="text-xs text-muted-foreground">{emptyDescription}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {emptyDescription}
+                    </div>
                   ) : null}
                 </div>
               </TableCell>
@@ -136,7 +154,9 @@ export function DataTable<T>({
 
       {total > pageSize ? (
         <div className="flex items-center justify-between gap-3 border-t border-border px-4 py-2.5">
-          <span className="text-xs text-muted-foreground">{rangeLabel(start, end, total)}</span>
+          <span className="text-xs text-muted-foreground">
+            {rangeLabel(start, end, total)}
+          </span>
           <div className="flex items-center gap-1">
             <button
               type="button"
@@ -147,12 +167,18 @@ export function DataTable<T>({
             >
               <ChevronLeft size={15} strokeWidth={2} />
             </button>
-            {pageNumbers[0] > 1 ? <span className="px-1 text-xs text-muted-foreground">…</span> : null}
+            {pageNumbers[0] > 1 ? (
+              <span className="px-1 text-xs text-muted-foreground">…</span>
+            ) : null}
             {pageNumbers.map((n) => (
               <button
                 key={n}
                 type="button"
-                className={cn(pagerBtn, n === safePage && "border-primary bg-primary text-primary-foreground hover:bg-primary")}
+                className={cn(
+                  pagerBtn,
+                  n === safePage &&
+                    "border-primary bg-primary text-primary-foreground hover:bg-primary"
+                )}
                 onClick={() => setPage(n)}
               >
                 {n}

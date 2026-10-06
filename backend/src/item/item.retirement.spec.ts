@@ -283,3 +283,20 @@ describe('cancelRetirement', () => {
     ).rejects.toMatchObject({ businessCode: 'RETIREMENT_REQUEST_NOT_FOUND' });
   });
 });
+
+describe('setUnitLendable on a retired unit (#160)', () => {
+  it('refuses to make it lendable again', async () => {
+    const t = harness();
+    (t.prisma.resourceInfo.findUnique as jest.Mock).mockResolvedValueOnce({
+      ResourceKey: 10,
+      ConditionKey: null,
+      ResourceStatus: 'Retired',
+      UsageLogs: [],
+    });
+
+    await expect(
+      t.service.setUnitLendable(staff, { resourceKey: 10, lendable: true }),
+    ).rejects.toMatchObject({ businessCode: 'RESOURCE_ALREADY_RETIRED' });
+    expect(t.prisma.$transaction).not.toHaveBeenCalled();
+  });
+});

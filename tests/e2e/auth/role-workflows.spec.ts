@@ -193,8 +193,10 @@ test("FR-AUTH-06: redirects an expired session to login on menu navigation witho
 
     // APIRequestContext shares the cookie but does not notify the frontend.
     // Prove expiry is real before testing the SPA's response to its own 401.
+    // auth.me answers null once the session is gone (#184).
     const me = await page.request.get("http://localhost:3000/trpc/auth.me");
-    expect(me.status()).toBe(401);
+    expect(me.status()).toBe(200);
+    expect((await me.json()).result.data).toBeNull();
     const denied = page.waitForResponse(
       (response) =>
         new URL(response.url()).pathname
@@ -244,10 +246,6 @@ test("FR-AUTH-06: redirects an expired session to login on menu navigation witho
     }
   }
 
-  test.fail(
-    true,
-    "FR-AUTH-06: an expired session stays on /catalog until reload",
-  );
   expect(
     redirectedWithoutReload,
     "a browser API 401 must end the authenticated UI without reload",

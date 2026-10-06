@@ -168,7 +168,7 @@ test.describe("Module 5 equipment browser flows", () => {
     ).toBeVisible();
     await expect(page.getByRole("button", { name: "07:00" })).toBeVisible();
     await expect(page.getByRole("button", { name: "17:30" })).toBeVisible();
-    await expect(page.getByText(/lunch break - not bookable/)).toBeVisible();
+    await expect(page.getByText(/break - not bookable/)).toBeVisible();
   });
 
   test("finds a seeded equipment type by a real unit asset tag", async ({

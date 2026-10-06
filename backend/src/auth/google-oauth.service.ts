@@ -27,6 +27,15 @@ const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
  * that registration or an admin already created - Google only proves which
  * email the caller controls.
  */
+/** The one rule for "Google sign-in is on", shared with the admin config page. */
+export function googleOauthConfigured(config: ConfigService): boolean {
+  return (
+    Boolean(config.get<string>('GOOGLE_CLIENT_ID')) &&
+    Boolean(config.get<string>('GOOGLE_CLIENT_SECRET')) &&
+    Boolean(config.get<string>('GOOGLE_REDIRECT_URI'))
+  );
+}
+
 @Injectable()
 export class GoogleOAuthService {
   private readonly logger = new Logger(GoogleOAuthService.name);
@@ -45,11 +54,7 @@ export class GoogleOAuthService {
 
   /** Off unless every credential this flow needs is configured. */
   isEnabled(): boolean {
-    return (
-      Boolean(this.config.get<string>('GOOGLE_CLIENT_ID')) &&
-      Boolean(this.config.get<string>('GOOGLE_CLIENT_SECRET')) &&
-      Boolean(this.config.get<string>('GOOGLE_REDIRECT_URI'))
-    );
+    return googleOauthConfigured(this.config);
   }
 
   private stateSecret(): string {

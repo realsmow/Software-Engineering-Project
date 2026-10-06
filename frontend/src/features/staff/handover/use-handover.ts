@@ -34,7 +34,7 @@ export function useSwapUnit() {
   return useMutation({
     mutationFn: (input: {
       usageKey: number;
-      resourceKey: number;
+      serialNo: string;
       reason?: string;
     }): Promise<LoanOutput> => trpc.loan.swapUnit.mutate(input),
     onSuccess: (_data, variables) => {

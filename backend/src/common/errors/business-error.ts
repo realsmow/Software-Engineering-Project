@@ -48,6 +48,8 @@ export const BUSINESS_ERROR_CODES = {
   AUDIT_EVENT_NOT_FOUND: 'NOT_FOUND',
   EMAIL_ALREADY_IN_USE: 'CONFLICT',
   USER_ID_ALREADY_IN_USE: 'CONFLICT',
+  /** setAvatar was given a path that is not one of our avatar uploads. */
+  AVATAR_URL_INVALID: 'BAD_REQUEST',
   FACULTY_NOT_FOUND: 'NOT_FOUND',
   GROUP_NOT_FOUND: 'NOT_FOUND',
   /** RoleInfo has no row for the requested role - seed data problem, not user error */
@@ -74,6 +76,11 @@ export const BUSINESS_ERROR_CODES = {
    * has the same shape.
    */
   DISABLE_WOULD_ORPHAN_GROUP: 'CONFLICT',
+  /**
+   * Same hazard again through the account editor: removing the last staff or
+   * supervisor's membership of a department. `cause.groups` has the same shape.
+   */
+  MEMBERSHIP_REMOVAL_WOULD_ORPHAN_GROUP: 'CONFLICT',
   /** Forged, already spent, or expired. One code for all three on purpose. */
   RESET_TOKEN_INVALID: 'BAD_REQUEST',
   /** Same three cases, for the link that confirms a self-registered address. */
@@ -150,6 +157,10 @@ export const BUSINESS_ERROR_CODES = {
   ROOM_BOOKING_LIMIT_REACHED: 'CONFLICT',
   /** T2 extensions are the supervisor's call, not the counter's (§5.4) */
   EXTENSION_NEEDS_SUPERVISOR: 'FORBIDDEN',
+  /** #156: a supervisor-routed extension is approved only after staff check the unit. */
+  EXTENSION_NOT_INSPECTED: 'PRECONDITION_FAILED',
+  /** #156: only supervisor-routed extensions take a separate staff check. */
+  EXTENSION_INSPECTION_NOT_NEEDED: 'BAD_REQUEST',
   /**
    * One extension request may be open per loan.
    *
@@ -292,6 +303,8 @@ export const BUSINESS_ERROR_CODES = {
   CREDIT_TOO_LOW: 'FORBIDDEN',
   /** The requested window is backwards, in the past, or longer than the tier allows */
   INVALID_BORROW_WINDOW: 'BAD_REQUEST',
+  /** Pickup or return falls outside the counter's working hours (FR-ADM-04). */
+  OUTSIDE_WORK_HOURS: 'BAD_REQUEST',
   /**
    * FR-RSV-03: T0 is stock borrowed on the spot, not reserved ahead. Thrown
    * when a T0 line's start falls on a later Bangkok day than today.

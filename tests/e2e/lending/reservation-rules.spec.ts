@@ -40,7 +40,10 @@ test("a T0 item cannot be booked for next week", async ({ playwright }) => {
   );
   expect(lendable, "The isolated database must contain a lendable T0 unit").toBeDefined();
 
+  // 09:00 Bangkok a week ahead: inside counter hours (#179), so the refusal
+  // tested is the T0 rule and not the hours check.
   const start = new Date(Date.now() + 7 * 86_400_000);
+  start.setUTCHours(2, 0, 0, 0);
   const end = new Date(start.getTime() + 86_400_000);
   const res = await call(api, "loan.create", {
     startTime: start.toISOString(),

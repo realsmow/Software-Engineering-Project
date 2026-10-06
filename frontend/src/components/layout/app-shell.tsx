@@ -15,11 +15,12 @@ export function AppShell() {
       <Sidebar />
       <div className="main">
         <Topbar />
-        <div className="app-body">
+        {/* The page content landmark, so screen readers can jump past the chrome (#174). */}
+        <main className="app-body">
           <div className="body-inner">
             <Outlet />
           </div>
-        </div>
+        </main>
       </div>
       <MobileTabBar />
     </div>

@@ -5,7 +5,7 @@ const BORROWER = { username: "test_borrower", password: "borrower1234" };
 const STAFF = { username: "test_staff", password: "staff1234" };
 
 /** Mirrors REQUEST_TIMES in request-draft.store.ts. */
-const PICKUP_TIME_SLOTS = ["08:00", "13:00", "16:00"];
+const PICKUP_TIME_SLOTS = ["08:00", "13:00", "16:00", "17:00"];
 
 function bangkokParts(date = new Date()): { day: string; hm: string } {
   const fmt = new Intl.DateTimeFormat("en-CA", {

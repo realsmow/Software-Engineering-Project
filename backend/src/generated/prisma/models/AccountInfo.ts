@@ -49,6 +49,7 @@ export type AccountInfoMinAggregateOutputType = {
   UserLName: string | null
   UserCredit: number | null
   CreatedAt: Date | null
+  AvatarUrl: string | null
   RoleKey: number | null
   FacultyKey: number | null
   IsActive: boolean | null
@@ -63,6 +64,7 @@ export type AccountInfoMaxAggregateOutputType = {
   UserLName: string | null
   UserCredit: number | null
   CreatedAt: Date | null
+  AvatarUrl: string | null
   RoleKey: number | null
   FacultyKey: number | null
   IsActive: boolean | null
@@ -77,6 +79,7 @@ export type AccountInfoCountAggregateOutputType = {
   UserLName: number
   UserCredit: number
   CreatedAt: number
+  AvatarUrl: number
   RoleKey: number
   FacultyKey: number
   IsActive: number
@@ -107,6 +110,7 @@ export type AccountInfoMinAggregateInputType = {
   UserLName?: true
   UserCredit?: true
   CreatedAt?: true
+  AvatarUrl?: true
   RoleKey?: true
   FacultyKey?: true
   IsActive?: true
@@ -121,6 +125,7 @@ export type AccountInfoMaxAggregateInputType = {
   UserLName?: true
   UserCredit?: true
   CreatedAt?: true
+  AvatarUrl?: true
   RoleKey?: true
   FacultyKey?: true
   IsActive?: true
@@ -135,6 +140,7 @@ export type AccountInfoCountAggregateInputType = {
   UserLName?: true
   UserCredit?: true
   CreatedAt?: true
+  AvatarUrl?: true
   RoleKey?: true
   FacultyKey?: true
   IsActive?: true
@@ -236,6 +242,7 @@ export type AccountInfoGroupByOutputType = {
   UserLName: string
   UserCredit: number
   CreatedAt: Date | null
+  AvatarUrl: string | null
   RoleKey: number
   FacultyKey: number | null
   IsActive: boolean
@@ -273,6 +280,7 @@ export type AccountInfoWhereInput = {
   UserLName?: Prisma.StringFilter<"AccountInfo"> | string
   UserCredit?: Prisma.IntFilter<"AccountInfo"> | number
   CreatedAt?: Prisma.DateTimeNullableFilter<"AccountInfo"> | Date | string | null
+  AvatarUrl?: Prisma.StringNullableFilter<"AccountInfo"> | string | null
   RoleKey?: Prisma.IntFilter<"AccountInfo"> | number
   FacultyKey?: Prisma.IntNullableFilter<"AccountInfo"> | number | null
   IsActive?: Prisma.BoolFilter<"AccountInfo"> | boolean
@@ -309,6 +317,7 @@ export type AccountInfoOrderByWithRelationInput = {
   UserLName?: Prisma.SortOrder
   UserCredit?: Prisma.SortOrder
   CreatedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  AvatarUrl?: Prisma.SortOrderInput | Prisma.SortOrder
   RoleKey?: Prisma.SortOrder
   FacultyKey?: Prisma.SortOrderInput | Prisma.SortOrder
   IsActive?: Prisma.SortOrder
@@ -348,6 +357,7 @@ export type AccountInfoWhereUniqueInput = Prisma.AtLeast<{
   UserLName?: Prisma.StringFilter<"AccountInfo"> | string
   UserCredit?: Prisma.IntFilter<"AccountInfo"> | number
   CreatedAt?: Prisma.DateTimeNullableFilter<"AccountInfo"> | Date | string | null
+  AvatarUrl?: Prisma.StringNullableFilter<"AccountInfo"> | string | null
   RoleKey?: Prisma.IntFilter<"AccountInfo"> | number
   FacultyKey?: Prisma.IntNullableFilter<"AccountInfo"> | number | null
   IsActive?: Prisma.BoolFilter<"AccountInfo"> | boolean
@@ -384,6 +394,7 @@ export type AccountInfoOrderByWithAggregationInput = {
   UserLName?: Prisma.SortOrder
   UserCredit?: Prisma.SortOrder
   CreatedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  AvatarUrl?: Prisma.SortOrderInput | Prisma.SortOrder
   RoleKey?: Prisma.SortOrder
   FacultyKey?: Prisma.SortOrderInput | Prisma.SortOrder
   IsActive?: Prisma.SortOrder
@@ -406,6 +417,7 @@ export type AccountInfoScalarWhereWithAggregatesInput = {
   UserLName?: Prisma.StringWithAggregatesFilter<"AccountInfo"> | string
   UserCredit?: Prisma.IntWithAggregatesFilter<"AccountInfo"> | number
   CreatedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"AccountInfo"> | Date | string | null
+  AvatarUrl?: Prisma.StringNullableWithAggregatesFilter<"AccountInfo"> | string | null
   RoleKey?: Prisma.IntWithAggregatesFilter<"AccountInfo"> | number
   FacultyKey?: Prisma.IntNullableWithAggregatesFilter<"AccountInfo"> | number | null
   IsActive?: Prisma.BoolWithAggregatesFilter<"AccountInfo"> | boolean
@@ -419,6 +431,7 @@ export type AccountInfoCreateInput = {
   UserLName: string
   UserCredit: number
   CreatedAt?: Date | string | null
+  AvatarUrl?: string | null
   IsActive?: boolean
   Role: Prisma.RoleInfoCreateNestedOneWithoutAccountsInput
   Faculty?: Prisma.FacultyInfoCreateNestedOneWithoutAccountsInput
@@ -453,6 +466,7 @@ export type AccountInfoUncheckedCreateInput = {
   UserLName: string
   UserCredit: number
   CreatedAt?: Date | string | null
+  AvatarUrl?: string | null
   RoleKey: number
   FacultyKey?: number | null
   IsActive?: boolean
@@ -486,6 +500,7 @@ export type AccountInfoUpdateInput = {
   UserLName?: Prisma.StringFieldUpdateOperationsInput | string
   UserCredit?: Prisma.IntFieldUpdateOperationsInput | number
   CreatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  AvatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   IsActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   Role?: Prisma.RoleInfoUpdateOneRequiredWithoutAccountsNestedInput
   Faculty?: Prisma.FacultyInfoUpdateOneWithoutAccountsNestedInput
@@ -520,6 +535,7 @@ export type AccountInfoUncheckedUpdateInput = {
   UserLName?: Prisma.StringFieldUpdateOperationsInput | string
   UserCredit?: Prisma.IntFieldUpdateOperationsInput | number
   CreatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  AvatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   RoleKey?: Prisma.IntFieldUpdateOperationsInput | number
   FacultyKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   IsActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -554,6 +570,7 @@ export type AccountInfoCreateManyInput = {
   UserLName: string
   UserCredit: number
   CreatedAt?: Date | string | null
+  AvatarUrl?: string | null
   RoleKey: number
   FacultyKey?: number | null
   IsActive?: boolean
@@ -567,6 +584,7 @@ export type AccountInfoUpdateManyMutationInput = {
   UserLName?: Prisma.StringFieldUpdateOperationsInput | string
   UserCredit?: Prisma.IntFieldUpdateOperationsInput | number
   CreatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  AvatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   IsActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
 }
 
@@ -579,6 +597,7 @@ export type AccountInfoUncheckedUpdateManyInput = {
   UserLName?: Prisma.StringFieldUpdateOperationsInput | string
   UserCredit?: Prisma.IntFieldUpdateOperationsInput | number
   CreatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  AvatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   RoleKey?: Prisma.IntFieldUpdateOperationsInput | number
   FacultyKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   IsActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -593,6 +612,7 @@ export type AccountInfoCountOrderByAggregateInput = {
   UserLName?: Prisma.SortOrder
   UserCredit?: Prisma.SortOrder
   CreatedAt?: Prisma.SortOrder
+  AvatarUrl?: Prisma.SortOrder
   RoleKey?: Prisma.SortOrder
   FacultyKey?: Prisma.SortOrder
   IsActive?: Prisma.SortOrder
@@ -614,6 +634,7 @@ export type AccountInfoMaxOrderByAggregateInput = {
   UserLName?: Prisma.SortOrder
   UserCredit?: Prisma.SortOrder
   CreatedAt?: Prisma.SortOrder
+  AvatarUrl?: Prisma.SortOrder
   RoleKey?: Prisma.SortOrder
   FacultyKey?: Prisma.SortOrder
   IsActive?: Prisma.SortOrder
@@ -628,6 +649,7 @@ export type AccountInfoMinOrderByAggregateInput = {
   UserLName?: Prisma.SortOrder
   UserCredit?: Prisma.SortOrder
   CreatedAt?: Prisma.SortOrder
+  AvatarUrl?: Prisma.SortOrder
   RoleKey?: Prisma.SortOrder
   FacultyKey?: Prisma.SortOrder
   IsActive?: Prisma.SortOrder
@@ -674,6 +696,10 @@ export type IntFieldUpdateOperationsInput = {
 
 export type NullableDateTimeFieldUpdateOperationsInput = {
   set?: Date | string | null
+}
+
+export type NullableStringFieldUpdateOperationsInput = {
+  set?: string | null
 }
 
 export type BoolFieldUpdateOperationsInput = {
@@ -1070,6 +1096,7 @@ export type AccountInfoCreateWithoutPasswordResetsInput = {
   UserLName: string
   UserCredit: number
   CreatedAt?: Date | string | null
+  AvatarUrl?: string | null
   IsActive?: boolean
   Role: Prisma.RoleInfoCreateNestedOneWithoutAccountsInput
   Faculty?: Prisma.FacultyInfoCreateNestedOneWithoutAccountsInput
@@ -1103,6 +1130,7 @@ export type AccountInfoUncheckedCreateWithoutPasswordResetsInput = {
   UserLName: string
   UserCredit: number
   CreatedAt?: Date | string | null
+  AvatarUrl?: string | null
   RoleKey: number
   FacultyKey?: number | null
   IsActive?: boolean
@@ -1151,6 +1179,7 @@ export type AccountInfoUpdateWithoutPasswordResetsInput = {
   UserLName?: Prisma.StringFieldUpdateOperationsInput | string
   UserCredit?: Prisma.IntFieldUpdateOperationsInput | number
   CreatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  AvatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   IsActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   Role?: Prisma.RoleInfoUpdateOneRequiredWithoutAccountsNestedInput
   Faculty?: Prisma.FacultyInfoUpdateOneWithoutAccountsNestedInput
@@ -1184,6 +1213,7 @@ export type AccountInfoUncheckedUpdateWithoutPasswordResetsInput = {
   UserLName?: Prisma.StringFieldUpdateOperationsInput | string
   UserCredit?: Prisma.IntFieldUpdateOperationsInput | number
   CreatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  AvatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   RoleKey?: Prisma.IntFieldUpdateOperationsInput | number
   FacultyKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   IsActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -1216,6 +1246,7 @@ export type AccountInfoCreateWithoutEmailVerificationsInput = {
   UserLName: string
   UserCredit: number
   CreatedAt?: Date | string | null
+  AvatarUrl?: string | null
   IsActive?: boolean
   Role: Prisma.RoleInfoCreateNestedOneWithoutAccountsInput
   Faculty?: Prisma.FacultyInfoCreateNestedOneWithoutAccountsInput
@@ -1249,6 +1280,7 @@ export type AccountInfoUncheckedCreateWithoutEmailVerificationsInput = {
   UserLName: string
   UserCredit: number
   CreatedAt?: Date | string | null
+  AvatarUrl?: string | null
   RoleKey: number
   FacultyKey?: number | null
   IsActive?: boolean
@@ -1297,6 +1329,7 @@ export type AccountInfoUpdateWithoutEmailVerificationsInput = {
   UserLName?: Prisma.StringFieldUpdateOperationsInput | string
   UserCredit?: Prisma.IntFieldUpdateOperationsInput | number
   CreatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  AvatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   IsActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   Role?: Prisma.RoleInfoUpdateOneRequiredWithoutAccountsNestedInput
   Faculty?: Prisma.FacultyInfoUpdateOneWithoutAccountsNestedInput
@@ -1330,6 +1363,7 @@ export type AccountInfoUncheckedUpdateWithoutEmailVerificationsInput = {
   UserLName?: Prisma.StringFieldUpdateOperationsInput | string
   UserCredit?: Prisma.IntFieldUpdateOperationsInput | number
   CreatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  AvatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   RoleKey?: Prisma.IntFieldUpdateOperationsInput | number
   FacultyKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   IsActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -1362,6 +1396,7 @@ export type AccountInfoCreateWithoutSessionsInput = {
   UserLName: string
   UserCredit: number
   CreatedAt?: Date | string | null
+  AvatarUrl?: string | null
   IsActive?: boolean
   Role: Prisma.RoleInfoCreateNestedOneWithoutAccountsInput
   Faculty?: Prisma.FacultyInfoCreateNestedOneWithoutAccountsInput
@@ -1395,6 +1430,7 @@ export type AccountInfoUncheckedCreateWithoutSessionsInput = {
   UserLName: string
   UserCredit: number
   CreatedAt?: Date | string | null
+  AvatarUrl?: string | null
   RoleKey: number
   FacultyKey?: number | null
   IsActive?: boolean
@@ -1443,6 +1479,7 @@ export type AccountInfoUpdateWithoutSessionsInput = {
   UserLName?: Prisma.StringFieldUpdateOperationsInput | string
   UserCredit?: Prisma.IntFieldUpdateOperationsInput | number
   CreatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  AvatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   IsActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   Role?: Prisma.RoleInfoUpdateOneRequiredWithoutAccountsNestedInput
   Faculty?: Prisma.FacultyInfoUpdateOneWithoutAccountsNestedInput
@@ -1476,6 +1513,7 @@ export type AccountInfoUncheckedUpdateWithoutSessionsInput = {
   UserLName?: Prisma.StringFieldUpdateOperationsInput | string
   UserCredit?: Prisma.IntFieldUpdateOperationsInput | number
   CreatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  AvatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   RoleKey?: Prisma.IntFieldUpdateOperationsInput | number
   FacultyKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   IsActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -1508,6 +1546,7 @@ export type AccountInfoCreateWithoutAuditTrailInput = {
   UserLName: string
   UserCredit: number
   CreatedAt?: Date | string | null
+  AvatarUrl?: string | null
   IsActive?: boolean
   Role: Prisma.RoleInfoCreateNestedOneWithoutAccountsInput
   Faculty?: Prisma.FacultyInfoCreateNestedOneWithoutAccountsInput
@@ -1541,6 +1580,7 @@ export type AccountInfoUncheckedCreateWithoutAuditTrailInput = {
   UserLName: string
   UserCredit: number
   CreatedAt?: Date | string | null
+  AvatarUrl?: string | null
   RoleKey: number
   FacultyKey?: number | null
   IsActive?: boolean
@@ -1589,6 +1629,7 @@ export type AccountInfoUpdateWithoutAuditTrailInput = {
   UserLName?: Prisma.StringFieldUpdateOperationsInput | string
   UserCredit?: Prisma.IntFieldUpdateOperationsInput | number
   CreatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  AvatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   IsActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   Role?: Prisma.RoleInfoUpdateOneRequiredWithoutAccountsNestedInput
   Faculty?: Prisma.FacultyInfoUpdateOneWithoutAccountsNestedInput
@@ -1622,6 +1663,7 @@ export type AccountInfoUncheckedUpdateWithoutAuditTrailInput = {
   UserLName?: Prisma.StringFieldUpdateOperationsInput | string
   UserCredit?: Prisma.IntFieldUpdateOperationsInput | number
   CreatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  AvatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   RoleKey?: Prisma.IntFieldUpdateOperationsInput | number
   FacultyKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   IsActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -1654,6 +1696,7 @@ export type AccountInfoCreateWithoutRoleInput = {
   UserLName: string
   UserCredit: number
   CreatedAt?: Date | string | null
+  AvatarUrl?: string | null
   IsActive?: boolean
   Faculty?: Prisma.FacultyInfoCreateNestedOneWithoutAccountsInput
   Sessions?: Prisma.SessionInfoCreateNestedManyWithoutAccountInput
@@ -1687,6 +1730,7 @@ export type AccountInfoUncheckedCreateWithoutRoleInput = {
   UserLName: string
   UserCredit: number
   CreatedAt?: Date | string | null
+  AvatarUrl?: string | null
   FacultyKey?: number | null
   IsActive?: boolean
   Sessions?: Prisma.SessionInfoUncheckedCreateNestedManyWithoutAccountInput
@@ -1749,6 +1793,7 @@ export type AccountInfoScalarWhereInput = {
   UserLName?: Prisma.StringFilter<"AccountInfo"> | string
   UserCredit?: Prisma.IntFilter<"AccountInfo"> | number
   CreatedAt?: Prisma.DateTimeNullableFilter<"AccountInfo"> | Date | string | null
+  AvatarUrl?: Prisma.StringNullableFilter<"AccountInfo"> | string | null
   RoleKey?: Prisma.IntFilter<"AccountInfo"> | number
   FacultyKey?: Prisma.IntNullableFilter<"AccountInfo"> | number | null
   IsActive?: Prisma.BoolFilter<"AccountInfo"> | boolean
@@ -1762,6 +1807,7 @@ export type AccountInfoCreateWithoutFacultyInput = {
   UserLName: string
   UserCredit: number
   CreatedAt?: Date | string | null
+  AvatarUrl?: string | null
   IsActive?: boolean
   Role: Prisma.RoleInfoCreateNestedOneWithoutAccountsInput
   Sessions?: Prisma.SessionInfoCreateNestedManyWithoutAccountInput
@@ -1795,6 +1841,7 @@ export type AccountInfoUncheckedCreateWithoutFacultyInput = {
   UserLName: string
   UserCredit: number
   CreatedAt?: Date | string | null
+  AvatarUrl?: string | null
   RoleKey: number
   IsActive?: boolean
   Sessions?: Prisma.SessionInfoUncheckedCreateNestedManyWithoutAccountInput
@@ -1853,6 +1900,7 @@ export type AccountInfoCreateWithoutAuthoritiesInput = {
   UserLName: string
   UserCredit: number
   CreatedAt?: Date | string | null
+  AvatarUrl?: string | null
   IsActive?: boolean
   Role: Prisma.RoleInfoCreateNestedOneWithoutAccountsInput
   Faculty?: Prisma.FacultyInfoCreateNestedOneWithoutAccountsInput
@@ -1886,6 +1934,7 @@ export type AccountInfoUncheckedCreateWithoutAuthoritiesInput = {
   UserLName: string
   UserCredit: number
   CreatedAt?: Date | string | null
+  AvatarUrl?: string | null
   RoleKey: number
   FacultyKey?: number | null
   IsActive?: boolean
@@ -1934,6 +1983,7 @@ export type AccountInfoUpdateWithoutAuthoritiesInput = {
   UserLName?: Prisma.StringFieldUpdateOperationsInput | string
   UserCredit?: Prisma.IntFieldUpdateOperationsInput | number
   CreatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  AvatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   IsActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   Role?: Prisma.RoleInfoUpdateOneRequiredWithoutAccountsNestedInput
   Faculty?: Prisma.FacultyInfoUpdateOneWithoutAccountsNestedInput
@@ -1967,6 +2017,7 @@ export type AccountInfoUncheckedUpdateWithoutAuthoritiesInput = {
   UserLName?: Prisma.StringFieldUpdateOperationsInput | string
   UserCredit?: Prisma.IntFieldUpdateOperationsInput | number
   CreatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  AvatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   RoleKey?: Prisma.IntFieldUpdateOperationsInput | number
   FacultyKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   IsActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -1999,6 +2050,7 @@ export type AccountInfoCreateWithoutRetirementsRequestedInput = {
   UserLName: string
   UserCredit: number
   CreatedAt?: Date | string | null
+  AvatarUrl?: string | null
   IsActive?: boolean
   Role: Prisma.RoleInfoCreateNestedOneWithoutAccountsInput
   Faculty?: Prisma.FacultyInfoCreateNestedOneWithoutAccountsInput
@@ -2032,6 +2084,7 @@ export type AccountInfoUncheckedCreateWithoutRetirementsRequestedInput = {
   UserLName: string
   UserCredit: number
   CreatedAt?: Date | string | null
+  AvatarUrl?: string | null
   RoleKey: number
   FacultyKey?: number | null
   IsActive?: boolean
@@ -2069,6 +2122,7 @@ export type AccountInfoCreateWithoutRetirementsDecidedInput = {
   UserLName: string
   UserCredit: number
   CreatedAt?: Date | string | null
+  AvatarUrl?: string | null
   IsActive?: boolean
   Role: Prisma.RoleInfoCreateNestedOneWithoutAccountsInput
   Faculty?: Prisma.FacultyInfoCreateNestedOneWithoutAccountsInput
@@ -2102,6 +2156,7 @@ export type AccountInfoUncheckedCreateWithoutRetirementsDecidedInput = {
   UserLName: string
   UserCredit: number
   CreatedAt?: Date | string | null
+  AvatarUrl?: string | null
   RoleKey: number
   FacultyKey?: number | null
   IsActive?: boolean
@@ -2150,6 +2205,7 @@ export type AccountInfoUpdateWithoutRetirementsRequestedInput = {
   UserLName?: Prisma.StringFieldUpdateOperationsInput | string
   UserCredit?: Prisma.IntFieldUpdateOperationsInput | number
   CreatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  AvatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   IsActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   Role?: Prisma.RoleInfoUpdateOneRequiredWithoutAccountsNestedInput
   Faculty?: Prisma.FacultyInfoUpdateOneWithoutAccountsNestedInput
@@ -2183,6 +2239,7 @@ export type AccountInfoUncheckedUpdateWithoutRetirementsRequestedInput = {
   UserLName?: Prisma.StringFieldUpdateOperationsInput | string
   UserCredit?: Prisma.IntFieldUpdateOperationsInput | number
   CreatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  AvatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   RoleKey?: Prisma.IntFieldUpdateOperationsInput | number
   FacultyKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   IsActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -2226,6 +2283,7 @@ export type AccountInfoUpdateWithoutRetirementsDecidedInput = {
   UserLName?: Prisma.StringFieldUpdateOperationsInput | string
   UserCredit?: Prisma.IntFieldUpdateOperationsInput | number
   CreatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  AvatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   IsActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   Role?: Prisma.RoleInfoUpdateOneRequiredWithoutAccountsNestedInput
   Faculty?: Prisma.FacultyInfoUpdateOneWithoutAccountsNestedInput
@@ -2259,6 +2317,7 @@ export type AccountInfoUncheckedUpdateWithoutRetirementsDecidedInput = {
   UserLName?: Prisma.StringFieldUpdateOperationsInput | string
   UserCredit?: Prisma.IntFieldUpdateOperationsInput | number
   CreatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  AvatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   RoleKey?: Prisma.IntFieldUpdateOperationsInput | number
   FacultyKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   IsActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -2291,6 +2350,7 @@ export type AccountInfoCreateWithoutConditionLogsLoggedInput = {
   UserLName: string
   UserCredit: number
   CreatedAt?: Date | string | null
+  AvatarUrl?: string | null
   IsActive?: boolean
   Role: Prisma.RoleInfoCreateNestedOneWithoutAccountsInput
   Faculty?: Prisma.FacultyInfoCreateNestedOneWithoutAccountsInput
@@ -2324,6 +2384,7 @@ export type AccountInfoUncheckedCreateWithoutConditionLogsLoggedInput = {
   UserLName: string
   UserCredit: number
   CreatedAt?: Date | string | null
+  AvatarUrl?: string | null
   RoleKey: number
   FacultyKey?: number | null
   IsActive?: boolean
@@ -2372,6 +2433,7 @@ export type AccountInfoUpdateWithoutConditionLogsLoggedInput = {
   UserLName?: Prisma.StringFieldUpdateOperationsInput | string
   UserCredit?: Prisma.IntFieldUpdateOperationsInput | number
   CreatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  AvatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   IsActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   Role?: Prisma.RoleInfoUpdateOneRequiredWithoutAccountsNestedInput
   Faculty?: Prisma.FacultyInfoUpdateOneWithoutAccountsNestedInput
@@ -2405,6 +2467,7 @@ export type AccountInfoUncheckedUpdateWithoutConditionLogsLoggedInput = {
   UserLName?: Prisma.StringFieldUpdateOperationsInput | string
   UserCredit?: Prisma.IntFieldUpdateOperationsInput | number
   CreatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  AvatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   RoleKey?: Prisma.IntFieldUpdateOperationsInput | number
   FacultyKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   IsActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -2437,6 +2500,7 @@ export type AccountInfoCreateWithoutReservationsMadeInput = {
   UserLName: string
   UserCredit: number
   CreatedAt?: Date | string | null
+  AvatarUrl?: string | null
   IsActive?: boolean
   Role: Prisma.RoleInfoCreateNestedOneWithoutAccountsInput
   Faculty?: Prisma.FacultyInfoCreateNestedOneWithoutAccountsInput
@@ -2470,6 +2534,7 @@ export type AccountInfoUncheckedCreateWithoutReservationsMadeInput = {
   UserLName: string
   UserCredit: number
   CreatedAt?: Date | string | null
+  AvatarUrl?: string | null
   RoleKey: number
   FacultyKey?: number | null
   IsActive?: boolean
@@ -2507,6 +2572,7 @@ export type AccountInfoCreateWithoutReservationsApprovedInput = {
   UserLName: string
   UserCredit: number
   CreatedAt?: Date | string | null
+  AvatarUrl?: string | null
   IsActive?: boolean
   Role: Prisma.RoleInfoCreateNestedOneWithoutAccountsInput
   Faculty?: Prisma.FacultyInfoCreateNestedOneWithoutAccountsInput
@@ -2540,6 +2606,7 @@ export type AccountInfoUncheckedCreateWithoutReservationsApprovedInput = {
   UserLName: string
   UserCredit: number
   CreatedAt?: Date | string | null
+  AvatarUrl?: string | null
   RoleKey: number
   FacultyKey?: number | null
   IsActive?: boolean
@@ -2588,6 +2655,7 @@ export type AccountInfoUpdateWithoutReservationsMadeInput = {
   UserLName?: Prisma.StringFieldUpdateOperationsInput | string
   UserCredit?: Prisma.IntFieldUpdateOperationsInput | number
   CreatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  AvatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   IsActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   Role?: Prisma.RoleInfoUpdateOneRequiredWithoutAccountsNestedInput
   Faculty?: Prisma.FacultyInfoUpdateOneWithoutAccountsNestedInput
@@ -2621,6 +2689,7 @@ export type AccountInfoUncheckedUpdateWithoutReservationsMadeInput = {
   UserLName?: Prisma.StringFieldUpdateOperationsInput | string
   UserCredit?: Prisma.IntFieldUpdateOperationsInput | number
   CreatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  AvatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   RoleKey?: Prisma.IntFieldUpdateOperationsInput | number
   FacultyKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   IsActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -2664,6 +2733,7 @@ export type AccountInfoUpdateWithoutReservationsApprovedInput = {
   UserLName?: Prisma.StringFieldUpdateOperationsInput | string
   UserCredit?: Prisma.IntFieldUpdateOperationsInput | number
   CreatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  AvatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   IsActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   Role?: Prisma.RoleInfoUpdateOneRequiredWithoutAccountsNestedInput
   Faculty?: Prisma.FacultyInfoUpdateOneWithoutAccountsNestedInput
@@ -2697,6 +2767,7 @@ export type AccountInfoUncheckedUpdateWithoutReservationsApprovedInput = {
   UserLName?: Prisma.StringFieldUpdateOperationsInput | string
   UserCredit?: Prisma.IntFieldUpdateOperationsInput | number
   CreatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  AvatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   RoleKey?: Prisma.IntFieldUpdateOperationsInput | number
   FacultyKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   IsActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -2729,6 +2800,7 @@ export type AccountInfoCreateWithoutUsageLogsInput = {
   UserLName: string
   UserCredit: number
   CreatedAt?: Date | string | null
+  AvatarUrl?: string | null
   IsActive?: boolean
   Role: Prisma.RoleInfoCreateNestedOneWithoutAccountsInput
   Faculty?: Prisma.FacultyInfoCreateNestedOneWithoutAccountsInput
@@ -2762,6 +2834,7 @@ export type AccountInfoUncheckedCreateWithoutUsageLogsInput = {
   UserLName: string
   UserCredit: number
   CreatedAt?: Date | string | null
+  AvatarUrl?: string | null
   RoleKey: number
   FacultyKey?: number | null
   IsActive?: boolean
@@ -2810,6 +2883,7 @@ export type AccountInfoUpdateWithoutUsageLogsInput = {
   UserLName?: Prisma.StringFieldUpdateOperationsInput | string
   UserCredit?: Prisma.IntFieldUpdateOperationsInput | number
   CreatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  AvatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   IsActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   Role?: Prisma.RoleInfoUpdateOneRequiredWithoutAccountsNestedInput
   Faculty?: Prisma.FacultyInfoUpdateOneWithoutAccountsNestedInput
@@ -2843,6 +2917,7 @@ export type AccountInfoUncheckedUpdateWithoutUsageLogsInput = {
   UserLName?: Prisma.StringFieldUpdateOperationsInput | string
   UserCredit?: Prisma.IntFieldUpdateOperationsInput | number
   CreatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  AvatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   RoleKey?: Prisma.IntFieldUpdateOperationsInput | number
   FacultyKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   IsActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -2875,6 +2950,7 @@ export type AccountInfoCreateWithoutExtensionsRequestedInput = {
   UserLName: string
   UserCredit: number
   CreatedAt?: Date | string | null
+  AvatarUrl?: string | null
   IsActive?: boolean
   Role: Prisma.RoleInfoCreateNestedOneWithoutAccountsInput
   Faculty?: Prisma.FacultyInfoCreateNestedOneWithoutAccountsInput
@@ -2908,6 +2984,7 @@ export type AccountInfoUncheckedCreateWithoutExtensionsRequestedInput = {
   UserLName: string
   UserCredit: number
   CreatedAt?: Date | string | null
+  AvatarUrl?: string | null
   RoleKey: number
   FacultyKey?: number | null
   IsActive?: boolean
@@ -2945,6 +3022,7 @@ export type AccountInfoCreateWithoutExtensionsApprovedInput = {
   UserLName: string
   UserCredit: number
   CreatedAt?: Date | string | null
+  AvatarUrl?: string | null
   IsActive?: boolean
   Role: Prisma.RoleInfoCreateNestedOneWithoutAccountsInput
   Faculty?: Prisma.FacultyInfoCreateNestedOneWithoutAccountsInput
@@ -2978,6 +3056,7 @@ export type AccountInfoUncheckedCreateWithoutExtensionsApprovedInput = {
   UserLName: string
   UserCredit: number
   CreatedAt?: Date | string | null
+  AvatarUrl?: string | null
   RoleKey: number
   FacultyKey?: number | null
   IsActive?: boolean
@@ -3026,6 +3105,7 @@ export type AccountInfoUpdateWithoutExtensionsRequestedInput = {
   UserLName?: Prisma.StringFieldUpdateOperationsInput | string
   UserCredit?: Prisma.IntFieldUpdateOperationsInput | number
   CreatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  AvatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   IsActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   Role?: Prisma.RoleInfoUpdateOneRequiredWithoutAccountsNestedInput
   Faculty?: Prisma.FacultyInfoUpdateOneWithoutAccountsNestedInput
@@ -3059,6 +3139,7 @@ export type AccountInfoUncheckedUpdateWithoutExtensionsRequestedInput = {
   UserLName?: Prisma.StringFieldUpdateOperationsInput | string
   UserCredit?: Prisma.IntFieldUpdateOperationsInput | number
   CreatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  AvatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   RoleKey?: Prisma.IntFieldUpdateOperationsInput | number
   FacultyKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   IsActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -3102,6 +3183,7 @@ export type AccountInfoUpdateWithoutExtensionsApprovedInput = {
   UserLName?: Prisma.StringFieldUpdateOperationsInput | string
   UserCredit?: Prisma.IntFieldUpdateOperationsInput | number
   CreatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  AvatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   IsActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   Role?: Prisma.RoleInfoUpdateOneRequiredWithoutAccountsNestedInput
   Faculty?: Prisma.FacultyInfoUpdateOneWithoutAccountsNestedInput
@@ -3135,6 +3217,7 @@ export type AccountInfoUncheckedUpdateWithoutExtensionsApprovedInput = {
   UserLName?: Prisma.StringFieldUpdateOperationsInput | string
   UserCredit?: Prisma.IntFieldUpdateOperationsInput | number
   CreatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  AvatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   RoleKey?: Prisma.IntFieldUpdateOperationsInput | number
   FacultyKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   IsActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -3167,6 +3250,7 @@ export type AccountInfoCreateWithoutInspectionsPerformedInput = {
   UserLName: string
   UserCredit: number
   CreatedAt?: Date | string | null
+  AvatarUrl?: string | null
   IsActive?: boolean
   Role: Prisma.RoleInfoCreateNestedOneWithoutAccountsInput
   Faculty?: Prisma.FacultyInfoCreateNestedOneWithoutAccountsInput
@@ -3200,6 +3284,7 @@ export type AccountInfoUncheckedCreateWithoutInspectionsPerformedInput = {
   UserLName: string
   UserCredit: number
   CreatedAt?: Date | string | null
+  AvatarUrl?: string | null
   RoleKey: number
   FacultyKey?: number | null
   IsActive?: boolean
@@ -3248,6 +3333,7 @@ export type AccountInfoUpdateWithoutInspectionsPerformedInput = {
   UserLName?: Prisma.StringFieldUpdateOperationsInput | string
   UserCredit?: Prisma.IntFieldUpdateOperationsInput | number
   CreatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  AvatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   IsActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   Role?: Prisma.RoleInfoUpdateOneRequiredWithoutAccountsNestedInput
   Faculty?: Prisma.FacultyInfoUpdateOneWithoutAccountsNestedInput
@@ -3281,6 +3367,7 @@ export type AccountInfoUncheckedUpdateWithoutInspectionsPerformedInput = {
   UserLName?: Prisma.StringFieldUpdateOperationsInput | string
   UserCredit?: Prisma.IntFieldUpdateOperationsInput | number
   CreatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  AvatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   RoleKey?: Prisma.IntFieldUpdateOperationsInput | number
   FacultyKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   IsActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -3313,6 +3400,7 @@ export type AccountInfoCreateWithoutPenaltiesInput = {
   UserLName: string
   UserCredit: number
   CreatedAt?: Date | string | null
+  AvatarUrl?: string | null
   IsActive?: boolean
   Role: Prisma.RoleInfoCreateNestedOneWithoutAccountsInput
   Faculty?: Prisma.FacultyInfoCreateNestedOneWithoutAccountsInput
@@ -3346,6 +3434,7 @@ export type AccountInfoUncheckedCreateWithoutPenaltiesInput = {
   UserLName: string
   UserCredit: number
   CreatedAt?: Date | string | null
+  AvatarUrl?: string | null
   RoleKey: number
   FacultyKey?: number | null
   IsActive?: boolean
@@ -3394,6 +3483,7 @@ export type AccountInfoUpdateWithoutPenaltiesInput = {
   UserLName?: Prisma.StringFieldUpdateOperationsInput | string
   UserCredit?: Prisma.IntFieldUpdateOperationsInput | number
   CreatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  AvatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   IsActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   Role?: Prisma.RoleInfoUpdateOneRequiredWithoutAccountsNestedInput
   Faculty?: Prisma.FacultyInfoUpdateOneWithoutAccountsNestedInput
@@ -3427,6 +3517,7 @@ export type AccountInfoUncheckedUpdateWithoutPenaltiesInput = {
   UserLName?: Prisma.StringFieldUpdateOperationsInput | string
   UserCredit?: Prisma.IntFieldUpdateOperationsInput | number
   CreatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  AvatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   RoleKey?: Prisma.IntFieldUpdateOperationsInput | number
   FacultyKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   IsActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -3459,6 +3550,7 @@ export type AccountInfoCreateWithoutAppealsFiledInput = {
   UserLName: string
   UserCredit: number
   CreatedAt?: Date | string | null
+  AvatarUrl?: string | null
   IsActive?: boolean
   Role: Prisma.RoleInfoCreateNestedOneWithoutAccountsInput
   Faculty?: Prisma.FacultyInfoCreateNestedOneWithoutAccountsInput
@@ -3492,6 +3584,7 @@ export type AccountInfoUncheckedCreateWithoutAppealsFiledInput = {
   UserLName: string
   UserCredit: number
   CreatedAt?: Date | string | null
+  AvatarUrl?: string | null
   RoleKey: number
   FacultyKey?: number | null
   IsActive?: boolean
@@ -3529,6 +3622,7 @@ export type AccountInfoCreateWithoutAppealsResolvedInput = {
   UserLName: string
   UserCredit: number
   CreatedAt?: Date | string | null
+  AvatarUrl?: string | null
   IsActive?: boolean
   Role: Prisma.RoleInfoCreateNestedOneWithoutAccountsInput
   Faculty?: Prisma.FacultyInfoCreateNestedOneWithoutAccountsInput
@@ -3562,6 +3656,7 @@ export type AccountInfoUncheckedCreateWithoutAppealsResolvedInput = {
   UserLName: string
   UserCredit: number
   CreatedAt?: Date | string | null
+  AvatarUrl?: string | null
   RoleKey: number
   FacultyKey?: number | null
   IsActive?: boolean
@@ -3610,6 +3705,7 @@ export type AccountInfoUpdateWithoutAppealsFiledInput = {
   UserLName?: Prisma.StringFieldUpdateOperationsInput | string
   UserCredit?: Prisma.IntFieldUpdateOperationsInput | number
   CreatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  AvatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   IsActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   Role?: Prisma.RoleInfoUpdateOneRequiredWithoutAccountsNestedInput
   Faculty?: Prisma.FacultyInfoUpdateOneWithoutAccountsNestedInput
@@ -3643,6 +3739,7 @@ export type AccountInfoUncheckedUpdateWithoutAppealsFiledInput = {
   UserLName?: Prisma.StringFieldUpdateOperationsInput | string
   UserCredit?: Prisma.IntFieldUpdateOperationsInput | number
   CreatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  AvatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   RoleKey?: Prisma.IntFieldUpdateOperationsInput | number
   FacultyKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   IsActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -3686,6 +3783,7 @@ export type AccountInfoUpdateWithoutAppealsResolvedInput = {
   UserLName?: Prisma.StringFieldUpdateOperationsInput | string
   UserCredit?: Prisma.IntFieldUpdateOperationsInput | number
   CreatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  AvatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   IsActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   Role?: Prisma.RoleInfoUpdateOneRequiredWithoutAccountsNestedInput
   Faculty?: Prisma.FacultyInfoUpdateOneWithoutAccountsNestedInput
@@ -3719,6 +3817,7 @@ export type AccountInfoUncheckedUpdateWithoutAppealsResolvedInput = {
   UserLName?: Prisma.StringFieldUpdateOperationsInput | string
   UserCredit?: Prisma.IntFieldUpdateOperationsInput | number
   CreatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  AvatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   RoleKey?: Prisma.IntFieldUpdateOperationsInput | number
   FacultyKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   IsActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -3751,6 +3850,7 @@ export type AccountInfoCreateWithoutImagesSubmittedInput = {
   UserLName: string
   UserCredit: number
   CreatedAt?: Date | string | null
+  AvatarUrl?: string | null
   IsActive?: boolean
   Role: Prisma.RoleInfoCreateNestedOneWithoutAccountsInput
   Faculty?: Prisma.FacultyInfoCreateNestedOneWithoutAccountsInput
@@ -3784,6 +3884,7 @@ export type AccountInfoUncheckedCreateWithoutImagesSubmittedInput = {
   UserLName: string
   UserCredit: number
   CreatedAt?: Date | string | null
+  AvatarUrl?: string | null
   RoleKey: number
   FacultyKey?: number | null
   IsActive?: boolean
@@ -3832,6 +3933,7 @@ export type AccountInfoUpdateWithoutImagesSubmittedInput = {
   UserLName?: Prisma.StringFieldUpdateOperationsInput | string
   UserCredit?: Prisma.IntFieldUpdateOperationsInput | number
   CreatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  AvatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   IsActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   Role?: Prisma.RoleInfoUpdateOneRequiredWithoutAccountsNestedInput
   Faculty?: Prisma.FacultyInfoUpdateOneWithoutAccountsNestedInput
@@ -3865,6 +3967,7 @@ export type AccountInfoUncheckedUpdateWithoutImagesSubmittedInput = {
   UserLName?: Prisma.StringFieldUpdateOperationsInput | string
   UserCredit?: Prisma.IntFieldUpdateOperationsInput | number
   CreatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  AvatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   RoleKey?: Prisma.IntFieldUpdateOperationsInput | number
   FacultyKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   IsActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -3897,6 +4000,7 @@ export type AccountInfoCreateWithoutNotificationsInput = {
   UserLName: string
   UserCredit: number
   CreatedAt?: Date | string | null
+  AvatarUrl?: string | null
   IsActive?: boolean
   Role: Prisma.RoleInfoCreateNestedOneWithoutAccountsInput
   Faculty?: Prisma.FacultyInfoCreateNestedOneWithoutAccountsInput
@@ -3930,6 +4034,7 @@ export type AccountInfoUncheckedCreateWithoutNotificationsInput = {
   UserLName: string
   UserCredit: number
   CreatedAt?: Date | string | null
+  AvatarUrl?: string | null
   RoleKey: number
   FacultyKey?: number | null
   IsActive?: boolean
@@ -3978,6 +4083,7 @@ export type AccountInfoUpdateWithoutNotificationsInput = {
   UserLName?: Prisma.StringFieldUpdateOperationsInput | string
   UserCredit?: Prisma.IntFieldUpdateOperationsInput | number
   CreatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  AvatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   IsActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   Role?: Prisma.RoleInfoUpdateOneRequiredWithoutAccountsNestedInput
   Faculty?: Prisma.FacultyInfoUpdateOneWithoutAccountsNestedInput
@@ -4011,6 +4117,7 @@ export type AccountInfoUncheckedUpdateWithoutNotificationsInput = {
   UserLName?: Prisma.StringFieldUpdateOperationsInput | string
   UserCredit?: Prisma.IntFieldUpdateOperationsInput | number
   CreatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  AvatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   RoleKey?: Prisma.IntFieldUpdateOperationsInput | number
   FacultyKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   IsActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -4043,6 +4150,7 @@ export type AccountInfoCreateWithoutRepairsPerformedInput = {
   UserLName: string
   UserCredit: number
   CreatedAt?: Date | string | null
+  AvatarUrl?: string | null
   IsActive?: boolean
   Role: Prisma.RoleInfoCreateNestedOneWithoutAccountsInput
   Faculty?: Prisma.FacultyInfoCreateNestedOneWithoutAccountsInput
@@ -4076,6 +4184,7 @@ export type AccountInfoUncheckedCreateWithoutRepairsPerformedInput = {
   UserLName: string
   UserCredit: number
   CreatedAt?: Date | string | null
+  AvatarUrl?: string | null
   RoleKey: number
   FacultyKey?: number | null
   IsActive?: boolean
@@ -4124,6 +4233,7 @@ export type AccountInfoUpdateWithoutRepairsPerformedInput = {
   UserLName?: Prisma.StringFieldUpdateOperationsInput | string
   UserCredit?: Prisma.IntFieldUpdateOperationsInput | number
   CreatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  AvatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   IsActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   Role?: Prisma.RoleInfoUpdateOneRequiredWithoutAccountsNestedInput
   Faculty?: Prisma.FacultyInfoUpdateOneWithoutAccountsNestedInput
@@ -4157,6 +4267,7 @@ export type AccountInfoUncheckedUpdateWithoutRepairsPerformedInput = {
   UserLName?: Prisma.StringFieldUpdateOperationsInput | string
   UserCredit?: Prisma.IntFieldUpdateOperationsInput | number
   CreatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  AvatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   RoleKey?: Prisma.IntFieldUpdateOperationsInput | number
   FacultyKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   IsActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -4190,6 +4301,7 @@ export type AccountInfoCreateManyRoleInput = {
   UserLName: string
   UserCredit: number
   CreatedAt?: Date | string | null
+  AvatarUrl?: string | null
   FacultyKey?: number | null
   IsActive?: boolean
 }
@@ -4202,6 +4314,7 @@ export type AccountInfoUpdateWithoutRoleInput = {
   UserLName?: Prisma.StringFieldUpdateOperationsInput | string
   UserCredit?: Prisma.IntFieldUpdateOperationsInput | number
   CreatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  AvatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   IsActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   Faculty?: Prisma.FacultyInfoUpdateOneWithoutAccountsNestedInput
   Sessions?: Prisma.SessionInfoUpdateManyWithoutAccountNestedInput
@@ -4235,6 +4348,7 @@ export type AccountInfoUncheckedUpdateWithoutRoleInput = {
   UserLName?: Prisma.StringFieldUpdateOperationsInput | string
   UserCredit?: Prisma.IntFieldUpdateOperationsInput | number
   CreatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  AvatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   FacultyKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   IsActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   Sessions?: Prisma.SessionInfoUncheckedUpdateManyWithoutAccountNestedInput
@@ -4268,6 +4382,7 @@ export type AccountInfoUncheckedUpdateManyWithoutRoleInput = {
   UserLName?: Prisma.StringFieldUpdateOperationsInput | string
   UserCredit?: Prisma.IntFieldUpdateOperationsInput | number
   CreatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  AvatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   FacultyKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   IsActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
 }
@@ -4281,6 +4396,7 @@ export type AccountInfoCreateManyFacultyInput = {
   UserLName: string
   UserCredit: number
   CreatedAt?: Date | string | null
+  AvatarUrl?: string | null
   RoleKey: number
   IsActive?: boolean
 }
@@ -4293,6 +4409,7 @@ export type AccountInfoUpdateWithoutFacultyInput = {
   UserLName?: Prisma.StringFieldUpdateOperationsInput | string
   UserCredit?: Prisma.IntFieldUpdateOperationsInput | number
   CreatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  AvatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   IsActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   Role?: Prisma.RoleInfoUpdateOneRequiredWithoutAccountsNestedInput
   Sessions?: Prisma.SessionInfoUpdateManyWithoutAccountNestedInput
@@ -4326,6 +4443,7 @@ export type AccountInfoUncheckedUpdateWithoutFacultyInput = {
   UserLName?: Prisma.StringFieldUpdateOperationsInput | string
   UserCredit?: Prisma.IntFieldUpdateOperationsInput | number
   CreatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  AvatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   RoleKey?: Prisma.IntFieldUpdateOperationsInput | number
   IsActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   Sessions?: Prisma.SessionInfoUncheckedUpdateManyWithoutAccountNestedInput
@@ -4359,6 +4477,7 @@ export type AccountInfoUncheckedUpdateManyWithoutFacultyInput = {
   UserLName?: Prisma.StringFieldUpdateOperationsInput | string
   UserCredit?: Prisma.IntFieldUpdateOperationsInput | number
   CreatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  AvatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   RoleKey?: Prisma.IntFieldUpdateOperationsInput | number
   IsActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
 }
@@ -4574,6 +4693,7 @@ export type AccountInfoSelect<ExtArgs extends runtime.Types.Extensions.InternalA
   UserLName?: boolean
   UserCredit?: boolean
   CreatedAt?: boolean
+  AvatarUrl?: boolean
   RoleKey?: boolean
   FacultyKey?: boolean
   IsActive?: boolean
@@ -4611,6 +4731,7 @@ export type AccountInfoSelectCreateManyAndReturn<ExtArgs extends runtime.Types.E
   UserLName?: boolean
   UserCredit?: boolean
   CreatedAt?: boolean
+  AvatarUrl?: boolean
   RoleKey?: boolean
   FacultyKey?: boolean
   IsActive?: boolean
@@ -4627,6 +4748,7 @@ export type AccountInfoSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.E
   UserLName?: boolean
   UserCredit?: boolean
   CreatedAt?: boolean
+  AvatarUrl?: boolean
   RoleKey?: boolean
   FacultyKey?: boolean
   IsActive?: boolean
@@ -4643,12 +4765,13 @@ export type AccountInfoSelectScalar = {
   UserLName?: boolean
   UserCredit?: boolean
   CreatedAt?: boolean
+  AvatarUrl?: boolean
   RoleKey?: boolean
   FacultyKey?: boolean
   IsActive?: boolean
 }
 
-export type AccountInfoOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"AccountKey" | "Email" | "HashedPassword" | "UserID" | "UserFName" | "UserLName" | "UserCredit" | "CreatedAt" | "RoleKey" | "FacultyKey" | "IsActive", ExtArgs["result"]["accountInfo"]>
+export type AccountInfoOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"AccountKey" | "Email" | "HashedPassword" | "UserID" | "UserFName" | "UserLName" | "UserCredit" | "CreatedAt" | "AvatarUrl" | "RoleKey" | "FacultyKey" | "IsActive", ExtArgs["result"]["accountInfo"]>
 export type AccountInfoInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   Role?: boolean | Prisma.RoleInfoDefaultArgs<ExtArgs>
   Faculty?: boolean | Prisma.AccountInfo$FacultyArgs<ExtArgs>
@@ -4718,6 +4841,10 @@ export type $AccountInfoPayload<ExtArgs extends runtime.Types.Extensions.Interna
     UserLName: string
     UserCredit: number
     CreatedAt: Date | null
+    /**
+     * Profile picture, a /media/avatar/... path. Null shows initials.
+     */
+    AvatarUrl: string | null
     RoleKey: number
     FacultyKey: number | null
     /**
@@ -5181,6 +5308,7 @@ export interface AccountInfoFieldRefs {
   readonly UserLName: Prisma.FieldRef<"AccountInfo", 'String'>
   readonly UserCredit: Prisma.FieldRef<"AccountInfo", 'Int'>
   readonly CreatedAt: Prisma.FieldRef<"AccountInfo", 'DateTime'>
+  readonly AvatarUrl: Prisma.FieldRef<"AccountInfo", 'String'>
   readonly RoleKey: Prisma.FieldRef<"AccountInfo", 'Int'>
   readonly FacultyKey: Prisma.FieldRef<"AccountInfo", 'Int'>
   readonly IsActive: Prisma.FieldRef<"AccountInfo", 'Boolean'>

@@ -157,10 +157,10 @@ export function useMarkLost() {
 /**
  * Extension requests waiting at this counter.
  *
- * `route: "staff"` is explicit because the server would otherwise return
- * everything this caller may decide, and a supervisor working the counter
- * would see their own T2 pile mixed into it. The two desks are separate piles
- * of the same service - `approval.extensionQueue` is the other end.
+ * Staff-routed ones are decided here. Supervisor-routed ones come here only
+ * until their condition check is recorded (#156); after that they belong to
+ * the supervisor's pile alone, so a supervisor working the counter does not
+ * see their own decisions mixed in. `approval.extensionQueue` is the other end.
  */
 export function useStaffExtensionQueue(q: string) {
   const trpc = useTRPCClient();
@@ -173,9 +173,10 @@ export function useStaffExtensionQueue(q: string) {
         trpc.loan.extensionReviews.query({
           page,
           pageSize,
-          route: "staff",
           ...(search ? { q: search } : {}),
         }),
+      ).then((rows) =>
+        rows.filter((r) => r.route === "staff" || (r.route === "supervisor" && !r.inspection)),
       ),
     refetchInterval: POLLING.STAFF_QUEUE,
     staleTime: 0,
@@ -203,6 +204,26 @@ export function useStaffDecideExtension() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: QUEUE_KEY });
       void queryClient.invalidateQueries({ queryKey: ["borrower"] });
+    },
+  });
+}
+
+/**
+ * Record the unit's condition on a supervisor-routed extension (#156).
+ *
+ * Staff do not decide these; the check is what the supervisor needs before
+ * approving, since they do not have the unit in front of them.
+ */
+export function useStaffInspectExtension() {
+  const trpc = useTRPCClient();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (input: { extensionKey: number; condition: ConditionType; note?: string }) =>
+      trpc.loan.inspectExtension.mutate(input),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: QUEUE_KEY });
+      void queryClient.invalidateQueries({ queryKey: ["approvals"] });
     },
   });
 }

@@ -105,8 +105,8 @@ function service(db: any, creditTier = 'D0') {
 }
 
 const future = {
-  startTime: '2099-01-10T08:00:00.000Z',
-  endTime: '2099-01-10T13:00:00.000Z',
+  startTime: '2099-01-12T02:00:00.000Z',
+  endTime: '2099-01-12T08:00:00.000Z',
   lines: [{ resourceKey: 7 }],
 };
 

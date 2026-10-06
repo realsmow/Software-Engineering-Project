@@ -11,6 +11,10 @@ import { getErrorMessage } from "@/lib/error-messages";
 import { fmtDateTime, fmtDate } from "@/features/borrower/format";
 import { Segmented } from "@/components/ui/segmented";
 import {
+  useUsagePhotos,
+  type UsagePhotoSet,
+} from "@/features/borrower/pickup/use-pickup-image-upload";
+import {
   useApprovalCounts,
   useApprovalQueue,
   useDecideApproval,
@@ -22,7 +26,6 @@ import {
 } from "./use-approvals";
 import type {
   ApprovalQueueRow,
-  ConditionType,
   ExtensionReviewRow,
   RetirementRequest,
 } from "./approval.types";
@@ -72,9 +75,8 @@ export default function SupervisorApprovalsPage() {
   const decideExtension = useDecideExtension();
   const { data: retirementRows, isLoading: retirementLoading } = useRetirementQueue();
   const decideRetirement = useDecideRetirement();
-  // Per row, because the condition is a fact about one item on one counter.
-  const [conditions, setConditions] = useState<Record<number, ConditionType>>({});
-  const conditionOf = (key: number): ConditionType => conditions[key] ?? "Normal";
+  // #148: the loan whose photos are open beside the extension decision.
+  const [photosOf, setPhotosOf] = useState<ExtensionReviewRow | null>(null);
 
   async function decideExt(row: ExtensionReviewRow, decision: "approve" | "reject") {
     const why = reason.trim();
@@ -86,7 +88,6 @@ export default function SupervisorApprovalsPage() {
       await decideExtension.mutateAsync({
         extensionKey: row.extensionKey,
         decision,
-        ...(row.route === "staff" ? { condition: conditionOf(row.extensionKey) } : {}),
         ...(why ? { note: why } : {}),
       });
       setResult({
@@ -136,8 +137,6 @@ export default function SupervisorApprovalsPage() {
       setBusyKey(null);
     }
   }
-
-  const CONDITIONS: ConditionType[] = ["Normal", "MinorDamage", "MajorDamage", "Broken"];
 
   const retirementColumns: Column<RetirementRequest>[] = [
     {
@@ -293,31 +292,32 @@ export default function SupervisorApprovalsPage() {
       ),
     },
     {
-      key: "condition",
-      header: t("supervisor.approvals.colCondition"),
-      // Only the staff route has the unit in hand; a supervisor decides on paper.
+      key: "staffCheck",
+      header: t("supervisor.approvals.colStaffCheck"),
+      // #156: staff check the unit at the counter; the supervisor reads it here.
       render: (r) =>
-        r.route !== "staff" ? (
-          <span className="text-xs text-muted-foreground">-</span>
+        r.inspection ? (
+          <div className="min-w-0 text-xs">
+            <div className="text-foreground">
+              {t(`staff.inspection.cond${r.inspection.condition}`)}
+            </div>
+            <div className="truncate text-muted-foreground" title={r.inspection.note ?? undefined}>
+              {r.inspection.loggedBy}
+              {r.inspection.note ? ` · ${r.inspection.note}` : ""}
+            </div>
+          </div>
         ) : (
-          <select
-            className="rounded border border-border bg-transparent px-1.5 py-1 text-xs text-foreground"
-            value={conditionOf(r.extensionKey)}
-            onChange={(e) =>
-              setConditions((c) => ({
-                ...c,
-                [r.extensionKey]: e.target.value as ConditionType,
-              }))
-            }
-            aria-label={t("supervisor.approvals.colCondition")}
-          >
-            {CONDITIONS.map((c) => (
-              <option key={c} value={c}>
-                {t(`supervisor.approvals.cond${c}`)}
-              </option>
-            ))}
-          </select>
+          <Badge tone="warn">{t("supervisor.approvals.awaitingCheck")}</Badge>
         ),
+    },
+    {
+      key: "photos",
+      header: "",
+      render: (r) => (
+        <Button type="button" size="sm" variant="outline" onClick={() => setPhotosOf(r)}>
+          {t("supervisor.approvals.photos")}
+        </Button>
+      ),
     },
     {
       key: "actions",
@@ -355,7 +355,13 @@ export default function SupervisorApprovalsPage() {
             <Button
               type="button"
               size="sm"
-              disabled={busyKey === r.extensionKey}
+              // The server refuses this too (EXTENSION_NOT_INSPECTED).
+              disabled={busyKey === r.extensionKey || (r.route === "supervisor" && !r.inspection)}
+              title={
+                r.route === "supervisor" && !r.inspection
+                  ? t("supervisor.approvals.awaitingCheckHint")
+                  : undefined
+              }
               onClick={() => decideExt(r, "approve")}
             >
               {t("supervisor.approvals.approve")}
@@ -696,6 +702,10 @@ export default function SupervisorApprovalsPage() {
         />
       )}
 
+      {photosOf && (
+        <LoanPhotosDialog row={photosOf} onClose={() => setPhotosOf(null)} />
+      )}
+
       {historyBorrower && (
         <BorrowerHistoryDialog
           borrower={historyBorrower}
@@ -728,6 +738,63 @@ function Tile({
         {value ?? "-"}
       </div>
     </div>
+  );
+}
+
+/**
+ * #148: the loan's photos, read-only, while an extension is being decided.
+ * Same grouping as the appeals desk's evidence panel.
+ */
+function LoanPhotosDialog({
+  row,
+  onClose,
+}: {
+  row: ExtensionReviewRow;
+  onClose: () => void;
+}) {
+  const { t } = useTranslation();
+  const { data, isLoading } = useUsagePhotos(row.usageKey);
+
+  const groups: { stage: keyof UsagePhotoSet; label: string }[] = [
+    { stage: "before", label: t("supervisor.appeals.photoBefore") },
+    { stage: "after", label: t("supervisor.appeals.photoAfter") },
+    { stage: "inspection", label: t("supervisor.appeals.photoInspection") },
+  ];
+  const shown = data ? groups.filter((g) => data[g.stage].length > 0) : [];
+
+  return (
+    <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-w-3xl">
+        <DialogHeader>
+          <DialogTitle>
+            {t("supervisor.approvals.photosTitle", { item: row.itemName ?? "" })}
+          </DialogTitle>
+        </DialogHeader>
+        {isLoading ? (
+          <div className="py-8 text-center text-t3">{t("common.loading")}</div>
+        ) : shown.length === 0 ? (
+          <p className="py-8 text-center text-t3">{t("supervisor.appeals.noPhotos")}</p>
+        ) : (
+          <div className="flex flex-col gap-3">
+            {shown.map((group) => (
+              <div key={group.stage}>
+                <div className="mb-1 text-[11px] text-t3">{group.label}</div>
+                <div className="flex flex-wrap gap-3">
+                  {data![group.stage].map((photo) => (
+                    <img
+                      key={photo.imageKey}
+                      src={photo.imageUrl}
+                      alt=""
+                      className="h-28 w-40 rounded border border-border bg-surface-inset object-cover"
+                    />
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }
 

@@ -9,6 +9,23 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  // #183: libraries in their own chunks, so the first load is not one 677 kB
+  // file and an app-only deploy keeps the browser's cached copies.
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes("node_modules")) return undefined;
+          if (/recharts|d3-|victory-vendor/.test(id)) return "charts";
+          if (/react-dom|react-router|scheduler|[\\/]react[\\/]/.test(id)) return "react";
+          if (/@tanstack|@trpc/.test(id)) return "data";
+          if (/i18next/.test(id)) return "i18n";
+          if (/@radix-ui|lucide-react/.test(id)) return "ui";
+          return "vendor";
+        },
+      },
+    },
+  },
   server: {
     port: 5173,
     // proxy API calls to backend during development

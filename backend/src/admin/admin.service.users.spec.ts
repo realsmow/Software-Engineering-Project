@@ -61,13 +61,14 @@ function serviceWith(options: {
   const record = jest.fn().mockResolvedValue(undefined);
   const revokeAllForAccount = jest.fn().mockResolvedValue(undefined);
 
-  const prisma = {
+  const prisma: Record<string, unknown> = {
     accountInfo: { findFirst, findUnique, create, update },
     roleInfo: { findMany: jest.fn().mockResolvedValue(ROLE_ROWS) },
-  } as unknown as PrismaService;
+    $transaction: jest.fn((work: (tx: unknown) => unknown) => work(prisma)),
+  };
 
   const service = new AdminService(
-    prisma,
+    prisma as unknown as PrismaService,
     {
       resolveBorrowLimits: jest.fn().mockResolvedValue({
         creditTier: 'D0',
@@ -238,5 +239,40 @@ describe('resetPassword', () => {
       'account/7',
       'Password set by admin',
     );
+  });
+});
+
+describe('getConfig reports what the server enforces (#141, #167)', () => {
+  function configService(env: Record<string, string>) {
+    const config = { get: (key: string) => env[key] } as ConfigService;
+    return new AdminService(
+      {} as PrismaService,
+      {} as CreditTierService,
+      {} as SessionService,
+      {} as AuditService,
+      {} as StaffScopeService,
+      config,
+      {} as CronService,
+    );
+  }
+
+  it('reports Google sign-in on when its credentials are configured', () => {
+    const config = configService({
+      GOOGLE_CLIENT_ID: 'id',
+      GOOGLE_CLIENT_SECRET: 'secret',
+      GOOGLE_REDIRECT_URI: 'http://localhost:3000/auth/google/callback',
+    }).getConfig();
+    expect(config.auth.googleOauthEnabled).toBe(true);
+  });
+
+  it('reports Google sign-in off when a credential is missing', () => {
+    const config = configService({ GOOGLE_CLIENT_ID: 'id' }).getConfig();
+    expect(config.auth.googleOauthEnabled).toBe(false);
+  });
+
+  it('reports the default domain list and the due-soon email', () => {
+    const config = configService({}).getConfig();
+    expect(config.auth.allowedEmailDomains).toEqual(['ku.th', 'ku.ac.th']);
+    expect(config.email.dueReminderEnabled).toBe(true);
   });
 });
