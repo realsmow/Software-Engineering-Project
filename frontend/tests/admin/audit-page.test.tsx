@@ -124,6 +124,90 @@ describe("AdminAuditPage", () => {
 
     expect(screen.getByText(i18n.t("table.empty"))).toBeInTheDocument();
     expect(screen.getByText(i18n.t("table.emptyDesc"))).toBeInTheDocument();
+    expect(screen.queryByText(/^Peak /)).not.toBeInTheDocument();
+  });
+
+  describe("Audit activity: peak caption follows the selected view", () => {
+    beforeEach(() => {
+      // Distinct winners: 09:00 has three events, login has three events,
+      // and 26 September has four events (three staff and one admin).
+      // Every event goes through the real API schema and frontend adapter.
+      useAuditEventsMock.mockReturnValue({
+        data: [
+          eventAt(40, 0, { at: "2031-09-24T02:00:00.000Z" }),
+          eventAt(41, 0, {
+            at: "2031-09-25T02:00:00.000Z",
+            actorId: 4,
+            actorName: "Staff user",
+            actorRole: "staff",
+            action: "login",
+          }),
+          eventAt(42, 0, {
+            at: "2031-09-26T02:00:00.000Z",
+            actorId: 4,
+            actorName: "Staff user",
+            actorRole: "staff",
+            action: "login",
+          }),
+          eventAt(43, 0, {
+            at: "2031-09-26T03:00:00.000Z",
+            actorId: 4,
+            actorName: "Staff user",
+            actorRole: "staff",
+            action: "login",
+          }),
+          eventAt(44, 0, {
+            at: "2031-09-26T04:00:00.000Z",
+            actorId: 4,
+            actorName: "Staff user",
+            actorRole: "staff",
+            action: "create",
+          }),
+          eventAt(45, 0, { at: "2031-09-26T05:00:00.000Z" }),
+        ],
+        refetch,
+      });
+      renderPage();
+      expect(
+        screen.getByRole("tab", { name: i18n.t("admin.charts.byHour") })
+      ).toHaveAttribute("aria-selected", "true");
+      expect(
+        screen.getByText(i18n.t("admin.charts.peak", { hour: "09:00" }))
+      ).toBeVisible();
+    });
+
+    describe.each([
+      { label: "By type", key: "byType" },
+      { label: "By role", key: "byRole" },
+    ])("$label", ({ key }) => {
+      beforeEach(() => {
+        const tab = screen.getByRole("tab", { name: i18n.t(`admin.charts.${key}`) });
+        fireEvent.click(tab);
+        expect(tab).toHaveAttribute("aria-selected", "true");
+        expect(
+          screen.getByRole("tab", { name: i18n.t("admin.charts.byHour") })
+        ).toHaveAttribute("aria-selected", "false");
+      });
+
+      // Known defect: both non-hour views keep the By hour subtitle.
+      // Rendering and successful tab switching are checked outside this marker.
+      it.fails("does not reuse the hourly peak caption for a different grouping", () => {
+        // Replacing the summary or hiding it in non-hour views are both valid.
+        expect(
+          screen.queryByText(i18n.t("admin.charts.peak", { hour: "09:00" }))
+        ).not.toBeInTheDocument();
+      });
+
+      it("shows the hourly peak when switching back to By hour", () => {
+        fireEvent.click(screen.getByRole("tab", { name: i18n.t("admin.charts.byHour") }));
+        expect(
+          screen.getByRole("tab", { name: i18n.t("admin.charts.byHour") })
+        ).toHaveAttribute("aria-selected", "true");
+        expect(
+          screen.getByText(i18n.t("admin.charts.peak", { hour: "09:00" }))
+        ).toBeVisible();
+      });
+    });
   });
 
   it("refreshes the audit query and updates the reference timestamp", () => {

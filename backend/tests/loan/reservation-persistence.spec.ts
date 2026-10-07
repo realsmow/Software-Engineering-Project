@@ -271,4 +271,347 @@ describe('persisted reservation conflict handling', () => {
       ).toBe(2);
     });
   });
+
+  describe('#178: weekend pickup and persisted return dates', () => {
+    beforeEach(() =>
+      jest.useFakeTimers({
+        now: new Date('2099-01-09T01:00:00Z'),
+        doNotFake: ['nextTick', 'setImmediate', 'setTimeout'],
+      }),
+    );
+    afterEach(() => jest.useRealTimers());
+
+    it.each(
+      (['T1', 'T2'] as const).flatMap((tier) =>
+        ['2099-01-10', '2099-01-11'].map((day) => ({ tier, day })),
+      ),
+    )(
+      'checks $tier sibling policy over the entire Monday roll for a $day return',
+      async ({ tier, day }) => {
+        await inHistoryFixture(prisma, async (tx) => {
+          const f = await requestFixture(tx, tier, 2);
+          await tx.reservations.create({
+            data: {
+              ResourceKey: f.units[0].ResourceKey,
+              ReservedBy: f.users[1].accountKey,
+              StartTime: new Date('2099-01-12T02:00:00Z'),
+              EndTime: new Date('2099-01-12T10:00:00Z'),
+              ApproveStatus: 'Approved',
+              ReservationExpiration: new Date('2099-01-13T02:00:00Z'),
+              ActionTime: new Date(),
+            },
+          });
+          const result = createRequestOutput.strict().parse(
+            await f.service.create(f.users[0], {
+              startTime: '2099-01-09T02:00:00.000Z',
+              endTime: `${day}T06:00:00.000Z`,
+              lines: [{ resourceKey: f.units[0].ResourceKey }],
+            }),
+          );
+          if (tier === 'T1') {
+            expect(result.rejected).toEqual([]);
+            expect(result.created).toHaveLength(1);
+            expect(result.created[0]).toMatchObject({
+              resource: { resourceKey: f.units[1].ResourceKey },
+              endTime: '2099-01-12T10:00:00.000Z',
+            });
+            expect(
+              await tx.reservations.findUniqueOrThrow({
+                where: { ReservationKey: result.created[0].reservationKey },
+              }),
+            ).toMatchObject({
+              ResourceKey: f.units[1].ResourceKey,
+              EndTime: new Date('2099-01-12T10:00:00Z'),
+            });
+          } else {
+            expect(result.created).toEqual([]);
+            expect(result.rejected).toMatchObject([
+              { code: 'WINDOW_CROSSES_RESERVATION' },
+            ]);
+            expect(
+              await tx.reservations.count({
+                where: { ResourceKey: f.units[1].ResourceKey },
+              }),
+            ).toBe(0);
+          }
+          expect(
+            await tx.reservations.count({
+              where: {
+                ResourceKey: { in: f.units.map((unit) => unit.ResourceKey) },
+              },
+            }),
+          ).toBe(tier === 'T1' ? 2 : 1);
+        });
+      },
+    );
+
+    it.each(
+      ['2099-01-10', '2099-01-11'].flatMap((day) =>
+        ['00:59:00.000Z', '10:00:00.001Z'].map((time) => ({ day, time })),
+      ),
+    )(
+      'does not let a $day return outside counter hours ($time) bypass validation through rolling',
+      async ({ day, time }) => {
+        await inHistoryFixture(prisma, async (tx) => {
+          const f = await requestFixture(tx, 'T1');
+          const result = createRequestOutput.strict().parse(
+            await f.service.create(f.users[0], {
+              startTime: '2099-01-09T02:00:00.000Z',
+              endTime: `${day}T${time}`,
+              lines: [{ resourceKey: f.units[0].ResourceKey }],
+            }),
+          );
+          expect(result.created).toEqual([]);
+          expect(result.rejected).toMatchObject([
+            { code: 'OUTSIDE_WORK_HOURS', detail: { edge: 'END' } },
+          ]);
+          expect(
+            await tx.reservations.count({
+              where: { ResourceKey: f.units[0].ResourceKey },
+            }),
+          ).toBe(0);
+        });
+      },
+    );
+
+    it.each(['2099-01-10', '2099-01-11'])(
+      'keeps a T3 room booking on %s on its own slot calendar',
+      async (day) => {
+        jest.setSystemTime(
+          new Date(new Date(`${day}T00:00:00Z`).getTime() - 3_600_000),
+        ); // 06:00 Bangkok on the booking day
+        await inHistoryFixture(prisma, async (tx) => {
+          const f = await requestFixture(tx, 'T1');
+          await tx.borrowRule.update({
+            where: { BorrowRuleKey: f.rule.BorrowRuleKey },
+            data: { RuleName: 'T3' },
+          });
+          await tx.itemIndiv.delete({
+            where: { ResourceKey: f.units[0].ResourceKey },
+          });
+          await tx.resourceInfo.update({
+            where: { ResourceKey: f.units[0].ResourceKey },
+            data: { ResourceType: 'Room' },
+          });
+          const room = await tx.roomInfo.create({
+            data: {
+              ResourceKey: f.units[0].ResourceKey,
+              RoomName: 'Weekend slot calendar',
+              CreditWeight: 0,
+              OpenTime: 7 * 60,
+              CloseTime: 18 * 60,
+              BreakStart: 12 * 60,
+              BreakEnd: 13 * 60,
+            },
+          });
+          const result = createRequestOutput.strict().parse(
+            await f.service.createRoomBooking(f.users[0], {
+              roomKey: room.RoomKey,
+              date: day,
+              slots: [0, 1],
+            }),
+          );
+          expect(result.rejected).toEqual([]);
+          expect(result.created).toHaveLength(1);
+          expect(result.created[0]).toMatchObject({
+            startTime: `${day}T00:00:00.000Z`,
+            endTime: `${day}T01:00:00.000Z`,
+          });
+          expect(
+            await tx.reservations.findUniqueOrThrow({
+              where: { ReservationKey: result.created[0].reservationKey },
+            }),
+          ).toMatchObject({
+            StartTime: new Date(`${day}T00:00:00Z`),
+            EndTime: new Date(`${day}T01:00:00Z`),
+          });
+        });
+      },
+    );
+
+    it.each(['Pending', 'Approved'] as const)(
+      'checks the full Monday roll against a next %s booking and offers a usable Friday cap',
+      async (status) => {
+        await inHistoryFixture(prisma, async (tx) => {
+          const f = await requestFixture(tx, 'T1');
+          await tx.resourceInfo.update({
+            where: { ResourceKey: f.units[0].ResourceKey },
+            data: { BufferTime: 1 },
+          });
+          await tx.reservations.create({
+            data: {
+              ResourceKey: f.units[0].ResourceKey,
+              ReservedBy: f.users[1].accountKey,
+              StartTime: new Date('2099-01-12T02:00:00Z'),
+              EndTime: new Date('2099-01-12T10:00:00Z'),
+              ApproveStatus: status,
+              ReservationExpiration: new Date('2099-01-13T02:00:00Z'),
+              ActionTime: new Date(),
+            },
+          });
+          const input = {
+            startTime: '2099-01-09T02:00:00.000Z',
+            endTime: '2099-01-10T06:00:00.000Z',
+            lines: [{ resourceKey: f.units[0].ResourceKey }],
+          };
+          const refused = createRequestOutput
+            .strict()
+            .parse(await f.service.create(f.users[0], input));
+          expect(refused.created).toEqual([]);
+          expect(refused.rejected).toMatchObject([
+            {
+              code: 'WINDOW_CROSSES_RESERVATION',
+              detail: { maxEndTime: '2099-01-09T10:00:00.000Z' },
+            },
+          ]);
+          const shortened = createRequestOutput.strict().parse(
+            await f.service.create(f.users[0], {
+              ...input,
+              endTime: '2099-01-09T10:00:00.000Z',
+            }),
+          );
+          expect(shortened.rejected).toEqual([]);
+          expect(shortened.created).toHaveLength(1);
+          expect(
+            await tx.reservations.count({
+              where: { ResourceKey: f.units[0].ResourceKey },
+            }),
+          ).toBe(2);
+        });
+      },
+    );
+
+    it.each([
+      { buffer: 0, next: '2099-01-12T09:59:00Z', accepted: false },
+      { buffer: 0, next: '2099-01-12T10:00:00Z', accepted: true },
+      { buffer: 1, next: '2099-01-13T09:59:00Z', accepted: false },
+      { buffer: 1, next: '2099-01-13T10:00:00Z', accepted: true },
+    ])(
+      'uses half-open rolled hold and $buffer-day buffer at $next',
+      async ({ buffer, next, accepted }) => {
+        await inHistoryFixture(prisma, async (tx) => {
+          const f = await requestFixture(tx, 'T2');
+          await tx.resourceInfo.update({
+            where: { ResourceKey: f.units[0].ResourceKey },
+            data: { BufferTime: buffer },
+          });
+          const first = createRequestOutput.strict().parse(
+            await f.service.create(f.users[0], {
+              startTime: '2099-01-09T02:00:00.000Z',
+              endTime: '2099-01-11T06:00:00.000Z',
+              lines: [{ resourceKey: f.units[0].ResourceKey }],
+            }),
+          );
+          expect(first.created).toHaveLength(1);
+          const second = createRequestOutput.strict().parse(
+            await f.service.create(f.users[1], {
+              startTime: new Date(next).toISOString(),
+              endTime: '2099-01-14T10:00:00.000Z',
+              lines: [{ resourceKey: f.units[0].ResourceKey }],
+            }),
+          );
+          expect(second.created).toHaveLength(accepted ? 1 : 0);
+          expect(second.rejected).toHaveLength(accepted ? 0 : 1);
+          if (!accepted)
+            expect(second.rejected[0].code).toBe('SERIAL_NOT_AVAILABLE');
+          expect(
+            await tx.reservations.count({
+              where: { ResourceKey: f.units[0].ResourceKey },
+            }),
+          ).toBe(accepted ? 2 : 1);
+        });
+      },
+    );
+
+    it.each(
+      (['T0', 'T1', 'T2'] as const).flatMap((tier) =>
+        ['2099-01-10', '2099-01-11'].map((day) => ({ tier, day })),
+      ),
+    )(
+      'does not write a $tier pickup reservation on $day',
+      async ({ tier, day }) => {
+        await inHistoryFixture(prisma, async (tx) => {
+          const f = await requestFixture(tx, 'T1');
+          await tx.borrowRule.update({
+            where: { BorrowRuleKey: f.rule.BorrowRuleKey },
+            data: { RuleName: tier },
+          });
+          // T0 is requested on that same closed day, so its horizon gate cannot mask this check.
+          jest.setSystemTime(new Date(`${day}T01:00:00Z`));
+          const result = createRequestOutput.strict().parse(
+            await f.service.create(f.users[0], {
+              startTime: `${day}T02:00:00.000Z`,
+              endTime: '2099-01-12T10:00:00.000Z',
+              lines: [{ resourceKey: f.units[0].ResourceKey }],
+            }),
+          );
+          expect(result.created).toEqual([]);
+          expect(result.rejected).toMatchObject([
+            { code: 'OUTSIDE_WORK_HOURS', detail: { edge: 'START' } },
+          ]);
+          expect(
+            await tx.reservations.count({
+              where: { ResourceKey: f.units[0].ResourceKey },
+            }),
+          ).toBe(0);
+        });
+      },
+    );
+
+    it.each(
+      (['T0', 'T1', 'T2'] as const).flatMap((tier) =>
+        ['2099-01-10', '2099-01-11'].map((day) => ({ tier, day })),
+      ),
+    )(
+      'keeps $tier equipment reserved through Monday closing after a $day return request',
+      async ({ tier, day }) => {
+        await inHistoryFixture(prisma, async (tx) => {
+          const f = await requestFixture(tx, 'T2');
+          await tx.borrowRule.update({
+            where: { BorrowRuleKey: f.rule.BorrowRuleKey },
+            data: { RuleName: tier },
+          });
+          await tx.borrowConstraints.updateMany({
+            where: { BorrowRuleKey: f.rule.BorrowRuleKey },
+            data: { MaxBorrowDate: day === '2099-01-10' ? 2 : 3 },
+          });
+          const result = createRequestOutput.strict().parse(
+            await f.service.create(f.users[0], {
+              startTime: '2099-01-09T02:00:00.000Z',
+              endTime: `${day}T06:00:00.000Z`,
+              lines: [{ resourceKey: f.units[0].ResourceKey }],
+            }),
+          );
+          expect(result.rejected).toEqual([]);
+          expect(result.created).toHaveLength(1);
+          expect(result.created[0].endTime).toBe('2099-01-12T10:00:00.000Z');
+          expect(
+            await tx.reservations.findUniqueOrThrow({
+              where: { ReservationKey: result.created[0].reservationKey },
+            }),
+          ).toMatchObject({ EndTime: new Date('2099-01-12T10:00:00Z') });
+          jest.setSystemTime(new Date('2099-01-12T01:00:00Z'));
+          const overlapping = createRequestOutput.strict().parse(
+            await f.service.create(f.users[1], {
+              startTime: '2099-01-12T02:00:00.000Z', // Monday 09:00: inside the rolled hold
+              endTime: '2099-01-12T10:00:00.000Z',
+              lines: [{ resourceKey: f.units[0].ResourceKey }],
+            }),
+          );
+          expect(overlapping.created).toEqual([]);
+          expect(overlapping.rejected).toMatchObject([
+            {
+              code:
+                tier === 'T2' ? 'SERIAL_NOT_AVAILABLE' : 'WINDOW_NOT_AVAILABLE',
+            },
+          ]);
+          expect(
+            await tx.reservations.count({
+              where: { ResourceKey: f.units[0].ResourceKey },
+            }),
+          ).toBe(1);
+        });
+      },
+    );
+  });
 });

@@ -12,9 +12,13 @@ import { EligibilityService } from '../../src/common/authority/eligibility.servi
 import { NotificationService } from '../../src/notification/notification.service';
 import { inHistoryFixture } from '../fixtures/borrower-history';
 import { creditLoanFixture } from '../fixtures/loan-extension';
+import { freezeBusinessDate } from '../fixtures/business-clock';
 
 describe('SDS renewal credit gates and persistence', () => {
   let prisma: PrismaService;
+  // Keep generic credit gates on working days; weekend routing has its own matrix.
+  beforeEach(() => freezeBusinessDate(new Date('2031-09-22T02:00:00Z')));
+  afterEach(() => jest.useRealTimers());
   beforeAll(async () => {
     requireIsolatedDatabase();
     prisma = new PrismaService();

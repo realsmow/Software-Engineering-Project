@@ -9,9 +9,13 @@ import {
   inspectExtensionInput,
   paginatedExtensionReviews,
 } from '../../src/loan/loan.schema';
-import { rollDueOffWeekend } from '../../src/common/schemas/datetime.schema';
 import { inHistoryFixture } from '../fixtures/borrower-history';
 import { creditLoanFixture } from '../fixtures/loan-extension';
+import { freezeBusinessDate } from '../fixtures/business-clock';
+import { workHours } from '../../src/common/schemas/datetime.schema';
+import { PenaltyService } from '../../src/common/penalty/penalty.service';
+import { NotificationService } from '../../src/notification/notification.service';
+import { CronService } from '../../src/cron/cron.service';
 
 const DAY = 86_400_000;
 type Fixture = Awaited<ReturnType<typeof creditLoanFixture>>;
@@ -74,6 +78,9 @@ async function nextBooking(
 
 describe('SDS renewal workflow: gates before routing and persisted decisions', () => {
   let prisma: PrismaService;
+  // Generic routing cases must not become weekend cases on Thursday/Friday CI.
+  beforeEach(() => freezeBusinessDate(new Date('2031-09-22T02:00:00Z')));
+  afterEach(() => jest.useRealTimers());
   beforeAll(async () => {
     requireIsolatedDatabase();
     prisma = new PrismaService();
@@ -713,34 +720,315 @@ describe('SDS renewal workflow: gates before routing and persisted decisions', (
     });
   });
 
-  it('rolls a weekend due date to Monday closing time (#178)', async () => {
-    await inHistoryFixture(prisma, async (tx) => {
-      const f = await creditLoanFixture(tx, 'T2', 'D0');
-      // First Saturday (Bangkok) after the current due date.
-      let asked = new Date(f.due.getTime() + DAY);
-      while (new Date(asked.getTime() + 7 * 3_600_000).getUTCDay() !== 6) {
-        asked = new Date(asked.getTime() + DAY);
-      }
-      const pending = extensionOutput.strict().parse(
-        await f.extensions.request(
-          f.user,
-          requestExtensionInput.parse({
+  describe('#178: weekend extensions preserve the Monday closing deadline', () => {
+    beforeEach(() =>
+      jest.useFakeTimers({
+        now: new Date('2031-09-25T02:00:00Z'), // Thursday 09:00 Bangkok
+        doNotFake: ['nextTick', 'setImmediate', 'setTimeout'],
+      }),
+    );
+    afterEach(() => jest.useRealTimers());
+
+    it.each([
+      { day: '2031-09-27', max: 1 },
+      { day: '2031-09-28', max: 2 },
+    ])(
+      'checks the requested $day against $max allowed days before the weekend roll',
+      async ({ day, max }) => {
+        await inHistoryFixture(prisma, async (tx) => {
+          const f = await creditLoanFixture(tx, 'T1', 'D0');
+          await tx.borrowConstraints.updateMany({
+            where: { BorrowRuleKey: f.f.rule.BorrowRuleKey },
+            data: { MaxBorrowDate: max },
+          });
+          const result = extensionOutput.strict().parse(
+            await f.extensions.request(f.user, {
+              usageKey: f.activeLoan.UsageKey,
+              requestedDueAt: `${day}T02:00:00.000Z`,
+            }),
+          );
+          expect(result).toMatchObject({
+            status: 'Approved',
+            dueAt: '2031-09-29T10:00:00.000Z',
+          });
+          expect(
+            await tx.usageLog.findUniqueOrThrow({
+              where: { UsageKey: f.activeLoan.UsageKey },
+            }),
+          ).toMatchObject({ DueTime: new Date('2031-09-29T10:00:00Z') });
+        });
+      },
+    );
+
+    it('does not use weekend rolling to bypass the requested-day maximum', async () => {
+      await inHistoryFixture(prisma, async (tx) => {
+        const f = await creditLoanFixture(tx, 'T1', 'D0');
+        await tx.borrowConstraints.updateMany({
+          where: { BorrowRuleKey: f.f.rule.BorrowRuleKey },
+          data: { MaxBorrowDate: 1 },
+        });
+        await expect(
+          f.extensions.request(f.user, {
             usageKey: f.activeLoan.UsageKey,
-            requestedDueAt: asked.toISOString(),
-            reason: 'Finish the laboratory project',
+            requestedDueAt: '2031-09-28T02:00:00.000Z',
           }),
-        ),
-      );
-      const stored = await tx.extensionRequest.findUniqueOrThrow({
-        where: { ExtensionKey: pending.extensionKey },
+        ).rejects.toMatchObject({
+          businessCode: 'INVALID_EXTENSION_WINDOW',
+          details: { reason: 'EXCEEDS_MAX_BORROW_DAYS' },
+        });
+        expect(
+          await tx.extensionRequest.count({
+            where: { UsageKey: f.activeLoan.UsageKey },
+          }),
+        ).toBe(0);
+        await assertUnchanged(tx, f);
       });
-      expect(stored.RequestedDueTime.getTime()).toBe(
-        rollDueOffWeekend(asked).getTime(),
-      );
-      expect(
-        new Date(stored.RequestedDueTime.getTime() + 7 * 3_600_000).getUTCDay(),
-      ).toBe(1);
     });
+
+    it.each(
+      (['Pending', 'Approved'] as const).flatMap((status) =>
+        (['2031-09-27', '2031-09-28'] as const).map((day) => ({ status, day })),
+      ),
+    )(
+      'refuses a $day extension that rolls into a $status Monday booking',
+      async ({ status, day }) => {
+        await inHistoryFixture(prisma, async (tx) => {
+          const f = await creditLoanFixture(tx, 'T1', 'D0');
+          const booking = await tx.reservations.create({
+            data: {
+              ResourceKey: f.activeLoan.ResourceKey,
+              ReservedBy: f.f.inspector.AccountKey,
+              StartTime: new Date('2031-09-29T02:00:00Z'),
+              EndTime: new Date('2031-09-29T10:00:00Z'),
+              ApproveStatus: status,
+              ReservationExpiration: new Date('2031-09-30T02:00:00Z'),
+              ActionTime: new Date(),
+            },
+          });
+          await expect(
+            f.extensions.request(f.user, {
+              usageKey: f.activeLoan.UsageKey,
+              requestedDueAt: `${day}T06:00:00.000Z`,
+            }),
+          ).rejects.toMatchObject({
+            businessCode: 'WINDOW_NOT_AVAILABLE',
+            details: { blockedBy: booking.ReservationKey },
+          });
+          expect(
+            await tx.extensionRequest.count({
+              where: { UsageKey: f.activeLoan.UsageKey },
+            }),
+          ).toBe(0);
+          await assertUnchanged(tx, f);
+          expect(f.audit.record).not.toHaveBeenCalled();
+        });
+      },
+    );
+
+    it.each(['Pending', 'Approved'] as const)(
+      'rechecks a new $status Monday booking before approving the queued weekend extension',
+      async (status) => {
+        await inHistoryFixture(prisma, async (tx) => {
+          const f = await creditLoanFixture(tx, 'T2', 'D0');
+          const pending = extensionOutput.strict().parse(
+            await f.extensions.request(f.user, {
+              usageKey: f.activeLoan.UsageKey,
+              requestedDueAt: '2031-09-28T06:00:00.000Z',
+            }),
+          );
+          await f.extensions.inspect(await staffInScope(tx, f), {
+            extensionKey: pending.extensionKey,
+            condition: 'Normal',
+          });
+          await tx.reservations.create({
+            data: {
+              ResourceKey: f.activeLoan.ResourceKey,
+              ReservedBy: f.f.inspector.AccountKey,
+              StartTime: new Date('2031-09-29T02:00:00Z'),
+              EndTime: new Date('2031-09-29T10:00:00Z'),
+              ApproveStatus: status,
+              ReservationExpiration: new Date('2031-09-30T02:00:00Z'),
+              ActionTime: new Date(),
+            },
+          });
+          f.audit.record.mockClear();
+          await expect(
+            f.extensions.decide(
+              f.f.decider,
+              decideExtensionInput.parse({
+                extensionKey: pending.extensionKey,
+                decision: 'approve',
+              }),
+            ),
+          ).rejects.toMatchObject({ businessCode: 'WINDOW_NOT_AVAILABLE' });
+          await assertUnchanged(tx, f);
+          expect(
+            await tx.extensionRequest.findUniqueOrThrow({
+              where: { ExtensionKey: pending.extensionKey },
+            }),
+          ).toMatchObject({
+            ApproveStatus: 'Pending',
+            RequestedDueTime: new Date('2031-09-29T10:00:00Z'),
+          });
+          expect(f.audit.record).not.toHaveBeenCalled();
+        });
+      },
+    );
+
+    it('does not charge late credit on Saturday/Sunday or exactly Monday closing; charges once just after it', async () => {
+      await inHistoryFixture(prisma, async (tx) => {
+        const f = await creditLoanFixture(tx, 'T1', 'D0');
+        await f.extensions.request(f.user, {
+          usageKey: f.activeLoan.UsageKey,
+          requestedDueAt: '2031-09-28T06:00:00.000Z',
+        });
+        const penalties = new PenaltyService(f.f.client);
+        const cron = new CronService(
+          f.f.client,
+          penalties,
+          new NotificationService(f.f.client),
+        );
+        const before = await tx.accountInfo.findUniqueOrThrow({
+          where: { AccountKey: f.user.accountKey },
+        });
+        for (const at of [
+          '2031-09-27T02:00:00Z',
+          '2031-09-28T16:59:59Z',
+          '2031-09-29T10:00:00Z',
+        ]) {
+          jest.setSystemTime(new Date(at));
+          expect(await cron.run('markOverdue')).toMatchObject({ affected: 0 });
+          expect(
+            await tx.penaltyInfo.count({
+              where: {
+                UsageKey: f.activeLoan.UsageKey,
+                Reason: { startsWith: 'ReturnLate' },
+              },
+            }),
+          ).toBe(0);
+        }
+        jest.setSystemTime(new Date('2031-09-29T10:00:00.001Z'));
+        expect(await cron.run('markOverdue')).toMatchObject({ affected: 1 });
+        expect(await cron.run('markOverdue')).toMatchObject({ affected: 0 });
+        expect(
+          await tx.penaltyInfo.count({
+            where: {
+              UsageKey: f.activeLoan.UsageKey,
+              Reason: { startsWith: 'ReturnLate' },
+            },
+          }),
+        ).toBe(1);
+        expect(
+          (
+            await tx.accountInfo.findUniqueOrThrow({
+              where: { AccountKey: f.user.accountKey },
+            })
+          ).UserCredit,
+        ).toBeLessThan(before.UserCredit);
+      });
+    });
+
+    describe('configured closing hour', () => {
+      let original: { start: number; end: number };
+      beforeEach(() => {
+        original = { ...workHours };
+        Object.assign(workHours, { start: 9, end: 16 });
+      });
+      afterEach(() => Object.assign(workHours, original));
+      it.each(['2031-09-27', '2031-09-28'])(
+        'persists Monday 16:00 for a %s extension',
+        async (day) => {
+          await inHistoryFixture(prisma, async (tx) => {
+            const f = await creditLoanFixture(tx, 'T1', 'D0');
+            const result = extensionOutput.strict().parse(
+              await f.extensions.request(f.user, {
+                usageKey: f.activeLoan.UsageKey,
+                requestedDueAt: `${day}T06:00:00.000Z`,
+              }),
+            );
+            expect(result.dueAt).toBe('2031-09-29T09:00:00.000Z');
+            expect(
+              await tx.reservations.findUniqueOrThrow({
+                where: { ReservationKey: f.reservation.ReservationKey },
+              }),
+            ).toMatchObject({ EndTime: new Date('2031-09-29T09:00:00Z') });
+          });
+        },
+      );
+    });
+
+    it.each([
+      { tier: 'T0', day: '2031-09-27', route: 'auto', used: 0 },
+      { tier: 'T0', day: '2031-09-28', route: 'auto', used: 0 },
+      { tier: 'T1', day: '2031-09-27', route: 'auto', used: 0 },
+      { tier: 'T1', day: '2031-09-28', route: 'auto', used: 0 },
+      { tier: 'T1', day: '2031-09-27', route: 'staff', used: 1 },
+      { tier: 'T1', day: '2031-09-28', route: 'staff', used: 1 },
+      { tier: 'T2', day: '2031-09-27', route: 'supervisor', used: 0 },
+      { tier: 'T2', day: '2031-09-28', route: 'supervisor', used: 0 },
+    ] as const)(
+      'persists $day through the $route workflow',
+      async ({ tier, day, route, used }) => {
+        await inHistoryFixture(prisma, async (tx) => {
+          const f = await creditLoanFixture(tx, tier, 'D0', used);
+          const expected = new Date('2031-09-29T10:00:00Z'); // Monday 17:00 Bangkok
+          let result = extensionOutput.strict().parse(
+            await f.extensions.request(
+              f.user,
+              requestExtensionInput.parse({
+                usageKey: f.activeLoan.UsageKey,
+                requestedDueAt: `${day}T06:00:00.000Z`, // 13:00 Bangkok
+                reason: 'Finish the laboratory project',
+              }),
+            ),
+          );
+          expect(result.route).toBe(route);
+          expect(
+            await tx.extensionRequest.findUniqueOrThrow({
+              where: { ExtensionKey: result.extensionKey },
+            }),
+          ).toMatchObject({ RequestedDueTime: expected });
+          if (route !== 'auto') {
+            expect(result.status).toBe('Pending');
+            await assertUnchanged(tx, f);
+            const staff = await staffInScope(tx, f);
+            if (route === 'supervisor') {
+              await f.extensions.inspect(
+                staff,
+                inspectExtensionInput.parse({
+                  extensionKey: result.extensionKey,
+                  condition: 'Normal',
+                }),
+              );
+            }
+            result = extensionOutput.strict().parse(
+              await f.extensions.decide(
+                route === 'staff' ? staff : f.f.decider,
+                decideExtensionInput.parse({
+                  extensionKey: result.extensionKey,
+                  decision: 'approve',
+                  ...(route === 'staff' ? { condition: 'Normal' } : {}),
+                }),
+              ),
+            );
+          }
+          expect(result).toMatchObject({
+            status: 'Approved',
+            dueAt: expected.toISOString(),
+          });
+          expect(
+            await tx.usageLog.findUniqueOrThrow({
+              where: { UsageKey: f.activeLoan.UsageKey },
+            }),
+          ).toMatchObject({ DueTime: expected, PendingExtension: null });
+          expect(
+            await tx.reservations.findUniqueOrThrow({
+              where: { ReservationKey: f.reservation.ReservationKey },
+            }),
+          ).toMatchObject({ EndTime: expected });
+        });
+      },
+    );
   });
 
   it('refuses a separate check on a staff-routed extension', async () => {

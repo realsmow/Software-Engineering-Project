@@ -10,9 +10,11 @@ import {
   allocateLoanInput,
   swapUnitInput,
   loanOutput,
+  recordReturnOutput,
 } from '../../src/loan/loan.schema';
 import { inHistoryFixture } from '../fixtures/borrower-history';
 import { freezeBusinessDate } from '../fixtures/business-clock';
+import { workHours } from '../../src/common/schemas/datetime.schema';
 import {
   pickupFixture,
   pickupRequest,
@@ -110,6 +112,266 @@ describe('NFR-REL-02 / SDS 4.4: unit selection preserves reserved windows', () =
   });
   beforeEach(() => freezeBusinessDate(PICKUP_NOW));
   afterEach(() => jest.useRealTimers());
+
+  describe('early receipt preserves a future return deadline', () => {
+    let savedHours: { start: number; end: number };
+    beforeEach(() => {
+      savedHours = { ...workHours };
+      // The screenshot's 18:27 receipt is inside this configured opening window.
+      // This isolates the inverted deadline from a separate hours-policy issue.
+      Object.assign(workHours, { start: 8, end: 20 });
+      jest.setSystemTime(new Date('2026-10-07T07:00:00+07:00'));
+    });
+    afterEach(() => Object.assign(workHours, savedHours));
+    describe.each([
+      {
+        label: 'one millisecond before shifted due',
+        actual: '2026-10-07T15:59:59.999+07:00',
+        keepOriginal: false,
+      },
+      {
+        label: 'exactly at shifted due',
+        actual: '2026-10-07T16:00:00.000+07:00',
+        keepOriginal: true,
+      },
+      {
+        label: 'one millisecond after shifted due',
+        actual: '2026-10-07T16:00:00.001+07:00',
+        keepOriginal: true,
+      },
+      {
+        label: 'the reported 18:27 receipt',
+        actual: '2026-10-07T18:27:00.000+07:00',
+        keepOriginal: true,
+      },
+    ])('$label', ({ actual, keepOriginal }) => {
+      const receiptAt = new Date(actual);
+      const originalDue = new Date('2026-10-08T16:00:00+07:00');
+      let actualDue: { api: string; usage: Date; reservation: Date };
+      beforeEach(async () => {
+        await inHistoryFixture(prisma, async (tx) => {
+          const f = await pickupFixture(tx);
+          const request = await pickupRequest(
+            f,
+            0,
+            0,
+            new Date('2026-10-08T09:00:00+07:00'),
+            originalDue,
+          );
+          const prepared = loanOutput
+            .strict()
+            .parse(
+              await f.loan.allocate(
+                f.staff,
+                allocateLoanInput.parse({
+                  reservationKey: request.reservationKey,
+                }),
+              ),
+            );
+          expect(prepared).toMatchObject({
+            status: 'Prepared',
+            dueAt: originalDue.toISOString(),
+          });
+          jest.setSystemTime(receiptAt);
+          await tx.images.create({
+            data: {
+              UsageKey: prepared.usageKey,
+              ResourceKey: prepared.resourceKey,
+              SubmittedBy: f.users[0].accountKey,
+              SubmissionType: 'BeforePicture',
+              ImageURL: '/media/early-pickup-deadline.png',
+              ActionTime: receiptAt,
+            },
+          });
+          const collected = loanOutput
+            .strict()
+            .parse(
+              await f.loan.confirmPickup(f.staff, {
+                usageKey: prepared.usageKey,
+                early: true,
+              }),
+            );
+          expect(collected).toMatchObject({
+            status: 'Lended',
+            checkoutAt: receiptAt.toISOString(),
+          });
+          const usage = await tx.usageLog.findUniqueOrThrow({
+            where: { UsageKey: prepared.usageKey },
+          });
+          const reservation = await tx.reservations.findUniqueOrThrow({
+            where: { ReservationKey: request.reservationKey },
+          });
+          expect(usage).toMatchObject({
+            CurrentStatus: 'Lended',
+            CheckoutTime: receiptAt,
+          });
+          expect(reservation.StartTime).toEqual(receiptAt);
+          expect(reservation.EndTime).toEqual(usage.DueTime);
+          expect(collected.dueAt).toBe(usage.DueTime.toISOString());
+          expect(
+            await tx.resourceInfo.findUniqueOrThrow({
+              where: { ResourceKey: collected.resourceKey },
+            }),
+          ).toMatchObject({ ResourceStatus: 'Lended' });
+          // Capture real readback before the enclosing fixture rolls back.
+          actualDue = {
+            api: collected.dueAt,
+            usage: usage.DueTime,
+            reservation: reservation.EndTime,
+          };
+        });
+      });
+      if (keepOriginal) {
+        it.failing(
+          'accepts receipt but retains 8 Oct 16:00 in the API and both SQL records',
+          () => {
+            expect(actualDue).toEqual({
+              api: originalDue.toISOString(),
+              usage: originalDue,
+              reservation: originalDue,
+            });
+            expect(actualDue.usage.getTime()).toBeGreaterThan(
+              receiptAt.getTime(),
+            );
+          },
+        );
+      } else {
+        it('keeps the usual date-only shift when 7 Oct 16:00 is still in the future', () => {
+          const shiftedDue = new Date('2026-10-07T16:00:00+07:00');
+          expect(actualDue).toEqual({
+            api: shiftedDue.toISOString(),
+            usage: shiftedDue,
+            reservation: shiftedDue,
+          });
+          expect(actualDue.usage.getTime()).toBeGreaterThan(
+            receiptAt.getTime(),
+          );
+        });
+      }
+    });
+  });
+
+  it.each(['2031-09-27', '2031-09-28'])(
+    'does not let borrower or ordinary staff collect a Monday request on %s',
+    async (day) => {
+      await inHistoryFixture(prisma, async (tx) => {
+        const f = await pickupFixture(tx);
+        const booked = await pickupRequest(
+          f,
+          0,
+          0,
+          new Date('2031-09-29T02:00:00Z'),
+          new Date('2031-10-01T10:00:00Z'),
+        );
+        const prepared = loanOutput
+          .strict()
+          .parse(
+            await f.loan.allocate(
+              f.staff,
+              allocateLoanInput.parse({
+                reservationKey: booked.reservationKey,
+              }),
+            ),
+          );
+        await tx.images.create({
+          data: {
+            UsageKey: prepared.usageKey,
+            ResourceKey: f.units[0].ResourceKey,
+            SubmittedBy: f.users[0].accountKey,
+            SubmissionType: 'BeforePicture',
+            ImageURL: '/media/weekend-ready.png',
+            ActionTime: new Date(),
+          },
+        });
+        jest.setSystemTime(new Date(`${day}T02:00:00Z`));
+        f.audit.record.mockClear();
+        const before = await snapshot(tx, f, booked.reservationKey);
+        await expect(
+          f.service.confirmMyPickup(f.users[0], prepared.usageKey),
+        ).rejects.toMatchObject({ businessCode: 'PICKUP_NOT_OPEN' });
+        await expect(
+          f.loan.confirmPickup(f.staff, { usageKey: prepared.usageKey }),
+        ).rejects.toMatchObject({ businessCode: 'PICKUP_NOT_OPEN' });
+        expect(await snapshot(tx, f, booked.reservationKey)).toEqual(before);
+        expect(f.audit.record).not.toHaveBeenCalled();
+      });
+    },
+  );
+
+  it.each(['2031-09-27', '2031-09-28'])(
+    'records an actual %s return before the rolled Monday due without deducting late credit',
+    async (day) => {
+      await inHistoryFixture(prisma, async (tx) => {
+        const f = await pickupFixture(tx);
+        const request = await pickupRequest(
+          f,
+          0,
+          0,
+          new Date('2031-09-26T02:00:00Z'),
+          new Date('2031-09-27T06:00:00Z'),
+        );
+        expect(request.endTime).toBe('2031-09-29T10:00:00.000Z');
+        const prepared = loanOutput
+          .strict()
+          .parse(
+            await f.loan.allocate(
+              f.staff,
+              allocateLoanInput.parse({
+                reservationKey: request.reservationKey,
+              }),
+            ),
+          );
+        await tx.images.create({
+          data: {
+            UsageKey: prepared.usageKey,
+            ResourceKey: f.units[0].ResourceKey,
+            SubmittedBy: f.users[0].accountKey,
+            SubmissionType: 'BeforePicture',
+            ImageURL: '/media/weekend-return-before.png',
+            ActionTime: new Date(),
+          },
+        });
+        jest.setSystemTime(new Date('2031-09-26T02:00:00Z'));
+        await f.service.confirmMyPickup(f.users[0], prepared.usageKey);
+        const before = await tx.accountInfo.findUniqueOrThrow({
+          where: { AccountKey: f.users[0].accountKey },
+        });
+        jest.setSystemTime(new Date(`${day}T02:00:00Z`));
+        await tx.images.create({
+          data: {
+            UsageKey: prepared.usageKey,
+            ResourceKey: f.units[0].ResourceKey,
+            SubmittedBy: f.users[0].accountKey,
+            SubmissionType: 'AfterPicture',
+            ImageURL: '/media/weekend-return-after.png',
+            ActionTime: new Date(),
+          },
+        });
+        const returned = recordReturnOutput
+          .strict()
+          .parse(
+            await f.loan.recordReturn(f.staff, { usageKey: prepared.usageKey }),
+          );
+        expect(returned.latePenalty).toBeNull();
+        expect(returned.loan.status).toBe('Returned');
+        expect(
+          await tx.penaltyInfo.count({
+            where: {
+              UsageKey: prepared.usageKey,
+              Reason: { startsWith: 'ReturnLate' },
+            },
+          }),
+        ).toBe(0);
+        expect(
+          (
+            await tx.accountInfo.findUniqueOrThrow({
+              where: { AccountKey: f.users[0].accountKey },
+            })
+          ).UserCredit,
+        ).toBe(before.UserCredit);
+      });
+    },
+  );
 
   describe.each(['allocate', 'swap'] as const)('%s', (action) => {
     it.each(['adjacent booking', 'canceled booking'] as const)(

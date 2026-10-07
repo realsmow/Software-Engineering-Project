@@ -5,6 +5,9 @@ import {
   startOfLocalDay,
   toLocalDayKey,
   toDueDate,
+  isWeekend,
+  rollDueOffWeekend,
+  weekdayEndBefore,
 } from './datetime.schema';
 
 /**
@@ -120,17 +123,15 @@ describe('toLocalDayKey', () => {
 
 // FR-RSV-06 with #178: an offered end on a weekend would roll into the clash.
 describe('weekdayEndBefore', () => {
-  const { weekdayEndBefore } =
-    jest.requireActual<typeof import('./datetime.schema')>('./datetime.schema');
   const start = new Date('2031-09-25T01:00:00.000Z'); // Thu 08:00 Bangkok
 
-  it('moves a Sunday cap back to Friday closing', () => {
-    const friday = weekdayEndBefore(
-      new Date('2031-09-28T01:00:00.000Z'),
-      start,
-    );
-    expect(new Date(friday.getTime() + 7 * 3_600_000).getUTCDay()).toBe(5);
-  });
+  it.each(['2031-09-27T01:00:00Z', '2031-09-28T01:00:00Z'])(
+    'moves weekend cap %s back to Friday closing',
+    (limit) => {
+      const friday = weekdayEndBefore(new Date(limit), start);
+      expect(friday.toISOString()).toBe('2031-09-26T10:00:00.000Z');
+    },
+  );
 
   it('keeps a weekday cap, and a cap whose Friday is not after the start', () => {
     const tuesday = new Date('2031-09-30T01:00:00.000Z');
@@ -139,5 +140,54 @@ describe('weekdayEndBefore', () => {
     expect(
       weekdayEndBefore(sunday, new Date('2031-09-27T01:00:00.000Z')),
     ).toEqual(sunday);
+  });
+});
+
+describe('#178: Bangkok closed days and rolled deadlines', () => {
+  it.each([
+    ['2031-09-22T02:00:00Z', false],
+    ['2031-09-23T02:00:00Z', false],
+    ['2031-09-24T02:00:00Z', false],
+    ['2031-09-25T02:00:00Z', false],
+    ['2031-09-26T02:00:00Z', false],
+    ['2031-09-27T02:00:00Z', true],
+    ['2031-09-28T02:00:00Z', true],
+    // Friday -> Saturday, and Sunday -> Monday, at Bangkok midnight.
+    ['2031-09-26T16:59:59.999Z', false],
+    ['2031-09-26T17:00:00.000Z', true],
+    ['2031-09-28T16:59:59.999Z', true],
+    ['2031-09-28T17:00:00.000Z', false],
+  ] as const)('classifies %s by the Bangkok calendar', (at, closed) => {
+    expect(isWeekend(new Date(at))).toBe(closed);
+  });
+
+  it.each([
+    ['2031-09-27T01:00:00Z', '2031-09-29T10:00:00.000Z'],
+    ['2031-09-28T10:00:00Z', '2031-09-29T10:00:00.000Z'],
+    ['2031-09-26T17:00:00Z', '2031-09-29T10:00:00.000Z'],
+    ['2031-09-28T16:59:59.999Z', '2031-09-29T10:00:00.000Z'],
+    ['2026-01-31T06:00:00Z', '2026-02-02T10:00:00.000Z'],
+    ['2022-12-31T06:00:00Z', '2023-01-02T10:00:00.000Z'],
+    ['2020-02-29T06:00:00Z', '2020-03-02T10:00:00.000Z'],
+  ])(
+    'rolls %s to %s, including month/year/leap-day boundaries',
+    (at, expected) => {
+      const input = new Date(at);
+      const before = input.toISOString();
+      const rolled = rollDueOffWeekend(input);
+      expect(rolled.toISOString()).toBe(expected);
+      expect(input.toISOString()).toBe(before);
+      expect(rollDueOffWeekend(rolled).toISOString()).toBe(expected);
+    },
+  );
+
+  it.each([
+    '2031-09-26T10:00:00Z',
+    '2031-09-28T17:00:00Z',
+    '2031-09-29T06:00:00Z',
+  ])('does not change a weekday deadline %s', (at) => {
+    expect(rollDueOffWeekend(new Date(at)).toISOString()).toBe(
+      new Date(at).toISOString(),
+    );
   });
 });

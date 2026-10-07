@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -124,6 +124,7 @@ describe("borrower request checks", () => {
   });
 
   afterEach(() => {
+    cleanup();
     client?.clear();
     useAuthStore.getState().setUser(null);
   });
@@ -221,16 +222,13 @@ describe("borrower request checks", () => {
           expect(api.listUnits).not.toHaveBeenCalled();
         });
 
-        it(
-          "keeps the page usable, explains the invalid time order and disables submission",
-          () => {
-            expect(renderError).toBeNull();
-            expect(
-              screen.getAllByText(i18n.t("borrower.request.pcTimeOrder")).length
-            ).toBeGreaterThan(0);
-            expect(submitButton()).toBeDisabled();
-          }
-        );
+        it("keeps the page usable, explains the invalid time order and disables submission", () => {
+          expect(renderError).toBeNull();
+          expect(
+            screen.getAllByText(i18n.t("borrower.request.pcTimeOrder")).length
+          ).toBeGreaterThan(0);
+          expect(submitButton()).toBeDisabled();
+        });
       }
     );
   });
@@ -310,5 +308,80 @@ describe("borrower request checks", () => {
         screen.queryByText(i18n.t("borrower.request.pcStockOk"))
       ).not.toBeInTheDocument();
     });
+  });
+
+  describe("closed-issue audit: weekend pickup choices", () => {
+    beforeEach(async () => {
+      // Monday, 09:00 Bangkok. Only Date is frozen; query timers stay real.
+      vi.useFakeTimers({ toFake: ["Date"] });
+      vi.setSystemTime(new Date("2031-09-29T02:00:00.000Z"));
+      useAuthStore.getState().setUser(toClientUser(userResponse()));
+      useRequestDraft.getState().clear();
+    });
+    afterEach(() => vi.useRealTimers());
+
+    describe.each(
+      (["T0", "T1", "T2"] as const).flatMap((tier) =>
+        [
+          { label: "Friday", pickup: "2031-10-03", closed: false },
+          { label: "Saturday", pickup: "2031-10-04", closed: true },
+          { label: "Sunday", pickup: "2031-10-05", closed: true },
+        ].map((scenario) => ({ tier, ...scenario }))
+      )
+    )("FR-ADM-04 / #178: $tier $label pickup", ({ tier, pickup, closed }) => {
+      let submit: HTMLElement;
+      beforeEach(async () => {
+        // Request T0 on today's date; otherwise its advance-booking rule masks the day check.
+        vi.setSystemTime(new Date(`${pickup}T00:00:00.000Z`)); // 07:00 Bangkok
+        const catalogItem = toCatalogItem(
+          itemResponse({ tier, availableUnits: 2, totalUnits: 2 })
+        );
+        hooks.useEquipmentTypes.mockReturnValue(queryResult([catalogItem]));
+        useRequestDraft.getState().addItem(catalogItem.id, catalogItem.availableUnits);
+        if (tier === "T2")
+          useRequestDraft.getState().toggleSerial(catalogItem.id, "MM-001");
+        useRequestDraft.getState().setStartDate(pickup);
+        useRequestDraft.getState().setEndDate("2031-10-06");
+        useRequestDraft.getState().setPickupTime("08:00");
+        useRequestDraft.getState().setReturnTime("17:00");
+        await act(async () => {
+          renderPage();
+        });
+        expect(screen.getByLabelText(i18n.t("borrower.request.pickupDate"))).toHaveValue(
+          pickup
+        );
+        submit = screen.getByRole("button", { name: i18n.t("borrower.request.submit") });
+        expect(api.create).not.toHaveBeenCalled();
+      });
+      if (closed) {
+        it.fails("blocks submission when the pickup day is a closed counter day", () => {
+          expect(submit).toBeDisabled();
+        });
+      } else {
+        it("keeps a valid weekday request submittable", () => {
+          expect(submit).toBeEnabled();
+        });
+      }
+    });
+
+    it.each(["2031-10-04", "2031-10-05"])(
+      "allows a weekend return date %s with a valid Friday pickup for backend rolling",
+      async (end) => {
+        useRequestDraft.getState().addItem(item.id, item.availableUnits);
+        useRequestDraft.getState().setStartDate("2031-10-03");
+        useRequestDraft.getState().setEndDate(end);
+        useRequestDraft.getState().setPickupTime("08:00");
+        useRequestDraft.getState().setReturnTime("17:00");
+        await act(async () => {
+          renderPage();
+        });
+        expect(
+          screen.getByRole("button", { name: i18n.t("borrower.request.submit") })
+        ).toBeEnabled();
+        expect(screen.getByLabelText(i18n.t("borrower.request.returnDate"))).toHaveValue(
+          end
+        );
+      }
+    );
   });
 });

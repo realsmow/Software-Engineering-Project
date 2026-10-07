@@ -7,8 +7,8 @@ import type { TrpcUser } from '../trpc/context';
 
 /**
  * Money paths at the return desk: the late penalty on recordReturn, and the
- * lost-item penalty on markLost — including the "already charged overnight"
- * guard that stops a borrower being billed twice for the same lateness.
+ * lost-item penalty on markLost. The real SQL lifecycle suite checks final
+ * settlement of scheduled charges and prevents expiry before return/report.
  */
 const staff = { accountKey: 4, role: 'staff' } as TrpcUser;
 
@@ -18,7 +18,7 @@ function usageRow(overrides: Record<string, unknown> = {}) {
     ReservationKey: 11,
     CurrentStatus: 'Lended',
     CheckoutTime: new Date('2099-01-01T00:00:00Z'),
-    DueTime: new Date('2099-01-10T00:00:00Z'),
+    DueTime: new Date('2099-01-06T03:00:00Z'),
     CheckInTime: null,
     PendingExtension: null,
     Account: {
@@ -50,7 +50,6 @@ function usageRow(overrides: Record<string, unknown> = {}) {
 function service(overrides: {
   usage?: ReturnType<typeof usageRow>;
   afterPhoto?: { ImageKey: number } | null;
-  alreadyCharged?: { PenaltyKey: number } | null;
 }) {
   const usage = overrides.usage ?? usageRow();
   const tx = {
@@ -74,11 +73,11 @@ function service(overrides: {
         ),
     },
     penaltyInfo: {
-      findFirst: jest.fn().mockResolvedValue(overrides.alreadyCharged ?? null),
+      findFirst: jest.fn().mockResolvedValue(null),
       findUniqueOrThrow: jest.fn().mockResolvedValue({
         PenaltyKey: 500,
         CreditDeducted: 10,
-        ExpirationTime: new Date('2099-06-01T00:00:00Z'),
+        ExpirationTime: new Date('2099-01-29T03:00:00Z'),
       }),
     },
     $transaction: jest.fn((work: unknown) =>
@@ -94,10 +93,10 @@ function service(overrides: {
     overdueDays: jest.fn().mockReturnValue(3),
     quoteLate: jest
       .fn()
-      .mockResolvedValue({ reason: 'ReturnLate', amount: 10, lengthDays: 30 }),
+      .mockResolvedValue({ reason: 'ReturnLate', amount: 10, lengthDays: 20 }),
     quoteLost: jest
       .fn()
-      .mockResolvedValue({ reason: 'LostItem', amount: 40, lengthDays: 90 }),
+      .mockResolvedValue({ reason: 'LostItem', amount: 40, lengthDays: 80 }),
     apply: jest.fn().mockResolvedValue(500),
   } as unknown as PenaltyService;
   const notifications = {
@@ -156,7 +155,13 @@ describe('recordReturn', () => {
         data: expect.objectContaining({ ResourceStatus: 'InStorage' }),
       }),
     );
-    expect(t.penalties.apply).toHaveBeenCalled();
+    expect(t.penalties.apply).toHaveBeenCalledWith(
+      t.tx,
+      expect.objectContaining({ amount: 10, lengthDays: 20 }),
+      expect.objectContaining({
+        effectiveFrom: new Date('2099-01-09T03:00:00Z'),
+      }),
+    );
     expect(t.notifications.creditDeducted).toHaveBeenCalled();
     expect(t.audit.record).toHaveBeenCalledWith(
       { accountKey: staff.accountKey },
@@ -169,20 +174,9 @@ describe('recordReturn', () => {
     );
   });
 
-  it('does not double-charge lateness the overnight job already billed', async () => {
-    const t = service({ alreadyCharged: { PenaltyKey: 900 } });
-    const result = await t.svc.recordReturn(staff, { usageKey: 8 });
-
-    // No fresh penalty is applied — the prior night's charge is reported instead.
-    expect(t.penalties.apply).not.toHaveBeenCalled();
-    expect(t.audit.record).toHaveBeenCalledWith(
-      { accountKey: staff.accountKey },
-      'update',
-      'loan/8',
-      expect.stringContaining('late penalty'),
-    );
-    expect(result.latePenalty?.penaltyKey).toBe(500); // read back via findUniqueOrThrow
-  });
+  // Scheduled billing must be reconciled and its term started at receipt.
+  // Avoid approving the old "skip apply when any old row exists" guard here:
+  // late-return-penalty-persistence.spec.ts verifies live totals and expiry.
 
   it('closes a pending extension request on the way back', async () => {
     const t = service({ usage: usageRow({ PendingExtension: 42 }) });
@@ -210,6 +204,14 @@ describe('recordReturn', () => {
 });
 
 describe('markLost', () => {
+  const reportAt = new Date('2099-01-09T03:00:00Z');
+  beforeEach(() =>
+    jest.useFakeTimers({
+      now: reportAt,
+      doNotFake: ['nextTick', 'setImmediate'],
+    }),
+  );
+  afterEach(() => jest.useRealTimers());
   it('refuses to mark lost a loan not currently out', async () => {
     const t = service({ usage: usageRow({ CurrentStatus: 'Returned' }) });
     await expect(
@@ -237,6 +239,11 @@ describe('markLost', () => {
         reportedByBorrower: true,
       }),
     ).resolves.toBeDefined();
+    expect(t.penalties.apply).toHaveBeenCalledWith(
+      t.tx,
+      expect.objectContaining({ amount: 40, lengthDays: 80 }),
+      expect.objectContaining({ effectiveFrom: reportAt }),
+    );
   });
 
   it('writes off the unit, charges the lost-item penalty, and notifies the borrower', async () => {

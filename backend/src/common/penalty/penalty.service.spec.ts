@@ -4,8 +4,9 @@ import type { PrismaService } from '../../prisma.service';
 /**
  * Pure-arithmetic tests: no database, only the one lookup stubbed.
  *
- * The numbers here are the proposal's own worked rules (§5.7), because these
- * are the figures a borrower will dispute and the ones an appeal is argued
+ * Formula cases use the proposal's worked rules (§5.7). A matching PenaltyRule
+ * supplies both the deduction rate and its separately configured duration.
+ * These are the figures a borrower will dispute and the ones an appeal is argued
  * against — a silent change to any of them is a change to the regulations.
  */
 
@@ -55,9 +56,7 @@ describe('PenaltyService.quoteDamage', () => {
     });
   });
 
-  it('prefers a configured PenaltyRule over the formula', async () => {
-    // What admin.updateLendingSettings writes has to win, or tuning the rules
-    // in the admin screen would appear to do nothing.
+  it('uses the configured deduction amount', async () => {
     const quote = await serviceWithRule({
       PenaltyAmount: 7,
       PenaltyLength: 3,
@@ -91,7 +90,11 @@ describe('PenaltyService.quoteLate', () => {
     // 10/7 = 1.43 per day, three days late -> 4.28 -> 5 points.
     const quote = await serviceWithRule(null).quoteLate(1, 10, 3);
 
-    expect(quote).toMatchObject({ reason: 'ReturnLate', amount: 5 });
+    expect(quote).toMatchObject({
+      reason: 'ReturnLate',
+      amount: 5,
+      lengthDays: 10,
+    });
   });
 
   it('multiplies a configured per-day rule by the days late', async () => {
@@ -100,7 +103,11 @@ describe('PenaltyService.quoteLate', () => {
       PenaltyLength: 14,
     }).quoteLate(1, 10, 4);
 
-    expect(quote).toMatchObject({ amount: 8, lengthDays: 14 });
+    expect(quote).toMatchObject({
+      amount: 8,
+      lengthDays: 14,
+      source: 'PenaltyRule',
+    });
   });
 });
 
@@ -109,15 +116,126 @@ describe('PenaltyService.quoteLost', () => {
     // 7 days at 10/7 = 10, plus 10 x 5 = 50.
     const quote = await serviceWithRule(null).quoteLost(1, 10, 7);
 
-    expect(quote).toMatchObject({ reason: 'LostItem', amount: 60 });
+    expect(quote).toMatchObject({
+      reason: 'LostItem',
+      amount: 60,
+      lengthDays: 120,
+    });
   });
 
   it('still charges the write-off when the loss is reported before the due date', async () => {
     const quote = await serviceWithRule(null).quoteLost(1, 10, -3);
 
-    expect(quote.amount).toBe(50);
+    expect(quote).toMatchObject({ amount: 50, lengthDays: 100 });
   });
 });
+
+// QA acceptance: use PenaltyLength only when the borrowing rule AND reason
+// match; otherwise use the formula's deducted points * 2 days.
+describe.each([
+  {
+    kind: 'late',
+    reason: 'ReturnLate',
+    amount: 8,
+    formulaAmount: 6,
+    configuredLength: 14,
+  },
+  {
+    kind: 'lost',
+    reason: 'LostItem',
+    amount: 12,
+    formulaAmount: 60,
+    configuredLength: 3,
+  },
+  {
+    kind: 'damage',
+    reason: 'DamagedItem',
+    amount: 7,
+    formulaAmount: 30,
+    configuredLength: 3,
+  },
+  {
+    kind: 'broken',
+    reason: 'BrokenItem',
+    amount: 7,
+    formulaAmount: 50,
+    configuredLength: 3,
+  },
+])(
+  '$kind penalty duration: configured rule or formula',
+  ({ kind, reason, amount, formulaAmount, configuredLength }) => {
+    it.each([
+      {
+        label: 'matching rule',
+        storedBorrowRule: 1,
+        storedReason: reason,
+        matches: true,
+      },
+      {
+        label: 'rule for a different borrowing rule',
+        storedBorrowRule: 2,
+        storedReason: reason,
+        matches: false,
+      },
+      {
+        label: 'rule for a different penalty reason',
+        storedBorrowRule: 1,
+        storedReason: 'MissAppointment',
+        matches: false,
+      },
+    ])(
+      'uses the correct duration with $label',
+      async ({ storedBorrowRule, storedReason, matches }) => {
+        const rule = {
+          PenaltyAmount: kind === 'late' ? 2 : amount,
+          PenaltyLength: configuredLength,
+        };
+        // Model only the compound-key lookup. Actual amount/duration arithmetic
+        // and selection of the requested reason stay in the real service.
+        const findUnique = jest.fn(
+          async (args: {
+            where: {
+              BorrowRuleKey_PenaltyReason: {
+                BorrowRuleKey: number;
+                PenaltyReason: string;
+              };
+            };
+          }) => {
+            const key = args.where.BorrowRuleKey_PenaltyReason;
+            return key.BorrowRuleKey === storedBorrowRule &&
+              key.PenaltyReason === storedReason
+              ? rule
+              : null;
+          },
+        );
+        const svc = new PenaltyService({
+          penaltyRule: { findUnique },
+        } as unknown as PrismaService);
+        const quote =
+          kind === 'late'
+            ? await svc.quoteLate(1, 10, 4)
+            : kind === 'lost'
+              ? await svc.quoteLost(1, 10, 7)
+              : await svc.quoteDamage(1, 10, kind === 'broken' ? 'B3' : 'B2');
+        expect(findUnique).toHaveBeenCalledWith({
+          where: {
+            BorrowRuleKey_PenaltyReason: {
+              BorrowRuleKey: 1,
+              PenaltyReason: reason,
+            },
+          },
+          select: { PenaltyAmount: true, PenaltyLength: true },
+        });
+        expect(quote).toEqual({
+          reason,
+          amount: matches ? amount : formulaAmount,
+          lengthDays: matches ? configuredLength : formulaAmount * 2,
+          source: matches ? 'PenaltyRule' : 'proposal-formula',
+        });
+      },
+    );
+  },
+);
 
 describe('PenaltyService.apply', () => {
   const quote = {
@@ -173,7 +291,7 @@ describe('PenaltyService.apply', () => {
     });
   });
 
-  it('expires the penalty lengthDays after it takes effect', async () => {
+  it('expires a resolved penalty lengthDays after the supplied term start', async () => {
     const tx = transactionStub();
 
     await serviceWithRule(null).apply(tx as never, quote, {
@@ -184,7 +302,8 @@ describe('PenaltyService.apply', () => {
 
     expect(tx.penaltyInfo.create).toHaveBeenCalledWith(
       expect.objectContaining({
-        // 12 points -> 24 days, counted from the moment it took effect.
+        // This primitive receives a resolved term start. Whether a loan has
+        // actually been returned/reported is covered by persistence tests.
         data: expect.objectContaining({
           ExpirationTime: new Date('2026-08-25T00:00:00Z'),
           InEffect: true,

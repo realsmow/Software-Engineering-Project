@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter, useLocation } from "react-router-dom";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import i18n from "../../src/i18n";
 import { NotificationsMenu } from "../../src/features/notifications/notifications-menu";
 import { notificationResponse } from "../fixtures/api-responses";
@@ -89,5 +89,46 @@ describe("NotificationsMenu", () => {
     expect(markRead).toHaveBeenCalledWith("77");
     expect(screen.getByTestId("path")).toHaveTextContent("/pickup");
     expect(hooks.useNotifications).toHaveBeenLastCalledWith(false);
+  });
+
+  describe("NFR-USB-01 / #166: relative-time locale", () => {
+    beforeEach(() => {
+      vi.useFakeTimers({ toFake: ["Date"] });
+      vi.setSystemTime(new Date("2031-09-29T02:00:00.000Z"));
+      hooks.useNotifications.mockReturnValue(
+        queryResult(
+          paginatedNotifications.parse({
+            items: [notificationResponse({ createdAt: "2031-09-14T02:00:00.000Z" })],
+            total: 1,
+            page: 1,
+            pageSize: 20,
+          })
+        )
+      );
+    });
+    afterEach(() => vi.useRealTimers());
+
+    it.each(["th", "th-TH", "en", "en-US"])(
+      "uses the selected %s locale for the age of a notification",
+      async (language) => {
+        await i18n.changeLanguage(language);
+        renderMenu();
+        fireEvent.click(
+          screen.getByRole("button", { name: i18n.t("common.notifications") })
+        );
+        const expected = new Intl.RelativeTimeFormat(
+          language.startsWith("th") ? "th" : "en",
+          { numeric: "auto" }
+        ).format(-15, "day");
+        expect(screen.getByText(expected)).toBeVisible();
+        expect(
+          screen.queryByText(
+            new Intl.RelativeTimeFormat(language.startsWith("th") ? "en" : "th", {
+              numeric: "auto",
+            }).format(-15, "day")
+          )
+        ).not.toBeInTheDocument();
+      }
+    );
   });
 });

@@ -1,5 +1,6 @@
 import { LoanRequestService } from './loan.request.service';
 import { BusinessError } from '../common/errors/business-error';
+import { workHours } from '../common/schemas/datetime.schema';
 
 const user = { accountKey: 10, creditScore: 80 } as any;
 const baseResource = {
@@ -649,49 +650,164 @@ describe('counter hours and weekends (#179, #178)', () => {
   );
   afterEach(() => jest.useRealTimers());
 
-  it('refuses a pickup or return outside working hours', async () => {
-    const db = dbFor();
-    const result = await service(db).create(user as never, {
-      // 18:11-20:11 Bangkok, after the counter closed.
-      startTime: '2099-01-09T11:11:00.000Z',
-      endTime: '2099-01-09T13:11:00.000Z',
-      lines: [{ resourceKey: 7 }],
-    });
-    expect(result.created).toHaveLength(0);
-    expect(result.rejected[0].code).toBe('OUTSIDE_WORK_HOURS');
-    expect(result.rejected[0].detail).toMatchObject({ edge: 'START' });
-  });
+  it.each([
+    {
+      edge: 'START',
+      start: '2099-01-09T00:59:00Z',
+      end: '2099-01-12T10:00:00Z',
+    },
+    {
+      edge: 'START',
+      start: '2099-01-09T10:00:01Z',
+      end: '2099-01-12T10:00:00Z',
+    },
+    {
+      edge: 'START',
+      start: '2099-01-09T11:11:00Z',
+      end: '2099-01-12T10:00:00Z',
+    },
+    { edge: 'END', start: '2099-01-09T02:00:00Z', end: '2099-01-12T00:59:00Z' },
+    { edge: 'END', start: '2099-01-09T02:00:00Z', end: '2099-01-09T10:00:01Z' },
+    { edge: 'END', start: '2099-01-09T02:00:00Z', end: '2099-01-09T11:11:00Z' },
+  ])(
+    'refuses $edge outside counter hours ($start to $end) before writing',
+    async ({ edge, start, end }) => {
+      // 07:00 Bangkok: the before-opening case must not fail the past-time gate.
+      jest.setSystemTime(new Date('2099-01-09T00:00:00Z'));
+      const db = dbFor({ ...baseResource, BorrowRuleInfo: { RuleName: 'T1' } });
+      const result = await service(db).create(user as never, {
+        startTime: start,
+        endTime: end,
+        lines: [{ resourceKey: 7 }],
+      });
+      expect(result.created).toHaveLength(0);
+      expect(result.rejected[0].code).toBe('OUTSIDE_WORK_HOURS');
+      expect(result.rejected[0].detail).toMatchObject({ edge });
+      expect(db.$transaction).not.toHaveBeenCalled();
+    },
+  );
 
-  it('accepts a return at the closing minute', async () => {
-    const db = dbFor();
-    const result = await service(db).create(user as never, {
-      startTime: '2099-01-09T09:00:00.000Z',
-      endTime: '2099-01-09T10:00:00.000Z',
-      lines: [{ resourceKey: 7 }],
-    });
-    expect(result.rejected).toHaveLength(0);
-  });
+  it.each([
+    { start: '2099-01-09T01:00:00Z', end: '2099-01-09T10:00:00Z' },
+    { start: '2099-01-09T09:59:00Z', end: '2099-01-09T10:00:00Z' },
+    { start: '2099-01-09T10:00:00Z', end: '2099-01-12T10:00:00Z' },
+    { start: '2099-01-09T02:00:00Z', end: '2099-01-12T01:00:00Z' },
+  ])(
+    'accepts the opening/closing boundary ($start to $end)',
+    async ({ start, end }) => {
+      const db = dbFor({ ...baseResource, BorrowRuleInfo: { RuleName: 'T1' } });
+      const result = await service(db).create(user as never, {
+        startTime: start,
+        endTime: end,
+        lines: [{ resourceKey: 7 }],
+      });
+      expect(result.rejected).toHaveLength(0);
+      expect(result.created).toHaveLength(1);
+    },
+  );
 
-  it('refuses a weekend pickup: the counter is shut', async () => {
-    const db = dbFor();
-    const result = await service(db).create(user as never, {
-      // Saturday 10 Jan, 09:00-13:00 Bangkok: inside the hours, wrong day.
-      startTime: '2099-01-10T02:00:00.000Z',
-      endTime: '2099-01-10T06:00:00.000Z',
-      lines: [{ resourceKey: 7 }],
-    });
-    expect(result.rejected[0].code).toBe('OUTSIDE_WORK_HOURS');
-    expect(result.rejected[0].detail).toMatchObject({ edge: 'START' });
-  });
+  it.each(['2099-01-10', '2099-01-11'])(
+    'refuses a weekend pickup on %s before writing',
+    async (day) => {
+      const db = dbFor();
+      const result = await service(db).create(user as never, {
+        // Saturday 10 Jan, 09:00-13:00 Bangkok: inside the hours, wrong day.
+        startTime: `${day}T02:00:00.000Z`,
+        endTime: `${day}T06:00:00.000Z`,
+        lines: [{ resourceKey: 7 }],
+      });
+      expect(result.rejected[0].code).toBe('OUTSIDE_WORK_HOURS');
+      expect(result.rejected[0].detail).toMatchObject({ edge: 'START' });
+      expect(result.created).toHaveLength(0);
+      expect(db.$transaction).not.toHaveBeenCalled();
+    },
+  );
 
-  it('moves a Saturday return to Monday at closing time', async () => {
-    const db = dbFor({ ...baseResource, BorrowRuleInfo: { RuleName: 'T1' } });
-    const result = await service(db).create(user as never, {
-      startTime: '2099-01-09T02:00:00.000Z',
-      // Saturday 10 Jan, 13:00 Bangkok.
-      endTime: '2099-01-10T06:00:00.000Z',
-      lines: [{ resourceKey: 7 }],
+  it.each(['2099-01-10', '2099-01-11'])(
+    'moves a weekend return on %s to Monday at closing time',
+    async (day) => {
+      const db = dbFor({ ...baseResource, BorrowRuleInfo: { RuleName: 'T1' } });
+      const result = await service(db).create(user as never, {
+        startTime: '2099-01-09T02:00:00.000Z',
+        // Saturday 10 Jan, 13:00 Bangkok.
+        endTime: `${day}T06:00:00.000Z`,
+        lines: [{ resourceKey: 7 }],
+      });
+      expect(result.rejected).toEqual([]);
+      expect(result.created[0].endTime).toBe('2099-01-12T10:00:00.000Z');
+    },
+  );
+
+  describe('FR-ADM-04: configured counter hours (09:00–16:00 Bangkok)', () => {
+    let original: { start: number; end: number };
+    beforeEach(() => {
+      original = { ...workHours };
+      Object.assign(workHours, { start: 9, end: 16 });
     });
-    expect(result.created[0].endTime).toBe('2099-01-12T10:00:00.000Z');
+    afterEach(() => Object.assign(workHours, original));
+
+    it.each([
+      {
+        start: '2099-01-09T01:59:00Z',
+        end: '2099-01-12T09:00:00Z',
+        edge: 'START',
+      },
+      {
+        start: '2099-01-09T09:00:01Z',
+        end: '2099-01-12T09:00:00Z',
+        edge: 'START',
+      },
+      {
+        start: '2099-01-09T02:00:00Z',
+        end: '2099-01-12T09:00:01Z',
+        edge: 'END',
+      },
+    ])(
+      'rejects $edge outside the configured hours',
+      async ({ start, end, edge }) => {
+        const db = dbFor({
+          ...baseResource,
+          BorrowRuleInfo: { RuleName: 'T1' },
+        });
+        const result = await service(db).create(user as never, {
+          startTime: start,
+          endTime: end,
+          lines: [{ resourceKey: 7 }],
+        });
+        expect(result.created).toEqual([]);
+        expect(result.rejected).toMatchObject([
+          {
+            code: 'OUTSIDE_WORK_HOURS',
+            detail: { edge, opensAt: 9, closesAt: 16 },
+          },
+        ]);
+        expect(db.$transaction).not.toHaveBeenCalled();
+      },
+    );
+
+    it('accepts exactly 09:00–16:00', async () => {
+      const result = await service(dbFor()).create(user as never, {
+        startTime: '2099-01-09T02:00:00Z',
+        endTime: '2099-01-09T09:00:00Z',
+        lines: [{ resourceKey: 7 }],
+      });
+      expect(result.rejected).toEqual([]);
+      expect(result.created).toHaveLength(1);
+    });
+
+    it.each(['2099-01-10', '2099-01-11'])(
+      'rolls a %s return to the configured Monday closing time, 16:00',
+      async (day) => {
+        const result = await service(
+          dbFor({ ...baseResource, BorrowRuleInfo: { RuleName: 'T1' } }),
+        ).create(user as never, {
+          startTime: '2099-01-09T02:00:00Z',
+          endTime: `${day}T06:00:00Z`,
+          lines: [{ resourceKey: 7 }],
+        });
+        expect(result.rejected).toEqual([]);
+        expect(result.created[0].endTime).toBe('2099-01-12T09:00:00.000Z');
+      },
+    );
   });
 });

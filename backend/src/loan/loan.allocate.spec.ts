@@ -327,6 +327,99 @@ describe('confirmPickup before the booked time', () => {
     expect(t.audit.record).not.toHaveBeenCalled();
   });
 
+  // an early receipt can land after the shifted return time.
+  // Accept the handover but retain the original due date in that case.
+  describe.each(['T0', 'T1', 'T2'])(
+    '%s: early receipt must not create an already-due loan',
+    (tier) => {
+      describe.each([
+        {
+          label: 'one millisecond before shifted due',
+          actual: '2026-10-07T15:59:59.999+07:00',
+          keepOriginal: false,
+        },
+        {
+          label: 'exactly at shifted due',
+          actual: '2026-10-07T16:00:00.000+07:00',
+          keepOriginal: true,
+        },
+        {
+          label: 'one millisecond after shifted due',
+          actual: '2026-10-07T16:00:00.001+07:00',
+          keepOriginal: true,
+        },
+        {
+          label: 'the reported 18:27 receipt',
+          actual: '2026-10-07T18:27:00.000+07:00',
+          keepOriginal: true,
+        },
+      ])('$label', ({ actual, keepOriginal }) => {
+        let persistedDue: Date;
+        let reservationEnd: Date;
+        const receiptAt = new Date(actual);
+        const originalDue = new Date('2026-10-08T16:00:00+07:00');
+        beforeEach(async () => {
+          jest.setSystemTime(receiptAt);
+          const usage = {
+            ...prepared(),
+            CheckoutTime: new Date('2026-10-08T09:00:00+07:00'),
+            DueTime: originalDue,
+            Resource: {
+              ...prepared().Resource,
+              BorrowRuleInfo: { RuleName: tier },
+            },
+          };
+          const t = svcFor(usage);
+          // A correct implementation must still accept this authorized handover.
+          // Thrown errors or missing writes must not count as expected failures.
+          await t.svc.confirmPickup(staff, { usageKey: 8, early: true });
+          expect(t.tx.usageLog.update).toHaveBeenCalledTimes(1);
+          expect(t.tx.reservations.update).toHaveBeenCalledTimes(1);
+          expect(t.tx.usageLog.update).toHaveBeenCalledWith({
+            where: { UsageKey: 8 },
+            data: {
+              CurrentStatus: 'Lended',
+              CheckoutTime: receiptAt,
+              DueTime: expect.any(Date),
+            },
+          });
+          expect(t.tx.reservations.update).toHaveBeenCalledWith({
+            where: { ReservationKey: 11 },
+            data: { StartTime: receiptAt, EndTime: expect.any(Date) },
+          });
+          expect(t.tx.resourceInfo.update).toHaveBeenCalledWith({
+            where: { ResourceKey: 26 },
+            data: { ResourceStatus: 'Lended' },
+          });
+          persistedDue = t.tx.usageLog.update.mock.calls[0][0].data
+            .DueTime as Date;
+          reservationEnd = t.tx.reservations.update.mock.calls[0][0].data
+            .EndTime as Date;
+          expect(reservationEnd).toEqual(persistedDue);
+        });
+        if (keepOriginal) {
+          it.failing(
+            'accepts pickup and retains the original due when shifting would end at or before receipt',
+            () => {
+              expect(persistedDue).toEqual(originalDue);
+              expect(reservationEnd).toEqual(originalDue);
+              expect(persistedDue.getTime()).toBeGreaterThan(
+                receiptAt.getTime(),
+              );
+            },
+          );
+        } else {
+          it('still shifts only the date when the resulting due is after receipt', () => {
+            const shiftedDue = new Date('2026-10-07T16:00:00+07:00');
+            expect(persistedDue).toEqual(shiftedDue);
+            expect(reservationEnd).toEqual(shiftedDue);
+            expect(persistedDue.getTime()).toBeGreaterThan(receiptAt.getTime());
+          });
+        }
+      });
+    },
+  );
+
   // Explicit Bangkok offsets and fixed expected dates are the requirement's
   // oracle. Do not derive expectations using the service's duration formula.
   const earlyDateCases = [

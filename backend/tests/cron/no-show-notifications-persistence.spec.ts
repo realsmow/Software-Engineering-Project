@@ -92,6 +92,11 @@ describe('FR-APV-06 / FR-NTF-01: no-show cancellation notifications', () => {
         const reservation = await tx.reservations.findUniqueOrThrow({
           where: { ReservationKey: request.reservationKey },
         });
+        // The current pickup deadline is one calendar day, distinct from the
+        // due-date policy: a Friday 09:00 pickup expires Saturday 09:00.
+        expect(reservation.ReservationExpiration.toISOString()).toBe(
+          '2031-09-27T02:00:00.000Z',
+        );
         const cron = scopedCron(f);
         jest.setSystemTime(reservation.ReservationExpiration);
         expect(await cron.run('expireStaleRequests')).toMatchObject({

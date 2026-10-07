@@ -86,9 +86,10 @@ describe('scheduled loan and credit operations', () => {
       expect.objectContaining({
         accountKey: 7,
         usageKey: 41,
-        effectiveFrom: now,
       }),
     );
+    // This mock checks billing delegation only. It cannot prove that an
+    // unreturned loan's countdown has not started; the SQL lifecycle suite does.
     expect(h.prisma.cronRunLog.update).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({ Result: 'success', Affected: 1 }),
