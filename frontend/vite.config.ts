@@ -9,18 +9,17 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
-  // #183: libraries in their own chunks, so the first load is not one 677 kB
-  // file and an app-only deploy keeps the browser's cached copies.
+  // #183: libraries in one cacheable chunk and the admin-only charts in
+  // another, so an app-only deploy keeps the browser's cached copy. React and
+  // everything that uses it must share a chunk: split apart, the chunks import
+  // each other and a library runs before React exists (blank page).
   build: {
+    chunkSizeWarningLimit: 700,
     rollupOptions: {
       output: {
         manualChunks(id) {
           if (!id.includes("node_modules")) return undefined;
           if (/recharts|d3-|victory-vendor/.test(id)) return "charts";
-          if (/react-dom|react-router|scheduler|[\\/]react[\\/]/.test(id)) return "react";
-          if (/@tanstack|@trpc/.test(id)) return "data";
-          if (/i18next/.test(id)) return "i18n";
-          if (/@radix-ui|lucide-react/.test(id)) return "ui";
           return "vendor";
         },
       },
