@@ -158,16 +158,14 @@ describe('NFR-REL-02 / SDS 4.4: unit selection preserves reserved windows', () =
             new Date('2026-10-08T09:00:00+07:00'),
             originalDue,
           );
-          const prepared = loanOutput
-            .strict()
-            .parse(
-              await f.loan.allocate(
-                f.staff,
-                allocateLoanInput.parse({
-                  reservationKey: request.reservationKey,
-                }),
-              ),
-            );
+          const prepared = loanOutput.strict().parse(
+            await f.loan.allocate(
+              f.staff,
+              allocateLoanInput.parse({
+                reservationKey: request.reservationKey,
+              }),
+            ),
+          );
           expect(prepared).toMatchObject({
             status: 'Prepared',
             dueAt: originalDue.toISOString(),
@@ -183,14 +181,12 @@ describe('NFR-REL-02 / SDS 4.4: unit selection preserves reserved windows', () =
               ActionTime: receiptAt,
             },
           });
-          const collected = loanOutput
-            .strict()
-            .parse(
-              await f.loan.confirmPickup(f.staff, {
-                usageKey: prepared.usageKey,
-                early: true,
-              }),
-            );
+          const collected = loanOutput.strict().parse(
+            await f.loan.confirmPickup(f.staff, {
+              usageKey: prepared.usageKey,
+              early: true,
+            }),
+          );
           expect(collected).toMatchObject({
             status: 'Lended',
             checkoutAt: receiptAt.toISOString(),
@@ -263,16 +259,14 @@ describe('NFR-REL-02 / SDS 4.4: unit selection preserves reserved windows', () =
           new Date('2031-09-29T02:00:00Z'),
           new Date('2031-10-01T10:00:00Z'),
         );
-        const prepared = loanOutput
-          .strict()
-          .parse(
-            await f.loan.allocate(
-              f.staff,
-              allocateLoanInput.parse({
-                reservationKey: booked.reservationKey,
-              }),
-            ),
-          );
+        const prepared = loanOutput.strict().parse(
+          await f.loan.allocate(
+            f.staff,
+            allocateLoanInput.parse({
+              reservationKey: booked.reservationKey,
+            }),
+          ),
+        );
         await tx.images.create({
           data: {
             UsageKey: prepared.usageKey,
@@ -311,16 +305,14 @@ describe('NFR-REL-02 / SDS 4.4: unit selection preserves reserved windows', () =
           new Date('2031-09-27T06:00:00Z'),
         );
         expect(request.endTime).toBe('2031-09-29T10:00:00.000Z');
-        const prepared = loanOutput
-          .strict()
-          .parse(
-            await f.loan.allocate(
-              f.staff,
-              allocateLoanInput.parse({
-                reservationKey: request.reservationKey,
-              }),
-            ),
-          );
+        const prepared = loanOutput.strict().parse(
+          await f.loan.allocate(
+            f.staff,
+            allocateLoanInput.parse({
+              reservationKey: request.reservationKey,
+            }),
+          ),
+        );
         await tx.images.create({
           data: {
             UsageKey: prepared.usageKey,

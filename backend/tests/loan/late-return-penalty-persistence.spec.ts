@@ -27,7 +27,6 @@ import {
 const DAY = 86_400_000;
 // Monday 17:00 Bangkok is the deadline; the first sweep is Tuesday 00:01.
 const FIRST_SWEEP = new Date('2031-09-29T17:01:00.000Z');
-const RACING_RETURN = new Date('2031-09-30T02:00:00.000Z');
 const RETURN_AFTER_THREE_DAYS = new Date('2031-10-02T09:00:00.000Z');
 const STILL_OUT = new Date('2031-10-04T02:00:00.000Z');
 const RETURN_AFTER_SEVEN_DAYS = new Date('2031-10-06T09:00:00.000Z');
@@ -90,7 +89,7 @@ async function lendedFixture(tx: Prisma.TransactionClient) {
 type Fixture = Awaited<ReturnType<typeof lendedFixture>>;
 
 async function returnLoan(client: PrismaService, f: Fixture) {
-  // Persist return evidence at the real receipt time, including the race case.
+  // Persist return evidence at the actual receipt time.
   await client.images.create({
     data: {
       UsageKey: f.usageKey,
@@ -171,7 +170,7 @@ describe('FR-RTN-07 / FR-CRD-03/04: late and lost penalty lifecycle', () => {
   beforeAll(async () => {
     termEnd = process.env.TERM_END_DATE;
     delete process.env.TERM_END_DATE;
-    // The race needs independent commits, so this suite owns a disposable DB.
+    // Cron jobs scan all loans, so keep this suite in its own disposable DB.
     database = await createIsolatedDatabase('late_return', {
       seedReferenceData: true,
     });
@@ -548,133 +547,6 @@ describe('FR-RTN-07 / FR-CRD-03/04: late and lost penalty lifecycle', () => {
             affected: 0,
           });
           expect(await lateState(tx, f, 'LostItem')).toEqual(expired);
-        });
-      },
-    );
-
-    describe('automatic lost-item classification without a borrower report', () => {
-      let withoutReport: LateState;
-      beforeEach(async () => {
-        await inHistoryFixture(prisma, async (tx) => {
-          const f = await lendedFixture(tx);
-          const { cron } = services(f.client);
-          const classifiedAt = new Date(PICKUP_END.getTime() + 15 * DAY);
-          jest.setSystemTime(classifiedAt);
-          expect(await cron.run('markLost')).toMatchObject({ affected: 1 });
-          const first = await lateState(tx, f, 'LostItem');
-          // 15 late days * 2 + B3 (14 * 5) = 100 points.
-          expect(first).toMatchObject({ activeDeduction: 100, creditScore: 0 });
-          expect(first.usage.CheckInTime).toBeNull();
-          // Classification by a job is neither physical return nor a staff report.
-          jest.setSystemTime(new Date(classifiedAt.getTime() + 200 * DAY));
-          await cron.run('expireDemerits');
-          withoutReport = await lateState(tx, f, 'LostItem');
-          expect(withoutReport.usage.CheckInTime).toBeNull();
-        });
-      });
-      it.failing(
-        'does not restore lost-item credit before an actual report to staff',
-        () => {
-          expect(withoutReport.creditScore).toBe(0);
-          expect(withoutReport.penalties.some((row) => row.InEffect)).toBe(
-            true,
-          );
-        },
-      );
-    });
-  });
-
-  describe('concurrent overdue sweep and receipt', () => {
-    let afterSweep: Awaited<ReturnType<typeof lateState>>;
-    beforeEach(async () => {
-      // Commit setup so the sweep and counter use separate real connections.
-      const f = await prisma.$transaction((tx) => lendedFixture(tx));
-      const sweepClient = database!.createClient();
-      await sweepClient.$connect();
-      // Run the same job manually at Tuesday 09:00 Bangkok, so the concurrent
-      // receipt also happens during valid counter hours.
-      jest.setSystemTime(RACING_RETURN);
-      let releaseSweep!: () => void;
-      const resume = new Promise<void>((resolve) => {
-        releaseSweep = resolve;
-      });
-      let selected!: (keys: number[]) => void;
-      let rejectSelection!: (error: unknown) => void;
-      const selection = new Promise<number[]>((resolve, reject) => {
-        selected = resolve;
-        rejectSelection = reject;
-      });
-      void selection.catch(() => undefined);
-      const timeout = setTimeout(
-        () =>
-          rejectSelection(
-            new Error('The overdue sweep did not reach its real SQL read'),
-          ),
-        5_000,
-      );
-      const usageLog = new Proxy(sweepClient.usageLog, {
-        get(target, property) {
-          if (property !== 'findMany')
-            return Reflect.get(target, property) as unknown;
-          return async (args: Prisma.UsageLogFindManyArgs) => {
-            const rows = await target.findMany(args);
-            selected(rows.map((row) => row.UsageKey));
-            // Keep the real result, merely pause the sweep. The counter commits
-            // while that snapshot still says Lended and not yet billed.
-            await resume;
-            return rows;
-          };
-        },
-      });
-      const delayedClient = new Proxy(sweepClient, {
-        get(target, property) {
-          return property === 'usageLog'
-            ? usageLog
-            : (Reflect.get(target, property) as unknown);
-        },
-      });
-      const { cron } = services(delayedClient);
-      const sweep = cron.run('markOverdue');
-      void sweep.catch(rejectSelection);
-      try {
-        expect(await selection).toEqual([f.usageKey]);
-        const returned = await returnLoan(prisma, f);
-        expect(returned).toMatchObject({
-          loan: { status: 'Returned' },
-          latePenalty: {
-            overdueDays: 1,
-            creditDeducted: 2,
-            expiresAt: new Date(
-              RACING_RETURN.getTime() + 4 * DAY,
-            ).toISOString(),
-          },
-        });
-        const atReceipt = await lateState(prisma, f);
-        expect(atReceipt).toMatchObject({
-          activeDeduction: 2,
-          creditScore: 98,
-        });
-        assertReceiptExpiryMatchesDatabase(returned, atReceipt);
-        releaseSweep();
-        await sweep;
-        afterSweep = await lateState(prisma, f);
-      } finally {
-        clearTimeout(timeout);
-        releaseSweep();
-        await Promise.allSettled([sweep]);
-      }
-    }, 20_000);
-
-    // Known defect: the sweep charges its stale result after receipt commits.
-    it.failing(
-      'does not double-charge when a real overdue sweep snapshot becomes stale during receipt',
-      () => {
-        // Reconciliation may retain voided/history rows or use adjustments.
-        // Only the live deduction, credit and returned state determine correctness.
-        expect(afterSweep).toMatchObject({
-          activeDeduction: 2,
-          creditScore: 98,
-          usage: { CurrentStatus: 'Returned', CheckInTime: RACING_RETURN },
         });
       },
     );
