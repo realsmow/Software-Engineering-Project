@@ -186,10 +186,25 @@ describe('createInspection', () => {
       t.svc.createInspection(staff, {
         usageKey: 8,
         level: 'B1',
-        imageUrls: [],
+        imageUrls: ['a.jpg'],
       } as never),
     ).resolves.toBeDefined();
   });
+
+  it.each(['B1', 'B2', 'B3'] as const)(
+    'refuses a %s grade without a damage photo (#193)',
+    async (level) => {
+      const t = service({});
+      await expect(
+        t.svc.createInspection(staff, {
+          usageKey: 8,
+          level,
+          imageUrls: [],
+        }),
+      ).rejects.toMatchObject({ businessCode: 'DAMAGE_PHOTO_REQUIRED' });
+      expect(t.prisma.$transaction).not.toHaveBeenCalled();
+    },
+  );
 
   it('grades damage, applies the penalty, and marks the unit unusable for B2+', async () => {
     const t = service({});
@@ -236,7 +251,7 @@ describe('createInspection', () => {
     const result = await t.svc.createInspection(staff, {
       usageKey: 8,
       level: 'B3',
-      imageUrls: [],
+      imageUrls: ['a.jpg'],
     } as never);
     expect(t.tx.resourceInfo.update).toHaveBeenCalledWith(
       expect.objectContaining({

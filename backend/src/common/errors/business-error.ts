@@ -150,6 +150,8 @@ export const BUSINESS_ERROR_CODES = {
   PICKUP_PHOTO_REQUIRED: 'PRECONDITION_FAILED',
   /** No "after" photo on the loan yet; the return is photographed (FR-RTN-01). */
   RETURN_PHOTO_REQUIRED: 'PRECONDITION_FAILED',
+  /** #193: a B1-B3 grade needs at least one photo as evidence. */
+  DAMAGE_PHOTO_REQUIRED: 'PRECONDITION_FAILED',
   /** The chosen unit is a different type, or a different department, than the request */
   UNIT_DOES_NOT_MATCH_REQUEST: 'BAD_REQUEST',
   EXTENSION_NOT_FOUND: 'NOT_FOUND',

@@ -208,6 +208,10 @@ test.describe("live lending lifecycle across roles", () => {
         .first();
       await inspectionCard.getByRole("button").first().click();
       await inspectionCard.getByRole("button", { name: /^B2/ }).click();
+      await inspectionCard
+        .locator('input[type="file"]')
+        .setInputFiles(pngFile("damage.png"));
+      await expect(inspectionCard.locator('img[src^="blob:"]')).toBeVisible();
       const inspect = mutationResponse(page, "inspection.create");
       await inspectionCard
         .getByRole("button", { name: "Record grade", exact: true })
@@ -435,11 +439,36 @@ test.describe("live lending lifecycle across roles", () => {
       true,
     );
     await login(page.request, "admin");
+    // #193: a damage grade needs an uploaded photo.
+    const damage = pngFile("damage.png");
+    const damageTicket = await liveCall(
+      page.request,
+      "image.requestUsagePhotoUpload",
+      requestUploadOutput,
+      {
+        usageKey: prepared.usageKey,
+        contentType: damage.mimeType,
+        sizeBytes: damage.buffer.length,
+      },
+      true,
+    );
+    expect(
+      (
+        await page.request.put(damageTicket.uploadUrl, {
+          data: damage.buffer,
+          headers: { "Content-Type": damage.mimeType },
+        })
+      ).ok(),
+    ).toBeTruthy();
     const graded = await liveCall(
       page.request,
       "inspection.create",
       inspectionOutput,
-      { usageKey: prepared.usageKey, level: "B2", imageUrls: [] },
+      {
+        usageKey: prepared.usageKey,
+        level: "B2",
+        imageUrls: [damageTicket.imageUrl],
+      },
       true,
     );
     expect(graded.penalty?.creditDeducted).toBeGreaterThan(0);

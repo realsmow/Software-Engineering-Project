@@ -22,7 +22,8 @@ export interface DraftLine {
 
 // 17:00 is the counter closing time, so a borrower can still ask after 16:00 (#161).
 export const REQUEST_TIMES = ["08:00", "13:00", "16:00", "17:00"] as const;
-export type RequestTime = (typeof REQUEST_TIMES)[number];
+/** "HH:mm" in Bangkok: one of REQUEST_TIMES, or a T0 "now" pickup (#189). */
+export type RequestTime = string;
 
 interface RequestDraftState {
   lines: DraftLine[];

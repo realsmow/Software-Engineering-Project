@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { LogOut } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -42,6 +43,9 @@ export function Sidebar() {
     ? `${t(`nav.${user.role}`)} · ${user.studentId}`
     : persona.role;
   const avatar = user ? user.name.trim().slice(0, 2) : persona.avatar;
+  // Initials stay as the fallback when the picture is missing or fails (#191).
+  const [brokenUrl, setBrokenUrl] = useState<string | null>(null);
+  const avatarUrl = user?.avatarUrl && user.avatarUrl !== brokenUrl ? user.avatarUrl : null;
 
   const handleLogout = async () => {
     // Drop the httpOnly cookie server-side first; clearing only the local
@@ -104,7 +108,18 @@ export function Sidebar() {
           title={t("profile.viewProfile")}
           aria-label={t("profile.viewProfile")}
         >
-          <div className="side-avatar">{avatar}</div>
+          <div className="side-avatar overflow-hidden">
+            {avatarUrl ? (
+              <img
+                src={avatarUrl}
+                alt=""
+                className="h-full w-full object-cover"
+                onError={() => setBrokenUrl(avatarUrl)}
+              />
+            ) : (
+              avatar
+            )}
+          </div>
           <div className="side-user">
             <div className="side-user-name">{displayName}</div>
             <div className="side-user-role">{displayRole}</div>

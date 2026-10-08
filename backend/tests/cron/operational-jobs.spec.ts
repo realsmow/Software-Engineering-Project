@@ -1,5 +1,6 @@
 import { Logger } from '@nestjs/common';
 import { CronService } from '../../src/cron/cron.service';
+import { OPEN_LATE_PENALTY } from '../../src/common/penalty/penalty.service';
 
 describe('scheduled loan and credit operations', () => {
   const now = new Date('2031-09-26T00:00:00Z');
@@ -75,7 +76,7 @@ describe('scheduled loan and credit operations', () => {
         where: {
           CurrentStatus: 'Lended',
           DueTime: { lt: now },
-          Penalties: { none: { Reason: { startsWith: 'ReturnLate' } } },
+          Penalties: { none: OPEN_LATE_PENALTY },
         },
       }),
     );
@@ -151,7 +152,10 @@ describe('scheduled loan and credit operations', () => {
     });
     expect(h.prisma.penaltyInfo.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { InEffect: true, ExpirationTime: { lte: now } },
+        where: expect.objectContaining({
+          InEffect: true,
+          ExpirationTime: { lte: now },
+        }),
       }),
     );
     expect(h.tx.penaltyInfo.update).toHaveBeenCalledWith({

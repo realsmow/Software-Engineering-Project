@@ -398,16 +398,11 @@ describe('confirmPickup before the booked time', () => {
           expect(reservationEnd).toEqual(persistedDue);
         });
         if (keepOriginal) {
-          it.failing(
-            'accepts pickup and retains the original due when shifting would end at or before receipt',
-            () => {
-              expect(persistedDue).toEqual(originalDue);
-              expect(reservationEnd).toEqual(originalDue);
-              expect(persistedDue.getTime()).toBeGreaterThan(
-                receiptAt.getTime(),
-              );
-            },
-          );
+          it('accepts pickup and retains the original due when shifting would end at or before receipt', () => {
+            expect(persistedDue).toEqual(originalDue);
+            expect(reservationEnd).toEqual(originalDue);
+            expect(persistedDue.getTime()).toBeGreaterThan(receiptAt.getTime());
+          });
         } else {
           it('still shifts only the date when the resulting due is after receipt', () => {
             const shiftedDue = new Date('2026-10-07T16:00:00+07:00');

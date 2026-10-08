@@ -484,10 +484,12 @@ export class LoanService {
         startOfLocalDay(now).getTime()) /
         86_400_000,
     );
-    const dueTime =
+    const shiftedDue =
       early && daysEarly > 0
         ? rollDueOffWeekend(addDays(usage.DueTime, -daysEarly))
         : usage.DueTime;
+    // #194: a late-in-the-day early pickup would be due already; keep the booking.
+    const dueTime = shiftedDue > now ? shiftedDue : usage.DueTime;
 
     await this.prisma.$transaction(async (tx) => {
       if (early) {
@@ -594,37 +596,7 @@ export class LoanService {
 
     const now = new Date();
     const overdueDays = this.penalties.overdueDays(usage.DueTime, now);
-    const quote = await this.penalties.quoteLate(
-      usage.Resource.BorrowRule,
-      this.creditWeightOf(usage.Resource),
-      overdueDays,
-    );
-
-    /**
-     * Lateness this loan has already been billed for.
-     *
-     * The `markOverdue` job charges loans that are past due while they are
-     * still out, so by the time an item reaches the counter the borrower may
-     * already have paid for it. CronService carries the matching guard - it
-     * skips any loan holding a ReturnLate penalty - and states that the guard
-     * has to exist on both sides. It did not: without this check a borrower
-     * who was charged last night is charged again the moment staff take the
-     * item back, twice for one late return.
-     *
-     * The existing row is returned to the desk rather than suppressed, so the
-     * receipt still shows what the lateness cost. Its figure is the one from
-     * the night it was charged, which is the smaller of the two - deliberately,
-     * per the same note in CronService.
-     */
-    const alreadyCharged = await this.prisma.penaltyInfo.findFirst({
-      where: {
-        UsageKey: input.usageKey,
-        Reason: { startsWith: 'ReturnLate' },
-      },
-      select: { PenaltyKey: true },
-    });
-
-    const penaltyKey = await this.prisma.$transaction(async (tx) => {
+    const settled = await this.prisma.$transaction(async (tx) => {
       await tx.usageLog.update({
         where: { UsageKey: input.usageKey },
         data: {
@@ -656,31 +628,36 @@ export class LoanService {
         });
       }
 
-      if (alreadyCharged) return null;
-
-      const penaltyKey = await this.penalties.apply(tx, quote, {
+      // The overnight job may already hold a first-day charge; this raises it
+      // to the real late days instead of charging twice (#195). Its clock
+      // starts at the return, per the proposal: "จะเริ่มนับอายุของบทลงโทษเมื่อนำอุปกรณ์มาคืนแล้ว".
+      const settled = await this.penalties.settleLate(tx, {
         accountKey: usage.Account.AccountKey,
         usageKey: usage.UsageKey,
-        // The proposal starts the penalty's clock at the return, not at the
-        // deadline: "จะเริ่มนับอายุของบทลงโทษเมื่อนำอุปกรณ์มาคืนแล้ว".
-        effectiveFrom: now,
+        borrowRuleKey: usage.Resource.BorrowRule,
+        creditWeight: this.creditWeightOf(usage.Resource),
+        dueTime: usage.DueTime,
+        until: now,
       });
 
-      await this.notifyDeduction(tx, {
-        penaltyKey,
-        accountKey: usage.Account.AccountKey,
-        quote,
-        effectiveFrom: now,
-        itemName: resourceName(usage.Resource),
-      });
+      if (settled.raised) {
+        await this.notifyDeduction(tx, {
+          penaltyKey: settled.penaltyKey,
+          accountKey: usage.Account.AccountKey,
+          quote: settled.quote,
+          effectiveFrom: now,
+          itemName: resourceName(usage.Resource),
+        });
+      }
 
-      return penaltyKey;
+      return settled;
     });
 
     const loan = this.toLoan(await this.readUsage(input.usageKey), now);
 
     // Whichever side charged it - this return, or the job that ran overnight.
-    const chargedKey = penaltyKey ?? alreadyCharged?.PenaltyKey ?? null;
+    const chargedKey = settled.penaltyKey;
+    const quote = settled.quote;
 
     await this.audit.record(
       { accountKey: user.accountKey },

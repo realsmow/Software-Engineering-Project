@@ -1,6 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
-import { PenaltyService } from '../common/penalty/penalty.service';
+import {
+  OPEN_LATE_PENALTY,
+  PenaltyService,
+} from '../common/penalty/penalty.service';
 import {
   NotificationService,
   resourceName,
@@ -146,8 +149,8 @@ export class CronService {
       where: {
         CurrentStatus: 'Lended',
         DueTime: { lt: now },
-        // Nothing already billed for lateness on this loan.
-        Penalties: { none: { Reason: { startsWith: 'ReturnLate' } } },
+        // Nothing already billed for lateness since the current due time.
+        Penalties: { none: OPEN_LATE_PENALTY },
       },
       select: {
         UsageKey: true,
@@ -269,7 +272,15 @@ export class CronService {
   private async expireDemerits(): Promise<CronOutcome> {
     const now = new Date();
     const expired = await this.prisma.penaltyInfo.findMany({
-      where: { InEffect: true, ExpirationTime: { lte: now } },
+      where: {
+        InEffect: true,
+        ExpirationTime: { lte: now },
+        // #196: lateness keeps counting until the item is back, so its
+        // penalty cannot run out first. The return restarts its clock.
+        NOT: {
+          AND: [OPEN_LATE_PENALTY, { Usage: { CurrentStatus: 'Lended' } }],
+        },
+      },
       select: { PenaltyKey: true, AccountKey: true, CreditDeducted: true },
     });
 

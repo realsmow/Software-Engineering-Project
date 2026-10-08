@@ -1,3 +1,4 @@
+import { PenaltyService } from '../../src/common/penalty/penalty.service';
 import type { Prisma } from '../../src/generated/prisma/client';
 import { LoanExtensionService } from '../../src/loan/loan.extension.service';
 import { StaffScopeService } from '../../src/common/authority/staff-scope.service';
@@ -127,6 +128,7 @@ export async function creditLoanFixture(
     new EligibilityService(f.client),
     new NotificationService(f.client),
     audit as never,
+    new PenaltyService(f.client),
   );
   return { f, score, due, activeLoan, reservation, user, extensions, audit };
 }

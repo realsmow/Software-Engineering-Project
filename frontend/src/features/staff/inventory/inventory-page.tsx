@@ -835,7 +835,7 @@ function UnitEditForm({ unit, onClose }: { unit: ManagedUnit; onClose: () => voi
   const { t } = useTranslation();
   const update = useUpdateUnit();
   const [serialNo, setSerialNo] = useState(unit.serialNo);
-  const [tier, setTier] = useState<Tier | "">(unit.tier ?? "");
+  // Tier is set per equipment type, not per unit (#190).
   const [prepDays, setPrepDays] = useState(unit.prepDays);
   const [error, setError] = useState<string | null>(null);
 
@@ -845,7 +845,6 @@ function UnitEditForm({ unit, onClose }: { unit: ManagedUnit; onClose: () => voi
       await update.mutateAsync({
         resourceKey: unit.resourceKey,
         serialNo: serialNo.trim() || undefined,
-        tier: tier === "" ? undefined : tier,
         prepDays,
       });
       onClose();
@@ -863,17 +862,6 @@ function UnitEditForm({ unit, onClose }: { unit: ManagedUnit; onClose: () => voi
           className="h-8 w-32"
           placeholder={t("staff.inventory.colSerial")}
         />
-        <select
-          value={tier}
-          onChange={(e) => setTier(e.target.value as Tier)}
-          className="h-8 rounded border border-border bg-transparent px-1.5 text-xs text-foreground"
-          aria-label={t("staff.inventory.fieldTier")}
-        >
-          <option value="">-</option>
-          <option value="T0">T0</option>
-          <option value="T1">T1</option>
-          <option value="T2">T2</option>
-        </select>
         <Input
           type="number"
           min={0}

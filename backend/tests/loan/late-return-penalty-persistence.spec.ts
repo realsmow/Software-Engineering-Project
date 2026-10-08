@@ -252,39 +252,27 @@ describe('FR-RTN-07 / FR-CRD-03/04: late and lost penalty lifecycle', () => {
           latePenalty: { overdueDays: 3 },
         });
         afterReturn = await lateState(tx, f);
-        // Current billing is incomplete, but the API must still agree with SQL.
-        // Keep these ordinary checks outside .failing so corrupt API fields fail normally.
+        // The receipt must agree with what SQL holds.
         expect(receipt.latePenalty!.creditDeducted).toBe(
           afterReturn.activeDeduction,
         );
         assertReceiptExpiryMatchesDatabase(receipt, afterReturn);
       });
     });
-    // Known defect: recordReturn preserves the first scheduled charge.
-    // Setup and real SQL readback must succeed outside the failure marker.
-    it.failing(
-      'reconciles the first scheduled charge with all actual late days',
-      () => {
-        // Either reconciliation or a delta is valid; the live total must match.
-        expect(afterReturn).toMatchObject({
-          activeDeduction: final,
-          creditScore: 100 - final,
-          usage: { CheckInTime: RETURN_AFTER_THREE_DAYS },
-        });
-      },
-    );
-    it.failing(
-      'reports the complete actual late deduction in the receipt',
-      () => {
-        expect(receipt.latePenalty!.creditDeducted).toBe(final);
-      },
-    );
-    it.failing(
-      'reports the full penalty term starting at actual receipt',
-      () => {
-        expect(receipt.latePenalty!.expiresAt).toBe(expectedExpiry);
-      },
-    );
+    it('reconciles the first scheduled charge with all actual late days', () => {
+      // Either reconciliation or a delta is valid; the live total must match.
+      expect(afterReturn).toMatchObject({
+        activeDeduction: final,
+        creditScore: 100 - final,
+        usage: { CheckInTime: RETURN_AFTER_THREE_DAYS },
+      });
+    });
+    it('reports the complete actual late deduction in the receipt', () => {
+      expect(receipt.latePenalty!.creditDeducted).toBe(final);
+    });
+    it('reports the full penalty term starting at actual receipt', () => {
+      expect(receipt.latePenalty!.expiresAt).toBe(expectedExpiry);
+    });
   });
 
   // Without a configured rule FR-CRD-04 defines length; the term starts at
@@ -347,53 +335,39 @@ describe('FR-RTN-07 / FR-CRD-03/04: late and lost penalty lifecycle', () => {
       });
     });
 
-    // Known defect: the scheduled charge can expire before actual receipt.
-    it.failing(
-      'does not restore overdue credit while the borrower still holds the item',
-      () => {
-        expect(whileOut.creditScore).toBeLessThan(100);
-        expect(whileOut.penalties.some((row) => row.InEffect)).toBe(true);
-        for (const dailyState of dailyWhileOut) {
-          expect(dailyState.creditScore).toBeLessThan(100);
-          expect(dailyState.penalties.some((row) => row.InEffect)).toBe(true);
-        }
-      },
-    );
+    it('does not restore overdue credit while the borrower still holds the item', () => {
+      expect(whileOut.creditScore).toBeLessThan(100);
+      expect(whileOut.penalties.some((row) => row.InEffect)).toBe(true);
+      for (const dailyState of dailyWhileOut) {
+        expect(dailyState.creditScore).toBeLessThan(100);
+        expect(dailyState.penalties.some((row) => row.InEffect)).toBe(true);
+      }
+    });
 
-    // Known defect: even an expired historical charge prevents settlement.
-    it.failing(
-      'settles the full late charge despite an old expiry and starts its complete term at return',
-      () => {
-        expect(afterReturn).toMatchObject({
-          activeDeduction: 14,
-          creditScore: 86,
-          usage: {
-            CurrentStatus: 'Returned',
-            CheckInTime: RETURN_AFTER_SEVEN_DAYS,
-          },
-        });
-        // FR-CRD-04: 14 credit * 2 = 28 days, starting at actual receipt.
-        // This permits multiple adjustment rows without prescribing their IDs.
-        expect(afterReturn.active.length).toBeGreaterThan(0);
-        for (const penalty of afterReturn.active) {
-          expect(penalty.ExpirationTime).toEqual(
-            new Date(RETURN_AFTER_SEVEN_DAYS.getTime() + 28 * DAY),
-          );
-        }
-      },
-    );
-    it.failing(
-      'reports the complete seven-day late deduction after old expiry',
-      () => {
-        expect(receipt.latePenalty!.creditDeducted).toBe(14);
-      },
-    );
-    it.failing(
-      'reports the renewed expiry instead of the expired historical term',
-      () => {
-        expect(receipt.latePenalty!.expiresAt).toBe(expectedExpiry);
-      },
-    );
+    it('settles the full late charge despite an old expiry and starts its complete term at return', () => {
+      expect(afterReturn).toMatchObject({
+        activeDeduction: 14,
+        creditScore: 86,
+        usage: {
+          CurrentStatus: 'Returned',
+          CheckInTime: RETURN_AFTER_SEVEN_DAYS,
+        },
+      });
+      // FR-CRD-04: 14 credit * 2 = 28 days, starting at actual receipt.
+      // This permits multiple adjustment rows without prescribing their IDs.
+      expect(afterReturn.active.length).toBeGreaterThan(0);
+      for (const penalty of afterReturn.active) {
+        expect(penalty.ExpirationTime).toEqual(
+          new Date(RETURN_AFTER_SEVEN_DAYS.getTime() + 28 * DAY),
+        );
+      }
+    });
+    it('reports the complete seven-day late deduction after old expiry', () => {
+      expect(receipt.latePenalty!.creditDeducted).toBe(14);
+    });
+    it('reports the renewed expiry instead of the expired historical term', () => {
+      expect(receipt.latePenalty!.expiresAt).toBe(expectedExpiry);
+    });
   });
 
   describe('penalty duration starts at actual return', () => {

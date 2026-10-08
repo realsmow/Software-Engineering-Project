@@ -354,7 +354,7 @@ describe("borrower request checks", () => {
         expect(api.create).not.toHaveBeenCalled();
       });
       if (closed) {
-        it.fails("blocks submission when the pickup day is a closed counter day", () => {
+        it("blocks submission when the pickup day is a closed counter day", () => {
           expect(submit).toBeDisabled();
         });
       } else {
@@ -362,6 +362,39 @@ describe("borrower request checks", () => {
           expect(submit).toBeEnabled();
         });
       }
+    });
+
+    it.each([
+      { tier: "T0", offered: true },
+      { tier: "T1", offered: false },
+    ] as const)("#189: $tier pickup now after the last fixed time", async ({ tier, offered }) => {
+      vi.setSystemTime(new Date("2031-10-03T10:15:00.000Z")); // Friday 17:15 Bangkok
+      const catalogItem = toCatalogItem(
+        itemResponse({ tier, availableUnits: 2, totalUnits: 2 })
+      );
+      hooks.useEquipmentTypes.mockReturnValue(queryResult([catalogItem]));
+      useRequestDraft.getState().addItem(catalogItem.id, catalogItem.availableUnits);
+      useRequestDraft.getState().setStartDate("2031-10-03");
+      useRequestDraft.getState().setEndDate("2031-10-06");
+      useRequestDraft.getState().setReturnTime("17:00");
+      await act(async () => {
+        renderPage();
+      });
+      const now = screen.queryByRole("button", { name: i18n.t("borrower.request.pickupNow") });
+      if (!offered) {
+        expect(now).not.toBeInTheDocument();
+        return;
+      }
+      fireEvent.click(now!);
+      expect(useRequestDraft.getState().pickupTime).toBe("17:20");
+      expect(
+        screen.getByRole("button", {
+          name: i18n.t("borrower.request.pickupNowAt", { time: "17:20" }),
+        })
+      ).toHaveAttribute("aria-pressed", "true");
+      expect(
+        screen.getByRole("button", { name: i18n.t("borrower.request.submit") })
+      ).toBeEnabled();
     });
 
     it.each(["2031-10-04", "2031-10-05"])(

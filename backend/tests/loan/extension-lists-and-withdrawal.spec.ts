@@ -113,6 +113,7 @@ function setup(row = extensionRow()) {
       {} as never,
       {} as never,
       audit as never,
+      {} as never,
     ),
   };
 }

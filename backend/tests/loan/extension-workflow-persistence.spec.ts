@@ -1051,3 +1051,69 @@ describe('SDS renewal workflow: gates before routing and persisted decisions', (
     });
   });
 });
+
+describe('#192: an extension granted after the due time keeps the late stretch', () => {
+  let prisma: PrismaService;
+  beforeEach(() => freezeBusinessDate(new Date('2031-09-22T02:00:00Z')));
+  afterEach(() => jest.useRealTimers());
+  beforeAll(async () => {
+    requireIsolatedDatabase();
+    prisma = new PrismaService();
+    await prisma.$connect();
+  });
+  afterAll(async () => {
+    await prisma?.$disconnect();
+  });
+
+  it('charges the days before the request and bills later lateness separately', async () => {
+    await inHistoryFixture(prisma, async (tx) => {
+      const f = await creditLoanFixture(tx, 'T0', 'D0');
+      const lateRows = () =>
+        tx.penaltyInfo.findMany({
+          where: {
+            UsageKey: f.activeLoan.UsageKey,
+            Reason: { startsWith: 'ReturnLate' },
+          },
+          orderBy: { PenaltyKey: 'asc' },
+        });
+      const before = await tx.accountInfo.findUniqueOrThrow({
+        where: { AccountKey: f.user.accountKey },
+      });
+
+      // Two days past due, and the overnight job has not run.
+      jest.setSystemTime(new Date(f.due.getTime() + 2 * DAY));
+      const newDue = new Date(f.due.getTime() + 3 * DAY);
+      const out = await f.extensions.request(f.user, {
+        usageKey: f.activeLoan.UsageKey,
+        requestedDueAt: newDue.toISOString(),
+      });
+      expect(out.status).toBe('Approved');
+
+      const charged = await lateRows();
+      expect(charged).toHaveLength(1);
+      expect(charged[0]).toMatchObject({ InEffect: true });
+      expect(charged[0].Reason).toContain('before extension');
+      expect(charged[0].CreditDeducted).toBeGreaterThan(0);
+      expect(
+        (
+          await tx.accountInfo.findUniqueOrThrow({
+            where: { AccountKey: f.user.accountKey },
+          })
+        ).UserCredit,
+      ).toBeLessThan(before.UserCredit);
+
+      // Late again after the new due date: a second, separate charge.
+      const penalties = new PenaltyService(f.f.client);
+      const cron = new CronService(
+        f.f.client,
+        penalties,
+        new NotificationService(f.f.client),
+      );
+      jest.setSystemTime(new Date(newDue.getTime() - 1));
+      expect(await cron.run('markOverdue')).toMatchObject({ affected: 0 });
+      jest.setSystemTime(new Date(newDue.getTime() + DAY));
+      expect(await cron.run('markOverdue')).toMatchObject({ affected: 1 });
+      expect(await lateRows()).toHaveLength(2);
+    });
+  });
+});

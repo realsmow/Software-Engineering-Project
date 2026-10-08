@@ -73,6 +73,7 @@ export const ERROR_MESSAGES_EN: Record<string, string> = {
   LOAN_NOT_FOUND: "This loan was not found. It may have been cancelled or already processed.",
   PICKUP_PHOTO_REQUIRED: "Please photograph the equipment before confirming pickup.",
   RETURN_PHOTO_REQUIRED: "Please photograph the equipment on return before recording the return.",
+  DAMAGE_PHOTO_REQUIRED: "Please attach at least one photo of the damage for grades B1 to B3.",
   RESERVATION_NOT_FOUND: "This request was not found. It may have been cancelled.",
   RESOURCE_NOT_FOUND: "This item was not found in the system.",
   NOT_APPROVED_YET: "This request has not been approved yet, so it cannot be prepared.",

@@ -83,6 +83,7 @@ const ERROR_MESSAGES: Record<string, string> = {
   LOAN_NOT_FOUND: "ไม่พบรายการยืมนี้ อาจถูกยกเลิกหรือดำเนินการไปแล้ว",
   PICKUP_PHOTO_REQUIRED: "กรุณาถ่ายรูปอุปกรณ์ก่อนยืนยันการรับของ",
   RETURN_PHOTO_REQUIRED: "กรุณาถ่ายรูปอุปกรณ์ตอนรับคืนก่อนบันทึกการคืน",
+  DAMAGE_PHOTO_REQUIRED: "กรุณาแนบรูปความเสียหายอย่างน้อย 1 รูปสำหรับระดับ B1 ถึง B3",
   RESERVATION_NOT_FOUND: "ไม่พบคำขอนี้ อาจถูกยกเลิกไปแล้ว",
   RESOURCE_NOT_FOUND: "ไม่พบอุปกรณ์ชิ้นนี้ในระบบ",
   NOT_APPROVED_YET: "คำขอนี้ยังไม่ผ่านการอนุมัติ จึงยังจัดเตรียมไม่ได้",

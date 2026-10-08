@@ -140,7 +140,7 @@ const input = {
   usageKey: 42,
   level: 'B2' as const,
   note: 'Screen cracked',
-  imageUrls: [],
+  imageUrls: ['/media/crack.jpg'],
 };
 
 describe('InspectionService grading', () => {

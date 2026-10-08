@@ -20,6 +20,20 @@ export interface PenaltyQuote {
   source: 'PenaltyRule' | 'proposal-formula';
 }
 
+/** Note on a late penalty closed by an extension; later lateness is a new row (#192). */
+export const LATE_BEFORE_EXTENSION = 'before extension';
+
+/**
+ * The late penalty still counting for a loan's current due date. One closed
+ * by an extension is excluded, so lateness after the new due is charged again.
+ */
+export const OPEN_LATE_PENALTY = {
+  AND: [
+    { Reason: { startsWith: 'ReturnLate' } },
+    { NOT: { Reason: { contains: LATE_BEFORE_EXTENSION } } },
+  ],
+} satisfies Prisma.PenaltyInfoWhereInput;
+
 /**
  * Credit penalties (proposal §5.7).
  *
@@ -194,6 +208,81 @@ export class PenaltyService {
     await recomputeCredit(tx, params.accountKey);
 
     return penalty.PenaltyKey;
+  }
+
+  /**
+   * Brings a loan's open late penalty up to the real number of late days.
+   *
+   * The overnight job charges the first late day only, so the return (#195)
+   * or an extension granted after the due time (#192) settles the full
+   * figure here. The existing row is raised, never lowered, so nothing is
+   * charged twice, and its clock restarts at `until` (#196). A row an appeal
+   * already lifted is left alone. `close` marks the row as settled before an
+   * extension, so it stops being the open one.
+   */
+  async settleLate(
+    tx: Prisma.TransactionClient,
+    params: {
+      accountKey: number;
+      usageKey: number;
+      borrowRuleKey: number;
+      creditWeight: number;
+      dueTime: Date;
+      until: Date;
+      close?: boolean;
+    },
+  ): Promise<{
+    penaltyKey: number | null;
+    quote: PenaltyQuote;
+    raised: boolean;
+  }> {
+    const days = this.overdueDays(params.dueTime, params.until);
+    const quote = await this.quoteLate(
+      params.borrowRuleKey,
+      params.creditWeight,
+      days,
+    );
+    const note = params.close ? LATE_BEFORE_EXTENSION : undefined;
+    const open = await tx.penaltyInfo.findFirst({
+      where: { UsageKey: params.usageKey, ...OPEN_LATE_PENALTY },
+      select: {
+        PenaltyKey: true,
+        CreditDeducted: true,
+        InEffect: true,
+        Reason: true,
+      },
+    });
+
+    if (!open) {
+      const penaltyKey = await this.apply(tx, quote, {
+        accountKey: params.accountKey,
+        usageKey: params.usageKey,
+        effectiveFrom: params.until,
+        note,
+      });
+      return { penaltyKey, quote, raised: penaltyKey !== null };
+    }
+    if (!open.InEffect) {
+      return { penaltyKey: open.PenaltyKey, quote, raised: false };
+    }
+
+    const before = open.CreditDeducted ?? 0;
+    const amount = Math.max(before, quote.amount);
+    await tx.penaltyInfo.update({
+      where: { PenaltyKey: open.PenaltyKey },
+      data: {
+        CreditDeducted: amount,
+        ActionTime: params.until,
+        ExpirationTime: addDays(params.until, quote.lengthDays),
+        ...(note ? { Reason: `${open.Reason}; ${note}` } : {}),
+      },
+    });
+    await recomputeCredit(tx, params.accountKey);
+    return {
+      penaltyKey: open.PenaltyKey,
+      quote: { ...quote, amount },
+      raised: amount > before,
+    };
   }
 
   /** Days a loan ran past its due time, rounded up. Zero when returned on time. */

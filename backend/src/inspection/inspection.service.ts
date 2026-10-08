@@ -290,6 +290,13 @@ export class InspectionService {
     }
 
     const level: DamageLevel = input.level;
+    // #193: damage must come with evidence an appeal can be argued from.
+    if (level !== 'B0' && input.imageUrls.length === 0) {
+      throw new BusinessError('DAMAGE_PHOTO_REQUIRED', {
+        usageKey: input.usageKey,
+        level,
+      });
+    }
     const condition = DAMAGE_CONDITION[level];
     const unusable = UNUSABLE_CONDITIONS.includes(condition);
     const now = new Date();

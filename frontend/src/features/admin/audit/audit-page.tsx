@@ -180,7 +180,8 @@ export default function AdminAuditPage() {
         <ChartCard
           title={t("admin.charts.auditActivity")}
           subtitle={
-            peakEvents > 0
+            // The peak hour only describes the by-hour chart.
+            view === "hour" && peakEvents > 0
               ? t("admin.charts.peak", {
                   hour: fmtHour(byHour.find((h) => h.events === peakEvents)!.hour),
                 })

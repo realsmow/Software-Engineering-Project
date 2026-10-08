@@ -108,7 +108,7 @@ describe("StaffInspectionPage", () => {
         returnedToPool: false,
       })
     );
-    render(<StaffInspectionPage />);
+    const { container } = render(<StaffInspectionPage />);
     fireEvent.click(screen.getByRole("button", { name: /Oscilloscope/ }));
 
     fireEvent.click(
@@ -127,12 +127,29 @@ describe("StaffInspectionPage", () => {
     fireEvent.click(
       screen.getByRole("button", { name: i18n.t("staff.inspection.recordGrade") })
     );
+    // #193: B1-B3 is refused until a damage photo is attached.
+    expect(
+      screen.getByText(i18n.t("staff.inspection.damagePhotoRequired"))
+    ).toBeInTheDocument();
+    expect(create).not.toHaveBeenCalled();
+
+    upload.mockResolvedValue("/media/crack.jpg");
+    URL.createObjectURL = vi.fn(() => "blob:preview");
+    const file = new File([new Uint8Array(8)], "crack.jpg", { type: "image/jpeg" });
+    fireEvent.change(container.querySelector('input[type="file"]')!, {
+      target: { files: [file] },
+    });
+    await waitFor(() => expect(upload).toHaveBeenCalled());
+    fireEvent.click(
+      screen.getByRole("button", { name: i18n.t("staff.inspection.recordGrade") })
+    );
 
     await waitFor(() =>
       expect(create).toHaveBeenCalledWith({
         usageKey: 42,
         level: "B2",
         note: "Screen cracked",
+        imageUrls: ["/media/crack.jpg"],
       })
     );
     expect(screen.getByText(/36/)).toBeInTheDocument();

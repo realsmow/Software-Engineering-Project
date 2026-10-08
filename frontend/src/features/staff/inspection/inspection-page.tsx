@@ -193,6 +193,11 @@ function Subject({ usageKey }: { usageKey: number }) {
       setError(t("staff.inspection.pickGrade"));
       return;
     }
+    // #193: damage needs photo evidence; the server refuses it too.
+    if (level !== "B0" && photos.length === 0) {
+      setError(t("staff.inspection.damagePhotoRequired"));
+      return;
+    }
     try {
       const out = await create.mutateAsync({
         usageKey: s.usageKey,

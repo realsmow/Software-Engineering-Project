@@ -118,6 +118,8 @@ export default function RequestPage() {
   const totalUnits = rows.reduce((sum, row) => sum + row.qty, 0);
   const hasT2 = t2Rows.length > 0;
   const hasT1 = rows.some((r) => r.item.tier === "T1");
+  // T0 is borrowed on the spot, so it may be picked up now (#189).
+  const onlyT0 = rows.length > 0 && rows.every((r) => r.item.tier === "T0");
 
   // Supervisor sign-off: always for T2, and for T1 too once credit is low.
   const needsSupervisor = hasT2 || (policy.needsSupervisor && (hasT1 || hasT2));
@@ -150,6 +152,9 @@ export default function RequestPage() {
   const startTime = requestInstant(startDate, pickupTime);
   const endTime = endDate ? requestInstant(endDate, returnTime) : null;
   const startsInPast = startTime.getTime() < Date.now();
+  // The counter is closed on weekends; the backend refuses these too (#197).
+  const pickupDay = parseISO(startDate).getDay();
+  const pickupClosed = pickupDay === 0 || pickupDay === 6;
   const invalidTimeOrder = endTime !== null && endTime <= startTime;
   const hasItems = rows.length > 0;
   const checks = [
@@ -170,6 +175,7 @@ export default function RequestPage() {
         endDate !== null &&
         !overDays &&
         !startsInPast &&
+        !pickupClosed &&
         !invalidTimeOrder,
       label: t("borrower.request.pcCredit"),
       detail:
@@ -179,7 +185,9 @@ export default function RequestPage() {
             ? t("borrower.request.pcCreditNoEnd")
             : startsInPast
               ? t("borrower.request.pcTimePast")
-              : invalidTimeOrder
+              : pickupClosed
+                ? t("borrower.request.pcPickupClosed")
+                : invalidTimeOrder
                 ? t("borrower.request.pcTimeOrder")
                 : overDays
                   ? t("borrower.request.pcCreditOver", { days, max: maxDays })
@@ -402,6 +410,7 @@ export default function RequestPage() {
                     label={t("borrower.request.pickupTime")}
                     value={pickupTime}
                     onChange={setPickupTime}
+                    offerNow={onlyT0 && startDate === todayIso()}
                   />
                 </div>
                 <div className="grid items-end gap-3 sm:grid-cols-[minmax(180px,1fr)_auto]">
@@ -594,19 +603,46 @@ function StepsBar() {
   );
 }
 
+/** A few minutes ahead, on a 5-minute mark, so the request is not already past. */
+function nowPickupTime(): RequestTime {
+  const step = 5 * 60_000;
+  const at = Math.ceil((Date.now() + step) / step) * step;
+  // Bangkok is UTC+7 all year; locale formatting could add a suffix like "น.".
+  return new Date(at + 7 * 3_600_000).toISOString().slice(11, 16);
+}
+
 function RequestTimeField({
   label,
   value,
   onChange,
+  offerNow = false,
 }: {
   label: string;
   value: RequestTime;
   onChange: (time: RequestTime) => void;
+  offerNow?: boolean;
 }) {
+  const { t } = useTranslation();
+  const isNow = !(REQUEST_TIMES as readonly string[]).includes(value);
   return (
     <fieldset>
       <legend className="mb-1.5 text-xs font-medium text-t2">{label}</legend>
       <div className="flex flex-wrap gap-2">
+        {offerNow || isNow ? (
+          <button
+            type="button"
+            aria-pressed={isNow}
+            onClick={() => onChange(nowPickupTime())}
+            className={cn(
+              "h-9 min-w-24 rounded-md border px-4 text-sm font-medium transition-colors",
+              isNow
+                ? "border-accent bg-accent text-white"
+                : "border-border bg-card text-foreground hover:border-line-strong hover:bg-muted",
+            )}
+          >
+            {isNow ? t("borrower.request.pickupNowAt", { time: value }) : t("borrower.request.pickupNow")}
+          </button>
+        ) : null}
         {REQUEST_TIMES.map((time) => {
           const selected = value === time;
           return (

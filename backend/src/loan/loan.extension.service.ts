@@ -4,6 +4,7 @@ import { PrismaService } from '../prisma.service';
 import { AuditService } from '../common/audit/audit.service';
 import { StaffScopeService } from '../common/authority/staff-scope.service';
 import { CreditTierService } from '../common/credit/credit-tier.service';
+import { PenaltyService } from '../common/penalty/penalty.service';
 import { EligibilityService } from '../common/authority/eligibility.service';
 import {
   canDecide,
@@ -59,8 +60,13 @@ const RESOURCE_SELECT = {
   BufferTime: true,
   BorrowRule: true,
   BorrowRuleInfo: { select: { RuleName: true } },
-  Item: { select: { ItemID: true, Item: { select: { ItemName: true } } } },
-  Room: { select: { RoomName: true } },
+  Item: {
+    select: {
+      ItemID: true,
+      Item: { select: { ItemName: true, CreditWeight: true } },
+    },
+  },
+  Room: { select: { RoomName: true, CreditWeight: true } },
 } satisfies Prisma.ResourceInfoSelect;
 
 const USAGE_SELECT = {
@@ -140,6 +146,7 @@ export class LoanExtensionService {
     private readonly eligibility: EligibilityService,
     private readonly notifications: NotificationService,
     private readonly audit: AuditService,
+    private readonly penalties: PenaltyService,
   ) {}
 
   // =========================================================================
@@ -367,6 +374,7 @@ export class LoanExtensionService {
       });
 
       if (approved) {
+        await this.settleLateBeforeExtension(tx, usage, usage.DueTime, now);
         await this.holdReservationUntil(tx, usage, requestedDue);
         await this.notifications.extensionApproved(tx, {
           accountKey: usage.AccountKey,
@@ -666,6 +674,12 @@ export class LoanExtensionService {
       });
 
       if (approved) {
+        await this.settleLateBeforeExtension(
+          tx,
+          row.Usage,
+          row.PreviousDueTime,
+          row.RequestedAt,
+        );
         await this.holdReservationUntil(tx, row.Usage, row.RequestedDueTime);
         await this.notifications.extensionApproved(tx, {
           accountKey: row.Usage.AccountKey,
@@ -951,6 +965,32 @@ export class LoanExtensionService {
    * A loan with no reservation is a walk-in recorded at the counter. There is
    * nothing to move, and nothing was holding those days in the first place.
    */
+  /**
+   * #192: an extension asked for after the due time must not erase the late
+   * stretch before it. That stretch is charged up to the request and closed,
+   * so lateness after the new due time is charged on its own.
+   */
+  private async settleLateBeforeExtension(
+    tx: Prisma.TransactionClient,
+    usage: UsageRow,
+    previousDue: Date,
+    requestedAt: Date,
+  ) {
+    if (requestedAt <= previousDue) return;
+    await this.penalties.settleLate(tx, {
+      accountKey: usage.AccountKey,
+      usageKey: usage.UsageKey,
+      borrowRuleKey: usage.Resource.BorrowRule,
+      creditWeight:
+        usage.Resource.Item?.Item.CreditWeight ??
+        usage.Resource.Room?.CreditWeight ??
+        0,
+      dueTime: previousDue,
+      until: requestedAt,
+      close: true,
+    });
+  }
+
   private async holdReservationUntil(
     tx: Prisma.TransactionClient,
     usage: UsageRow,

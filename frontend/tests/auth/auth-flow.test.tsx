@@ -230,6 +230,22 @@ describe("Authentication flow — Module 1.4", () => {
     await waitFor(() => expect(useAuthStore.getState().user).toBeNull());
   });
 
+  it("#191 sidebar shows the saved avatar and falls back to initials", () => {
+    useAuthStore.setState({
+      user: { ...borrower, avatarUrl: "/media/avatar/a.png" } as never,
+      isLoading: false,
+    });
+    const { container } = render(
+      <MemoryRouter initialEntries={["/home"]}>
+        <Sidebar />
+      </MemoryRouter>
+    );
+    const img = container.querySelector(".side-avatar img")!;
+    expect(img).toHaveAttribute("src", "/media/avatar/a.png");
+    fireEvent.error(img);
+    expect(container.querySelector(".side-avatar")).toHaveTextContent("Te");
+  });
+
   it("1.4.7 unauthenticated user is redirected to /login", async () => {
     render(
       <MemoryRouter initialEntries={["/catalog"]}>

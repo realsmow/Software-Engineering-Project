@@ -106,6 +106,7 @@ function build(row = extensionRow()) {
     {} as EligibilityService,
     notifications,
     audit as never,
+    {} as never,
   );
 
   return { service, tx, audit };

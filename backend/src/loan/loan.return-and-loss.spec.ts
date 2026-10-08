@@ -98,6 +98,11 @@ function service(overrides: {
       .fn()
       .mockResolvedValue({ reason: 'LostItem', amount: 40, lengthDays: 80 }),
     apply: jest.fn().mockResolvedValue(500),
+    settleLate: jest.fn().mockResolvedValue({
+      penaltyKey: 500,
+      quote: { reason: 'ReturnLate', amount: 10, lengthDays: 20 },
+      raised: true,
+    }),
   } as unknown as PenaltyService;
   const notifications = {
     creditDeducted: jest.fn(),
@@ -155,11 +160,11 @@ describe('recordReturn', () => {
         data: expect.objectContaining({ ResourceStatus: 'InStorage' }),
       }),
     );
-    expect(t.penalties.apply).toHaveBeenCalledWith(
+    expect(t.penalties.settleLate).toHaveBeenCalledWith(
       t.tx,
-      expect.objectContaining({ amount: 10, lengthDays: 20 }),
       expect.objectContaining({
-        effectiveFrom: new Date('2099-01-09T03:00:00Z'),
+        usageKey: 8,
+        until: new Date('2099-01-09T03:00:00Z'),
       }),
     );
     expect(t.notifications.creditDeducted).toHaveBeenCalled();

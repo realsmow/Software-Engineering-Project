@@ -189,9 +189,7 @@ describe("AdminAuditPage", () => {
         ).toHaveAttribute("aria-selected", "false");
       });
 
-      // Known defect: both non-hour views keep the By hour subtitle.
-      // Rendering and successful tab switching are checked outside this marker.
-      it.fails("does not reuse the hourly peak caption for a different grouping", () => {
+      it("does not reuse the hourly peak caption for a different grouping", () => {
         // Replacing the summary or hiding it in non-hour views are both valid.
         expect(
           screen.queryByText(i18n.t("admin.charts.peak", { hour: "09:00" }))

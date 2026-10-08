@@ -218,19 +218,16 @@ describe('NFR-REL-02 / SDS 4.4: unit selection preserves reserved windows', () =
         });
       });
       if (keepOriginal) {
-        it.failing(
-          'accepts receipt but retains 8 Oct 16:00 in the API and both SQL records',
-          () => {
-            expect(actualDue).toEqual({
-              api: originalDue.toISOString(),
-              usage: originalDue,
-              reservation: originalDue,
-            });
-            expect(actualDue.usage.getTime()).toBeGreaterThan(
-              receiptAt.getTime(),
-            );
-          },
-        );
+        it('accepts receipt but retains 8 Oct 16:00 in the API and both SQL records', () => {
+          expect(actualDue).toEqual({
+            api: originalDue.toISOString(),
+            usage: originalDue,
+            reservation: originalDue,
+          });
+          expect(actualDue.usage.getTime()).toBeGreaterThan(
+            receiptAt.getTime(),
+          );
+        });
       } else {
         it('keeps the usual date-only shift when 7 Oct 16:00 is still in the future', () => {
           const shiftedDue = new Date('2026-10-07T16:00:00+07:00');

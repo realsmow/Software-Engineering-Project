@@ -103,6 +103,7 @@ function build(resource: any, supervisors: { AccountKey: number }[] = []) {
     eligibility,
     notifications,
     { record: jest.fn() } as never,
+    {} as never,
   );
 
   return { service, tx, notifications };
