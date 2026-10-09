@@ -156,6 +156,20 @@ test("FR-AUTH-06: redirects an expired session to login on menu navigation witho
       exact: true,
     });
     await expect(catalogMenu).toBeVisible();
+    // Recorded from before the expiry: a background poll can meet the expired
+    // session at any moment, even before the test reaches the menu click.
+    const refusals: { status: number; body: unknown }[] = [];
+    page.on("response", (response) => {
+      if (
+        new URL(response.url()).pathname.includes("/trpc/") &&
+        response.status() === 401
+      ) {
+        void response
+          .json()
+          .catch(() => null)
+          .then((body) => refusals.push({ status: 401, body }));
+      }
+    });
 
     const cookie = (await page.context().cookies("http://localhost:3000")).find(
       (row) => row.name === "ulms_session",
@@ -200,21 +214,7 @@ test("FR-AUTH-06: redirects an expired session to login on menu navigation witho
     // Any API call can be the first to meet the expired session: a background
     // poll often wins and redirects on its own (#138). Otherwise the menu
     // click triggers it. Either way the redirect must come without a reload.
-    const denied = page.waitForResponse(
-      (response) =>
-        new URL(response.url()).pathname.includes("/trpc/") &&
-        response.status() === 401,
-    );
     await catalogMenu.click({ timeout: 2_000 }).catch(() => undefined);
-    const response = await denied;
-    await test.info().attach("expired-session-api-refusal", {
-      body: JSON.stringify(
-        { status: response.status(), body: await response.json() },
-        null,
-        2,
-      ),
-      contentType: "application/json",
-    });
 
     // Observe the desired redirect without recording an assertion failure yet.
     // Bootstrap and cleanup must succeed before the expected-defect marker.
@@ -224,6 +224,10 @@ test("FR-AUTH-06: redirects an expired session to login on menu navigation witho
     } catch (error) {
       if (!(error instanceof errors.TimeoutError)) throw error;
     }
+    await test.info().attach("expired-session-api-refusals", {
+      body: JSON.stringify(refusals, null, 2),
+      contentType: "application/json",
+    });
     if (!redirectedWithoutReload) {
       await test.info().attach("expired-session-before-reload", {
         body: await page.screenshot(),

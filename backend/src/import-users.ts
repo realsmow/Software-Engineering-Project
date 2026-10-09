@@ -23,6 +23,10 @@ import { parseUserCsv, type CsvRole } from './admin/user-csv';
  * email with a link to set its own password, valid for 7 days; after that the
  * person uses "Forgot password". Mail goes through the SMTP_* settings in the
  * environment, the same ones the backend uses.
+ *
+ * Test accounts: with IMPORT_PASSWORD set (>= 8 chars), every new account
+ * gets that password instead, and no link or email is made. For trying the
+ * site, not for real people.
  */
 const LINK_DAYS = 7;
 
@@ -99,6 +103,11 @@ async function main() {
     key: r.AuthorityRoleKey,
   }));
   const mail = mailSettings(config);
+  const fixedPassword = process.env.IMPORT_PASSWORD;
+  if (fixedPassword !== undefined && fixedPassword.length < 8) {
+    throw new Error('IMPORT_PASSWORD must be at least 8 characters.');
+  }
+  const fixedHash = fixedPassword ? await hashPassword(fixedPassword) : null;
 
   let created = 0;
   let skipped = 0;
@@ -124,10 +133,10 @@ async function main() {
       const account = await tx.accountInfo.create({
         data: {
           Email: u.email,
-          // Random and never shown: the person sets their own through the link.
-          HashedPassword: await hashPassword(
-            randomBytes(24).toString('base64url'),
-          ),
+          // Otherwise random and never shown: the person sets their own through the link.
+          HashedPassword:
+            fixedHash ??
+            (await hashPassword(randomBytes(24).toString('base64url'))),
           UserID: u.studentId,
           UserFName: u.firstName,
           UserLName: u.lastName,
@@ -150,6 +159,7 @@ async function main() {
           },
         });
       }
+      if (fixedHash) return;
       // Same table and hashing as "Forgot password", so the normal reset page accepts it.
       await tx.passwordReset.create({
         data: {
@@ -160,6 +170,10 @@ async function main() {
       });
     });
     created++;
+    if (fixedHash) {
+      console.log(`ok    ${u.email} (${u.role})`);
+      continue;
+    }
 
     const link = `${mail.appUrl}/reset-password?token=${token}`;
     try {
