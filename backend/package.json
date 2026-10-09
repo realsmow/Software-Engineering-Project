@@ -31,6 +31,7 @@
     "api:types": "node scripts/export-api-types.mjs",
     "seed": "nest build && node dist/src/seed.js",
     "seed:prod": "nest build && node dist/src/seed-prod.js",
+    "seed:test-users": "nest build && node dist/src/seed-test-users.js",
     "docs:api": "node scripts/gen-api-docs.mjs"
   },
   "dependencies": {

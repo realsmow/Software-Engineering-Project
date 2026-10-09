@@ -170,7 +170,7 @@ export function LoginPage() {
  * Closing on a click outside comes from Radix; the backdrop blur lives on the
  * shared DialogOverlay so every modal in the app behaves the same way.
  */
-function LegalDialog({ label, body }: { label: string; body: string }) {
+export function LegalDialog({ label, body }: { label: string; body: string }) {
   const [open, setOpen] = useState(false);
 
   return (

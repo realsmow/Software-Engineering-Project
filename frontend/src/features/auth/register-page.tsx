@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { getErrorMessage } from "@/lib/error-messages";
 import { useTRPCClient } from "@/lib/trpc";
+import { LegalDialog } from "./login-page";
 
 const MIN_PASSWORD = 8;
 
@@ -31,6 +32,7 @@ export default function RegisterPage() {
     password: "",
     confirm: "",
   });
+  const [agreed, setAgreed] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -46,7 +48,8 @@ export default function RegisterPage() {
     form.firstName.trim() &&
     form.lastName.trim() &&
     form.password.length >= MIN_PASSWORD &&
-    form.password === form.confirm;
+    form.password === form.confirm &&
+    agreed;
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -157,6 +160,24 @@ export default function RegisterPage() {
             {mismatch ? (
               <p className="text-xs text-[var(--s-warn-t)]">{t("profile.passwordMismatch")}</p>
             ) : null}
+          </div>
+
+          {/* The links sit outside the label so opening one does not tick the box. */}
+          <div className="flex items-start gap-2 text-sm text-foreground">
+            <input
+              id="rg-agree"
+              type="checkbox"
+              className="mt-1"
+              checked={agreed}
+              onChange={(e) => setAgreed(e.target.checked)}
+              aria-label={t("auth.agreeTerms")}
+            />
+            <span>
+              <label htmlFor="rg-agree">{t("auth.agreePrefix")}</label>{" "}
+              <LegalDialog label={t("auth.termsOfUse")} body={t("auth.termsBody")} />{" "}
+              {t("auth.agreeAnd")}{" "}
+              <LegalDialog label={t("auth.privacyPolicy")} body={t("auth.privacyBody")} />
+            </span>
           </div>
 
           <Button type="submit" disabled={busy || !complete}>

@@ -100,6 +100,15 @@ describe("registration and token pages", () => {
     change("auth.confirmPassword", "different123");
     expect(submit).toBeDisabled();
     change("auth.confirmPassword", "password123");
+    // The terms must be accepted; opening them does not tick the box.
+    expect(submit).toBeDisabled();
+    fireEvent.click(screen.getByRole("button", { name: i18n.t("auth.termsOfUse") }));
+    expect(await screen.findByRole("dialog")).toHaveTextContent(/ULMs/);
+    fireEvent.keyDown(document.activeElement!, { key: "Escape" });
+    const agree = screen.getByRole("checkbox", { name: i18n.t("auth.agreeTerms") });
+    expect(agree).not.toBeChecked();
+    fireEvent.click(agree);
+    expect(submit).toBeEnabled();
     fireEvent.click(submit);
     await screen.findByRole("status");
     expect(api).toHaveBeenCalledWith("auth.register", {
