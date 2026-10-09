@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ROUTES } from "../../src/constants";
 import i18n from "../../src/i18n";
 import { TIME_SLOTS } from "../../src/features/borrower/rooms/room-slots";
@@ -11,6 +12,12 @@ import RoomListPage from "../../src/features/borrower/rooms/room-list-page";
 import * as roomHooks from "../../src/features/borrower/rooms/use-rooms";
 import * as myRequestsHooks from "../../src/features/borrower/loans/use-my-requests";
 import type { Room, RoomDay } from "../../src/features/borrower/rooms/room.adapter";
+import { requestResponse } from "../fixtures/api-responses";
+import { toBorrowerRequest } from "../../src/features/borrower/loans/request.adapter";
+import { useTRPCClient } from "../../src/lib/trpc";
+import { roomAvailabilityOutput } from "../../../backend/src/item/item.schema";
+
+vi.mock("../../src/lib/trpc", () => ({ useTRPCClient: vi.fn() }));
 
 vi.mock("../../src/features/borrower/rooms/use-rooms", () => ({
   useRooms: vi.fn(),
@@ -92,6 +99,8 @@ describe("Module 5 T3 facilities", () => {
     } as never);
     vi.mocked(myRequestsHooks.useMyRequests).mockReturnValue({ requests: [] } as never);
   });
+
+  afterEach(() => vi.useRealTimers());
 
   it("lists a room with its location, capacity, and free-slot count", () => {
     render(
@@ -223,5 +232,176 @@ describe("Module 5 T3 facilities", () => {
       ).toBeInTheDocument();
     });
     expect(screen.queryByText("My requests")).not.toBeInTheDocument();
+  });
+
+  // Use schema-validated API records and the production adapter. These UI
+  // tests do not pretend the backend quota can be bypassed (SQL controls cover it).
+  function heldRoom(
+    status: ReturnType<typeof requestResponse>["status"],
+    endTime: string
+  ) {
+    return toBorrowerRequest(
+      requestResponse({
+        status,
+        resource: {
+          resourceKey: 99,
+          name: "Existing room booking",
+          serialNo: null,
+          kind: "room",
+          tier: "T3",
+          creditWeight: 0,
+        },
+        startTime: "2031-09-26T02:00:00.000Z",
+        endTime,
+        usageKey: status === "ready" || status === "inUse" ? 42 : null,
+        dueAt: status === "ready" || status === "inUse" ? endTime : null,
+        approval: {
+          route: "auto",
+          status: status === "pending" ? "Pending" : "Approved",
+          approvedBy: null,
+          autoApproved: status !== "pending",
+          approvedAt: status === "pending" ? null : "2031-09-26T00:00:00.000Z",
+          resolvedAt: null,
+        },
+      })
+    );
+  }
+  function selectFreeSlot() {
+    renderBookingPage();
+    const slot = screen.getByRole("button", { name: TIME_SLOTS[0].start });
+    expect(slot).toBeEnabled();
+    fireEvent.click(slot);
+    return screen.getByRole("button", { name: i18n.t("borrower.booking.submit") });
+  }
+  for (const status of ["approved", "preparing"] as const) {
+    describe(`existing ${status} booking`, () => {
+      let submit: HTMLElement;
+      beforeEach(() => {
+        vi.useFakeTimers({ toFake: ["Date"] });
+        vi.setSystemTime(new Date("2031-09-26T00:00:00.000Z"));
+        vi.mocked(myRequestsHooks.useMyRequests).mockReturnValue({
+          requests: [heldRoom(status, "2031-09-26T03:00:00.000Z")],
+        } as never);
+        submit = selectFreeSlot();
+      });
+      it.fails(
+        "blocks a second room request while the existing booking is active",
+        () => {
+          expect(submit).toBeDisabled();
+        }
+      );
+    });
+  }
+  for (const status of ["pending", "ready", "inUse"] as const) {
+    it(`existing ${status} booking blocks a second request`, () => {
+      vi.useFakeTimers({ toFake: ["Date"] });
+      vi.setSystemTime(new Date("2031-09-26T00:00:00.000Z"));
+      vi.mocked(myRequestsHooks.useMyRequests).mockReturnValue({
+        requests: [heldRoom(status, "2031-09-26T03:00:00.000Z")],
+      } as never);
+      expect(selectFreeSlot()).toBeDisabled();
+    });
+  }
+  for (const status of ["ready", "inUse"] as const) {
+    for (const [boundary, now] of [
+      ["at end", "2031-09-26T03:00:00.000Z"],
+      ["after end", "2031-09-26T03:00:00.001Z"],
+    ] as const) {
+      describe(`expired ${status} booking ${boundary}`, () => {
+        let submit: HTMLElement;
+        beforeEach(() => {
+          vi.useFakeTimers({ toFake: ["Date"] });
+          vi.setSystemTime(new Date(now));
+          vi.mocked(myRequestsHooks.useMyRequests).mockReturnValue({
+            requests: [heldRoom(status, "2031-09-26T03:00:00.000Z")],
+          } as never);
+          // A different room with a future slot; not a stale same-room slot.
+          vi.mocked(roomHooks.useRoomDay).mockReturnValue({
+            data: {
+              ...buildRoomDay(),
+              slots: [
+                {
+                  index: 0,
+                  start: "11:00",
+                  end: "11:30",
+                  startTime: "2031-09-26T04:00:00.000Z",
+                  endTime: "2031-09-26T04:30:00.000Z",
+                  available: true,
+                },
+              ],
+            },
+            isLoading: false,
+          } as never);
+          renderBookingPage();
+          expect(screen.getByRole("button", { name: "11:00" })).toBeEnabled();
+          fireEvent.click(screen.getByRole("button", { name: "11:00" }));
+          submit = screen.getByRole("button", {
+            name: i18n.t("borrower.booking.submit"),
+          });
+        });
+        it.fails("allows selecting a new booking after the previous window ends", () => {
+          expect(submit).toBeEnabled();
+        });
+      });
+    }
+    it(`control: ${status} immediately before end still holds quota`, () => {
+      vi.useFakeTimers({ toFake: ["Date"] });
+      vi.setSystemTime(new Date("2031-09-26T02:59:59.999Z"));
+      vi.mocked(myRequestsHooks.useMyRequests).mockReturnValue({
+        requests: [heldRoom(status, "2031-09-26T03:00:00.000Z")],
+      } as never);
+      expect(selectFreeSlot()).toBeDisabled();
+    });
+  }
+
+  describe("custom room hours in the list", () => {
+    let queryClient: QueryClient;
+    beforeEach(async () => {
+      // Exercise the real availability-to-free-count hook, not an invented
+      // total field in its mock. The API returns four actual half-hour slots.
+      const actual = await vi.importActual<typeof roomHooks>(
+        "../../src/features/borrower/rooms/use-rooms"
+      );
+      vi.mocked(roomHooks.useFreeSlots).mockImplementation(actual.useFreeSlots);
+      const date = todayLocalDayKey();
+      const day = roomAvailabilityOutput.strict().parse({
+        ...buildRoomDay(),
+        slots: buildRoomDay()
+          .slots.slice(0, 4)
+          .map((slot) => ({
+            ...slot,
+            startTime: new Date(`${date}T${slot.start}:00+07:00`).toISOString(),
+            endTime: new Date(`${date}T${slot.end}:00+07:00`).toISOString(),
+          })),
+      });
+      const availability = vi.fn().mockResolvedValue(day);
+      vi.mocked(useTRPCClient).mockReturnValue({
+        item: { roomAvailability: { query: availability } },
+      } as never);
+      queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+      render(
+        <QueryClientProvider client={queryClient}>
+          <MemoryRouter>
+            <RoomListPage />
+          </MemoryRouter>
+        </QueryClientProvider>
+      );
+      await waitFor(() =>
+        expect(availability).toHaveBeenCalledWith({
+          roomKey: Number(ROOM.id),
+          date: todayLocalDayKey(),
+        })
+      );
+      // Wait for the loaded free count, regardless of the product's denominator.
+      await waitFor(() =>
+        expect(screen.getAllByText(/4\s*\/\s*\d+\s+slots/).length).toBeGreaterThan(0)
+      );
+    });
+    afterEach(() => queryClient?.clear());
+    it.fails("uses the actual four-slot total rather than the default twenty", () => {
+      expect(
+        screen.getAllByText(i18n.t("borrower.rooms.slots", { free: 4, total: 4 })).length
+      ).toBeGreaterThan(0);
+    });
   });
 });

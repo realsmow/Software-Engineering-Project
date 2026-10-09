@@ -12,6 +12,19 @@ import { LoanRequestService } from '../../src/loan/loan.request.service';
 import { EligibilityService } from '../../src/common/authority/eligibility.service';
 import { listRoomsInput } from '../../src/item/item.schema';
 import type { TrpcUser } from '../../src/trpc/context';
+import type { Prisma, RoomInfo } from '../../src/generated/prisma/client';
+import { createIsolatedDatabase } from '../fixtures/isolated-database';
+import { inHistoryFixture } from '../fixtures/borrower-history';
+import { pickupFixture } from '../fixtures/pickup';
+import { requestService } from '../fixtures/loan-request';
+import { freezeBusinessDate } from '../fixtures/business-clock';
+import { StaffScopeService } from '../../src/common/authority/staff-scope.service';
+import { PenaltyService } from '../../src/common/penalty/penalty.service';
+import { NotificationService } from '../../src/notification/notification.service';
+import { LoanService } from '../../src/loan/loan.service';
+import { InspectionService } from '../../src/inspection/inspection.service';
+import { roomCheckOutput } from '../../src/inspection/inspection.schema';
+import { loanOutput } from '../../src/loan/loan.schema';
 
 describe('PDF p. 9: room bookings persist in the database', () => {
   let prisma: PrismaService;
@@ -324,4 +337,451 @@ describe('PDF p. 9: room bookings persist in the database', () => {
       jest.useRealTimers();
     }
   });
+});
+
+// Reuse the established borrower/staff fixture; rooms get their own T3 rule
+// rather than changing the fixture's equipment rule.
+const ROOM_DAY = '2031-09-26';
+async function roomRegressionFixture(tx: Prisma.TransactionClient) {
+  const f = await pickupFixture(tx);
+  const rule = await tx.borrowRule.create({ data: { RuleName: 'T3' } });
+  const band = await tx.creditTier.findFirstOrThrow({
+    where: { CreditTierName: 'D0' },
+  });
+  await tx.borrowConstraints.create({
+    data: {
+      BorrowRuleKey: rule.BorrowRuleKey,
+      CreditTierKey: band.CreditTierKey,
+      MaxBorrowDate: 1,
+      MaxExtendTime: 0,
+    },
+  });
+  const rooms: RoomInfo[] = [];
+  for (const index of [0, 1]) {
+    rooms.push(
+      await tx.roomInfo.create({
+        data: {
+          RoomName: `Regression room ${index}`,
+          CreditWeight: 0,
+          Capacity: 24,
+          OpenTime: 540,
+          CloseTime: 1020,
+          BreakStart: null,
+          BreakEnd: null,
+          Resource: {
+            create: {
+              BorrowRule: rule.BorrowRuleKey,
+              ManagedBy: f.group.ManageGroupKey,
+              ResourceType: 'Room',
+              ResourceStatus: 'InStorage',
+              AllowBorrow: true,
+              BufferTime: 0,
+              Eligibilities: {
+                create: {
+                  GroupKey: f.group.ManageGroupKey,
+                  RoleKey: f.authorityRole.AuthorityRoleKey,
+                },
+              },
+            },
+          },
+        },
+      }),
+    );
+  }
+  const requests = withOutputContracts(
+    requestService(f.client).service,
+    requestContracts,
+  );
+  const catalog = withOutputContracts(
+    new ItemService(f.client),
+    catalogContracts,
+  );
+  const book = (slots = [0, 1], borrower = 0, room = 0) =>
+    requests.createRoomBooking(f.users[borrower], {
+      roomKey: rooms[room].RoomKey,
+      date: ROOM_DAY,
+      slots,
+    });
+  const prepare = async (slots = [0, 1]) => {
+    const booking = await book(slots);
+    expect(booking.rejected).toEqual([]);
+    expect(booking.created).toHaveLength(1);
+    const usage = loanOutput.strict().parse(
+      await f.loan.allocate(f.staff, {
+        reservationKey: booking.created[0].reservationKey,
+        condition: 'Normal',
+      }),
+    );
+    expect(usage.status).toBe('Prepared');
+    await tx.images.create({
+      data: {
+        UsageKey: usage.usageKey,
+        ResourceKey: rooms[0].ResourceKey,
+        SubmittedBy: f.users[0].accountKey,
+        SubmissionType: 'BeforePicture',
+        ImageURL: '/qa-room-before.png',
+      },
+    });
+    return { booking, usage };
+  };
+  const checkIn = async (caller: 'borrower' | 'staff', usageKey: number) => {
+    const [result] = await Promise.allSettled([
+      caller === 'borrower'
+        ? requests.confirmMyPickup(f.users[0], usageKey)
+        : f.loan
+            .confirmPickup(f.staff, { usageKey })
+            .then((value) => loanOutput.strict().parse(value)),
+    ]);
+    // A database/contract/setup failure must never become an expected defect.
+    if (result.status === 'rejected') {
+      expect(result.reason).toMatchObject({ businessCode: expect.any(String) });
+    }
+    const row = await tx.usageLog.findUniqueOrThrow({
+      where: { UsageKey: usageKey },
+    });
+    const resource = await tx.resourceInfo.findUniqueOrThrow({
+      where: { ResourceKey: rooms[0].ResourceKey },
+    });
+    return {
+      accepted: result.status === 'fulfilled',
+      state: row.CurrentStatus,
+      resourceStatus: resource.ResourceStatus,
+      due: row.DueTime.toISOString(),
+      checkout: row.CheckoutTime.toISOString(),
+    };
+  };
+  return { ...f, rooms, requests, catalog, book, prepare, checkIn };
+}
+
+type RoomCheckIn = Awaited<
+  ReturnType<Awaited<ReturnType<typeof roomRegressionFixture>>['checkIn']>
+>;
+
+describe('selected room regressions', () => {
+  let database: Awaited<ReturnType<typeof createIsolatedDatabase>>;
+  let db: PrismaService;
+  beforeAll(async () => {
+    requireIsolatedDatabase();
+    // commits across two real connections; a rollback-only fixture
+    // cannot expose the same reservation to both connections.
+    database = await createIsolatedDatabase('room', {
+      seedReferenceData: true,
+    });
+    db = database.client;
+  }, 60_000);
+  beforeEach(() => freezeBusinessDate(new Date(`${ROOM_DAY}T00:00:00Z`)));
+  afterEach(() => jest.useRealTimers());
+  afterAll(async () => {
+    await database?.dispose();
+  });
+
+  for (const caller of ['borrower', 'staff'] as const) {
+    for (const [boundary, time] of [
+      ['at end', '2031-09-26T03:00:00.000Z'],
+      ['after end', '2031-09-26T03:00:00.001Z'],
+      ['after collection deadline without cron', '2031-09-27T02:00:00.001Z'],
+    ] as const) {
+      describe(`${caller}: ${boundary}`, () => {
+        let result: RoomCheckIn;
+        beforeEach(async () => {
+          result = await inHistoryFixture(db, async (tx) => {
+            const f = await roomRegressionFixture(tx);
+            const { booking, usage } = await f.prepare();
+            expect(booking.created[0].endTime).toBe(
+              `${ROOM_DAY}T03:00:00.000Z`,
+            );
+            expect(
+              new Date(booking.created[0].expiresAt!).getTime(),
+            ).toBeGreaterThan(new Date(booking.created[0].endTime).getTime());
+            jest.setSystemTime(new Date(time));
+            return f.checkIn(caller, usage.usageKey);
+          });
+        });
+        it.failing(
+          'refuses expired check-in and preserves the prepared booking',
+          () => {
+            expect(result).toEqual({
+              accepted: false,
+              state: 'Prepared',
+              resourceStatus: 'InStorage',
+              due: `${ROOM_DAY}T03:00:00.000Z`,
+              checkout: `${ROOM_DAY}T02:00:00.000Z`,
+            });
+          },
+        );
+      });
+    }
+    it(`${caller} can check in immediately before end`, async () => {
+      await inHistoryFixture(db, async (tx) => {
+        const f = await roomRegressionFixture(tx);
+        const { usage } = await f.prepare();
+        jest.setSystemTime(new Date(`${ROOM_DAY}T02:59:59.999Z`));
+        expect(await f.checkIn(caller, usage.usageKey)).toMatchObject({
+          accepted: true,
+          state: 'Lended',
+          resourceStatus: 'Lended',
+          due: `${ROOM_DAY}T03:00:00.000Z`,
+        });
+      });
+    });
+    describe(`${caller}: real inspection closes a prepared room`, () => {
+      let result: RoomCheckIn;
+      beforeEach(async () => {
+        result = await inHistoryFixture(db, async (tx) => {
+          const f = await roomRegressionFixture(tx);
+          const { usage } = await f.prepare();
+          const inspection = new InspectionService(
+            f.client,
+            new StaffScopeService(f.client),
+            new PenaltyService(f.client),
+            {} as never,
+            f.audit as never,
+            f.notifications,
+          );
+          const check = roomCheckOutput.strict().parse(
+            await inspection.recordRoomCheck(f.staff, {
+              resourceKey: f.rooms[0].ResourceKey,
+              condition: 'Broken',
+            }),
+          );
+          expect(check.stillBookable).toBe(false);
+          expect(
+            (
+              await tx.resourceInfo.findUniqueOrThrow({
+                where: { ResourceKey: f.rooms[0].ResourceKey },
+              })
+            ).AllowBorrow,
+          ).toBe(false);
+          jest.setSystemTime(new Date(`${ROOM_DAY}T02:00:00Z`));
+          return f.checkIn(caller, usage.usageKey);
+        });
+      });
+      it.failing('refuses entry after closure and keeps usage Prepared', () => {
+        expect(result).toMatchObject({
+          accepted: false,
+          state: 'Prepared',
+          resourceStatus: 'InStorage',
+          checkout: `${ROOM_DAY}T02:00:00.000Z`,
+        });
+      });
+    });
+    it(`control: a Normal inspection permits ${caller} check-in`, async () => {
+      await inHistoryFixture(db, async (tx) => {
+        const f = await roomRegressionFixture(tx);
+        const { usage } = await f.prepare();
+        const inspection = new InspectionService(
+          f.client,
+          new StaffScopeService(f.client),
+          new PenaltyService(f.client),
+          {} as never,
+          f.audit as never,
+          f.notifications,
+        );
+        expect(
+          roomCheckOutput.strict().parse(
+            await inspection.recordRoomCheck(f.staff, {
+              resourceKey: f.rooms[0].ResourceKey,
+              condition: 'Normal',
+            }),
+          ).stillBookable,
+        ).toBe(true);
+        jest.setSystemTime(new Date(`${ROOM_DAY}T02:00:00Z`));
+        expect(await f.checkIn(caller, usage.usageKey)).toMatchObject({
+          accepted: true,
+          state: 'Lended',
+        });
+      });
+    });
+  }
+
+  describe('concurrent staff allocation', () => {
+    let rows: number[];
+    let accepted: number;
+    beforeEach(async () => {
+      const f = await db.$transaction((tx) => roomRegressionFixture(tx));
+      const requests = withOutputContracts(
+        requestService(db).service,
+        requestContracts,
+      );
+      const booking = await requests.createRoomBooking(f.users[0], {
+        roomKey: f.rooms[0].RoomKey,
+        date: ROOM_DAY,
+        slots: [0, 1],
+      });
+      expect(booking.created).toHaveLength(1);
+      expect(booking.rejected).toEqual([]);
+      const second = database.createClient();
+      await second.$connect();
+      let arrived = 0;
+      let release!: () => void;
+      const gate = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      // Control scheduling only. Every read/write remains real SQL. Wait after
+      // each caller's prechecks, before either opens its allocation transaction.
+      const wrap = (client: PrismaService) =>
+        new Proxy(client, {
+          get(target, property) {
+            if (property !== '$transaction')
+              return Reflect.get(target, property) as unknown;
+            return async (
+              work: (tx: Prisma.TransactionClient) => Promise<unknown>,
+            ) => {
+              arrived++;
+              if (arrived === 2) release();
+              await gate;
+              return target.$transaction(work);
+            };
+          },
+        });
+      const timer = setTimeout(release, 5000);
+      try {
+        const services = [db, second].map((client) => {
+          const wrapped = wrap(client);
+          return new LoanService(
+            wrapped,
+            new StaffScopeService(wrapped),
+            new PenaltyService(wrapped),
+            new NotificationService(wrapped),
+            f.audit as never,
+          );
+        });
+        const outcomes = await Promise.allSettled(
+          services.map((service) =>
+            service.allocate(f.staff, {
+              reservationKey: booking.created[0].reservationKey,
+              condition: 'Normal',
+            }),
+          ),
+        );
+        expect(arrived).toBe(2);
+        for (const outcome of outcomes) {
+          if (outcome.status === 'fulfilled')
+            loanOutput.strict().parse(outcome.value);
+          else
+            expect(outcome.reason).toMatchObject({
+              businessCode: expect.any(String),
+            });
+        }
+        accepted = outcomes.filter(
+          (outcome) => outcome.status === 'fulfilled',
+        ).length;
+        rows = (
+          await db.usageLog.findMany({
+            where: { ReservationKey: booking.created[0].reservationKey },
+          })
+        ).map((row) => row.UsageKey);
+      } finally {
+        release();
+        clearTimeout(timer);
+        await second.$disconnect();
+      }
+    });
+    it.failing('persists one prepared usage and accepts one allocation', () => {
+      expect({ usages: rows.length, accepted }).toEqual({
+        usages: 1,
+        accepted: 1,
+      });
+    });
+  });
+  it('control: sequential second allocation is refused', async () => {
+    await inHistoryFixture(db, async (tx) => {
+      const f = await roomRegressionFixture(tx);
+      const { booking } = await f.prepare();
+      await expect(
+        f.loan.allocate(f.staff, {
+          reservationKey: booking.created[0].reservationKey,
+          condition: 'Normal',
+        }),
+      ).rejects.toMatchObject({ businessCode: 'WRONG_LOAN_STATE' });
+      expect(
+        await tx.usageLog.count({
+          where: {
+            ReservationKey: booking.created[0].reservationKey,
+          },
+        }),
+      ).toBe(1);
+    });
+  });
+
+  describe('later preparation must leave earlier disjoint slots bookable', () => {
+    let result: { created: number; rejected: string[]; persisted: number };
+    beforeEach(async () => {
+      result = await inHistoryFixture(db, async (tx) => {
+        const f = await roomRegressionFixture(tx);
+        await f.prepare([8, 9]); // 13:00-14:00
+        const calendar = await f.catalog.roomAvailability(f.users[1], {
+          roomKey: f.rooms[0].RoomKey,
+          date: ROOM_DAY,
+        });
+        expect(
+          calendar.slots.slice(0, 2).map((slot) => slot.available),
+        ).toEqual([true, true]);
+        const booking = await f.book([0, 1], 1); // 09:00-10:00
+        return {
+          created: booking.created.length,
+          rejected: booking.rejected.map((row) => row.code),
+          persisted: await tx.reservations.count({
+            where: { ResourceKey: f.rooms[0].ResourceKey },
+          }),
+        };
+      });
+    });
+    it.failing(
+      'accepts the morning booking and persists both disjoint reservations',
+      () => {
+        expect(result).toEqual({ created: 1, rejected: [], persisted: 2 });
+      },
+    );
+  });
+  it('controls: overlap refused; adjacent later booking accepted', async () => {
+    await inHistoryFixture(db, async (tx) => {
+      const f = await roomRegressionFixture(tx);
+      await f.prepare([8, 9]);
+      const overlap = await f.book([9, 10], 1);
+      expect(overlap.created).toEqual([]);
+      expect(overlap.rejected[0].code).toBe('WINDOW_NOT_AVAILABLE');
+      const adjacent = await f.book([10, 11], 1);
+      expect(adjacent.created).toHaveLength(1);
+      expect(adjacent.rejected).toEqual([]);
+    });
+  });
+  it('two disjoint reservations before preparation are accepted', async () => {
+    await inHistoryFixture(db, async (tx) => {
+      const f = await roomRegressionFixture(tx);
+      expect((await f.book([8, 9])).created).toHaveLength(1);
+      expect((await f.book([0, 1], 1)).created).toHaveLength(1);
+    });
+  });
+  it('backend control: Approved already consumes the one-booking quota', async () => {
+    await inHistoryFixture(db, async (tx) => {
+      const f = await roomRegressionFixture(tx);
+      expect((await f.book()).created[0].status).toBe('approved');
+      const second = await f.book([4, 5], 0, 1);
+      expect(second.created).toEqual([]);
+      expect(second.rejected[0].code).toBe('ROOM_BOOKING_LIMIT_REACHED');
+    });
+  });
+  for (const state of ['Prepared', 'Lended'] as const) {
+    it(`backend control: expired ${state} does not consume quota for another room`, async () => {
+      await inHistoryFixture(db, async (tx) => {
+        const f = await roomRegressionFixture(tx);
+        const { usage } = await f.prepare();
+        if (state === 'Lended') {
+          jest.setSystemTime(new Date(`${ROOM_DAY}T02:00:00Z`));
+          expect((await f.checkIn('borrower', usage.usageKey)).state).toBe(
+            'Lended',
+          );
+        }
+        jest.setSystemTime(new Date(`${ROOM_DAY}T03:00:00Z`));
+        expect(
+          (await f.requests.listMine(f.users[0], { page: 1, pageSize: 20 }))
+            .items[0].status,
+        ).toBe(state === 'Prepared' ? 'ready' : 'inUse');
+        const next = await f.book([4, 5], 0, 1);
+        expect(next.created).toHaveLength(1);
+        expect(next.rejected).toEqual([]);
+      });
+    });
+  }
 });
