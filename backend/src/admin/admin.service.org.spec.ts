@@ -7,9 +7,148 @@ import type { StaffScopeService } from '../common/authority/staff-scope.service'
 import type { CronService } from '../cron/cron.service';
 import type { ConfigService } from '@nestjs/config';
 import { createFacultyInput, createGroupInput } from './admin.schema';
+import {
+  createIsolatedDatabase,
+  type IsolatedTestDatabase,
+} from '../../tests/fixtures/isolated-database';
+import { BusinessError } from '../common/errors/business-error';
 
 // Faculties, departments, clubs, and attaching accounts to them.
 const ACTOR: AuditActor = { accountKey: 99, ip: null, userAgent: null };
+
+describe('the last faculty survives overlapping admin deletes', () => {
+  let database: IsolatedTestDatabase;
+  let other: PrismaService;
+  beforeAll(async () => {
+    database = await createIsolatedDatabase('org_delete');
+    other = database.createClient();
+  }, 60_000);
+  afterAll(async () => {
+    await database?.dispose();
+  }, 30_000);
+
+  function admin(client: PrismaService) {
+    return new AdminService(
+      client,
+      {} as CreditTierService,
+      {} as SessionService,
+      { record: jest.fn() } as unknown as AuditService,
+      {} as StaffScopeService,
+      {} as ConfigService,
+      {} as CronService,
+    );
+  }
+  async function twoEmptyFaculties() {
+    // Clear only this fixture-owned database, including org reference data
+    // inserted by migration; never delete from the runner/development database.
+    const client = database.client;
+    await client.branchInfo.deleteMany();
+    await client.managementGroup.deleteMany();
+    await client.facultyInfo.deleteMany();
+    const first = await client.facultyInfo.create({
+      data: { FacultyName: 'QA faculty 1' },
+    });
+    const second = await client.facultyInfo.create({
+      data: { FacultyName: 'QA faculty 2' },
+    });
+    expect(await client.facultyInfo.count()).toBe(2);
+    return [first.FacultyKey, second.FacultyKey];
+  }
+
+  it('deletes an empty faculty sequentially, then refuses the last one without changing it', async () => {
+    const [first, second] = await twoEmptyFaculties();
+    await expect(
+      admin(database.client).deleteFaculty({ id: first }, ACTOR),
+    ).resolves.toEqual({ ok: true });
+    const last = await database.client.facultyInfo.findMany();
+    expect(last).toHaveLength(1);
+    expect(last[0].FacultyKey).toBe(second);
+    await expect(
+      admin(other).deleteFaculty({ id: second }, ACTOR),
+    ).rejects.toMatchObject({ businessCode: 'ORG_LAST_ONE' });
+    expect(await database.client.facultyInfo.findMany()).toEqual(last);
+  });
+
+  describe('two independent connections read before either delete commits', () => {
+    let outcome: {
+      successfulDeletes: number;
+      remainingFaculties: number;
+      rejectedCodes: string[];
+    };
+    beforeEach(async () => {
+      const [first, second] = await twoEmptyFaculties();
+      const counts: number[] = [];
+      let release!: () => void;
+      const gate = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      const timeout = setTimeout(release, 3_000);
+      function synchronize(client: PrismaService): PrismaService {
+        const faculties = new Proxy(client.facultyInfo, {
+          get(target, property) {
+            if (property === 'count')
+              return async (...args: Parameters<typeof target.count>) => {
+                const count = await target.count(...args);
+                counts.push(count);
+                if (counts.length === 2) release();
+                await gate;
+                return count;
+              };
+            return Reflect.get(target, property) as unknown;
+          },
+        });
+        return new Proxy(client, {
+          get(target, property) {
+            return property === 'facultyInfo'
+              ? faculties
+              : (Reflect.get(target, property) as unknown);
+          },
+        });
+      }
+      try {
+        const results = await Promise.allSettled([
+          admin(synchronize(database.client)).deleteFaculty(
+            { id: first },
+            ACTOR,
+          ),
+          admin(synchronize(other)).deleteFaculty({ id: second }, ACTOR),
+        ]);
+        // These are real SQL counts and completed operations. Fail ordinary
+        // setup if the controlled overlap was not reached or SQL broke.
+        expect(counts.length).toBeGreaterThanOrEqual(2);
+        expect(counts).toContain(2);
+        const rejectedCodes: string[] = [];
+        for (const result of results) {
+          if (result.status === 'rejected') {
+            expect(result.reason).toBeInstanceOf(BusinessError);
+            rejectedCodes.push((result.reason as BusinessError).businessCode);
+          } else {
+            expect(result.value).toEqual({ ok: true });
+          }
+        }
+        outcome = {
+          successfulDeletes: results.filter((r) => r.status === 'fulfilled')
+            .length,
+          remainingFaculties: await database.client.facultyInfo.count(),
+          rejectedCodes,
+        };
+      } finally {
+        release();
+        clearTimeout(timeout);
+      }
+    });
+    it.failing(
+      'preserves one faculty and refuses the competing last-faculty delete',
+      () => {
+        expect(outcome).toEqual({
+          successfulDeletes: 1,
+          remainingFaculties: 1,
+          rejectedCodes: ['ORG_LAST_ONE'],
+        });
+      },
+    );
+  });
+});
 
 describe('NFR-SEC-03: organization create input boundaries', () => {
   it.each(['', '   ', 'x'.repeat(101)])(

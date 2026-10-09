@@ -5,6 +5,7 @@ import { BusinessError } from '../../src/common/errors/business-error';
 import {
   clashingWindowFilter,
   withBuffer,
+  resourcesFreeInWindow,
 } from '../../src/common/booking/booking-window';
 import {
   allocateLoanInput,
@@ -14,7 +15,10 @@ import {
 } from '../../src/loan/loan.schema';
 import { inHistoryFixture } from '../fixtures/borrower-history';
 import { ItemService } from '../../src/item/item.service';
-import { unitScheduleInput } from '../../src/item/item.schema';
+import {
+  unitScheduleInput,
+  unitScheduleOutput,
+} from '../../src/item/item.schema';
 import { freezeBusinessDate } from '../fixtures/business-clock';
 import { workHours } from '../../src/common/schemas/datetime.schema';
 import {
@@ -132,6 +136,204 @@ describe('NFR-REL-02 / SDS 4.4: unit selection preserves reserved windows', () =
         { start: PICKUP_START.toISOString(), end: PICKUP_END.toISOString() },
       ]);
       expect(schedule[1].busy).toEqual([]);
+    });
+  });
+
+  describe('calendar respects preparation buffers', () => {
+    describe.each([
+      {
+        label: 'zero buffer after the booking',
+        buffer: 0,
+        day: '2031-09-30',
+        busy: false,
+      },
+      {
+        label:
+          'buffer before the booking, whose raw start lies outside the query',
+        buffer: 2,
+        day: '2031-09-24',
+        busy: true,
+      },
+      {
+        label: 'buffer after the booking, whose raw end lies outside the query',
+        buffer: 2,
+        day: '2031-09-30',
+        busy: true,
+      },
+      {
+        label: 'after the full buffer has ended',
+        buffer: 2,
+        day: '2031-10-02',
+        busy: false,
+      },
+    ])('$label', ({ buffer, day, busy }) => {
+      let calendarBusy: boolean;
+      beforeEach(async () => {
+        jest.setSystemTime(new Date('2031-09-22T07:00:00+07:00'));
+        await inHistoryFixture(prisma, async (tx) => {
+          const f = await pickupFixture(tx);
+          await pickupRequest(f);
+          await tx.resourceInfo.update({
+            where: { ResourceKey: f.units[0].ResourceKey },
+            data: { BufferTime: buffer },
+          });
+          const start = new Date(`${day}T09:00:00+07:00`);
+          const end = new Date(`${day}T16:00:00+07:00`);
+          jest.setSystemTime(start);
+          const free = await resourcesFreeInWindow(
+            f.client,
+            [{ ResourceKey: f.units[0].ResourceKey, BufferTime: buffer }],
+            start,
+            end,
+          );
+          // SQL availability is an ordinary control, never an expected failure.
+          expect(free.has(f.units[0].ResourceKey)).toBe(!busy);
+          const schedule = unitScheduleOutput.parse(
+            await new ItemService(f.client).unitSchedule(
+              unitScheduleInput.parse({
+                id: f.item.ItemKey,
+                from: new Date(`${day}T00:00:00+07:00`).toISOString(),
+                days: 1,
+              }),
+            ),
+          );
+          expect(schedule.map((u) => u.resourceKey)).toEqual(
+            f.units.map((u) => u.ResourceKey),
+          );
+          const unit = schedule.find(
+            (u) => u.resourceKey === f.units[0].ResourceKey,
+          )!;
+          calendarBusy =
+            unit.unavailable ||
+            unit.busy.some(
+              (b) => new Date(b.start) < end && new Date(b.end) > start,
+            );
+          expect(
+            schedule.find((u) => u.resourceKey === f.units[1].ResourceKey),
+          ).toMatchObject({ unavailable: false, busy: [] });
+        });
+      });
+      if (busy) {
+        it.failing(
+          'marks the preparation buffer busy instead of advertising a free unit',
+          () => {
+            expect(calendarBusy).toBe(true);
+          },
+        );
+      } else {
+        it('advertises the unit as free when no booking or buffer holds the window', () => {
+          expect(calendarBusy).toBe(false);
+        });
+      }
+    });
+  });
+
+  describe('calendar holds returned units until inspection', () => {
+    describe.each([false, true])('inspection completed: %s', (inspected) => {
+      let calendarBusy: boolean;
+      beforeEach(async () => {
+        await inHistoryFixture(prisma, async (tx) => {
+          const f = await pickupFixture(tx);
+          const request = await pickupRequest(f);
+          const prepared = loanOutput.strict().parse(
+            await f.loan.allocate(
+              f.staff,
+              allocateLoanInput.parse({
+                reservationKey: request.reservationKey,
+              }),
+            ),
+          );
+          await tx.images.create({
+            data: {
+              UsageKey: prepared.usageKey,
+              ResourceKey: prepared.resourceKey,
+              SubmittedBy: f.staff.accountKey,
+              SubmissionType: 'BeforePicture',
+              ImageURL: '/media/inspection/calendar-before.png',
+            },
+          });
+          jest.setSystemTime(PICKUP_START);
+          expect(
+            (
+              await f.loan.confirmPickup(f.staff, {
+                usageKey: prepared.usageKey,
+              })
+            ).status,
+          ).toBe('Lended');
+          await tx.images.create({
+            data: {
+              UsageKey: prepared.usageKey,
+              ResourceKey: prepared.resourceKey,
+              SubmittedBy: f.staff.accountKey,
+              SubmissionType: 'AfterPicture',
+              ImageURL: '/media/inspection/calendar-after.png',
+            },
+          });
+          jest.setSystemTime(new Date('2031-09-29T16:00:00+07:00'));
+          const returned = recordReturnOutput.strict().parse(
+            await f.loan.recordReturn(f.staff, {
+              usageKey: prepared.usageKey,
+            }),
+          );
+          expect(returned.loan.status).toBe('Returned');
+          expect(returned.latePenalty).toBeNull();
+          if (inspected) {
+            // Same persisted lifecycle control as early-return-availability:
+            // only inspection completion releases the usage's claim.
+            await tx.usageLog.update({
+              where: { UsageKey: prepared.usageKey },
+              data: { CurrentStatus: 'Inspected' },
+            });
+          }
+          const start = new Date('2031-09-30T09:00:00+07:00');
+          const end = new Date('2031-09-30T16:00:00+07:00');
+          jest.setSystemTime(start);
+          const free = await resourcesFreeInWindow(
+            f.client,
+            [{ ResourceKey: prepared.resourceKey, BufferTime: 0 }],
+            start,
+            end,
+          );
+          expect(free.has(prepared.resourceKey)).toBe(inspected);
+          const stored = await tx.usageLog.findUniqueOrThrow({
+            where: { UsageKey: prepared.usageKey },
+          });
+          expect(stored).toMatchObject({
+            CurrentStatus: inspected ? 'Inspected' : 'Returned',
+            CheckInTime: new Date('2031-09-29T16:00:00+07:00'),
+          });
+          const schedule = unitScheduleOutput.parse(
+            await new ItemService(f.client).unitSchedule(
+              unitScheduleInput.parse({
+                id: f.item.ItemKey,
+                from: start.toISOString(),
+                days: 1,
+              }),
+            ),
+          );
+          const unit = schedule.find(
+            (u) => u.resourceKey === prepared.resourceKey,
+          )!;
+          expect(unit).toBeDefined();
+          calendarBusy =
+            unit.unavailable ||
+            unit.busy.some(
+              (b) => new Date(b.start) < end && new Date(b.end) > start,
+            );
+        });
+      });
+      if (inspected) {
+        it('shows free after inspection has released the unit', () => {
+          expect(calendarBusy).toBe(false);
+        });
+      } else {
+        it.failing(
+          'shows busy after actual receipt while inspection is still pending',
+          () => {
+            expect(calendarBusy).toBe(true);
+          },
+        );
+      }
     });
   });
 

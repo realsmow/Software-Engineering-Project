@@ -268,6 +268,62 @@ describe("StaffQueuePage", () => {
     });
   });
 
+  describe("same display name does not identify a request group", () => {
+    describe("different tiers under the same display name", () => {
+      beforeEach(() => {
+        // Different ResourceKey/ReservationKey stand for distinct ItemKeys.
+        // The queue DTO exposes only itemName, which is not unique in SQL.
+        const rows = [
+          staffQueueRow
+            .strict()
+            .parse({ ...row, tier: "T1", resourceKey: 7, reservationKey: 77 }),
+          staffQueueRow
+            .strict()
+            .parse({ ...row, tier: "T2", resourceKey: 8, reservationKey: 78 }),
+        ];
+        mocks.useStaffQueue.mockReturnValue(queryResult(rows));
+        renderPage();
+        expect(mocks.useStaffQueue).toHaveBeenCalledWith("toPrepare", "");
+        expect(screen.getAllByText("Oscilloscope").length).toBeGreaterThan(0);
+      });
+      it.fails(
+        "keeps distinct equipment types with identical names in separate rows",
+        () => {
+          expect(screen.getAllByText("Ada Lovelace")).toHaveLength(2);
+          expect(screen.queryByText("×2")).not.toBeInTheDocument();
+          expect(
+            screen.getAllByRole("button", { name: i18n.t("staff.queue.actionPrepare") })
+          ).toHaveLength(2);
+        }
+      );
+    });
+
+    it("keeps differently named types separate and acts on only the selected reservation", async () => {
+      mocks.useStaffQueue.mockReturnValue(
+        queryResult([
+          staffQueueRow.strict().parse({ ...row, tier: "T1", reservationKey: 77 }),
+          staffQueueRow
+            .strict()
+            .parse({
+              ...row,
+              itemName: "Multimeter",
+              resourceKey: 8,
+              reservationKey: 78,
+            }),
+        ])
+      );
+      allocate.mockResolvedValue(loanResponse({ usageKey: 9, reservationKey: 77 }));
+      renderPage();
+      expect(screen.getAllByText("Ada Lovelace")).toHaveLength(2);
+      expect(screen.queryByText("×2")).not.toBeInTheDocument();
+      fireEvent.click(
+        screen.getAllByRole("button", { name: i18n.t("staff.queue.actionPrepare") })[0]
+      );
+      await waitFor(() => expect(allocate).toHaveBeenCalledWith({ reservationKey: 77 }));
+      expect(allocate).toHaveBeenCalledTimes(1);
+    });
+  });
+
   it("shows a failed allocation without losing the queue row", async () => {
     allocate.mockRejectedValue(new Error("The unit is no longer available"));
     renderPage();

@@ -8,14 +8,23 @@ import {
   decideExtensionInput,
   inspectExtensionInput,
   paginatedExtensionReviews,
+  staffQueueCounts,
 } from '../../src/loan/loan.schema';
-import { inHistoryFixture } from '../fixtures/borrower-history';
+import {
+  inHistoryFixture,
+  transactionClient,
+} from '../fixtures/borrower-history';
 import { creditLoanFixture } from '../fixtures/loan-extension';
 import { freezeBusinessDate } from '../fixtures/business-clock';
 import { workHours } from '../../src/common/schemas/datetime.schema';
 import { PenaltyService } from '../../src/common/penalty/penalty.service';
 import { NotificationService } from '../../src/notification/notification.service';
 import { CronService } from '../../src/cron/cron.service';
+import { LoanService } from '../../src/loan/loan.service';
+import { StaffScopeService } from '../../src/common/authority/staff-scope.service';
+import { CreditTierService } from '../../src/common/credit/credit-tier.service';
+import { ApprovalService } from '../../src/approval/approval.service';
+import { approvalCounts } from '../../src/approval/approval.schema';
 
 const DAY = 86_400_000;
 type Fixture = Awaited<ReturnType<typeof creditLoanFixture>>;
@@ -641,6 +650,278 @@ describe('SDS renewal workflow: gates before routing and persisted decisions', (
       ).toMatchObject({ ApproveStatus: 'Pending', ApprovedBy: null });
       await assertUnchanged(tx, f);
       expect(f.audit.record).not.toHaveBeenCalled();
+    });
+  });
+
+  describe.each([
+    { tier: 'T2', band: 'D0', used: 0, route: 'supervisor' },
+    { tier: 'T0', band: 'D2', used: 0, route: 'supervisor' },
+    { tier: 'T1', band: 'D2', used: 0, route: 'supervisor' },
+    { tier: 'T1', band: 'D0', used: 1, route: 'staff' },
+  ] as const)(
+    'Work queue extension count: $tier / $band / $route',
+    ({ tier, band, used, route }) => {
+      let beforeCount: number;
+      let afterCount: number;
+
+      // Setup and worklist/persistence assertions are outside it.failing so
+      // only the known dashboard-count mismatch can satisfy its marker.
+      beforeEach(async () => {
+        await inHistoryFixture(prisma, async (tx) => {
+          const f = await creditLoanFixture(tx, tier, band, used);
+          const staff = await staffInScope(tx, f);
+          const pending = extensionOutput
+            .strict()
+            .parse(await f.extensions.request(f.user, requestFor(f)));
+          expect(pending).toMatchObject({ status: 'Pending', route });
+
+          // A real pending staff task in another department must not inflate
+          // this counter, either before or after the local task is handled.
+          const foreign = await creditLoanFixture(tx, 'T1', 'D0', 1);
+          const foreignPending = extensionOutput
+            .strict()
+            .parse(
+              await foreign.extensions.request(
+                foreign.user,
+                requestFor(foreign),
+              ),
+            );
+          expect(foreignPending).toMatchObject({
+            status: 'Pending',
+            route: 'staff',
+          });
+
+          const client = transactionClient(tx);
+          const loans = new LoanService(
+            client,
+            new StaffScopeService(client),
+            new PenaltyService(client),
+            new NotificationService(client),
+            f.audit as never,
+          );
+          const beforeRows = paginatedExtensionReviews
+            .strict()
+            .parse(
+              await f.extensions.listReviews(staff, { page: 1, pageSize: 100 }),
+            );
+          expect(beforeRows.total).toBe(1);
+          expect(beforeRows.items).toEqual([
+            expect.objectContaining({
+              extensionKey: pending.extensionKey,
+              route,
+              inspection: null,
+            }),
+          ]);
+          beforeCount = staffQueueCounts
+            .strict()
+            .parse(await loans.getQueueCounts(staff)).extensionsToInspect;
+
+          if (route === 'supervisor') {
+            await f.extensions.inspect(
+              staff,
+              inspectExtensionInput.parse({
+                extensionKey: pending.extensionKey,
+                condition: 'Normal',
+              }),
+            );
+            const stored = await tx.extensionRequest.findUniqueOrThrow({
+              where: { ExtensionKey: pending.extensionKey },
+            });
+            expect(stored.ApproveStatus).toBe('Pending');
+            expect(stored.InspectedCondition).not.toBeNull();
+            const supervisorRows = paginatedExtensionReviews.strict().parse(
+              await f.extensions.listReviews(f.f.decider, {
+                page: 1,
+                pageSize: 100,
+                route: 'supervisor',
+              }),
+            );
+            expect(supervisorRows.items).toEqual([
+              expect.objectContaining({
+                extensionKey: pending.extensionKey,
+                inspection: expect.objectContaining({ condition: 'Normal' }),
+              }),
+            ]);
+          } else {
+            const decided = extensionOutput.strict().parse(
+              await f.extensions.decide(
+                staff,
+                decideExtensionInput.parse({
+                  extensionKey: pending.extensionKey,
+                  decision: 'approve',
+                  condition: 'Normal',
+                }),
+              ),
+            );
+            expect(decided.status).toBe('Approved');
+          }
+
+          const afterRows = paginatedExtensionReviews
+            .strict()
+            .parse(
+              await f.extensions.listReviews(staff, { page: 1, pageSize: 100 }),
+            );
+          expect(afterRows).toMatchObject({ total: 0, items: [] });
+          afterCount = staffQueueCounts
+            .strict()
+            .parse(await loans.getQueueCounts(staff)).extensionsToInspect;
+          expect(
+            await tx.extensionRequest.findUniqueOrThrow({
+              where: { ExtensionKey: foreignPending.extensionKey },
+            }),
+          ).toMatchObject({
+            ApproveStatus: 'Pending',
+            InspectedCondition: null,
+          });
+        });
+      });
+
+      if (tier === 'T2') {
+        it.failing(
+          'counts the pending T2 condition check shown in the staff worklist',
+          () => {
+            expect(beforeCount).toBe(1);
+          },
+        );
+      } else {
+        it('counts the pending extension shown in the staff worklist', () => {
+          expect(beforeCount).toBe(1);
+        });
+      }
+
+      if (route === 'supervisor' && tier !== 'T2') {
+        it.failing(
+          'removes the checked extension from the staff count while supervisor approval is pending',
+          () => {
+            expect(afterCount).toBe(0);
+          },
+        );
+      } else {
+        it('removes the completed staff task from the count without counting another department', () => {
+          expect(afterCount).toBe(0);
+        });
+      }
+    },
+  );
+
+  describe('Supervisor Approvals: T2 extension waiting for staff check', () => {
+    let beforeCount: number;
+    let afterCount: number;
+
+    // Real request, queue and inspection assertions run outside it.failing.
+    // Only the known missing dashboard count may satisfy the defect marker.
+    beforeEach(async () => {
+      await inHistoryFixture(prisma, async (tx) => {
+        const f = await creditLoanFixture(tx, 'T2', 'D0');
+        const staff = await staffInScope(tx, f);
+        const pending = extensionOutput
+          .strict()
+          .parse(await f.extensions.request(f.user, requestFor(f)));
+        expect(pending).toMatchObject({
+          status: 'Pending',
+          route: 'supervisor',
+        });
+
+        const foreign = await creditLoanFixture(tx, 'T2', 'D0');
+        const foreignPending = extensionOutput
+          .strict()
+          .parse(
+            await foreign.extensions.request(foreign.user, requestFor(foreign)),
+          );
+        expect(foreignPending.status).toBe('Pending');
+
+        const client = transactionClient(tx);
+        const approvals = new ApprovalService(
+          client,
+          new StaffScopeService(client),
+          new CreditTierService(client),
+          {} as never,
+          {} as never,
+          f.audit as never,
+          {} as never,
+        );
+        for (const caller of [staff, f.f.decider]) {
+          const worklist = paginatedExtensionReviews.strict().parse(
+            await f.extensions.listReviews(caller, {
+              page: 1,
+              pageSize: 100,
+              route: 'supervisor',
+            }),
+          );
+          expect(worklist).toMatchObject({
+            total: 1,
+            items: [
+              {
+                extensionKey: pending.extensionKey,
+                tier: 'T2',
+                inspection: null,
+              },
+            ],
+          });
+        }
+        beforeCount = approvalCounts
+          .strict()
+          .parse(await approvals.counts(f.f.decider)).staff;
+
+        await f.extensions.inspect(
+          staff,
+          inspectExtensionInput.parse({
+            extensionKey: pending.extensionKey,
+            condition: 'Normal',
+          }),
+        );
+        expect(
+          await tx.extensionRequest.findUniqueOrThrow({
+            where: { ExtensionKey: pending.extensionKey },
+          }),
+        ).toMatchObject({
+          ApproveStatus: 'Pending',
+          InspectedCondition: expect.any(Number),
+        });
+        expect(
+          paginatedExtensionReviews
+            .strict()
+            .parse(
+              await f.extensions.listReviews(staff, { page: 1, pageSize: 100 }),
+            ),
+        ).toMatchObject({ total: 0, items: [] });
+        expect(
+          paginatedExtensionReviews.strict().parse(
+            await f.extensions.listReviews(f.f.decider, {
+              page: 1,
+              pageSize: 100,
+              route: 'supervisor',
+            }),
+          ),
+        ).toMatchObject({
+          total: 1,
+          items: [
+            {
+              extensionKey: pending.extensionKey,
+              inspection: { condition: 'Normal' },
+            },
+          ],
+        });
+        afterCount = approvalCounts
+          .strict()
+          .parse(await approvals.counts(f.f.decider)).staff;
+        expect(
+          await tx.extensionRequest.findUniqueOrThrow({
+            where: { ExtensionKey: foreignPending.extensionKey },
+          }),
+        ).toMatchObject({ ApproveStatus: 'Pending', InspectedCondition: null });
+      });
+    });
+
+    it.failing(
+      'includes the scoped T2 extension shown as waiting for staff check in Waiting on staff',
+      () => {
+        expect(beforeCount).toBe(1);
+      },
+    );
+
+    it('excludes the checked T2 extension and the unchecked extension in another department from Waiting on staff', () => {
+      expect(afterCount).toBe(0);
     });
   });
 
