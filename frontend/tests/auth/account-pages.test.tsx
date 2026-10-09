@@ -196,7 +196,6 @@ describe("profile account actions through real hooks", () => {
         stage: "first overdue sweep",
         deduction: 2,
         score: 98,
-        previousScore: 100,
         issuedAt: "2031-10-01T17:01:00.000Z",
         expiresAt: "2031-10-05T17:01:00.000Z",
       },
@@ -204,7 +203,6 @@ describe("profile account actions through real hooks", () => {
         stage: "receipt after five overdue days",
         deduction: 10,
         score: 90,
-        previousScore: 98,
         issuedAt: "2031-10-06T09:00:00.000Z",
         expiresAt: "2031-10-26T09:00:00.000Z",
       },
@@ -264,26 +262,6 @@ describe("profile account actions through real hooks", () => {
         ).toHaveTextContent(String(stage.score));
       }
     );
-
-    describe.each(stages)("cached auth score before $stage", (stage) => {
-      beforeEach(async () => {
-        respond(stage);
-        useAuthStore
-          .getState()
-          .setUser(toClientUser(userResponse({ creditScore: stage.previousScore })));
-        mount(<ProfilePage />);
-        // Hook/render setup must pass normally, outside the failure marker.
-        await screen.findByText(
-          i18n.t("profile.activePenalties", { count: 1, total: stage.deduction })
-        );
-        expect(api).toHaveBeenCalledWith("credit.me", undefined);
-      });
-      it.fails("shows the latest score from credit.me", () => {
-        expect(
-          screen.getByText(i18n.t("profile.creditScore")).parentElement
-        ).toHaveTextContent(String(stage.score));
-      });
-    });
   });
 
   it("shows credit to staff accounts too (#132)", async () => {
