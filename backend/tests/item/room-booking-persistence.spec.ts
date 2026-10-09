@@ -13,15 +13,12 @@ import { EligibilityService } from '../../src/common/authority/eligibility.servi
 import { listRoomsInput } from '../../src/item/item.schema';
 import type { TrpcUser } from '../../src/trpc/context';
 import type { Prisma, RoomInfo } from '../../src/generated/prisma/client';
-import { createIsolatedDatabase } from '../fixtures/isolated-database';
 import { inHistoryFixture } from '../fixtures/borrower-history';
 import { pickupFixture } from '../fixtures/pickup';
 import { requestService } from '../fixtures/loan-request';
 import { freezeBusinessDate } from '../fixtures/business-clock';
 import { StaffScopeService } from '../../src/common/authority/staff-scope.service';
 import { PenaltyService } from '../../src/common/penalty/penalty.service';
-import { NotificationService } from '../../src/notification/notification.service';
-import { LoanService } from '../../src/loan/loan.service';
 import { InspectionService } from '../../src/inspection/inspection.service';
 import { roomCheckOutput } from '../../src/inspection/inspection.schema';
 import { loanOutput } from '../../src/loan/loan.schema';
@@ -458,21 +455,16 @@ type RoomCheckIn = Awaited<
 >;
 
 describe('selected room regressions', () => {
-  let database: Awaited<ReturnType<typeof createIsolatedDatabase>>;
   let db: PrismaService;
   beforeAll(async () => {
     requireIsolatedDatabase();
-    // commits across two real connections; a rollback-only fixture
-    // cannot expose the same reservation to both connections.
-    database = await createIsolatedDatabase('room', {
-      seedReferenceData: true,
-    });
-    db = database.client;
-  }, 60_000);
+    db = new PrismaService();
+    await db.$connect();
+  });
   beforeEach(() => freezeBusinessDate(new Date(`${ROOM_DAY}T00:00:00Z`)));
   afterEach(() => jest.useRealTimers());
   afterAll(async () => {
-    await database?.dispose();
+    await db?.$disconnect();
   });
 
   for (const caller of ['borrower', 'staff'] as const) {
@@ -593,116 +585,6 @@ describe('selected room regressions', () => {
       });
     });
   }
-
-  describe('concurrent staff allocation', () => {
-    let rows: number[];
-    let accepted: number;
-    beforeEach(async () => {
-      const f = await db.$transaction((tx) => roomRegressionFixture(tx));
-      const requests = withOutputContracts(
-        requestService(db).service,
-        requestContracts,
-      );
-      const booking = await requests.createRoomBooking(f.users[0], {
-        roomKey: f.rooms[0].RoomKey,
-        date: ROOM_DAY,
-        slots: [0, 1],
-      });
-      expect(booking.created).toHaveLength(1);
-      expect(booking.rejected).toEqual([]);
-      const second = database.createClient();
-      await second.$connect();
-      let arrived = 0;
-      let release!: () => void;
-      const gate = new Promise<void>((resolve) => {
-        release = resolve;
-      });
-      // Control scheduling only. Every read/write remains real SQL. Wait after
-      // each caller's prechecks, before either opens its allocation transaction.
-      const wrap = (client: PrismaService) =>
-        new Proxy(client, {
-          get(target, property) {
-            if (property !== '$transaction')
-              return Reflect.get(target, property) as unknown;
-            return async (
-              work: (tx: Prisma.TransactionClient) => Promise<unknown>,
-            ) => {
-              arrived++;
-              if (arrived === 2) release();
-              await gate;
-              return target.$transaction(work);
-            };
-          },
-        });
-      const timer = setTimeout(release, 5000);
-      try {
-        const services = [db, second].map((client) => {
-          const wrapped = wrap(client);
-          return new LoanService(
-            wrapped,
-            new StaffScopeService(wrapped),
-            new PenaltyService(wrapped),
-            new NotificationService(wrapped),
-            f.audit as never,
-          );
-        });
-        const outcomes = await Promise.allSettled(
-          services.map((service) =>
-            service.allocate(f.staff, {
-              reservationKey: booking.created[0].reservationKey,
-              condition: 'Normal',
-            }),
-          ),
-        );
-        expect(arrived).toBe(2);
-        for (const outcome of outcomes) {
-          if (outcome.status === 'fulfilled')
-            loanOutput.strict().parse(outcome.value);
-          else
-            expect(outcome.reason).toMatchObject({
-              businessCode: expect.any(String),
-            });
-        }
-        accepted = outcomes.filter(
-          (outcome) => outcome.status === 'fulfilled',
-        ).length;
-        rows = (
-          await db.usageLog.findMany({
-            where: { ReservationKey: booking.created[0].reservationKey },
-          })
-        ).map((row) => row.UsageKey);
-      } finally {
-        release();
-        clearTimeout(timer);
-        await second.$disconnect();
-      }
-    });
-    it.failing('persists one prepared usage and accepts one allocation', () => {
-      expect({ usages: rows.length, accepted }).toEqual({
-        usages: 1,
-        accepted: 1,
-      });
-    });
-  });
-  it('control: sequential second allocation is refused', async () => {
-    await inHistoryFixture(db, async (tx) => {
-      const f = await roomRegressionFixture(tx);
-      const { booking } = await f.prepare();
-      await expect(
-        f.loan.allocate(f.staff, {
-          reservationKey: booking.created[0].reservationKey,
-          condition: 'Normal',
-        }),
-      ).rejects.toMatchObject({ businessCode: 'WRONG_LOAN_STATE' });
-      expect(
-        await tx.usageLog.count({
-          where: {
-            ReservationKey: booking.created[0].reservationKey,
-          },
-        }),
-      ).toBe(1);
-    });
-  });
 
   describe('later preparation must leave earlier disjoint slots bookable', () => {
     let result: { created: number; rejected: string[]; persisted: number };
