@@ -13,6 +13,8 @@ import {
   recordReturnOutput,
 } from '../../src/loan/loan.schema';
 import { inHistoryFixture } from '../fixtures/borrower-history';
+import { ItemService } from '../../src/item/item.service';
+import { unitScheduleInput } from '../../src/item/item.schema';
 import { freezeBusinessDate } from '../fixtures/business-clock';
 import { workHours } from '../../src/common/schemas/datetime.schema';
 import {
@@ -112,6 +114,59 @@ describe('NFR-REL-02 / SDS 4.4: unit selection preserves reserved windows', () =
   });
   beforeEach(() => freezeBusinessDate(PICKUP_NOW));
   afterEach(() => jest.useRealTimers());
+
+  it("shows each unit's busy window for the booking calendar (demo feedback)", async () => {
+    await inHistoryFixture(prisma, async (tx) => {
+      const f = await pickupFixture(tx);
+      await pickupRequest(f);
+      const schedule = await new ItemService(f.client).unitSchedule(
+        unitScheduleInput.parse({
+          id: f.item.ItemKey,
+          from: new Date(PICKUP_START.getTime() - DAY).toISOString(),
+        }),
+      );
+      expect(schedule.map((u) => u.resourceKey)).toEqual(
+        f.units.map((u) => u.ResourceKey),
+      );
+      expect(schedule[0].busy).toEqual([
+        { start: PICKUP_START.toISOString(), end: PICKUP_END.toISOString() },
+      ]);
+      expect(schedule[1].busy).toEqual([]);
+    });
+  });
+
+  it('lists the reserved unit first, then other free units of the type (demo feedback)', async () => {
+    await inHistoryFixture(prisma, async (tx) => {
+      const f = await pickupFixture(tx);
+      const request = await pickupRequest(f);
+      const serials = await tx.itemIndiv.findMany({
+        where: { ResourceKey: { in: f.units.map((u) => u.ResourceKey) } },
+        orderBy: { ResourceKey: 'asc' },
+      });
+      expect(
+        await f.loan.prepareOptions(f.staff, request.reservationKey),
+      ).toEqual([
+        {
+          resourceKey: f.units[0].ResourceKey,
+          serialNo: serials[0].ItemID,
+          reserved: true,
+        },
+        {
+          resourceKey: f.units[1].ResourceKey,
+          serialNo: serials[1].ItemID,
+          reserved: false,
+        },
+      ]);
+
+      // Another borrower's overlapping booking makes the spare unit unavailable.
+      await pickupRequest(f, 1, 1);
+      expect(
+        (await f.loan.prepareOptions(f.staff, request.reservationKey)).map(
+          (o) => o.reserved,
+        ),
+      ).toEqual([true]);
+    });
+  });
 
   describe('early receipt preserves a future return deadline', () => {
     let savedHours: { start: number; end: number };

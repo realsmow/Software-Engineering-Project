@@ -358,6 +358,53 @@ export class LoanService {
   }
 
   /**
+   * Units staff can choose between when preparing (demo feedback: the
+   * counter, not the borrower, decides which serial goes out). The reserved
+   * unit comes first; the rest are same type, same department, and free
+   * over this booking's window.
+   */
+  async prepareOptions(user: TrpcUser, reservationKey: number) {
+    const reservation = await this.prisma.reservations.findUnique({
+      where: { ReservationKey: reservationKey },
+      select: { Resource: { select: RESOURCE_SELECT } },
+    });
+    if (!reservation?.Resource.Item) {
+      throw new BusinessError('RESERVATION_NOT_FOUND', { reservationKey });
+    }
+    const reserved = reservation.Resource;
+    await this.scope.assertResourceInScope(user, reserved.ResourceKey);
+
+    const units = await this.prisma.resourceInfo.findMany({
+      where: {
+        ManagedBy: reserved.ManagedBy,
+        Item: { ItemKey: reserved.Item!.ItemKey },
+      },
+      select: { ResourceKey: true, Item: { select: { ItemID: true } } },
+      orderBy: { ResourceKey: 'asc' },
+    });
+    const options: {
+      resourceKey: number;
+      serialNo: string;
+      reserved: boolean;
+    }[] = [];
+    for (const unit of units) {
+      const isReserved = unit.ResourceKey === reserved.ResourceKey;
+      // ponytail: one free-check per unit; a department holds few of one type.
+      const free = await this.assertUnitFree(unit.ResourceKey, reservationKey)
+        .then(() => true)
+        .catch(() => false);
+      if (isReserved || free) {
+        options.push({
+          resourceKey: unit.ResourceKey,
+          serialNo: unit.Item?.ItemID ?? String(unit.ResourceKey),
+          reserved: isReserved,
+        });
+      }
+    }
+    return options.sort((a, b) => Number(b.reserved) - Number(a.reserved));
+  }
+
+  /**
    * Swaps the prepared unit for another of the same type.
    *
    * T1 only: the proposal lets a borrower ask for a different unit at the
@@ -993,20 +1040,9 @@ export class LoanService {
   ): Promise<ResourceRow> {
     await this.scope.assertResourceInScope(user, resourceKey);
 
-    // A T2 request is approved for one serial: the supervisor looked at that
-    // unit, and preparing a different one hands out something nobody
-    // approved. swapUnit already refuses T2 at pickup; this is the same rule
-    // at preparation, which went round it.
-    const reservedTier = tryMapTier(current.BorrowRuleInfo.RuleName);
-    if (reservedTier === 'T2') {
-      throw new BusinessError('UNIT_SWAP_NOT_ALLOWED', {
-        resourceKey,
-        reservedResourceKey: current.ResourceKey,
-        tier: reservedTier,
-        reason: 'APPROVED_FOR_A_SPECIFIC_UNIT',
-      });
-    }
-
+    // Staff choose the unit for every tier, T2 included (demo feedback):
+    // the borrower asks for a type, the supervisor approves the request,
+    // and the counter decides which serial goes out.
     const target = await this.prisma.resourceInfo.findUnique({
       where: { ResourceKey: resourceKey },
       select: RESOURCE_SELECT,

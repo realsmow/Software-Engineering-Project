@@ -2,7 +2,7 @@ import { Test } from '@nestjs/testing';
 import type { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import type { Server } from 'node:http';
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { AppModule } from '../app.module';
@@ -18,7 +18,8 @@ import { ImageService } from './image.service';
  * middleware included, since a misconfigured parser hands the controller `{}`
  * and no unit test of the service would notice.
  *
- * Boots AppModule with the database stubbed: this route never touches Prisma.
+ * Boots AppModule with the database stubbed; photos go to an in-memory
+ * MediaFile table.
  */
 describe('PUT /uploads/:token', () => {
   let app: INestApplication;
@@ -26,6 +27,7 @@ describe('PUT /uploads/:token', () => {
   /** getHttpServer() is typed `any`; narrowing it once keeps every call typed. */
   let server: Server;
   let mediaRoot: string;
+  const stored = new Map<string, unknown>();
 
   const PNG = Buffer.concat([
     Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
@@ -52,7 +54,23 @@ describe('PUT /uploads/:token', () => {
 
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
       .overrideProvider(PrismaService)
-      .useValue({ $connect: jest.fn(), $disconnect: jest.fn() })
+      .useValue({
+        $connect: jest.fn(),
+        $disconnect: jest.fn(),
+        mediaFile: {
+          create: ({ data }: { data: { Key: string } }) => {
+            if (stored.has(data.Key)) {
+              return Promise.reject(
+                Object.assign(new Error('dup'), { code: 'P2002' }),
+              );
+            }
+            stored.set(data.Key, data);
+            return Promise.resolve(data);
+          },
+          findUnique: ({ where }: { where: { Key: string } }) =>
+            Promise.resolve(stored.get(where.Key) ?? null),
+        },
+      })
       .compile();
 
     app = moduleRef.createNestApplication();
@@ -84,7 +102,7 @@ describe('PUT /uploads/:token', () => {
     });
 
     const key = ticket.imageUrl.replace('/media/', '');
-    await expect(readFile(join(mediaRoot, key))).resolves.toEqual(PNG);
+    expect((await images.read(key))?.bytes).toEqual(PNG);
   });
 
   it('serves the file back from the media mount', async () => {

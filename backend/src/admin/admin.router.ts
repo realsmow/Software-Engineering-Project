@@ -22,6 +22,8 @@ import {
   changeRoleInput,
   createFacultyInput,
   createGroupInput,
+  deleteOrgInput,
+  renameOrgInput,
   createUserInput,
   createUserOutput,
   orgFaculty,
@@ -29,6 +31,8 @@ import {
   orgOutput,
   type CreateFacultyInput,
   type CreateGroupInput,
+  type DeleteOrgInput,
+  type RenameOrgInput,
   cronJobOutput,
   lendingSettingsOutput,
   listAuditInput,
@@ -150,6 +154,30 @@ export class AdminRouter {
   @Mutation({ input: createGroupInput, output: orgGroup })
   createGroup(@Input() input: CreateGroupInput, @Ctx() ctx: TrpcContext) {
     return this.adminService.createGroup(input, AdminRouter.actorFrom(ctx));
+  }
+
+  @UseMiddlewares(AdminMiddleware)
+  @Mutation({ input: renameOrgInput, output: orgFaculty })
+  renameFaculty(@Input() input: RenameOrgInput, @Ctx() ctx: TrpcContext) {
+    return this.adminService.renameFaculty(input, AdminRouter.actorFrom(ctx));
+  }
+
+  @UseMiddlewares(AdminMiddleware)
+  @Mutation({ input: deleteOrgInput, output: okOutput })
+  deleteFaculty(@Input() input: DeleteOrgInput, @Ctx() ctx: TrpcContext) {
+    return this.adminService.deleteFaculty(input, AdminRouter.actorFrom(ctx));
+  }
+
+  @UseMiddlewares(AdminMiddleware)
+  @Mutation({ input: renameOrgInput, output: orgGroup })
+  renameGroup(@Input() input: RenameOrgInput, @Ctx() ctx: TrpcContext) {
+    return this.adminService.renameGroup(input, AdminRouter.actorFrom(ctx));
+  }
+
+  @UseMiddlewares(AdminMiddleware)
+  @Mutation({ input: deleteOrgInput, output: okOutput })
+  deleteGroup(@Input() input: DeleteOrgInput, @Ctx() ctx: TrpcContext) {
+    return this.adminService.deleteGroup(input, AdminRouter.actorFrom(ctx));
   }
 
   @UseMiddlewares(AdminMiddleware)

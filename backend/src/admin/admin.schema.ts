@@ -165,6 +165,12 @@ export const createGroupInput = z.object({
   facultyId: z.number().int().optional(),
 });
 
+export const renameOrgInput = z.object({
+  id: z.number().int(),
+  name: z.string().trim().min(1).max(100),
+});
+export const deleteOrgInput = z.object({ id: z.number().int() });
+
 export const changeRoleInput = accountIdInput.extend({ role: userRole });
 
 export const resetPasswordInput = accountIdInput.extend({
@@ -427,6 +433,8 @@ export type CreateUserInput = z.infer<typeof createUserInput>;
 export type UpdateUserInput = z.infer<typeof updateUserInput>;
 export type CreateGroupInput = z.infer<typeof createGroupInput>;
 export type CreateFacultyInput = z.infer<typeof createFacultyInput>;
+export type RenameOrgInput = z.infer<typeof renameOrgInput>;
+export type DeleteOrgInput = z.infer<typeof deleteOrgInput>;
 export type ChangeRoleInput = z.infer<typeof changeRoleInput>;
 export type ResetPasswordInput = z.infer<typeof resetPasswordInput>;
 export type SetUserActiveInput = z.infer<typeof setUserActiveInput>;

@@ -124,7 +124,7 @@ export const usagePhotoStage = z.enum(['before', 'after', 'evidence']);
 export type UsagePhotoStage = z.infer<typeof usagePhotoStage>;
 
 /** Enough for a unit photographed from every side, few enough to stay a record. */
-export const MAX_PHOTOS_PER_STAGE = 10;
+export const MAX_PHOTOS_PER_STAGE = 30;
 
 /**
  * Attach photos to a loan (CONTRACT.md §3, step 3).

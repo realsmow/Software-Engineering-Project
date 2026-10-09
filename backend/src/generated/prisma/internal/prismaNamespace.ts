@@ -398,6 +398,7 @@ type FieldRefInputType<Model, FieldType> = Model extends never ? never : FieldRe
 
 export const ModelName = {
   AccountInfo: 'AccountInfo',
+  MediaFile: 'MediaFile',
   PasswordReset: 'PasswordReset',
   EmailVerification: 'EmailVerification',
   SessionInfo: 'SessionInfo',
@@ -447,7 +448,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "accountInfo" | "passwordReset" | "emailVerification" | "sessionInfo" | "auditLog" | "roleInfo" | "facultyInfo" | "branchInfo" | "managementGroup" | "authority" | "authorityRole" | "clubInfo" | "itemInfo" | "itemIndiv" | "roomInfo" | "resourceInfo" | "retirementRequest" | "roomCheckRound" | "conditionLog" | "borrowRule" | "borrowConstraints" | "penaltyRule" | "eligibility" | "creditTier" | "reservations" | "usageLog" | "extensionRequest" | "inspection" | "penaltyInfo" | "appealInfo" | "images" | "notification" | "repairLog" | "systemSetting" | "cronRunLog"
+    modelProps: "accountInfo" | "mediaFile" | "passwordReset" | "emailVerification" | "sessionInfo" | "auditLog" | "roleInfo" | "facultyInfo" | "branchInfo" | "managementGroup" | "authority" | "authorityRole" | "clubInfo" | "itemInfo" | "itemIndiv" | "roomInfo" | "resourceInfo" | "retirementRequest" | "roomCheckRound" | "conditionLog" | "borrowRule" | "borrowConstraints" | "penaltyRule" | "eligibility" | "creditTier" | "reservations" | "usageLog" | "extensionRequest" | "inspection" | "penaltyInfo" | "appealInfo" | "images" | "notification" | "repairLog" | "systemSetting" | "cronRunLog"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -522,6 +523,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.AccountInfoCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.AccountInfoCountAggregateOutputType> | number
+        }
+      }
+    }
+    MediaFile: {
+      payload: Prisma.$MediaFilePayload<ExtArgs>
+      fields: Prisma.MediaFileFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.MediaFileFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MediaFilePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.MediaFileFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MediaFilePayload>
+        }
+        findFirst: {
+          args: Prisma.MediaFileFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MediaFilePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.MediaFileFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MediaFilePayload>
+        }
+        findMany: {
+          args: Prisma.MediaFileFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MediaFilePayload>[]
+        }
+        create: {
+          args: Prisma.MediaFileCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MediaFilePayload>
+        }
+        createMany: {
+          args: Prisma.MediaFileCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.MediaFileCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MediaFilePayload>[]
+        }
+        delete: {
+          args: Prisma.MediaFileDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MediaFilePayload>
+        }
+        update: {
+          args: Prisma.MediaFileUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MediaFilePayload>
+        }
+        deleteMany: {
+          args: Prisma.MediaFileDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.MediaFileUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.MediaFileUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MediaFilePayload>[]
+        }
+        upsert: {
+          args: Prisma.MediaFileUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MediaFilePayload>
+        }
+        aggregate: {
+          args: Prisma.MediaFileAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateMediaFile>
+        }
+        groupBy: {
+          args: Prisma.MediaFileGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MediaFileGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.MediaFileCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MediaFileCountAggregateOutputType> | number
         }
       }
     }
@@ -3098,6 +3173,16 @@ export const AccountInfoScalarFieldEnum = {
 export type AccountInfoScalarFieldEnum = (typeof AccountInfoScalarFieldEnum)[keyof typeof AccountInfoScalarFieldEnum]
 
 
+export const MediaFileScalarFieldEnum = {
+  Key: 'Key',
+  ContentType: 'ContentType',
+  Bytes: 'Bytes',
+  CreatedAt: 'CreatedAt'
+} as const
+
+export type MediaFileScalarFieldEnum = (typeof MediaFileScalarFieldEnum)[keyof typeof MediaFileScalarFieldEnum]
+
+
 export const PasswordResetScalarFieldEnum = {
   ResetKey: 'ResetKey',
   AccountKey: 'AccountKey',
@@ -3622,6 +3707,20 @@ export type BooleanFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel,
 
 
 /**
+ * Reference to a field of type 'Bytes'
+ */
+export type BytesFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Bytes'>
+    
+
+
+/**
+ * Reference to a field of type 'Bytes[]'
+ */
+export type ListBytesFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Bytes[]'>
+    
+
+
+/**
  * Reference to a field of type 'GroupType'
  */
 export type EnumGroupTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'GroupType'>
@@ -3926,6 +4025,7 @@ export interface PrismaClientOptionsWithAdapter extends PrismaClientBaseOptions 
 export type PrismaClientOptions = PrismaClientOptionsWithAccelerateUrl | PrismaClientOptionsWithAdapter
 export type GlobalOmitConfig = {
   accountInfo?: Prisma.AccountInfoOmit
+  mediaFile?: Prisma.MediaFileOmit
   passwordReset?: Prisma.PasswordResetOmit
   emailVerification?: Prisma.EmailVerificationOmit
   sessionInfo?: Prisma.SessionInfoOmit

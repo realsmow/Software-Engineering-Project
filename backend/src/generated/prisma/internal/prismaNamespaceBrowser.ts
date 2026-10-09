@@ -52,6 +52,7 @@ export const AnyNull = runtime.AnyNull
 
 export const ModelName = {
   AccountInfo: 'AccountInfo',
+  MediaFile: 'MediaFile',
   PasswordReset: 'PasswordReset',
   EmailVerification: 'EmailVerification',
   SessionInfo: 'SessionInfo',
@@ -120,6 +121,16 @@ export const AccountInfoScalarFieldEnum = {
 } as const
 
 export type AccountInfoScalarFieldEnum = (typeof AccountInfoScalarFieldEnum)[keyof typeof AccountInfoScalarFieldEnum]
+
+
+export const MediaFileScalarFieldEnum = {
+  Key: 'Key',
+  ContentType: 'ContentType',
+  Bytes: 'Bytes',
+  CreatedAt: 'CreatedAt'
+} as const
+
+export type MediaFileScalarFieldEnum = (typeof MediaFileScalarFieldEnum)[keyof typeof MediaFileScalarFieldEnum]
 
 
 export const PasswordResetScalarFieldEnum = {

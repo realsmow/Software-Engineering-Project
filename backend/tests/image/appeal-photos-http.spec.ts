@@ -10,6 +10,7 @@ import { ImageService } from '../../src/image/image.service';
 import { UsageImageService } from '../../src/image/usage-image.service';
 import type { TrpcUser } from '../../src/trpc/context';
 import { usagePhotosOutput } from '../../src/image/image.schema';
+import { PrismaService } from '../../src/prisma.service';
 
 // A valid 1x1 PNG, not only a magic-byte stub: the same bytes must be readable
 // at the URLs supplied to the supervisor's before/after image elements.
@@ -33,6 +34,23 @@ describe('PDF p. 20: appeal evidence is served over HTTP', () => {
     const module = await Test.createTestingModule({
       providers: [
         ImageService,
+        {
+          // Photos live in the MediaFile table; an in-memory stand-in here.
+          provide: PrismaService,
+          useValue: (() => {
+            const files = new Map<string, unknown>();
+            return {
+              mediaFile: {
+                create: ({ data }: { data: { Key: string } }) => {
+                  files.set(data.Key, data);
+                  return Promise.resolve(data);
+                },
+                findUnique: ({ where }: { where: { Key: string } }) =>
+                  Promise.resolve(files.get(where.Key) ?? null),
+              },
+            };
+          })(),
+        },
         {
           provide: ConfigService,
           useValue: { get: (key: string) => values[key] },

@@ -10,6 +10,8 @@ import { AuthMiddleware, StaffMiddleware } from '../trpc/auth.middleware';
 import type { TrpcContext } from '../trpc/context';
 import {
   allocateLoanInput,
+  prepareOptionsOutput,
+  reservationIdInput,
   cancelExtensionInput,
   confirmPickupInput,
   decideExtensionInput,
@@ -225,6 +227,15 @@ export class LoanRouter {
   }
 
   // ── Preparing and handing over ──────────────────────────────────────────
+
+  @UseMiddlewares(StaffMiddleware)
+  @Query({ input: reservationIdInput, output: prepareOptionsOutput })
+  prepareOptions(
+    @Input() input: { reservationKey: number },
+    @Ctx() ctx: TrpcContext,
+  ) {
+    return this.loanService.prepareOptions(ctx.user!, input.reservationKey);
+  }
 
   /** Sets a unit aside and opens the loan in `Prepared`. */
   @UseMiddlewares(StaffMiddleware)

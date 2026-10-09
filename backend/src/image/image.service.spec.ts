@@ -1,7 +1,8 @@
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { ConfigService } from '@nestjs/config';
+import type { PrismaService } from '../prisma.service';
 import { ImageService } from './image.service';
 import { MAX_UPLOAD_BYTES } from '../common/schemas/image.schema';
 import type { RequestUploadInput } from './image.schema';
@@ -36,7 +37,32 @@ function serviceIn(mediaRoot: string, overrides: Record<string, string> = {}) {
     get: (key: string) => values[key],
   } as unknown as ConfigService;
 
-  return new ImageService(config);
+  // In-memory MediaFile table.
+  const rows = new Map<string, { ContentType: string; Bytes: Uint8Array }>();
+  const prisma = {
+    mediaFile: {
+      create: jest.fn(
+        ({
+          data,
+        }: {
+          data: { Key: string; ContentType: string; Bytes: Uint8Array };
+        }) => {
+          if (rows.has(data.Key)) {
+            return Promise.reject(
+              Object.assign(new Error('dup'), { code: 'P2002' }),
+            );
+          }
+          rows.set(data.Key, data);
+          return Promise.resolve(data);
+        },
+      ),
+      findUnique: jest.fn(({ where }: { where: { Key: string } }) =>
+        Promise.resolve(rows.get(where.Key) ?? null),
+      ),
+    },
+  } as unknown as PrismaService;
+
+  return new ImageService(config, prisma);
 }
 
 const REQUEST: RequestUploadInput = {
@@ -147,6 +173,23 @@ describe('ImageService', () => {
     });
   });
 
+  describe('read', () => {
+    it('still finds a photo saved on disk before the database store', async () => {
+      const key = 'evidence/2026/09/old.png';
+      await mkdir(join(mediaRoot, 'evidence/2026/09'), { recursive: true });
+      await writeFile(join(mediaRoot, key), pngBytes());
+      expect(await service.read(key)).toEqual({
+        contentType: 'image/png',
+        bytes: pngBytes(),
+      });
+    });
+
+    it('answers null for a missing key or one outside the media root', async () => {
+      expect(await service.read('evidence/2026/09/none.png')).toBeNull();
+      expect(await service.read('../../etc/passwd')).toBeNull();
+    });
+  });
+
   describe('store', () => {
     function ticketFor(input: RequestUploadInput = REQUEST) {
       const token = service
@@ -162,9 +205,7 @@ describe('ImageService', () => {
       const url = await service.store(ticket, body, 'image/png');
 
       expect(url).toBe(`/media/${ticket.key}`);
-      await expect(readFile(join(mediaRoot, ticket.key))).resolves.toEqual(
-        body,
-      );
+      expect((await service.read(ticket.key))?.bytes).toEqual(body);
     });
 
     it('stores a JPEG without its EXIF block (#177)', async () => {
@@ -182,7 +223,7 @@ describe('ImageService', () => {
 
       await service.store(ticket, body, 'image/jpeg');
 
-      await expect(readFile(join(mediaRoot, ticket.key))).resolves.toEqual(
+      expect((await service.read(ticket.key))?.bytes).toEqual(
         Buffer.concat([Buffer.from([0xff, 0xd8]), scan]),
       );
     });
@@ -236,7 +277,7 @@ describe('ImageService', () => {
       ).rejects.toMatchObject({ message: 'UPLOAD_ALREADY_STORED' });
     });
 
-    it('never writes outside the media root', async () => {
+    it('never stores a key outside the issued shape', async () => {
       // The key is signed, so this cannot happen through the API — the guard is
       // for a future bug that lets a caller influence it.
       const escaping = { ...ticketFor(), key: '../escaped.png' };

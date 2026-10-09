@@ -9,6 +9,7 @@
  * 🟢 You can import this file directly.
  */
 export type * from './models/AccountInfo.js'
+export type * from './models/MediaFile.js'
 export type * from './models/PasswordReset.js'
 export type * from './models/EmailVerification.js'
 export type * from './models/SessionInfo.js'

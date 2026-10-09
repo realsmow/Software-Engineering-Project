@@ -19,6 +19,7 @@ import {
 } from '../common/mappers/item.mapper';
 import { tryMapTier } from '../common/schemas/status.schema';
 import {
+  HOLDING_RESERVATION,
   clashingWindowFilter,
   resourcesFreeInWindow,
 } from '../common/booking/booking-window';
@@ -38,6 +39,7 @@ import type {
   ListUnitsInput,
   ListRoomsInput,
   RoomAvailabilityInput,
+  UnitScheduleInput,
 } from './item.schema';
 
 /**
@@ -577,6 +579,66 @@ export class ItemService {
    * The polled endpoint (10-15s per open item page). Selects the three status
    * flags the count needs and nothing else — no names, no images, no group.
    */
+  async unitSchedule(input: UnitScheduleInput) {
+    const from = new Date(input.from);
+    const to = new Date(from.getTime() + input.days * 86_400_000);
+    const units = await this.prisma.resourceInfo.findMany({
+      where: {
+        Item: { ItemKey: input.id },
+        ResourceStatus: { not: 'Retired' },
+      },
+      select: {
+        ResourceKey: true,
+        ResourceStatus: true,
+        AllowBorrow: true,
+        Item: { select: { ItemID: true } },
+      },
+      orderBy: { ResourceKey: 'asc' },
+    });
+    const keys = units.map((u) => u.ResourceKey);
+    const [bookings, loans] = await Promise.all([
+      this.prisma.reservations.findMany({
+        where: {
+          ResourceKey: { in: keys },
+          ...HOLDING_RESERVATION,
+          StartTime: { lt: to },
+          EndTime: { gt: from },
+        },
+        select: { ResourceKey: true, StartTime: true, EndTime: true },
+      }),
+      // A unit still out (overdue included) is busy until it comes back.
+      this.prisma.usageLog.findMany({
+        where: {
+          ResourceKey: { in: keys },
+          CurrentStatus: {
+            in: UNAVAILABLE_USAGE_STATES.filter((s) => s !== 'Returned'),
+          },
+        },
+        select: { ResourceKey: true, CheckoutTime: true, DueTime: true },
+      }),
+    ]);
+    const now = new Date();
+    return units.map((u) => ({
+      resourceKey: u.ResourceKey,
+      serialNo: u.Item?.ItemID ?? String(u.ResourceKey),
+      unavailable:
+        u.ResourceStatus !== 'InStorage' && u.ResourceStatus !== 'Lended'
+          ? true
+          : !u.AllowBorrow,
+      busy: [
+        ...bookings
+          .filter((b) => b.ResourceKey === u.ResourceKey)
+          .map((b) => ({ start: toIso(b.StartTime), end: toIso(b.EndTime) })),
+        ...loans
+          .filter((l) => l.ResourceKey === u.ResourceKey)
+          .map((l) => ({
+            start: toIso(l.CheckoutTime),
+            end: toIso(l.DueTime > now ? l.DueTime : now),
+          })),
+      ],
+    }));
+  }
+
   async getAvailability(itemKey: number) {
     // Same rules as isUnitAvailable / unitReadyAt, counted in SQL: this is the
     // 10-15s poll (NFR-PRF-04), and loading every unit's loan made it scale

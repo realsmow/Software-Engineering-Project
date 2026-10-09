@@ -52,6 +52,10 @@ export const BUSINESS_ERROR_CODES = {
   AVATAR_URL_INVALID: 'BAD_REQUEST',
   FACULTY_NOT_FOUND: 'NOT_FOUND',
   GROUP_NOT_FOUND: 'NOT_FOUND',
+  /** A faculty or group still referenced by people, items or rules. */
+  ORG_IN_USE: 'CONFLICT',
+  /** The last faculty or group: items and accounts need at least one. */
+  ORG_LAST_ONE: 'CONFLICT',
   /** RoleInfo has no row for the requested role - seed data problem, not user error */
   ROLE_NOT_CONFIGURED: 'PRECONDITION_FAILED',
   /** An admin may not strip their own admin role or ban themselves */

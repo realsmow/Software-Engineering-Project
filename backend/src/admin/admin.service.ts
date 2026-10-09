@@ -46,6 +46,8 @@ import type {
   ChangeRoleInput,
   CreateFacultyInput,
   CreateGroupInput,
+  DeleteOrgInput,
+  RenameOrgInput,
   CreateUserInput,
   ListAuditInput,
   ListUsersInput,
@@ -1247,6 +1249,122 @@ export class AdminService implements OnModuleInit {
       type: facultyKey === null ? ('Club' as const) : ('Faculty' as const),
       facultyId: facultyKey,
     };
+  }
+
+  async renameFaculty(input: RenameOrgInput, actor: AuditActor) {
+    await this.facultyKeyOrNull(input.id);
+    await this.prisma.facultyInfo.update({
+      where: { FacultyKey: input.id },
+      data: { FacultyName: input.name },
+    });
+    await this.audit.record(
+      actor,
+      'update',
+      `faculty/${input.id}`,
+      `Renamed faculty to ${input.name}`,
+    );
+    return { id: input.id, name: input.name };
+  }
+
+  /**
+   * Only an empty faculty, and never the last one: with none left nothing
+   * can own equipment, which once stopped production entirely.
+   */
+  async deleteFaculty(input: DeleteOrgInput, actor: AuditActor) {
+    await this.facultyKeyOrNull(input.id);
+    const [departments, accounts, total] = await Promise.all([
+      this.prisma.branchInfo.count({ where: { FacultyKey: input.id } }),
+      this.prisma.accountInfo.count({ where: { FacultyKey: input.id } }),
+      this.prisma.facultyInfo.count(),
+    ]);
+    if (departments + accounts > 0) {
+      throw new BusinessError('ORG_IN_USE', {
+        id: input.id,
+        departments,
+        accounts,
+      });
+    }
+    if (total <= 1) throw new BusinessError('ORG_LAST_ONE', { id: input.id });
+    await this.prisma.facultyInfo.delete({ where: { FacultyKey: input.id } });
+    await this.audit.record(
+      actor,
+      'delete',
+      `faculty/${input.id}`,
+      'Deleted faculty',
+    );
+    return OK;
+  }
+
+  async renameGroup(input: RenameOrgInput, actor: AuditActor) {
+    const group = await this.groupOrThrow(input.id);
+    if (group.Branch) {
+      await this.prisma.branchInfo.update({
+        where: { ManageGroupKey: input.id },
+        data: { BranchName: input.name },
+      });
+    } else {
+      await this.prisma.clubInfo.update({
+        where: { ManageGroupKey: input.id },
+        data: { ClubName: input.name },
+      });
+    }
+    await this.audit.record(
+      actor,
+      'update',
+      `group/${input.id}`,
+      `Renamed to ${input.name}`,
+    );
+    return {
+      id: input.id,
+      name: input.name,
+      type: group.GroupType,
+      facultyId: group.Branch?.FacultyKey ?? null,
+    };
+  }
+
+  /** Only a group nothing points at, and never the last one. */
+  async deleteGroup(input: DeleteOrgInput, actor: AuditActor) {
+    await this.groupOrThrow(input.id);
+    const [members, items, rules, total] = await Promise.all([
+      this.prisma.authority.count({ where: { ManageGroupKey: input.id } }),
+      this.prisma.resourceInfo.count({ where: { ManagedBy: input.id } }),
+      this.prisma.eligibility.count({ where: { GroupKey: input.id } }),
+      this.prisma.managementGroup.count(),
+    ]);
+    if (members + items + rules > 0) {
+      throw new BusinessError('ORG_IN_USE', {
+        id: input.id,
+        members,
+        items,
+        rules,
+      });
+    }
+    if (total <= 1) throw new BusinessError('ORG_LAST_ONE', { id: input.id });
+    await this.prisma.$transaction([
+      this.prisma.branchInfo.deleteMany({
+        where: { ManageGroupKey: input.id },
+      }),
+      this.prisma.clubInfo.deleteMany({ where: { ManageGroupKey: input.id } }),
+      this.prisma.managementGroup.delete({
+        where: { ManageGroupKey: input.id },
+      }),
+    ]);
+    await this.audit.record(
+      actor,
+      'delete',
+      `group/${input.id}`,
+      'Deleted group',
+    );
+    return OK;
+  }
+
+  private async groupOrThrow(id: number) {
+    const group = await this.prisma.managementGroup.findUnique({
+      where: { ManageGroupKey: id },
+      select: { GroupType: true, Branch: { select: { FacultyKey: true } } },
+    });
+    if (!group) throw new BusinessError('GROUP_NOT_FOUND', { id });
+    return group;
   }
 
   private async facultyKeyOrNull(

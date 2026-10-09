@@ -83,31 +83,22 @@ function service(ruleName: string) {
   };
 }
 
-it('refuses to prepare a different unit for a T2 request', async () => {
-  const t = service('T2');
-  await expect(
-    t.svc.allocate(staff, {
-      reservationKey: 11,
-      resourceKey: 27,
-      condition: 'Normal',
-    }),
-  ).rejects.toMatchObject({ businessCode: 'UNIT_SWAP_NOT_ALLOWED' });
-  expect(t.findTarget).not.toHaveBeenCalled();
-  expect(t.audit.record).not.toHaveBeenCalled();
-});
-
-it('still lets a T1 request go out on another unit of the same type', async () => {
-  const t = service('T1');
-  // Past the tier guard, the target is looked up; null here stops it there.
-  await expect(
-    t.svc.allocate(staff, {
-      reservationKey: 11,
-      resourceKey: 27,
-      condition: 'Normal',
-    }),
-  ).rejects.toMatchObject({ businessCode: 'RESOURCE_NOT_FOUND' });
-  expect(t.findTarget).toHaveBeenCalled();
-});
+// Demo feedback: staff choose the unit at preparation for every tier.
+it.each(['T1', 'T2'])(
+  'lets a %s request go out on another unit of the same type',
+  async (tier) => {
+    const t = service(tier);
+    // Past the scope check, the target is looked up; null here stops it there.
+    await expect(
+      t.svc.allocate(staff, {
+        reservationKey: 11,
+        resourceKey: 27,
+        condition: 'Normal',
+      }),
+    ).rejects.toMatchObject({ businessCode: 'RESOURCE_NOT_FOUND' });
+    expect(t.findTarget).toHaveBeenCalled();
+  },
+);
 
 describe('allocate — audit trail', () => {
   function svcAllocating() {

@@ -9,6 +9,7 @@ import {
   isoDateTimeNullable,
 } from '../common/schemas/datetime.schema';
 import { imageUrl } from '../common/schemas/image.schema';
+import { MAX_PHOTOS_PER_STAGE } from '../image/image.schema';
 import {
   conditionType,
   damageLevel,
@@ -129,7 +130,7 @@ export const createInspectionInput = usageIdInput.extend({
    * never travel through tRPC). Recorded as InspectionPicture rows so an appeal
    * can be argued from what the inspector saw.
    */
-  imageUrls: z.array(imageUrl).max(10).default([]),
+  imageUrls: z.array(imageUrl).max(MAX_PHOTOS_PER_STAGE).default([]),
 });
 export type CreateInspectionInput = z.infer<typeof createInspectionInput>;
 

@@ -23,6 +23,12 @@ export * from './enums.js';
  */
 export type AccountInfo = Prisma.AccountInfoModel
 /**
+ * Model MediaFile
+ * Uploaded photo bytes. Kept in the database because the host's disk is
+ * wiped on every restart (Render free plan), which lost every photo.
+ */
+export type MediaFile = Prisma.MediaFileModel
+/**
  * Model PasswordReset
  * A single sign-in, so a session can be ended before its token expires.
  * 

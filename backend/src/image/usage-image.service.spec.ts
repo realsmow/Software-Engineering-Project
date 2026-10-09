@@ -3,6 +3,7 @@ import type { StaffScopeService } from '../common/authority/staff-scope.service'
 import type { ImageService } from './image.service';
 import type { PrismaService } from '../prisma.service';
 import type { TrpcUser } from '../trpc/context';
+import { MAX_PHOTOS_PER_STAGE } from './image.schema';
 
 /**
  * Check-in / check-out photos (§5.9).
@@ -122,7 +123,7 @@ describe('UsageImageService.attach', () => {
   });
 
   it('refuses more than the per-stage cap', async () => {
-    const existing = Array.from({ length: 10 }, (_, i) => ({
+    const existing = Array.from({ length: MAX_PHOTOS_PER_STAGE }, (_, i) => ({
       ImageURL: `/media/${i}.jpg`,
     }));
     const { service } = build(usage('Lended'), existing);

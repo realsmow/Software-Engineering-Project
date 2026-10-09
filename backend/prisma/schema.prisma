@@ -160,6 +160,16 @@ model AccountInfo {
   RetirementsDecided   RetirementRequest[] @relation("RetirementDecidedBy")
 }
 
+/// Uploaded photo bytes. Kept in the database because the host's disk is
+/// wiped on every restart (Render free plan), which lost every photo.
+model MediaFile {
+  /// `purpose/YYYY/MM/<uuid>.ext`, the path after /media/.
+  Key         String   @id
+  ContentType String
+  Bytes       Bytes
+  CreatedAt   DateTime @default(now()) @db.Timestamptz(3)
+}
+
 /// A single sign-in, so a session can be ended before its token expires.
 ///
 /// The token itself is never stored. It carries a random id which is hashed

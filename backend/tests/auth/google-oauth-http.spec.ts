@@ -123,6 +123,7 @@ describe('FR-AUTH-01/02 and FR-ADM-05: enabled Google OAuth over HTTP', () => {
           { provide: GoogleOAuthService, useValue: google },
           { provide: SessionService, useValue: session },
           { provide: AuditService, useValue: new AuditService(f.client) },
+          { provide: PrismaService, useValue: f.client },
           ImageService,
         ],
       }).compile();

@@ -107,11 +107,35 @@ export function configureApp(app: NestExpressApplication): void {
    * public product photos, not personal data.
    */
   for (const purpose of CATALOGUE_UPLOAD_PURPOSES) {
-    app.useStaticAssets(`${images.storageRoot}/${purpose}`, {
-      prefix: `${MEDIA_PREFIX}${purpose}`,
-      index: false,
-      setHeaders: noSniffHeaders,
+    app.use(`${MEDIA_PREFIX}${purpose}`, (req: Request, res: Response) => {
+      if (req.method !== 'GET' && req.method !== 'HEAD') {
+        res.status(404).end();
+        return;
+      }
+      // Keys never change content (UUID names), so browsers may keep them.
+      void sendMedia(
+        res,
+        `${purpose}${req.path}`,
+        'public, max-age=31536000, immutable',
+      );
     });
+  }
+
+  /** Writes stored photo bytes, or 404 when there are none. */
+  async function sendMedia(res: Response, key: string, cache: string) {
+    try {
+      const media = await images.read(key);
+      if (!media) {
+        res.status(404).end();
+        return;
+      }
+      noSniffHeaders(res);
+      res.setHeader('Content-Type', media.contentType);
+      res.setHeader('Cache-Control', cache);
+      res.end(media.bytes);
+    } catch {
+      res.status(500).end();
+    }
   }
 
   /**
@@ -161,16 +185,8 @@ export function configureApp(app: NestExpressApplication): void {
         return;
       }
 
-      const file = images.resolveEvidenceFile(key);
-      if (!file) {
-        res.status(404).end();
-        return;
-      }
-
-      noSniffHeaders(res);
-      res.sendFile(file, (error: unknown) => {
-        if (error) res.status(404).end();
-      });
+      // Personal data: the signed URL may be reused while valid, never shared.
+      void sendMedia(res, key, 'private, max-age=900');
     },
   );
 

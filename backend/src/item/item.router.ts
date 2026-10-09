@@ -74,6 +74,9 @@ import {
   type UpdateItemTypeInput,
   type UpdateItemUnitInput,
   type UpdateRoomInput,
+  unitScheduleInput,
+  unitScheduleOutput,
+  type UnitScheduleInput,
 } from './item.schema';
 import { ItemService } from './item.service';
 import { ItemManagementService } from './item.management.service';
@@ -143,6 +146,12 @@ export class ItemRouter {
   @Query({ input: itemIdInput, output: availabilityOutput })
   getAvailability(@Input() input: { id: number }) {
     return this.itemService.getAvailability(input.id);
+  }
+
+  @UseMiddlewares(AuthMiddleware)
+  @Query({ input: unitScheduleInput, output: unitScheduleOutput })
+  unitSchedule(@Input() input: UnitScheduleInput) {
+    return this.itemService.unitSchedule(input);
   }
 
   /** Units of one type — serial numbers, condition, and what is due back when. */

@@ -1,8 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { randomBytes, randomUUID } from 'node:crypto';
-import { mkdir, writeFile } from 'node:fs/promises';
-import { dirname, join, normalize, resolve, sep } from 'node:path';
+import { readFile } from 'node:fs/promises';
+import { extname, join, normalize, resolve, sep } from 'node:path';
+import { PrismaService } from '../prisma.service';
 import { signToken, verifyToken } from '../common/crypto/token';
 import { signMediaKey, verifyMediaKey } from '../common/security/media-url';
 import { BusinessError } from '../common/errors/business-error';
@@ -52,11 +53,10 @@ interface UploadTicket {
  * Issuing upload tickets, receiving the bytes, and turning storage keys into
  * URLs.
  *
- * **Storage is the local filesystem.** That is a deliberate choice for a
- * project with no object-storage budget line, not an oversight: the shape of
- * the flow is the pre-signed-URL shape from CONTRACT.md §3, so moving to S3
- * later replaces `issueTicket`'s URL construction and `store`'s `writeFile`
- * and touches nothing else — no domain code, no frontend code.
+ * **Storage is the MediaFile table.** The host's disk is wiped on every
+ * restart, so files written there vanished (#6). The flow keeps the
+ * pre-signed-URL shape from CONTRACT.md §3, so moving to S3 later replaces
+ * `store` and `read` and touches nothing else.
  *
  * **The ticket is the authorisation.** `api-client.uploadFile` sends a bare
  * `fetch` PUT with no cookies, so the PUT endpoint cannot read a session. What
@@ -71,7 +71,10 @@ export class ImageService {
   private readonly mediaRoot: string;
   private readonly publicApiUrl: string;
 
-  constructor(private readonly config: ConfigService) {
+  constructor(
+    private readonly config: ConfigService,
+    private readonly prisma: PrismaService,
+  ) {
     this.secret = this.resolveSecret();
     this.mediaRoot = resolve(
       this.config.get<string>('MEDIA_ROOT') ?? './media',
@@ -171,23 +174,27 @@ export class ImageService {
       });
     }
 
-    const destination = this.resolveWithinRoot(ticket.key);
-    await mkdir(dirname(destination), { recursive: true });
-
+    // The key is signed, so this only guards against a future bug that lets
+    // a caller shape it: nothing but `purpose/YYYY/MM/<uuid>.ext` is stored.
+    if (
+      !/^[A-Za-z]+\/\d{4}\/\d{2}\/[0-9a-f-]{36}\.(jpg|png)$/.test(ticket.key)
+    ) {
+      throw new BusinessError('UPLOAD_REJECTED', { key: ticket.key });
+    }
+    // Stored in the database: the host's disk is wiped on restart (#6).
     try {
-      // wx: never overwrite. Keys carry a UUID, so a collision is a replayed
-      // ticket rather than bad luck, and letting a replay rewrite a file some
-      // row already points at would swap the photo under an existing record.
-      // #177: GPS and device details must not reach whoever opens the photo.
-      await writeFile(
-        destination,
-        stripImageMetadata(body, ticket.contentType),
-        { flag: 'wx' },
-      );
+      await this.prisma.mediaFile.create({
+        data: {
+          Key: ticket.key,
+          ContentType: ticket.contentType,
+          // #177: GPS and device details must not reach whoever opens the photo.
+          Bytes: new Uint8Array(stripImageMetadata(body, ticket.contentType)),
+        },
+      });
     } catch (error) {
-      if ((error as NodeJS.ErrnoException).code === 'EEXIST') {
-        // Expected, so it gets a business code rather than escaping as a 500
-        // with a filesystem path in the stack trace.
+      // Keys carry a UUID, so a duplicate is a replayed ticket. Letting it
+      // rewrite a photo some row already points at would swap the evidence.
+      if ((error as { code?: unknown } | null)?.code === 'P2002') {
         throw new BusinessError('UPLOAD_ALREADY_STORED', { key: ticket.key });
       }
       throw error;
@@ -246,6 +253,34 @@ export class ImageService {
    */
   verifyEvidenceAccess(key: string, exp: number, sig: string): boolean {
     return verifyMediaKey(key, exp, sig, this.secret);
+  }
+
+  /**
+   * The bytes for a storage key, or null when there are none.
+   *
+   * Files written to disk before photos moved into the database are still
+   * read from there, so older local setups keep their pictures.
+   */
+  async read(
+    key: string,
+  ): Promise<{ contentType: string; bytes: Buffer } | null> {
+    const row = await this.prisma.mediaFile.findUnique({
+      where: { Key: key },
+      select: { ContentType: true, Bytes: true },
+    });
+    if (row)
+      return { contentType: row.ContentType, bytes: Buffer.from(row.Bytes) };
+
+    const file = this.resolveEvidenceFile(key);
+    if (!file) return null;
+    try {
+      const ext = extname(file).slice(1);
+      const type = Object.entries(UPLOAD_EXTENSION).find(([, e]) => e === ext);
+      if (!type) return null;
+      return { contentType: type[0], bytes: await readFile(file) };
+    } catch {
+      return null;
+    }
   }
 
   /**

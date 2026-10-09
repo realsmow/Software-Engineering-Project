@@ -190,6 +190,16 @@ export const allocateLoanInput = reservationIdInput.extend({
 });
 export type AllocateLoanInput = z.infer<typeof allocateLoanInput>;
 
+/** Units staff may set aside for a booking: same type, free for its window. */
+export const prepareOptionsOutput = z.array(
+  z.object({
+    resourceKey: z.number().int(),
+    serialNo: z.string(),
+    /** The unit the booking holds now. */
+    reserved: z.boolean(),
+  }),
+);
+
 /**
  * Swap the reserved unit for another of the same type. T1 only (§5.4).
  * Staff read the serial off the unit's label, so that is what they send (#149).

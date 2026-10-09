@@ -230,3 +230,106 @@ describe('account and memberships in one transaction (#153)', () => {
     expect(t.audit.record).not.toHaveBeenCalled();
   });
 });
+
+describe('renaming and deleting faculties and groups (demo feedback)', () => {
+  function org(counts: Partial<Record<string, number>> = {}) {
+    const count = (key: string) =>
+      jest.fn().mockResolvedValue(counts[key] ?? 0);
+    const prisma = {
+      facultyInfo: {
+        findUnique: jest.fn().mockResolvedValue({ FacultyKey: 2 }),
+        update: jest.fn(),
+        delete: jest.fn(),
+        count: count('faculties'),
+      },
+      branchInfo: {
+        count: count('departments'),
+        update: jest.fn(),
+        deleteMany: jest.fn(),
+      },
+      clubInfo: { update: jest.fn(), deleteMany: jest.fn() },
+      accountInfo: { count: count('accounts') },
+      authority: { count: count('members') },
+      resourceInfo: { count: count('items') },
+      eligibility: { count: count('rules') },
+      managementGroup: {
+        findUnique: jest.fn().mockResolvedValue({
+          GroupType: 'Faculty',
+          Branch: { FacultyKey: 2 },
+        }),
+        count: count('groups'),
+        delete: jest.fn(),
+      },
+      $transaction: jest.fn().mockResolvedValue([]),
+    };
+    const audit = { record: jest.fn() };
+    const service = new AdminService(
+      prisma as unknown as PrismaService,
+      {} as CreditTierService,
+      {} as SessionService,
+      audit as unknown as AuditService,
+      {} as StaffScopeService,
+      {} as ConfigService,
+      {} as CronService,
+    );
+    return { service, prisma };
+  }
+
+  it('renames a department through its branch row', async () => {
+    const t = org();
+    await expect(
+      t.service.renameGroup({ id: 5, name: 'CPE 2' }, ACTOR),
+    ).resolves.toEqual({
+      id: 5,
+      name: 'CPE 2',
+      type: 'Faculty',
+      facultyId: 2,
+    });
+    expect(t.prisma.branchInfo.update).toHaveBeenCalledWith({
+      where: { ManageGroupKey: 5 },
+      data: { BranchName: 'CPE 2' },
+    });
+  });
+
+  it.each([
+    ['members', { members: 1, groups: 3 }],
+    ['items', { items: 2, groups: 3 }],
+    ['rules', { rules: 1, groups: 3 }],
+  ])('refuses to delete a group that still has %s', async (_, counts) => {
+    const t = org(counts);
+    await expect(t.service.deleteGroup({ id: 5 }, ACTOR)).rejects.toMatchObject(
+      {
+        businessCode: 'ORG_IN_USE',
+      },
+    );
+    expect(t.prisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  it('refuses to delete the last group or the last faculty', async () => {
+    const t = org({ groups: 1, faculties: 1 });
+    await expect(t.service.deleteGroup({ id: 5 }, ACTOR)).rejects.toMatchObject(
+      {
+        businessCode: 'ORG_LAST_ONE',
+      },
+    );
+    await expect(
+      t.service.deleteFaculty({ id: 2 }, ACTOR),
+    ).rejects.toMatchObject({
+      businessCode: 'ORG_LAST_ONE',
+    });
+  });
+
+  it('refuses to delete a faculty with departments or people, deletes an empty one', async () => {
+    await expect(
+      org({ departments: 1, faculties: 2 }).service.deleteFaculty(
+        { id: 2 },
+        ACTOR,
+      ),
+    ).rejects.toMatchObject({ businessCode: 'ORG_IN_USE' });
+    const t = org({ faculties: 2 });
+    await t.service.deleteFaculty({ id: 2 }, ACTOR);
+    expect(t.prisma.facultyInfo.delete).toHaveBeenCalledWith({
+      where: { FacultyKey: 2 },
+    });
+  });
+});

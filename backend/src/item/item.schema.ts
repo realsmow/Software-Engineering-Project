@@ -499,6 +499,25 @@ export const availabilityWindow = z.object({
 
 export const itemIdInput = z.object({ id: dbId });
 
+/**
+ * Busy windows per unit over the next few days (demo feedback: see each
+ * unit's timeslots to book when one is free). No borrower names.
+ */
+export const unitScheduleInput = itemIdInput.extend({
+  from: z.iso.datetime(),
+  days: z.number().int().min(1).max(31).default(14),
+});
+export type UnitScheduleInput = z.infer<typeof unitScheduleInput>;
+export const unitScheduleOutput = z.array(
+  z.object({
+    resourceKey: z.number().int(),
+    serialNo: z.string(),
+    /** Under repair or not lendable: busy every day. */
+    unavailable: z.boolean(),
+    busy: z.array(z.object({ start: z.iso.datetime(), end: z.iso.datetime() })),
+  }),
+);
+
 /** One item's units, optionally judged against a requested period. */
 export const listUnitsInput = itemIdInput.extend(availabilityWindow.shape);
 export type ListUnitsInput = z.infer<typeof listUnitsInput>;
