@@ -112,6 +112,10 @@ describe("borrower request checks", () => {
   const create = api.create;
 
   beforeEach(() => {
+    // Monday 09:00 Bangkok, so "tomorrow" is never a closed weekend day.
+    // Only Date is frozen; query timers stay real.
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2031-09-29T02:00:00.000Z"));
     void i18n.changeLanguage("en");
     vi.resetAllMocks();
     useRequestDraft.getState().clear();
@@ -127,6 +131,7 @@ describe("borrower request checks", () => {
     cleanup();
     client?.clear();
     useAuthStore.getState().setUser(null);
+    vi.useRealTimers();
   });
 
   it("keeps all pre-submit checks invalid when the cart is empty", () => {

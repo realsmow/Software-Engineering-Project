@@ -1,0 +1,9 @@
+email,student_id,first_name,last_name,role,group
+example.borrower1@ku.th,6610500001,สมชาย,ใจดี,borrower,ภาควิชาวิศวกรรมคอมพิวเตอร์
+example.borrower2@ku.th,6610500002,สมหญิง,รักเรียน,borrower,ภาควิชาวิศวกรรมไฟฟ้า
+example.borrower3@ku.th,6610500003,Anan,Sukjai,borrower,ภาควิชาวิทยาการคอมพิวเตอร์
+example.borrower4@ku.th,6610500004,Malee,Srisuk,borrower,
+example.staff1@ku.ac.th,ST0001,วิชัย,ช่างดี,staff,ภาควิชาวิศวกรรมคอมพิวเตอร์
+example.staff2@ku.ac.th,ST0002,Napa,Chaiyo,staff,ภาควิชาวิทยาการคอมพิวเตอร์
+example.supervisor1@ku.ac.th,SV0001,ประเสริฐ,คุมงาน,supervisor,ภาควิชาวิศวกรรมคอมพิวเตอร์
+example.supervisor2@ku.ac.th,SV0002,Kanya,Wongsa,supervisor,ภาควิชาวิทยาการคอมพิวเตอร์
