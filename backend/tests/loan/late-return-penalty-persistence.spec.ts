@@ -52,7 +52,10 @@ function services(client: PrismaService) {
   };
 }
 
-async function lendedFixture(tx: Prisma.TransactionClient) {
+async function lendedFixture(
+  tx: Prisma.TransactionClient,
+  endTime = PICKUP_END,
+) {
   const f = await pickupFixture(tx);
   // No ReturnLate PenaltyRule exists for this fixture's new BorrowRule.
   // FR-CRD-03 therefore gives 14 / 7 = 2 credit per overdue day.
@@ -60,7 +63,7 @@ async function lendedFixture(tx: Prisma.TransactionClient) {
     where: { ItemKey: f.item.ItemKey },
     data: { CreditWeight: 14 },
   });
-  const request = await pickupRequest(f);
+  const request = await pickupRequest(f, 0, 0, PICKUP_START, endTime);
   const prepared = loanOutput
     .strict()
     .parse(
@@ -87,7 +90,7 @@ async function lendedFixture(tx: Prisma.TransactionClient) {
     );
   expect(collected).toMatchObject({
     status: 'Lended',
-    dueAt: PICKUP_END.toISOString(),
+    dueAt: endTime.toISOString(),
   });
   return { ...f, usageKey: prepared.usageKey };
 }
@@ -492,6 +495,166 @@ describe('FR-RTN-07 / FR-CRD-03/04: late and lost penalty lifecycle', () => {
       },
     );
   });
+
+  describe.each([
+    { source: 'fallback formula', rate: null, daily: 2, term: 20 },
+    { source: 'configured two-day term', rate: 3, daily: 3, term: 2 },
+  ])(
+    'My profile: five overdue sweeps until actual return / $source',
+    ({ rate, daily, term }) => {
+      // Wednesday due, Monday receipt: five calendar days, including the weekend.
+      const due = new Date('2031-10-01T10:00:00.000Z');
+      const firstSweep = new Date('2031-10-01T17:01:00.000Z');
+      const returnedAt = new Date('2031-10-06T09:00:00.000Z');
+      let days: { at: Date; state: LateState; credit: CreditOutput }[];
+      let afterReturn: { state: LateState; credit: CreditOutput };
+      let receipt: Receipt;
+      let billings: number[];
+      let expirations: number[];
+      let lossJobs: number[];
+      let afterExpiry: { state: LateState; credit: CreditOutput };
+
+      beforeEach(async () => {
+        await inHistoryFixture(prisma, async (tx) => {
+          const f = await lendedFixture(tx, due);
+          const { cron } = services(f.client);
+          const credit = new CreditService(
+            f.client,
+            new CreditTierService(f.client),
+          );
+          const read = async () => ({
+            state: await lateState(tx, f),
+            credit: creditOutput
+              .strict()
+              .parse(await credit.getCredit(f.users[0].accountKey)),
+          });
+          if (rate !== null) {
+            await tx.penaltyRule.create({
+              data: {
+                BorrowRuleKey: f.rule.BorrowRuleKey,
+                PenaltyReason: 'ReturnLate',
+                PenaltyAmount: rate,
+                PenaltyLength: term,
+              },
+            });
+          }
+          days = [];
+          billings = [];
+          expirations = [];
+          lossJobs = [];
+          for (let day = 0; day < 5; day++) {
+            jest.setSystemTime(new Date(firstSweep.getTime() + day * DAY));
+            billings.push((await cron.run('markOverdue')).affected);
+            jest.setSystemTime(
+              new Date(firstSweep.getTime() + day * DAY + 14 * 60_000),
+            );
+            lossJobs.push((await cron.run('markLost')).affected);
+            jest.setSystemTime(
+              new Date(firstSweep.getTime() + day * DAY + 59 * 60_000),
+            );
+            expirations.push((await cron.run('expireDemerits')).affected);
+            days.push({ at: new Date(), ...(await read()) });
+          }
+          jest.setSystemTime(returnedAt);
+          receipt = await returnLoan(f.client, f);
+          afterReturn = await read();
+          assertReceiptExpiryMatchesDatabase(receipt, afterReturn.state);
+          expect(await cron.run('markOverdue')).toMatchObject({ affected: 0 });
+          expect(await cron.run('expireDemerits')).toMatchObject({
+            affected: 0,
+          });
+          expect(await read()).toEqual(afterReturn);
+
+          const expiry = new Date(returnedAt.getTime() + term * DAY);
+          jest.setSystemTime(new Date(expiry.getTime() - 1));
+          expect(await cron.run('expireDemerits')).toMatchObject({
+            affected: 0,
+          });
+          expect(await read()).toEqual(afterReturn);
+          jest.setSystemTime(expiry);
+          expect(await cron.run('expireDemerits')).toMatchObject({
+            affected: 1,
+          });
+          afterExpiry = await read();
+          expect(await cron.run('expireDemerits')).toMatchObject({
+            affected: 0,
+          });
+          expect(await read()).toEqual(afterExpiry);
+        });
+      });
+
+      it('charges once and keeps all five daily loans outstanding without restoring stored credit', () => {
+        expect(billings).toEqual([1, 0, 0, 0, 0]);
+        expect(expirations).toEqual([0, 0, 0, 0, 0]);
+        expect(lossJobs).toEqual([0, 0, 0, 0, 0]);
+        for (const { state, credit } of days) {
+          expect(state.penalties).toHaveLength(1);
+          expect(state.penalties[0]).toMatchObject({
+            CreditDeducted: daily,
+            InEffect: true,
+          });
+          expect(state.usage).toEqual({
+            CurrentStatus: 'Lended',
+            CheckInTime: null,
+          });
+          expect(state.creditScore).toBe(100 - daily);
+          expect(credit.score).toBe(100 - daily);
+        }
+      });
+
+      it.failing(
+        'keeps ReturnLate visible with its deduction in every daily My profile response until receipt',
+        () => {
+          for (const { credit } of days) {
+            expect(credit.totalDeducted).toBe(daily);
+            expect(credit.activePenalties).toHaveLength(1);
+            expect(credit.activePenalties[0]).toMatchObject({
+              reason: expect.stringMatching(/^ReturnLate/),
+              creditDeducted: daily,
+              itemName: expect.any(String),
+            });
+          }
+        },
+      );
+
+      it('reports all five late days and starts the complete term at actual Monday receipt', () => {
+        const expiry = new Date(
+          returnedAt.getTime() + term * DAY,
+        ).toISOString();
+        expect(receipt.latePenalty).toMatchObject({
+          overdueDays: 5,
+          creditDeducted: daily * 5,
+          expiresAt: expiry,
+        });
+        expect(afterReturn.state).toMatchObject({
+          creditScore: 100 - daily * 5,
+          activeDeduction: daily * 5,
+          usage: { CurrentStatus: 'Returned', CheckInTime: returnedAt },
+        });
+        expect(afterReturn.state.penalties).toHaveLength(1);
+        expect(afterReturn.credit).toMatchObject({
+          score: 100 - daily * 5,
+          totalDeducted: daily * 5,
+        });
+        expect(afterReturn.credit.activePenalties).toHaveLength(1);
+        expect(afterReturn.credit.activePenalties[0]).toMatchObject({
+          creditDeducted: daily * 5,
+          issuedAt: returnedAt.toISOString(),
+          expiresAt: expiry,
+        });
+      });
+
+      it('restores credit and removes the profile row only at the term measured from actual receipt', () => {
+        expect(afterExpiry.state.creditScore).toBe(100);
+        expect(afterExpiry.state.penalties[0].InEffect).toBe(false);
+        expect(afterExpiry.credit).toMatchObject({
+          score: 100,
+          totalDeducted: 0,
+          activePenalties: [],
+        });
+      });
+    },
+  );
 
   describe('penalty duration starts at actual return', () => {
     it.each([-1, 0, 1])(

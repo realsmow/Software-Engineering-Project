@@ -16,6 +16,7 @@ import { useAuthStore } from "../../src/features/auth/auth.store";
 import { toClientUser } from "../../src/features/auth/user.adapter";
 import i18n from "../../src/i18n";
 import { getErrorMessage } from "../../src/lib/error-messages";
+import { fmtDate } from "../../src/lib/datetime";
 import { creditResponse, userResponse } from "../fixtures/api-responses";
 
 const api = vi.hoisted(() => vi.fn<(path: string, input?: unknown) => unknown>());
@@ -189,6 +190,102 @@ describe("registration and token pages", () => {
 });
 
 describe("profile account actions through real hooks", () => {
+  describe("ReturnLate credit after a cron sweep and actual receipt", () => {
+    const stages = [
+      {
+        stage: "first overdue sweep",
+        deduction: 2,
+        score: 98,
+        previousScore: 100,
+        issuedAt: "2031-10-01T17:01:00.000Z",
+        expiresAt: "2031-10-05T17:01:00.000Z",
+      },
+      {
+        stage: "receipt after five overdue days",
+        deduction: 10,
+        score: 90,
+        previousScore: 98,
+        issuedAt: "2031-10-06T09:00:00.000Z",
+        expiresAt: "2031-10-26T09:00:00.000Z",
+      },
+    ];
+    beforeEach(() => {
+      // Only Date is frozen; React Query and DOM waits keep real timers.
+      vi.useFakeTimers({ toFake: ["Date"] });
+      vi.setSystemTime(new Date("2031-10-06T09:00:00.000Z"));
+    });
+    afterEach(() => vi.useRealTimers());
+    const respond = (stage: (typeof stages)[number]) => {
+      const response = creditResponse({
+        score: stage.score,
+        totalDeducted: stage.deduction,
+        activePenalties: [
+          {
+            id: 1,
+            usageKey: 7,
+            itemName: "QA late equipment",
+            reason: "ReturnLate: overdue 1d (scheduled)",
+            creditDeducted: stage.deduction,
+            issuedAt: stage.issuedAt,
+            expiresAt: stage.expiresAt,
+            appealed: false,
+          },
+        ],
+      });
+      const fallback = api.getMockImplementation()!;
+      api.mockImplementation((path, input) =>
+        path === "credit.me" ? response : fallback(path, input)
+      );
+      return response;
+    };
+
+    it.each(stages)(
+      "renders the server deduction, resource and expiry at $stage",
+      async (stage) => {
+        respond(stage);
+        // A freshly loaded auth response agrees with this credit response.
+        useAuthStore
+          .getState()
+          .setUser(toClientUser(userResponse({ creditScore: stage.score })));
+        mount(<ProfilePage />);
+        await screen.findByText(
+          i18n.t("profile.activePenalties", { count: 1, total: stage.deduction })
+        );
+        expect(screen.getByRole("listitem")).toHaveTextContent("QA late equipment");
+        expect(screen.getByRole("listitem")).toHaveTextContent(
+          "Returned late (overdue 1d (scheduled))"
+        );
+        expect(screen.getByRole("listitem")).toHaveTextContent(`-${stage.deduction}`);
+        expect(screen.getByRole("listitem")).toHaveTextContent(
+          i18n.t("profile.penaltyUntil", { date: fmtDate(stage.expiresAt) })
+        );
+        expect(
+          screen.getByText(i18n.t("profile.creditScore")).parentElement
+        ).toHaveTextContent(String(stage.score));
+      }
+    );
+
+    describe.each(stages)("cached auth score before $stage", (stage) => {
+      beforeEach(async () => {
+        respond(stage);
+        useAuthStore
+          .getState()
+          .setUser(toClientUser(userResponse({ creditScore: stage.previousScore })));
+        mount(<ProfilePage />);
+        // Hook/render setup must pass normally, outside the failure marker.
+        await screen.findByText(
+          i18n.t("profile.activePenalties", { count: 1, total: stage.deduction })
+        );
+        expect(api).toHaveBeenCalledWith("credit.me", undefined);
+      });
+      it.fails("shows the latest score from credit.me", () => {
+        expect(
+          screen.getByText(i18n.t("profile.creditScore")).parentElement
+        ).toHaveTextContent(String(stage.score));
+      });
+    });
+  });
+
   it("shows credit to staff accounts too (#132)", async () => {
     useAuthStore.getState().setUser(toClientUser(userResponse({ role: "staff" })));
     mount(<ProfilePage />);
