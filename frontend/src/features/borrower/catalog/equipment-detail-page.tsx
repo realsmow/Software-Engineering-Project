@@ -23,6 +23,7 @@ import { remainingUnits, useRequestDraft } from "../request/request-draft.store"
 import { AddButton } from "./add-button";
 import { toAvailabilityWindow } from "./availability-window";
 import { useEquipmentType } from "./use-equipment-types";
+import { UnitSchedule } from "./unit-schedule";
 import { useMyCredit } from "@/features/account/use-my-credit";
 
 const STOCK_TONE: Record<StockStatus, BadgeTone> = {
@@ -247,6 +248,12 @@ export default function EquipmentDetailPage() {
             </TableBody>
           </Table>
         </Panel>
+
+        {item.tier !== "T3" ? (
+          <Panel title={t("borrower.detail.schedule")}>
+            <UnitSchedule itemId={item.id} />
+          </Panel>
+        ) : null}
       </div>
 
       {/* Sticky summary rail (wide screens only). */}

@@ -153,12 +153,12 @@ test.describe("Module 5/6 handover photo gate", () => {
     await expect(page.getByRole("heading", { name: "New borrow request" })).toBeVisible();
 
     const pickup = nextPickupTime();
-    await page.getByLabel("Pickup date").fill(bangkokDay(0));
+    await page.getByLabel("Pickup date", { exact: true }).fill(bangkokDay(0));
     await page
       .getByRole("group", { name: "Equipment pickup time" })
       .getByRole("button", { name: pickup })
       .click();
-    await page.getByLabel("Return date").fill(bangkokDay(1));
+    await page.getByLabel("Return date", { exact: true }).fill(bangkokDay(1));
 
     const create = mutationResponse(page, "loan.create");
     await page.getByRole("button", { name: "Submit request" }).click();
@@ -194,7 +194,7 @@ test.describe("Module 5/6 handover photo gate", () => {
     await expect(handoverButton).toBeDisabled();
 
     await handoverRow.locator('input[type="file"]').setInputFiles(jpegFile("handover.jpg"));
-    await expect(handoverRow.getByText("Photo taken")).toBeVisible();
+    await expect(handoverRow.getByText("+ Add photo")).toBeVisible();
     await expect(handoverButton).toBeEnabled();
 
     // An early handover (the pickup slot has not arrived yet) asks for
@@ -214,7 +214,7 @@ test.describe("Module 5/6 handover photo gate", () => {
     const onLoanRow = page.getByRole("row").filter({ hasText: itemName }).first();
     await expect(onLoanRow).toBeVisible();
     await onLoanRow.locator('input[type="file"]').setInputFiles(jpegFile("return.jpg"));
-    await expect(onLoanRow.getByText("Photo taken")).toBeVisible();
+    await expect(onLoanRow.getByText("+ Add photo")).toBeVisible();
     const recordReturn = mutationResponse(page, "loan.recordReturn");
     await onLoanRow.getByRole("button", { name: "Record return", exact: true }).click();
     expect((await recordReturn).ok()).toBeTruthy();

@@ -1,21 +1,20 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { fmtDateTime, fmtDayMonth } from "@/lib/datetime";
+import { fmtDate, fmtDateTime } from "@/lib/datetime";
+import { DateInput } from "@/components/ui/date-input";
 import { useNavigate } from "react-router-dom";
 import { differenceInCalendarDays, parseISO } from "date-fns";
 import { Check, Minus, Package, Plus, ShoppingCart, Trash2, TriangleAlert } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { TierDot } from "@/components/shared/tier-badge";
-import { Badge, type BadgeTone } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { BUSINESS, CREDIT_BANDS, CREDIT_BAND_POLICY, ROUTES } from "@/constants";
 import { useAuthStore } from "@/features/auth/auth.store";
 import { getErrorMessage } from "@/lib/error-messages";
 import { cn } from "@/lib/utils";
-import type { CatalogItem, UnitCondition, UnitState } from "../catalog/catalog.types";
+import type { CatalogItem } from "../catalog/catalog.types";
 import { toAvailabilityWindow } from "../catalog/availability-window";
-import { useEquipmentTypes, useEquipmentUnits } from "../catalog/use-equipment-types";
+import { useEquipmentTypes } from "../catalog/use-equipment-types";
 import { useMyCredit } from "@/features/account/use-my-credit";
 import {
   REQUEST_TIMES,
@@ -37,25 +36,9 @@ interface CartRow extends DraftLine {
   item: CatalogItem;
 }
 
-const UNIT_TONE: Record<UnitState, BadgeTone> = { free: "ok", fix: "warn", out: "neutral" };
-
-const UNIT_CONDITION_KEY: Record<UnitState, string> = {
-  free: "borrower.request.condOk",
-  fix: "borrower.request.condFix",
-  out: "borrower.request.condUse",
-};
-
-const UNIT_RECORDED_CONDITION_KEY: Record<UnitCondition, string> = {
-  Normal: "borrower.detail.condNormal",
-  MinorDamage: "borrower.detail.condMinorDamage",
-  MajorDamage: "borrower.detail.condMajorDamage",
-  Broken: "borrower.detail.condBroken",
-  Missing: "borrower.detail.condMissing",
-};
-
 /**
  * Create borrow request - step 2 of the borrow flow. The catalog fills the
- * draft (see request-draft.store); this page edits quantities and serials,
+ * draft (see request-draft.store); this page edits quantities,
  * sets the period, and runs the pre-submit checks before letting it go.
  *
  * Layout follows the reference mockup: a content column (steps → selected
@@ -77,7 +60,6 @@ export default function RequestPage() {
   const returnTime = useRequestDraft((s) => s.returnTime);
   const setQty = useRequestDraft((s) => s.setQty);
   const removeItem = useRequestDraft((s) => s.removeItem);
-  const toggleSerial = useRequestDraft((s) => s.toggleSerial);
   const setStartDate = useRequestDraft((s) => s.setStartDate);
   const setPickupTime = useRequestDraft((s) => s.setPickupTime);
   const setEndDate = useRequestDraft((s) => s.setEndDate);
@@ -147,7 +129,6 @@ export default function RequestPage() {
   const short = rows.filter(
     (r) => r.qty > r.item.availableUnits || refusedIds.includes(r.itemId),
   );
-  const missingSerials = t2Rows.filter((r) => r.serials.length !== r.qty);
   const tooManyUnits = totalUnits > MAX_REQUEST_UNITS;
   const startTime = requestInstant(startDate, pickupTime);
   const endTime = endDate ? requestInstant(endDate, returnTime) : null;
@@ -195,17 +176,13 @@ export default function RequestPage() {
     },
     {
       id: "stock",
-      ok: hasItems && short.length === 0 && missingSerials.length === 0 && !tooManyUnits,
+      ok: hasItems && short.length === 0 && !tooManyUnits,
       label: t("borrower.request.pcStock"),
       detail: !hasItems
         ? t("borrower.request.pcCreditIdle")
         : tooManyUnits
           ? t("borrower.request.pcTooMany", { max: MAX_REQUEST_UNITS })
-          : missingSerials.length
-            ? t("borrower.request.pcSerialMissing", {
-                items: missingSerials.map((r) => r.item.name).join(" · "),
-              })
-            : short.length
+          : short.length
               ? t("borrower.request.pcStockBad", { items: short.map((r) => r.item.name).join(" · ") })
               : t("borrower.request.pcStockOk"),
     },
@@ -437,25 +414,6 @@ export default function RequestPage() {
             </div>
           </Panel>
 
-          {/* T2 lines are issued by serial, so they get a picker. T0/T1 are
-              handed out from the pool and T3 is slot-booked elsewhere. */}
-          {hasT2 ? (
-            <Panel title={t("borrower.request.serialTitle")}>
-              <div className="space-y-4 p-3.5">
-                <p className="text-xs leading-relaxed text-t3">
-                  {t("borrower.request.serialHelp")}
-                </p>
-                {t2Rows.map((row) => (
-                  <SerialPicker
-                    key={row.itemId}
-                    row={row}
-                    window={availabilityWindow}
-                    onToggle={toggleSerial}
-                  />
-                ))}
-              </div>
-            </Panel>
-          ) : null}
         </div>
 
         <aside className="flex flex-col gap-3 lg:sticky lg:top-0">
@@ -793,90 +751,6 @@ function QtyStepper({
   );
 }
 
-/** Serial checkboxes for one T2 line, capped at the line's quantity. */
-function SerialPicker({
-  row,
-  window,
-  onToggle,
-}: {
-  row: CartRow;
-  window: ReturnType<typeof toAvailabilityWindow>;
-  onToggle: (itemId: string, serial: string) => void;
-}) {
-  const { t } = useTranslation();
-  // Serials are not on the catalogue row - `item.list` returns types, not
-  // units - so each T2 line asks for its own.
-  const { data: units = [], isLoading } = useEquipmentUnits(row.itemId, window);
-  const full = row.serials.length >= row.qty;
-
-  // A period change can invalidate a previously selected serial. Remove it so
-  // the stock pre-check cannot stay green with a unit the server now marks busy.
-  useEffect(() => {
-    if (isLoading) return;
-    const available = new Set(units.filter((unit) => unit.state === "free").map((unit) => unit.serial));
-    row.serials
-      .filter((serial) => !available.has(serial))
-      .forEach((serial) => onToggle(row.itemId, serial));
-  }, [isLoading, onToggle, row.itemId, row.serials, units]);
-
-  return (
-    <div>
-      <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
-        <span className="text-[13px] font-medium text-foreground">{row.item.name}</span>
-        <span
-          className={cn(
-            "font-mono text-xs tabular-nums",
-            full ? "text-[var(--s-ok-t)]" : "text-t3",
-          )}
-        >
-          {t("borrower.request.serialPicked", { picked: row.serials.length, qty: row.qty })}
-        </span>
-      </div>
-
-      <div className="max-h-[184px] overflow-y-auto rounded border border-border">
-        {isLoading ? (
-          <div className="px-3 py-4 text-center text-xs text-t3">{t("common.loading")}</div>
-        ) : units.length === 0 ? (
-          <div className="px-3 py-4 text-center text-xs text-t3">
-            {t("borrower.request.serialNone")}
-          </div>
-        ) : null}
-        {units.map((u) => {
-          const checked = row.serials.includes(u.serial);
-          // Only free units can be issued; a full line locks the rest.
-          const disabled = u.state !== "free" || (!checked && full);
-          return (
-            <label
-              key={u.serial}
-              className={cn(
-                "flex items-center gap-3 border-b border-border px-3 py-2 text-[13px] last:border-b-0",
-                disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer hover:bg-muted",
-              )}
-            >
-              <input
-                type="checkbox"
-                className="h-3.5 w-3.5 shrink-0"
-                checked={checked}
-                disabled={disabled}
-                onChange={() => onToggle(row.itemId, u.serial)}
-              />
-              <span className="whitespace-nowrap font-mono text-xs">{u.serial}</span>
-              <span className="min-w-0 truncate text-t3">
-                {t(u.condition ? UNIT_RECORDED_CONDITION_KEY[u.condition] : UNIT_CONDITION_KEY[u.state])}
-              </span>
-              <span className="ml-auto">
-                <Badge tone={UNIT_TONE[u.state]}>
-                  {t(`borrower.request.unit${cap(u.state)}`)}
-                </Badge>
-              </span>
-            </label>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
 function DateField({
   label,
   value,
@@ -893,14 +767,7 @@ function DateField({
   return (
     <label className="block">
       <span className="mb-1.5 block text-xs font-medium text-t2">{label}</span>
-      <Input
-        type="date"
-        className="font-mono"
-        value={value}
-        min={min}
-        max={max}
-        onChange={(e) => onChange(e.target.value)}
-      />
+      <DateInput value={value} min={min} max={max} onChange={onChange} ariaLabel={label} />
     </label>
   );
 }
@@ -971,11 +838,7 @@ function Thumb() {
   );
 }
 
-/** "12 ส.ค." - compact date for the summary rail. */
+/** "12 ส.ค. 2569" - the same format as the date pickers above it. */
 function fmtShort(iso: string): string {
-  return fmtDayMonth(iso);
-}
-
-function cap(s: string): string {
-  return s.charAt(0).toUpperCase() + s.slice(1);
+  return fmtDate(iso);
 }

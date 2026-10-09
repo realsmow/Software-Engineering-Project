@@ -87,11 +87,11 @@ test("FR-RSV-06: accepts the offered shorter period after a real booking race", 
     await page.getByRole("button", { name: "1 selected", exact: true }).click();
     await expect(page.getByRole("heading", { name: "New borrow request" })).toBeVisible();
     // Friday 26th: the test clock's today, before the Monday booking.
-    await page.getByLabel("Pickup date").fill("2031-09-26");
+    await page.getByLabel("Pickup date", { exact: true }).fill("2031-09-26");
     await page.getByRole("button", { name: "08:00", exact: true }).first().click();
-    await page.getByLabel("Return date").fill("2031-09-30");
+    await page.getByLabel("Return date", { exact: true }).fill("2031-09-30");
     await page.getByRole("button", { name: "16:00", exact: true }).last().click();
-    await page.getByRole("checkbox", { name: new RegExp(fixture.unit.serialNo) }).check();
+    // No serial to tick: borrowers ask for a type and staff pick the unit.
     const refusedResponse = mutationResponse(page, "loan.create");
     const retryResponse = page.waitForResponse(
       (response) =>
@@ -156,9 +156,9 @@ test("NFR usability: completes a real equipment request from the mobile catalogu
   await page.getByRole("button", { name: "1 selected", exact: true }).click();
   await expect(page.getByRole("heading", { name: "New borrow request" })).toBeVisible();
   // Weekdays: the counter is shut at weekends (#179).
-  await page.getByLabel("Pickup date").fill("2031-09-29");
+  await page.getByLabel("Pickup date", { exact: true }).fill("2031-09-29");
   await page.getByRole("button", { name: "08:00", exact: true }).first().click();
-  await page.getByLabel("Return date").fill("2031-09-30");
+  await page.getByLabel("Return date", { exact: true }).fill("2031-09-30");
   await page.getByRole("button", { name: "16:00", exact: true }).last().click();
   const response = mutationResponse(page, "loan.create");
   await page.getByRole("button", { name: "Submit request", exact: true }).click();

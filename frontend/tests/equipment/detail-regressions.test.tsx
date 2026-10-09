@@ -20,6 +20,7 @@ const hooks = vi.hoisted(() => ({
 }));
 vi.mock("../../src/features/borrower/catalog/use-equipment-types", () => ({
   useEquipmentType: hooks.detail,
+  useUnitSchedule: () => ({ data: [] }),
 }));
 vi.mock("../../src/features/account/use-my-credit", () => ({
   useMyCredit: hooks.credit,

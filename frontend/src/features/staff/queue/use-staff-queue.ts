@@ -227,3 +227,36 @@ export function useStaffInspectExtension() {
     },
   });
 }
+
+/** Units staff may set aside for a booking, reserved one first (demo feedback). */
+export function usePrepareOptions(reservationKey: number | null) {
+  const trpc = useTRPCClient();
+  return useQuery({
+    queryKey: ["staff", "prepare-options", reservationKey],
+    enabled: reservationKey !== null,
+    queryFn: () =>
+      trpc.loan.prepareOptions.query({ reservationKey: reservationKey as number }),
+  });
+}
+
+/** Files the first unit's photos on the rest of a group (one photo per submit). */
+export function useCopyGroupPhotos() {
+  const trpc = useTRPCClient();
+  return useMutation({
+    mutationFn: async (input: {
+      from: number;
+      to: number[];
+      stage: "before" | "after";
+    }) => {
+      const shots = (await trpc.image.usagePhotos.query({ usageKey: input.from }))[input.stage];
+      if (shots.length === 0) return;
+      for (const usageKey of input.to) {
+        await trpc.image.attachUsagePhotos.mutate({
+          usageKey,
+          stage: input.stage,
+          imageUrls: shots.map((p) => p.imageUrl),
+        });
+      }
+    },
+  });
+}

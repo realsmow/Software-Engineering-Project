@@ -189,7 +189,7 @@ test.describe("live lending lifecycle across roles", () => {
       await returnRow
         .locator('input[type="file"]')
         .setInputFiles(pngFile("return.png"));
-      await expect(returnRow.getByText("Photo taken")).toBeVisible();
+      await expect(returnRow.getByText("+ Add photo")).toBeVisible();
       const recordReturn = mutationResponse(page, "loan.recordReturn");
       await returnRow
         .getByRole("button", { name: "Record return", exact: true })

@@ -123,6 +123,8 @@ const ERROR_MESSAGES: Record<string, string> = {
   USER_ID_ALREADY_IN_USE: "รหัสผู้ใช้นี้ถูกใช้กับบัญชีอื่นแล้ว",
   FACULTY_NOT_FOUND: "ไม่พบคณะนี้",
   GROUP_NOT_FOUND: "ไม่พบภาควิชาหรือชมรมนี้",
+  ORG_IN_USE: "ลบไม่ได้ เพราะยังมีผู้ใช้ อุปกรณ์ ภาควิชา หรือสิทธิ์การยืมผูกอยู่ ให้ย้ายออกก่อน",
+  ORG_LAST_ONE: "ลบไม่ได้ เพราะเป็นรายการสุดท้าย ระบบต้องมีอย่างน้อยหนึ่งรายการ",
   CANNOT_MODIFY_SELF: "คุณแก้ไขบทบาทหรือระงับบัญชีของตัวเองไม่ได้",
   // The generic wording. The admin user screen replaces it with a version that
   // names the departments, which ride in the error payload as `details.groups`.

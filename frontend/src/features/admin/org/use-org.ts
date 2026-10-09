@@ -69,3 +69,31 @@ export function useCreateGroup() {
     onSuccess: invalidate,
   });
 }
+
+/** Rename a faculty, or a department or club ("group"). */
+export function useRenameOrg(kind: "faculty" | "group") {
+  const trpc = useTRPCClient();
+  const invalidate = useInvalidateOrg();
+
+  return useMutation({
+    mutationFn: (input: { id: number; name: string }) =>
+      kind === "faculty"
+        ? trpc.admin.renameFaculty.mutate(input)
+        : trpc.admin.renameGroup.mutate(input),
+    onSuccess: invalidate,
+  });
+}
+
+/** The server refuses one still in use, or the last one left. */
+export function useDeleteOrg(kind: "faculty" | "group") {
+  const trpc = useTRPCClient();
+  const invalidate = useInvalidateOrg();
+
+  return useMutation({
+    mutationFn: (id: number) =>
+      kind === "faculty"
+        ? trpc.admin.deleteFaculty.mutate({ id })
+        : trpc.admin.deleteGroup.mutate({ id }),
+    onSuccess: invalidate,
+  });
+}

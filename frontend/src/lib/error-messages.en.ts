@@ -112,6 +112,8 @@ export const ERROR_MESSAGES_EN: Record<string, string> = {
   USER_ID_ALREADY_IN_USE: "This user ID is already used by another account.",
   FACULTY_NOT_FOUND: "This faculty was not found.",
   GROUP_NOT_FOUND: "This department or club was not found.",
+  ORG_IN_USE: "It cannot be deleted while people, equipment, departments or borrowing rules still use it. Move them first.",
+  ORG_LAST_ONE: "It cannot be deleted because it is the last one. The system needs at least one.",
   CANNOT_MODIFY_SELF: "You cannot change your own role or suspend your own account.",
   ROLE_CHANGE_WOULD_ORPHAN_GROUP:
     "The role cannot be changed because a department this user manages would be left without a manager. Please assign someone else in that department first.",

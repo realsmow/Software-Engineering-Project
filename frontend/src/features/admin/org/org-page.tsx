@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from "react";
+import { Pencil, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { PageHeader } from "@/components/shared/page-header";
 import { Button } from "@/components/ui/button";
@@ -12,7 +13,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { getErrorMessage } from "@/lib/error-messages";
-import { useAdminOrg, useCreateFaculty, useCreateGroup } from "./use-org";
+import {
+  useAdminOrg,
+  useCreateFaculty,
+  useCreateGroup,
+  useDeleteOrg,
+  useRenameOrg,
+} from "./use-org";
 
 type Notice = { text: string; bad?: boolean } | null;
 
@@ -37,6 +44,93 @@ function NoticeBox({ notice }: { notice: Notice }) {
       }
     >
       {notice.text}
+    </div>
+  );
+}
+
+/** One faculty, department or club, with rename and delete. */
+function OrgRow({
+  kind,
+  id,
+  name,
+  strong = false,
+  onNotice,
+}: {
+  kind: "faculty" | "group";
+  id: number;
+  name: string;
+  strong?: boolean;
+  onNotice: (notice: Notice) => void;
+}) {
+  const { t } = useTranslation();
+  const rename = useRenameOrg(kind);
+  const remove = useDeleteOrg(kind);
+  const [draft, setDraft] = useState<string | null>(null);
+  const fail = (e: unknown) => onNotice({ text: getErrorMessage(e).split("\n")[0], bad: true });
+
+  if (draft !== null) {
+    return (
+      <div className="flex items-center gap-1.5">
+        <Input
+          aria-label={t("admin.org.name")}
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          className="h-8"
+        />
+        <Button
+          type="button"
+          size="sm"
+          disabled={!draft.trim() || rename.isPending}
+          onClick={() =>
+            rename.mutate(
+              { id, name: draft.trim() },
+              {
+                onSuccess: () => {
+                  setDraft(null);
+                  onNotice({ text: t("admin.org.renamed", { name: draft.trim() }) });
+                },
+                onError: fail,
+              },
+            )
+          }
+        >
+          {t("common.save")}
+        </Button>
+        <Button type="button" size="sm" variant="outline" onClick={() => setDraft(null)}>
+          {t("common.cancel")}
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="group flex items-center gap-1.5">
+      <span className={strong ? "text-sm font-medium text-foreground" : "text-[13px] text-foreground"}>
+        {name}
+      </span>
+      <button
+        type="button"
+        aria-label={t("admin.org.rename", { name })}
+        onClick={() => setDraft(name)}
+        className="rounded p-1 text-t4 hover:bg-muted hover:text-foreground"
+      >
+        <Pencil size={12} />
+      </button>
+      <button
+        type="button"
+        aria-label={t("admin.org.delete", { name })}
+        disabled={remove.isPending}
+        onClick={() => {
+          if (!window.confirm(t("admin.org.deleteConfirm", { name }))) return;
+          remove.mutate(id, {
+            onSuccess: () => onNotice({ text: t("admin.org.deleted", { name }) }),
+            onError: fail,
+          });
+        }}
+        className="rounded p-1 text-t4 hover:bg-muted hover:text-[var(--s-alert-t)]"
+      >
+        <Trash2 size={12} />
+      </button>
     </div>
   );
 }
@@ -176,7 +270,13 @@ export default function AdminOrgPage() {
                   const depts = groups.filter((g) => g.facultyId === f.id);
                   return (
                     <li key={f.id}>
-                      <div className="text-sm font-medium text-foreground">{label(f.name, f.id)}</div>
+                      <OrgRow
+                        kind="faculty"
+                        id={f.id}
+                        name={label(f.name, f.id)}
+                        strong
+                        onNotice={setNotice}
+                      />
                       {depts.length === 0 ? (
                         <p className="ml-3 text-xs text-muted-foreground">
                           {t("admin.org.noDepartments")}
@@ -184,8 +284,13 @@ export default function AdminOrgPage() {
                       ) : (
                         <ul className="ml-3 flex flex-col gap-0.5">
                           {depts.map((d) => (
-                            <li key={d.id} className="text-[13px] text-foreground">
-                              {label(d.name, d.id)}
+                            <li key={d.id}>
+                              <OrgRow
+                                kind="group"
+                                id={d.id}
+                                name={label(d.name, d.id)}
+                                onNotice={setNotice}
+                              />
                             </li>
                           ))}
                         </ul>
@@ -202,8 +307,8 @@ export default function AdminOrgPage() {
             ) : (
               <ul className="flex flex-col gap-0.5">
                 {clubs.map((c) => (
-                  <li key={c.id} className="text-[13px] text-foreground">
-                    {label(c.name, c.id)}
+                  <li key={c.id}>
+                    <OrgRow kind="group" id={c.id} name={label(c.name, c.id)} onNotice={setNotice} />
                   </li>
                 ))}
               </ul>

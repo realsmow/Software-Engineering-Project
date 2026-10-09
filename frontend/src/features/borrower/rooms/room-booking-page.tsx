@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { BUSINESS, ROUTES } from "@/constants";
 import { ImageThumb } from "@/components/shared/image-thumb";
-import { fmtDate, todayLocalDayKey } from "@/lib/datetime";
+import { fmtDate, localInstant, todayLocalDayKey } from "@/lib/datetime";
 import { getErrorMessage } from "@/lib/error-messages";
 import { cn } from "@/lib/utils";
 import { activeRoomBookings } from "../request-status";
@@ -219,13 +219,7 @@ export default function RoomBookingPage() {
                   </span>
                   {/* Same-day only: locked rather than hidden so the borrower can
                       still read which date the booking lands on. */}
-                  <Input
-                    type="date"
-                    className="font-mono"
-                    value={today}
-                    readOnly
-                    disabled
-                  />
+                  <Input value={fmtDate(localInstant(today, 12))} readOnly disabled />
                 </label>
                 <p className="mt-1.5 text-[11.5px] text-t4">
                   {t("borrower.booking.sameDay")}

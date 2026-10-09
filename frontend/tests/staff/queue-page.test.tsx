@@ -24,14 +24,18 @@ const mocks = vi.hoisted(() => ({
   useMarkLost: vi.fn(),
   useStaffDecideExtension: vi.fn(),
   useStaffInspectExtension: vi.fn(),
+  usePrepareOptions: vi.fn(),
+  useCopyGroupPhotos: vi.fn(),
   useUsagePhotos: vi.fn(),
   usePickupImageUpload: vi.fn(),
+  detachPhoto: vi.fn(),
 }));
 
 vi.mock("../../src/features/staff/queue/use-staff-queue", () => mocks);
 vi.mock("../../src/features/borrower/pickup/use-pickup-image-upload", () => ({
   useUsagePhotos: mocks.useUsagePhotos,
   usePickupImageUpload: mocks.usePickupImageUpload,
+  useDetachUsagePhoto: () => ({ mutateAsync: mocks.detachPhoto, isPending: false }),
 }));
 
 const row = staffQueueRow.strict().parse({
@@ -58,6 +62,7 @@ const row = staffQueueRow.strict().parse({
 
 describe("StaffQueuePage", () => {
   const allocate = vi.fn();
+  const copyPhotos = vi.fn();
   const recordReturn = vi.fn();
 
   const renderPage = () =>
@@ -85,6 +90,8 @@ describe("StaffQueuePage", () => {
     mocks.useStaffQueue.mockReturnValue(queryResult([row]));
     mocks.useStaffExtensionQueue.mockReturnValue(queryResult([]));
     mocks.useAllocate.mockReturnValue(mutationResult(allocate));
+    mocks.usePrepareOptions.mockReturnValue(queryResult([]));
+    mocks.useCopyGroupPhotos.mockReturnValue(mutationResult(copyPhotos));
     mocks.useConfirmPickup.mockReturnValue(mutationResult(vi.fn()));
     mocks.useRecordReturn.mockReturnValue(mutationResult(recordReturn));
     mocks.useMarkLost.mockReturnValue(mutationResult(vi.fn()));
@@ -193,6 +200,74 @@ describe("StaffQueuePage", () => {
     expect(screen.getByRole("status")).toHaveTextContent("OSC-001");
   });
 
+  it("lets staff choose which unit to set aside (demo feedback)", async () => {
+    mocks.usePrepareOptions.mockReturnValue(
+      queryResult([
+        { resourceKey: 7, serialNo: "OSC-001", reserved: true },
+        { resourceKey: 8, serialNo: "OSC-002", reserved: false },
+      ])
+    );
+    allocate.mockResolvedValue(
+      loanResponse({
+        usageKey: 9,
+        reservationKey: row.reservationKey,
+        borrower: row.borrower,
+        itemName: row.itemName,
+        resourceKey: 8,
+        tier: "T2",
+        serialNo: "OSC-002",
+        checkoutAt: row.pickupAt!,
+        dueAt: row.dueAt!,
+      })
+    );
+    renderPage();
+    const unit = screen.getByRole("combobox", { name: i18n.t("staff.queue.pickUnit") });
+    expect(unit).toHaveValue("7");
+    fireEvent.change(unit, { target: { value: "8" } });
+    fireEvent.click(screen.getByRole("button", { name: i18n.t("staff.queue.actionPrepare") }));
+    await waitFor(() =>
+      expect(allocate).toHaveBeenCalledWith({ reservationKey: 77, resourceKey: 8 })
+    );
+  });
+
+  describe("demo feedback: one submit for several units is one row", () => {
+    const four = [77, 78, 79, 80].map((reservationKey) => ({ ...row, reservationKey }));
+
+    it("prepares all units of the group with one click", async () => {
+      mocks.useStaffQueue.mockReturnValue(queryResult(four));
+      allocate.mockResolvedValue(
+        loanResponse({
+          usageKey: 9,
+          reservationKey: 77,
+          borrower: row.borrower,
+          itemName: row.itemName,
+          resourceKey: 7,
+          tier: "T2",
+          serialNo: "OSC-001",
+          checkoutAt: row.pickupAt!,
+          dueAt: row.dueAt!,
+        })
+      );
+      renderPage();
+      expect(screen.getAllByText("Ada Lovelace")).toHaveLength(1);
+      expect(screen.getByText("×4")).toBeInTheDocument();
+      fireEvent.click(
+        screen.getByRole("button", { name: i18n.t("staff.queue.prepareAll", { count: 4 }) })
+      );
+      await waitFor(() => expect(allocate).toHaveBeenCalledTimes(4));
+      expect(allocate.mock.calls.map(([input]) => input.reservationKey)).toEqual([
+        77, 78, 79, 80,
+      ]);
+    });
+
+    it("splits the group back into separate rows", () => {
+      mocks.useStaffQueue.mockReturnValue(queryResult(four));
+      renderPage();
+      fireEvent.click(screen.getByRole("button", { name: i18n.t("staff.queue.split") }));
+      expect(screen.getAllByText("Ada Lovelace")).toHaveLength(4);
+    });
+  });
+
   it("shows a failed allocation without losing the queue row", async () => {
     allocate.mockRejectedValue(new Error("The unit is no longer available"));
     renderPage();
@@ -286,6 +361,13 @@ describe("StaffQueuePage", () => {
       }
     );
     expect(returnButton).toBeEnabled();
+    // Demo feedback: staff can open the photo and remove it to retake.
+    expect(screen.getByRole("link", { name: i18n.t("common.viewPhoto") })).toHaveAttribute(
+      "href",
+      "/media/after.jpg"
+    );
+    fireEvent.click(screen.getByRole("button", { name: i18n.t("borrower.pickup.removePhoto") }));
+    expect(mocks.detachPhoto).toHaveBeenCalledWith({ usageKey: 9, imageKey: 1 });
     fireEvent.click(returnButton);
 
     await waitFor(() => expect(recordReturn).toHaveBeenCalledWith({ usageKey: 9 }));

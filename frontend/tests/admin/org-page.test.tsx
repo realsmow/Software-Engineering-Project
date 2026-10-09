@@ -10,12 +10,16 @@ import { getErrorMessage } from "../../src/lib/error-messages";
 const createFacultyMutate = vi.hoisted(() => vi.fn());
 const createGroupMutate = vi.hoisted(() => vi.fn());
 const orgQuery = vi.hoisted(() => vi.fn());
+const renameMutate = vi.hoisted(() => vi.fn());
+const deleteMutate = vi.hoisted(() => vi.fn());
 const pending = vi.hoisted(() => ({ faculty: false, group: false }));
 
 vi.mock("../../src/features/admin/org/use-org", () => ({
   useAdminOrg: orgQuery,
   useCreateFaculty: () => ({ mutate: createFacultyMutate, isPending: pending.faculty }),
   useCreateGroup: () => ({ mutate: createGroupMutate, isPending: pending.group }),
+  useRenameOrg: () => ({ mutate: renameMutate, isPending: false }),
+  useDeleteOrg: () => ({ mutate: deleteMutate, isPending: false }),
 }));
 
 const t = (key: string, opts?: Record<string, unknown>) => i18n.t(key, opts);
@@ -47,6 +51,35 @@ describe("Admin organization page", () => {
     expect(screen.getByText("Engineering")).toBeInTheDocument();
     expect(screen.getByText("Computer Engineering")).toBeInTheDocument();
     expect(screen.getByText("Robotics Club")).toBeInTheDocument();
+  });
+
+  it("renames a department in place (demo feedback)", () => {
+    renameMutate.mockImplementation((_input, options) => options.onSuccess());
+    renderPage();
+    fireEvent.click(
+      screen.getByRole("button", { name: t("admin.org.rename", { name: "Computer Engineering" }) })
+    );
+    fireEvent.change(screen.getByDisplayValue("Computer Engineering"), {
+      target: { value: "CPE " },
+    });
+    fireEvent.click(screen.getByRole("button", { name: t("common.save") }));
+    expect(renameMutate).toHaveBeenCalledWith({ id: 10, name: "CPE" }, expect.anything());
+    expect(screen.getByRole("status")).toHaveTextContent(t("admin.org.renamed", { name: "CPE" }));
+  });
+
+  it("deletes only after confirming, and shows why the server refused", () => {
+    const confirm = vi.spyOn(window, "confirm").mockReturnValueOnce(false).mockReturnValueOnce(true);
+    deleteMutate.mockImplementation((_id, options) =>
+      options.onError(Object.assign(new Error("ORG_IN_USE"), { data: { businessCode: "ORG_IN_USE" } }))
+    );
+    renderPage();
+    const del = screen.getByRole("button", { name: t("admin.org.delete", { name: "Robotics Club" }) });
+    fireEvent.click(del);
+    expect(deleteMutate).not.toHaveBeenCalled();
+    fireEvent.click(del);
+    expect(deleteMutate).toHaveBeenCalledWith(20, expect.anything());
+    expect(screen.getByRole("alert")).toBeInTheDocument();
+    confirm.mockRestore();
   });
 
   it("creates a faculty and a club, then clears the field and confirms", () => {

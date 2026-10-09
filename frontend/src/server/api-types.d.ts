@@ -239,6 +239,48 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 			};
 			meta: object;
 		}>;
+		renameFaculty: import("@trpc/server").TRPCMutationProcedure<{
+			input: {
+				id: number;
+				name: string;
+			};
+			output: {
+				id: number;
+				name: string | null;
+			};
+			meta: object;
+		}>;
+		deleteFaculty: import("@trpc/server").TRPCMutationProcedure<{
+			input: {
+				id: number;
+			};
+			output: {
+				ok: true;
+			};
+			meta: object;
+		}>;
+		renameGroup: import("@trpc/server").TRPCMutationProcedure<{
+			input: {
+				id: number;
+				name: string;
+			};
+			output: {
+				id: number;
+				name: string | null;
+				type: "Club" | "Faculty";
+				facultyId: number | null;
+			};
+			meta: object;
+		}>;
+		deleteGroup: import("@trpc/server").TRPCMutationProcedure<{
+			input: {
+				id: number;
+			};
+			output: {
+				ok: true;
+			};
+			meta: object;
+		}>;
 		updateUser: import("@trpc/server").TRPCMutationProcedure<{
 			input: {
 				id: number;
@@ -1870,6 +1912,23 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 			};
 			meta: object;
 		}>;
+		unitSchedule: import("@trpc/server").TRPCQueryProcedure<{
+			input: {
+				id: number;
+				from: string;
+				days?: number | undefined;
+			};
+			output: {
+				resourceKey: number;
+				serialNo: string;
+				unavailable: boolean;
+				busy: {
+					start: string;
+					end: string;
+				}[];
+			}[];
+			meta: object;
+		}>;
 		listUnits: import("@trpc/server").TRPCQueryProcedure<{
 			input: {
 				id: number;
@@ -3001,6 +3060,17 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 				overdueDays: number;
 				pendingExtensionKey: number | null;
 			};
+			meta: object;
+		}>;
+		prepareOptions: import("@trpc/server").TRPCQueryProcedure<{
+			input: {
+				reservationKey: number;
+			};
+			output: {
+				resourceKey: number;
+				serialNo: string;
+				reserved: boolean;
+			}[];
 			meta: object;
 		}>;
 		allocate: import("@trpc/server").TRPCMutationProcedure<{

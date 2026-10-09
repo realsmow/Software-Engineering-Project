@@ -34,6 +34,7 @@ import {
   extensionOptionsOutput,
   extensionOutput,
   loanOutput,
+  prepareOptionsOutput,
   paginatedExtensionReviews,
   paginatedExtensions,
   paginatedStaffQueue,
@@ -64,6 +65,7 @@ import {
   authorityRoleOptionOutput,
   managementGroupOptionOutput,
   tierOptionOutput,
+  unitScheduleOutput,
 } from "../../../backend/src/item/item.schema";
 import { reportSummaryOutput } from "../../../backend/src/report/report.schema";
 
@@ -124,6 +126,8 @@ const contracts: Record<string, OutputSchema> = {
   "loan.queueCounts": staffQueueCounts,
   "loan.getForStaff": loanOutput,
   "loan.allocate": loanOutput,
+  "loan.prepareOptions": prepareOptionsOutput,
+  "item.unitSchedule": unitScheduleOutput,
   "loan.swapUnit": loanOutput,
   "loan.confirmPickup": loanOutput,
   "loan.recordReturn": recordReturnOutput,

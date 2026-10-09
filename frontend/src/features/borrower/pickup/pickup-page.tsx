@@ -9,10 +9,10 @@ import {
 import { useTranslation } from "react-i18next";
 import { fmtDayMonth, fmtDayNum } from "@/lib/datetime";
 import { useNavigate } from "react-router-dom";
-import { Camera, Check, Package, TriangleAlert, X } from "lucide-react";
+import { Camera, Check, Package, TriangleAlert } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { Button } from "@/components/ui/button";
-import { ImageThumb } from "@/components/shared/image-thumb";
+import { UsagePhotoGallery } from "@/components/shared/usage-photo-gallery";
 import { BUSINESS, ROUTES, UPLOAD } from "@/constants";
 import { getErrorMessage } from "@/lib/error-messages";
 import { cn } from "@/lib/utils";
@@ -30,7 +30,6 @@ import {
   useFinalizePickup,
   usePickupImageUpload,
   useUsagePhotos,
-  type UsagePhotoSet,
 } from "./use-pickup-image-upload";
 
 /**
@@ -450,76 +449,17 @@ function PhotoBox({
       ) : null}
 
       {existingPhotos ? (
-        <UsagePhotoGallery
-          photos={existingPhotos}
-          disabled={disabled}
-          pendingImageKey={
-            detachPhoto.isPending ? detachPhoto.variables?.imageKey : undefined
-          }
-          onRemove={removePhoto}
-        />
-      ) : null}
-    </div>
-  );
-}
-
-/**
- * What the server already has on file for this loan, grouped by stage.
- *
- * Separate from the take-a-photo control above it: that one is this session's
- * queued shot, this is ground truth - including a photo filed on an earlier
- * visit that nothing here previously showed again.
- */
-function UsagePhotoGallery({
-  photos,
-  disabled,
-  pendingImageKey,
-  onRemove,
-}: {
-  photos: UsagePhotoSet;
-  disabled: boolean;
-  pendingImageKey?: number;
-  onRemove: (imageKey: number) => void;
-}) {
-  const { t } = useTranslation();
-  const allGroups: { stage: keyof UsagePhotoSet; label: string }[] = [
-    { stage: "before", label: t("borrower.pickup.stageBefore") },
-    { stage: "after", label: t("borrower.pickup.stageAfter") },
-    { stage: "inspection", label: t("borrower.pickup.stageInspection") },
-  ];
-  const groups = allGroups.filter((g) => photos[g.stage].length > 0);
-
-  if (groups.length === 0) return null;
-
-  return (
-    <div className="mt-2 flex flex-col gap-2">
-      {groups.map((g) => (
-        <div key={g.stage}>
-          <div className="mb-1 text-[10.5px] font-semibold uppercase tracking-wide text-t4">
-            {g.label}
-          </div>
-          <div className="flex flex-wrap gap-1.5">
-            {photos[g.stage].map((photo) => (
-              <div key={photo.imageKey} className="relative">
-                <ImageThumb src={photo.imageUrl} size={48} />
-                {/* Inspection photos come off a re-grading, never this control -
-                    the server refuses the call, so it is not offered here. */}
-                {g.stage !== "inspection" ? (
-                  <button
-                    type="button"
-                    aria-label={t("borrower.pickup.removePhoto")}
-                    disabled={disabled || pendingImageKey === photo.imageKey}
-                    onClick={() => onRemove(photo.imageKey)}
-                    className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full border border-border bg-card text-t3 shadow-sm disabled:opacity-50"
-                  >
-                    <X size={11} strokeWidth={2.6} />
-                  </button>
-                ) : null}
-              </div>
-            ))}
-          </div>
+        <div className="mt-2">
+          <UsagePhotoGallery
+            photos={existingPhotos}
+            disabled={disabled}
+            pendingImageKey={
+              detachPhoto.isPending ? detachPhoto.variables?.imageKey : undefined
+            }
+            onRemove={removePhoto}
+          />
         </div>
-      ))}
+      ) : null}
     </div>
   );
 }

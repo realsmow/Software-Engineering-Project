@@ -19,6 +19,8 @@ import {
 import type { InspectionQueueRow } from "./inspection.types";
 
 const GRADES: DamageLevel[] = ["B0", "B1", "B2", "B3"];
+// Same as the backend MAX_PHOTOS_PER_STAGE.
+const MAX_PHOTOS = 30;
 
 /**
  * The inspection desk (proposal 5.9 "รับคืนและตรวจสภาพ", grades 5.7 B0-B3).
@@ -326,7 +328,7 @@ function Subject({ usageKey }: { usageKey: number }) {
               accept={uploadAcceptAttr()}
               capture="environment"
               className="sr-only"
-              disabled={upload.isPending || photos.length >= 10}
+              disabled={upload.isPending || photos.length >= MAX_PHOTOS}
               onChange={(e) => void addPhoto(e)}
             />
             {upload.isPending ? t("common.loading") : t("staff.inspection.addPhoto")}

@@ -105,18 +105,9 @@ function selectUnits(
   row: RequestLineForSubmit,
   units: ServerItemUnit[],
 ): SelectedRequestUnit[] {
-  const free = units.filter((unit) => toUnitState(unit) === "free");
-  let selected: ServerItemUnit[];
-
-  if (row.tier === "T2") {
-    const bySerial = new Map(free.map((unit) => [unit.assetTag, unit]));
-    selected = row.serials.slice(0, row.qty).flatMap((serial) => {
-      const unit = bySerial.get(serial);
-      return unit ? [unit] : [];
-    });
-  } else {
-    selected = free.slice(0, row.qty);
-  }
+  // Any free unit holds the booking; staff choose the actual serial when
+  // preparing, for T2 too (demo feedback).
+  const selected = units.filter((unit) => toUnitState(unit) === "free").slice(0, row.qty);
 
   if (selected.length !== row.qty) {
     throw new RequestPreparationError("UNITS_CHANGED", row.name);

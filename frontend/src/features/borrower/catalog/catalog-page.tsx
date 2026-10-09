@@ -7,6 +7,7 @@ import { TierBadge, TierDot, TIERS, tierNoteKey } from "@/components/shared/tier
 import { ImageThumb } from "@/components/shared/image-thumb";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DateInput } from "@/components/ui/date-input";
 import {
   Select,
   SelectContent,
@@ -589,14 +590,7 @@ function CatalogDateTimeField({
     <fieldset>
       <legend className="mb-1.5 text-xs font-medium text-t2">{label}</legend>
       <div className="grid grid-cols-[minmax(0,1fr)_112px] gap-2">
-        <Input
-          type="date"
-          aria-label={label}
-          value={date}
-          min={min}
-          max={max}
-          onChange={(event) => onDate(event.target.value)}
-        />
+        <DateInput value={date} min={min} max={max} onChange={onDate} ariaLabel={label} />
         <Select value={time} onValueChange={(value) => onTime(value as RequestTime)}>
           <SelectTrigger aria-label={label}>
             <SelectValue />

@@ -123,16 +123,16 @@ test.describe("Module 6 loan request submission", () => {
     const submit = page.getByRole("button", { name: "Submit request" });
     // Return tomorrow: the same-day default stops being valid late in the day,
     // once the next pickup slot is the last one.
-    await page.getByLabel("Return date").fill(bangkokDay(1));
+    await page.getByLabel("Return date", { exact: true }).fill(bangkokDay(1));
     await expect(submit).toBeEnabled();
 
     // Pickup + 13 days is a 14-day loan inclusive of both ends, exactly the
     // D0 credit band's cap.
-    await page.getByLabel("Return date").fill(bangkokDay(13));
+    await page.getByLabel("Return date", { exact: true }).fill(bangkokDay(13));
     await expect(submit).toBeEnabled();
 
     // Pickup + 14 days is a 15-day loan, one more than the D0 allowance.
-    await page.getByLabel("Return date").fill(bangkokDay(14));
+    await page.getByLabel("Return date", { exact: true }).fill(bangkokDay(14));
     await expect(submit).toBeDisabled();
   });
 
@@ -144,9 +144,9 @@ test.describe("Module 6 loan request submission", () => {
     // T0 stock is walk-in only (FR-RSV-03), so pickup must be today. Returning
     // the next day means the pickup/return times never have to straddle the
     // same day's preset slots.
-    await page.getByLabel("Pickup date").fill(bangkokDay(0));
+    await page.getByLabel("Pickup date", { exact: true }).fill(bangkokDay(0));
     await page.getByRole("button", { name: nextPickupTime() }).first().click();
-    await page.getByLabel("Return date").fill(bangkokDay(1));
+    await page.getByLabel("Return date", { exact: true }).fill(bangkokDay(1));
 
     const create = mutationResponse(page, "loan.create");
     await page.getByRole("button", { name: "Submit request" }).click();

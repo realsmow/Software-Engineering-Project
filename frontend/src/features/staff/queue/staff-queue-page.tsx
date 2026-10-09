@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { PageHeader } from "@/components/shared/page-header";
@@ -11,9 +11,11 @@ import { DataTable, type Column } from "@/components/ui/data-table";
 import { ROUTES } from "@/constants";
 import { uploadAcceptAttr, validateUploadFile } from "@/lib/upload-validation";
 import {
+  useDetachUsagePhoto,
   usePickupImageUpload,
   useUsagePhotos,
 } from "@/features/borrower/pickup/use-pickup-image-upload";
+import { UsagePhotoGallery } from "@/components/shared/usage-photo-gallery";
 import {
   prepareBorrowerImage,
   releaseBorrowerImage,
@@ -24,7 +26,9 @@ import type { ExtensionReviewRow } from "@/features/supervisor/approvals/approva
 import {
   useAllocate,
   useConfirmPickup,
+  useCopyGroupPhotos,
   useMarkLost,
+  usePrepareOptions,
   useRecordReturn,
   useStaffDecideExtension,
   useStaffExtensionQueue,
@@ -79,6 +83,11 @@ export default function StaffQueuePage() {
 
   const { data: counts } = useStaffQueueCounts();
   const { data: rows, isLoading } = useStaffQueue(bucket, search);
+  // Demo feedback: one submit for several units is one row, acted on together.
+  // "Split" shows its units separately again.
+  const [split, setSplit] = useState<Set<string>>(() => new Set());
+  const entries = useMemo(() => groupQueueRows(rows ?? [], split), [rows, split]);
+  const copyPhotos = useCopyGroupPhotos();
 
   // One row at a time: the button that was pressed is the one that spins, and
   // the rest of the queue stays usable.
@@ -280,7 +289,7 @@ export default function StaffQueuePage() {
     },
   ];
 
-  async function act(row: StaffQueueRow) {
+  async function act(row: StaffQueueRow, resourceKey?: number) {
     const key = rowKey(row);
     setBusyKey(key);
     setResult(null);
@@ -289,7 +298,10 @@ export default function StaffQueuePage() {
     try {
       if (bucket === "toPrepare") {
         if (row.reservationKey === null) return;
-        const loan = await allocate.mutateAsync({ reservationKey: row.reservationKey });
+        const loan = await allocate.mutateAsync({
+          reservationKey: row.reservationKey,
+          ...(resourceKey === undefined ? {} : { resourceKey }),
+        });
         setResult({
           tone: "ok",
           text: t("staff.queue.donePrepare", {
@@ -334,6 +346,53 @@ export default function StaffQueuePage() {
     }
   }
 
+  /** Runs the bucket's action on every unit of a group, one after another. */
+  async function actGroup(entry: QueueEntry) {
+    const members = entry.members;
+    const who = `${entry.borrower.firstName} ${entry.borrower.lastName}`;
+    const early = bucket === "toHandover" && isBeforePickup(entry);
+    if (early && !window.confirm(t("staff.queue.confirmEarly", { who }))) return;
+    setBusyKey(rowKey(entry));
+    setResult(null);
+    let done = 0;
+    let lateCredit = 0;
+    try {
+      // One photo covers the group: copy the first unit's onto the rest.
+      if (bucket !== "toPrepare" && members[0].usageKey !== null) {
+        await copyPhotos.mutateAsync({
+          from: members[0].usageKey,
+          to: members.slice(1).flatMap((m) => (m.usageKey === null ? [] : [m.usageKey])),
+          stage: bucket === "toHandover" ? "before" : "after",
+        });
+      }
+      for (const m of members) {
+        if (bucket === "toPrepare" && m.reservationKey !== null) {
+          await allocate.mutateAsync({ reservationKey: m.reservationKey });
+        } else if (bucket === "toHandover" && m.usageKey !== null) {
+          await confirmPickup.mutateAsync({ usageKey: m.usageKey, early });
+        } else if (m.usageKey !== null) {
+          const out = await recordReturn.mutateAsync({ usageKey: m.usageKey });
+          lateCredit += out.latePenalty?.creditDeducted ?? 0;
+        }
+        done++;
+      }
+      setResult({
+        tone: "ok",
+        text:
+          t("staff.queue.doneGroup", { count: done, item: entry.itemName ?? "", who }) +
+          (lateCredit > 0 ? ` ${t("staff.queue.doneGroupLate", { credit: lateCredit })}` : ""),
+      });
+    } catch (error) {
+      // Units already done stay done; the message says how far it got.
+      setResult({
+        tone: "bad",
+        text: `${t("staff.queue.groupStopped", { done, count: members.length })} ${getErrorMessage(error)}`,
+      });
+    } finally {
+      setBusyKey(null);
+    }
+  }
+
   async function lose(row: StaffQueueRow) {
     if (row.usageKey === null) return;
     const who = `${row.borrower.firstName} ${row.borrower.lastName}`;
@@ -353,7 +412,7 @@ export default function StaffQueuePage() {
     }
   }
 
-  const columns: Column<StaffQueueRow>[] = [
+  const columns: Column<QueueEntry>[] = [
     {
       key: "borrower",
       header: t("staff.queue.colBorrower"),
@@ -371,16 +430,24 @@ export default function StaffQueuePage() {
     {
       key: "item",
       header: t("staff.queue.colItem"),
-      render: (r) => (
-        <div className="min-w-0">
-          <div className="truncate text-foreground">{r.itemName ?? "-"}</div>
-          <div className="mt-0.5 flex items-center gap-1.5 font-mono text-[11px] text-t4">
-            <TierDot tier={r.tier} />
-            {r.tier ?? t("borrower.catalog.tierUnknown")}
-            {r.serialNo ? ` · ${r.serialNo}` : ""}
+      render: (r) => {
+        const serials = r.members.flatMap((m) => (m.serialNo ? [m.serialNo] : []));
+        return (
+          <div className="min-w-0">
+            <div className="truncate text-foreground">
+              {r.itemName ?? "-"}
+              {r.members.length > 1 ? (
+                <span className="ml-1.5 font-semibold text-accent">×{r.members.length}</span>
+              ) : null}
+            </div>
+            <div className="mt-0.5 flex items-center gap-1.5 font-mono text-[11px] text-t4">
+              <TierDot tier={r.tier} />
+              {r.tier ?? t("borrower.catalog.tierUnknown")}
+              {serials.length ? ` · ${serials.join(", ")}` : ""}
+            </div>
           </div>
-        </div>
-      ),
+        );
+      },
     },
     {
       key: "when",
@@ -413,6 +480,42 @@ export default function StaffQueuePage() {
       className: "sticky right-0 bg-card",
       render: (r) => {
         const busy = busyKey === rowKey(r);
+        if (r.members.length > 1) {
+          const groupId = groupKey(r);
+          const allLabel = t(
+            bucket === "toPrepare"
+              ? "staff.queue.prepareAll"
+              : bucket === "toHandover"
+                ? "staff.queue.handoverAll"
+                : "staff.queue.returnAll",
+            { count: r.members.length },
+          );
+          return (
+            <div className="flex justify-end gap-2" onClick={(e) => e.stopPropagation()}>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setSplit((prev) => new Set(prev).add(groupId))}
+              >
+                {t("staff.queue.split")}
+              </Button>
+              {bucket !== "toPrepare" && r.usageKey !== null ? (
+                <PhotoGatedAction
+                  usageKey={r.usageKey}
+                  stage={bucket === "toHandover" ? "before" : "after"}
+                  busy={busy}
+                  label={allLabel}
+                  onAct={() => void actGroup(r)}
+                />
+              ) : (
+                <Button type="button" size="sm" disabled={busy} onClick={() => void actGroup(r)}>
+                  {busy ? t("common.loading") : allLabel}
+                </Button>
+              )}
+            </div>
+          );
+        }
         return (
           <div className="flex justify-end gap-2" onClick={(e) => e.stopPropagation()}>
             {bucket === "overdue" && r.lostEligible ? (
@@ -442,6 +545,8 @@ export default function StaffQueuePage() {
                 label={t(isBeforePickup(r) ? "staff.queue.actionHandoverEarly" : ACTION_LABEL[bucket])}
                 onAct={() => void act(r)}
               />
+            ) : bucket === "toPrepare" && r.tier !== "T3" ? (
+              <PrepareAction row={r} busy={busy} onPrepare={(key) => void act(r, key)} />
             ) : (
               <Button type="button" size="sm" disabled={busy} onClick={() => void act(r)}>
                 {busy ? t("common.loading") : t(ACTION_LABEL[bucket])}
@@ -533,7 +638,7 @@ export default function StaffQueuePage() {
       ) : (
       <DataTable
         columns={columns}
-        rows={rows ?? []}
+        rows={entries}
         rowKey={rowKey}
         onRowClick={openRow}
         pageSize={15}
@@ -577,7 +682,30 @@ export default function StaffQueuePage() {
  * that point have no reservationKey to act on, so neither alone is a key for
  * the whole table.
  */
-function rowKey(r: StaffQueueRow): string {
+/** A queue row standing for one or more units from the same submit. */
+type QueueEntry = StaffQueueRow & { members: StaffQueueRow[] };
+
+// ponytail: there is no submit id, so "same borrower, item, window and state"
+// stands in for one submit. Two separate requests that match exactly merge too.
+function groupKey(r: StaffQueueRow): string {
+  return [r.borrower.accountKey, r.itemName, r.pickupAt, r.dueAt, r.status].join("|");
+}
+
+function groupQueueRows(rows: StaffQueueRow[], split: Set<string>): QueueEntry[] {
+  const groups = new Map<string, StaffQueueRow[]>();
+  for (const row of rows) {
+    const key = groupKey(row);
+    groups.set(key, [...(groups.get(key) ?? []), row]);
+  }
+  return [...groups.entries()].flatMap(([key, members]) =>
+    split.has(key) || members.length === 1
+      ? members.map((m) => ({ ...m, members: [m] }))
+      : [{ ...members[0], members }],
+  );
+}
+
+function rowKey(r: StaffQueueRow | QueueEntry): string {
+  if ("members" in r && r.members.length > 1) return `g${groupKey(r)}`;
   return r.usageKey !== null ? `u${r.usageKey}` : `r${r.reservationKey ?? 0}`;
 }
 
@@ -650,8 +778,19 @@ function PhotoGatedAction({
   const { t } = useTranslation();
   const { data: photos } = useUsagePhotos(usageKey);
   const upload = usePickupImageUpload();
+  const detach = useDetachUsagePhoto();
   const [error, setError] = useState<string | null>(null);
   const hasPhoto = (photos?.[stage].length ?? 0) > 0;
+
+  // Removing lets staff retake a bad shot.
+  async function remove(imageKey: number) {
+    setError(null);
+    try {
+      await detach.mutateAsync({ usageKey, imageKey });
+    } catch (err) {
+      setError(getErrorMessage(err));
+    }
+  }
 
   async function onPick(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -673,11 +812,23 @@ function PhotoGatedAction({
   }
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex flex-col items-end gap-1.5">
+      {photos ? (
+        <UsagePhotoGallery
+          photos={photos}
+          stages={[stage]}
+          size={36}
+          showLabels={false}
+          disabled={upload.isPending}
+          pendingImageKey={detach.isPending ? detach.variables?.imageKey : undefined}
+          onRemove={(imageKey) => void remove(imageKey)}
+        />
+      ) : null}
+      <div className="flex items-center gap-2">
       {error ? <span className="max-w-[160px] text-[11px] text-[var(--s-alert-t)]">{error}</span> : null}
       <label
         className={[
-          "inline-flex h-8 cursor-pointer items-center rounded-md border px-2.5 text-xs font-medium",
+          "inline-flex h-8 cursor-pointer items-center whitespace-nowrap rounded-md border px-2.5 text-xs font-medium",
           hasPhoto
             ? "border-[var(--s-ok-t)] bg-[var(--s-ok-bg)] text-[var(--s-ok-t)]"
             : "border-border bg-card text-t2 hover:text-foreground",
@@ -694,11 +845,53 @@ function PhotoGatedAction({
         {upload.isPending
           ? t("common.loading")
           : hasPhoto
-            ? t("staff.queue.returnPhotoDone")
+            ? t("staff.queue.addPhoto")
             : t(stage === "before" ? "staff.queue.handoverPhoto" : "staff.queue.returnPhoto")}
       </label>
       <Button type="button" size="sm" disabled={busy || !hasPhoto} onClick={onAct}>
         {busy ? t("common.loading") : label}
+      </Button>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Prepare with a chosen unit (demo feedback): staff, not the borrower, decide
+ * which serial goes out. The booked unit is preselected.
+ */
+function PrepareAction({
+  row,
+  busy,
+  onPrepare,
+}: {
+  row: StaffQueueRow;
+  busy: boolean;
+  onPrepare: (resourceKey: number | undefined) => void;
+}) {
+  const { t } = useTranslation();
+  const { data: options } = usePrepareOptions(row.reservationKey);
+  const [picked, setPicked] = useState<number | null>(null);
+  const chosen = picked ?? options?.find((o) => o.reserved)?.resourceKey ?? null;
+
+  return (
+    <div className="flex items-center gap-2">
+      {options && options.length > 0 ? (
+        <select
+          aria-label={t("staff.queue.pickUnit")}
+          value={chosen ?? ""}
+          onChange={(e) => setPicked(Number(e.target.value))}
+          className="h-8 rounded border border-border bg-card px-1.5 font-mono text-xs text-foreground"
+        >
+          {options.map((o) => (
+            <option key={o.resourceKey} value={o.resourceKey}>
+              {o.serialNo}
+            </option>
+          ))}
+        </select>
+      ) : null}
+      <Button type="button" size="sm" disabled={busy} onClick={() => onPrepare(chosen ?? undefined)}>
+        {busy ? t("common.loading") : t("staff.queue.actionPrepare")}
       </Button>
     </div>
   );
