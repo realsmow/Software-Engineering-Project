@@ -1,7 +1,13 @@
 import type { Prisma } from '../../src/generated/prisma/client';
 import type { PrismaService } from '../../src/prisma.service';
 import { StaffScopeService } from '../../src/common/authority/staff-scope.service';
+import { CreditTierService } from '../../src/common/credit/credit-tier.service';
 import { PenaltyService } from '../../src/common/penalty/penalty.service';
+import { CreditService } from '../../src/credit/credit.service';
+import {
+  creditOutput,
+  type CreditOutput,
+} from '../../src/credit/credit.schema';
 import { CronService } from '../../src/cron/cron.service';
 import { LoanService } from '../../src/loan/loan.service';
 import {
@@ -368,6 +374,123 @@ describe('FR-RTN-07 / FR-CRD-03/04: late and lost penalty lifecycle', () => {
     it('reports the renewed expiry instead of the expired historical term', () => {
       expect(receipt.latePenalty!.expiresAt).toBe(expectedExpiry);
     });
+  });
+
+  describe('#196: another expiry recomputes credit while the item is still held', () => {
+    let whileOut: LateState;
+    let borrowerCredit: CreditOutput;
+    let afterRepeat: LateState;
+    let affected: number[];
+    let repeatedAffected: number;
+    let otherInEffect: boolean | null;
+    let usageKey: number;
+
+    beforeEach(async () => {
+      await inHistoryFixture(prisma, async (tx) => {
+        const f = await lendedFixture(tx);
+        usageKey = f.usageKey;
+        const { cron } = services(f.client);
+        const penalties = new PenaltyService(f.client);
+        const credit = new CreditService(
+          f.client,
+          new CreditTierService(f.client),
+        );
+
+        jest.setSystemTime(FIRST_SWEEP);
+        expect(await cron.run('markOverdue')).toMatchObject({ affected: 1 });
+        expect(await lateState(tx, f)).toMatchObject({
+          activeDeduction: 2,
+          creditScore: 98,
+          usage: { CurrentStatus: 'Lended', CheckInTime: null },
+        });
+
+        // A separate incident on the same account triggers a later recompute.
+        // Its matching rule directly supplies the five-day term; this is not
+        // a three-point formula penalty with an inconsistent duration.
+        await tx.penaltyRule.create({
+          data: {
+            BorrowRuleKey: f.rule.BorrowRuleKey,
+            PenaltyReason: 'DamagedItem',
+            PenaltyAmount: 3,
+            PenaltyLength: 5,
+          },
+        });
+        const quote = await penalties.quoteDamage(
+          f.rule.BorrowRuleKey,
+          14,
+          'B1',
+        );
+        expect(quote).toMatchObject({
+          amount: 3,
+          lengthDays: 5,
+          source: 'PenaltyRule',
+        });
+        const otherKey = await penalties.apply(tx, quote, {
+          accountKey: f.users[0].accountKey,
+          usageKey: null,
+          effectiveFrom: FIRST_SWEEP,
+        });
+        expect(otherKey).not.toBeNull();
+        expect((await lateState(tx, f)).creditScore).toBe(95);
+
+        // The original two-point quote has a four-day term. Run expiry daily
+        // through the other penalty's fifth day, without returning or renewing.
+        affected = [];
+        for (let day = 1; day <= 5; day++) {
+          jest.setSystemTime(new Date(FIRST_SWEEP.getTime() + day * DAY));
+          affected.push((await cron.run('expireDemerits')).affected);
+        }
+        whileOut = await lateState(tx, f);
+        otherInEffect = (
+          await tx.penaltyInfo.findUniqueOrThrow({
+            where: { PenaltyKey: otherKey! },
+            select: { InEffect: true },
+          })
+        ).InEffect;
+        borrowerCredit = creditOutput
+          .strict()
+          .parse(await credit.getCredit(f.users[0].accountKey));
+
+        // Setup, database reads, API validation and repeat-job checks stay
+        // outside expected-failure markers; only product assertions fail.
+        repeatedAffected = (await cron.run('expireDemerits')).affected;
+        afterRepeat = await lateState(tx, f);
+      });
+    });
+
+    it('expires only the unrelated penalty and keeps the loan outstanding', () => {
+      expect(affected).toEqual([0, 0, 0, 0, 1]);
+      expect(otherInEffect).toBe(false);
+      expect(whileOut.usage).toEqual({
+        CurrentStatus: 'Lended',
+        CheckInTime: null,
+      });
+      expect(whileOut.penalties.some((row) => row.InEffect)).toBe(true);
+    });
+
+    it('does not apply a second change when the expiry job is repeated', () => {
+      expect(repeatedAffected).toBe(0);
+      expect(afterRepeat).toEqual(whileOut);
+    });
+
+    it.failing(
+      'keeps the overdue deduction in persisted credit after recomputation',
+      () => {
+        expect(whileOut.creditScore).toBe(98);
+      },
+    );
+
+    it.failing(
+      'keeps the still-held overdue charge in the borrower credit response',
+      () => {
+        expect(borrowerCredit.totalDeducted).toBe(2);
+        expect(borrowerCredit.activePenalties).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({ usageKey, creditDeducted: 2 }),
+          ]),
+        );
+      },
+    );
   });
 
   describe('penalty duration starts at actual return', () => {
