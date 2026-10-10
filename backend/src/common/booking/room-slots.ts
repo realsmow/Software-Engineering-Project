@@ -1,3 +1,4 @@
+import { HOLDING_APPROVE_STATES } from './booking-window';
 import { BusinessError } from '../errors/business-error';
 import { localTimeToUtc, toLocalDayKey } from '../schemas/datetime.schema';
 
@@ -49,6 +50,49 @@ export const MAX_ROOM_BOOKING_SLOTS = 6;
  * createRoomBooking and two requests sent together cannot both pass.
  */
 export const MAX_ACTIVE_ROOM_BOOKINGS = 1;
+
+/**
+ * The reservations that count against `MAX_ACTIVE_ROOM_BOOKINGS` for one
+ * borrower, as the booking mutation counts them.
+ *
+ * Exported, and echoed per row as `requestOutput.holdsRoomQuota`, because the
+ * screen has to ask the same question the server answers and had no way to.
+ * The frontend's own guess was "status is pending, ready or in use", which is
+ * wrong in both directions and is the whole of two defects:
+ *
+ *  - #215: a booking approved but not yet prepared reads as `approved`, which
+ *    was not in that list, so the page offered a second booking and the server
+ *    refused it after the borrower had picked their slots.
+ *  - #216: a booking already prepared reads as `ready`, which was, so the page
+ *    went on blocking every room after the booked half-hour had passed and the
+ *    server had long stopped counting it.
+ *
+ * Status is the wrong axis. What holds a room is an unresolved reservation
+ * whose window has not run out yet - which is what this says.
+ */
+export function roomQuotaWhere(accountKey: number) {
+  return {
+    ReservedBy: accountKey,
+    ApproveStatus: { in: [...HOLDING_APPROVE_STATES] },
+    EndTime: { gt: new Date() },
+    Resource: { ResourceType: 'Room' as const },
+  };
+}
+
+/** The same rule as `roomQuotaWhere`, asked of one row already in hand. */
+export function holdsRoomQuota(reservation: {
+  ApproveStatus: string;
+  EndTime: Date;
+  isRoom: boolean;
+}): boolean {
+  return (
+    reservation.isRoom &&
+    (HOLDING_APPROVE_STATES as readonly string[]).includes(
+      reservation.ApproveStatus,
+    ) &&
+    reservation.EndTime.getTime() > Date.now()
+  );
+}
 
 /**
  * A room's opening hours, minutes past local midnight — the same unit

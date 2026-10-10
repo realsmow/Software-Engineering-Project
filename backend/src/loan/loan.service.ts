@@ -967,6 +967,7 @@ export class LoanService {
       // as a fact about this request.
       serialNo: null,
       resourceKey: row.Resource.ResourceKey,
+      itemKey: row.Resource.Item?.ItemKey ?? null,
       tier: tryMapTier(row.Resource.BorrowRuleInfo.RuleName),
       prepDays: row.Resource.BufferTime,
       pickupAt: toIso(row.StartTime),
@@ -1157,6 +1158,9 @@ export class LoanService {
       itemName: this.nameOf(usage.Resource),
       serialNo: usage.Resource.Item?.ItemID ?? null,
       resourceKey: usage.Resource.ResourceKey,
+      // #209: the type, so the queue groups by what a thing *is* rather than
+      // by what it is called.
+      itemKey: usage.Resource.Item?.ItemKey ?? null,
       tier: tryMapTier(usage.Resource.BorrowRuleInfo.RuleName),
       prepDays: usage.Resource.BufferTime,
       pickupAt: toIso(usage.CheckoutTime),

@@ -1056,6 +1056,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 					usageKey: number | null;
 					dueAt: string | null;
 					cancellable: boolean;
+					holdsRoomQuota: boolean;
 				};
 				cancelled: {
 					reservationKey: number;
@@ -1450,7 +1451,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 	}, import("@trpc/server").TRPCDecorateCreateRouterOptions<{
 		requestUpload: import("@trpc/server").TRPCMutationProcedure<{
 			input: {
-				purpose: "itemType" | "itemUnit" | "room" | "inspection" | "avatar";
+				purpose: "inspection" | "itemType" | "itemUnit" | "room" | "avatar";
 				contentType: "image/jpeg" | "image/png";
 				sizeBytes: number;
 			};
@@ -2651,6 +2652,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 					usageKey: number | null;
 					dueAt: string | null;
 					cancellable: boolean;
+					holdsRoomQuota: boolean;
 				}[];
 				rejected: {
 					resourceKey: number;
@@ -2702,6 +2704,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 					usageKey: number | null;
 					dueAt: string | null;
 					cancellable: boolean;
+					holdsRoomQuota: boolean;
 				}[];
 				rejected: {
 					resourceKey: number;
@@ -2753,6 +2756,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 					usageKey: number | null;
 					dueAt: string | null;
 					cancellable: boolean;
+					holdsRoomQuota: boolean;
 				}[];
 				total: number;
 				page: number;
@@ -2798,6 +2802,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 				usageKey: number | null;
 				dueAt: string | null;
 				cancellable: boolean;
+				holdsRoomQuota: boolean;
 			};
 			meta: object;
 		}>;
@@ -2840,6 +2845,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 				usageKey: number | null;
 				dueAt: string | null;
 				cancellable: boolean;
+				holdsRoomQuota: boolean;
 			};
 			meta: object;
 		}>;
@@ -2881,6 +2887,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 				usageKey: number | null;
 				dueAt: string | null;
 				cancellable: boolean;
+				holdsRoomQuota: boolean;
 			};
 			meta: object;
 		}>;
@@ -3012,6 +3019,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 					itemName: string | null;
 					serialNo: string | null;
 					resourceKey: number | null;
+					itemKey: number | null;
 					tier: "T0" | "T1" | "T2" | "T3" | null;
 					prepDays: number;
 					pickupAt: string | null;

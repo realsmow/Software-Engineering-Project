@@ -784,6 +784,41 @@ describe('Staff preparation and handover queues from persisted records', () => {
       });
     });
 
+    it('gives two types sharing a display name their own identity (#209)', async () => {
+      await inHistoryFixture(prisma, async (tx) => {
+        const f = await historyFixture(tx);
+        const t1 = await tx.borrowRule.create({ data: { RuleName: 'T1' } });
+        const t2 = await tx.borrowRule.create({ data: { RuleName: 'T2' } });
+        // Same borrower, same window, same state, same ItemName — which has no
+        // unique constraint — but two different ItemInfo rows. Every field the
+        // queue used to group on matches; only the type differs.
+        const first = await usage(tx, f, 'Lended', DAY, t1.BorrowRuleKey);
+        const second = await usage(tx, f, 'Lended', DAY, t2.BorrowRuleKey);
+
+        const result = await services(tx).listStaffQueue(
+          f.decider,
+          listStaffQueueInput.parse({ bucket: 'onLoan' }),
+        );
+        const rows = paginatedStaffQueue
+          .strict()
+          .parse(result)
+          .items.filter((r) =>
+            [first.UsageKey, second.UsageKey].includes(r.usageKey!),
+          );
+        expect(rows).toHaveLength(2);
+        expect(rows.map((r) => r.itemName)).toEqual([
+          'Queue meter',
+          'Queue meter',
+        ]);
+        // The type key tells them apart where the name cannot, and it is not
+        // null for equipment.
+        const keys = rows.map((r) => r.itemKey);
+        expect(keys.every((k) => typeof k === 'number')).toBe(true);
+        expect(new Set(keys).size).toBe(2);
+        expect(new Set(rows.map((r) => r.tier))).toEqual(new Set(['T1', 'T2']));
+      });
+    });
+
     it('reports dashboard counts consistently with the scoped queues', async () => {
       await inHistoryFixture(prisma, async (tx) => {
         const f = await historyFixture(tx),

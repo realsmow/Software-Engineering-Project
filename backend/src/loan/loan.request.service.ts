@@ -10,7 +10,6 @@ import {
   type ApprovalRoute,
 } from '../common/approval/approval-policy';
 import {
-  HOLDING_APPROVE_STATES,
   assertPickupWindowOpen,
   assertResourceLendable,
   clashingWindowFilter,
@@ -24,6 +23,8 @@ import {
 import {
   MAX_ACTIVE_ROOM_BOOKINGS,
   assertRoomWindow,
+  holdsRoomQuota,
+  roomQuotaWhere,
   slotsToWindow,
   toRoomHours,
 } from '../common/booking/room-slots';
@@ -368,13 +369,11 @@ export class LoanRequestService {
       }
 
       if (target.Room) {
+        // One definition, shared with the `holdsRoomQuota` flag every request
+        // row carries, so the screen can close the button on exactly what this
+        // would refuse (#215, #216).
         const holding = await tx.reservations.count({
-          where: {
-            ReservedBy: user.accountKey,
-            ApproveStatus: { in: [...HOLDING_APPROVE_STATES] },
-            EndTime: { gt: new Date() },
-            Resource: { ResourceType: 'Room' },
-          },
+          where: roomQuotaWhere(user.accountKey),
         });
         if (holding >= MAX_ACTIVE_ROOM_BOOKINGS) {
           throw new BusinessError('ROOM_BOOKING_LIMIT_REACHED', {
@@ -998,6 +997,11 @@ export class LoanRequestService {
       cancellable:
         (row.ApproveStatus === 'Pending' || row.ApproveStatus === 'Approved') &&
         (usage === null || LoanRequestService.preparedRoom(row)),
+      holdsRoomQuota: holdsRoomQuota({
+        ApproveStatus: row.ApproveStatus,
+        EndTime: row.EndTime,
+        isRoom: row.Resource.Room !== null,
+      }),
     };
   }
 
