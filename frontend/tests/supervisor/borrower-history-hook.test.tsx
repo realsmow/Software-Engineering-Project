@@ -139,6 +139,10 @@ describe("Approval desk queries and mutations", () => {
       const counts = approvalCounts.strict().parse({
         staff: 2,
         supervisor: 3,
+        // #203/#204: the extension half of the two figures above — one T2
+        // check still owed by the counter, one checked and awaiting a
+        // signature — so the page can label its extensions section.
+        extensions: { staff: 1, supervisor: 2 },
         overdueToDecide: 1,
         autoApprovedToday: 4,
         retirement: 5,

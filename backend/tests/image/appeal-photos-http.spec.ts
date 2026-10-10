@@ -204,8 +204,8 @@ describe('copied group photos remain readable after reloading', () => {
             const targetUrl = new URL(targetReload[stage][0].imageUrl);
             expect(targetUrl.pathname).toBe(ticket.imageUrl);
             const targetResponse = await getPhoto(targetUrl.toString());
-            // Do not let a server/database/auth failure masquerade as the
-            // expired-signature defect under it.failing.
+            // Checked here, so a server/database/auth failure cannot be read
+            // as the expired-signature defect the test below is about (#206).
             expect([200, 403]).toContain(targetResponse.status);
             if (targetResponse.status === 200) {
               expect(targetResponse.body).toEqual(bytes!.bytes);
@@ -228,18 +228,14 @@ describe('copied group photos remain readable after reloading', () => {
           }
         });
       });
-      if (expired) {
-        it.failing(
-          'serves the copied photo after a fresh usagePhotos read instead of returning 403',
-          () => {
-            expect(copiedStatus).toBe(200);
-          },
-        );
-      } else {
-        it('serves both original and copied photos while the initial signature is valid', () => {
+      it(
+        expired
+          ? 'serves the copied photo after a fresh usagePhotos read instead of returning 403'
+          : 'serves both original and copied photos while the initial signature is valid',
+        () => {
           expect(copiedStatus).toBe(200);
-        });
-      }
+        },
+      );
     });
   });
 });

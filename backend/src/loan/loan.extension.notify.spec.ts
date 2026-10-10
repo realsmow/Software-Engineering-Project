@@ -104,6 +104,12 @@ function build(resource: any, supervisors: { AccountKey: number }[] = []) {
     notifications,
     { record: jest.fn() } as never,
     {} as never,
+    // Only `toPublicUrl` is reached from here: the check photos come back
+    // signed (#205), and these cases do not care what the signature is.
+    {
+      toPublicUrl: (value: string | null) => value,
+      toStoredUrl: (value: string) => value,
+    } as never,
   );
 
   return { service, tx, notifications };

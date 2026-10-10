@@ -10,6 +10,8 @@ import {
   isoDateTimeNullable,
 } from '../common/schemas/datetime.schema';
 import { MAX_ROOM_BOOKING_SLOTS } from '../common/booking/room-slots';
+import { imageUrl } from '../common/schemas/image.schema';
+import { MAX_PHOTOS_PER_STAGE } from '../image/image.schema';
 import {
   approveStatus,
   conditionType,
@@ -301,6 +303,14 @@ export const extensionInspection = z.object({
   loggedAt: isoDateTimeNullable,
   /** Display name of the staff member who checked it. */
   loggedBy: z.string(),
+  /**
+   * #205: what staff photographed at this check, signed and ready for an
+   * `<img src>`. The supervisor has no unit in front of them, so this is the
+   * only picture of the condition they are deciding on — and deliberately not
+   * the loan's own before/after set, which is a record of a different moment.
+   * Empty when the check was recorded without photos.
+   */
+  photos: z.array(z.string()).default([]),
 });
 
 /**
@@ -364,6 +374,14 @@ export const inspectExtensionInput = z.object({
   extensionKey: dbId,
   condition: conditionType,
   note: z.string().trim().max(500).optional(),
+  /**
+   * #205: photographs of what was found, uploaded first through
+   * `image.requestUpload` with purpose `inspection` and passed back here. A
+   * list, because a unit is photographed from several sides in one go, and
+   * optional, because a grade with a note was all this step could record
+   * before and a check already made that way must stay valid.
+   */
+  imageUrls: z.array(imageUrl).max(MAX_PHOTOS_PER_STAGE).optional(),
 });
 export type InspectExtensionInput = z.infer<typeof inspectExtensionInput>;
 

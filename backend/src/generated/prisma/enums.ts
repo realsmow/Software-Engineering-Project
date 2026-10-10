@@ -100,7 +100,8 @@ export const SubmissionType = {
   BeforePicture: 'BeforePicture',
   AfterPicture: 'AfterPicture',
   InspectionPicture: 'InspectionPicture',
-  AppealEvidence: 'AppealEvidence'
+  AppealEvidence: 'AppealEvidence',
+  ExtensionCheckPicture: 'ExtensionCheckPicture'
 } as const
 
 export type SubmissionType = (typeof SubmissionType)[keyof typeof SubmissionType]

@@ -48,6 +48,7 @@ function services(client: PrismaService) {
       penalties,
       notifications,
       { record: jest.fn() } as never,
+      new CreditTierService(client),
     ),
   };
 }
@@ -282,6 +283,14 @@ describe('FR-RTN-07 / FR-CRD-03/04: late and lost penalty lifecycle', () => {
     it('reports the full penalty term starting at actual receipt', () => {
       expect(receipt.latePenalty!.expiresAt).toBe(expectedExpiry);
     });
+    it('restates the reason with the settled late days, not the first sighting (#201)', () => {
+      // The overnight job wrote "overdue 1d (scheduled)" the night it noticed.
+      // The item came back on the third late day and the figure was raised to
+      // match, so the sentence beside it has to say three — My profile and the
+      // return receipt have no other words for why the points went.
+      expect(afterReturn.penalties).toHaveLength(1);
+      expect(afterReturn.penalties[0].Reason).toBe('ReturnLate: overdue 3d');
+    });
   });
 
   // Without a configured rule FR-CRD-04 defines length; the term starts at
@@ -476,24 +485,18 @@ describe('FR-RTN-07 / FR-CRD-03/04: late and lost penalty lifecycle', () => {
       expect(afterRepeat).toEqual(whileOut);
     });
 
-    it.failing(
-      'keeps the overdue deduction in persisted credit after recomputation',
-      () => {
-        expect(whileOut.creditScore).toBe(98);
-      },
-    );
+    it('keeps the overdue deduction in persisted credit after recomputation', () => {
+      expect(whileOut.creditScore).toBe(98);
+    });
 
-    it.failing(
-      'keeps the still-held overdue charge in the borrower credit response',
-      () => {
-        expect(borrowerCredit.totalDeducted).toBe(2);
-        expect(borrowerCredit.activePenalties).toEqual(
-          expect.arrayContaining([
-            expect.objectContaining({ usageKey, creditDeducted: 2 }),
-          ]),
-        );
-      },
-    );
+    it('keeps the still-held overdue charge in the borrower credit response', () => {
+      expect(borrowerCredit.totalDeducted).toBe(2);
+      expect(borrowerCredit.activePenalties).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ usageKey, creditDeducted: 2 }),
+        ]),
+      );
+    });
   });
 
   describe.each([
@@ -602,20 +605,17 @@ describe('FR-RTN-07 / FR-CRD-03/04: late and lost penalty lifecycle', () => {
         }
       });
 
-      it.failing(
-        'keeps ReturnLate visible with its deduction in every daily My profile response until receipt',
-        () => {
-          for (const { credit } of days) {
-            expect(credit.totalDeducted).toBe(daily);
-            expect(credit.activePenalties).toHaveLength(1);
-            expect(credit.activePenalties[0]).toMatchObject({
-              reason: expect.stringMatching(/^ReturnLate/),
-              creditDeducted: daily,
-              itemName: expect.any(String),
-            });
-          }
-        },
-      );
+      it('keeps ReturnLate visible with its deduction in every daily My profile response until receipt', () => {
+        for (const { credit } of days) {
+          expect(credit.totalDeducted).toBe(daily);
+          expect(credit.activePenalties).toHaveLength(1);
+          expect(credit.activePenalties[0]).toMatchObject({
+            reason: expect.stringMatching(/^ReturnLate/),
+            creditDeducted: daily,
+            itemName: expect.any(String),
+          });
+        }
+      });
 
       it('reports all five late days and starts the complete term at actual Monday receipt', () => {
         const expiry = new Date(
@@ -642,6 +642,17 @@ describe('FR-RTN-07 / FR-CRD-03/04: late and lost penalty lifecycle', () => {
           issuedAt: returnedAt.toISOString(),
           expiresAt: expiry,
         });
+      });
+
+      it('restates the five late days in the reason the profile shows (#201)', () => {
+        for (const { state } of days) {
+          expect(state.penalties[0].Reason).toBe(
+            'ReturnLate: overdue 1d (scheduled)',
+          );
+        }
+        expect(afterReturn.state.penalties[0].Reason).toBe(
+          'ReturnLate: overdue 5d',
+        );
       });
 
       it('restores credit and removes the profile row only at the term measured from actual receipt', () => {

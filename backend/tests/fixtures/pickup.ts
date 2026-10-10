@@ -10,6 +10,7 @@ import {
 import type { TrpcUser } from '../../src/trpc/context';
 import { requestFixture } from './loan-request';
 import { transactionClient } from './borrower-history';
+import { CreditTierService } from '../../src/common/credit/credit-tier.service';
 
 export const PICKUP_NOW = new Date('2031-09-26T00:00:00.000Z');
 export const PICKUP_START = new Date('2031-09-26T02:00:00.000Z');
@@ -55,6 +56,7 @@ export async function pickupFixture(tx: Prisma.TransactionClient) {
     new PenaltyService(client),
     notifications,
     f.audit as never,
+    new CreditTierService(client),
   );
   return { ...f, client, staff, loan, notifications };
 }

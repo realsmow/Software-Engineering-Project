@@ -137,16 +137,13 @@ describe('the last faculty survives overlapping admin deletes', () => {
         clearTimeout(timeout);
       }
     });
-    it.failing(
-      'preserves one faculty and refuses the competing last-faculty delete',
-      () => {
-        expect(outcome).toEqual({
-          successfulDeletes: 1,
-          remainingFaculties: 1,
-          rejectedCodes: ['ORG_LAST_ONE'],
-        });
-      },
-    );
+    it('preserves one faculty and refuses the competing last-faculty delete', () => {
+      expect(outcome).toEqual({
+        successfulDeletes: 1,
+        remainingFaculties: 1,
+        rejectedCodes: ['ORG_LAST_ONE'],
+      });
+    });
   });
 });
 
@@ -399,11 +396,28 @@ describe('renaming and deleting faculties and groups (demo feedback)', () => {
         count: count('groups'),
         delete: jest.fn(),
       },
-      $transaction: jest.fn().mockResolvedValue([]),
+    };
+    // The deletes re-count and delete inside one Serializable transaction
+    // (#210), so the writes land on `tx`, not on the client. The counts are
+    // the same mocks, so a fixture that says "two faculties" still says it
+    // inside the transaction.
+    const tx = {
+      facultyInfo: { count: count('faculties'), delete: jest.fn() },
+      branchInfo: { deleteMany: jest.fn() },
+      clubInfo: { deleteMany: jest.fn() },
+      managementGroup: { count: count('groups'), delete: jest.fn() },
+    };
+    const client = {
+      ...prisma,
+      $transaction: jest.fn((arg: unknown) =>
+        typeof arg === 'function'
+          ? (arg as (t: typeof tx) => unknown)(tx)
+          : Promise.resolve(arg),
+      ),
     };
     const audit = { record: jest.fn() };
     const service = new AdminService(
-      prisma as unknown as PrismaService,
+      client as unknown as PrismaService,
       {} as CreditTierService,
       {} as SessionService,
       audit as unknown as AuditService,
@@ -411,7 +425,7 @@ describe('renaming and deleting faculties and groups (demo feedback)', () => {
       {} as ConfigService,
       {} as CronService,
     );
-    return { service, prisma };
+    return { service, prisma: client, tx };
   }
 
   it('renames a department through its branch row', async () => {
@@ -467,7 +481,7 @@ describe('renaming and deleting faculties and groups (demo feedback)', () => {
     ).rejects.toMatchObject({ businessCode: 'ORG_IN_USE' });
     const t = org({ faculties: 2 });
     await t.service.deleteFaculty({ id: 2 }, ACTOR);
-    expect(t.prisma.facultyInfo.delete).toHaveBeenCalledWith({
+    expect(t.tx.facultyInfo.delete).toHaveBeenCalledWith({
       where: { FacultyKey: 2 },
     });
   });

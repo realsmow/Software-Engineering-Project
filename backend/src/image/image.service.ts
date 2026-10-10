@@ -212,7 +212,15 @@ export class ImageService {
    *
    * An absolute URL of ours is folded back to the relative form, so the stored
    * value survives the API moving to a different host. Anything else — a real
-   * external URL — is kept as given.
+   * external URL — is kept as given, query string included: that query is part
+   * of somebody else's address.
+   *
+   * Our own media paths lose theirs (#206). `?exp=&sig=` is minted for one
+   * read and dies fifteen minutes later; stored as the reference, it turns a
+   * permanent record into one that stops working. A photo copied between two
+   * loans was exactly that - the hook handed back the signed URL it had been
+   * rendering, `attach` wrote it down, and the copy 403'd once the signature
+   * aged out while the bytes sat in MediaFile the whole time.
    */
   toStoredUrl(value: string): string;
   toStoredUrl(value: string | undefined): string | undefined;
@@ -220,9 +228,13 @@ export class ImageService {
     if (value === undefined) return undefined;
 
     const prefix = `${this.publicApiUrl}${MEDIA_PREFIX}`;
-    return value.startsWith(prefix)
+    const relative = value.startsWith(prefix)
       ? `${MEDIA_PREFIX}${value.slice(prefix.length)}`
       : value;
+    if (!relative.startsWith(MEDIA_PREFIX)) return value;
+
+    const query = relative.indexOf('?');
+    return query === -1 ? relative : relative.slice(0, query);
   }
 
   /**
@@ -234,15 +246,23 @@ export class ImageService {
    * signed and expiring, minted fresh on every call. A catalogue path (or an
    * external URL, already left alone above) is a public product photo and is
    * not signed at all, since it is meant to be cacheable and permanent.
+   *
+   * The stored value is normalised first rather than trusted. A row written
+   * before #206 holds an absolute, already-signed URL of ours, and passing
+   * that straight through handed the client the dead signature again every
+   * time it asked. Folding it back to the key and re-signing repairs those
+   * rows on read, with no migration.
    */
   toPublicUrl(value: string | null | undefined): string | null {
     if (value === null || value === undefined || value === '') return null;
-    if (!value.startsWith(MEDIA_PREFIX)) return value;
 
-    const key = value.slice(MEDIA_PREFIX.length);
+    const stored = this.toStoredUrl(value);
+    if (!stored.startsWith(MEDIA_PREFIX)) return stored;
+
+    const key = stored.slice(MEDIA_PREFIX.length);
     return this.isEvidenceKey(key)
       ? this.signEvidenceUrl(key)
-      : `${this.publicApiUrl}${value}`;
+      : `${this.publicApiUrl}${stored}`;
   }
 
   /**

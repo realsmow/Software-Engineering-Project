@@ -31,7 +31,7 @@ import {
   slotWindow,
   toRoomHours,
 } from '../common/booking/room-slots';
-import { toIso } from '../common/schemas/datetime.schema';
+import { addDays, toIso } from '../common/schemas/datetime.schema';
 import { toPage, toSkipTake } from '../common/schemas/pagination.schema';
 import type {
   CatalogItem,
@@ -578,6 +578,21 @@ export class ItemService {
   /**
    * The polled endpoint (10-15s per open item page). Selects the three status
    * flags the count needs and nothing else — no names, no images, no group.
+   *
+   * What it paints has to be what `resourcesFreeInWindow` would refuse, or the
+   * calendar offers days the request then turns down. Two things used to be
+   * missing from it:
+   *
+   *  - the unit's own `BufferTime` (#207). A booking ending Monday 17:00 on a
+   *    two-day buffer unit holds Tuesday and Wednesday as well, and those days
+   *    showed free. The buffer is applied to both ends, exactly as
+   *    `withBuffer` does, which is also why the query reaches `maxBuffer` days
+   *    either side of the window asked about: a booking entirely outside it can
+   *    still have a buffer that reaches inside.
+   *  - a return nobody has graded yet (#208). `heldUsageFilter` blocks every
+   *    window for one of those, because inspection may still send the unit to
+   *    repair, but the status filter here stopped at `Lended` and the row read
+   *    as free the moment it was handed back.
    */
   async unitSchedule(input: UnitScheduleInput) {
     const from = new Date(input.from);
@@ -591,52 +606,76 @@ export class ItemService {
         ResourceKey: true,
         ResourceStatus: true,
         AllowBorrow: true,
+        BufferTime: true,
         Item: { select: { ItemID: true } },
       },
       orderBy: { ResourceKey: 'asc' },
     });
     const keys = units.map((u) => u.ResourceKey);
+    const maxBuffer = units.reduce((n, u) => Math.max(n, u.BufferTime), 0);
     const [bookings, loans] = await Promise.all([
       this.prisma.reservations.findMany({
         where: {
           ResourceKey: { in: keys },
           ...HOLDING_RESERVATION,
-          StartTime: { lt: to },
-          EndTime: { gt: from },
+          StartTime: { lt: addDays(to, maxBuffer) },
+          EndTime: { gt: addDays(from, -maxBuffer) },
         },
         select: { ResourceKey: true, StartTime: true, EndTime: true },
       }),
-      // A unit still out (overdue included) is busy until it comes back.
+      // A unit still out (overdue included) is busy until it comes back, and a
+      // unit back but ungraded is busy until somebody has looked at it.
       this.prisma.usageLog.findMany({
         where: {
           ResourceKey: { in: keys },
-          CurrentStatus: {
-            in: UNAVAILABLE_USAGE_STATES.filter((s) => s !== 'Returned'),
-          },
+          CurrentStatus: { in: UNAVAILABLE_USAGE_STATES },
         },
-        select: { ResourceKey: true, CheckoutTime: true, DueTime: true },
+        select: {
+          ResourceKey: true,
+          CurrentStatus: true,
+          CheckoutTime: true,
+          DueTime: true,
+        },
       }),
     ]);
     const now = new Date();
-    return units.map((u) => ({
-      resourceKey: u.ResourceKey,
-      serialNo: u.Item?.ItemID ?? String(u.ResourceKey),
-      unavailable:
-        u.ResourceStatus !== 'InStorage' && u.ResourceStatus !== 'Lended'
-          ? true
-          : !u.AllowBorrow,
-      busy: [
+    return units.map((u) => {
+      const buffer = u.BufferTime;
+      const spans = [
         ...bookings
           .filter((b) => b.ResourceKey === u.ResourceKey)
-          .map((b) => ({ start: toIso(b.StartTime), end: toIso(b.EndTime) })),
+          .map((b) => ({
+            start: addDays(b.StartTime, -buffer),
+            end: addDays(b.EndTime, buffer),
+          })),
         ...loans
           .filter((l) => l.ResourceKey === u.ResourceKey)
-          .map((l) => ({
-            start: toIso(l.CheckoutTime),
-            end: toIso(l.DueTime > now ? l.DueTime : now),
-          })),
-      ],
-    }));
+          .map((l) =>
+            l.CurrentStatus === 'Returned'
+              ? // No end to give: it is held until the grade is recorded, and
+                // when that happens is not a date anybody knows yet.
+                { start: l.CheckoutTime, end: to > now ? to : now }
+              : {
+                  start: l.CheckoutTime,
+                  end: addDays(l.DueTime > now ? l.DueTime : now, buffer),
+                },
+          ),
+      ];
+      return {
+        resourceKey: u.ResourceKey,
+        serialNo: u.Item?.ItemID ?? String(u.ResourceKey),
+        unavailable:
+          u.ResourceStatus !== 'InStorage' && u.ResourceStatus !== 'Lended'
+            ? true
+            : !u.AllowBorrow,
+        // A span whose buffer does not reach the window asked about is not the
+        // caller's business; one that does is reported whole, buffer included,
+        // so the client can see where the hold actually starts.
+        busy: spans
+          .filter((span) => span.start < to && span.end > from)
+          .map((span) => ({ start: toIso(span.start), end: toIso(span.end) })),
+      };
+    });
   }
 
   async getAvailability(itemKey: number) {

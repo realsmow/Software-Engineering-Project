@@ -114,6 +114,10 @@ function setup(row = extensionRow()) {
       {} as never,
       audit as never,
       {} as never,
+      {
+        toPublicUrl: (value: string | null) => value,
+        toStoredUrl: (value: string) => value,
+      } as never,
     ),
   };
 }

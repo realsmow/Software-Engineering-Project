@@ -489,18 +489,15 @@ describe('selected room regressions', () => {
             return f.checkIn(caller, usage.usageKey);
           });
         });
-        it.failing(
-          'refuses expired check-in and preserves the prepared booking',
-          () => {
-            expect(result).toEqual({
-              accepted: false,
-              state: 'Prepared',
-              resourceStatus: 'InStorage',
-              due: `${ROOM_DAY}T03:00:00.000Z`,
-              checkout: `${ROOM_DAY}T02:00:00.000Z`,
-            });
-          },
-        );
+        it('refuses expired check-in and preserves the prepared booking', () => {
+          expect(result).toEqual({
+            accepted: false,
+            state: 'Prepared',
+            resourceStatus: 'InStorage',
+            due: `${ROOM_DAY}T03:00:00.000Z`,
+            checkout: `${ROOM_DAY}T02:00:00.000Z`,
+          });
+        });
       });
     }
     it(`${caller} can check in immediately before end`, async () => {
@@ -548,7 +545,7 @@ describe('selected room regressions', () => {
           return f.checkIn(caller, usage.usageKey);
         });
       });
-      it.failing('refuses entry after closure and keeps usage Prepared', () => {
+      it('refuses entry after closure and keeps usage Prepared', () => {
         expect(result).toMatchObject({
           accepted: false,
           state: 'Prepared',
@@ -609,12 +606,9 @@ describe('selected room regressions', () => {
         };
       });
     });
-    it.failing(
-      'accepts the morning booking and persists both disjoint reservations',
-      () => {
-        expect(result).toEqual({ created: 1, rejected: [], persisted: 2 });
-      },
-    );
+    it('accepts the morning booking and persists both disjoint reservations', () => {
+      expect(result).toEqual({ created: 1, rejected: [], persisted: 2 });
+    });
   });
   it('controls: overlap refused; adjacent later booking accepted', async () => {
     await inHistoryFixture(db, async (tx) => {

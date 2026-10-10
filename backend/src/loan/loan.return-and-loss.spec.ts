@@ -4,6 +4,7 @@ import type { StaffScopeService } from '../common/authority/staff-scope.service'
 import type { PenaltyService } from '../common/penalty/penalty.service';
 import type { NotificationService } from '../notification/notification.service';
 import type { TrpcUser } from '../trpc/context';
+import { CreditTierService } from '../common/credit/credit-tier.service';
 
 /**
  * Money paths at the return desk: the late penalty on recordReturn, and the
@@ -115,6 +116,7 @@ function service(overrides: {
     penalties,
     notifications,
     audit as never,
+    {} as CreditTierService,
   );
   return { svc, prisma, penalties, notifications, audit, tx };
 }

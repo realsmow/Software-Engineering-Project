@@ -116,11 +116,26 @@ export const decideApprovalOutput = z.object({
 });
 
 export const approvalCounts = z.object({
-  /** Waiting on staff. */
+  /**
+   * Waiting on staff: borrow requests routed to the counter, plus extensions
+   * waiting on a staff condition check (#203). The page shows one "Waiting on
+   * staff" figure, so it has to mean every kind of work that is on that desk,
+   * and `extensions` below says how much of it is extensions.
+   */
   staff: z.number().int().min(0),
-  /** Waiting on a supervisor. */
+  /** Waiting on a supervisor, on the same terms. */
   supervisor: z.number().int().min(0),
-  /** Of those, the ones whose start time has already passed. */
+  /**
+   * #204: the extension half of the two figures above, so the Approvals page
+   * can label its extensions section with a count instead of leaving the
+   * reader to scroll it. `staff` is the T2-style condition check still owed
+   * by the counter; `supervisor` is checked and awaiting a signature.
+   */
+  extensions: z.object({
+    staff: z.number().int().min(0),
+    supervisor: z.number().int().min(0),
+  }),
+  /** Of the pending borrow requests, the ones whose start time has already passed. */
   overdueToDecide: z.number().int().min(0),
   /** Cleared by the system today, for the dashboard's "ระบบอนุมัติเอง" figure. */
   autoApprovedToday: z.number().int().min(0),

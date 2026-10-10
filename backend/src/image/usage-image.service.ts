@@ -23,7 +23,27 @@ const STAGE_TO_DB: Record<UsagePhotoStage, SubmissionType> = {
 
 type PhotoStage = 'before' | 'after' | 'inspection' | 'evidence';
 
-const DB_TO_STAGE: Record<SubmissionType, PhotoStage> = {
+/**
+ * The submission types that belong to a loan's own record.
+ *
+ * `ExtensionCheckPicture` deliberately is not one of them (#205). Those rows
+ * carry a UsageKey too - they are photographs of that loan's unit - but they
+ * were taken to settle one extension, and the before/after/inspection set of
+ * the original loan is evidence an appeal argues over. Folding them together
+ * would put a photo from last Tuesday's renewal in among the pictures of how
+ * the thing left the counter. They are read from the extension instead, by
+ * `loan.extensionReviews`.
+ */
+const LOAN_STAGES = [
+  'BeforePicture',
+  'AfterPicture',
+  'InspectionPicture',
+  'AppealEvidence',
+] as const satisfies readonly SubmissionType[];
+
+type LoanSubmissionType = (typeof LOAN_STAGES)[number];
+
+const DB_TO_STAGE: Record<LoanSubmissionType, PhotoStage> = {
   BeforePicture: 'before',
   AfterPicture: 'after',
   InspectionPicture: 'inspection',
@@ -142,9 +162,15 @@ export class UsageImageService {
       select: { ImageURL: true },
     });
     const already = new Set(existing.map((row) => row.ImageURL));
-    const fresh = [...new Set(input.imageUrls)].filter(
-      (url) => !already.has(url),
-    );
+    // #206: whatever the caller sends is reduced to the durable reference
+    // before it is stored or compared. The copy-to-another-unit action hands
+    // back the signed display URL it was rendering, and a signature is good
+    // for fifteen minutes - stored as the reference it is a photo that stops
+    // loading. Normalising first also keeps the idempotency check honest: the
+    // same file sent twice under two signatures is one photo, not two.
+    const fresh = [
+      ...new Set(input.imageUrls.map((url) => this.images.toStoredUrl(url))),
+    ].filter((url) => !already.has(url));
 
     if (already.size + fresh.length > MAX_PHOTOS_PER_STAGE) {
       throw new BusinessError('TOO_MANY_PHOTOS', {
@@ -177,7 +203,7 @@ export class UsageImageService {
     await this.loadUsage(user, usageKey);
 
     const rows = await this.prisma.images.findMany({
-      where: { UsageKey: usageKey },
+      where: { UsageKey: usageKey, SubmissionType: { in: [...LOAN_STAGES] } },
       select: PHOTO_SELECT,
       orderBy: { ImageKey: 'asc' },
     });
@@ -199,7 +225,9 @@ export class UsageImageService {
     >;
 
     for (const row of rows) {
-      const stage = DB_TO_STAGE[row.SubmissionType];
+      // The query above asked for LOAN_STAGES and nothing else; the cast tells
+      // the compiler what the `where` already guarantees.
+      const stage = DB_TO_STAGE[row.SubmissionType as LoanSubmissionType];
       grouped[stage].push({
         imageKey: row.ImageKey,
         // NFR-SEC-06: every usage photo lives under the evidence folder (see
@@ -240,12 +268,15 @@ export class UsageImageService {
       throw new BusinessError('NOT_YOUR_PHOTO', { imageKey });
     }
 
-    const stage = DB_TO_STAGE[image.SubmissionType];
-    if (stage === 'inspection') {
+    const stage: PhotoStage | undefined =
+      DB_TO_STAGE[image.SubmissionType as LoanSubmissionType];
+    // An extension's check photo is not part of this loan's set and has no
+    // window here to be inside (#205); it is re-recorded by checking again.
+    if (stage === undefined || stage === 'inspection') {
       throw new BusinessError('WRONG_LOAN_STATE', {
         imageKey,
-        stage,
-        note: 'inspection photos are removed by re-grading, not here',
+        stage: stage ?? image.SubmissionType,
+        note: 'these photos are removed by recording the check again, not here',
       });
     }
 

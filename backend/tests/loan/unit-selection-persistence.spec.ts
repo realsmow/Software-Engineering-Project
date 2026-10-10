@@ -213,18 +213,14 @@ describe('NFR-REL-02 / SDS 4.4: unit selection preserves reserved windows', () =
           ).toMatchObject({ unavailable: false, busy: [] });
         });
       });
-      if (busy) {
-        it.failing(
-          'marks the preparation buffer busy instead of advertising a free unit',
-          () => {
-            expect(calendarBusy).toBe(true);
-          },
-        );
-      } else {
-        it('advertises the unit as free when no booking or buffer holds the window', () => {
-          expect(calendarBusy).toBe(false);
-        });
-      }
+      it(
+        busy
+          ? 'marks the preparation buffer busy instead of advertising a free unit'
+          : 'advertises the unit as free when no booking or buffer holds the window',
+        () => {
+          expect(calendarBusy).toBe(busy);
+        },
+      );
     });
   });
 
@@ -322,18 +318,14 @@ describe('NFR-REL-02 / SDS 4.4: unit selection preserves reserved windows', () =
             );
         });
       });
-      if (inspected) {
-        it('shows free after inspection has released the unit', () => {
-          expect(calendarBusy).toBe(false);
-        });
-      } else {
-        it.failing(
-          'shows busy after actual receipt while inspection is still pending',
-          () => {
-            expect(calendarBusy).toBe(true);
-          },
-        );
-      }
+      it(
+        inspected
+          ? 'shows free after inspection has released the unit'
+          : 'shows busy after actual receipt while inspection is still pending',
+        () => {
+          expect(calendarBusy).toBe(!inspected);
+        },
+      );
     });
   });
 

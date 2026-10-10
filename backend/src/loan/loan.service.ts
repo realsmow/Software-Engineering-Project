@@ -8,6 +8,8 @@ import {
   type PenaltyQuote,
 } from '../common/penalty/penalty.service';
 import {
+  assertPickupWindowOpen,
+  assertResourceLendable,
   clashingWindowFilter,
   pickupOpensAt,
   withBuffer,
@@ -24,6 +26,8 @@ import {
 import { toPage, toSkipTake } from '../common/schemas/pagination.schema';
 import { tryMapTier, type ResourceTier } from '../common/schemas/status.schema';
 import { UNAVAILABLE_USAGE_STATES } from '../common/usage/usage-states';
+import { countExtensionsByDesk } from '../common/approval/extension-desk';
+import { CreditTierService } from '../common/credit/credit-tier.service';
 import {
   NotificationService,
   resourceName,
@@ -69,6 +73,10 @@ const RESOURCE_SELECT = {
   ManagedBy: true,
   BufferTime: true,
   BorrowRule: true,
+  // Read again at handover, not only when the request was made: a unit can be
+  // sent to repair while it sits prepared on the shelf (#213).
+  ResourceStatus: true,
+  AllowBorrow: true,
   BorrowRuleInfo: { select: { RuleName: true } },
   Item: {
     select: {
@@ -116,6 +124,9 @@ export class LoanService {
     private readonly penalties: PenaltyService,
     private readonly notifications: NotificationService,
     private readonly audit: AuditService,
+    // Only the dashboard needs it: an extension's desk depends on the
+    // borrower's current credit band, which is not a column on the request.
+    private readonly creditTiers: CreditTierService,
   ) {}
 
   // =========================================================================
@@ -164,53 +175,45 @@ export class LoanService {
     const now = new Date();
     const resourceWhere = await this.scope.resourceScope(user);
 
-    const [
-      toPrepare,
-      toHandover,
-      onLoan,
-      overdue,
-      toInspect,
-      extensionsToInspect,
-    ] = await this.prisma.$transaction([
-      this.prisma.reservations.count({
-        where: {
-          ApproveStatus: 'Approved',
-          UsageLogs: { none: {} },
-          Resource: resourceWhere,
-        },
-      }),
-      this.prisma.usageLog.count({
-        where: { CurrentStatus: 'Prepared', Resource: resourceWhere },
-      }),
-      this.prisma.usageLog.count({
-        where: { CurrentStatus: 'Lended', Resource: resourceWhere },
-      }),
-      this.prisma.usageLog.count({
-        where: {
-          CurrentStatus: 'Lended',
-          DueTime: { lt: now },
-          Resource: resourceWhere,
-        },
-      }),
-      this.prisma.usageLog.count({
-        where: { CurrentStatus: 'Returned', Resource: resourceWhere },
-      }),
-      this.prisma.extensionRequest.count({
-        where: {
-          ApproveStatus: 'Pending',
-          Usage: { Resource: resourceWhere },
-          NOT: {
-            Usage: {
-              Resource: {
-                BorrowRuleInfo: {
-                  RuleName: { equals: 'T2', mode: 'insensitive' },
-                },
-              },
+    const [[toPrepare, toHandover, onLoan, overdue, toInspect], extensions] =
+      await Promise.all([
+        this.prisma.$transaction([
+          this.prisma.reservations.count({
+            where: {
+              ApproveStatus: 'Approved',
+              UsageLogs: { none: {} },
+              Resource: resourceWhere,
             },
-          },
-        },
-      }),
-    ]);
+          }),
+          this.prisma.usageLog.count({
+            where: { CurrentStatus: 'Prepared', Resource: resourceWhere },
+          }),
+          this.prisma.usageLog.count({
+            where: { CurrentStatus: 'Lended', Resource: resourceWhere },
+          }),
+          this.prisma.usageLog.count({
+            where: {
+              CurrentStatus: 'Lended',
+              DueTime: { lt: now },
+              Resource: resourceWhere,
+            },
+          }),
+          this.prisma.usageLog.count({
+            where: { CurrentStatus: 'Returned', Resource: resourceWhere },
+          }),
+        ]),
+        // #202: this used to be "every pending extension that is not T2",
+        // which was wrong at both ends. T2 is precisely the extension a staff
+        // member has to inspect, so the one row the counter must include was
+        // the one it excluded; and a supervisor-routed extension that staff
+        // have already checked has left their queue but went on being counted.
+        // `countExtensionsByDesk` asks the same question the worklist asks.
+        countExtensionsByDesk(
+          this.prisma,
+          resourceWhere,
+          await this.creditTiers.tierMapper(),
+        ),
+      ]);
 
     return {
       toPrepare,
@@ -218,7 +221,7 @@ export class LoanService {
       onLoan,
       overdue,
       toInspect,
-      extensionsToInspect,
+      extensionsToInspect: extensions.staff,
     };
   }
 
@@ -498,6 +501,11 @@ export class LoanService {
     const usage = await this.readUsage(input.usageKey);
     await this.scope.assertResourceInScope(user, usage.Resource.ResourceKey);
     this.assertState(usage, ['Prepared']);
+    // The same two edges the borrower's own confirmation checks (#212, #213).
+    // Written here as well because a rule only one handover door enforces is a
+    // rule the other door is a way around.
+    assertPickupWindowOpen(input.usageKey, usage.DueTime, new Date());
+    assertResourceLendable(usage.Resource.ResourceKey, usage.Resource);
 
     // FR-PKP-03: the unit is photographed as it leaves, by the borrower on
     // their pickup page or by staff at the counter. The borrower's own path

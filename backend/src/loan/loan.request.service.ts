@@ -11,6 +11,8 @@ import {
 } from '../common/approval/approval-policy';
 import {
   HOLDING_APPROVE_STATES,
+  assertPickupWindowOpen,
+  assertResourceLendable,
   clashingWindowFilter,
   collectDeadline,
   heldUsageFilter,
@@ -271,22 +273,7 @@ export class LoanRequestService {
     if (!resource) {
       throw new BusinessError('RESOURCE_NOT_FOUND', { resourceKey });
     }
-    // Retired is checked on its own: AllowBorrow alone can be flipped back.
-    if (
-      !resource.AllowBorrow ||
-      resource.ResourceStatus === 'Missing' ||
-      resource.ResourceStatus === 'Retired'
-    ) {
-      throw new BusinessError('ITEM_UNAVAILABLE', {
-        resourceKey,
-        reason:
-          resource.ResourceStatus === 'Retired'
-            ? 'RETIRED'
-            : resource.AllowBorrow
-              ? 'MISSING'
-              : 'NOT_LENDABLE',
-      });
-    }
+    assertResourceLendable(resourceKey, resource);
 
     // Same rule whether the window came from chips or from raw instants.
     if (resource.Room) {
@@ -685,6 +672,8 @@ export class LoanRequestService {
         ReservationKey: true,
         CurrentStatus: true,
         CheckoutTime: true,
+        DueTime: true,
+        Resource: { select: { ResourceStatus: true, AllowBorrow: true } },
       },
     });
 
@@ -712,6 +701,14 @@ export class LoanRequestService {
         opensAt: toIso(opensAt),
       });
     }
+    // #212: and not after it has closed. Half an hour is the whole of a room's
+    // window, so this edge is reached in ordinary use rather than only by
+    // somebody who forgot about their booking for a week.
+    assertPickupWindowOpen(usageKey, usage.DueTime, new Date());
+    // #213: the unit was judged lendable when the booking was made and set
+    // aside when it was prepared, and neither of those moments is this one. A
+    // room sent to repair in between must not be walked into.
+    assertResourceLendable(usage.ResourceKey, usage.Resource);
 
     const photo = await this.prisma.images.findFirst({
       where: {
@@ -921,7 +918,7 @@ export class LoanRequestService {
     // even with no reservation row behind it - a walk-in loan recorded at the
     // counter is exactly that case.
     const held = await this.prisma.usageLog.findFirst({
-      where: heldUsageFilter(resource.ResourceKey, from),
+      where: heldUsageFilter(resource.ResourceKey, from, to),
       orderBy: { DueTime: 'asc' },
       select: { UsageKey: true, DueTime: true },
     });

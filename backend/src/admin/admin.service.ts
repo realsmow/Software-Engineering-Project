@@ -39,6 +39,7 @@ import {
   type UserRole,
 } from '../common/schemas/status.schema';
 import { UNAVAILABLE_USAGE_STATES } from '../common/usage/usage-states';
+import { runSerializable } from '../common/db/serializable';
 import { OK } from '../common/schemas/ok.schema';
 import { workHours } from '../common/schemas/datetime.schema';
 import { resourceName } from '../notification/notification.service';
@@ -1269,6 +1270,15 @@ export class AdminService implements OnModuleInit {
   /**
    * Only an empty faculty, and never the last one: with none left nothing
    * can own equipment, which once stopped production entirely.
+   *
+   * The "never the last one" half is re-checked inside a Serializable
+   * transaction, because counting and deleting as two separate statements is
+   * not the same rule when two administrators act at once. Both read two
+   * faculties, both delete a different one, and the system ends with none -
+   * the state the guard exists to prevent (#210). Serializable makes the
+   * second commit lose, and `runSerializable` re-runs it against what the
+   * winner left, where the count is now 1 and the refusal is the ordinary
+   * ORG_LAST_ONE the caller would have got had they arrived a moment later.
    */
   async deleteFaculty(input: DeleteOrgInput, actor: AuditActor) {
     await this.facultyKeyOrNull(input.id);
@@ -1284,8 +1294,15 @@ export class AdminService implements OnModuleInit {
         accounts,
       });
     }
+    // Refused here as well as inside, so the ordinary single-caller case does
+    // not pay for a serializable transaction to be told what this already knows.
     if (total <= 1) throw new BusinessError('ORG_LAST_ONE', { id: input.id });
-    await this.prisma.facultyInfo.delete({ where: { FacultyKey: input.id } });
+    await runSerializable(this.prisma, async (tx) => {
+      if ((await tx.facultyInfo.count()) <= 1) {
+        throw new BusinessError('ORG_LAST_ONE', { id: input.id });
+      }
+      await tx.facultyInfo.delete({ where: { FacultyKey: input.id } });
+    });
     await this.audit.record(
       actor,
       'delete',
@@ -1322,7 +1339,7 @@ export class AdminService implements OnModuleInit {
     };
   }
 
-  /** Only a group nothing points at, and never the last one. */
+  /** Only a group nothing points at, and never the last one (see deleteFaculty). */
   async deleteGroup(input: DeleteOrgInput, actor: AuditActor) {
     await this.groupOrThrow(input.id);
     const [members, items, rules, total] = await Promise.all([
@@ -1340,15 +1357,16 @@ export class AdminService implements OnModuleInit {
       });
     }
     if (total <= 1) throw new BusinessError('ORG_LAST_ONE', { id: input.id });
-    await this.prisma.$transaction([
-      this.prisma.branchInfo.deleteMany({
-        where: { ManageGroupKey: input.id },
-      }),
-      this.prisma.clubInfo.deleteMany({ where: { ManageGroupKey: input.id } }),
-      this.prisma.managementGroup.delete({
-        where: { ManageGroupKey: input.id },
-      }),
-    ]);
+    await runSerializable(this.prisma, async (tx) => {
+      // Same race as deleteFaculty, same answer: the count that decides has to
+      // be in the transaction that deletes.
+      if ((await tx.managementGroup.count()) <= 1) {
+        throw new BusinessError('ORG_LAST_ONE', { id: input.id });
+      }
+      await tx.branchInfo.deleteMany({ where: { ManageGroupKey: input.id } });
+      await tx.clubInfo.deleteMany({ where: { ManageGroupKey: input.id } });
+      await tx.managementGroup.delete({ where: { ManageGroupKey: input.id } });
+    });
     await this.audit.record(
       actor,
       'delete',

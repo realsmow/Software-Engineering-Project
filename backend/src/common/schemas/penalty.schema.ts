@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import type { Prisma } from '../../generated/prisma/client';
 
 /**
  * A penalty currently in force against an account.
@@ -7,9 +8,11 @@ import { z } from 'zod';
  * member someone else's penalties and `credit.me` shows a borrower their own,
  * and the two must not drift into slightly different shapes for the same row.
  *
- * "In force" always means the same pair of conditions - PenaltyInfo.InEffect
- * is true AND ExpirationTime has not passed. A query that selects penalties
- * without both filters must not be mapped through this.
+ * "In force" always means whatever `activePenaltyWhere` says: PenaltyInfo
+ * .InEffect is true and either ExpirationTime has not passed or the row is
+ * the late penalty held open for an item still out (LATE_PENALTY_HELD_OPEN).
+ * A query that selects penalties by a looser filter must not be mapped
+ * through this.
  */
 export const activePenalty = z.object({
   id: z.number().int(),
@@ -79,7 +82,40 @@ export function toActivePenalty(row: PenaltyRow): ActivePenalty {
   };
 }
 
+/** Note on a late penalty closed by an extension; later lateness is a new row (#192). */
+export const LATE_BEFORE_EXTENSION = 'before extension';
+
+/**
+ * The late penalty still counting for a loan's current due date. One closed
+ * by an extension is excluded, so lateness after the new due is charged again.
+ */
+export const OPEN_LATE_PENALTY = {
+  AND: [
+    { Reason: { startsWith: 'ReturnLate' } },
+    { NOT: { Reason: { contains: LATE_BEFORE_EXTENSION } } },
+  ],
+} satisfies Prisma.PenaltyInfoWhereInput;
+
+/**
+ * The one row whose ExpirationTime is allowed to be in the past while the
+ * penalty is still in force.
+ *
+ * #196: lateness goes on accruing until the item is back, so the overnight
+ * expiry job deliberately leaves this row open and `settleLate` restarts its
+ * clock at the return. Written here, beside `activePenaltyWhere`, because the
+ * job and the definition of "in force" have to name the same row - when only
+ * the job knew about it, the expiry of some *other* penalty recomputed the
+ * score without this one and handed the borrower their points back while they
+ * still had the equipment (#199).
+ */
+export const LATE_PENALTY_HELD_OPEN = {
+  AND: [OPEN_LATE_PENALTY, { Usage: { CurrentStatus: 'Lended' } }],
+} satisfies Prisma.PenaltyInfoWhereInput;
+
 /** The one definition of "in force", so no caller invents a looser one. */
-export function activePenaltyWhere() {
-  return { InEffect: true, ExpirationTime: { gt: new Date() } };
+export function activePenaltyWhere(): Prisma.PenaltyInfoWhereInput {
+  return {
+    InEffect: true,
+    OR: [{ ExpirationTime: { gt: new Date() } }, LATE_PENALTY_HELD_OPEN],
+  };
 }

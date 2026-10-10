@@ -206,6 +206,10 @@ describe('Module 6 request validation', () => {
       ReservationKey: 101,
       CurrentStatus: 'Prepared',
       CheckoutTime: new Date('2000-01-01T02:00:00.000Z'),
+      // The window has to still be open and the unit still lendable, or the
+      // confirmation is refused before it reaches the photo check (#212, #213).
+      DueTime: new Date('2099-01-14T08:00:00.000Z'),
+      Resource: { ResourceStatus: 'InStorage', AllowBorrow: true },
     });
     db.images = { findFirst: jest.fn().mockResolvedValue({ ImageKey: 91 }) };
     const updateMany = jest.fn().mockImplementation(() => {
@@ -249,6 +253,10 @@ describe('Module 6 request validation', () => {
       ReservationKey: 101,
       CurrentStatus: 'Prepared',
       CheckoutTime: new Date('2000-01-01T02:00:00.000Z'),
+      // The window has to still be open and the unit still lendable, or the
+      // confirmation is refused before it reaches the photo check (#212, #213).
+      DueTime: new Date('2099-01-14T08:00:00.000Z'),
+      Resource: { ResourceStatus: 'InStorage', AllowBorrow: true },
     });
     db.images = { findFirst: jest.fn().mockResolvedValue(null) };
 
@@ -268,6 +276,8 @@ describe('Module 6 request validation', () => {
       ReservationKey: 101,
       CurrentStatus: 'Prepared',
       CheckoutTime: new Date('2999-01-01T02:00:00.000Z'),
+      DueTime: new Date('2999-01-14T08:00:00.000Z'),
+      Resource: { ResourceStatus: 'InStorage', AllowBorrow: true },
     });
     db.images = { findFirst: jest.fn().mockResolvedValue({ ImageKey: 91 }) };
 

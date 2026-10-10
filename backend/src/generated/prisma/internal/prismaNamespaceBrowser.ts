@@ -500,6 +500,7 @@ export const ImagesScalarFieldEnum = {
   UsageKey: 'UsageKey',
   ResourceKey: 'ResourceKey',
   InspectionKey: 'InspectionKey',
+  ExtensionKey: 'ExtensionKey',
   ImageURL: 'ImageURL',
   SubmissionType: 'SubmissionType',
   ActionTime: 'ActionTime'
