@@ -163,6 +163,7 @@ describe("SupervisorApprovalsPage", () => {
         approvalCounts.strict().parse({
           staff: 0,
           supervisor: 1,
+          extensions: { staff: 0, supervisor: 0 },
           retirement: 0,
           overdueToDecide: 0,
           autoApprovedToday: 0,

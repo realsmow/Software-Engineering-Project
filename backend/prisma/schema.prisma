@@ -99,6 +99,12 @@ enum SubmissionType {
    * A borrower's own photo attached to an appeal (FR-APL-02).
    */
   AppealEvidence
+  /**
+   * #205: what staff saw at the condition check a supervisor-routed extension
+   * needs. Kept apart from the three above, which are the record of the
+   * original loan and must not grow an extension's photos.
+   */
+  ExtensionCheckPicture
 }
 
 // ----------------------------------------------------------------------
@@ -684,6 +690,10 @@ model ExtensionRequest {
 
   PendingOnUsageLogs UsageLog[] @relation("UsagePendingExtension")
 
+  /// #205: the condition-check photographs, so the supervisor judges what
+  /// staff actually saw rather than the loan's own collection photo.
+  CheckImages Images[]
+
   /// The two queues read "pending, oldest first", scoped by the resource
   /// behind the loan. Without this every poll of either desk is a table scan.
   @@index([ApproveStatus, RequestedAt])
@@ -775,14 +785,22 @@ model Images {
   UsageKey       Int
   ResourceKey    Int
   InspectionKey  Int?
+  /// #205: set only on an ExtensionCheckPicture. UsageKey stays filled in - the
+  /// photo is still of that loan's unit - but the extension is what it belongs
+  /// to, so one loan extended three times keeps three separate sets.
+  ExtensionKey   Int?
   ImageURL       String
   SubmissionType SubmissionType
   ActionTime     DateTime?      @db.Timestamptz(3)
 
-  SubmittedByUser AccountInfo  @relation("ImagesSubmittedBy", fields: [SubmittedBy], references: [AccountKey])
-  Usage           UsageLog     @relation(fields: [UsageKey], references: [UsageKey])
-  Resource        ResourceInfo @relation(fields: [ResourceKey], references: [ResourceKey])
-  Inspection      Inspection?  @relation(fields: [InspectionKey], references: [InspectionKey])
+  SubmittedByUser AccountInfo       @relation("ImagesSubmittedBy", fields: [SubmittedBy], references: [AccountKey])
+  Usage           UsageLog          @relation(fields: [UsageKey], references: [UsageKey])
+  Resource        ResourceInfo      @relation(fields: [ResourceKey], references: [ResourceKey])
+  Inspection      Inspection?       @relation(fields: [InspectionKey], references: [InspectionKey])
+  Extension       ExtensionRequest? @relation(fields: [ExtensionKey], references: [ExtensionKey], onDelete: Cascade)
+
+  /// The approval screen reads one extension's check photos on every open row.
+  @@index([ExtensionKey])
 }
 
 // ----------------------------------------------------------------------

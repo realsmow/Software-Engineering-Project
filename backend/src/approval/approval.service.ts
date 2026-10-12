@@ -10,6 +10,7 @@ import {
   routeFor,
   type ApprovalRoute,
 } from '../common/approval/approval-policy';
+import { countExtensionsByDesk } from '../common/approval/extension-desk';
 import {
   clashingWindowFilter,
   collectDeadline,
@@ -183,8 +184,13 @@ export class ApprovalService {
       ]);
 
     const toBand = await this.creditTiers.tierMapper();
-    let staff = 0;
-    let supervisor = 0;
+    // #203/#204: extensions are work on these same two desks, and counting
+    // only borrow requests left a T2 extension waiting for its condition check
+    // in neither total — visible in the worklist, invisible in every figure
+    // above it.
+    const extensions = await countExtensionsByDesk(this.prisma, scope, toBand);
+    let staff = extensions.staff;
+    let supervisor = extensions.supervisor;
     let overdueToDecide = 0;
     for (const row of pending) {
       const route = routeFor({
@@ -200,6 +206,7 @@ export class ApprovalService {
     return {
       staff,
       supervisor,
+      extensions,
       overdueToDecide,
       autoApprovedToday,
       retirement,

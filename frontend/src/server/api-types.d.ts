@@ -421,7 +421,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 						maxExtendTimes: number;
 					}[];
 					penalties: {
-						reason: "DamagedItem" | "BrokenItem" | "LostItem" | "DidntReturn" | "ReturnLate";
+						reason: "ReturnLate" | "DamagedItem" | "BrokenItem" | "LostItem" | "DidntReturn";
 						amount: number;
 						lengthDays: number;
 					}[];
@@ -439,7 +439,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 					minimumAuthorityLevel?: number | null | undefined;
 				}[] | undefined;
 				penalties?: {
-					reason: "DamagedItem" | "BrokenItem" | "LostItem" | "DidntReturn" | "ReturnLate";
+					reason: "ReturnLate" | "DamagedItem" | "BrokenItem" | "LostItem" | "DidntReturn";
 					amount: number;
 					lengthDays: number;
 				}[] | undefined;
@@ -466,7 +466,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 						maxExtendTimes: number;
 					}[];
 					penalties: {
-						reason: "DamagedItem" | "BrokenItem" | "LostItem" | "DidntReturn" | "ReturnLate";
+						reason: "ReturnLate" | "DamagedItem" | "BrokenItem" | "LostItem" | "DidntReturn";
 						amount: number;
 						lengthDays: number;
 					}[];
@@ -501,7 +501,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 						maxExtendTimes: number;
 					}[];
 					penalties: {
-						reason: "DamagedItem" | "BrokenItem" | "LostItem" | "DidntReturn" | "ReturnLate";
+						reason: "ReturnLate" | "DamagedItem" | "BrokenItem" | "LostItem" | "DidntReturn";
 						amount: number;
 						lengthDays: number;
 					}[];
@@ -980,7 +980,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 					resourceKey: number;
 					itemName: string | null;
 					serialNo: string | null;
-					kind: "equipment" | "room";
+					kind: "room" | "equipment";
 					tier: "T0" | "T1" | "T2" | "T3" | null;
 					startTime: string;
 					endTime: string;
@@ -1004,6 +1004,10 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 			output: {
 				staff: number;
 				supervisor: number;
+				extensions: {
+					staff: number;
+					supervisor: number;
+				};
 				overdueToDecide: number;
 				autoApprovedToday: number;
 				retirement: number;
@@ -1025,7 +1029,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 						resourceKey: number;
 						name: string | null;
 						serialNo: string | null;
-						kind: "equipment" | "room";
+						kind: "room" | "equipment";
 						tier: "T0" | "T1" | "T2" | "T3" | null;
 						creditWeight: number;
 					};
@@ -1052,6 +1056,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 					usageKey: number | null;
 					dueAt: string | null;
 					cancellable: boolean;
+					holdsRoomQuota: boolean;
 				};
 				cancelled: {
 					reservationKey: number;
@@ -1103,6 +1108,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 						note: string | null;
 						loggedAt: string | null;
 						loggedBy: string;
+						photos: string[];
 					} | null;
 				}[];
 				total: number;
@@ -1170,7 +1176,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 				items: {
 					requestKey: number;
 					resourceKey: number;
-					kind: "equipment" | "room";
+					kind: "room" | "equipment";
 					resourceName: string | null;
 					serialNo: string | null;
 					reason: string;
@@ -1204,7 +1210,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 			output: {
 				requestKey: number;
 				resourceKey: number;
-				kind: "equipment" | "room";
+				kind: "room" | "equipment";
 				resourceName: string | null;
 				serialNo: string | null;
 				reason: string;
@@ -1445,7 +1451,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 	}, import("@trpc/server").TRPCDecorateCreateRouterOptions<{
 		requestUpload: import("@trpc/server").TRPCMutationProcedure<{
 			input: {
-				purpose: "inspection" | "room" | "itemType" | "itemUnit" | "avatar";
+				purpose: "inspection" | "itemType" | "itemUnit" | "room" | "avatar";
 				contentType: "image/jpeg" | "image/png";
 				sizeBytes: number;
 			};
@@ -1891,7 +1897,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 					resourceKey: number;
 					assetTag: string;
 					imageUrl: string | null;
-					status: "Missing" | "InStorage" | "Lended" | "Retired";
+					status: "Lended" | "Missing" | "InStorage" | "Retired";
 					allowBorrow: boolean;
 					condition: "Normal" | "MinorDamage" | "MajorDamage" | "Broken" | "Missing" | null;
 					dueAt: string | null;
@@ -1940,7 +1946,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 				resourceKey: number;
 				assetTag: string;
 				imageUrl: string | null;
-				status: "Missing" | "InStorage" | "Lended" | "Retired";
+				status: "Lended" | "Missing" | "InStorage" | "Retired";
 				allowBorrow: boolean;
 				condition: "Normal" | "MinorDamage" | "MajorDamage" | "Broken" | "Missing" | null;
 				dueAt: string | null;
@@ -1968,7 +1974,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 					capacity: number | null;
 					tier: "T0" | "T1" | "T2" | "T3" | null;
 					creditWeight: number;
-					status: "Missing" | "InStorage" | "Lended" | "Retired";
+					status: "Lended" | "Missing" | "InStorage" | "Retired";
 					allowBorrow: boolean;
 					bookable: boolean;
 					owner: {
@@ -2018,7 +2024,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 				capacity: number | null;
 				tier: "T0" | "T1" | "T2" | "T3" | null;
 				creditWeight: number;
-				status: "Missing" | "InStorage" | "Lended" | "Retired";
+				status: "Lended" | "Missing" | "InStorage" | "Retired";
 				allowBorrow: boolean;
 				bookable: boolean;
 				owner: {
@@ -2080,7 +2086,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 					serialNo: string;
 					imageUrl: string | null;
 					tier: "T0" | "T1" | "T2" | "T3" | null;
-					status: "Missing" | "InStorage" | "Lended" | "Retired";
+					status: "Lended" | "Missing" | "InStorage" | "Retired";
 					lendable: boolean;
 					prepDays: number;
 					condition: "Normal" | "MinorDamage" | "MajorDamage" | "Broken" | "Missing" | null;
@@ -2122,7 +2128,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 					serialNo: string;
 					imageUrl: string | null;
 					tier: "T0" | "T1" | "T2" | "T3" | null;
-					status: "Missing" | "InStorage" | "Lended" | "Retired";
+					status: "Lended" | "Missing" | "InStorage" | "Retired";
 					lendable: boolean;
 					prepDays: number;
 					condition: "Normal" | "MinorDamage" | "MajorDamage" | "Broken" | "Missing" | null;
@@ -2165,7 +2171,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 					serialNo: string;
 					imageUrl: string | null;
 					tier: "T0" | "T1" | "T2" | "T3" | null;
-					status: "Missing" | "InStorage" | "Lended" | "Retired";
+					status: "Lended" | "Missing" | "InStorage" | "Retired";
 					lendable: boolean;
 					prepDays: number;
 					condition: "Normal" | "MinorDamage" | "MajorDamage" | "Broken" | "Missing" | null;
@@ -2184,7 +2190,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 		listManagedUnits: import("@trpc/server").TRPCQueryProcedure<{
 			input: {
 				itemKey: number;
-				status?: "Missing" | "InStorage" | "Lended" | "Retired" | undefined;
+				status?: "Lended" | "Missing" | "InStorage" | "Retired" | undefined;
 				lendable?: boolean | undefined;
 			};
 			output: {
@@ -2194,7 +2200,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 				serialNo: string;
 				imageUrl: string | null;
 				tier: "T0" | "T1" | "T2" | "T3" | null;
-				status: "Missing" | "InStorage" | "Lended" | "Retired";
+				status: "Lended" | "Missing" | "InStorage" | "Retired";
 				lendable: boolean;
 				prepDays: number;
 				condition: "Normal" | "MinorDamage" | "MajorDamage" | "Broken" | "Missing" | null;
@@ -2227,7 +2233,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 				serialNo: string;
 				imageUrl: string | null;
 				tier: "T0" | "T1" | "T2" | "T3" | null;
-				status: "Missing" | "InStorage" | "Lended" | "Retired";
+				status: "Lended" | "Missing" | "InStorage" | "Retired";
 				lendable: boolean;
 				prepDays: number;
 				condition: "Normal" | "MinorDamage" | "MajorDamage" | "Broken" | "Missing" | null;
@@ -2257,7 +2263,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 				serialNo: string;
 				imageUrl: string | null;
 				tier: "T0" | "T1" | "T2" | "T3" | null;
-				status: "Missing" | "InStorage" | "Lended" | "Retired";
+				status: "Lended" | "Missing" | "InStorage" | "Retired";
 				lendable: boolean;
 				prepDays: number;
 				condition: "Normal" | "MinorDamage" | "MajorDamage" | "Broken" | "Missing" | null;
@@ -2285,7 +2291,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 				serialNo: string;
 				imageUrl: string | null;
 				tier: "T0" | "T1" | "T2" | "T3" | null;
-				status: "Missing" | "InStorage" | "Lended" | "Retired";
+				status: "Lended" | "Missing" | "InStorage" | "Retired";
 				lendable: boolean;
 				prepDays: number;
 				condition: "Normal" | "MinorDamage" | "MajorDamage" | "Broken" | "Missing" | null;
@@ -2313,7 +2319,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 				serialNo: string;
 				imageUrl: string | null;
 				tier: "T0" | "T1" | "T2" | "T3" | null;
-				status: "Missing" | "InStorage" | "Lended" | "Retired";
+				status: "Lended" | "Missing" | "InStorage" | "Retired";
 				lendable: boolean;
 				prepDays: number;
 				condition: "Normal" | "MinorDamage" | "MajorDamage" | "Broken" | "Missing" | null;
@@ -2352,7 +2358,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 					creditWeight: number;
 					capacity: number | null;
 					tier: "T0" | "T1" | "T2" | "T3" | null;
-					status: "Missing" | "InStorage" | "Lended" | "Retired";
+					status: "Lended" | "Missing" | "InStorage" | "Retired";
 					lendable: boolean;
 					condition: "Normal" | "MinorDamage" | "MajorDamage" | "Broken" | "Missing" | null;
 					managementGroup: {
@@ -2396,7 +2402,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 				creditWeight: number;
 				capacity: number | null;
 				tier: "T0" | "T1" | "T2" | "T3" | null;
-				status: "Missing" | "InStorage" | "Lended" | "Retired";
+				status: "Lended" | "Missing" | "InStorage" | "Retired";
 				lendable: boolean;
 				condition: "Normal" | "MinorDamage" | "MajorDamage" | "Broken" | "Missing" | null;
 				managementGroup: {
@@ -2435,7 +2441,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 				creditWeight: number;
 				capacity: number | null;
 				tier: "T0" | "T1" | "T2" | "T3" | null;
-				status: "Missing" | "InStorage" | "Lended" | "Retired";
+				status: "Lended" | "Missing" | "InStorage" | "Retired";
 				lendable: boolean;
 				condition: "Normal" | "MinorDamage" | "MajorDamage" | "Broken" | "Missing" | null;
 				managementGroup: {
@@ -2546,7 +2552,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 			output: {
 				requestKey: number;
 				resourceKey: number;
-				kind: "equipment" | "room";
+				kind: "room" | "equipment";
 				resourceName: string | null;
 				serialNo: string | null;
 				reason: string;
@@ -2574,7 +2580,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 			output: {
 				requestKey: number;
 				resourceKey: number;
-				kind: "equipment" | "room";
+				kind: "room" | "equipment";
 				resourceName: string | null;
 				serialNo: string | null;
 				reason: string;
@@ -2619,7 +2625,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 						resourceKey: number;
 						name: string | null;
 						serialNo: string | null;
-						kind: "equipment" | "room";
+						kind: "room" | "equipment";
 						tier: "T0" | "T1" | "T2" | "T3" | null;
 						creditWeight: number;
 					};
@@ -2646,6 +2652,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 					usageKey: number | null;
 					dueAt: string | null;
 					cancellable: boolean;
+					holdsRoomQuota: boolean;
 				}[];
 				rejected: {
 					resourceKey: number;
@@ -2670,7 +2677,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 						resourceKey: number;
 						name: string | null;
 						serialNo: string | null;
-						kind: "equipment" | "room";
+						kind: "room" | "equipment";
 						tier: "T0" | "T1" | "T2" | "T3" | null;
 						creditWeight: number;
 					};
@@ -2697,6 +2704,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 					usageKey: number | null;
 					dueAt: string | null;
 					cancellable: boolean;
+					holdsRoomQuota: boolean;
 				}[];
 				rejected: {
 					resourceKey: number;
@@ -2721,7 +2729,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 						resourceKey: number;
 						name: string | null;
 						serialNo: string | null;
-						kind: "equipment" | "room";
+						kind: "room" | "equipment";
 						tier: "T0" | "T1" | "T2" | "T3" | null;
 						creditWeight: number;
 					};
@@ -2748,6 +2756,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 					usageKey: number | null;
 					dueAt: string | null;
 					cancellable: boolean;
+					holdsRoomQuota: boolean;
 				}[];
 				total: number;
 				page: number;
@@ -2766,7 +2775,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 					resourceKey: number;
 					name: string | null;
 					serialNo: string | null;
-					kind: "equipment" | "room";
+					kind: "room" | "equipment";
 					tier: "T0" | "T1" | "T2" | "T3" | null;
 					creditWeight: number;
 				};
@@ -2793,6 +2802,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 				usageKey: number | null;
 				dueAt: string | null;
 				cancellable: boolean;
+				holdsRoomQuota: boolean;
 			};
 			meta: object;
 		}>;
@@ -2808,7 +2818,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 					resourceKey: number;
 					name: string | null;
 					serialNo: string | null;
-					kind: "equipment" | "room";
+					kind: "room" | "equipment";
 					tier: "T0" | "T1" | "T2" | "T3" | null;
 					creditWeight: number;
 				};
@@ -2835,6 +2845,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 				usageKey: number | null;
 				dueAt: string | null;
 				cancellable: boolean;
+				holdsRoomQuota: boolean;
 			};
 			meta: object;
 		}>;
@@ -2849,7 +2860,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 					resourceKey: number;
 					name: string | null;
 					serialNo: string | null;
-					kind: "equipment" | "room";
+					kind: "room" | "equipment";
 					tier: "T0" | "T1" | "T2" | "T3" | null;
 					creditWeight: number;
 				};
@@ -2876,6 +2887,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 				usageKey: number | null;
 				dueAt: string | null;
 				cancellable: boolean;
+				holdsRoomQuota: boolean;
 			};
 			meta: object;
 		}>;
@@ -2996,7 +3008,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 				items: {
 					usageKey: number | null;
 					reservationKey: number | null;
-					status: "Lended" | "Pending" | "Prepared" | "Returned" | "Inspected" | null;
+					status: "Pending" | "Prepared" | "Lended" | "Returned" | "Inspected" | null;
 					borrower: {
 						accountKey: number;
 						studentId: string;
@@ -3007,6 +3019,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 					itemName: string | null;
 					serialNo: string | null;
 					resourceKey: number | null;
+					itemKey: number | null;
 					tier: "T0" | "T1" | "T2" | "T3" | null;
 					prepDays: number;
 					pickupAt: string | null;
@@ -3039,7 +3052,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 			output: {
 				usageKey: number;
 				reservationKey: number | null;
-				status: "Lended" | "Pending" | "Prepared" | "Returned" | "Inspected";
+				status: "Pending" | "Prepared" | "Lended" | "Returned" | "Inspected";
 				borrower: {
 					accountKey: number;
 					studentId: string;
@@ -3083,7 +3096,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 			output: {
 				usageKey: number;
 				reservationKey: number | null;
-				status: "Lended" | "Pending" | "Prepared" | "Returned" | "Inspected";
+				status: "Pending" | "Prepared" | "Lended" | "Returned" | "Inspected";
 				borrower: {
 					accountKey: number;
 					studentId: string;
@@ -3115,7 +3128,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 			output: {
 				usageKey: number;
 				reservationKey: number | null;
-				status: "Lended" | "Pending" | "Prepared" | "Returned" | "Inspected";
+				status: "Pending" | "Prepared" | "Lended" | "Returned" | "Inspected";
 				borrower: {
 					accountKey: number;
 					studentId: string;
@@ -3147,7 +3160,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 			output: {
 				usageKey: number;
 				reservationKey: number | null;
-				status: "Lended" | "Pending" | "Prepared" | "Returned" | "Inspected";
+				status: "Pending" | "Prepared" | "Lended" | "Returned" | "Inspected";
 				borrower: {
 					accountKey: number;
 					studentId: string;
@@ -3179,7 +3192,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 				loan: {
 					usageKey: number;
 					reservationKey: number | null;
-					status: "Lended" | "Pending" | "Prepared" | "Returned" | "Inspected";
+					status: "Pending" | "Prepared" | "Lended" | "Returned" | "Inspected";
 					borrower: {
 						accountKey: number;
 						studentId: string;
@@ -3218,7 +3231,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 			output: {
 				usageKey: number;
 				reservationKey: number | null;
-				status: "Lended" | "Pending" | "Prepared" | "Returned" | "Inspected";
+				status: "Pending" | "Prepared" | "Lended" | "Returned" | "Inspected";
 				borrower: {
 					accountKey: number;
 					studentId: string;
@@ -3276,6 +3289,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 						note: string | null;
 						loggedAt: string | null;
 						loggedBy: string;
+						photos: string[];
 					} | null;
 				}[];
 				total: number;
@@ -3317,6 +3331,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 				extensionKey: number;
 				condition: "Normal" | "MinorDamage" | "MajorDamage" | "Broken" | "Missing";
 				note?: string | undefined;
+				imageUrls?: string[] | undefined;
 			};
 			output: {
 				extensionKey: number;

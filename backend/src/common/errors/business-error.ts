@@ -183,6 +183,13 @@ export const BUSINESS_ERROR_CODES = {
    */
   PICKUP_NOT_OPEN: 'BAD_REQUEST',
   /**
+   * #212: the other edge of the same window. A booked period that has run out
+   * cannot be collected into — a room checked in at 09:31 for a 09:00-09:30
+   * slot would start a loan that is over. `cause.endedAt` says when it closed;
+   * the borrower's next move is to book again, not to wait.
+   */
+  PICKUP_WINDOW_PASSED: 'CONFLICT',
+  /**
    * The requested new due date is not one this loan can be moved to — earlier
    * than the current one, in the past, or past what the borrower's band allows.
    * `cause.reason` says which.

@@ -9,6 +9,7 @@ import {
   resourceName,
 } from '../notification/notification.service';
 import { recomputeCredit } from '../common/credit/recompute-credit';
+import { LATE_PENALTY_HELD_OPEN } from '../common/schemas/penalty.schema';
 
 /** The six jobs in SRS §5.3 that this system runs. */
 export type CronJobId =
@@ -276,10 +277,10 @@ export class CronService {
         InEffect: true,
         ExpirationTime: { lte: now },
         // #196: lateness keeps counting until the item is back, so its
-        // penalty cannot run out first. The return restarts its clock.
-        NOT: {
-          AND: [OPEN_LATE_PENALTY, { Usage: { CurrentStatus: 'Lended' } }],
-        },
+        // penalty cannot run out first. The return restarts its clock. The
+        // same row is what `activePenaltyWhere` keeps counting against the
+        // score, so leaving it open here does not hand the points back (#199).
+        NOT: LATE_PENALTY_HELD_OPEN,
       },
       select: { PenaltyKey: true, AccountKey: true, CreditDeducted: true },
     });

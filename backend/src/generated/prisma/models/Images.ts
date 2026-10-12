@@ -32,6 +32,7 @@ export type ImagesAvgAggregateOutputType = {
   UsageKey: number | null
   ResourceKey: number | null
   InspectionKey: number | null
+  ExtensionKey: number | null
 }
 
 export type ImagesSumAggregateOutputType = {
@@ -40,6 +41,7 @@ export type ImagesSumAggregateOutputType = {
   UsageKey: number | null
   ResourceKey: number | null
   InspectionKey: number | null
+  ExtensionKey: number | null
 }
 
 export type ImagesMinAggregateOutputType = {
@@ -48,6 +50,7 @@ export type ImagesMinAggregateOutputType = {
   UsageKey: number | null
   ResourceKey: number | null
   InspectionKey: number | null
+  ExtensionKey: number | null
   ImageURL: string | null
   SubmissionType: $Enums.SubmissionType | null
   ActionTime: Date | null
@@ -59,6 +62,7 @@ export type ImagesMaxAggregateOutputType = {
   UsageKey: number | null
   ResourceKey: number | null
   InspectionKey: number | null
+  ExtensionKey: number | null
   ImageURL: string | null
   SubmissionType: $Enums.SubmissionType | null
   ActionTime: Date | null
@@ -70,6 +74,7 @@ export type ImagesCountAggregateOutputType = {
   UsageKey: number
   ResourceKey: number
   InspectionKey: number
+  ExtensionKey: number
   ImageURL: number
   SubmissionType: number
   ActionTime: number
@@ -83,6 +88,7 @@ export type ImagesAvgAggregateInputType = {
   UsageKey?: true
   ResourceKey?: true
   InspectionKey?: true
+  ExtensionKey?: true
 }
 
 export type ImagesSumAggregateInputType = {
@@ -91,6 +97,7 @@ export type ImagesSumAggregateInputType = {
   UsageKey?: true
   ResourceKey?: true
   InspectionKey?: true
+  ExtensionKey?: true
 }
 
 export type ImagesMinAggregateInputType = {
@@ -99,6 +106,7 @@ export type ImagesMinAggregateInputType = {
   UsageKey?: true
   ResourceKey?: true
   InspectionKey?: true
+  ExtensionKey?: true
   ImageURL?: true
   SubmissionType?: true
   ActionTime?: true
@@ -110,6 +118,7 @@ export type ImagesMaxAggregateInputType = {
   UsageKey?: true
   ResourceKey?: true
   InspectionKey?: true
+  ExtensionKey?: true
   ImageURL?: true
   SubmissionType?: true
   ActionTime?: true
@@ -121,6 +130,7 @@ export type ImagesCountAggregateInputType = {
   UsageKey?: true
   ResourceKey?: true
   InspectionKey?: true
+  ExtensionKey?: true
   ImageURL?: true
   SubmissionType?: true
   ActionTime?: true
@@ -219,6 +229,7 @@ export type ImagesGroupByOutputType = {
   UsageKey: number
   ResourceKey: number
   InspectionKey: number | null
+  ExtensionKey: number | null
   ImageURL: string
   SubmissionType: $Enums.SubmissionType
   ActionTime: Date | null
@@ -253,6 +264,7 @@ export type ImagesWhereInput = {
   UsageKey?: Prisma.IntFilter<"Images"> | number
   ResourceKey?: Prisma.IntFilter<"Images"> | number
   InspectionKey?: Prisma.IntNullableFilter<"Images"> | number | null
+  ExtensionKey?: Prisma.IntNullableFilter<"Images"> | number | null
   ImageURL?: Prisma.StringFilter<"Images"> | string
   SubmissionType?: Prisma.EnumSubmissionTypeFilter<"Images"> | $Enums.SubmissionType
   ActionTime?: Prisma.DateTimeNullableFilter<"Images"> | Date | string | null
@@ -260,6 +272,7 @@ export type ImagesWhereInput = {
   Usage?: Prisma.XOR<Prisma.UsageLogScalarRelationFilter, Prisma.UsageLogWhereInput>
   Resource?: Prisma.XOR<Prisma.ResourceInfoScalarRelationFilter, Prisma.ResourceInfoWhereInput>
   Inspection?: Prisma.XOR<Prisma.InspectionNullableScalarRelationFilter, Prisma.InspectionWhereInput> | null
+  Extension?: Prisma.XOR<Prisma.ExtensionRequestNullableScalarRelationFilter, Prisma.ExtensionRequestWhereInput> | null
 }
 
 export type ImagesOrderByWithRelationInput = {
@@ -268,6 +281,7 @@ export type ImagesOrderByWithRelationInput = {
   UsageKey?: Prisma.SortOrder
   ResourceKey?: Prisma.SortOrder
   InspectionKey?: Prisma.SortOrderInput | Prisma.SortOrder
+  ExtensionKey?: Prisma.SortOrderInput | Prisma.SortOrder
   ImageURL?: Prisma.SortOrder
   SubmissionType?: Prisma.SortOrder
   ActionTime?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -275,6 +289,7 @@ export type ImagesOrderByWithRelationInput = {
   Usage?: Prisma.UsageLogOrderByWithRelationInput
   Resource?: Prisma.ResourceInfoOrderByWithRelationInput
   Inspection?: Prisma.InspectionOrderByWithRelationInput
+  Extension?: Prisma.ExtensionRequestOrderByWithRelationInput
 }
 
 export type ImagesWhereUniqueInput = Prisma.AtLeast<{
@@ -286,6 +301,7 @@ export type ImagesWhereUniqueInput = Prisma.AtLeast<{
   UsageKey?: Prisma.IntFilter<"Images"> | number
   ResourceKey?: Prisma.IntFilter<"Images"> | number
   InspectionKey?: Prisma.IntNullableFilter<"Images"> | number | null
+  ExtensionKey?: Prisma.IntNullableFilter<"Images"> | number | null
   ImageURL?: Prisma.StringFilter<"Images"> | string
   SubmissionType?: Prisma.EnumSubmissionTypeFilter<"Images"> | $Enums.SubmissionType
   ActionTime?: Prisma.DateTimeNullableFilter<"Images"> | Date | string | null
@@ -293,6 +309,7 @@ export type ImagesWhereUniqueInput = Prisma.AtLeast<{
   Usage?: Prisma.XOR<Prisma.UsageLogScalarRelationFilter, Prisma.UsageLogWhereInput>
   Resource?: Prisma.XOR<Prisma.ResourceInfoScalarRelationFilter, Prisma.ResourceInfoWhereInput>
   Inspection?: Prisma.XOR<Prisma.InspectionNullableScalarRelationFilter, Prisma.InspectionWhereInput> | null
+  Extension?: Prisma.XOR<Prisma.ExtensionRequestNullableScalarRelationFilter, Prisma.ExtensionRequestWhereInput> | null
 }, "ImageKey">
 
 export type ImagesOrderByWithAggregationInput = {
@@ -301,6 +318,7 @@ export type ImagesOrderByWithAggregationInput = {
   UsageKey?: Prisma.SortOrder
   ResourceKey?: Prisma.SortOrder
   InspectionKey?: Prisma.SortOrderInput | Prisma.SortOrder
+  ExtensionKey?: Prisma.SortOrderInput | Prisma.SortOrder
   ImageURL?: Prisma.SortOrder
   SubmissionType?: Prisma.SortOrder
   ActionTime?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -320,6 +338,7 @@ export type ImagesScalarWhereWithAggregatesInput = {
   UsageKey?: Prisma.IntWithAggregatesFilter<"Images"> | number
   ResourceKey?: Prisma.IntWithAggregatesFilter<"Images"> | number
   InspectionKey?: Prisma.IntNullableWithAggregatesFilter<"Images"> | number | null
+  ExtensionKey?: Prisma.IntNullableWithAggregatesFilter<"Images"> | number | null
   ImageURL?: Prisma.StringWithAggregatesFilter<"Images"> | string
   SubmissionType?: Prisma.EnumSubmissionTypeWithAggregatesFilter<"Images"> | $Enums.SubmissionType
   ActionTime?: Prisma.DateTimeNullableWithAggregatesFilter<"Images"> | Date | string | null
@@ -333,6 +352,7 @@ export type ImagesCreateInput = {
   Usage: Prisma.UsageLogCreateNestedOneWithoutImagesInput
   Resource: Prisma.ResourceInfoCreateNestedOneWithoutImagesInput
   Inspection?: Prisma.InspectionCreateNestedOneWithoutImagesInput
+  Extension?: Prisma.ExtensionRequestCreateNestedOneWithoutCheckImagesInput
 }
 
 export type ImagesUncheckedCreateInput = {
@@ -341,6 +361,7 @@ export type ImagesUncheckedCreateInput = {
   UsageKey: number
   ResourceKey: number
   InspectionKey?: number | null
+  ExtensionKey?: number | null
   ImageURL: string
   SubmissionType: $Enums.SubmissionType
   ActionTime?: Date | string | null
@@ -354,6 +375,7 @@ export type ImagesUpdateInput = {
   Usage?: Prisma.UsageLogUpdateOneRequiredWithoutImagesNestedInput
   Resource?: Prisma.ResourceInfoUpdateOneRequiredWithoutImagesNestedInput
   Inspection?: Prisma.InspectionUpdateOneWithoutImagesNestedInput
+  Extension?: Prisma.ExtensionRequestUpdateOneWithoutCheckImagesNestedInput
 }
 
 export type ImagesUncheckedUpdateInput = {
@@ -362,6 +384,7 @@ export type ImagesUncheckedUpdateInput = {
   UsageKey?: Prisma.IntFieldUpdateOperationsInput | number
   ResourceKey?: Prisma.IntFieldUpdateOperationsInput | number
   InspectionKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  ExtensionKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   ImageURL?: Prisma.StringFieldUpdateOperationsInput | string
   SubmissionType?: Prisma.EnumSubmissionTypeFieldUpdateOperationsInput | $Enums.SubmissionType
   ActionTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -373,6 +396,7 @@ export type ImagesCreateManyInput = {
   UsageKey: number
   ResourceKey: number
   InspectionKey?: number | null
+  ExtensionKey?: number | null
   ImageURL: string
   SubmissionType: $Enums.SubmissionType
   ActionTime?: Date | string | null
@@ -390,6 +414,7 @@ export type ImagesUncheckedUpdateManyInput = {
   UsageKey?: Prisma.IntFieldUpdateOperationsInput | number
   ResourceKey?: Prisma.IntFieldUpdateOperationsInput | number
   InspectionKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  ExtensionKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   ImageURL?: Prisma.StringFieldUpdateOperationsInput | string
   SubmissionType?: Prisma.EnumSubmissionTypeFieldUpdateOperationsInput | $Enums.SubmissionType
   ActionTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -411,6 +436,7 @@ export type ImagesCountOrderByAggregateInput = {
   UsageKey?: Prisma.SortOrder
   ResourceKey?: Prisma.SortOrder
   InspectionKey?: Prisma.SortOrder
+  ExtensionKey?: Prisma.SortOrder
   ImageURL?: Prisma.SortOrder
   SubmissionType?: Prisma.SortOrder
   ActionTime?: Prisma.SortOrder
@@ -422,6 +448,7 @@ export type ImagesAvgOrderByAggregateInput = {
   UsageKey?: Prisma.SortOrder
   ResourceKey?: Prisma.SortOrder
   InspectionKey?: Prisma.SortOrder
+  ExtensionKey?: Prisma.SortOrder
 }
 
 export type ImagesMaxOrderByAggregateInput = {
@@ -430,6 +457,7 @@ export type ImagesMaxOrderByAggregateInput = {
   UsageKey?: Prisma.SortOrder
   ResourceKey?: Prisma.SortOrder
   InspectionKey?: Prisma.SortOrder
+  ExtensionKey?: Prisma.SortOrder
   ImageURL?: Prisma.SortOrder
   SubmissionType?: Prisma.SortOrder
   ActionTime?: Prisma.SortOrder
@@ -441,6 +469,7 @@ export type ImagesMinOrderByAggregateInput = {
   UsageKey?: Prisma.SortOrder
   ResourceKey?: Prisma.SortOrder
   InspectionKey?: Prisma.SortOrder
+  ExtensionKey?: Prisma.SortOrder
   ImageURL?: Prisma.SortOrder
   SubmissionType?: Prisma.SortOrder
   ActionTime?: Prisma.SortOrder
@@ -452,6 +481,7 @@ export type ImagesSumOrderByAggregateInput = {
   UsageKey?: Prisma.SortOrder
   ResourceKey?: Prisma.SortOrder
   InspectionKey?: Prisma.SortOrder
+  ExtensionKey?: Prisma.SortOrder
 }
 
 export type ImagesCreateNestedManyWithoutSubmittedByUserInput = {
@@ -580,6 +610,48 @@ export type ImagesUncheckedUpdateManyWithoutUsageNestedInput = {
   deleteMany?: Prisma.ImagesScalarWhereInput | Prisma.ImagesScalarWhereInput[]
 }
 
+export type ImagesCreateNestedManyWithoutExtensionInput = {
+  create?: Prisma.XOR<Prisma.ImagesCreateWithoutExtensionInput, Prisma.ImagesUncheckedCreateWithoutExtensionInput> | Prisma.ImagesCreateWithoutExtensionInput[] | Prisma.ImagesUncheckedCreateWithoutExtensionInput[]
+  connectOrCreate?: Prisma.ImagesCreateOrConnectWithoutExtensionInput | Prisma.ImagesCreateOrConnectWithoutExtensionInput[]
+  createMany?: Prisma.ImagesCreateManyExtensionInputEnvelope
+  connect?: Prisma.ImagesWhereUniqueInput | Prisma.ImagesWhereUniqueInput[]
+}
+
+export type ImagesUncheckedCreateNestedManyWithoutExtensionInput = {
+  create?: Prisma.XOR<Prisma.ImagesCreateWithoutExtensionInput, Prisma.ImagesUncheckedCreateWithoutExtensionInput> | Prisma.ImagesCreateWithoutExtensionInput[] | Prisma.ImagesUncheckedCreateWithoutExtensionInput[]
+  connectOrCreate?: Prisma.ImagesCreateOrConnectWithoutExtensionInput | Prisma.ImagesCreateOrConnectWithoutExtensionInput[]
+  createMany?: Prisma.ImagesCreateManyExtensionInputEnvelope
+  connect?: Prisma.ImagesWhereUniqueInput | Prisma.ImagesWhereUniqueInput[]
+}
+
+export type ImagesUpdateManyWithoutExtensionNestedInput = {
+  create?: Prisma.XOR<Prisma.ImagesCreateWithoutExtensionInput, Prisma.ImagesUncheckedCreateWithoutExtensionInput> | Prisma.ImagesCreateWithoutExtensionInput[] | Prisma.ImagesUncheckedCreateWithoutExtensionInput[]
+  connectOrCreate?: Prisma.ImagesCreateOrConnectWithoutExtensionInput | Prisma.ImagesCreateOrConnectWithoutExtensionInput[]
+  upsert?: Prisma.ImagesUpsertWithWhereUniqueWithoutExtensionInput | Prisma.ImagesUpsertWithWhereUniqueWithoutExtensionInput[]
+  createMany?: Prisma.ImagesCreateManyExtensionInputEnvelope
+  set?: Prisma.ImagesWhereUniqueInput | Prisma.ImagesWhereUniqueInput[]
+  disconnect?: Prisma.ImagesWhereUniqueInput | Prisma.ImagesWhereUniqueInput[]
+  delete?: Prisma.ImagesWhereUniqueInput | Prisma.ImagesWhereUniqueInput[]
+  connect?: Prisma.ImagesWhereUniqueInput | Prisma.ImagesWhereUniqueInput[]
+  update?: Prisma.ImagesUpdateWithWhereUniqueWithoutExtensionInput | Prisma.ImagesUpdateWithWhereUniqueWithoutExtensionInput[]
+  updateMany?: Prisma.ImagesUpdateManyWithWhereWithoutExtensionInput | Prisma.ImagesUpdateManyWithWhereWithoutExtensionInput[]
+  deleteMany?: Prisma.ImagesScalarWhereInput | Prisma.ImagesScalarWhereInput[]
+}
+
+export type ImagesUncheckedUpdateManyWithoutExtensionNestedInput = {
+  create?: Prisma.XOR<Prisma.ImagesCreateWithoutExtensionInput, Prisma.ImagesUncheckedCreateWithoutExtensionInput> | Prisma.ImagesCreateWithoutExtensionInput[] | Prisma.ImagesUncheckedCreateWithoutExtensionInput[]
+  connectOrCreate?: Prisma.ImagesCreateOrConnectWithoutExtensionInput | Prisma.ImagesCreateOrConnectWithoutExtensionInput[]
+  upsert?: Prisma.ImagesUpsertWithWhereUniqueWithoutExtensionInput | Prisma.ImagesUpsertWithWhereUniqueWithoutExtensionInput[]
+  createMany?: Prisma.ImagesCreateManyExtensionInputEnvelope
+  set?: Prisma.ImagesWhereUniqueInput | Prisma.ImagesWhereUniqueInput[]
+  disconnect?: Prisma.ImagesWhereUniqueInput | Prisma.ImagesWhereUniqueInput[]
+  delete?: Prisma.ImagesWhereUniqueInput | Prisma.ImagesWhereUniqueInput[]
+  connect?: Prisma.ImagesWhereUniqueInput | Prisma.ImagesWhereUniqueInput[]
+  update?: Prisma.ImagesUpdateWithWhereUniqueWithoutExtensionInput | Prisma.ImagesUpdateWithWhereUniqueWithoutExtensionInput[]
+  updateMany?: Prisma.ImagesUpdateManyWithWhereWithoutExtensionInput | Prisma.ImagesUpdateManyWithWhereWithoutExtensionInput[]
+  deleteMany?: Prisma.ImagesScalarWhereInput | Prisma.ImagesScalarWhereInput[]
+}
+
 export type ImagesCreateNestedManyWithoutInspectionInput = {
   create?: Prisma.XOR<Prisma.ImagesCreateWithoutInspectionInput, Prisma.ImagesUncheckedCreateWithoutInspectionInput> | Prisma.ImagesCreateWithoutInspectionInput[] | Prisma.ImagesUncheckedCreateWithoutInspectionInput[]
   connectOrCreate?: Prisma.ImagesCreateOrConnectWithoutInspectionInput | Prisma.ImagesCreateOrConnectWithoutInspectionInput[]
@@ -633,6 +705,7 @@ export type ImagesCreateWithoutSubmittedByUserInput = {
   Usage: Prisma.UsageLogCreateNestedOneWithoutImagesInput
   Resource: Prisma.ResourceInfoCreateNestedOneWithoutImagesInput
   Inspection?: Prisma.InspectionCreateNestedOneWithoutImagesInput
+  Extension?: Prisma.ExtensionRequestCreateNestedOneWithoutCheckImagesInput
 }
 
 export type ImagesUncheckedCreateWithoutSubmittedByUserInput = {
@@ -640,6 +713,7 @@ export type ImagesUncheckedCreateWithoutSubmittedByUserInput = {
   UsageKey: number
   ResourceKey: number
   InspectionKey?: number | null
+  ExtensionKey?: number | null
   ImageURL: string
   SubmissionType: $Enums.SubmissionType
   ActionTime?: Date | string | null
@@ -680,6 +754,7 @@ export type ImagesScalarWhereInput = {
   UsageKey?: Prisma.IntFilter<"Images"> | number
   ResourceKey?: Prisma.IntFilter<"Images"> | number
   InspectionKey?: Prisma.IntNullableFilter<"Images"> | number | null
+  ExtensionKey?: Prisma.IntNullableFilter<"Images"> | number | null
   ImageURL?: Prisma.StringFilter<"Images"> | string
   SubmissionType?: Prisma.EnumSubmissionTypeFilter<"Images"> | $Enums.SubmissionType
   ActionTime?: Prisma.DateTimeNullableFilter<"Images"> | Date | string | null
@@ -692,6 +767,7 @@ export type ImagesCreateWithoutResourceInput = {
   SubmittedByUser: Prisma.AccountInfoCreateNestedOneWithoutImagesSubmittedInput
   Usage: Prisma.UsageLogCreateNestedOneWithoutImagesInput
   Inspection?: Prisma.InspectionCreateNestedOneWithoutImagesInput
+  Extension?: Prisma.ExtensionRequestCreateNestedOneWithoutCheckImagesInput
 }
 
 export type ImagesUncheckedCreateWithoutResourceInput = {
@@ -699,6 +775,7 @@ export type ImagesUncheckedCreateWithoutResourceInput = {
   SubmittedBy: number
   UsageKey: number
   InspectionKey?: number | null
+  ExtensionKey?: number | null
   ImageURL: string
   SubmissionType: $Enums.SubmissionType
   ActionTime?: Date | string | null
@@ -737,6 +814,7 @@ export type ImagesCreateWithoutUsageInput = {
   SubmittedByUser: Prisma.AccountInfoCreateNestedOneWithoutImagesSubmittedInput
   Resource: Prisma.ResourceInfoCreateNestedOneWithoutImagesInput
   Inspection?: Prisma.InspectionCreateNestedOneWithoutImagesInput
+  Extension?: Prisma.ExtensionRequestCreateNestedOneWithoutCheckImagesInput
 }
 
 export type ImagesUncheckedCreateWithoutUsageInput = {
@@ -744,6 +822,7 @@ export type ImagesUncheckedCreateWithoutUsageInput = {
   SubmittedBy: number
   ResourceKey: number
   InspectionKey?: number | null
+  ExtensionKey?: number | null
   ImageURL: string
   SubmissionType: $Enums.SubmissionType
   ActionTime?: Date | string | null
@@ -775,6 +854,53 @@ export type ImagesUpdateManyWithWhereWithoutUsageInput = {
   data: Prisma.XOR<Prisma.ImagesUpdateManyMutationInput, Prisma.ImagesUncheckedUpdateManyWithoutUsageInput>
 }
 
+export type ImagesCreateWithoutExtensionInput = {
+  ImageURL: string
+  SubmissionType: $Enums.SubmissionType
+  ActionTime?: Date | string | null
+  SubmittedByUser: Prisma.AccountInfoCreateNestedOneWithoutImagesSubmittedInput
+  Usage: Prisma.UsageLogCreateNestedOneWithoutImagesInput
+  Resource: Prisma.ResourceInfoCreateNestedOneWithoutImagesInput
+  Inspection?: Prisma.InspectionCreateNestedOneWithoutImagesInput
+}
+
+export type ImagesUncheckedCreateWithoutExtensionInput = {
+  ImageKey?: number
+  SubmittedBy: number
+  UsageKey: number
+  ResourceKey: number
+  InspectionKey?: number | null
+  ImageURL: string
+  SubmissionType: $Enums.SubmissionType
+  ActionTime?: Date | string | null
+}
+
+export type ImagesCreateOrConnectWithoutExtensionInput = {
+  where: Prisma.ImagesWhereUniqueInput
+  create: Prisma.XOR<Prisma.ImagesCreateWithoutExtensionInput, Prisma.ImagesUncheckedCreateWithoutExtensionInput>
+}
+
+export type ImagesCreateManyExtensionInputEnvelope = {
+  data: Prisma.ImagesCreateManyExtensionInput | Prisma.ImagesCreateManyExtensionInput[]
+  skipDuplicates?: boolean
+}
+
+export type ImagesUpsertWithWhereUniqueWithoutExtensionInput = {
+  where: Prisma.ImagesWhereUniqueInput
+  update: Prisma.XOR<Prisma.ImagesUpdateWithoutExtensionInput, Prisma.ImagesUncheckedUpdateWithoutExtensionInput>
+  create: Prisma.XOR<Prisma.ImagesCreateWithoutExtensionInput, Prisma.ImagesUncheckedCreateWithoutExtensionInput>
+}
+
+export type ImagesUpdateWithWhereUniqueWithoutExtensionInput = {
+  where: Prisma.ImagesWhereUniqueInput
+  data: Prisma.XOR<Prisma.ImagesUpdateWithoutExtensionInput, Prisma.ImagesUncheckedUpdateWithoutExtensionInput>
+}
+
+export type ImagesUpdateManyWithWhereWithoutExtensionInput = {
+  where: Prisma.ImagesScalarWhereInput
+  data: Prisma.XOR<Prisma.ImagesUpdateManyMutationInput, Prisma.ImagesUncheckedUpdateManyWithoutExtensionInput>
+}
+
 export type ImagesCreateWithoutInspectionInput = {
   ImageURL: string
   SubmissionType: $Enums.SubmissionType
@@ -782,6 +908,7 @@ export type ImagesCreateWithoutInspectionInput = {
   SubmittedByUser: Prisma.AccountInfoCreateNestedOneWithoutImagesSubmittedInput
   Usage: Prisma.UsageLogCreateNestedOneWithoutImagesInput
   Resource: Prisma.ResourceInfoCreateNestedOneWithoutImagesInput
+  Extension?: Prisma.ExtensionRequestCreateNestedOneWithoutCheckImagesInput
 }
 
 export type ImagesUncheckedCreateWithoutInspectionInput = {
@@ -789,6 +916,7 @@ export type ImagesUncheckedCreateWithoutInspectionInput = {
   SubmittedBy: number
   UsageKey: number
   ResourceKey: number
+  ExtensionKey?: number | null
   ImageURL: string
   SubmissionType: $Enums.SubmissionType
   ActionTime?: Date | string | null
@@ -825,6 +953,7 @@ export type ImagesCreateManySubmittedByUserInput = {
   UsageKey: number
   ResourceKey: number
   InspectionKey?: number | null
+  ExtensionKey?: number | null
   ImageURL: string
   SubmissionType: $Enums.SubmissionType
   ActionTime?: Date | string | null
@@ -837,6 +966,7 @@ export type ImagesUpdateWithoutSubmittedByUserInput = {
   Usage?: Prisma.UsageLogUpdateOneRequiredWithoutImagesNestedInput
   Resource?: Prisma.ResourceInfoUpdateOneRequiredWithoutImagesNestedInput
   Inspection?: Prisma.InspectionUpdateOneWithoutImagesNestedInput
+  Extension?: Prisma.ExtensionRequestUpdateOneWithoutCheckImagesNestedInput
 }
 
 export type ImagesUncheckedUpdateWithoutSubmittedByUserInput = {
@@ -844,6 +974,7 @@ export type ImagesUncheckedUpdateWithoutSubmittedByUserInput = {
   UsageKey?: Prisma.IntFieldUpdateOperationsInput | number
   ResourceKey?: Prisma.IntFieldUpdateOperationsInput | number
   InspectionKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  ExtensionKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   ImageURL?: Prisma.StringFieldUpdateOperationsInput | string
   SubmissionType?: Prisma.EnumSubmissionTypeFieldUpdateOperationsInput | $Enums.SubmissionType
   ActionTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -854,6 +985,7 @@ export type ImagesUncheckedUpdateManyWithoutSubmittedByUserInput = {
   UsageKey?: Prisma.IntFieldUpdateOperationsInput | number
   ResourceKey?: Prisma.IntFieldUpdateOperationsInput | number
   InspectionKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  ExtensionKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   ImageURL?: Prisma.StringFieldUpdateOperationsInput | string
   SubmissionType?: Prisma.EnumSubmissionTypeFieldUpdateOperationsInput | $Enums.SubmissionType
   ActionTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -864,6 +996,7 @@ export type ImagesCreateManyResourceInput = {
   SubmittedBy: number
   UsageKey: number
   InspectionKey?: number | null
+  ExtensionKey?: number | null
   ImageURL: string
   SubmissionType: $Enums.SubmissionType
   ActionTime?: Date | string | null
@@ -876,6 +1009,7 @@ export type ImagesUpdateWithoutResourceInput = {
   SubmittedByUser?: Prisma.AccountInfoUpdateOneRequiredWithoutImagesSubmittedNestedInput
   Usage?: Prisma.UsageLogUpdateOneRequiredWithoutImagesNestedInput
   Inspection?: Prisma.InspectionUpdateOneWithoutImagesNestedInput
+  Extension?: Prisma.ExtensionRequestUpdateOneWithoutCheckImagesNestedInput
 }
 
 export type ImagesUncheckedUpdateWithoutResourceInput = {
@@ -883,6 +1017,7 @@ export type ImagesUncheckedUpdateWithoutResourceInput = {
   SubmittedBy?: Prisma.IntFieldUpdateOperationsInput | number
   UsageKey?: Prisma.IntFieldUpdateOperationsInput | number
   InspectionKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  ExtensionKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   ImageURL?: Prisma.StringFieldUpdateOperationsInput | string
   SubmissionType?: Prisma.EnumSubmissionTypeFieldUpdateOperationsInput | $Enums.SubmissionType
   ActionTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -893,6 +1028,7 @@ export type ImagesUncheckedUpdateManyWithoutResourceInput = {
   SubmittedBy?: Prisma.IntFieldUpdateOperationsInput | number
   UsageKey?: Prisma.IntFieldUpdateOperationsInput | number
   InspectionKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  ExtensionKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   ImageURL?: Prisma.StringFieldUpdateOperationsInput | string
   SubmissionType?: Prisma.EnumSubmissionTypeFieldUpdateOperationsInput | $Enums.SubmissionType
   ActionTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -903,6 +1039,7 @@ export type ImagesCreateManyUsageInput = {
   SubmittedBy: number
   ResourceKey: number
   InspectionKey?: number | null
+  ExtensionKey?: number | null
   ImageURL: string
   SubmissionType: $Enums.SubmissionType
   ActionTime?: Date | string | null
@@ -915,6 +1052,7 @@ export type ImagesUpdateWithoutUsageInput = {
   SubmittedByUser?: Prisma.AccountInfoUpdateOneRequiredWithoutImagesSubmittedNestedInput
   Resource?: Prisma.ResourceInfoUpdateOneRequiredWithoutImagesNestedInput
   Inspection?: Prisma.InspectionUpdateOneWithoutImagesNestedInput
+  Extension?: Prisma.ExtensionRequestUpdateOneWithoutCheckImagesNestedInput
 }
 
 export type ImagesUncheckedUpdateWithoutUsageInput = {
@@ -922,6 +1060,7 @@ export type ImagesUncheckedUpdateWithoutUsageInput = {
   SubmittedBy?: Prisma.IntFieldUpdateOperationsInput | number
   ResourceKey?: Prisma.IntFieldUpdateOperationsInput | number
   InspectionKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  ExtensionKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   ImageURL?: Prisma.StringFieldUpdateOperationsInput | string
   SubmissionType?: Prisma.EnumSubmissionTypeFieldUpdateOperationsInput | $Enums.SubmissionType
   ActionTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -930,6 +1069,50 @@ export type ImagesUncheckedUpdateWithoutUsageInput = {
 export type ImagesUncheckedUpdateManyWithoutUsageInput = {
   ImageKey?: Prisma.IntFieldUpdateOperationsInput | number
   SubmittedBy?: Prisma.IntFieldUpdateOperationsInput | number
+  ResourceKey?: Prisma.IntFieldUpdateOperationsInput | number
+  InspectionKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  ExtensionKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  ImageURL?: Prisma.StringFieldUpdateOperationsInput | string
+  SubmissionType?: Prisma.EnumSubmissionTypeFieldUpdateOperationsInput | $Enums.SubmissionType
+  ActionTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+}
+
+export type ImagesCreateManyExtensionInput = {
+  ImageKey?: number
+  SubmittedBy: number
+  UsageKey: number
+  ResourceKey: number
+  InspectionKey?: number | null
+  ImageURL: string
+  SubmissionType: $Enums.SubmissionType
+  ActionTime?: Date | string | null
+}
+
+export type ImagesUpdateWithoutExtensionInput = {
+  ImageURL?: Prisma.StringFieldUpdateOperationsInput | string
+  SubmissionType?: Prisma.EnumSubmissionTypeFieldUpdateOperationsInput | $Enums.SubmissionType
+  ActionTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  SubmittedByUser?: Prisma.AccountInfoUpdateOneRequiredWithoutImagesSubmittedNestedInput
+  Usage?: Prisma.UsageLogUpdateOneRequiredWithoutImagesNestedInput
+  Resource?: Prisma.ResourceInfoUpdateOneRequiredWithoutImagesNestedInput
+  Inspection?: Prisma.InspectionUpdateOneWithoutImagesNestedInput
+}
+
+export type ImagesUncheckedUpdateWithoutExtensionInput = {
+  ImageKey?: Prisma.IntFieldUpdateOperationsInput | number
+  SubmittedBy?: Prisma.IntFieldUpdateOperationsInput | number
+  UsageKey?: Prisma.IntFieldUpdateOperationsInput | number
+  ResourceKey?: Prisma.IntFieldUpdateOperationsInput | number
+  InspectionKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  ImageURL?: Prisma.StringFieldUpdateOperationsInput | string
+  SubmissionType?: Prisma.EnumSubmissionTypeFieldUpdateOperationsInput | $Enums.SubmissionType
+  ActionTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+}
+
+export type ImagesUncheckedUpdateManyWithoutExtensionInput = {
+  ImageKey?: Prisma.IntFieldUpdateOperationsInput | number
+  SubmittedBy?: Prisma.IntFieldUpdateOperationsInput | number
+  UsageKey?: Prisma.IntFieldUpdateOperationsInput | number
   ResourceKey?: Prisma.IntFieldUpdateOperationsInput | number
   InspectionKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   ImageURL?: Prisma.StringFieldUpdateOperationsInput | string
@@ -942,6 +1125,7 @@ export type ImagesCreateManyInspectionInput = {
   SubmittedBy: number
   UsageKey: number
   ResourceKey: number
+  ExtensionKey?: number | null
   ImageURL: string
   SubmissionType: $Enums.SubmissionType
   ActionTime?: Date | string | null
@@ -954,6 +1138,7 @@ export type ImagesUpdateWithoutInspectionInput = {
   SubmittedByUser?: Prisma.AccountInfoUpdateOneRequiredWithoutImagesSubmittedNestedInput
   Usage?: Prisma.UsageLogUpdateOneRequiredWithoutImagesNestedInput
   Resource?: Prisma.ResourceInfoUpdateOneRequiredWithoutImagesNestedInput
+  Extension?: Prisma.ExtensionRequestUpdateOneWithoutCheckImagesNestedInput
 }
 
 export type ImagesUncheckedUpdateWithoutInspectionInput = {
@@ -961,6 +1146,7 @@ export type ImagesUncheckedUpdateWithoutInspectionInput = {
   SubmittedBy?: Prisma.IntFieldUpdateOperationsInput | number
   UsageKey?: Prisma.IntFieldUpdateOperationsInput | number
   ResourceKey?: Prisma.IntFieldUpdateOperationsInput | number
+  ExtensionKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   ImageURL?: Prisma.StringFieldUpdateOperationsInput | string
   SubmissionType?: Prisma.EnumSubmissionTypeFieldUpdateOperationsInput | $Enums.SubmissionType
   ActionTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -971,6 +1157,7 @@ export type ImagesUncheckedUpdateManyWithoutInspectionInput = {
   SubmittedBy?: Prisma.IntFieldUpdateOperationsInput | number
   UsageKey?: Prisma.IntFieldUpdateOperationsInput | number
   ResourceKey?: Prisma.IntFieldUpdateOperationsInput | number
+  ExtensionKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   ImageURL?: Prisma.StringFieldUpdateOperationsInput | string
   SubmissionType?: Prisma.EnumSubmissionTypeFieldUpdateOperationsInput | $Enums.SubmissionType
   ActionTime?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -984,6 +1171,7 @@ export type ImagesSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs =
   UsageKey?: boolean
   ResourceKey?: boolean
   InspectionKey?: boolean
+  ExtensionKey?: boolean
   ImageURL?: boolean
   SubmissionType?: boolean
   ActionTime?: boolean
@@ -991,6 +1179,7 @@ export type ImagesSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs =
   Usage?: boolean | Prisma.UsageLogDefaultArgs<ExtArgs>
   Resource?: boolean | Prisma.ResourceInfoDefaultArgs<ExtArgs>
   Inspection?: boolean | Prisma.Images$InspectionArgs<ExtArgs>
+  Extension?: boolean | Prisma.Images$ExtensionArgs<ExtArgs>
 }, ExtArgs["result"]["images"]>
 
 export type ImagesSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -999,6 +1188,7 @@ export type ImagesSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extens
   UsageKey?: boolean
   ResourceKey?: boolean
   InspectionKey?: boolean
+  ExtensionKey?: boolean
   ImageURL?: boolean
   SubmissionType?: boolean
   ActionTime?: boolean
@@ -1006,6 +1196,7 @@ export type ImagesSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extens
   Usage?: boolean | Prisma.UsageLogDefaultArgs<ExtArgs>
   Resource?: boolean | Prisma.ResourceInfoDefaultArgs<ExtArgs>
   Inspection?: boolean | Prisma.Images$InspectionArgs<ExtArgs>
+  Extension?: boolean | Prisma.Images$ExtensionArgs<ExtArgs>
 }, ExtArgs["result"]["images"]>
 
 export type ImagesSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -1014,6 +1205,7 @@ export type ImagesSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extens
   UsageKey?: boolean
   ResourceKey?: boolean
   InspectionKey?: boolean
+  ExtensionKey?: boolean
   ImageURL?: boolean
   SubmissionType?: boolean
   ActionTime?: boolean
@@ -1021,6 +1213,7 @@ export type ImagesSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extens
   Usage?: boolean | Prisma.UsageLogDefaultArgs<ExtArgs>
   Resource?: boolean | Prisma.ResourceInfoDefaultArgs<ExtArgs>
   Inspection?: boolean | Prisma.Images$InspectionArgs<ExtArgs>
+  Extension?: boolean | Prisma.Images$ExtensionArgs<ExtArgs>
 }, ExtArgs["result"]["images"]>
 
 export type ImagesSelectScalar = {
@@ -1029,29 +1222,33 @@ export type ImagesSelectScalar = {
   UsageKey?: boolean
   ResourceKey?: boolean
   InspectionKey?: boolean
+  ExtensionKey?: boolean
   ImageURL?: boolean
   SubmissionType?: boolean
   ActionTime?: boolean
 }
 
-export type ImagesOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"ImageKey" | "SubmittedBy" | "UsageKey" | "ResourceKey" | "InspectionKey" | "ImageURL" | "SubmissionType" | "ActionTime", ExtArgs["result"]["images"]>
+export type ImagesOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"ImageKey" | "SubmittedBy" | "UsageKey" | "ResourceKey" | "InspectionKey" | "ExtensionKey" | "ImageURL" | "SubmissionType" | "ActionTime", ExtArgs["result"]["images"]>
 export type ImagesInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   SubmittedByUser?: boolean | Prisma.AccountInfoDefaultArgs<ExtArgs>
   Usage?: boolean | Prisma.UsageLogDefaultArgs<ExtArgs>
   Resource?: boolean | Prisma.ResourceInfoDefaultArgs<ExtArgs>
   Inspection?: boolean | Prisma.Images$InspectionArgs<ExtArgs>
+  Extension?: boolean | Prisma.Images$ExtensionArgs<ExtArgs>
 }
 export type ImagesIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   SubmittedByUser?: boolean | Prisma.AccountInfoDefaultArgs<ExtArgs>
   Usage?: boolean | Prisma.UsageLogDefaultArgs<ExtArgs>
   Resource?: boolean | Prisma.ResourceInfoDefaultArgs<ExtArgs>
   Inspection?: boolean | Prisma.Images$InspectionArgs<ExtArgs>
+  Extension?: boolean | Prisma.Images$ExtensionArgs<ExtArgs>
 }
 export type ImagesIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   SubmittedByUser?: boolean | Prisma.AccountInfoDefaultArgs<ExtArgs>
   Usage?: boolean | Prisma.UsageLogDefaultArgs<ExtArgs>
   Resource?: boolean | Prisma.ResourceInfoDefaultArgs<ExtArgs>
   Inspection?: boolean | Prisma.Images$InspectionArgs<ExtArgs>
+  Extension?: boolean | Prisma.Images$ExtensionArgs<ExtArgs>
 }
 
 export type $ImagesPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1061,6 +1258,7 @@ export type $ImagesPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs
     Usage: Prisma.$UsageLogPayload<ExtArgs>
     Resource: Prisma.$ResourceInfoPayload<ExtArgs>
     Inspection: Prisma.$InspectionPayload<ExtArgs> | null
+    Extension: Prisma.$ExtensionRequestPayload<ExtArgs> | null
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     ImageKey: number
@@ -1068,6 +1266,12 @@ export type $ImagesPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs
     UsageKey: number
     ResourceKey: number
     InspectionKey: number | null
+    /**
+     * #205: set only on an ExtensionCheckPicture. UsageKey stays filled in - the
+     * photo is still of that loan's unit - but the extension is what it belongs
+     * to, so one loan extended three times keeps three separate sets.
+     */
+    ExtensionKey: number | null
     ImageURL: string
     SubmissionType: $Enums.SubmissionType
     ActionTime: Date | null
@@ -1469,6 +1673,7 @@ export interface Prisma__ImagesClient<T, Null = never, ExtArgs extends runtime.T
   Usage<T extends Prisma.UsageLogDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.UsageLogDefaultArgs<ExtArgs>>): Prisma.Prisma__UsageLogClient<runtime.Types.Result.GetResult<Prisma.$UsageLogPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   Resource<T extends Prisma.ResourceInfoDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ResourceInfoDefaultArgs<ExtArgs>>): Prisma.Prisma__ResourceInfoClient<runtime.Types.Result.GetResult<Prisma.$ResourceInfoPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   Inspection<T extends Prisma.Images$InspectionArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Images$InspectionArgs<ExtArgs>>): Prisma.Prisma__InspectionClient<runtime.Types.Result.GetResult<Prisma.$InspectionPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  Extension<T extends Prisma.Images$ExtensionArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Images$ExtensionArgs<ExtArgs>>): Prisma.Prisma__ExtensionRequestClient<runtime.Types.Result.GetResult<Prisma.$ExtensionRequestPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1503,6 +1708,7 @@ export interface ImagesFieldRefs {
   readonly UsageKey: Prisma.FieldRef<"Images", 'Int'>
   readonly ResourceKey: Prisma.FieldRef<"Images", 'Int'>
   readonly InspectionKey: Prisma.FieldRef<"Images", 'Int'>
+  readonly ExtensionKey: Prisma.FieldRef<"Images", 'Int'>
   readonly ImageURL: Prisma.FieldRef<"Images", 'String'>
   readonly SubmissionType: Prisma.FieldRef<"Images", 'SubmissionType'>
   readonly ActionTime: Prisma.FieldRef<"Images", 'DateTime'>
@@ -1923,6 +2129,25 @@ export type Images$InspectionArgs<ExtArgs extends runtime.Types.Extensions.Inter
    */
   include?: Prisma.InspectionInclude<ExtArgs> | null
   where?: Prisma.InspectionWhereInput
+}
+
+/**
+ * Images.Extension
+ */
+export type Images$ExtensionArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the ExtensionRequest
+   */
+  select?: Prisma.ExtensionRequestSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the ExtensionRequest
+   */
+  omit?: Prisma.ExtensionRequestOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ExtensionRequestInclude<ExtArgs> | null
+  where?: Prisma.ExtensionRequestWhereInput
 }
 
 /**

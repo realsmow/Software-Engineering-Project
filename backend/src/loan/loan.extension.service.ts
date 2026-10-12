@@ -12,6 +12,7 @@ import {
 } from '../common/approval/approval-policy';
 import {
   extensionRouteFor,
+  extensionWaitingOn,
   requiresInspection,
   type ExtensionRoute,
 } from '../common/approval/extension-policy';
@@ -35,6 +36,7 @@ import {
   resourceName,
   supervisorsForGroup,
 } from '../notification/notification.service';
+import { ImageService } from '../image/image.service';
 import type { TrpcUser } from '../trpc/context';
 import type {
   CancelExtensionInput,
@@ -103,6 +105,12 @@ const EXTENSION_SELECT = {
       LoggedByUser: { select: { UserFName: true, UserLName: true } },
     },
   },
+  // #205: what staff photographed at the check, so the supervisor decides on
+  // the condition that was actually reported to them.
+  CheckImages: {
+    select: { ImageURL: true },
+    orderBy: { ImageKey: 'asc' },
+  },
   RequestedByUser: { select: BORROWER_SELECT },
   Usage: { select: USAGE_SELECT },
 } satisfies Prisma.ExtensionRequestSelect;
@@ -147,6 +155,8 @@ export class LoanExtensionService {
     private readonly notifications: NotificationService,
     private readonly audit: AuditService,
     private readonly penalties: PenaltyService,
+    // Only for the check photos: stored as keys, handed out signed (#205).
+    private readonly images: ImageService,
   ) {}
 
   // =========================================================================
@@ -526,7 +536,7 @@ export class LoanExtensionService {
       .filter(
         ({ row, route }) =>
           canDecide(route, role) ||
-          (route === 'supervisor' && row.InspectedCondition === null),
+          extensionWaitingOn(route, row.InspectedCondition !== null) === role,
       )
       .filter(({ route }) => input.route === undefined || route === input.route)
       .filter(
@@ -553,14 +563,7 @@ export class LoanExtensionService {
         requestedAt: toIso(row.RequestedAt),
         reason: row.Reason,
         status: row.ApproveStatus,
-        inspection: row.Inspection
-          ? {
-              condition: row.Inspection.Condition,
-              note: row.Inspection.Notes,
-              loggedAt: toIsoNullable(row.Inspection.LoggedAt),
-              loggedBy: `${row.Inspection.LoggedByUser.UserFName} ${row.Inspection.LoggedByUser.UserLName}`,
-            }
-          : null,
+        inspection: this.toInspection(row),
       }));
 
     return toPage(page, visible.length, input);
@@ -767,6 +770,29 @@ export class LoanExtensionService {
         where: { ExtensionKey: input.extensionKey },
         data: { InspectedCondition: condition.ConditionKey },
       });
+
+      // #205: in the same transaction as the grade they are evidence for. A
+      // check recorded without its photographs, or photographs filed against
+      // a check that was rolled back, are both worse than the whole thing
+      // failing and being done again.
+      const urls = [
+        ...new Set(
+          (input.imageUrls ?? []).map((url) => this.images.toStoredUrl(url)),
+        ),
+      ];
+      if (urls.length > 0) {
+        await tx.images.createMany({
+          data: urls.map((url) => ({
+            SubmittedBy: user.accountKey,
+            UsageKey: row.UsageKey,
+            ResourceKey: row.Usage.Resource.ResourceKey,
+            ExtensionKey: input.extensionKey,
+            ImageURL: url,
+            SubmissionType: 'ExtensionCheckPicture' as const,
+            ActionTime: new Date(),
+          })),
+        });
+      }
     });
 
     await this.audit.record(
@@ -1047,6 +1073,22 @@ export class LoanExtensionService {
     return user.role === 'admin' || user.role === 'supervisor'
       ? user.role
       : 'staff';
+  }
+
+  /** The staff condition check as the two review screens read it, or null. */
+  private toInspection(row: ExtensionRow) {
+    if (!row.Inspection) return null;
+    return {
+      condition: row.Inspection.Condition,
+      note: row.Inspection.Notes,
+      loggedAt: toIsoNullable(row.Inspection.LoggedAt),
+      loggedBy: `${row.Inspection.LoggedByUser.UserFName} ${row.Inspection.LoggedByUser.UserLName}`,
+      // Signed fresh on every read (NFR-SEC-06), like every other evidence
+      // photo - the stored value is the key, not a link.
+      photos: row.CheckImages.map(
+        (image) => this.images.toPublicUrl(image.ImageURL) ?? image.ImageURL,
+      ),
+    };
   }
 
   private appendNote(existing: string | null, note?: string): string | null {

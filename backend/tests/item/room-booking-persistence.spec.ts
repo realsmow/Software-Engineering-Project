@@ -489,18 +489,15 @@ describe('selected room regressions', () => {
             return f.checkIn(caller, usage.usageKey);
           });
         });
-        it.failing(
-          'refuses expired check-in and preserves the prepared booking',
-          () => {
-            expect(result).toEqual({
-              accepted: false,
-              state: 'Prepared',
-              resourceStatus: 'InStorage',
-              due: `${ROOM_DAY}T03:00:00.000Z`,
-              checkout: `${ROOM_DAY}T02:00:00.000Z`,
-            });
-          },
-        );
+        it('refuses expired check-in and preserves the prepared booking', () => {
+          expect(result).toEqual({
+            accepted: false,
+            state: 'Prepared',
+            resourceStatus: 'InStorage',
+            due: `${ROOM_DAY}T03:00:00.000Z`,
+            checkout: `${ROOM_DAY}T02:00:00.000Z`,
+          });
+        });
       });
     }
     it(`${caller} can check in immediately before end`, async () => {
@@ -548,7 +545,7 @@ describe('selected room regressions', () => {
           return f.checkIn(caller, usage.usageKey);
         });
       });
-      it.failing('refuses entry after closure and keeps usage Prepared', () => {
+      it('refuses entry after closure and keeps usage Prepared', () => {
         expect(result).toMatchObject({
           accepted: false,
           state: 'Prepared',
@@ -609,12 +606,9 @@ describe('selected room regressions', () => {
         };
       });
     });
-    it.failing(
-      'accepts the morning booking and persists both disjoint reservations',
-      () => {
-        expect(result).toEqual({ created: 1, rejected: [], persisted: 2 });
-      },
-    );
+    it('accepts the morning booking and persists both disjoint reservations', () => {
+      expect(result).toEqual({ created: 1, rejected: [], persisted: 2 });
+    });
   });
   it('controls: overlap refused; adjacent later booking accepted', async () => {
     await inHistoryFixture(db, async (tx) => {
@@ -635,6 +629,52 @@ describe('selected room regressions', () => {
       expect((await f.book([0, 1], 1)).created).toHaveLength(1);
     });
   });
+  // #215 / #216: the page closed the "book" button off `status`, which says
+  // nothing about the window. The row now carries the server's own answer.
+  it('reports holdsRoomQuota true for an approved booking the page must block (#215)', async () => {
+    await inHistoryFixture(db, async (tx) => {
+      const f = await roomRegressionFixture(tx);
+      const booking = await f.book([4, 5]);
+      expect(booking.created[0].status).toBe('approved');
+      // The status the old frontend rule looked at is not in its active list,
+      // so the second booking was offered and then refused by the server.
+      expect(booking.created[0].holdsRoomQuota).toBe(true);
+      const second = await f.book([6, 7], 0, 1);
+      expect(second.rejected[0].code).toBe('ROOM_BOOKING_LIMIT_REACHED');
+    });
+  });
+
+  it('reports holdsRoomQuota false once the booked window has ended (#216)', async () => {
+    await inHistoryFixture(db, async (tx) => {
+      const f = await roomRegressionFixture(tx);
+      const { usage } = await f.prepare();
+      expect(usage.status).toBe('Prepared');
+      const before = await f.requests.listMine(f.users[0], {
+        page: 1,
+        pageSize: 20,
+      });
+      expect(before.items[0]).toMatchObject({
+        status: 'ready',
+        holdsRoomQuota: true,
+      });
+
+      jest.setSystemTime(new Date(`${ROOM_DAY}T03:00:00.001Z`));
+      const after = await f.requests.listMine(f.users[0], {
+        page: 1,
+        pageSize: 20,
+      });
+      // Still "ready" — staff have it on the shelf — but it no longer holds the
+      // quota, which is the question the Room list has to ask.
+      expect(after.items[0]).toMatchObject({
+        status: 'ready',
+        holdsRoomQuota: false,
+      });
+      const next = await f.book([4, 5], 0, 1);
+      expect(next.rejected).toEqual([]);
+      expect(next.created).toHaveLength(1);
+    });
+  });
+
   it('backend control: Approved already consumes the one-booking quota', async () => {
     await inHistoryFixture(db, async (tx) => {
       const f = await roomRegressionFixture(tx);

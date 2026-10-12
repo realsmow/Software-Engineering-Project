@@ -62,10 +62,13 @@ function build(
   // `list()` (and everything that ends with it) now signs evidence URLs on
   // the way out (NFR-SEC-06) via `toPublicUrl`, so it needs a stub here too -
   // a passthrough, since these cases don't care about the signing itself,
-  // only that a URL comes back.
+  // only that a URL comes back. `attach` normalises what it is given through
+  // `toStoredUrl` (#206); these URLs carry no signature to strip, so that one
+  // is a passthrough as well.
   const images = {
     issueTicket: jest.fn(),
     toPublicUrl: jest.fn((value: string | null | undefined) => value ?? null),
+    toStoredUrl: jest.fn((value: string) => value),
   } as unknown as ImageService;
 
   return {

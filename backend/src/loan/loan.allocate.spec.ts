@@ -19,6 +19,7 @@ import { StaffScopeService } from '../common/authority/staff-scope.service';
 import type { PenaltyService } from '../common/penalty/penalty.service';
 import type { NotificationService } from '../notification/notification.service';
 import type { TrpcUser } from '../trpc/context';
+import { CreditTierService } from '../common/credit/credit-tier.service';
 
 /**
  * Preparing a request with a different unit than the one reserved.
@@ -77,6 +78,7 @@ function service(ruleName: string) {
       {} as PenaltyService,
       {} as NotificationService,
       audit as never,
+      {} as CreditTierService,
     ),
     findTarget,
     audit,
@@ -140,6 +142,7 @@ describe('allocate — audit trail', () => {
       {} as PenaltyService,
       notifications,
       audit as never,
+      {} as CreditTierService,
     );
     Object.assign(svc, {
       readUsage: jest.fn().mockResolvedValue({
@@ -190,6 +193,10 @@ describe('confirmPickup before the booked time', () => {
     Resource: {
       ResourceKey: 26,
       BufferTime: 0,
+      // Re-read at handover: a unit sent to repair while it sat prepared is
+      // not handed over (#213).
+      ResourceStatus: 'InStorage',
+      AllowBorrow: true,
       Room: room ? { RoomName: 'Lab' } : null,
     },
     CheckoutConditionLog: { Condition: 'Normal' },
@@ -224,6 +231,7 @@ describe('confirmPickup before the booked time', () => {
       {} as PenaltyService,
       {} as NotificationService,
       audit as never,
+      {} as CreditTierService,
     );
     Object.assign(svc, {
       readUsage: jest.fn().mockResolvedValue(usage),
@@ -546,6 +554,9 @@ describe('Staff preparation and handover queues from persisted records', () => {
       {} as never,
       {} as never,
       {} as never,
+      // Real: the dashboard counts extensions by desk, and the desk depends on
+      // the borrower's credit band.
+      new CreditTierService(client),
     );
   }
 
@@ -770,6 +781,41 @@ describe('Staff preparation and handover queues from persisted records', () => {
           usageKey: wanted.UsageKey,
           tier: 'T1',
         });
+      });
+    });
+
+    it('gives two types sharing a display name their own identity (#209)', async () => {
+      await inHistoryFixture(prisma, async (tx) => {
+        const f = await historyFixture(tx);
+        const t1 = await tx.borrowRule.create({ data: { RuleName: 'T1' } });
+        const t2 = await tx.borrowRule.create({ data: { RuleName: 'T2' } });
+        // Same borrower, same window, same state, same ItemName — which has no
+        // unique constraint — but two different ItemInfo rows. Every field the
+        // queue used to group on matches; only the type differs.
+        const first = await usage(tx, f, 'Lended', DAY, t1.BorrowRuleKey);
+        const second = await usage(tx, f, 'Lended', DAY, t2.BorrowRuleKey);
+
+        const result = await services(tx).listStaffQueue(
+          f.decider,
+          listStaffQueueInput.parse({ bucket: 'onLoan' }),
+        );
+        const rows = paginatedStaffQueue
+          .strict()
+          .parse(result)
+          .items.filter((r) =>
+            [first.UsageKey, second.UsageKey].includes(r.usageKey!),
+          );
+        expect(rows).toHaveLength(2);
+        expect(rows.map((r) => r.itemName)).toEqual([
+          'Queue meter',
+          'Queue meter',
+        ]);
+        // The type key tells them apart where the name cannot, and it is not
+        // null for equipment.
+        const keys = rows.map((r) => r.itemKey);
+        expect(keys.every((k) => typeof k === 'number')).toBe(true);
+        expect(new Set(keys).size).toBe(2);
+        expect(new Set(rows.map((r) => r.tier))).toEqual(new Set(['T1', 'T2']));
       });
     });
 

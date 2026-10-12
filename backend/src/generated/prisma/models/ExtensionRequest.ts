@@ -297,6 +297,7 @@ export type ExtensionRequestWhereInput = {
   ApprovedByUser?: Prisma.XOR<Prisma.AccountInfoNullableScalarRelationFilter, Prisma.AccountInfoWhereInput> | null
   Inspection?: Prisma.XOR<Prisma.ConditionLogNullableScalarRelationFilter, Prisma.ConditionLogWhereInput> | null
   PendingOnUsageLogs?: Prisma.UsageLogListRelationFilter
+  CheckImages?: Prisma.ImagesListRelationFilter
 }
 
 export type ExtensionRequestOrderByWithRelationInput = {
@@ -317,6 +318,7 @@ export type ExtensionRequestOrderByWithRelationInput = {
   ApprovedByUser?: Prisma.AccountInfoOrderByWithRelationInput
   Inspection?: Prisma.ConditionLogOrderByWithRelationInput
   PendingOnUsageLogs?: Prisma.UsageLogOrderByRelationAggregateInput
+  CheckImages?: Prisma.ImagesOrderByRelationAggregateInput
 }
 
 export type ExtensionRequestWhereUniqueInput = Prisma.AtLeast<{
@@ -340,6 +342,7 @@ export type ExtensionRequestWhereUniqueInput = Prisma.AtLeast<{
   ApprovedByUser?: Prisma.XOR<Prisma.AccountInfoNullableScalarRelationFilter, Prisma.AccountInfoWhereInput> | null
   Inspection?: Prisma.XOR<Prisma.ConditionLogNullableScalarRelationFilter, Prisma.ConditionLogWhereInput> | null
   PendingOnUsageLogs?: Prisma.UsageLogListRelationFilter
+  CheckImages?: Prisma.ImagesListRelationFilter
 }, "ExtensionKey">
 
 export type ExtensionRequestOrderByWithAggregationInput = {
@@ -393,6 +396,7 @@ export type ExtensionRequestCreateInput = {
   ApprovedByUser?: Prisma.AccountInfoCreateNestedOneWithoutExtensionsApprovedInput
   Inspection?: Prisma.ConditionLogCreateNestedOneWithoutExtensionChecksInput
   PendingOnUsageLogs?: Prisma.UsageLogCreateNestedManyWithoutPendingExtensionRequestInput
+  CheckImages?: Prisma.ImagesCreateNestedManyWithoutExtensionInput
 }
 
 export type ExtensionRequestUncheckedCreateInput = {
@@ -409,6 +413,7 @@ export type ExtensionRequestUncheckedCreateInput = {
   Reason?: string | null
   InspectedCondition?: number | null
   PendingOnUsageLogs?: Prisma.UsageLogUncheckedCreateNestedManyWithoutPendingExtensionRequestInput
+  CheckImages?: Prisma.ImagesUncheckedCreateNestedManyWithoutExtensionInput
 }
 
 export type ExtensionRequestUpdateInput = {
@@ -424,6 +429,7 @@ export type ExtensionRequestUpdateInput = {
   ApprovedByUser?: Prisma.AccountInfoUpdateOneWithoutExtensionsApprovedNestedInput
   Inspection?: Prisma.ConditionLogUpdateOneWithoutExtensionChecksNestedInput
   PendingOnUsageLogs?: Prisma.UsageLogUpdateManyWithoutPendingExtensionRequestNestedInput
+  CheckImages?: Prisma.ImagesUpdateManyWithoutExtensionNestedInput
 }
 
 export type ExtensionRequestUncheckedUpdateInput = {
@@ -440,6 +446,7 @@ export type ExtensionRequestUncheckedUpdateInput = {
   Reason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   InspectedCondition?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   PendingOnUsageLogs?: Prisma.UsageLogUncheckedUpdateManyWithoutPendingExtensionRequestNestedInput
+  CheckImages?: Prisma.ImagesUncheckedUpdateManyWithoutExtensionNestedInput
 }
 
 export type ExtensionRequestCreateManyInput = {
@@ -744,6 +751,22 @@ export type ExtensionRequestUncheckedUpdateManyWithoutUsageNestedInput = {
   deleteMany?: Prisma.ExtensionRequestScalarWhereInput | Prisma.ExtensionRequestScalarWhereInput[]
 }
 
+export type ExtensionRequestCreateNestedOneWithoutCheckImagesInput = {
+  create?: Prisma.XOR<Prisma.ExtensionRequestCreateWithoutCheckImagesInput, Prisma.ExtensionRequestUncheckedCreateWithoutCheckImagesInput>
+  connectOrCreate?: Prisma.ExtensionRequestCreateOrConnectWithoutCheckImagesInput
+  connect?: Prisma.ExtensionRequestWhereUniqueInput
+}
+
+export type ExtensionRequestUpdateOneWithoutCheckImagesNestedInput = {
+  create?: Prisma.XOR<Prisma.ExtensionRequestCreateWithoutCheckImagesInput, Prisma.ExtensionRequestUncheckedCreateWithoutCheckImagesInput>
+  connectOrCreate?: Prisma.ExtensionRequestCreateOrConnectWithoutCheckImagesInput
+  upsert?: Prisma.ExtensionRequestUpsertWithoutCheckImagesInput
+  disconnect?: Prisma.ExtensionRequestWhereInput | boolean
+  delete?: Prisma.ExtensionRequestWhereInput | boolean
+  connect?: Prisma.ExtensionRequestWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.ExtensionRequestUpdateToOneWithWhereWithoutCheckImagesInput, Prisma.ExtensionRequestUpdateWithoutCheckImagesInput>, Prisma.ExtensionRequestUncheckedUpdateWithoutCheckImagesInput>
+}
+
 export type ExtensionRequestCreateWithoutRequestedByUserInput = {
   ExtendNo?: number | null
   PreviousDueTime: Date | string
@@ -756,6 +779,7 @@ export type ExtensionRequestCreateWithoutRequestedByUserInput = {
   ApprovedByUser?: Prisma.AccountInfoCreateNestedOneWithoutExtensionsApprovedInput
   Inspection?: Prisma.ConditionLogCreateNestedOneWithoutExtensionChecksInput
   PendingOnUsageLogs?: Prisma.UsageLogCreateNestedManyWithoutPendingExtensionRequestInput
+  CheckImages?: Prisma.ImagesCreateNestedManyWithoutExtensionInput
 }
 
 export type ExtensionRequestUncheckedCreateWithoutRequestedByUserInput = {
@@ -771,6 +795,7 @@ export type ExtensionRequestUncheckedCreateWithoutRequestedByUserInput = {
   Reason?: string | null
   InspectedCondition?: number | null
   PendingOnUsageLogs?: Prisma.UsageLogUncheckedCreateNestedManyWithoutPendingExtensionRequestInput
+  CheckImages?: Prisma.ImagesUncheckedCreateNestedManyWithoutExtensionInput
 }
 
 export type ExtensionRequestCreateOrConnectWithoutRequestedByUserInput = {
@@ -795,6 +820,7 @@ export type ExtensionRequestCreateWithoutApprovedByUserInput = {
   RequestedByUser: Prisma.AccountInfoCreateNestedOneWithoutExtensionsRequestedInput
   Inspection?: Prisma.ConditionLogCreateNestedOneWithoutExtensionChecksInput
   PendingOnUsageLogs?: Prisma.UsageLogCreateNestedManyWithoutPendingExtensionRequestInput
+  CheckImages?: Prisma.ImagesCreateNestedManyWithoutExtensionInput
 }
 
 export type ExtensionRequestUncheckedCreateWithoutApprovedByUserInput = {
@@ -810,6 +836,7 @@ export type ExtensionRequestUncheckedCreateWithoutApprovedByUserInput = {
   Reason?: string | null
   InspectedCondition?: number | null
   PendingOnUsageLogs?: Prisma.UsageLogUncheckedCreateNestedManyWithoutPendingExtensionRequestInput
+  CheckImages?: Prisma.ImagesUncheckedCreateNestedManyWithoutExtensionInput
 }
 
 export type ExtensionRequestCreateOrConnectWithoutApprovedByUserInput = {
@@ -884,6 +911,7 @@ export type ExtensionRequestCreateWithoutInspectionInput = {
   RequestedByUser: Prisma.AccountInfoCreateNestedOneWithoutExtensionsRequestedInput
   ApprovedByUser?: Prisma.AccountInfoCreateNestedOneWithoutExtensionsApprovedInput
   PendingOnUsageLogs?: Prisma.UsageLogCreateNestedManyWithoutPendingExtensionRequestInput
+  CheckImages?: Prisma.ImagesCreateNestedManyWithoutExtensionInput
 }
 
 export type ExtensionRequestUncheckedCreateWithoutInspectionInput = {
@@ -899,6 +927,7 @@ export type ExtensionRequestUncheckedCreateWithoutInspectionInput = {
   ResolvedAt?: Date | string | null
   Reason?: string | null
   PendingOnUsageLogs?: Prisma.UsageLogUncheckedCreateNestedManyWithoutPendingExtensionRequestInput
+  CheckImages?: Prisma.ImagesUncheckedCreateNestedManyWithoutExtensionInput
 }
 
 export type ExtensionRequestCreateOrConnectWithoutInspectionInput = {
@@ -939,6 +968,7 @@ export type ExtensionRequestCreateWithoutPendingOnUsageLogsInput = {
   RequestedByUser: Prisma.AccountInfoCreateNestedOneWithoutExtensionsRequestedInput
   ApprovedByUser?: Prisma.AccountInfoCreateNestedOneWithoutExtensionsApprovedInput
   Inspection?: Prisma.ConditionLogCreateNestedOneWithoutExtensionChecksInput
+  CheckImages?: Prisma.ImagesCreateNestedManyWithoutExtensionInput
 }
 
 export type ExtensionRequestUncheckedCreateWithoutPendingOnUsageLogsInput = {
@@ -954,6 +984,7 @@ export type ExtensionRequestUncheckedCreateWithoutPendingOnUsageLogsInput = {
   ResolvedAt?: Date | string | null
   Reason?: string | null
   InspectedCondition?: number | null
+  CheckImages?: Prisma.ImagesUncheckedCreateNestedManyWithoutExtensionInput
 }
 
 export type ExtensionRequestCreateOrConnectWithoutPendingOnUsageLogsInput = {
@@ -973,6 +1004,7 @@ export type ExtensionRequestCreateWithoutUsageInput = {
   ApprovedByUser?: Prisma.AccountInfoCreateNestedOneWithoutExtensionsApprovedInput
   Inspection?: Prisma.ConditionLogCreateNestedOneWithoutExtensionChecksInput
   PendingOnUsageLogs?: Prisma.UsageLogCreateNestedManyWithoutPendingExtensionRequestInput
+  CheckImages?: Prisma.ImagesCreateNestedManyWithoutExtensionInput
 }
 
 export type ExtensionRequestUncheckedCreateWithoutUsageInput = {
@@ -988,6 +1020,7 @@ export type ExtensionRequestUncheckedCreateWithoutUsageInput = {
   Reason?: string | null
   InspectedCondition?: number | null
   PendingOnUsageLogs?: Prisma.UsageLogUncheckedCreateNestedManyWithoutPendingExtensionRequestInput
+  CheckImages?: Prisma.ImagesUncheckedCreateNestedManyWithoutExtensionInput
 }
 
 export type ExtensionRequestCreateOrConnectWithoutUsageInput = {
@@ -1023,6 +1056,7 @@ export type ExtensionRequestUpdateWithoutPendingOnUsageLogsInput = {
   RequestedByUser?: Prisma.AccountInfoUpdateOneRequiredWithoutExtensionsRequestedNestedInput
   ApprovedByUser?: Prisma.AccountInfoUpdateOneWithoutExtensionsApprovedNestedInput
   Inspection?: Prisma.ConditionLogUpdateOneWithoutExtensionChecksNestedInput
+  CheckImages?: Prisma.ImagesUpdateManyWithoutExtensionNestedInput
 }
 
 export type ExtensionRequestUncheckedUpdateWithoutPendingOnUsageLogsInput = {
@@ -1038,6 +1072,7 @@ export type ExtensionRequestUncheckedUpdateWithoutPendingOnUsageLogsInput = {
   ResolvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   Reason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   InspectedCondition?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  CheckImages?: Prisma.ImagesUncheckedUpdateManyWithoutExtensionNestedInput
 }
 
 export type ExtensionRequestUpsertWithWhereUniqueWithoutUsageInput = {
@@ -1054,6 +1089,84 @@ export type ExtensionRequestUpdateWithWhereUniqueWithoutUsageInput = {
 export type ExtensionRequestUpdateManyWithWhereWithoutUsageInput = {
   where: Prisma.ExtensionRequestScalarWhereInput
   data: Prisma.XOR<Prisma.ExtensionRequestUpdateManyMutationInput, Prisma.ExtensionRequestUncheckedUpdateManyWithoutUsageInput>
+}
+
+export type ExtensionRequestCreateWithoutCheckImagesInput = {
+  ExtendNo?: number | null
+  PreviousDueTime: Date | string
+  RequestedDueTime: Date | string
+  ApproveStatus: $Enums.ApproveStatus
+  RequestedAt: Date | string
+  ResolvedAt?: Date | string | null
+  Reason?: string | null
+  Usage: Prisma.UsageLogCreateNestedOneWithoutExtensionRequestsInput
+  RequestedByUser: Prisma.AccountInfoCreateNestedOneWithoutExtensionsRequestedInput
+  ApprovedByUser?: Prisma.AccountInfoCreateNestedOneWithoutExtensionsApprovedInput
+  Inspection?: Prisma.ConditionLogCreateNestedOneWithoutExtensionChecksInput
+  PendingOnUsageLogs?: Prisma.UsageLogCreateNestedManyWithoutPendingExtensionRequestInput
+}
+
+export type ExtensionRequestUncheckedCreateWithoutCheckImagesInput = {
+  ExtensionKey?: number
+  UsageKey: number
+  RequestedBy: number
+  ExtendNo?: number | null
+  PreviousDueTime: Date | string
+  RequestedDueTime: Date | string
+  ApproveStatus: $Enums.ApproveStatus
+  ApprovedBy?: number | null
+  RequestedAt: Date | string
+  ResolvedAt?: Date | string | null
+  Reason?: string | null
+  InspectedCondition?: number | null
+  PendingOnUsageLogs?: Prisma.UsageLogUncheckedCreateNestedManyWithoutPendingExtensionRequestInput
+}
+
+export type ExtensionRequestCreateOrConnectWithoutCheckImagesInput = {
+  where: Prisma.ExtensionRequestWhereUniqueInput
+  create: Prisma.XOR<Prisma.ExtensionRequestCreateWithoutCheckImagesInput, Prisma.ExtensionRequestUncheckedCreateWithoutCheckImagesInput>
+}
+
+export type ExtensionRequestUpsertWithoutCheckImagesInput = {
+  update: Prisma.XOR<Prisma.ExtensionRequestUpdateWithoutCheckImagesInput, Prisma.ExtensionRequestUncheckedUpdateWithoutCheckImagesInput>
+  create: Prisma.XOR<Prisma.ExtensionRequestCreateWithoutCheckImagesInput, Prisma.ExtensionRequestUncheckedCreateWithoutCheckImagesInput>
+  where?: Prisma.ExtensionRequestWhereInput
+}
+
+export type ExtensionRequestUpdateToOneWithWhereWithoutCheckImagesInput = {
+  where?: Prisma.ExtensionRequestWhereInput
+  data: Prisma.XOR<Prisma.ExtensionRequestUpdateWithoutCheckImagesInput, Prisma.ExtensionRequestUncheckedUpdateWithoutCheckImagesInput>
+}
+
+export type ExtensionRequestUpdateWithoutCheckImagesInput = {
+  ExtendNo?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  PreviousDueTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  RequestedDueTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  ApproveStatus?: Prisma.EnumApproveStatusFieldUpdateOperationsInput | $Enums.ApproveStatus
+  RequestedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  ResolvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  Reason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  Usage?: Prisma.UsageLogUpdateOneRequiredWithoutExtensionRequestsNestedInput
+  RequestedByUser?: Prisma.AccountInfoUpdateOneRequiredWithoutExtensionsRequestedNestedInput
+  ApprovedByUser?: Prisma.AccountInfoUpdateOneWithoutExtensionsApprovedNestedInput
+  Inspection?: Prisma.ConditionLogUpdateOneWithoutExtensionChecksNestedInput
+  PendingOnUsageLogs?: Prisma.UsageLogUpdateManyWithoutPendingExtensionRequestNestedInput
+}
+
+export type ExtensionRequestUncheckedUpdateWithoutCheckImagesInput = {
+  ExtensionKey?: Prisma.IntFieldUpdateOperationsInput | number
+  UsageKey?: Prisma.IntFieldUpdateOperationsInput | number
+  RequestedBy?: Prisma.IntFieldUpdateOperationsInput | number
+  ExtendNo?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  PreviousDueTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  RequestedDueTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  ApproveStatus?: Prisma.EnumApproveStatusFieldUpdateOperationsInput | $Enums.ApproveStatus
+  ApprovedBy?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  RequestedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  ResolvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  Reason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  InspectedCondition?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  PendingOnUsageLogs?: Prisma.UsageLogUncheckedUpdateManyWithoutPendingExtensionRequestNestedInput
 }
 
 export type ExtensionRequestCreateManyRequestedByUserInput = {
@@ -1096,6 +1209,7 @@ export type ExtensionRequestUpdateWithoutRequestedByUserInput = {
   ApprovedByUser?: Prisma.AccountInfoUpdateOneWithoutExtensionsApprovedNestedInput
   Inspection?: Prisma.ConditionLogUpdateOneWithoutExtensionChecksNestedInput
   PendingOnUsageLogs?: Prisma.UsageLogUpdateManyWithoutPendingExtensionRequestNestedInput
+  CheckImages?: Prisma.ImagesUpdateManyWithoutExtensionNestedInput
 }
 
 export type ExtensionRequestUncheckedUpdateWithoutRequestedByUserInput = {
@@ -1111,6 +1225,7 @@ export type ExtensionRequestUncheckedUpdateWithoutRequestedByUserInput = {
   Reason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   InspectedCondition?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   PendingOnUsageLogs?: Prisma.UsageLogUncheckedUpdateManyWithoutPendingExtensionRequestNestedInput
+  CheckImages?: Prisma.ImagesUncheckedUpdateManyWithoutExtensionNestedInput
 }
 
 export type ExtensionRequestUncheckedUpdateManyWithoutRequestedByUserInput = {
@@ -1139,6 +1254,7 @@ export type ExtensionRequestUpdateWithoutApprovedByUserInput = {
   RequestedByUser?: Prisma.AccountInfoUpdateOneRequiredWithoutExtensionsRequestedNestedInput
   Inspection?: Prisma.ConditionLogUpdateOneWithoutExtensionChecksNestedInput
   PendingOnUsageLogs?: Prisma.UsageLogUpdateManyWithoutPendingExtensionRequestNestedInput
+  CheckImages?: Prisma.ImagesUpdateManyWithoutExtensionNestedInput
 }
 
 export type ExtensionRequestUncheckedUpdateWithoutApprovedByUserInput = {
@@ -1154,6 +1270,7 @@ export type ExtensionRequestUncheckedUpdateWithoutApprovedByUserInput = {
   Reason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   InspectedCondition?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   PendingOnUsageLogs?: Prisma.UsageLogUncheckedUpdateManyWithoutPendingExtensionRequestNestedInput
+  CheckImages?: Prisma.ImagesUncheckedUpdateManyWithoutExtensionNestedInput
 }
 
 export type ExtensionRequestUncheckedUpdateManyWithoutApprovedByUserInput = {
@@ -1196,6 +1313,7 @@ export type ExtensionRequestUpdateWithoutInspectionInput = {
   RequestedByUser?: Prisma.AccountInfoUpdateOneRequiredWithoutExtensionsRequestedNestedInput
   ApprovedByUser?: Prisma.AccountInfoUpdateOneWithoutExtensionsApprovedNestedInput
   PendingOnUsageLogs?: Prisma.UsageLogUpdateManyWithoutPendingExtensionRequestNestedInput
+  CheckImages?: Prisma.ImagesUpdateManyWithoutExtensionNestedInput
 }
 
 export type ExtensionRequestUncheckedUpdateWithoutInspectionInput = {
@@ -1211,6 +1329,7 @@ export type ExtensionRequestUncheckedUpdateWithoutInspectionInput = {
   ResolvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   Reason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   PendingOnUsageLogs?: Prisma.UsageLogUncheckedUpdateManyWithoutPendingExtensionRequestNestedInput
+  CheckImages?: Prisma.ImagesUncheckedUpdateManyWithoutExtensionNestedInput
 }
 
 export type ExtensionRequestUncheckedUpdateManyWithoutInspectionInput = {
@@ -1253,6 +1372,7 @@ export type ExtensionRequestUpdateWithoutUsageInput = {
   ApprovedByUser?: Prisma.AccountInfoUpdateOneWithoutExtensionsApprovedNestedInput
   Inspection?: Prisma.ConditionLogUpdateOneWithoutExtensionChecksNestedInput
   PendingOnUsageLogs?: Prisma.UsageLogUpdateManyWithoutPendingExtensionRequestNestedInput
+  CheckImages?: Prisma.ImagesUpdateManyWithoutExtensionNestedInput
 }
 
 export type ExtensionRequestUncheckedUpdateWithoutUsageInput = {
@@ -1268,6 +1388,7 @@ export type ExtensionRequestUncheckedUpdateWithoutUsageInput = {
   Reason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   InspectedCondition?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   PendingOnUsageLogs?: Prisma.UsageLogUncheckedUpdateManyWithoutPendingExtensionRequestNestedInput
+  CheckImages?: Prisma.ImagesUncheckedUpdateManyWithoutExtensionNestedInput
 }
 
 export type ExtensionRequestUncheckedUpdateManyWithoutUsageInput = {
@@ -1291,10 +1412,12 @@ export type ExtensionRequestUncheckedUpdateManyWithoutUsageInput = {
 
 export type ExtensionRequestCountOutputType = {
   PendingOnUsageLogs: number
+  CheckImages: number
 }
 
 export type ExtensionRequestCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   PendingOnUsageLogs?: boolean | ExtensionRequestCountOutputTypeCountPendingOnUsageLogsArgs
+  CheckImages?: boolean | ExtensionRequestCountOutputTypeCountCheckImagesArgs
 }
 
 /**
@@ -1312,6 +1435,13 @@ export type ExtensionRequestCountOutputTypeDefaultArgs<ExtArgs extends runtime.T
  */
 export type ExtensionRequestCountOutputTypeCountPendingOnUsageLogsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   where?: Prisma.UsageLogWhereInput
+}
+
+/**
+ * ExtensionRequestCountOutputType without action
+ */
+export type ExtensionRequestCountOutputTypeCountCheckImagesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.ImagesWhereInput
 }
 
 
@@ -1333,6 +1463,7 @@ export type ExtensionRequestSelect<ExtArgs extends runtime.Types.Extensions.Inte
   ApprovedByUser?: boolean | Prisma.ExtensionRequest$ApprovedByUserArgs<ExtArgs>
   Inspection?: boolean | Prisma.ExtensionRequest$InspectionArgs<ExtArgs>
   PendingOnUsageLogs?: boolean | Prisma.ExtensionRequest$PendingOnUsageLogsArgs<ExtArgs>
+  CheckImages?: boolean | Prisma.ExtensionRequest$CheckImagesArgs<ExtArgs>
   _count?: boolean | Prisma.ExtensionRequestCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["extensionRequest"]>
 
@@ -1396,6 +1527,7 @@ export type ExtensionRequestInclude<ExtArgs extends runtime.Types.Extensions.Int
   ApprovedByUser?: boolean | Prisma.ExtensionRequest$ApprovedByUserArgs<ExtArgs>
   Inspection?: boolean | Prisma.ExtensionRequest$InspectionArgs<ExtArgs>
   PendingOnUsageLogs?: boolean | Prisma.ExtensionRequest$PendingOnUsageLogsArgs<ExtArgs>
+  CheckImages?: boolean | Prisma.ExtensionRequest$CheckImagesArgs<ExtArgs>
   _count?: boolean | Prisma.ExtensionRequestCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type ExtensionRequestIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1419,6 +1551,11 @@ export type $ExtensionRequestPayload<ExtArgs extends runtime.Types.Extensions.In
     ApprovedByUser: Prisma.$AccountInfoPayload<ExtArgs> | null
     Inspection: Prisma.$ConditionLogPayload<ExtArgs> | null
     PendingOnUsageLogs: Prisma.$UsageLogPayload<ExtArgs>[]
+    /**
+     * #205: the condition-check photographs, so the supervisor judges what
+     * staff actually saw rather than the loan's own collection photo.
+     */
+    CheckImages: Prisma.$ImagesPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     ExtensionKey: number
@@ -1844,6 +1981,7 @@ export interface Prisma__ExtensionRequestClient<T, Null = never, ExtArgs extends
   ApprovedByUser<T extends Prisma.ExtensionRequest$ApprovedByUserArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ExtensionRequest$ApprovedByUserArgs<ExtArgs>>): Prisma.Prisma__AccountInfoClient<runtime.Types.Result.GetResult<Prisma.$AccountInfoPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   Inspection<T extends Prisma.ExtensionRequest$InspectionArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ExtensionRequest$InspectionArgs<ExtArgs>>): Prisma.Prisma__ConditionLogClient<runtime.Types.Result.GetResult<Prisma.$ConditionLogPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   PendingOnUsageLogs<T extends Prisma.ExtensionRequest$PendingOnUsageLogsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ExtensionRequest$PendingOnUsageLogsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$UsageLogPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  CheckImages<T extends Prisma.ExtensionRequest$CheckImagesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ExtensionRequest$CheckImagesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ImagesPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -2345,6 +2483,30 @@ export type ExtensionRequest$PendingOnUsageLogsArgs<ExtArgs extends runtime.Type
   take?: number
   skip?: number
   distinct?: Prisma.UsageLogScalarFieldEnum | Prisma.UsageLogScalarFieldEnum[]
+}
+
+/**
+ * ExtensionRequest.CheckImages
+ */
+export type ExtensionRequest$CheckImagesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the Images
+   */
+  select?: Prisma.ImagesSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the Images
+   */
+  omit?: Prisma.ImagesOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ImagesInclude<ExtArgs> | null
+  where?: Prisma.ImagesWhereInput
+  orderBy?: Prisma.ImagesOrderByWithRelationInput | Prisma.ImagesOrderByWithRelationInput[]
+  cursor?: Prisma.ImagesWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.ImagesScalarFieldEnum | Prisma.ImagesScalarFieldEnum[]
 }
 
 /**

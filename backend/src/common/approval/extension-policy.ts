@@ -74,6 +74,29 @@ export function extensionRouteFor({
 }
 
 /**
+ * Which desk a pending extension is waiting on right now.
+ *
+ * Not the same question as `extensionRouteFor`, which says who signs it off.
+ * A supervisor-routed extension waits on *staff* first, for the condition
+ * check the supervisor has no unit to make (#156), and only moves to the
+ * supervisor once that is recorded. Everything else waits on the desk its
+ * route names.
+ *
+ * Shared because the two worklists and the two dashboards each asked it
+ * separately and gave different answers: the staff Work queue showed a T2
+ * extension awaiting its check while the counter beside it excluded T2
+ * outright (#202), and a supervisor's "Waiting on staff" figure counted only
+ * borrow requests, so the same row appeared in no total at all (#203).
+ */
+export function extensionWaitingOn(
+  route: ExtensionRoute,
+  inspected: boolean,
+): 'staff' | 'supervisor' {
+  if (route !== 'supervisor') return 'staff';
+  return inspected ? 'supervisor' : 'staff';
+}
+
+/**
  * Whether the borrower has to produce the item before this one is granted.
  *
  * The one thing the borrower's screen needs from the route: "ต่อได้เลย" or

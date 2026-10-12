@@ -25,6 +25,9 @@ import { StaffScopeService } from '../../src/common/authority/staff-scope.servic
 import { CreditTierService } from '../../src/common/credit/credit-tier.service';
 import { ApprovalService } from '../../src/approval/approval.service';
 import { approvalCounts } from '../../src/approval/approval.schema';
+import { ImageService } from '../../src/image/image.service';
+import { UsageImageService } from '../../src/image/usage-image.service';
+import { usagePhotosOutput } from '../../src/image/image.schema';
 
 const DAY = 86_400_000;
 type Fixture = Awaited<ReturnType<typeof creditLoanFixture>>;
@@ -664,8 +667,9 @@ describe('SDS renewal workflow: gates before routing and persisted decisions', (
       let beforeCount: number;
       let afterCount: number;
 
-      // Setup and worklist/persistence assertions are outside it.failing so
-      // only the known dashboard-count mismatch can satisfy its marker.
+      // Setup and worklist/persistence assertions stay here rather than in the
+      // tests below, so a database or service failure cannot be mistaken for
+      // the dashboard-count mismatch those two are about (#202).
       beforeEach(async () => {
         await inHistoryFixture(prisma, async (tx) => {
           const f = await creditLoanFixture(tx, tier, band, used);
@@ -698,6 +702,7 @@ describe('SDS renewal workflow: gates before routing and persisted decisions', (
             new PenaltyService(client),
             new NotificationService(client),
             f.audit as never,
+            new CreditTierService(client),
           );
           const beforeRows = paginatedExtensionReviews
             .strict()
@@ -776,31 +781,23 @@ describe('SDS renewal workflow: gates before routing and persisted decisions', (
         });
       });
 
-      if (tier === 'T2') {
-        it.failing(
-          'counts the pending T2 condition check shown in the staff worklist',
-          () => {
-            expect(beforeCount).toBe(1);
-          },
-        );
-      } else {
-        it('counts the pending extension shown in the staff worklist', () => {
+      it(
+        tier === 'T2'
+          ? 'counts the pending T2 condition check shown in the staff worklist'
+          : 'counts the pending extension shown in the staff worklist',
+        () => {
           expect(beforeCount).toBe(1);
-        });
-      }
+        },
+      );
 
-      if (route === 'supervisor' && tier !== 'T2') {
-        it.failing(
-          'removes the checked extension from the staff count while supervisor approval is pending',
-          () => {
-            expect(afterCount).toBe(0);
-          },
-        );
-      } else {
-        it('removes the completed staff task from the count without counting another department', () => {
+      it(
+        route === 'supervisor' && tier !== 'T2'
+          ? 'removes the checked extension from the staff count while supervisor approval is pending'
+          : 'removes the completed staff task from the count without counting another department',
+        () => {
           expect(afterCount).toBe(0);
-        });
-      }
+        },
+      );
     },
   );
 
@@ -808,8 +805,8 @@ describe('SDS renewal workflow: gates before routing and persisted decisions', (
     let beforeCount: number;
     let afterCount: number;
 
-    // Real request, queue and inspection assertions run outside it.failing.
-    // Only the known missing dashboard count may satisfy the defect marker.
+    // Real request, queue and inspection assertions run here rather than in
+    // the tests below, which are only about the dashboard figure (#203).
     beforeEach(async () => {
       await inHistoryFixture(prisma, async (tx) => {
         const f = await creditLoanFixture(tx, 'T2', 'D0');
@@ -913,15 +910,108 @@ describe('SDS renewal workflow: gates before routing and persisted decisions', (
       });
     });
 
-    it.failing(
-      'includes the scoped T2 extension shown as waiting for staff check in Waiting on staff',
-      () => {
-        expect(beforeCount).toBe(1);
-      },
-    );
+    it('includes the scoped T2 extension shown as waiting for staff check in Waiting on staff', () => {
+      expect(beforeCount).toBe(1);
+    });
 
     it('excludes the checked T2 extension and the unchecked extension in another department from Waiting on staff', () => {
       expect(afterCount).toBe(0);
+    });
+  });
+
+  it('files the T2 check photos against the extension, not the loan (#205)', async () => {
+    await inHistoryFixture(prisma, async (tx) => {
+      const f = await creditLoanFixture(tx, 'T2', 'D0');
+      const staff = await staffInScope(tx, f);
+      const pending = extensionOutput
+        .strict()
+        .parse(await f.extensions.request(f.user, requestFor(f)));
+      expect(pending.route).toBe('supervisor');
+
+      // What the frontend gets back from `image.requestUpload` with purpose
+      // `inspection`: a path under the evidence folder, which is what makes it
+      // signed on the way out rather than served plain.
+      const shots = [
+        '/media/inspection/2031/09/front.png',
+        '/media/inspection/2031/09/back.png',
+      ];
+      await f.extensions.inspect(
+        staff,
+        inspectExtensionInput.parse({
+          extensionKey: pending.extensionKey,
+          condition: 'MinorDamage',
+          note: 'Scratch on the lid, still usable',
+          imageUrls: shots,
+        }),
+      );
+
+      // Stored as keys against the extension, with the loan still named so the
+      // unit the photograph is of stays answerable from the row.
+      const stored = await tx.images.findMany({
+        where: { ExtensionKey: pending.extensionKey },
+        orderBy: { ImageKey: 'asc' },
+      });
+      expect(stored).toHaveLength(2);
+      for (const [index, row] of stored.entries()) {
+        expect(row).toMatchObject({
+          ImageURL: shots[index],
+          SubmissionType: 'ExtensionCheckPicture',
+          UsageKey: f.activeLoan.UsageKey,
+          SubmittedBy: staff.accountKey,
+        });
+      }
+
+      // The supervisor reads them off the request they are deciding, signed.
+      const pile = paginatedExtensionReviews.strict().parse(
+        await f.extensions.listReviews(f.f.decider, {
+          page: 1,
+          pageSize: 20,
+          route: 'supervisor',
+        }),
+      );
+      expect(pile.items[0].inspection).toMatchObject({
+        condition: 'MinorDamage',
+        note: 'Scratch on the lid, still usable',
+      });
+      const photos = pile.items[0].inspection!.photos;
+      expect(photos).toHaveLength(2);
+      for (const [index, url] of photos.entries()) {
+        const parsed = new URL(url);
+        expect(parsed.pathname).toBe(shots[index]);
+        // NFR-SEC-06: minted per read, so the stored value cannot be a link.
+        expect(parsed.searchParams.get('sig')).toBeTruthy();
+        expect(Number(parsed.searchParams.get('exp'))).toBeGreaterThan(
+          Date.now(),
+        );
+      }
+
+      // And they stay out of the loan's own record: the before/after set is
+      // evidence about how the thing left the counter, not about a renewal.
+      const images = new ImageService(
+        {
+          get: (key: string) =>
+            ({
+              SESSION_SECRET: 'extension-check-photo-secret-'.repeat(2),
+              PUBLIC_API_URL: 'http://localhost:3000',
+            })[key],
+        } as never,
+        f.f.client,
+      );
+      const loanPhotos = usagePhotosOutput
+        .strict()
+        .parse(
+          await new UsageImageService(
+            f.f.client,
+            new StaffScopeService(f.f.client),
+            images,
+          ).list(staff, f.activeLoan.UsageKey),
+        );
+      expect(loanPhotos).toEqual({
+        before: [],
+        after: [],
+        inspection: [],
+        evidence: [],
+      });
     });
   });
 

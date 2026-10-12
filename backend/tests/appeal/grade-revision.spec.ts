@@ -4,6 +4,7 @@ import {
   decideAppealInput,
 } from '../../src/appeal/appeal.schema';
 import { PenaltyService } from '../../src/common/penalty/penalty.service';
+import { activePenaltyWhere } from '../../src/common/schemas/penalty.schema';
 import type { TrpcUser } from '../../src/trpc/context';
 
 const NOW = new Date('2031-09-26T00:00:00.000Z');
@@ -171,13 +172,13 @@ describe('FR-APL-06 revised damage grade edge cases', () => {
       },
       select: { PenaltyKey: true },
     });
+    // The recompute must sum exactly the penalties the rest of the system
+    // calls "in force", whatever that definition currently is - asserting a
+    // copy of it here only proved that this file and penalty.schema agreed on
+    // the day it was written.
     expect(tx.penaltyInfo.aggregate).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: expect.objectContaining({
-          AccountKey: 42,
-          InEffect: true,
-          ExpirationTime: { gt: NOW },
-        }),
+        where: { AccountKey: 42, ...activePenaltyWhere() },
       }),
     );
   });

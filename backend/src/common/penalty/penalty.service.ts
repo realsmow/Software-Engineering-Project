@@ -7,7 +7,15 @@ import {
   type DamageLevel,
   type PenaltyReason,
 } from '../schemas/status.schema';
+import {
+  LATE_BEFORE_EXTENSION,
+  OPEN_LATE_PENALTY,
+} from '../schemas/penalty.schema';
 import { recomputeCredit } from '../credit/recompute-credit';
+
+// Re-exported because the two live beside `activePenaltyWhere` now (#199) and
+// the callers that reach for them think of them as this service's vocabulary.
+export { LATE_BEFORE_EXTENSION, OPEN_LATE_PENALTY };
 
 /** What a penalty will cost, worked out before anything is written. */
 export interface PenaltyQuote {
@@ -19,20 +27,6 @@ export interface PenaltyQuote {
   /** Which of the two sources decided the numbers — carried into the audit note. */
   source: 'PenaltyRule' | 'proposal-formula';
 }
-
-/** Note on a late penalty closed by an extension; later lateness is a new row (#192). */
-export const LATE_BEFORE_EXTENSION = 'before extension';
-
-/**
- * The late penalty still counting for a loan's current due date. One closed
- * by an extension is excluded, so lateness after the new due is charged again.
- */
-export const OPEN_LATE_PENALTY = {
-  AND: [
-    { Reason: { startsWith: 'ReturnLate' } },
-    { NOT: { Reason: { contains: LATE_BEFORE_EXTENSION } } },
-  ],
-} satisfies Prisma.PenaltyInfoWhereInput;
 
 /**
  * Credit penalties (proposal §5.7).
@@ -219,6 +213,13 @@ export class PenaltyService {
    * charged twice, and its clock restarts at `until` (#196). A row an appeal
    * already lifted is left alone. `close` marks the row as settled before an
    * extension, so it stops being the open one.
+   *
+   * The note is rewritten with the settled day count as well as the amount
+   * (#201). The job's own note says how many days it saw the night it first
+   * noticed - "overdue 1d (scheduled)" - and leaving that beside a figure
+   * raised to five days reads as the final count rather than the first
+   * sighting. Reason is the only sentence the borrower's credit list and the
+   * return receipt have, so it has to agree with the number next to it.
    */
   async settleLate(
     tx: Prisma.TransactionClient,
@@ -242,7 +243,12 @@ export class PenaltyService {
       params.creditWeight,
       days,
     );
-    const note = params.close ? LATE_BEFORE_EXTENSION : undefined;
+    // Zero days means an extension moved the due date past `until`: there is
+    // nothing to restate, so whatever the row already says is left alone.
+    const settled = days > 0 ? `overdue ${days}d` : null;
+    const note = params.close
+      ? [settled, LATE_BEFORE_EXTENSION].filter(Boolean).join('; ')
+      : (settled ?? undefined);
     const open = await tx.penaltyInfo.findFirst({
       where: { UsageKey: params.usageKey, ...OPEN_LATE_PENALTY },
       select: {
@@ -274,7 +280,15 @@ export class PenaltyService {
         CreditDeducted: amount,
         ActionTime: params.until,
         ExpirationTime: addDays(params.until, quote.lengthDays),
-        ...(note ? { Reason: `${open.Reason}; ${note}` } : {}),
+        // Rewritten rather than appended: two day counts in one sentence is
+        // worse than the stale one it replaces. `quote.reason` is the prefix
+        // OPEN_LATE_PENALTY matches on, and the close note is what takes the
+        // row out of that set.
+        ...(note
+          ? { Reason: `${quote.reason}: ${note}` }
+          : params.close
+            ? { Reason: `${open.Reason}; ${LATE_BEFORE_EXTENSION}` }
+            : {}),
       },
     });
     await recomputeCredit(tx, params.accountKey);

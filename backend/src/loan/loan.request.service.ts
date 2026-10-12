@@ -10,7 +10,8 @@ import {
   type ApprovalRoute,
 } from '../common/approval/approval-policy';
 import {
-  HOLDING_APPROVE_STATES,
+  assertPickupWindowOpen,
+  assertResourceLendable,
   clashingWindowFilter,
   collectDeadline,
   heldUsageFilter,
@@ -22,6 +23,8 @@ import {
 import {
   MAX_ACTIVE_ROOM_BOOKINGS,
   assertRoomWindow,
+  holdsRoomQuota,
+  roomQuotaWhere,
   slotsToWindow,
   toRoomHours,
 } from '../common/booking/room-slots';
@@ -271,22 +274,7 @@ export class LoanRequestService {
     if (!resource) {
       throw new BusinessError('RESOURCE_NOT_FOUND', { resourceKey });
     }
-    // Retired is checked on its own: AllowBorrow alone can be flipped back.
-    if (
-      !resource.AllowBorrow ||
-      resource.ResourceStatus === 'Missing' ||
-      resource.ResourceStatus === 'Retired'
-    ) {
-      throw new BusinessError('ITEM_UNAVAILABLE', {
-        resourceKey,
-        reason:
-          resource.ResourceStatus === 'Retired'
-            ? 'RETIRED'
-            : resource.AllowBorrow
-              ? 'MISSING'
-              : 'NOT_LENDABLE',
-      });
-    }
+    assertResourceLendable(resourceKey, resource);
 
     // Same rule whether the window came from chips or from raw instants.
     if (resource.Room) {
@@ -381,13 +369,11 @@ export class LoanRequestService {
       }
 
       if (target.Room) {
+        // One definition, shared with the `holdsRoomQuota` flag every request
+        // row carries, so the screen can close the button on exactly what this
+        // would refuse (#215, #216).
         const holding = await tx.reservations.count({
-          where: {
-            ReservedBy: user.accountKey,
-            ApproveStatus: { in: [...HOLDING_APPROVE_STATES] },
-            EndTime: { gt: new Date() },
-            Resource: { ResourceType: 'Room' },
-          },
+          where: roomQuotaWhere(user.accountKey),
         });
         if (holding >= MAX_ACTIVE_ROOM_BOOKINGS) {
           throw new BusinessError('ROOM_BOOKING_LIMIT_REACHED', {
@@ -685,6 +671,8 @@ export class LoanRequestService {
         ReservationKey: true,
         CurrentStatus: true,
         CheckoutTime: true,
+        DueTime: true,
+        Resource: { select: { ResourceStatus: true, AllowBorrow: true } },
       },
     });
 
@@ -712,6 +700,14 @@ export class LoanRequestService {
         opensAt: toIso(opensAt),
       });
     }
+    // #212: and not after it has closed. Half an hour is the whole of a room's
+    // window, so this edge is reached in ordinary use rather than only by
+    // somebody who forgot about their booking for a week.
+    assertPickupWindowOpen(usageKey, usage.DueTime, new Date());
+    // #213: the unit was judged lendable when the booking was made and set
+    // aside when it was prepared, and neither of those moments is this one. A
+    // room sent to repair in between must not be walked into.
+    assertResourceLendable(usage.ResourceKey, usage.Resource);
 
     const photo = await this.prisma.images.findFirst({
       where: {
@@ -921,7 +917,7 @@ export class LoanRequestService {
     // even with no reservation row behind it - a walk-in loan recorded at the
     // counter is exactly that case.
     const held = await this.prisma.usageLog.findFirst({
-      where: heldUsageFilter(resource.ResourceKey, from),
+      where: heldUsageFilter(resource.ResourceKey, from, to),
       orderBy: { DueTime: 'asc' },
       select: { UsageKey: true, DueTime: true },
     });
@@ -1001,6 +997,11 @@ export class LoanRequestService {
       cancellable:
         (row.ApproveStatus === 'Pending' || row.ApproveStatus === 'Approved') &&
         (usage === null || LoanRequestService.preparedRoom(row)),
+      holdsRoomQuota: holdsRoomQuota({
+        ApproveStatus: row.ApproveStatus,
+        EndTime: row.EndTime,
+        isRoom: row.Resource.Room !== null,
+      }),
     };
   }
 

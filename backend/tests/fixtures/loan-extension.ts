@@ -5,6 +5,7 @@ import { StaffScopeService } from '../../src/common/authority/staff-scope.servic
 import { CreditTierService } from '../../src/common/credit/credit-tier.service';
 import { EligibilityService } from '../../src/common/authority/eligibility.service';
 import { NotificationService } from '../../src/notification/notification.service';
+import { ImageService } from '../../src/image/image.service';
 import { historyFixture } from './borrower-history';
 
 export async function creditLoanFixture(
@@ -129,6 +130,16 @@ export async function creditLoanFixture(
     new NotificationService(f.client),
     audit as never,
     new PenaltyService(f.client),
+    new ImageService(
+      {
+        get: (key: string) =>
+          ({
+            SESSION_SECRET: 'extension-check-photo-secret-'.repeat(2),
+            PUBLIC_API_URL: 'http://localhost:3000',
+          })[key],
+      } as never,
+      f.client,
+    ),
   );
   return { f, score, due, activeLoan, reservation, user, extensions, audit };
 }
