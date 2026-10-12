@@ -283,7 +283,7 @@ function PenaltyCard({
           </span>
           {loan ? (
             <span className="mt-1 block font-mono text-[11.5px] text-t4">
-              {loan.id} · {loan.serial}
+              {[loan.id, loan.serial].filter(Boolean).join(" · ")}
             </span>
           ) : null}
         </span>

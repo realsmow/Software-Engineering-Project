@@ -131,10 +131,13 @@ describe("Module 5 borrower catalogue", () => {
     expect(screen.getAllByText(AVAILABLE_ITEM.name).length).toBeGreaterThan(0);
     expect(screen.queryByText(FILTER_ITEM.name)).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getAllByRole("button", { name: "Add" })[0]);
+    fireEvent.click(screen.getAllByRole("button", { name: "Select" })[0]);
     expect(useRequestDraft.getState().lines).toEqual([
       { itemId: AVAILABLE_ITEM.id, qty: 1, serials: [] },
     ]);
+    // Demo feedback: the same button unselects; quantity is set on the request page.
+    fireEvent.click(screen.getAllByRole("button", { name: "Selected" })[0]);
+    expect(useRequestDraft.getState().lines).toEqual([]);
   });
 
   it("closes the Add button on something the borrower may not borrow, and hides it from available-only", () => {

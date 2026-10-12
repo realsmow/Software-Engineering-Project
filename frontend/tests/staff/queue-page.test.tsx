@@ -26,6 +26,8 @@ const mocks = vi.hoisted(() => ({
   useStaffInspectExtension: vi.fn(),
   usePrepareOptions: vi.fn(),
   useCopyGroupPhotos: vi.fn(),
+  useWaitingOnSupervisor: vi.fn(),
+  useRemindSupervisor: vi.fn(),
   useUsagePhotos: vi.fn(),
   usePickupImageUpload: vi.fn(),
   detachPhoto: vi.fn(),
@@ -63,6 +65,7 @@ const row = staffQueueRow.strict().parse({
 describe("StaffQueuePage", () => {
   const allocate = vi.fn();
   const copyPhotos = vi.fn();
+  const remindSupervisor = vi.fn();
   const recordReturn = vi.fn();
 
   const renderPage = () =>
@@ -92,6 +95,8 @@ describe("StaffQueuePage", () => {
     mocks.useAllocate.mockReturnValue(mutationResult(allocate));
     mocks.usePrepareOptions.mockReturnValue(queryResult([]));
     mocks.useCopyGroupPhotos.mockReturnValue(mutationResult(copyPhotos));
+    mocks.useWaitingOnSupervisor.mockReturnValue(queryResult([]));
+    mocks.useRemindSupervisor.mockReturnValue(mutationResult(remindSupervisor));
     mocks.useConfirmPickup.mockReturnValue(mutationResult(vi.fn()));
     mocks.useRecordReturn.mockReturnValue(mutationResult(recordReturn));
     mocks.useMarkLost.mockReturnValue(mutationResult(vi.fn()));
@@ -348,6 +353,29 @@ describe("StaffQueuePage", () => {
       await waitFor(() => expect(allocate).toHaveBeenCalledWith({ reservationKey: 77 }));
       expect(allocate).toHaveBeenCalledTimes(1);
     });
+  });
+
+  it("staff see supervisor-only requests and can remind, not decide (demo feedback)", async () => {
+    mocks.useWaitingOnSupervisor.mockReturnValue(
+      queryResult([
+        {
+          reservationKey: 88,
+          borrower: row.borrower,
+          itemName: "Oscilloscope",
+          tier: "T2",
+          startTime: "2026-10-01T06:00:00.000Z",
+        },
+      ])
+    );
+    remindSupervisor.mockResolvedValue({ notified: 2 });
+    renderPage();
+    fireEvent.click(screen.getByText(i18n.t("staff.queue.tileWaitingSupervisor")));
+    expect(screen.queryByRole("button", { name: /approve/i })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: i18n.t("staff.queue.remindSupervisor") }));
+    await waitFor(() => expect(remindSupervisor).toHaveBeenCalledWith(88));
+    expect(await screen.findByRole("status")).toHaveTextContent(
+      i18n.t("staff.queue.reminded", { count: 2 })
+    );
   });
 
   it("shows a failed allocation without losing the queue row", async () => {

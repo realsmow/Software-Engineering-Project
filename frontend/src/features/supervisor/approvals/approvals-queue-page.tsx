@@ -525,7 +525,7 @@ export default function SupervisorApprovalsPage() {
             <div className="mt-0.5 flex items-center gap-1.5 font-mono text-[11px] text-t4">
               <TierDot tier={r.tier} />
               {r.tier ?? t("borrower.catalog.tierUnknown")}
-              {r.serialNo ? ` · ${r.serialNo}` : ""}
+              {r.serialNo && r.tier === "T3" ? ` · ${r.serialNo}` : ""}
             </div>
           </div>
         ) : (

@@ -13,7 +13,10 @@ import { cn } from "@/lib/utils";
 import { activeRoomBookings } from "../request-status";
 import { useMyRequests } from "../loans/use-my-requests";
 import type { Room, RoomSlot } from "./room.adapter";
-import { useCreateRoomBooking, useRoom, useRoomDay } from "./use-rooms";
+import { useCreateRoomBooking, useRoom, useRoomDay, useRoomWeek } from "./use-rooms";
+import { isoOffset } from "../request/request-draft.store";
+
+const ROOM_DAYS_AHEAD = 7;
 
 /**
  * Room booking request - reached from a room-list row. The room comes from the
@@ -32,12 +35,19 @@ import { useCreateRoomBooking, useRoom, useRoomDay } from "./use-rooms";
  * is checked against on the server.
  */
 export default function RoomBookingPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const today = todayLocalDayKey();
+  // Today and up to seven days ahead (demo feedback; was today only).
+  const week = useMemo(
+    () => Array.from({ length: ROOM_DAYS_AHEAD + 1 }, (_, i) => isoOffset(i)),
+    [],
+  );
+  const [date, setDate] = useState(today);
   const { data: room, isLoading } = useRoom(id);
-  const { data: day } = useRoomDay(id, today);
+  const { data: day } = useRoomDay(id, date);
+  const freeByDay = useRoomWeek(id, week);
   const create = useCreateRoomBooking();
   const { requests } = useMyRequests();
 
@@ -157,7 +167,7 @@ export default function RoomBookingPage() {
     try {
       const result = await create.mutateAsync({
         roomKey: Number(room.id),
-        date: today,
+        date,
         slots: pickedIdx,
         reason: reason.trim() || undefined,
       });
@@ -212,18 +222,51 @@ export default function RoomBookingPage() {
                 })}
               </p>
 
-              <div className="max-w-[260px]">
-                <label className="block">
-                  <span className="mb-1.5 block text-xs font-medium text-t2">
-                    {t("borrower.booking.date")}
-                  </span>
-                  {/* Same-day only: locked rather than hidden so the borrower can
-                      still read which date the booking lands on. */}
-                  <Input value={fmtDate(localInstant(today, 12))} readOnly disabled />
-                </label>
-                <p className="mt-1.5 text-[11.5px] text-t4">
-                  {t("borrower.booking.sameDay")}
-                </p>
+              <div>
+                <div className="mb-1.5 text-xs font-medium text-t2">{t("borrower.booking.date")}</div>
+                {/* The room's week: free slots per day; weekends the counter is shut. */}
+                <div className="grid grid-cols-4 gap-1.5 sm:grid-cols-8">
+                  {week.map((d) => {
+                    const weekday = new Date(localInstant(d, 12).getTime() + 7 * 3_600_000).getUTCDay();
+                    const closed = weekday === 0 || weekday === 6;
+                    const free = freeByDay.get(d);
+                    const selected = d === date;
+                    return (
+                      <button
+                        key={d}
+                        type="button"
+                        disabled={closed}
+                        aria-pressed={selected}
+                        aria-label={`${fmtDate(localInstant(d, 12))}: ${
+                          closed
+                            ? t("borrower.request.cal_closed")
+                            : t("borrower.booking.dayFree", { count: free ?? 0 })
+                        }`}
+                        onClick={() => {
+                          setDate(d);
+                          setPicked(new Set());
+                        }}
+                        className={cn(
+                          "flex flex-col items-center rounded border px-1 py-1.5 text-xs transition-colors",
+                          closed && "cursor-not-allowed border-border bg-muted text-t4",
+                          !closed && free === 0 && "border-[var(--s-alert-b)] bg-[var(--s-alert-bg)] text-[var(--s-alert-t)]",
+                          !closed && (free ?? 1) > 0 && "border-border bg-[var(--s-ok-bg)] text-[var(--s-ok-t)]",
+                          selected && "border-accent bg-accent text-white",
+                        )}
+                      >
+                        <span className="text-[10.5px]">
+                          {new Intl.DateTimeFormat(i18n.language.startsWith("th") ? "th-TH" : "en-GB", {
+                            weekday: "short",
+                            day: "numeric",
+                          }).format(localInstant(d, 12))}
+                        </span>
+                        <span className="font-mono text-[11px]">
+                          {closed ? "-" : free === undefined ? "…" : free}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
               <div className="mt-4 text-sm font-semibold text-foreground">
@@ -342,7 +385,7 @@ export default function RoomBookingPage() {
               <SumRow label={t("borrower.booking.sumRoom")} plain>
                 {room.name}
               </SumRow>
-              <SumRow label={t("borrower.booking.sumDate")}>{fmtToday()}</SumRow>
+              <SumRow label={t("borrower.booking.sumDate")}>{fmtDate(localInstant(date, 12))}</SumRow>
               <SumRow label={t("borrower.booking.sumTime")}>{timeLabel}</SumRow>
               <SumRow label={t("borrower.booking.sumHours")}>
                 {t("borrower.booking.hours", {
@@ -518,7 +561,3 @@ function SumRow({
   );
 }
 
-/** "12 ส.ค. 2569" / "12 Aug 2026" - the booking date, spelled out for the summary. */
-function fmtToday(): string {
-  return fmtDate(new Date());
-}

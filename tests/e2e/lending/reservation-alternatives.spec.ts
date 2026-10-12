@@ -83,7 +83,7 @@ test("FR-RSV-06: accepts the offered shorter period after a real booking race", 
   try {
     await visitAs(page, "borrower", "/catalog");
     const row = page.getByRole("row").filter({ hasText: fixture.type.name! });
-    await row.getByRole("button", { name: "Add", exact: true }).click();
+    await row.getByRole("button", { name: "Select", exact: true }).click();
     await page.getByRole("button", { name: "1 selected", exact: true }).click();
     await expect(page.getByRole("heading", { name: "New borrow request" })).toBeVisible();
     // Friday 26th: the test clock's today, before the Monday booking.
@@ -152,7 +152,7 @@ test("NFR usability: completes a real equipment request from the mobile catalogu
   await page.setViewportSize({ width: 375, height: 812 });
   await visitAs(page, "borrower", "/catalog");
   await page.locator('input[type="search"]:visible').fill(fixture.type.name!);
-  await page.getByRole("button", { name: "Add", exact: true }).click();
+  await page.getByRole("button", { name: "Select", exact: true }).click();
   await page.getByRole("button", { name: "1 selected", exact: true }).click();
   await expect(page.getByRole("heading", { name: "New borrow request" })).toBeVisible();
   // Weekdays: the counter is shut at weekends (#179).

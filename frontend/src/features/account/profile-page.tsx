@@ -5,7 +5,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CREDIT_BANDS } from "@/constants";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -176,12 +176,30 @@ export default function ProfilePage() {
                       {t("profile.penaltyUntil", {
                         date: fmtDate(p.expiresAt),
                       })}
+                      {/* Only damage can be appealed (FR-APL); one per penalty. */}
+                      {!p.appealed && /^(DamagedItem|BrokenItem)/.test(p.reason ?? "") ? (
+                        <>
+                          {" · "}
+                          <Link
+                            to={`${ROUTES.APPEALS}?penalty=${p.id}`}
+                            className="font-sans font-medium text-accent hover:underline"
+                          >
+                            {t("profile.appealThis")}
+                          </Link>
+                        </>
+                      ) : null}
                     </span>
                   </li>
                 ))}
               </ul>
             </CardContent>
           ) : null}
+          {/* Appeals live with the credit they are about (demo feedback). */}
+          <CardContent className="border-t border-border py-3">
+            <Link to={ROUTES.APPEALS} className="text-sm font-medium text-accent hover:underline">
+              {t("profile.appealsLink")}
+            </Link>
+          </CardContent>
         </Card>
 
         {/* Sessions. Placed last because it is the thing you come here to do

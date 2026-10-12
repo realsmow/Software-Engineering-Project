@@ -67,7 +67,7 @@ async function addSeedT0Items(page: Page) {
   for (const itemName of [CALIPER, JUMPER_WIRES]) {
     const row = page.getByRole("row").filter({ hasText: itemName });
     await expect(row).toBeVisible();
-    await row.getByRole("button", { name: "Add" }).click();
+    await row.getByRole("button", { name: "Select", exact: true }).click();
   }
 
   await page.getByRole("button", { name: "2 selected", exact: true }).click();

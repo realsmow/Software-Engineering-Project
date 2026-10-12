@@ -128,3 +128,24 @@ export function useCreateRoomBooking() {
     },
   });
 }
+
+/** Free slots per day for one room over several days (the room's week calendar). */
+export function useRoomWeek(id: string | undefined, dates: string[]): Map<string, number> {
+  const trpc = useTRPCClient();
+  const key = roomKey(id);
+  const results = useQueries({
+    queries: dates.map((date) => ({
+      queryKey: queryKeys.facilitySlots(id ?? "", date),
+      queryFn: (): Promise<RoomDay> =>
+        trpc.item.roomAvailability.query({ roomKey: key as number, date }),
+      enabled: key !== null,
+      refetchInterval: POLLING.AVAILABILITY,
+      staleTime: 0,
+    })),
+  });
+  const free = new Map<string, number>();
+  results.forEach((r, i) => {
+    if (r.data) free.set(dates[i], r.data.slots.filter((s) => s.available).length);
+  });
+  return free;
+}

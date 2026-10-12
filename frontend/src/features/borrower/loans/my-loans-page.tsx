@@ -322,7 +322,7 @@ function RequestCard({
         {row.name}
       </h3>
       <div className="mt-1 font-mono text-xs text-t3">
-        {row.serial} · {requestWindow(row, t)}
+        {[row.serial, requestWindow(row, t)].filter(Boolean).join(" · ")}
       </div>
 
       {/* Due dates are counted in days, which a room booked by the hour has

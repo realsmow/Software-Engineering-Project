@@ -132,18 +132,7 @@ export function useCatalogSearch(q: string) {
   });
 }
 
-/** Busy windows per unit for the next `days` days, for the booking calendar. */
-export function useUnitSchedule(id: string | undefined, from: string, days = 14) {
-  const trpc = useTRPCClient();
-  return useQuery({
-    queryKey: ["unit-schedule", id ?? "", from, days],
-    enabled: itemKey(id) !== null,
-    queryFn: () => trpc.item.unitSchedule.query({ id: itemKey(id) as number, from, days }),
-    refetchInterval: POLLING.AVAILABILITY,
-  });
-}
-
-/** The same schedule for several types at once: every item in the cart. */
+/** Busy windows per unit of each type, for the availability calendar. */
 export function useCartSchedule(ids: string[], from: string, days: number) {
   const trpc = useTRPCClient();
   return useQueries({

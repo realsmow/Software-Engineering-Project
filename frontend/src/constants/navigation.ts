@@ -60,10 +60,8 @@ export const NAV_CONFIG: Record<Role, RoleNav> = {
           { key: "catalog", labelKey: "nav.catalog", icon: "grid", route: ROUTES.CATALOG },
           { key: "rooms", labelKey: "nav.rooms", icon: "building", route: ROUTES.ROOMS },
           { key: "room-use", labelKey: "nav.roomUse", icon: "door-open", route: ROUTES.ROOM_USE },
-          { key: "new-request", labelKey: "nav.newRequest", icon: "file-plus", route: ROUTES.REQUEST },
           { key: "requests", labelKey: "nav.myRequests", icon: "file", route: ROUTES.MY_LOANS },
           { key: "pickup", labelKey: "nav.pickup", icon: "package", route: ROUTES.PICKUP },
-          { key: "appeals", labelKey: "nav.appeals", icon: "shield", route: ROUTES.APPEALS },
         ],
       },
     ],
@@ -83,10 +81,8 @@ export const NAV_CONFIG: Record<Role, RoleNav> = {
           // they could book a room or request an item and then had no menu
           // entry to collect it, check in, or appeal a penalty.
           { key: "room-use", labelKey: "nav.roomUse", icon: "door-open", route: ROUTES.ROOM_USE },
-          { key: "new-request", labelKey: "nav.newRequest", icon: "file-plus", route: ROUTES.REQUEST },
           { key: "requests", labelKey: "nav.myRequests", icon: "file", route: ROUTES.MY_LOANS },
           { key: "pickup", labelKey: "nav.pickup", icon: "package", route: ROUTES.PICKUP },
-          { key: "appeals", labelKey: "nav.appeals", icon: "shield", route: ROUTES.APPEALS },
         ],
       },
       {
@@ -130,10 +126,8 @@ export const NAV_CONFIG: Record<Role, RoleNav> = {
           // they could book a room or request an item and then had no menu
           // entry to collect it, check in, or appeal a penalty.
           { key: "room-use", labelKey: "nav.roomUse", icon: "door-open", route: ROUTES.ROOM_USE },
-          { key: "new-request", labelKey: "nav.newRequest", icon: "file-plus", route: ROUTES.REQUEST },
           { key: "requests", labelKey: "nav.myRequests", icon: "file", route: ROUTES.MY_LOANS },
           { key: "pickup", labelKey: "nav.pickup", icon: "package", route: ROUTES.PICKUP },
-          { key: "appeals", labelKey: "nav.appeals", icon: "shield", route: ROUTES.APPEALS },
         ],
       },
       {

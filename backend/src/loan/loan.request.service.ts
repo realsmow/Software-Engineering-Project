@@ -340,9 +340,12 @@ export class LoanRequestService {
     if (!resource.Room) endTime = rollDueOffWeekend(endTime);
 
     // FR-RSV-04 (G1, T1): a T1 unit that is not free for the window is swapped
-    // for a free sibling rather than refused outright. T2 binds a specific
-    // serial (FR-RSV-05), so it only gets a clearer refusal; everything else
-    // (T0, T3) just takes the plain check.
+    // for a free sibling rather than refused outright. T2 does the same now
+    // that the borrower asks for a type and staff choose the unit (demo
+    // feedback); the unit sent is only a placeholder, and refusing it while a
+    // sibling is free turned a race between two borrowers into a false "not
+    // available". With no sibling left T2 keeps its clearer refusal. T0 and T3
+    // take the plain check.
     let target: ResourceRow = resource;
     if (tier === 'T1') {
       target = await this.resolveT1Target(resource, startTime, endTime);
@@ -351,7 +354,20 @@ export class LoanRequestService {
         resource,
         startTime,
         endTime,
-      );
+      ).catch(async (error: unknown) => {
+        if (
+          !(error instanceof BusinessError) ||
+          error.businessCode !== 'SERIAL_NOT_AVAILABLE'
+        )
+          throw error;
+        const sibling = await this.findFreeSibling(
+          resource,
+          startTime,
+          endTime,
+        );
+        if (!sibling) throw error;
+        return sibling;
+      });
     } else {
       await this.assertWindowFree(resource, startTime, endTime);
     }

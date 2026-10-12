@@ -366,15 +366,26 @@ export function markSlots(
  * lived only on the booking screen. This maps the window back onto the slots
  * and runs it through `slotsToWindow`, so both entry points share one rule.
  */
+/** How far ahead a room may be booked, in Bangkok days after today. */
+export const ROOM_BOOKING_DAYS_AHEAD = 7;
+
 export function assertRoomWindow(
   hours: RoomHours,
   startTime: Date,
   endTime: Date,
   now = new Date(),
 ): void {
+  // Today up to ROOM_BOOKING_DAYS_AHEAD days out (demo feedback; was same-day).
   const dayKey = toLocalDayKey(startTime);
-  if (dayKey !== toLocalDayKey(now)) {
-    throw new BusinessError('ROOM_BOOKING_SAME_DAY_ONLY', { date: dayKey });
+  const today = toLocalDayKey(now);
+  const lastDay = toLocalDayKey(
+    new Date(now.getTime() + ROOM_BOOKING_DAYS_AHEAD * 86_400_000),
+  );
+  if (dayKey < today || dayKey > lastDay) {
+    throw new BusinessError('ROOM_BOOKING_OUT_OF_RANGE', {
+      date: dayKey,
+      daysAhead: ROOM_BOOKING_DAYS_AHEAD,
+    });
   }
   const slots = roomSlots(hours);
   const first = slots.findIndex(

@@ -30,6 +30,8 @@ import {
   useMarkLost,
   usePrepareOptions,
   useRecordReturn,
+  useRemindSupervisor,
+  useWaitingOnSupervisor,
   useStaffDecideExtension,
   useStaffExtensionQueue,
   useStaffInspectExtension,
@@ -77,7 +79,7 @@ export default function StaffQueuePage() {
   const navigate = useNavigate();
   // Extensions are a second pile at the same counter, not a second screen: the
   // fifth tile above (`extensionsToInspect`) opens straight into it.
-  const [view, setView] = useState<"queue" | "extensions">("queue");
+  const [view, setView] = useState<"queue" | "extensions" | "supervisor">("queue");
   const [bucket, setBucket] = useState<StaffQueueBucket>("toPrepare");
   const [search, setSearch] = useState("");
 
@@ -88,6 +90,24 @@ export default function StaffQueuePage() {
   const [split, setSplit] = useState<Set<string>>(() => new Set());
   const entries = useMemo(() => groupQueueRows(rows ?? [], split), [rows, split]);
   const copyPhotos = useCopyGroupPhotos();
+  const { data: supervisorRows, isLoading: supervisorLoading } = useWaitingOnSupervisor(
+    view === "supervisor" ? search : "",
+  );
+  const remind = useRemindSupervisor();
+  const [remindingKey, setRemindingKey] = useState<number | null>(null);
+
+  async function remindSupervisor(reservationKey: number) {
+    setRemindingKey(reservationKey);
+    setResult(null);
+    try {
+      const out = await remind.mutateAsync(reservationKey);
+      setResult({ tone: "ok", text: t("staff.queue.reminded", { count: out.notified }) });
+    } catch (error) {
+      setResult({ tone: "bad", text: getErrorMessage(error) });
+    } finally {
+      setRemindingKey(null);
+    }
+  }
 
   // One row at a time: the button that was pressed is the one that spins, and
   // the rest of the queue stays usable.
@@ -181,7 +201,7 @@ export default function StaffQueuePage() {
           <div className="mt-0.5 flex items-center gap-1.5 font-mono text-[11px] text-t4">
             {r.tier ? <TierDot tier={r.tier} /> : null}
             {r.tier ?? t("borrower.catalog.tierUnknown")}
-            {r.serialNo ? ` · ${r.serialNo}` : ""}
+            {r.serialNo && r.tier !== "T0" ? ` · ${r.serialNo}` : ""}
           </div>
         </div>
       ),
@@ -431,7 +451,8 @@ export default function StaffQueuePage() {
       key: "item",
       header: t("staff.queue.colItem"),
       render: (r) => {
-        const serials = r.members.flatMap((m) => (m.serialNo ? [m.serialNo] : []));
+        // T0 goes out by count; its serials mean nothing at the counter.
+        const serials = r.members.flatMap((m) => (m.serialNo && m.tier !== "T0" ? [m.serialNo] : []));
         // A cart can mix items: one line per item name with its count.
         const counts = new Map<string, number>();
         for (const m of r.members) counts.set(m.itemName ?? "-", (counts.get(m.itemName ?? "-") ?? 0) + 1);
@@ -550,7 +571,7 @@ export default function StaffQueuePage() {
                 label={t(isBeforePickup(r) ? "staff.queue.actionHandoverEarly" : ACTION_LABEL[bucket])}
                 onAct={() => void act(r)}
               />
-            ) : bucket === "toPrepare" && r.tier !== "T3" ? (
+            ) : bucket === "toPrepare" && r.tier !== "T3" && r.tier !== "T0" ? (
               <PrepareAction row={r} busy={busy} onPrepare={(key) => void act(r, key)} />
             ) : (
               <Button type="button" size="sm" disabled={busy} onClick={() => void act(r)}>
@@ -575,7 +596,7 @@ export default function StaffQueuePage() {
       <PageHeader title={t("nav.queue")} subtitle={t("staff.queue.subtitle")} />
 
       {/* Counts first: what is waiting, before what is on screen. */}
-      <div className="mb-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-6">
+      <div className="mb-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-7">
         {STAFF_QUEUE_BUCKETS.map((b) => (
           <CountTile
             key={b}
@@ -600,6 +621,13 @@ export default function StaffQueuePage() {
           active={view === "extensions"}
           onClick={() => setView("extensions")}
         />
+        {/* Staff cannot decide these; they can see them and nudge a supervisor. */}
+        <CountTile
+          label={t("staff.queue.tileWaitingSupervisor")}
+          value={supervisorRows?.length}
+          active={view === "supervisor"}
+          onClick={() => setView("supervisor")}
+        />
       </div>
 
       {result ? (
@@ -615,7 +643,73 @@ export default function StaffQueuePage() {
         </div>
       ) : null}
 
-      {view === "extensions" ? (
+      {view === "supervisor" ? (
+        <DataTable
+          columns={[
+            {
+              key: "borrower",
+              header: t("staff.queue.colBorrower"),
+              render: (r) => (
+                <span className="font-medium text-foreground">
+                  {r.borrower.firstName} {r.borrower.lastName}
+                </span>
+              ),
+            },
+            {
+              key: "item",
+              header: t("staff.queue.colItem"),
+              render: (r) => (
+                <span className="inline-flex items-center gap-1.5">
+                  <TierDot tier={r.tier} />
+                  {r.itemName ?? "-"}
+                </span>
+              ),
+            },
+            {
+              key: "when",
+              header: t("staff.queue.colPickup"),
+              render: (r) => (
+                <span className="whitespace-nowrap font-mono text-xs text-t2">{fmtDateTime(r.startTime)}</span>
+              ),
+            },
+            {
+              key: "act",
+              header: "",
+              align: "right",
+              render: (r) => (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={remindingKey === r.reservationKey}
+                  onClick={() => void remindSupervisor(r.reservationKey)}
+                >
+                  {remindingKey === r.reservationKey ? t("common.loading") : t("staff.queue.remindSupervisor")}
+                </Button>
+              ),
+            },
+          ]}
+          rows={supervisorRows ?? []}
+          rowKey={(r) => String(r.reservationKey)}
+          pageSize={15}
+          beforeRows={
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-3.5 py-2.5">
+              <Input
+                type="search"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder={t("staff.queue.searchPlaceholder")}
+                className="max-w-sm"
+              />
+              <Button type="button" variant="outline" size="sm" onClick={() => setView("queue")}>
+                {t("staff.queue.backToQueue")}
+              </Button>
+            </div>
+          }
+          emptyTitle={supervisorLoading ? t("common.loading") : t("staff.queue.supervisorEmpty")}
+          rangeLabel={(start, end, total) => t("common.showingRange", { start, end, total })}
+        />
+      ) : view === "extensions" ? (
         <DataTable
           columns={extColumns}
           rows={extRows ?? []}

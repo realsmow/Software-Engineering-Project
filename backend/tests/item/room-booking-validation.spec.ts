@@ -16,7 +16,7 @@ describe('Room booking validation at local-day and opening-hours boundaries', ()
     ).not.toThrow();
   });
 
-  it('rejects a booking on the next Bangkok day even when its UTC date matches now', () => {
+  it('rejects a booking more than seven Bangkok days ahead, by the Bangkok calendar', () => {
     const overnightHours = {
       openMinutes: 0,
       closeMinutes: 240,
@@ -27,11 +27,20 @@ describe('Room booking validation at local-day and opening-hours boundaries', ()
     expect(() =>
       assertRoomWindow(
         overnightHours,
-        new Date('2031-09-26T17:00:00.000Z'), // 00:00 Bangkok, September 27
-        new Date('2031-09-26T18:00:00.000Z'), // 01:00 Bangkok, September 27
+        new Date('2031-10-03T17:00:00.000Z'), // 00:00 Bangkok, October 4 (8 days on)
+        new Date('2031-10-03T18:00:00.000Z'), // 01:00 Bangkok, October 4
         new Date('2031-09-26T09:00:00.000Z'), // 16:00 Bangkok, September 26
       ),
-    ).toThrow(/ROOM_BOOKING_SAME_DAY_ONLY/);
+    ).toThrow(/ROOM_BOOKING_OUT_OF_RANGE/);
+    // Seven days on, by the Bangkok day, is still allowed.
+    expect(() =>
+      assertRoomWindow(
+        overnightHours,
+        new Date('2031-10-02T17:00:00.000Z'), // 00:00 Bangkok, October 3
+        new Date('2031-10-02T18:00:00.000Z'),
+        new Date('2031-09-26T09:00:00.000Z'),
+      ),
+    ).not.toThrow();
   });
 
   it('validates raw booking times against the selected room hours and its lack of a lunch break', () => {

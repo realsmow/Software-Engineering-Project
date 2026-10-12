@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import i18n from "../../src/i18n";
@@ -9,7 +9,6 @@ import { toMyCredit } from "../../src/features/account/credit.adapter";
 import { creditResponse, itemResponse, unitResponse } from "../fixtures/api-responses";
 import { itemDetail } from "../../../backend/src/item/item.schema";
 import { queryResult } from "../fixtures/query-results";
-import { fmtDateTime } from "../../src/features/borrower/format";
 
 const hooks = vi.hoisted(() => ({
   detail:
@@ -20,7 +19,7 @@ const hooks = vi.hoisted(() => ({
 }));
 vi.mock("../../src/features/borrower/catalog/use-equipment-types", () => ({
   useEquipmentType: hooks.detail,
-  useUnitSchedule: () => ({ data: [] }),
+  useCartSchedule: () => [],
 }));
 vi.mock("../../src/features/account/use-my-credit", () => ({
   useMyCredit: hooks.credit,
@@ -80,16 +79,12 @@ describe("equipment detail PDF regressions", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("decreases the selected quantity to zero without going to the cart (PDF p. 5)", () => {
-    useRequestDraft.getState().addItem(item.id, 2);
-    useRequestDraft.getState().addItem(item.id, 2);
+  it("selects and unselects with one toggle; quantity is set on the request page", () => {
     renderDetail();
-    fireEvent.click(
-      screen.getAllByRole("button", { name: i18n.t("borrower.request.decrease") })[0]
-    );
+    fireEvent.click(screen.getAllByRole("button", { name: i18n.t("borrower.catalog.select") })[0]);
     expect(useRequestDraft.getState().lines[0].qty).toBe(1);
     fireEvent.click(
-      screen.getAllByRole("button", { name: i18n.t("borrower.request.decrease") })[0]
+      screen.getAllByRole("button", { name: i18n.t("borrower.catalog.selectedToggle") })[0]
     );
     expect(useRequestDraft.getState().lines).toEqual([]);
   });
@@ -105,9 +100,8 @@ describe("equipment detail PDF regressions", () => {
         endTime: expect.stringContaining("2026-09-29"),
       })
     );
-    const row = screen.getByText("MM-2").closest("tr")!;
-    expect(
-      within(row).getByText(fmtDateTime(item.units[1].nextAvailableAt))
-    ).toBeInTheDocument();
+    // Demo feedback: borrowers see a calendar, not each unit's serial.
+    expect(screen.queryByText("MM-2")).not.toBeInTheDocument();
+    expect(screen.getByText(i18n.t("borrower.detail.calendarTitle"))).toBeInTheDocument();
   });
 });

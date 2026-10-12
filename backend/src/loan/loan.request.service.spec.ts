@@ -463,13 +463,13 @@ describe('room windows sent as raw instants', () => {
     ['seven slots', at('07:00', '10:30'), 'ROOM_SLOT_LIMIT_EXCEEDED'],
     ['across lunch', at('04:30', '06:30'), 'ROOM_SLOTS_NOT_CONTIGUOUS'],
     [
-      'another day',
+      'more than seven days ahead',
       {
-        startTime: '2099-01-19T02:00:00.000Z',
-        endTime: '2099-01-19T03:00:00.000Z',
+        startTime: '2099-01-23T02:00:00.000Z',
+        endTime: '2099-01-23T03:00:00.000Z',
         lines: [{ resourceKey: 7 }],
       },
-      'ROOM_BOOKING_SAME_DAY_ONLY',
+      'ROOM_BOOKING_OUT_OF_RANGE',
     ],
   ])('refuses %s', async (_l, input, code) => {
     const result = await service(dbFor(room as never)).create(

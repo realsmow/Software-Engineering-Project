@@ -28,7 +28,7 @@ const ERROR_MESSAGES: Record<string, string> = {
   ROOM_SLOT_LIMIT_EXCEEDED: "จองห้องได้ไม่เกิน 3 ชั่วโมงต่อครั้ง",
   ROOM_SLOTS_NOT_CONTIGUOUS: "ช่วงเวลาที่เลือกต้องต่อเนื่องกัน และข้ามช่วงพักเที่ยงไม่ได้",
   ROOM_SLOT_IN_THE_PAST: "ช่วงเวลานี้ผ่านไปแล้ว",
-  ROOM_BOOKING_SAME_DAY_ONLY: "จองห้องได้เฉพาะวันนี้เท่านั้น",
+  ROOM_BOOKING_OUT_OF_RANGE: "จองห้องได้ตั้งแต่วันนี้ถึงล่วงหน้า 7 วัน",
   ROOM_BOOKING_LIMIT_REACHED: "คุณจองห้องไว้แล้วหนึ่งรายการ ยกเลิกหรือใช้งานให้เสร็จก่อนจึงจะจองห้องอื่นได้",
   ROOM_NOT_EXTENDABLE: "ห้องต่อเวลาไม่ได้ ถ้าช่วงถัดไปว่าง กรุณาจองช่วงถัดไปแทน",
   TOO_MANY_REQUESTS: "มีคำขอจากเครื่องนี้ถี่เกินไป กรุณารอสักครู่แล้วลองใหม่",

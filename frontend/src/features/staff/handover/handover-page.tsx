@@ -96,7 +96,7 @@ export default function StaffHandoverPage() {
               <div className="mt-0.5 flex items-center gap-1.5 font-mono text-[11px] text-t4">
                 {loan.tier ? <TierDot tier={loan.tier} /> : null}
                 {loan.tier ?? t("borrower.catalog.tierUnknown")}
-                {loan.serialNo ? ` · ${loan.serialNo}` : ""}
+                {loan.serialNo && loan.tier !== "T0" ? ` · ${loan.serialNo}` : ""}
               </div>
             </div>
           </section>

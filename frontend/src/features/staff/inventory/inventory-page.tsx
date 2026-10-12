@@ -431,7 +431,14 @@ function TypeEditForm({ item, onClose }: { item: ManagedItemType; onClose: () =>
           />
         </Field>
         <Field label={t("staff.inventory.fieldDescription")}>
-          <Input value={description} onChange={(e) => setDescription(e.target.value)} maxLength={2000} />
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            maxLength={2000}
+            rows={3}
+            placeholder="-"
+            className="w-full rounded-md border border-border bg-transparent px-3 py-2 text-sm text-foreground"
+          />
         </Field>
         <Field label={t("staff.inventory.fieldPrice")}>
           <Input
@@ -599,7 +606,14 @@ function NewTypeDialog({
           />
         </Field>
         <Field label={t("staff.inventory.fieldDescription")}>
-          <Input value={description} onChange={(e) => setDescription(e.target.value)} maxLength={2000} />
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            maxLength={2000}
+            rows={3}
+            placeholder="-"
+            className="w-full rounded-md border border-border bg-transparent px-3 py-2 text-sm text-foreground"
+          />
         </Field>
         <div className="grid grid-cols-2 gap-3">
           <Field label={t("staff.inventory.fieldCreditWeight")}>
@@ -1435,7 +1449,14 @@ function RoomDialog({
         </div>
 
         <Field label={t("staff.inventory.fieldDescription")}>
-          <Input value={description} onChange={(e) => setDescription(e.target.value)} maxLength={2000} />
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            maxLength={2000}
+            rows={3}
+            placeholder="-"
+            className="w-full rounded-md border border-border bg-transparent px-3 py-2 text-sm text-foreground"
+          />
         </Field>
 
         <Field label={t("staff.inventory.fieldCreditWeight")}>

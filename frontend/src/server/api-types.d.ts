@@ -1075,6 +1075,15 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 			};
 			meta: object;
 		}>;
+		remind: import("@trpc/server").TRPCMutationProcedure<{
+			input: {
+				reservationKey: number;
+			};
+			output: {
+				notified: number;
+			};
+			meta: object;
+		}>;
 		decideCart: import("@trpc/server").TRPCMutationProcedure<{
 			input: {
 				cartKey: number;

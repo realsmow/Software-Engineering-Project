@@ -260,3 +260,25 @@ export function useCopyGroupPhotos() {
     },
   });
 }
+
+/** Requests only a supervisor can decide, shown to staff read-only (demo feedback). */
+export function useWaitingOnSupervisor(q: string) {
+  const trpc = useTRPCClient();
+  const search = q.trim();
+  return useQuery({
+    queryKey: ["staff", "waiting-supervisor", search],
+    queryFn: () =>
+      fetchAllPages((page, pageSize) =>
+        trpc.approval.queue.query({ page, pageSize, route: "supervisor", ...(search ? { q: search } : {}) }),
+      ),
+    refetchInterval: POLLING.STAFF_QUEUE,
+  });
+}
+
+/** Sends the supervisors the request's notification again. */
+export function useRemindSupervisor() {
+  const trpc = useTRPCClient();
+  return useMutation({
+    mutationFn: (reservationKey: number) => trpc.approval.remind.mutate({ reservationKey }),
+  });
+}

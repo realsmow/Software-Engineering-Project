@@ -77,7 +77,17 @@ export function toBorrowerRequest(s: ServerRequest): BorrowerRequest {
     // tier on screen the server never gave it.
     tier: s.resource.tier,
     name: s.resource.name ?? "",
-    serial: s.resource.serialNo ?? "-",
+    // A serial only where it means something to the borrower (demo
+    // feedback): a unique or few-of item (T2) and a fixed facility or room
+    // (T3). T0/T1 go out by count and staff pick the unit.
+    // Until staff prepare it, a T2 request only holds a placeholder unit, so
+    // its serial appears once a unit is really set aside (usageKey).
+    serial:
+      s.resource.kind === "room" ||
+      s.resource.tier === "T3" ||
+      (s.resource.tier === "T2" && s.usageKey !== null)
+        ? (s.resource.serialNo ?? "")
+        : "",
     status: s.status,
     decisionNote: s.decisionNote,
     // The Bangkok day, not the UTC one. `slice(0, 10)` on the ISO string names

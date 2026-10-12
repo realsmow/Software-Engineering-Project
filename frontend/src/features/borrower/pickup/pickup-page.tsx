@@ -328,7 +328,7 @@ function PickRow({
           </span>
         </div>
         <div className="mt-1 font-mono text-xs text-t3">
-          {row.id} · {fmtRange(row.startDate, row.endDate)} · {row.serial}
+          {[row.id, fmtRange(row.startDate, row.endDate), row.serial].filter(Boolean).join(" · ")}
         </div>
 
         {canSwap ? (

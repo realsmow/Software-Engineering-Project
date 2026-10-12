@@ -201,7 +201,10 @@ describe('persisted reservation conflict handling', () => {
     });
   });
 
-  it('FR-RSV-05: T2 keeps the selected serial and rejects it even if a sibling is free', async () => {
+  // Demo feedback: borrowers ask for a T2 type and staff choose the unit, so
+  // the unit sent is a placeholder. A taken one moves to a free sibling; only
+  // a fully booked type is refused.
+  it('T2 moves to a free sibling, and is refused only when every unit is taken', async () => {
     await inHistoryFixture(prisma, async (tx) => {
       const f = await requestFixture(tx, 'T2', 2);
       const input = windowInput(f.units[0].ResourceKey);
@@ -213,15 +216,18 @@ describe('persisted reservation conflict handling', () => {
       const second = createRequestOutput
         .strict()
         .parse(await f.service.create(f.users[1], input));
-      expect(second.created).toEqual([]);
-      expect(second.rejected).toMatchObject([
+      expect(second.rejected).toEqual([]);
+      expect(second.created).toHaveLength(1);
+      expect(second.created[0].resource.resourceKey).toBe(
+        f.units[1].ResourceKey,
+      );
+      const third = createRequestOutput
+        .strict()
+        .parse(await f.service.create(f.users[2] ?? f.users[0], input));
+      expect(third.created).toEqual([]);
+      expect(third.rejected).toMatchObject([
         { resourceKey: f.units[0].ResourceKey, code: 'SERIAL_NOT_AVAILABLE' },
       ]);
-      expect(
-        await tx.reservations.count({
-          where: { ResourceKey: f.units[1].ResourceKey },
-        }),
-      ).toBe(0);
     });
   });
 

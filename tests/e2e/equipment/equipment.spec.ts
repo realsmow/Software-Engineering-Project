@@ -86,13 +86,13 @@ test.describe("Module 5 equipment browser flows", () => {
       "The isolated runner must seed equipment",
     ).toBeVisible();
 
-    // The 14-day availability panel and its item.getAvailability call were
-    // deliberately removed from the detail page; live availability now comes
-    // from the per-unit rows under "Units in the system".
+    // Borrowers see an availability calendar, not each unit's serial: staff
+    // choose the unit (demo feedback).
     const detail = trpcResponse(page, "item.getById");
     await opener.click();
     expect((await detail).ok()).toBeTruthy();
-    await expect(page.getByText("Units in the system")).toBeVisible();
+    await expect(page.getByText("When you can borrow it")).toBeVisible();
+    await expect(page.getByText("Units in the system")).toHaveCount(0);
   });
 
   test("opens a T3 facility and shows its capacity and same-day slot calendar", async ({

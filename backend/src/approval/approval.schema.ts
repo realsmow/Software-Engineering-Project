@@ -109,6 +109,8 @@ export const decideCartInput = z
     { message: 'A rejection must say why', path: ['reason'] },
   );
 export type DecideCartInput = z.infer<typeof decideCartInput>;
+/** How many supervisors a staff reminder reached. */
+export const remindOutput = z.object({ notified: z.number().int() });
 export const decideCartOutput = z.object({
   decided: z.array(z.number().int()),
   /** Lines the rules refused, e.g. the unit was taken meanwhile. They stay pending. */

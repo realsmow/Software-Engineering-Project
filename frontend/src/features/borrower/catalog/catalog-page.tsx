@@ -74,7 +74,6 @@ export default function CatalogPage() {
   const endDate = useRequestDraft((s) => s.endDate);
   const returnTime = useRequestDraft((s) => s.returnTime);
   const addItem = useRequestDraft((s) => s.addItem);
-  const setQty = useRequestDraft((s) => s.setQty);
   const removeItem = useRequestDraft((s) => s.removeItem);
   const setStartDate = useRequestDraft((s) => s.setStartDate);
   const setPickupTime = useRequestDraft((s) => s.setPickupTime);
@@ -88,12 +87,6 @@ export default function CatalogPage() {
   );
   const { data: items = [], isLoading } = useEquipmentTypes(availabilityWindow);
 
-  function decreaseItem(item: CatalogItem) {
-    const qty =
-      useRequestDraft.getState().lines.find((line) => line.itemId === item.id)?.qty ?? 0;
-    if (qty <= 1) removeItem(item.id);
-    else setQty(item.id, qty - 1, item.availableUnits);
-  }
 
   const groups = useMemo<FilterGroup[]>(() => {
     const countBy = (group: GroupKey, id: string) =>
@@ -288,7 +281,7 @@ export default function CatalogPage() {
             capped={atCap(e)}
             blocked={!e.eligible}
             size="sm"
-            onDecrease={() => decreaseItem(e)}
+            onRemove={() => removeItem(e.id)}
             onAdd={(ev) => {
               ev.stopPropagation();
               addItem(e.id, e.availableUnits);
@@ -450,7 +443,7 @@ export default function CatalogPage() {
                   capped={atCap(e)}
                   onOpen={() => openDetail(e)}
                   onAdd={() => addItem(e.id, e.availableUnits)}
-                  onDecrease={() => decreaseItem(e)}
+                  onRemove={() => removeItem(e.id)}
                 />
               ))
             )}
@@ -714,14 +707,14 @@ function ItemCard({
   capped,
   onOpen,
   onAdd,
-  onDecrease,
+  onRemove,
 }: {
   item: CatalogItem;
   qty: number;
   capped: boolean;
   onOpen: () => void;
   onAdd: () => void;
-  onDecrease: () => void;
+  onRemove: () => void;
 }) {
   const { t } = useTranslation();
   return (
@@ -761,7 +754,7 @@ function ItemCard({
           variant="default"
           className="h-10 flex-1"
           onAdd={onAdd}
-          onDecrease={onDecrease}
+          onRemove={onRemove}
         />
       </div>
     </div>

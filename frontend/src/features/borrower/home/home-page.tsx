@@ -295,7 +295,7 @@ function LoanRow({ row }: { row: MyRequest }) {
           open={asking}
           onClose={() => setAsking(false)}
           title={t("borrower.myRequests.extAskTitle")}
-          subtitle={`${row.name} · ${row.serial}`}
+          subtitle={[row.name, row.serial].filter(Boolean).join(" · ")}
           footer={
             <>
               <Button type="button" variant="ghost" onClick={() => setAsking(false)}>

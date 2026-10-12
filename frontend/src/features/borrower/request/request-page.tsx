@@ -3,9 +3,10 @@ import { useTranslation } from "react-i18next";
 import { fmtDate, fmtDateTime } from "@/lib/datetime";
 import { DateInput } from "@/components/ui/date-input";
 import { AvailabilityCalendar } from "./availability-calendar";
+import { QuantityPicker } from "../catalog/quantity-picker";
 import { useNavigate } from "react-router-dom";
 import { differenceInCalendarDays, parseISO } from "date-fns";
-import { Check, Minus, Package, Plus, ShoppingCart, Trash2, TriangleAlert } from "lucide-react";
+import { Check, Package, ShoppingCart, Trash2, TriangleAlert } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { TierDot } from "@/components/shared/tier-badge";
 import { Button } from "@/components/ui/button";
@@ -745,76 +746,13 @@ function QtyStepper({
   row: CartRow;
   onQty: (itemId: string, qty: number, stock: number) => void;
 }) {
-  const { t } = useTranslation();
-  const stock = row.item.availableUnits;
-  // Typing is held locally so "1" on the way to "12" is not clamped mid-word.
-  const [typed, setTyped] = useState<string | null>(null);
-  const set = (n: number) => onQty(row.itemId, Math.max(1, Math.min(n, Math.max(stock, 1))), stock);
-  const commit = () => {
-    if (typed !== null && typed.trim() !== "") set(Number(typed));
-    setTyped(null);
-  };
-  const stepBtn =
-    "inline-flex h-7 w-7 items-center justify-center rounded border border-border text-t2 transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-40";
   return (
-    <div className="flex flex-col items-center gap-1.5">
-      <div className="flex flex-wrap items-center justify-center gap-1">
-        <button
-          type="button"
-          className={stepBtn}
-          disabled={row.qty <= 1}
-          aria-label={t("borrower.request.decrease")}
-          onClick={() => set(row.qty - 1)}
-        >
-          <Minus size={13} strokeWidth={2.4} />
-        </button>
-        <input
-          type="number"
-          inputMode="numeric"
-          min={1}
-          max={Math.max(stock, 1)}
-          aria-label={t("borrower.request.qtyLabel", { item: row.item.name })}
-          value={typed ?? String(row.qty)}
-          onChange={(e) => setTyped(e.target.value)}
-          onBlur={commit}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") commit();
-          }}
-          className="h-7 w-12 rounded border border-border bg-transparent text-center font-mono text-[13px] font-medium tabular-nums [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
-        />
-        <button
-          type="button"
-          className={stepBtn}
-          disabled={row.qty >= stock}
-          aria-label={t("borrower.request.increase")}
-          onClick={() => set(row.qty + 1)}
-        >
-          <Plus size={13} strokeWidth={2.4} />
-        </button>
-        {stock > 0 ? (
-          <button
-            type="button"
-            className="h-7 rounded border border-border px-2 text-[11px] font-semibold text-t2 hover:bg-muted hover:text-foreground disabled:opacity-40"
-            disabled={row.qty >= stock}
-            onClick={() => set(stock)}
-          >
-            {t("borrower.request.qtyMax", { count: stock })}
-          </button>
-        ) : null}
-      </div>
-      {/* Dragging is quicker than tapping + for a large count. */}
-      {stock > 2 ? (
-        <input
-          type="range"
-          min={1}
-          max={stock}
-          value={row.qty}
-          aria-label={t("borrower.request.qtySlider", { item: row.item.name })}
-          onChange={(e) => set(Number(e.target.value))}
-          className="w-36 accent-[var(--accent)]"
-        />
-      ) : null}
-    </div>
+    <QuantityPicker
+      qty={row.qty}
+      stock={row.item.availableUnits}
+      name={row.item.name}
+      onChange={(n) => onQty(row.itemId, n, row.item.availableUnits)}
+    />
   );
 }
 

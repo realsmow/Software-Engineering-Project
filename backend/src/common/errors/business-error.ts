@@ -258,7 +258,8 @@ export const BUSINESS_ERROR_CODES = {
   /** The slot has already been and gone today. Sibling of INVALID_BORROW_WINDOW. */
   ROOM_SLOT_IN_THE_PAST: 'BAD_REQUEST',
   /** Rooms are booked for today only; the booking screen never offered another day. */
-  ROOM_BOOKING_SAME_DAY_ONLY: 'BAD_REQUEST',
+  /** A room booked for a past day or more than ROOM_BOOKING_DAYS_AHEAD out. */
+  ROOM_BOOKING_OUT_OF_RANGE: 'BAD_REQUEST',
 
   // --- appeals (§5.8 "ขออุทธรณ์") ---
   PENALTY_NOT_FOUND: 'NOT_FOUND',

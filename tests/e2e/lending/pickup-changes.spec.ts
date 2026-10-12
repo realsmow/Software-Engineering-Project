@@ -142,9 +142,8 @@ test("FR-PKP-04: a staff T1 swap changes the saved serial and the borrower's pic
     await expect(
       page.getByRole("checkbox", { name: f.type.name!, exact: true })
     ).toBeChecked();
-    await expect(
-      page.getByText(f.alternative.serialNo, { exact: false }).first()
-    ).toBeVisible();
+    // Borrowers no longer see T1 serials (staff choose the unit), so the
+    // swap is checked on the saved loan below rather than on screen.
     await expect(page.getByText(f.unit.serialNo, { exact: false })).toHaveCount(0);
     const mine = await liveCall(page.request, "loan.getById", requestOutput, {
       reservationKey: f.reservation.reservationKey,

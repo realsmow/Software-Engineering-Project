@@ -16,6 +16,8 @@ import {
   decideApprovalOutput,
   decideCartInput,
   decideCartOutput,
+  approvalIdInput,
+  remindOutput,
   decideRetirementInput,
   decideRetirementOutput,
   listApprovalQueueInput,
@@ -84,6 +86,12 @@ export class ApprovalRouter {
   @Mutation({ input: decideApprovalInput, output: decideApprovalOutput })
   decide(@Input() input: DecideApprovalInput, @Ctx() ctx: TrpcContext) {
     return this.approvals.decide(ctx.user!, input);
+  }
+
+  /** Staff cannot decide a supervisor's request; they can remind them. */
+  @Mutation({ input: approvalIdInput, output: remindOutput })
+  remind(@Input() input: { reservationKey: number }, @Ctx() ctx: TrpcContext) {
+    return this.approvals.remind(ctx.user!, input.reservationKey);
   }
 
   /** Approve or reject a whole cart in one go; refused lines come back in `failed`. */

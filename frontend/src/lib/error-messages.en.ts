@@ -23,7 +23,7 @@ export const ERROR_MESSAGES_EN: Record<string, string> = {
   ROOM_SLOT_LIMIT_EXCEEDED: "A room can be booked for at most 3 hours at a time.",
   ROOM_SLOTS_NOT_CONTIGUOUS: "The selected slots must be consecutive and cannot span the lunch break.",
   ROOM_SLOT_IN_THE_PAST: "This time slot has already passed.",
-  ROOM_BOOKING_SAME_DAY_ONLY: "Rooms can only be booked for today.",
+  ROOM_BOOKING_OUT_OF_RANGE: "Rooms can be booked from today up to 7 days ahead.",
   ROOM_BOOKING_LIMIT_REACHED: "You already have one room booked. Cancel it or finish using it before booking another.",
   ROOM_NOT_EXTENDABLE: "This room cannot be extended. If the next slot is free, please book it instead.",
   TOO_MANY_REQUESTS: "Too many requests from this device. Please wait a moment and try again.",

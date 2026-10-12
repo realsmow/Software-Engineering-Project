@@ -25,6 +25,7 @@ vi.mock("../../src/features/borrower/rooms/use-rooms", () => ({
   useRoomDay: vi.fn(),
   useFreeSlots: vi.fn(),
   useSlotTotals: vi.fn(() => new Map()),
+  useRoomWeek: vi.fn(() => new Map()),
   useCreateRoomBooking: vi.fn(),
 }));
 
@@ -232,6 +233,26 @@ describe("Module 5 T3 facilities", () => {
     await waitFor(() => {
       expect(screen.getByText("My requests")).toBeInTheDocument();
     });
+  });
+
+  it("books a room for a later day from the week strip (demo feedback)", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2031-09-29T01:00:00.000Z")); // Monday 08:00 Bangkok
+    vi.mocked(roomHooks.useRoomWeek).mockReturnValue(new Map([["2031-10-01", 3]]));
+    mutateAsync.mockResolvedValue({ created: [{ id: "req-1" }], rejected: [] });
+    renderBookingPage();
+    // Saturday is closed; Wednesday shows its free count and can be chosen.
+    expect(screen.getByRole("button", { name: /^4 Oct 2031:/ })).toBeDisabled();
+    const wednesday = screen.getByRole("button", { name: /^1 Oct 2031:/ });
+    expect(wednesday).toHaveAccessibleName(/3 free slots/);
+    fireEvent.click(wednesday);
+    expect(vi.mocked(roomHooks.useRoomDay)).toHaveBeenLastCalledWith(ROOM.id, "2031-10-01");
+    fireEvent.click(screen.getByRole("button", { name: "07:00" }));
+    fireEvent.click(screen.getByRole("button", { name: i18n.t("borrower.booking.submit") }));
+    await waitFor(() =>
+      expect(mutateAsync).toHaveBeenCalledWith(expect.objectContaining({ date: "2031-10-01" }))
+    );
+    vi.useRealTimers();
   });
 
   it("shows an error and stays on the page when the server rejects the slot as a clash", async () => {

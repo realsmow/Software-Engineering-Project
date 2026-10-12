@@ -146,7 +146,7 @@ test.describe("Module 5/6 handover photo gate", () => {
 
     const catalogRow = page.getByRole("row").filter({ hasText: itemName });
     await expect(catalogRow).toBeVisible();
-    await catalogRow.getByRole("button", { name: "Add" }).click();
+    await catalogRow.getByRole("button", { name: "Select", exact: true }).click();
     await page.getByRole("button", { name: "1 selected", exact: true }).click();
 
     await expect(page).toHaveURL("/request");

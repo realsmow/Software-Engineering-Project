@@ -29,6 +29,7 @@ import { LoanRequestService } from '../loan/loan.request.service';
 import {
   NotificationService,
   resourceName,
+  supervisorsForGroup,
 } from '../notification/notification.service';
 import {
   ItemManagementService,
@@ -135,7 +136,14 @@ export class ApprovalService {
     const toBand = await this.creditTiers.tierMapper();
     const decidable = rows
       .map((row) => ({ row, route: this.routeOf(row, toBand) }))
-      .filter(({ route }) => canDecide(route, this.deciderRole(user)))
+      // Asking for the supervisor pile by name shows it read-only to staff,
+      // so they can see what waits and remind (demo feedback). `decide`
+      // still refuses them.
+      .filter(
+        ({ route }) =>
+          canDecide(route, this.deciderRole(user)) ||
+          (input.route === 'supervisor' && route === 'supervisor'),
+      )
       .filter(({ route }) => input.route === undefined || route === input.route)
       .filter(
         ({ row }) =>
@@ -150,6 +158,46 @@ export class ApprovalService {
       page.map(({ row, route }) => this.toQueueRow(row, route, toBand)),
     );
     return toPage(rendered, decidable.length, input);
+  }
+
+  /**
+   * Staff cannot decide a supervisor-routed request; they can nudge the
+   * supervisors again with the same notification the submit sent.
+   */
+  async remind(user: TrpcUser, reservationKey: number) {
+    const row = await this.prisma.reservations.findUnique({
+      where: { ReservationKey: reservationKey },
+      select: QUEUE_SELECT,
+    });
+    if (!row) {
+      throw new BusinessError('RESERVATION_NOT_FOUND', { reservationKey });
+    }
+    await this.scope.assertResourceInScope(user, row.Resource.ResourceKey);
+    const route = this.routeOf(row, await this.creditTiers.tierMapper());
+    if (row.ApproveStatus !== 'Pending' || route !== 'supervisor') {
+      throw new BusinessError('ALREADY_DECIDED', { reservationKey });
+    }
+    const sent = await this.prisma.$transaction(async (tx) => {
+      const supervisors = await supervisorsForGroup(tx, row.Resource.ManagedBy);
+      const targets = supervisors.filter(
+        (s) => s.AccountKey !== row.ReservedBy,
+      );
+      for (const s of targets) {
+        await this.notifications.requestNeedsSupervisor(tx, {
+          accountKey: s.AccountKey,
+          reservationKey,
+          itemName: resourceName(row.Resource),
+        });
+      }
+      return targets.length;
+    });
+    await this.audit.record(
+      { accountKey: user.accountKey },
+      'update',
+      `reservation/${reservationKey}`,
+      `Reminded ${sent} supervisor(s)`,
+    );
+    return { notified: sent };
   }
 
   /** The dashboard figures. Polled, so it counts rather than reads rows. */

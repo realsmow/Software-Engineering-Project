@@ -455,3 +455,34 @@ describe('one decision for a whole cart (demo feedback)', () => {
     expect(decide).toHaveBeenCalledTimes(3);
   });
 });
+
+describe('staff remind supervisors (demo feedback)', () => {
+  const staff: TrpcUser = {
+    accountKey: 50,
+    role: 'staff',
+    facultyKey: null,
+    creditScore: 100,
+  };
+
+  it('sends the supervisors the request again, without letting staff decide it', async () => {
+    const t = setup(reservation());
+    await expect(t.service.remind(staff, 77)).resolves.toEqual({ notified: 1 });
+    await expect(
+      t.service.decide(staff, { reservationKey: 77, decision: 'approve' }),
+    ).rejects.toThrow();
+  });
+
+  it('refuses a request that is not waiting on a supervisor', async () => {
+    const t = setup(
+      reservation({
+        Resource: {
+          ...reservation().Resource,
+          BorrowRuleInfo: { RuleName: 'T1' },
+        },
+      }),
+    );
+    await expect(t.service.remind(staff, 77)).rejects.toMatchObject({
+      businessCode: 'ALREADY_DECIDED',
+    });
+  });
+});
