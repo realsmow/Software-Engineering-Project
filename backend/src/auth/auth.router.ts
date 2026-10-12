@@ -176,7 +176,7 @@ export class AuthRouter {
     }
 
     this.throttle.recordSuccess(input.username);
-    await this.session.issue(ctx.res, accountKey);
+    await this.session.issue(ctx.res, accountKey, input.remember);
 
     // Only successful logins are recorded. Failures are already rate-limited,
     // and writing a row per failed attempt turns the audit log into the

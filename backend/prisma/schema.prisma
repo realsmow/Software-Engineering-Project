@@ -597,8 +597,11 @@ model Reservations {
   ReservationExpiration DateTime      @db.Timestamptz(3)
   ActionTime            DateTime      @db.Timestamptz(3)
   ResolvedAt            DateTime?     @db.Timestamptz(3)
+  /// The cart this line was submitted in. Null for rows made before carts.
+  CartKey               Int?
 
   Resource       ResourceInfo @relation(fields: [ResourceKey], references: [ResourceKey])
+  Cart           RequestCart? @relation(fields: [CartKey], references: [CartKey])
   ReservedByUser AccountInfo  @relation("ReservationsReservedBy", fields: [ReservedBy], references: [AccountKey])
   /// Needed to enforce "the approver may not be the requester" (§5.9) and to
   /// show who signed off. Without the relation ApprovedBy is a loose Int that
@@ -618,6 +621,17 @@ model Reservations {
   /// ResourceKey; under NFR-PRF-05's 100k-row dataset this narrows the range
   /// scan above before the StartTime/EndTime comparison instead of after.
   @@index([ResourceKey, ApproveStatus, StartTime, EndTime])
+  @@index([CartKey])
+}
+
+/// One submit of the borrow cart. Its lines are decided, collected and
+/// returned together on screen, while each stays its own Reservations row so
+/// a single line can still be refused, returned or graded on its own.
+model RequestCart {
+  CartKey   Int      @id @default(autoincrement())
+  CreatedAt DateTime @default(now()) @db.Timestamptz(3)
+
+  Lines Reservations[]
 }
 
 // ----------------------------------------------------------------------

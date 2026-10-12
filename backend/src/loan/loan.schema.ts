@@ -111,6 +111,8 @@ export const staffQueueRow = z.object({
    */
   usageKey: z.number().int().nullable(),
   reservationKey: z.number().int().nullable(),
+  /** The cart it was submitted in; lines sharing it are one borrow. Null for old rows. */
+  cartKey: z.number().int().nullable().default(null),
   status: usageStatus.nullable(),
   borrower: borrowerRef,
   itemName: z.string().nullable(),
@@ -570,6 +572,8 @@ export const approvalTrail = z.object({
 
 export const requestOutput = z.object({
   reservationKey: z.number().int(),
+  /** The cart it was submitted in; lines sharing it are one borrow. Null for old rows. */
+  cartKey: z.number().int().nullable().default(null),
   status: requestStatus,
   resource: requestResourceRef,
   startTime: isoDateTime,

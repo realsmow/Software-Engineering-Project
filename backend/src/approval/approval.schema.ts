@@ -34,6 +34,8 @@ export const approvalIdInput = z.object({
 /** One row of the queue - enough to decide without opening the request. */
 export const approvalQueueRow = z.object({
   reservationKey: z.number().int(),
+  /** The cart it was submitted in; lines sharing it are one borrow. Null for old rows. */
+  cartKey: z.number().int().nullable().default(null),
   requestedAt: isoDateTime,
   borrower: borrowerRef,
   /** The band that put this row on this desk, when it was not the tier. */
@@ -94,6 +96,26 @@ export const decideApprovalInput = approvalIdInput
     },
   );
 export type DecideApprovalInput = z.infer<typeof decideApprovalInput>;
+
+/** One decision for every still-pending line of a cart (demo feedback). */
+export const decideCartInput = z
+  .object({
+    cartKey: z.number().int(),
+    decision: z.enum(['approve', 'reject']),
+    reason: z.string().max(500).optional(),
+  })
+  .refine(
+    (v) => v.decision === 'approve' || (v.reason?.trim().length ?? 0) > 0,
+    { message: 'A rejection must say why', path: ['reason'] },
+  );
+export type DecideCartInput = z.infer<typeof decideCartInput>;
+export const decideCartOutput = z.object({
+  decided: z.array(z.number().int()),
+  /** Lines the rules refused, e.g. the unit was taken meanwhile. They stay pending. */
+  failed: z.array(
+    z.object({ reservationKey: z.number().int(), code: z.string() }),
+  ),
+});
 
 /**
  * What the decision did.

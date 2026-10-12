@@ -77,6 +77,7 @@ export const ModelName = {
   Eligibility: 'Eligibility',
   CreditTier: 'CreditTier',
   Reservations: 'Reservations',
+  RequestCart: 'RequestCart',
   UsageLog: 'UsageLog',
   ExtensionRequest: 'ExtensionRequest',
   Inspection: 'Inspection',
@@ -407,10 +408,19 @@ export const ReservationsScalarFieldEnum = {
   ApprovedAt: 'ApprovedAt',
   ReservationExpiration: 'ReservationExpiration',
   ActionTime: 'ActionTime',
-  ResolvedAt: 'ResolvedAt'
+  ResolvedAt: 'ResolvedAt',
+  CartKey: 'CartKey'
 } as const
 
 export type ReservationsScalarFieldEnum = (typeof ReservationsScalarFieldEnum)[keyof typeof ReservationsScalarFieldEnum]
+
+
+export const RequestCartScalarFieldEnum = {
+  CartKey: 'CartKey',
+  CreatedAt: 'CreatedAt'
+} as const
+
+export type RequestCartScalarFieldEnum = (typeof RequestCartScalarFieldEnum)[keyof typeof RequestCartScalarFieldEnum]
 
 
 export const UsageLogScalarFieldEnum = {

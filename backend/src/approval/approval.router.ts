@@ -14,6 +14,8 @@ import {
   borrowerHistoryOutput,
   decideApprovalInput,
   decideApprovalOutput,
+  decideCartInput,
+  decideCartOutput,
   decideRetirementInput,
   decideRetirementOutput,
   listApprovalQueueInput,
@@ -22,6 +24,7 @@ import {
   paginatedRetirementQueue,
   type BorrowerHistoryInput,
   type DecideApprovalInput,
+  type DecideCartInput,
   type DecideRetirementInput,
   type ListApprovalQueueInput,
   type ListRetirementQueueInput,
@@ -81,6 +84,12 @@ export class ApprovalRouter {
   @Mutation({ input: decideApprovalInput, output: decideApprovalOutput })
   decide(@Input() input: DecideApprovalInput, @Ctx() ctx: TrpcContext) {
     return this.approvals.decide(ctx.user!, input);
+  }
+
+  /** Approve or reject a whole cart in one go; refused lines come back in `failed`. */
+  @Mutation({ input: decideCartInput, output: decideCartOutput })
+  decideCart(@Input() input: DecideCartInput, @Ctx() ctx: TrpcContext) {
+    return this.approvals.decideCart(ctx.user!, input);
   }
 
   // ── Extensions (§5.4) ────────────────────────────────────────────────────

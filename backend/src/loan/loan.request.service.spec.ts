@@ -70,6 +70,7 @@ function dbFor(resource = baseResource) {
         .fn()
         .mockResolvedValue({ CreditTierKey: 1, CreditTierName: 'D0' }),
     },
+    requestCart: { create: jest.fn().mockResolvedValue({ CartKey: 1 }) },
     reservations: {
       findFirst: jest.fn().mockResolvedValue(null),
       findMany: jest.fn().mockResolvedValue([]),

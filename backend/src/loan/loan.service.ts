@@ -95,6 +95,7 @@ type ResourceRow = Prisma.ResourceInfoGetPayload<{
 const USAGE_SELECT = {
   UsageKey: true,
   ReservationKey: true,
+  Reservation: { select: { CartKey: true } },
   CurrentStatus: true,
   DueTime: true,
   CheckoutTime: true,
@@ -947,6 +948,7 @@ export class LoanService {
         ...toSkipTake(input),
         select: {
           ReservationKey: true,
+          CartKey: true,
           StartTime: true,
           EndTime: true,
           ReservedByUser: { select: BORROWER_SELECT },
@@ -959,6 +961,7 @@ export class LoanService {
     const items = rows.map((row) => ({
       usageKey: null,
       reservationKey: row.ReservationKey,
+      cartKey: row.CartKey,
       status: null,
       borrower: toBorrowerRef(row.ReservedByUser),
       itemName: this.nameOf(row.Resource),
@@ -1153,6 +1156,7 @@ export class LoanService {
     return {
       usageKey: usage.UsageKey,
       reservationKey: usage.ReservationKey,
+      cartKey: usage.Reservation?.CartKey ?? null,
       status: usage.CurrentStatus,
       borrower: toBorrowerRef(usage.Account),
       itemName: this.nameOf(usage.Resource),

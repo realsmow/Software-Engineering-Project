@@ -207,6 +207,13 @@ export type CreditTier = Prisma.CreditTierModel
  */
 export type Reservations = Prisma.ReservationsModel
 /**
+ * Model RequestCart
+ * One submit of the borrow cart. Its lines are decided, collected and
+ * returned together on screen, while each stays its own Reservations row so
+ * a single line can still be refused, returned or graded on its own.
+ */
+export type RequestCart = Prisma.RequestCartModel
+/**
  * Model UsageLog
  * 
  */

@@ -41,6 +41,7 @@ import type { TrpcUser } from '../trpc/context';
 const HISTORY_ITEMS = 50;
 import type {
   DecideApprovalInput,
+  DecideCartInput,
   DecideRetirementInput,
   ListApprovalQueueInput,
   ListRetirementQueueInput,
@@ -56,6 +57,7 @@ const BORROWER_SELECT = {
 
 const QUEUE_SELECT = {
   ReservationKey: true,
+  CartKey: true,
   ReservedBy: true,
   Reason: true,
   StartTime: true,
@@ -217,6 +219,38 @@ export class ApprovalService {
   // =========================================================================
   // Deciding
   // =========================================================================
+
+  /**
+   * Decides every pending line of a cart with the same per-line rules as
+   * `decide`, so one approval covers the whole borrow. A line the rules
+   * refuse is reported and left pending rather than failing the rest.
+   */
+  async decideCart(user: TrpcUser, input: DecideCartInput) {
+    const lines = await this.prisma.reservations.findMany({
+      where: { CartKey: input.cartKey, ApproveStatus: 'Pending' },
+      select: { ReservationKey: true },
+      orderBy: { ReservationKey: 'asc' },
+    });
+    const decided: number[] = [];
+    const failed: { reservationKey: number; code: string }[] = [];
+    for (const line of lines) {
+      try {
+        await this.decide(user, {
+          reservationKey: line.ReservationKey,
+          decision: input.decision,
+          reason: input.reason,
+        });
+        decided.push(line.ReservationKey);
+      } catch (error) {
+        if (!(error instanceof BusinessError)) throw error;
+        failed.push({
+          reservationKey: line.ReservationKey,
+          code: error.message,
+        });
+      }
+    }
+    return { decided, failed };
+  }
 
   async decide(user: TrpcUser, input: DecideApprovalInput) {
     const row = await this.prisma.reservations.findUnique({
@@ -618,6 +652,7 @@ export class ApprovalService {
 
     return {
       reservationKey: row.ReservationKey,
+      cartKey: row.CartKey,
       requestedAt: toIso(row.ActionTime),
       borrower: toBorrowerRef(row.ReservedByUser),
       creditTier: toBand(row.ReservedByUser.UserCredit),

@@ -119,6 +119,34 @@ describe('NFR-REL-02 / SDS 4.4: unit selection preserves reserved windows', () =
   beforeEach(() => freezeBusinessDate(PICKUP_NOW));
   afterEach(() => jest.useRealTimers());
 
+  it('puts every line of one submit in the same cart (demo feedback)', async () => {
+    await inHistoryFixture(prisma, async (tx) => {
+      const f = await pickupFixture(tx);
+      const out = await f.service.create(f.users[0], {
+        startTime: PICKUP_START.toISOString(),
+        endTime: PICKUP_END.toISOString(),
+        lines: f.units.map((u) => ({ resourceKey: u.ResourceKey })),
+      });
+      expect(out.created).toHaveLength(2);
+      const cartKey = out.created[0].cartKey;
+      expect(cartKey).toEqual(expect.any(Number));
+      expect(out.created[1].cartKey).toBe(cartKey);
+      const queue = await f.loan.listStaffQueue(f.staff, {
+        bucket: 'toPrepare',
+        page: 1,
+        pageSize: 50,
+        order: 'asc',
+      });
+      expect(
+        queue.items
+          .filter((r) =>
+            out.created.some((c) => c.reservationKey === r.reservationKey),
+          )
+          .map((r) => r.cartKey),
+      ).toEqual([cartKey, cartKey]);
+    });
+  });
+
   it("shows each unit's busy window for the booking calendar (demo feedback)", async () => {
     await inHistoryFixture(prisma, async (tx) => {
       const f = await pickupFixture(tx);

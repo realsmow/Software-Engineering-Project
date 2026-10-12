@@ -1,6 +1,7 @@
 import type { Prisma } from '../../src/generated/prisma/client';
 import { PrismaService } from '../../src/prisma.service';
 import { ApprovalService } from '../../src/approval/approval.service';
+import { BusinessError } from '../../src/common/errors/business-error';
 import {
   approvalCounts,
   decideApprovalInput,
@@ -423,5 +424,34 @@ describe('Persisted business records', () => {
         });
       });
     });
+  });
+});
+
+describe('one decision for a whole cart (demo feedback)', () => {
+  it('decides every pending line and reports the ones the rules refused', async () => {
+    const t = setup();
+    t.prisma.reservations.findMany.mockResolvedValueOnce([
+      { ReservationKey: 1 },
+      { ReservationKey: 2 },
+      { ReservationKey: 3 },
+    ]);
+    const decide = jest
+      .spyOn(t.service, 'decide')
+      .mockResolvedValueOnce({} as never)
+      .mockRejectedValueOnce(new BusinessError('WINDOW_NOT_AVAILABLE', {}))
+      .mockResolvedValueOnce({} as never);
+
+    await expect(
+      t.service.decideCart(supervisor, { cartKey: 9, decision: 'approve' }),
+    ).resolves.toEqual({
+      decided: [1, 3],
+      failed: [{ reservationKey: 2, code: 'WINDOW_NOT_AVAILABLE' }],
+    });
+    expect(t.prisma.reservations.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { CartKey: 9, ApproveStatus: 'Pending' },
+      }),
+    );
+    expect(decide).toHaveBeenCalledTimes(3);
   });
 });

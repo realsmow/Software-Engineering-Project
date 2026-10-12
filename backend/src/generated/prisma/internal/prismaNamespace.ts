@@ -423,6 +423,7 @@ export const ModelName = {
   Eligibility: 'Eligibility',
   CreditTier: 'CreditTier',
   Reservations: 'Reservations',
+  RequestCart: 'RequestCart',
   UsageLog: 'UsageLog',
   ExtensionRequest: 'ExtensionRequest',
   Inspection: 'Inspection',
@@ -448,7 +449,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "accountInfo" | "mediaFile" | "passwordReset" | "emailVerification" | "sessionInfo" | "auditLog" | "roleInfo" | "facultyInfo" | "branchInfo" | "managementGroup" | "authority" | "authorityRole" | "clubInfo" | "itemInfo" | "itemIndiv" | "roomInfo" | "resourceInfo" | "retirementRequest" | "roomCheckRound" | "conditionLog" | "borrowRule" | "borrowConstraints" | "penaltyRule" | "eligibility" | "creditTier" | "reservations" | "usageLog" | "extensionRequest" | "inspection" | "penaltyInfo" | "appealInfo" | "images" | "notification" | "repairLog" | "systemSetting" | "cronRunLog"
+    modelProps: "accountInfo" | "mediaFile" | "passwordReset" | "emailVerification" | "sessionInfo" | "auditLog" | "roleInfo" | "facultyInfo" | "branchInfo" | "managementGroup" | "authority" | "authorityRole" | "clubInfo" | "itemInfo" | "itemIndiv" | "roomInfo" | "resourceInfo" | "retirementRequest" | "roomCheckRound" | "conditionLog" | "borrowRule" | "borrowConstraints" | "penaltyRule" | "eligibility" | "creditTier" | "reservations" | "requestCart" | "usageLog" | "extensionRequest" | "inspection" | "penaltyInfo" | "appealInfo" | "images" | "notification" | "repairLog" | "systemSetting" | "cronRunLog"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -2376,6 +2377,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    RequestCart: {
+      payload: Prisma.$RequestCartPayload<ExtArgs>
+      fields: Prisma.RequestCartFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.RequestCartFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RequestCartPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.RequestCartFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RequestCartPayload>
+        }
+        findFirst: {
+          args: Prisma.RequestCartFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RequestCartPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.RequestCartFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RequestCartPayload>
+        }
+        findMany: {
+          args: Prisma.RequestCartFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RequestCartPayload>[]
+        }
+        create: {
+          args: Prisma.RequestCartCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RequestCartPayload>
+        }
+        createMany: {
+          args: Prisma.RequestCartCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.RequestCartCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RequestCartPayload>[]
+        }
+        delete: {
+          args: Prisma.RequestCartDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RequestCartPayload>
+        }
+        update: {
+          args: Prisma.RequestCartUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RequestCartPayload>
+        }
+        deleteMany: {
+          args: Prisma.RequestCartDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.RequestCartUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.RequestCartUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RequestCartPayload>[]
+        }
+        upsert: {
+          args: Prisma.RequestCartUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RequestCartPayload>
+        }
+        aggregate: {
+          args: Prisma.RequestCartAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateRequestCart>
+        }
+        groupBy: {
+          args: Prisma.RequestCartGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.RequestCartGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.RequestCartCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.RequestCartCountAggregateOutputType> | number
+        }
+      }
+    }
     UsageLog: {
       payload: Prisma.$UsageLogPayload<ExtArgs>
       fields: Prisma.UsageLogFieldRefs
@@ -3457,10 +3532,19 @@ export const ReservationsScalarFieldEnum = {
   ApprovedAt: 'ApprovedAt',
   ReservationExpiration: 'ReservationExpiration',
   ActionTime: 'ActionTime',
-  ResolvedAt: 'ResolvedAt'
+  ResolvedAt: 'ResolvedAt',
+  CartKey: 'CartKey'
 } as const
 
 export type ReservationsScalarFieldEnum = (typeof ReservationsScalarFieldEnum)[keyof typeof ReservationsScalarFieldEnum]
+
+
+export const RequestCartScalarFieldEnum = {
+  CartKey: 'CartKey',
+  CreatedAt: 'CreatedAt'
+} as const
+
+export type RequestCartScalarFieldEnum = (typeof RequestCartScalarFieldEnum)[keyof typeof RequestCartScalarFieldEnum]
 
 
 export const UsageLogScalarFieldEnum = {
@@ -4051,6 +4135,7 @@ export type GlobalOmitConfig = {
   eligibility?: Prisma.EligibilityOmit
   creditTier?: Prisma.CreditTierOmit
   reservations?: Prisma.ReservationsOmit
+  requestCart?: Prisma.RequestCartOmit
   usageLog?: Prisma.UsageLogOmit
   extensionRequest?: Prisma.ExtensionRequestOmit
   inspection?: Prisma.InspectionOmit

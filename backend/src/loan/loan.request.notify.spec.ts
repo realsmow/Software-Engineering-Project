@@ -69,6 +69,7 @@ function dbFor(resource: any, supervisors: { AccountKey: number }[] = []) {
       findMany: jest.fn().mockResolvedValue([]),
     },
     penaltyInfo: { findFirst: jest.fn().mockResolvedValue(null) },
+    requestCart: { create: jest.fn().mockResolvedValue({ CartKey: 1 }) },
     reservations: {
       findFirst: jest.fn().mockResolvedValue(null),
       findMany: jest.fn().mockResolvedValue([]),

@@ -20,6 +20,8 @@ export const loginInput = z.object({
   // login would reject an existing short password with a validation error
   // instead of a clean INVALID_CREDENTIALS, and would leak the rule's history.
   password: z.string().min(1).max(200),
+  /** "Remember me": unticked gives a cookie that ends with the browser session. */
+  remember: z.boolean().default(true),
 });
 
 export type LoginInput = z.infer<typeof loginInput>;

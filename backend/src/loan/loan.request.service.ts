@@ -109,6 +109,7 @@ type ResourceRow = Prisma.ResourceInfoGetPayload<{
 
 const REQUEST_SELECT = {
   ReservationKey: true,
+  CartKey: true,
   ReservedBy: true,
   Reason: true,
   DecisionNote: true,
@@ -190,6 +191,11 @@ export class LoanRequestService {
       detail: Record<string, unknown> | null;
     }[] = [];
 
+    // One cart per submit: its lines are approved and handled as one borrow.
+    const cart = await this.prisma.requestCart.create({
+      data: {},
+      select: { CartKey: true },
+    });
     for (const line of input.lines) {
       try {
         created.push(
@@ -201,6 +207,7 @@ export class LoanRequestService {
             line.reason ?? null,
             startTime,
             endTime,
+            cart.CartKey,
           ),
         );
       } catch (error) {
@@ -265,6 +272,7 @@ export class LoanRequestService {
     reason: string | null,
     startTime: Date,
     requestedEnd: Date,
+    cartKey: number | null = null,
   ): Promise<RequestRow> {
     let endTime = requestedEnd;
     const resource = await this.prisma.resourceInfo.findUnique({
@@ -387,6 +395,7 @@ export class LoanRequestService {
         data: {
           ResourceKey: target.ResourceKey,
           ReservedBy: user.accountKey,
+          CartKey: cartKey,
           Reason: reason,
           StartTime: startTime,
           EndTime: endTime,
@@ -958,6 +967,7 @@ export class LoanRequestService {
 
     return {
       reservationKey: row.ReservationKey,
+      cartKey: row.CartKey,
       status: this.statusOf(row),
       resource: {
         resourceKey: row.Resource.ResourceKey,

@@ -505,7 +505,7 @@ export const itemIdInput = z.object({ id: dbId });
  */
 export const unitScheduleInput = itemIdInput.extend({
   from: z.iso.datetime(),
-  days: z.number().int().min(1).max(31).default(14),
+  days: z.number().int().min(1).max(92).default(14),
 });
 export type UnitScheduleInput = z.infer<typeof unitScheduleInput>;
 export const unitScheduleOutput = z.array(

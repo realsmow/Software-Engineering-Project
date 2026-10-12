@@ -31,6 +31,7 @@ export type ReservationsAvgAggregateOutputType = {
   ResourceKey: number | null
   ReservedBy: number | null
   ApprovedBy: number | null
+  CartKey: number | null
 }
 
 export type ReservationsSumAggregateOutputType = {
@@ -38,6 +39,7 @@ export type ReservationsSumAggregateOutputType = {
   ResourceKey: number | null
   ReservedBy: number | null
   ApprovedBy: number | null
+  CartKey: number | null
 }
 
 export type ReservationsMinAggregateOutputType = {
@@ -55,6 +57,7 @@ export type ReservationsMinAggregateOutputType = {
   ReservationExpiration: Date | null
   ActionTime: Date | null
   ResolvedAt: Date | null
+  CartKey: number | null
 }
 
 export type ReservationsMaxAggregateOutputType = {
@@ -72,6 +75,7 @@ export type ReservationsMaxAggregateOutputType = {
   ReservationExpiration: Date | null
   ActionTime: Date | null
   ResolvedAt: Date | null
+  CartKey: number | null
 }
 
 export type ReservationsCountAggregateOutputType = {
@@ -89,6 +93,7 @@ export type ReservationsCountAggregateOutputType = {
   ReservationExpiration: number
   ActionTime: number
   ResolvedAt: number
+  CartKey: number
   _all: number
 }
 
@@ -98,6 +103,7 @@ export type ReservationsAvgAggregateInputType = {
   ResourceKey?: true
   ReservedBy?: true
   ApprovedBy?: true
+  CartKey?: true
 }
 
 export type ReservationsSumAggregateInputType = {
@@ -105,6 +111,7 @@ export type ReservationsSumAggregateInputType = {
   ResourceKey?: true
   ReservedBy?: true
   ApprovedBy?: true
+  CartKey?: true
 }
 
 export type ReservationsMinAggregateInputType = {
@@ -122,6 +129,7 @@ export type ReservationsMinAggregateInputType = {
   ReservationExpiration?: true
   ActionTime?: true
   ResolvedAt?: true
+  CartKey?: true
 }
 
 export type ReservationsMaxAggregateInputType = {
@@ -139,6 +147,7 @@ export type ReservationsMaxAggregateInputType = {
   ReservationExpiration?: true
   ActionTime?: true
   ResolvedAt?: true
+  CartKey?: true
 }
 
 export type ReservationsCountAggregateInputType = {
@@ -156,6 +165,7 @@ export type ReservationsCountAggregateInputType = {
   ReservationExpiration?: true
   ActionTime?: true
   ResolvedAt?: true
+  CartKey?: true
   _all?: true
 }
 
@@ -260,6 +270,7 @@ export type ReservationsGroupByOutputType = {
   ReservationExpiration: Date
   ActionTime: Date
   ResolvedAt: Date | null
+  CartKey: number | null
   _count: ReservationsCountAggregateOutputType | null
   _avg: ReservationsAvgAggregateOutputType | null
   _sum: ReservationsSumAggregateOutputType | null
@@ -300,7 +311,9 @@ export type ReservationsWhereInput = {
   ReservationExpiration?: Prisma.DateTimeFilter<"Reservations"> | Date | string
   ActionTime?: Prisma.DateTimeFilter<"Reservations"> | Date | string
   ResolvedAt?: Prisma.DateTimeNullableFilter<"Reservations"> | Date | string | null
+  CartKey?: Prisma.IntNullableFilter<"Reservations"> | number | null
   Resource?: Prisma.XOR<Prisma.ResourceInfoScalarRelationFilter, Prisma.ResourceInfoWhereInput>
+  Cart?: Prisma.XOR<Prisma.RequestCartNullableScalarRelationFilter, Prisma.RequestCartWhereInput> | null
   ReservedByUser?: Prisma.XOR<Prisma.AccountInfoScalarRelationFilter, Prisma.AccountInfoWhereInput>
   ApprovedByUser?: Prisma.XOR<Prisma.AccountInfoNullableScalarRelationFilter, Prisma.AccountInfoWhereInput> | null
   UsageLogs?: Prisma.UsageLogListRelationFilter
@@ -322,7 +335,9 @@ export type ReservationsOrderByWithRelationInput = {
   ReservationExpiration?: Prisma.SortOrder
   ActionTime?: Prisma.SortOrder
   ResolvedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  CartKey?: Prisma.SortOrderInput | Prisma.SortOrder
   Resource?: Prisma.ResourceInfoOrderByWithRelationInput
+  Cart?: Prisma.RequestCartOrderByWithRelationInput
   ReservedByUser?: Prisma.AccountInfoOrderByWithRelationInput
   ApprovedByUser?: Prisma.AccountInfoOrderByWithRelationInput
   UsageLogs?: Prisma.UsageLogOrderByRelationAggregateInput
@@ -347,7 +362,9 @@ export type ReservationsWhereUniqueInput = Prisma.AtLeast<{
   ReservationExpiration?: Prisma.DateTimeFilter<"Reservations"> | Date | string
   ActionTime?: Prisma.DateTimeFilter<"Reservations"> | Date | string
   ResolvedAt?: Prisma.DateTimeNullableFilter<"Reservations"> | Date | string | null
+  CartKey?: Prisma.IntNullableFilter<"Reservations"> | number | null
   Resource?: Prisma.XOR<Prisma.ResourceInfoScalarRelationFilter, Prisma.ResourceInfoWhereInput>
+  Cart?: Prisma.XOR<Prisma.RequestCartNullableScalarRelationFilter, Prisma.RequestCartWhereInput> | null
   ReservedByUser?: Prisma.XOR<Prisma.AccountInfoScalarRelationFilter, Prisma.AccountInfoWhereInput>
   ApprovedByUser?: Prisma.XOR<Prisma.AccountInfoNullableScalarRelationFilter, Prisma.AccountInfoWhereInput> | null
   UsageLogs?: Prisma.UsageLogListRelationFilter
@@ -369,6 +386,7 @@ export type ReservationsOrderByWithAggregationInput = {
   ReservationExpiration?: Prisma.SortOrder
   ActionTime?: Prisma.SortOrder
   ResolvedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  CartKey?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.ReservationsCountOrderByAggregateInput
   _avg?: Prisma.ReservationsAvgOrderByAggregateInput
   _max?: Prisma.ReservationsMaxOrderByAggregateInput
@@ -394,6 +412,7 @@ export type ReservationsScalarWhereWithAggregatesInput = {
   ReservationExpiration?: Prisma.DateTimeWithAggregatesFilter<"Reservations"> | Date | string
   ActionTime?: Prisma.DateTimeWithAggregatesFilter<"Reservations"> | Date | string
   ResolvedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Reservations"> | Date | string | null
+  CartKey?: Prisma.IntNullableWithAggregatesFilter<"Reservations"> | number | null
 }
 
 export type ReservationsCreateInput = {
@@ -408,6 +427,7 @@ export type ReservationsCreateInput = {
   ActionTime: Date | string
   ResolvedAt?: Date | string | null
   Resource: Prisma.ResourceInfoCreateNestedOneWithoutReservationsInput
+  Cart?: Prisma.RequestCartCreateNestedOneWithoutLinesInput
   ReservedByUser: Prisma.AccountInfoCreateNestedOneWithoutReservationsMadeInput
   ApprovedByUser?: Prisma.AccountInfoCreateNestedOneWithoutReservationsApprovedInput
   UsageLogs?: Prisma.UsageLogCreateNestedManyWithoutReservationInput
@@ -429,6 +449,7 @@ export type ReservationsUncheckedCreateInput = {
   ReservationExpiration: Date | string
   ActionTime: Date | string
   ResolvedAt?: Date | string | null
+  CartKey?: number | null
   UsageLogs?: Prisma.UsageLogUncheckedCreateNestedManyWithoutReservationInput
   RepairLogs?: Prisma.RepairLogUncheckedCreateNestedManyWithoutReservationInput
 }
@@ -445,6 +466,7 @@ export type ReservationsUpdateInput = {
   ActionTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   ResolvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   Resource?: Prisma.ResourceInfoUpdateOneRequiredWithoutReservationsNestedInput
+  Cart?: Prisma.RequestCartUpdateOneWithoutLinesNestedInput
   ReservedByUser?: Prisma.AccountInfoUpdateOneRequiredWithoutReservationsMadeNestedInput
   ApprovedByUser?: Prisma.AccountInfoUpdateOneWithoutReservationsApprovedNestedInput
   UsageLogs?: Prisma.UsageLogUpdateManyWithoutReservationNestedInput
@@ -466,6 +488,7 @@ export type ReservationsUncheckedUpdateInput = {
   ReservationExpiration?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   ActionTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   ResolvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  CartKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   UsageLogs?: Prisma.UsageLogUncheckedUpdateManyWithoutReservationNestedInput
   RepairLogs?: Prisma.RepairLogUncheckedUpdateManyWithoutReservationNestedInput
 }
@@ -485,6 +508,7 @@ export type ReservationsCreateManyInput = {
   ReservationExpiration: Date | string
   ActionTime: Date | string
   ResolvedAt?: Date | string | null
+  CartKey?: number | null
 }
 
 export type ReservationsUpdateManyMutationInput = {
@@ -515,6 +539,7 @@ export type ReservationsUncheckedUpdateManyInput = {
   ReservationExpiration?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   ActionTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   ResolvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  CartKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
 }
 
 export type ReservationsListRelationFilter = {
@@ -542,6 +567,7 @@ export type ReservationsCountOrderByAggregateInput = {
   ReservationExpiration?: Prisma.SortOrder
   ActionTime?: Prisma.SortOrder
   ResolvedAt?: Prisma.SortOrder
+  CartKey?: Prisma.SortOrder
 }
 
 export type ReservationsAvgOrderByAggregateInput = {
@@ -549,6 +575,7 @@ export type ReservationsAvgOrderByAggregateInput = {
   ResourceKey?: Prisma.SortOrder
   ReservedBy?: Prisma.SortOrder
   ApprovedBy?: Prisma.SortOrder
+  CartKey?: Prisma.SortOrder
 }
 
 export type ReservationsMaxOrderByAggregateInput = {
@@ -566,6 +593,7 @@ export type ReservationsMaxOrderByAggregateInput = {
   ReservationExpiration?: Prisma.SortOrder
   ActionTime?: Prisma.SortOrder
   ResolvedAt?: Prisma.SortOrder
+  CartKey?: Prisma.SortOrder
 }
 
 export type ReservationsMinOrderByAggregateInput = {
@@ -583,6 +611,7 @@ export type ReservationsMinOrderByAggregateInput = {
   ReservationExpiration?: Prisma.SortOrder
   ActionTime?: Prisma.SortOrder
   ResolvedAt?: Prisma.SortOrder
+  CartKey?: Prisma.SortOrder
 }
 
 export type ReservationsSumOrderByAggregateInput = {
@@ -590,6 +619,7 @@ export type ReservationsSumOrderByAggregateInput = {
   ResourceKey?: Prisma.SortOrder
   ReservedBy?: Prisma.SortOrder
   ApprovedBy?: Prisma.SortOrder
+  CartKey?: Prisma.SortOrder
 }
 
 export type ReservationsNullableScalarRelationFilter = {
@@ -723,6 +753,48 @@ export type ReservationsUncheckedUpdateManyWithoutResourceNestedInput = {
   deleteMany?: Prisma.ReservationsScalarWhereInput | Prisma.ReservationsScalarWhereInput[]
 }
 
+export type ReservationsCreateNestedManyWithoutCartInput = {
+  create?: Prisma.XOR<Prisma.ReservationsCreateWithoutCartInput, Prisma.ReservationsUncheckedCreateWithoutCartInput> | Prisma.ReservationsCreateWithoutCartInput[] | Prisma.ReservationsUncheckedCreateWithoutCartInput[]
+  connectOrCreate?: Prisma.ReservationsCreateOrConnectWithoutCartInput | Prisma.ReservationsCreateOrConnectWithoutCartInput[]
+  createMany?: Prisma.ReservationsCreateManyCartInputEnvelope
+  connect?: Prisma.ReservationsWhereUniqueInput | Prisma.ReservationsWhereUniqueInput[]
+}
+
+export type ReservationsUncheckedCreateNestedManyWithoutCartInput = {
+  create?: Prisma.XOR<Prisma.ReservationsCreateWithoutCartInput, Prisma.ReservationsUncheckedCreateWithoutCartInput> | Prisma.ReservationsCreateWithoutCartInput[] | Prisma.ReservationsUncheckedCreateWithoutCartInput[]
+  connectOrCreate?: Prisma.ReservationsCreateOrConnectWithoutCartInput | Prisma.ReservationsCreateOrConnectWithoutCartInput[]
+  createMany?: Prisma.ReservationsCreateManyCartInputEnvelope
+  connect?: Prisma.ReservationsWhereUniqueInput | Prisma.ReservationsWhereUniqueInput[]
+}
+
+export type ReservationsUpdateManyWithoutCartNestedInput = {
+  create?: Prisma.XOR<Prisma.ReservationsCreateWithoutCartInput, Prisma.ReservationsUncheckedCreateWithoutCartInput> | Prisma.ReservationsCreateWithoutCartInput[] | Prisma.ReservationsUncheckedCreateWithoutCartInput[]
+  connectOrCreate?: Prisma.ReservationsCreateOrConnectWithoutCartInput | Prisma.ReservationsCreateOrConnectWithoutCartInput[]
+  upsert?: Prisma.ReservationsUpsertWithWhereUniqueWithoutCartInput | Prisma.ReservationsUpsertWithWhereUniqueWithoutCartInput[]
+  createMany?: Prisma.ReservationsCreateManyCartInputEnvelope
+  set?: Prisma.ReservationsWhereUniqueInput | Prisma.ReservationsWhereUniqueInput[]
+  disconnect?: Prisma.ReservationsWhereUniqueInput | Prisma.ReservationsWhereUniqueInput[]
+  delete?: Prisma.ReservationsWhereUniqueInput | Prisma.ReservationsWhereUniqueInput[]
+  connect?: Prisma.ReservationsWhereUniqueInput | Prisma.ReservationsWhereUniqueInput[]
+  update?: Prisma.ReservationsUpdateWithWhereUniqueWithoutCartInput | Prisma.ReservationsUpdateWithWhereUniqueWithoutCartInput[]
+  updateMany?: Prisma.ReservationsUpdateManyWithWhereWithoutCartInput | Prisma.ReservationsUpdateManyWithWhereWithoutCartInput[]
+  deleteMany?: Prisma.ReservationsScalarWhereInput | Prisma.ReservationsScalarWhereInput[]
+}
+
+export type ReservationsUncheckedUpdateManyWithoutCartNestedInput = {
+  create?: Prisma.XOR<Prisma.ReservationsCreateWithoutCartInput, Prisma.ReservationsUncheckedCreateWithoutCartInput> | Prisma.ReservationsCreateWithoutCartInput[] | Prisma.ReservationsUncheckedCreateWithoutCartInput[]
+  connectOrCreate?: Prisma.ReservationsCreateOrConnectWithoutCartInput | Prisma.ReservationsCreateOrConnectWithoutCartInput[]
+  upsert?: Prisma.ReservationsUpsertWithWhereUniqueWithoutCartInput | Prisma.ReservationsUpsertWithWhereUniqueWithoutCartInput[]
+  createMany?: Prisma.ReservationsCreateManyCartInputEnvelope
+  set?: Prisma.ReservationsWhereUniqueInput | Prisma.ReservationsWhereUniqueInput[]
+  disconnect?: Prisma.ReservationsWhereUniqueInput | Prisma.ReservationsWhereUniqueInput[]
+  delete?: Prisma.ReservationsWhereUniqueInput | Prisma.ReservationsWhereUniqueInput[]
+  connect?: Prisma.ReservationsWhereUniqueInput | Prisma.ReservationsWhereUniqueInput[]
+  update?: Prisma.ReservationsUpdateWithWhereUniqueWithoutCartInput | Prisma.ReservationsUpdateWithWhereUniqueWithoutCartInput[]
+  updateMany?: Prisma.ReservationsUpdateManyWithWhereWithoutCartInput | Prisma.ReservationsUpdateManyWithWhereWithoutCartInput[]
+  deleteMany?: Prisma.ReservationsScalarWhereInput | Prisma.ReservationsScalarWhereInput[]
+}
+
 export type ReservationsCreateNestedOneWithoutUsageLogsInput = {
   create?: Prisma.XOR<Prisma.ReservationsCreateWithoutUsageLogsInput, Prisma.ReservationsUncheckedCreateWithoutUsageLogsInput>
   connectOrCreate?: Prisma.ReservationsCreateOrConnectWithoutUsageLogsInput
@@ -767,6 +839,7 @@ export type ReservationsCreateWithoutReservedByUserInput = {
   ActionTime: Date | string
   ResolvedAt?: Date | string | null
   Resource: Prisma.ResourceInfoCreateNestedOneWithoutReservationsInput
+  Cart?: Prisma.RequestCartCreateNestedOneWithoutLinesInput
   ApprovedByUser?: Prisma.AccountInfoCreateNestedOneWithoutReservationsApprovedInput
   UsageLogs?: Prisma.UsageLogCreateNestedManyWithoutReservationInput
   RepairLogs?: Prisma.RepairLogCreateNestedManyWithoutReservationInput
@@ -786,6 +859,7 @@ export type ReservationsUncheckedCreateWithoutReservedByUserInput = {
   ReservationExpiration: Date | string
   ActionTime: Date | string
   ResolvedAt?: Date | string | null
+  CartKey?: number | null
   UsageLogs?: Prisma.UsageLogUncheckedCreateNestedManyWithoutReservationInput
   RepairLogs?: Prisma.RepairLogUncheckedCreateNestedManyWithoutReservationInput
 }
@@ -812,6 +886,7 @@ export type ReservationsCreateWithoutApprovedByUserInput = {
   ActionTime: Date | string
   ResolvedAt?: Date | string | null
   Resource: Prisma.ResourceInfoCreateNestedOneWithoutReservationsInput
+  Cart?: Prisma.RequestCartCreateNestedOneWithoutLinesInput
   ReservedByUser: Prisma.AccountInfoCreateNestedOneWithoutReservationsMadeInput
   UsageLogs?: Prisma.UsageLogCreateNestedManyWithoutReservationInput
   RepairLogs?: Prisma.RepairLogCreateNestedManyWithoutReservationInput
@@ -831,6 +906,7 @@ export type ReservationsUncheckedCreateWithoutApprovedByUserInput = {
   ReservationExpiration: Date | string
   ActionTime: Date | string
   ResolvedAt?: Date | string | null
+  CartKey?: number | null
   UsageLogs?: Prisma.UsageLogUncheckedCreateNestedManyWithoutReservationInput
   RepairLogs?: Prisma.RepairLogUncheckedCreateNestedManyWithoutReservationInput
 }
@@ -879,6 +955,7 @@ export type ReservationsScalarWhereInput = {
   ReservationExpiration?: Prisma.DateTimeFilter<"Reservations"> | Date | string
   ActionTime?: Prisma.DateTimeFilter<"Reservations"> | Date | string
   ResolvedAt?: Prisma.DateTimeNullableFilter<"Reservations"> | Date | string | null
+  CartKey?: Prisma.IntNullableFilter<"Reservations"> | number | null
 }
 
 export type ReservationsUpsertWithWhereUniqueWithoutApprovedByUserInput = {
@@ -908,6 +985,7 @@ export type ReservationsCreateWithoutResourceInput = {
   ReservationExpiration: Date | string
   ActionTime: Date | string
   ResolvedAt?: Date | string | null
+  Cart?: Prisma.RequestCartCreateNestedOneWithoutLinesInput
   ReservedByUser: Prisma.AccountInfoCreateNestedOneWithoutReservationsMadeInput
   ApprovedByUser?: Prisma.AccountInfoCreateNestedOneWithoutReservationsApprovedInput
   UsageLogs?: Prisma.UsageLogCreateNestedManyWithoutReservationInput
@@ -928,6 +1006,7 @@ export type ReservationsUncheckedCreateWithoutResourceInput = {
   ReservationExpiration: Date | string
   ActionTime: Date | string
   ResolvedAt?: Date | string | null
+  CartKey?: number | null
   UsageLogs?: Prisma.UsageLogUncheckedCreateNestedManyWithoutReservationInput
   RepairLogs?: Prisma.RepairLogUncheckedCreateNestedManyWithoutReservationInput
 }
@@ -958,6 +1037,69 @@ export type ReservationsUpdateManyWithWhereWithoutResourceInput = {
   data: Prisma.XOR<Prisma.ReservationsUpdateManyMutationInput, Prisma.ReservationsUncheckedUpdateManyWithoutResourceInput>
 }
 
+export type ReservationsCreateWithoutCartInput = {
+  Reason?: string | null
+  DecisionNote?: string | null
+  StartTime: Date | string
+  EndTime: Date | string
+  ApproveStatus: $Enums.ApproveStatus
+  AutoApproved?: boolean
+  ApprovedAt?: Date | string | null
+  ReservationExpiration: Date | string
+  ActionTime: Date | string
+  ResolvedAt?: Date | string | null
+  Resource: Prisma.ResourceInfoCreateNestedOneWithoutReservationsInput
+  ReservedByUser: Prisma.AccountInfoCreateNestedOneWithoutReservationsMadeInput
+  ApprovedByUser?: Prisma.AccountInfoCreateNestedOneWithoutReservationsApprovedInput
+  UsageLogs?: Prisma.UsageLogCreateNestedManyWithoutReservationInput
+  RepairLogs?: Prisma.RepairLogCreateNestedManyWithoutReservationInput
+}
+
+export type ReservationsUncheckedCreateWithoutCartInput = {
+  ReservationKey?: number
+  ResourceKey: number
+  ReservedBy: number
+  Reason?: string | null
+  DecisionNote?: string | null
+  StartTime: Date | string
+  EndTime: Date | string
+  ApproveStatus: $Enums.ApproveStatus
+  ApprovedBy?: number | null
+  AutoApproved?: boolean
+  ApprovedAt?: Date | string | null
+  ReservationExpiration: Date | string
+  ActionTime: Date | string
+  ResolvedAt?: Date | string | null
+  UsageLogs?: Prisma.UsageLogUncheckedCreateNestedManyWithoutReservationInput
+  RepairLogs?: Prisma.RepairLogUncheckedCreateNestedManyWithoutReservationInput
+}
+
+export type ReservationsCreateOrConnectWithoutCartInput = {
+  where: Prisma.ReservationsWhereUniqueInput
+  create: Prisma.XOR<Prisma.ReservationsCreateWithoutCartInput, Prisma.ReservationsUncheckedCreateWithoutCartInput>
+}
+
+export type ReservationsCreateManyCartInputEnvelope = {
+  data: Prisma.ReservationsCreateManyCartInput | Prisma.ReservationsCreateManyCartInput[]
+  skipDuplicates?: boolean
+}
+
+export type ReservationsUpsertWithWhereUniqueWithoutCartInput = {
+  where: Prisma.ReservationsWhereUniqueInput
+  update: Prisma.XOR<Prisma.ReservationsUpdateWithoutCartInput, Prisma.ReservationsUncheckedUpdateWithoutCartInput>
+  create: Prisma.XOR<Prisma.ReservationsCreateWithoutCartInput, Prisma.ReservationsUncheckedCreateWithoutCartInput>
+}
+
+export type ReservationsUpdateWithWhereUniqueWithoutCartInput = {
+  where: Prisma.ReservationsWhereUniqueInput
+  data: Prisma.XOR<Prisma.ReservationsUpdateWithoutCartInput, Prisma.ReservationsUncheckedUpdateWithoutCartInput>
+}
+
+export type ReservationsUpdateManyWithWhereWithoutCartInput = {
+  where: Prisma.ReservationsScalarWhereInput
+  data: Prisma.XOR<Prisma.ReservationsUpdateManyMutationInput, Prisma.ReservationsUncheckedUpdateManyWithoutCartInput>
+}
+
 export type ReservationsCreateWithoutUsageLogsInput = {
   Reason?: string | null
   DecisionNote?: string | null
@@ -970,6 +1112,7 @@ export type ReservationsCreateWithoutUsageLogsInput = {
   ActionTime: Date | string
   ResolvedAt?: Date | string | null
   Resource: Prisma.ResourceInfoCreateNestedOneWithoutReservationsInput
+  Cart?: Prisma.RequestCartCreateNestedOneWithoutLinesInput
   ReservedByUser: Prisma.AccountInfoCreateNestedOneWithoutReservationsMadeInput
   ApprovedByUser?: Prisma.AccountInfoCreateNestedOneWithoutReservationsApprovedInput
   RepairLogs?: Prisma.RepairLogCreateNestedManyWithoutReservationInput
@@ -990,6 +1133,7 @@ export type ReservationsUncheckedCreateWithoutUsageLogsInput = {
   ReservationExpiration: Date | string
   ActionTime: Date | string
   ResolvedAt?: Date | string | null
+  CartKey?: number | null
   RepairLogs?: Prisma.RepairLogUncheckedCreateNestedManyWithoutReservationInput
 }
 
@@ -1021,6 +1165,7 @@ export type ReservationsUpdateWithoutUsageLogsInput = {
   ActionTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   ResolvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   Resource?: Prisma.ResourceInfoUpdateOneRequiredWithoutReservationsNestedInput
+  Cart?: Prisma.RequestCartUpdateOneWithoutLinesNestedInput
   ReservedByUser?: Prisma.AccountInfoUpdateOneRequiredWithoutReservationsMadeNestedInput
   ApprovedByUser?: Prisma.AccountInfoUpdateOneWithoutReservationsApprovedNestedInput
   RepairLogs?: Prisma.RepairLogUpdateManyWithoutReservationNestedInput
@@ -1041,6 +1186,7 @@ export type ReservationsUncheckedUpdateWithoutUsageLogsInput = {
   ReservationExpiration?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   ActionTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   ResolvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  CartKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   RepairLogs?: Prisma.RepairLogUncheckedUpdateManyWithoutReservationNestedInput
 }
 
@@ -1056,6 +1202,7 @@ export type ReservationsCreateWithoutRepairLogsInput = {
   ActionTime: Date | string
   ResolvedAt?: Date | string | null
   Resource: Prisma.ResourceInfoCreateNestedOneWithoutReservationsInput
+  Cart?: Prisma.RequestCartCreateNestedOneWithoutLinesInput
   ReservedByUser: Prisma.AccountInfoCreateNestedOneWithoutReservationsMadeInput
   ApprovedByUser?: Prisma.AccountInfoCreateNestedOneWithoutReservationsApprovedInput
   UsageLogs?: Prisma.UsageLogCreateNestedManyWithoutReservationInput
@@ -1076,6 +1223,7 @@ export type ReservationsUncheckedCreateWithoutRepairLogsInput = {
   ReservationExpiration: Date | string
   ActionTime: Date | string
   ResolvedAt?: Date | string | null
+  CartKey?: number | null
   UsageLogs?: Prisma.UsageLogUncheckedCreateNestedManyWithoutReservationInput
 }
 
@@ -1107,6 +1255,7 @@ export type ReservationsUpdateWithoutRepairLogsInput = {
   ActionTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   ResolvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   Resource?: Prisma.ResourceInfoUpdateOneRequiredWithoutReservationsNestedInput
+  Cart?: Prisma.RequestCartUpdateOneWithoutLinesNestedInput
   ReservedByUser?: Prisma.AccountInfoUpdateOneRequiredWithoutReservationsMadeNestedInput
   ApprovedByUser?: Prisma.AccountInfoUpdateOneWithoutReservationsApprovedNestedInput
   UsageLogs?: Prisma.UsageLogUpdateManyWithoutReservationNestedInput
@@ -1127,6 +1276,7 @@ export type ReservationsUncheckedUpdateWithoutRepairLogsInput = {
   ReservationExpiration?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   ActionTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   ResolvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  CartKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   UsageLogs?: Prisma.UsageLogUncheckedUpdateManyWithoutReservationNestedInput
 }
 
@@ -1144,6 +1294,7 @@ export type ReservationsCreateManyReservedByUserInput = {
   ReservationExpiration: Date | string
   ActionTime: Date | string
   ResolvedAt?: Date | string | null
+  CartKey?: number | null
 }
 
 export type ReservationsCreateManyApprovedByUserInput = {
@@ -1160,6 +1311,7 @@ export type ReservationsCreateManyApprovedByUserInput = {
   ReservationExpiration: Date | string
   ActionTime: Date | string
   ResolvedAt?: Date | string | null
+  CartKey?: number | null
 }
 
 export type ReservationsUpdateWithoutReservedByUserInput = {
@@ -1174,6 +1326,7 @@ export type ReservationsUpdateWithoutReservedByUserInput = {
   ActionTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   ResolvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   Resource?: Prisma.ResourceInfoUpdateOneRequiredWithoutReservationsNestedInput
+  Cart?: Prisma.RequestCartUpdateOneWithoutLinesNestedInput
   ApprovedByUser?: Prisma.AccountInfoUpdateOneWithoutReservationsApprovedNestedInput
   UsageLogs?: Prisma.UsageLogUpdateManyWithoutReservationNestedInput
   RepairLogs?: Prisma.RepairLogUpdateManyWithoutReservationNestedInput
@@ -1193,6 +1346,7 @@ export type ReservationsUncheckedUpdateWithoutReservedByUserInput = {
   ReservationExpiration?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   ActionTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   ResolvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  CartKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   UsageLogs?: Prisma.UsageLogUncheckedUpdateManyWithoutReservationNestedInput
   RepairLogs?: Prisma.RepairLogUncheckedUpdateManyWithoutReservationNestedInput
 }
@@ -1211,6 +1365,7 @@ export type ReservationsUncheckedUpdateManyWithoutReservedByUserInput = {
   ReservationExpiration?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   ActionTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   ResolvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  CartKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
 }
 
 export type ReservationsUpdateWithoutApprovedByUserInput = {
@@ -1225,6 +1380,7 @@ export type ReservationsUpdateWithoutApprovedByUserInput = {
   ActionTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   ResolvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   Resource?: Prisma.ResourceInfoUpdateOneRequiredWithoutReservationsNestedInput
+  Cart?: Prisma.RequestCartUpdateOneWithoutLinesNestedInput
   ReservedByUser?: Prisma.AccountInfoUpdateOneRequiredWithoutReservationsMadeNestedInput
   UsageLogs?: Prisma.UsageLogUpdateManyWithoutReservationNestedInput
   RepairLogs?: Prisma.RepairLogUpdateManyWithoutReservationNestedInput
@@ -1244,6 +1400,7 @@ export type ReservationsUncheckedUpdateWithoutApprovedByUserInput = {
   ReservationExpiration?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   ActionTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   ResolvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  CartKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   UsageLogs?: Prisma.UsageLogUncheckedUpdateManyWithoutReservationNestedInput
   RepairLogs?: Prisma.RepairLogUncheckedUpdateManyWithoutReservationNestedInput
 }
@@ -1262,6 +1419,7 @@ export type ReservationsUncheckedUpdateManyWithoutApprovedByUserInput = {
   ReservationExpiration?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   ActionTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   ResolvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  CartKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
 }
 
 export type ReservationsCreateManyResourceInput = {
@@ -1278,6 +1436,7 @@ export type ReservationsCreateManyResourceInput = {
   ReservationExpiration: Date | string
   ActionTime: Date | string
   ResolvedAt?: Date | string | null
+  CartKey?: number | null
 }
 
 export type ReservationsUpdateWithoutResourceInput = {
@@ -1291,6 +1450,7 @@ export type ReservationsUpdateWithoutResourceInput = {
   ReservationExpiration?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   ActionTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   ResolvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  Cart?: Prisma.RequestCartUpdateOneWithoutLinesNestedInput
   ReservedByUser?: Prisma.AccountInfoUpdateOneRequiredWithoutReservationsMadeNestedInput
   ApprovedByUser?: Prisma.AccountInfoUpdateOneWithoutReservationsApprovedNestedInput
   UsageLogs?: Prisma.UsageLogUpdateManyWithoutReservationNestedInput
@@ -1311,12 +1471,85 @@ export type ReservationsUncheckedUpdateWithoutResourceInput = {
   ReservationExpiration?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   ActionTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   ResolvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  CartKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   UsageLogs?: Prisma.UsageLogUncheckedUpdateManyWithoutReservationNestedInput
   RepairLogs?: Prisma.RepairLogUncheckedUpdateManyWithoutReservationNestedInput
 }
 
 export type ReservationsUncheckedUpdateManyWithoutResourceInput = {
   ReservationKey?: Prisma.IntFieldUpdateOperationsInput | number
+  ReservedBy?: Prisma.IntFieldUpdateOperationsInput | number
+  Reason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  DecisionNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  StartTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  EndTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  ApproveStatus?: Prisma.EnumApproveStatusFieldUpdateOperationsInput | $Enums.ApproveStatus
+  ApprovedBy?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  AutoApproved?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  ApprovedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  ReservationExpiration?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  ActionTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  ResolvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  CartKey?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+}
+
+export type ReservationsCreateManyCartInput = {
+  ReservationKey?: number
+  ResourceKey: number
+  ReservedBy: number
+  Reason?: string | null
+  DecisionNote?: string | null
+  StartTime: Date | string
+  EndTime: Date | string
+  ApproveStatus: $Enums.ApproveStatus
+  ApprovedBy?: number | null
+  AutoApproved?: boolean
+  ApprovedAt?: Date | string | null
+  ReservationExpiration: Date | string
+  ActionTime: Date | string
+  ResolvedAt?: Date | string | null
+}
+
+export type ReservationsUpdateWithoutCartInput = {
+  Reason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  DecisionNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  StartTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  EndTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  ApproveStatus?: Prisma.EnumApproveStatusFieldUpdateOperationsInput | $Enums.ApproveStatus
+  AutoApproved?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  ApprovedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  ReservationExpiration?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  ActionTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  ResolvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  Resource?: Prisma.ResourceInfoUpdateOneRequiredWithoutReservationsNestedInput
+  ReservedByUser?: Prisma.AccountInfoUpdateOneRequiredWithoutReservationsMadeNestedInput
+  ApprovedByUser?: Prisma.AccountInfoUpdateOneWithoutReservationsApprovedNestedInput
+  UsageLogs?: Prisma.UsageLogUpdateManyWithoutReservationNestedInput
+  RepairLogs?: Prisma.RepairLogUpdateManyWithoutReservationNestedInput
+}
+
+export type ReservationsUncheckedUpdateWithoutCartInput = {
+  ReservationKey?: Prisma.IntFieldUpdateOperationsInput | number
+  ResourceKey?: Prisma.IntFieldUpdateOperationsInput | number
+  ReservedBy?: Prisma.IntFieldUpdateOperationsInput | number
+  Reason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  DecisionNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  StartTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  EndTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  ApproveStatus?: Prisma.EnumApproveStatusFieldUpdateOperationsInput | $Enums.ApproveStatus
+  ApprovedBy?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  AutoApproved?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  ApprovedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  ReservationExpiration?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  ActionTime?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  ResolvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  UsageLogs?: Prisma.UsageLogUncheckedUpdateManyWithoutReservationNestedInput
+  RepairLogs?: Prisma.RepairLogUncheckedUpdateManyWithoutReservationNestedInput
+}
+
+export type ReservationsUncheckedUpdateManyWithoutCartInput = {
+  ReservationKey?: Prisma.IntFieldUpdateOperationsInput | number
+  ResourceKey?: Prisma.IntFieldUpdateOperationsInput | number
   ReservedBy?: Prisma.IntFieldUpdateOperationsInput | number
   Reason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   DecisionNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1386,7 +1619,9 @@ export type ReservationsSelect<ExtArgs extends runtime.Types.Extensions.Internal
   ReservationExpiration?: boolean
   ActionTime?: boolean
   ResolvedAt?: boolean
+  CartKey?: boolean
   Resource?: boolean | Prisma.ResourceInfoDefaultArgs<ExtArgs>
+  Cart?: boolean | Prisma.Reservations$CartArgs<ExtArgs>
   ReservedByUser?: boolean | Prisma.AccountInfoDefaultArgs<ExtArgs>
   ApprovedByUser?: boolean | Prisma.Reservations$ApprovedByUserArgs<ExtArgs>
   UsageLogs?: boolean | Prisma.Reservations$UsageLogsArgs<ExtArgs>
@@ -1409,7 +1644,9 @@ export type ReservationsSelectCreateManyAndReturn<ExtArgs extends runtime.Types.
   ReservationExpiration?: boolean
   ActionTime?: boolean
   ResolvedAt?: boolean
+  CartKey?: boolean
   Resource?: boolean | Prisma.ResourceInfoDefaultArgs<ExtArgs>
+  Cart?: boolean | Prisma.Reservations$CartArgs<ExtArgs>
   ReservedByUser?: boolean | Prisma.AccountInfoDefaultArgs<ExtArgs>
   ApprovedByUser?: boolean | Prisma.Reservations$ApprovedByUserArgs<ExtArgs>
 }, ExtArgs["result"]["reservations"]>
@@ -1429,7 +1666,9 @@ export type ReservationsSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.
   ReservationExpiration?: boolean
   ActionTime?: boolean
   ResolvedAt?: boolean
+  CartKey?: boolean
   Resource?: boolean | Prisma.ResourceInfoDefaultArgs<ExtArgs>
+  Cart?: boolean | Prisma.Reservations$CartArgs<ExtArgs>
   ReservedByUser?: boolean | Prisma.AccountInfoDefaultArgs<ExtArgs>
   ApprovedByUser?: boolean | Prisma.Reservations$ApprovedByUserArgs<ExtArgs>
 }, ExtArgs["result"]["reservations"]>
@@ -1449,11 +1688,13 @@ export type ReservationsSelectScalar = {
   ReservationExpiration?: boolean
   ActionTime?: boolean
   ResolvedAt?: boolean
+  CartKey?: boolean
 }
 
-export type ReservationsOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"ReservationKey" | "ResourceKey" | "ReservedBy" | "Reason" | "DecisionNote" | "StartTime" | "EndTime" | "ApproveStatus" | "ApprovedBy" | "AutoApproved" | "ApprovedAt" | "ReservationExpiration" | "ActionTime" | "ResolvedAt", ExtArgs["result"]["reservations"]>
+export type ReservationsOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"ReservationKey" | "ResourceKey" | "ReservedBy" | "Reason" | "DecisionNote" | "StartTime" | "EndTime" | "ApproveStatus" | "ApprovedBy" | "AutoApproved" | "ApprovedAt" | "ReservationExpiration" | "ActionTime" | "ResolvedAt" | "CartKey", ExtArgs["result"]["reservations"]>
 export type ReservationsInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   Resource?: boolean | Prisma.ResourceInfoDefaultArgs<ExtArgs>
+  Cart?: boolean | Prisma.Reservations$CartArgs<ExtArgs>
   ReservedByUser?: boolean | Prisma.AccountInfoDefaultArgs<ExtArgs>
   ApprovedByUser?: boolean | Prisma.Reservations$ApprovedByUserArgs<ExtArgs>
   UsageLogs?: boolean | Prisma.Reservations$UsageLogsArgs<ExtArgs>
@@ -1462,11 +1703,13 @@ export type ReservationsInclude<ExtArgs extends runtime.Types.Extensions.Interna
 }
 export type ReservationsIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   Resource?: boolean | Prisma.ResourceInfoDefaultArgs<ExtArgs>
+  Cart?: boolean | Prisma.Reservations$CartArgs<ExtArgs>
   ReservedByUser?: boolean | Prisma.AccountInfoDefaultArgs<ExtArgs>
   ApprovedByUser?: boolean | Prisma.Reservations$ApprovedByUserArgs<ExtArgs>
 }
 export type ReservationsIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   Resource?: boolean | Prisma.ResourceInfoDefaultArgs<ExtArgs>
+  Cart?: boolean | Prisma.Reservations$CartArgs<ExtArgs>
   ReservedByUser?: boolean | Prisma.AccountInfoDefaultArgs<ExtArgs>
   ApprovedByUser?: boolean | Prisma.Reservations$ApprovedByUserArgs<ExtArgs>
 }
@@ -1475,6 +1718,7 @@ export type $ReservationsPayload<ExtArgs extends runtime.Types.Extensions.Intern
   name: "Reservations"
   objects: {
     Resource: Prisma.$ResourceInfoPayload<ExtArgs>
+    Cart: Prisma.$RequestCartPayload<ExtArgs> | null
     ReservedByUser: Prisma.$AccountInfoPayload<ExtArgs>
     /**
      * Needed to enforce "the approver may not be the requester" (§5.9) and to
@@ -1518,6 +1762,10 @@ export type $ReservationsPayload<ExtArgs extends runtime.Types.Extensions.Intern
     ReservationExpiration: Date
     ActionTime: Date
     ResolvedAt: Date | null
+    /**
+     * The cart this line was submitted in. Null for rows made before carts.
+     */
+    CartKey: number | null
   }, ExtArgs["result"]["reservations"]>
   composites: {}
 }
@@ -1913,6 +2161,7 @@ readonly fields: ReservationsFieldRefs;
 export interface Prisma__ReservationsClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
   Resource<T extends Prisma.ResourceInfoDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ResourceInfoDefaultArgs<ExtArgs>>): Prisma.Prisma__ResourceInfoClient<runtime.Types.Result.GetResult<Prisma.$ResourceInfoPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+  Cart<T extends Prisma.Reservations$CartArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Reservations$CartArgs<ExtArgs>>): Prisma.Prisma__RequestCartClient<runtime.Types.Result.GetResult<Prisma.$RequestCartPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   ReservedByUser<T extends Prisma.AccountInfoDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AccountInfoDefaultArgs<ExtArgs>>): Prisma.Prisma__AccountInfoClient<runtime.Types.Result.GetResult<Prisma.$AccountInfoPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   ApprovedByUser<T extends Prisma.Reservations$ApprovedByUserArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Reservations$ApprovedByUserArgs<ExtArgs>>): Prisma.Prisma__AccountInfoClient<runtime.Types.Result.GetResult<Prisma.$AccountInfoPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   UsageLogs<T extends Prisma.Reservations$UsageLogsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Reservations$UsageLogsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$UsageLogPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
@@ -1960,6 +2209,7 @@ export interface ReservationsFieldRefs {
   readonly ReservationExpiration: Prisma.FieldRef<"Reservations", 'DateTime'>
   readonly ActionTime: Prisma.FieldRef<"Reservations", 'DateTime'>
   readonly ResolvedAt: Prisma.FieldRef<"Reservations", 'DateTime'>
+  readonly CartKey: Prisma.FieldRef<"Reservations", 'Int'>
 }
     
 
@@ -2358,6 +2608,25 @@ export type ReservationsDeleteManyArgs<ExtArgs extends runtime.Types.Extensions.
    * Limit how many Reservations to delete.
    */
   limit?: number
+}
+
+/**
+ * Reservations.Cart
+ */
+export type Reservations$CartArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the RequestCart
+   */
+  select?: Prisma.RequestCartSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the RequestCart
+   */
+  omit?: Prisma.RequestCartOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.RequestCartInclude<ExtArgs> | null
+  where?: Prisma.RequestCartWhereInput
 }
 
 /**
