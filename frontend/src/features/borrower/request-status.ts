@@ -120,6 +120,12 @@ export interface MyRequest {
   id: string;
   /** Backend Reservations.ReservationKey; absent on session-only room bookings. */
   reservationKey?: number;
+  /** The cart it was submitted in; lines sharing it are one borrow. */
+  cartKey?: number | null;
+  /** Server's answer: does this booking still count toward the one-room limit? */
+  holdsRoomQuota?: boolean;
+  /** Exact end of the requested window (ISO), when known. */
+  endsAt?: string;
   /** Backend's authoritative answer for whether loan.cancel is still allowed. */
   cancellable?: boolean;
   /** Present after staff allocate the request; absent on local room bookings. */
@@ -159,8 +165,25 @@ export interface MyRequest {
  * much as one already in use, and the hours are released only when it is
  * cancelled, rejected, or finished.
  */
-const ACTIVE_ROOM_STATUSES: readonly MyRequestStatus[] = ["pending", "ready", "inUse"];
+const ACTIVE_ROOM_STATUSES: readonly MyRequestStatus[] = [
+  "pending",
+  "approved",
+  "preparing",
+  "ready",
+  "inUse",
+];
 
 export function activeRoomBookings(requests: readonly MyRequest[]): MyRequest[] {
-  return requests.filter((r) => r.kind === "room" && ACTIVE_ROOM_STATUSES.includes(r.status));
+  // The server's flag decides (#215 approved-not-prepared counts, #216 a
+  // booking whose window has ended does not). The status guess is only for
+  // rows that never came from the server.
+  // A booking whose window is over stops counting even if this page has not
+  // refetched since; the server does the same.
+  const now = Date.now();
+  return requests.filter(
+    (r) =>
+      r.kind === "room" &&
+      (r.holdsRoomQuota === true || ACTIVE_ROOM_STATUSES.includes(r.status)) &&
+      (r.endsAt === undefined || new Date(r.endsAt).getTime() > now),
+  );
 }

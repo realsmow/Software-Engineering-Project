@@ -16,7 +16,7 @@ import { activeRoomBookings, type MyRequest } from "../request-status";
 import { FacetFilters, type FilterGroup } from "../facet-filters";
 import { useMyRequests } from "../loans/use-my-requests";
 import type { Room } from "./room.adapter";
-import { useFreeSlots, useRooms } from "./use-rooms";
+import { useFreeSlots, useRooms, useSlotTotals } from "./use-rooms";
 
 /**
  * Facet groups, in rail order. Capacity only: the building and room-type
@@ -52,6 +52,7 @@ export default function RoomListPage() {
    * closed, whatever its slots say.
    */
   const freeByRoom = useFreeSlots(rooms, todayLocalDayKey());
+  const totalByRoom = useSlotTotals(rooms, todayLocalDayKey());
   const freeOf = (room: Room): number | null =>
     room.bookable ? (freeByRoom.get(room.id) ?? null) : 0;
 
@@ -160,7 +161,7 @@ export default function RoomListPage() {
       header: t("borrower.rooms.colSlotFree"),
       align: "right",
       className: "whitespace-nowrap",
-      render: (r) => <SlotCount free={freeOf(r)} />,
+      render: (r) => <SlotCount free={freeOf(r)} total={totalByRoom.get(r.id)} />,
     },
     {
       key: "book",
@@ -235,25 +236,19 @@ export default function RoomListPage() {
         <div className="min-w-0">
           {/* Desktop / tablet: one card, table rows. */}
           <div className="hidden md:block">
-            {showEmpty ? (
-              <div className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
-                {strips}
-                <EmptyState onClear={clearFilters} />
-              </div>
-            ) : (
-              <DataTable
-                // Remount on any change to the result set so pagination starts
-                // over - DataTable owns its page state and has no reset prop.
-                key={`${query}|${[...selected].sort().join(",")}`}
-                columns={columns}
-                rows={list}
-                rowKey={(r) => r.id}
-                pageSize={PAGE_SIZE}
-                beforeRows={strips}
-                emptyTitle={t("common.loading")}
-                rangeLabel={(s, e, total) => t("table.range", { start: s, end: e, total })}
-              />
-            )}
+            {/* One table for results and "no rooms": swapping or remounting it
+                rebuilt the search box on every keystroke and dropped focus (#211). */}
+            <DataTable
+              resetPageOn={`${query}|${[...selected].sort().join(",")}`}
+              columns={columns}
+              rows={list}
+              rowKey={(r) => r.id}
+              pageSize={PAGE_SIZE}
+              beforeRows={strips}
+              emptyTitle={showEmpty ? t("borrower.rooms.emptyTitle") : t("common.loading")}
+              emptyDescription={showEmpty ? t("borrower.rooms.emptyDesc") : undefined}
+              rangeLabel={(s, e, total) => t("table.range", { start: s, end: e, total })}
+            />
           </div>
 
           {/* Phone: search + chips above a card list. */}
@@ -306,6 +301,7 @@ export default function RoomListPage() {
                   key={r.id}
                   room={r}
                   free={freeOf(r)}
+                  total={totalByRoom.get(r.id)}
                   held={heldBooking !== null}
                   onBook={() => openBooking(r)}
                 />
@@ -434,11 +430,13 @@ function HeldStrip({ booking, onOpen }: { booking: MyRequest; onOpen: () => void
 function RoomCard({
   room,
   free,
+  total,
   held,
   onBook,
 }: {
   room: Room;
   free: number | null;
+  total?: number;
   held: boolean;
   onBook: () => void;
 }) {
@@ -461,7 +459,7 @@ function RoomCard({
       </div>
 
       <div className="mt-2.5 text-xs">
-        <SlotCount free={free} />
+        <SlotCount free={free} total={total} />
       </div>
 
       <BookButton free={free} held={held} className="mt-3 h-11 w-full" onBook={onBook} />
@@ -513,7 +511,7 @@ function BookButton({
 }
 
 /** Free slots today, dimmed once the room is fully booked. */
-function SlotCount({ free }: { free: number | null }) {
+function SlotCount({ free, total }: { free: number | null; total?: number }) {
   const { t } = useTranslation();
   if (free === null) return <span className="font-mono text-xs text-t4">-</span>;
   return (
@@ -523,7 +521,7 @@ function SlotCount({ free }: { free: number | null }) {
         free === 0 ? "text-t4" : "text-foreground",
       )}
     >
-      {t("borrower.rooms.slots", { free, total: TIME_SLOTS.length })}
+      {t("borrower.rooms.slots", { free, total: total ?? TIME_SLOTS.length })}
     </span>
   );
 }

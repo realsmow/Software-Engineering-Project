@@ -2,6 +2,7 @@ import { useMemo, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { fmtDate, fmtDateTime } from "@/lib/datetime";
 import { DateInput } from "@/components/ui/date-input";
+import { AvailabilityCalendar } from "./availability-calendar";
 import { useNavigate } from "react-router-dom";
 import { differenceInCalendarDays, parseISO } from "date-fns";
 import { Check, Minus, Package, Plus, ShoppingCart, Trash2, TriangleAlert } from "lucide-react";
@@ -374,6 +375,28 @@ export default function RequestPage() {
                 })}
               </p>
 
+              {/* From the draft, not the catalogue: the catalogue reloads when the
+                  dates change, and the calendar must stay put meanwhile. */}
+              {lines.length > 0 ? (
+                <div className="mb-4 max-w-[620px]">
+                  <AvailabilityCalendar
+                    lines={lines.map((l) => ({
+                      itemId: l.itemId,
+                      name: catalog?.find((i) => i.id === l.itemId)?.name ?? "",
+                      qty: l.qty,
+                    }))}
+                    startDate={startDate}
+                    endDate={endDate}
+                    maxDate={isoOffset(BUSINESS.RESERVATION_MAX_DAYS)}
+                    onPickup={(iso) => {
+                      handleStart(iso);
+                      setEndDate(null);
+                    }}
+                    onReturn={(iso) => setEndDate(iso)}
+                  />
+                </div>
+              ) : null}
+
               <div className="max-w-[620px] space-y-3">
                 <div className="grid items-end gap-3 sm:grid-cols-[minmax(180px,1fr)_auto]">
                   <DateField
@@ -723,30 +746,74 @@ function QtyStepper({
   onQty: (itemId: string, qty: number, stock: number) => void;
 }) {
   const { t } = useTranslation();
+  const stock = row.item.availableUnits;
+  // Typing is held locally so "1" on the way to "12" is not clamped mid-word.
+  const [typed, setTyped] = useState<string | null>(null);
+  const set = (n: number) => onQty(row.itemId, Math.max(1, Math.min(n, Math.max(stock, 1))), stock);
+  const commit = () => {
+    if (typed !== null && typed.trim() !== "") set(Number(typed));
+    setTyped(null);
+  };
   const stepBtn =
     "inline-flex h-7 w-7 items-center justify-center rounded border border-border text-t2 transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-40";
   return (
-    <div className="flex items-center justify-center gap-1">
-      <button
-        type="button"
-        className={stepBtn}
-        disabled={row.qty <= 1}
-        aria-label={t("borrower.request.decrease")}
-        onClick={() => onQty(row.itemId, row.qty - 1, row.item.availableUnits)}
-      >
-        <Minus size={13} strokeWidth={2.4} />
-      </button>
-      <span className="w-8 text-center font-mono text-[13px] font-medium tabular-nums">
-        {row.qty}
-      </span>
-      <button
-        type="button"
-        className={stepBtn}
-        aria-label={t("borrower.request.increase")}
-        onClick={() => onQty(row.itemId, row.qty + 1, row.item.availableUnits)}
-      >
-        <Plus size={13} strokeWidth={2.4} />
-      </button>
+    <div className="flex flex-col items-center gap-1.5">
+      <div className="flex flex-wrap items-center justify-center gap-1">
+        <button
+          type="button"
+          className={stepBtn}
+          disabled={row.qty <= 1}
+          aria-label={t("borrower.request.decrease")}
+          onClick={() => set(row.qty - 1)}
+        >
+          <Minus size={13} strokeWidth={2.4} />
+        </button>
+        <input
+          type="number"
+          inputMode="numeric"
+          min={1}
+          max={Math.max(stock, 1)}
+          aria-label={t("borrower.request.qtyLabel", { item: row.item.name })}
+          value={typed ?? String(row.qty)}
+          onChange={(e) => setTyped(e.target.value)}
+          onBlur={commit}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") commit();
+          }}
+          className="h-7 w-12 rounded border border-border bg-transparent text-center font-mono text-[13px] font-medium tabular-nums [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
+        />
+        <button
+          type="button"
+          className={stepBtn}
+          disabled={row.qty >= stock}
+          aria-label={t("borrower.request.increase")}
+          onClick={() => set(row.qty + 1)}
+        >
+          <Plus size={13} strokeWidth={2.4} />
+        </button>
+        {stock > 0 ? (
+          <button
+            type="button"
+            className="h-7 rounded border border-border px-2 text-[11px] font-semibold text-t2 hover:bg-muted hover:text-foreground disabled:opacity-40"
+            disabled={row.qty >= stock}
+            onClick={() => set(stock)}
+          >
+            {t("borrower.request.qtyMax", { count: stock })}
+          </button>
+        ) : null}
+      </div>
+      {/* Dragging is quicker than tapping + for a large count. */}
+      {stock > 2 ? (
+        <input
+          type="range"
+          min={1}
+          max={stock}
+          value={row.qty}
+          aria-label={t("borrower.request.qtySlider", { item: row.item.name })}
+          onChange={(e) => set(Number(e.target.value))}
+          className="w-36 accent-[var(--accent)]"
+        />
+      ) : null}
     </div>
   );
 }

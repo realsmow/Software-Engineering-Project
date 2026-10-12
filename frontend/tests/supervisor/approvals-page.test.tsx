@@ -43,6 +43,10 @@ const hooks = vi.hoisted(() => ({
     vi.fn<
       typeof import("../../src/features/supervisor/approvals/use-approvals").useDecideApproval
     >(),
+  useDecideCart:
+    vi.fn<
+      typeof import("../../src/features/supervisor/approvals/use-approvals").useDecideCart
+    >(),
   useExtensionQueue:
     vi.fn<
       typeof import("../../src/features/supervisor/approvals/use-approvals").useExtensionQueue
@@ -142,6 +146,12 @@ function openHistory() {
 }
 
 describe("SupervisorApprovalsPage", () => {
+  const decideCart =
+    vi.fn<
+      ReturnType<
+        typeof import("../../src/features/supervisor/approvals/use-approvals").useDecideCart
+      >["mutateAsync"]
+    >();
   const decide =
     vi.fn<
       ReturnType<
@@ -185,6 +195,7 @@ describe("SupervisorApprovalsPage", () => {
     hooks.useBorrowerHistory.mockReturnValue(queryResult(history));
     hooks.useExtensionQueue.mockReturnValue(queryResult([extension]));
     hooks.useDecideApproval.mockReturnValue(mutationResult(decide));
+    hooks.useDecideCart.mockReturnValue(mutationResult(decideCart));
     hooks.useDecideExtension.mockReturnValue(mutationResult(decideExtension));
   });
 
@@ -306,6 +317,73 @@ describe("SupervisorApprovalsPage", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("#204: labels each pile with its count and splits extensions by who is waiting", () => {
+    hooks.useApprovalCounts.mockReturnValue(
+      queryResult(
+        approvalCounts.strict().parse({
+          staff: 1,
+          supervisor: 6,
+          extensions: { staff: 1, supervisor: 2 },
+          retirement: 1,
+          overdueToDecide: 0,
+          autoApprovedToday: 0,
+          asOf: null,
+        })
+      )
+    );
+    render(<SupervisorApprovalsPage />);
+    // Requests: 6 on the desk minus the 2 extensions. Extensions: 2 + 1 at staff.
+    expect(screen.getByRole("tab", { name: /\(4\)$/ })).toHaveTextContent(
+      i18n.t("supervisor.approvals.viewRequests")
+    );
+    expect(screen.getByRole("tab", { name: /\(3\)$/ })).toHaveTextContent(
+      i18n.t("supervisor.approvals.viewExtensions")
+    );
+    fireEvent.click(screen.getByText(new RegExp(`^${i18n.t("supervisor.approvals.viewExtensions")}`)));
+    expect(
+      screen.getByText(i18n.t("supervisor.approvals.extSplit", { ready: 2, staff: 1 }))
+    ).toBeInTheDocument();
+  });
+
+  describe("demo feedback: one cart is one borrow", () => {
+    const cart = [
+      { ...request, reservationKey: 77, cartKey: 3 },
+      { ...request, reservationKey: 78, cartKey: 3, itemName: "Probe kit" },
+    ];
+
+    it("approves the whole cart with one click", async () => {
+      hooks.useApprovalQueue.mockReturnValue(queryResult(cart));
+      decideCart.mockResolvedValue({ decided: [77, 78], failed: [] });
+      render(<SupervisorApprovalsPage />);
+      expect(screen.getAllByText("Ada Lovelace")).toHaveLength(1);
+      fireEvent.click(
+        screen.getByRole("button", { name: i18n.t("supervisor.approvals.approveAll", { count: 2 }) })
+      );
+      await waitFor(() =>
+        expect(decideCart).toHaveBeenCalledWith({ cartKey: 3, decision: "approve" })
+      );
+    });
+
+    it("refuses one line with a reason and leaves the rest", async () => {
+      hooks.useApprovalQueue.mockReturnValue(queryResult(cart));
+      decide.mockResolvedValue({ request: { reservationKey: 78 }, cancelled: [] } as never);
+      render(<SupervisorApprovalsPage />);
+      fireEvent.click(screen.getAllByRole("button", { name: i18n.t("supervisor.approvals.refuseLine") })[1]);
+      fireEvent.change(screen.getByPlaceholderText(i18n.t("supervisor.approvals.reasonPlaceholder")), {
+        target: { value: "Probe kit is broken" },
+      });
+      fireEvent.click(screen.getByRole("button", { name: i18n.t("supervisor.approvals.confirmReject") }));
+      await waitFor(() =>
+        expect(decide).toHaveBeenCalledWith({
+          reservationKey: 78,
+          decision: "reject",
+          reason: "Probe kit is broken",
+        })
+      );
+      expect(decideCart).not.toHaveBeenCalled();
+    });
+  });
+
   it("requires a reason before rejecting and passes it to the decision mutation", async () => {
     decide.mockResolvedValue(
       decideApprovalOutput.strict().parse({
@@ -402,7 +480,7 @@ describe("SupervisorApprovalsPage", () => {
     );
     decideExtension.mockResolvedValue(extensionResponse({ status: "Approved" }));
     render(<SupervisorApprovalsPage />);
-    fireEvent.click(screen.getByText(i18n.t("supervisor.approvals.viewExtensions")));
+    fireEvent.click(screen.getByText(new RegExp(`^${i18n.t("supervisor.approvals.viewExtensions")}`)));
     const row = within(screen.getByText("Oscilloscope").closest("tr")!);
     expect(row.queryByRole("combobox")).toBeNull();
     fireEvent.click(
@@ -418,7 +496,7 @@ describe("SupervisorApprovalsPage", () => {
 
   it("blocks approval until staff have recorded the condition (#156)", () => {
     render(<SupervisorApprovalsPage />);
-    fireEvent.click(screen.getByText(i18n.t("supervisor.approvals.viewExtensions")));
+    fireEvent.click(screen.getByText(new RegExp(`^${i18n.t("supervisor.approvals.viewExtensions")}`)));
     const row = within(screen.getByText("Oscilloscope").closest("tr")!);
     expect(row.getByText(i18n.t("supervisor.approvals.awaitingCheck"))).toBeInTheDocument();
     expect(
@@ -430,7 +508,7 @@ describe("SupervisorApprovalsPage", () => {
     hooks.useExtensionQueue.mockReturnValue(queryResult([checked]));
     decideExtension.mockResolvedValue(extensionResponse({ status: "Approved" }));
     render(<SupervisorApprovalsPage />);
-    fireEvent.click(screen.getByText(i18n.t("supervisor.approvals.viewExtensions")));
+    fireEvent.click(screen.getByText(new RegExp(`^${i18n.t("supervisor.approvals.viewExtensions")}`)));
     const row = within(screen.getByText("Oscilloscope").closest("tr")!);
     expect(row.getByText(i18n.t("staff.inspection.condMinorDamage"))).toBeInTheDocument();
     expect(row.getByText(/Sam Staff/)).toBeInTheDocument();

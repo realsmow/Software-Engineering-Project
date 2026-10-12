@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { PageHeader } from "@/components/shared/page-header";
 import { TierDot } from "@/components/shared/tier-badge";
@@ -18,6 +18,7 @@ import {
   useApprovalCounts,
   useApprovalQueue,
   useDecideApproval,
+  useDecideCart,
   useDecideExtension,
   useDecideRetirement,
   useExtensionQueue,
@@ -65,6 +66,10 @@ export default function SupervisorApprovalsPage() {
   // may decide, so a supervisor sees their pile without being asked which
   // desk they are.
   const { data: rows, isLoading } = useApprovalQueue(undefined, search);
+  // Demo feedback: one cart is one borrow, decided with one click.
+  const entries = useMemo(() => groupByCart(rows ?? []), [rows]);
+  const decideCart = useDecideCart();
+  const [rejectingCart, setRejectingCart] = useState<number | null>(null);
   const decide = useDecideApproval();
 
   // Extensions and retirements are two more piles at the same desk, not
@@ -442,7 +447,59 @@ export default function SupervisorApprovalsPage() {
     }
   }
 
-  const columns: Column<ApprovalQueueRow>[] = [
+  /** Approve or reject every pending line of a cart; lines the rules refuse stay pending. */
+  async function decideWholeCart(entry: ApprovalEntry, decision: "approve" | "reject") {
+    const cartKey = entry.cartKey;
+    if (cartKey == null) return;
+    const why = reason.trim();
+    if (decision === "reject" && !why) return;
+    setBusyKey(-cartKey);
+    setResult(null);
+    try {
+      const out = await decideCart.mutateAsync({
+        cartKey,
+        decision,
+        ...(decision === "reject" ? { reason: why } : {}),
+      });
+      setResult({
+        tone: out.failed.length ? "bad" : "ok",
+        text:
+          t(decision === "approve" ? "supervisor.approvals.doneCartApprove" : "supervisor.approvals.doneCartReject", {
+            count: out.decided.length,
+          }) +
+          (out.failed.length
+            ? ` ${t("supervisor.approvals.cartLinesLeft", { count: out.failed.length })}`
+            : ""),
+      });
+      setRejectingCart(null);
+      setReason("");
+    } catch (error) {
+      setResult({ tone: "bad", text: getErrorMessage(error) });
+    } finally {
+      setBusyKey(null);
+    }
+  }
+
+  /** The reason box shared by "refuse this line" and "reject the cart". */
+  const reasonBox = (onConfirm: () => void, onCancel: () => void, busy: boolean) => (
+    <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
+      <Input
+        autoFocus
+        value={reason}
+        onChange={(e) => setReason(e.target.value)}
+        placeholder={t("supervisor.approvals.reasonPlaceholder")}
+        className="h-8 w-56"
+      />
+      <Button type="button" size="sm" disabled={busy || reason.trim() === ""} onClick={onConfirm}>
+        {t("supervisor.approvals.confirmReject")}
+      </Button>
+      <Button type="button" variant="outline" size="sm" onClick={onCancel}>
+        {t("common.cancel")}
+      </Button>
+    </div>
+  );
+
+  const columns: Column<ApprovalEntry>[] = [
     {
       key: "borrower",
       header: t("supervisor.approvals.colBorrower"),
@@ -461,16 +518,52 @@ export default function SupervisorApprovalsPage() {
     {
       key: "item",
       header: t("supervisor.approvals.colItem"),
-      render: (r) => (
-        <div className="min-w-0">
-          <div className="truncate text-foreground">{r.itemName ?? "-"}</div>
-          <div className="mt-0.5 flex items-center gap-1.5 font-mono text-[11px] text-t4">
-            <TierDot tier={r.tier} />
-            {r.tier ?? t("borrower.catalog.tierUnknown")}
-            {r.serialNo ? ` · ${r.serialNo}` : ""}
+      render: (r) =>
+        r.members.length === 1 ? (
+          <div className="min-w-0">
+            <div className="truncate text-foreground">{r.itemName ?? "-"}</div>
+            <div className="mt-0.5 flex items-center gap-1.5 font-mono text-[11px] text-t4">
+              <TierDot tier={r.tier} />
+              {r.tier ?? t("borrower.catalog.tierUnknown")}
+              {r.serialNo ? ` · ${r.serialNo}` : ""}
+            </div>
           </div>
-        </div>
-      ),
+        ) : (
+          <ul className="flex min-w-0 flex-col gap-1.5" onClick={(e) => e.stopPropagation()}>
+            {r.members.map((m) => (
+              <li key={m.reservationKey}>
+                <div className="flex items-center gap-2">
+                  <TierDot tier={m.tier} />
+                  <span className="truncate text-foreground">{m.itemName ?? "-"}</span>
+                  <span className="font-mono text-[11px] text-t4">{m.tier}</span>
+                  {rejecting !== m.reservationKey ? (
+                    <button
+                      type="button"
+                      className="ml-auto text-xs text-[var(--s-alert-t)] underline-offset-2 hover:underline"
+                      onClick={() => {
+                        setRejecting(m.reservationKey);
+                        setRejectingCart(null);
+                        setReason("");
+                      }}
+                    >
+                      {t("supervisor.approvals.refuseLine")}
+                    </button>
+                  ) : null}
+                </div>
+                {rejecting === m.reservationKey
+                  ? reasonBox(
+                      () => void reject(m),
+                      () => {
+                        setRejecting(null);
+                        setReason("");
+                      },
+                      busyKey === m.reservationKey,
+                    )
+                  : null}
+              </li>
+            ))}
+          </ul>
+        ),
     },
     {
       key: "window",
@@ -508,6 +601,40 @@ export default function SupervisorApprovalsPage() {
       align: "right",
       className: "sticky right-0 bg-card",
       render: (r) => {
+        if (r.members.length > 1 && r.cartKey != null) {
+          const cartKey = r.cartKey;
+          const busy = busyKey === -cartKey;
+          if (rejectingCart === cartKey) {
+            return reasonBox(
+              () => void decideWholeCart(r, "reject"),
+              () => {
+                setRejectingCart(null);
+                setReason("");
+              },
+              busy,
+            );
+          }
+          return (
+            <div className="flex justify-end gap-2" onClick={(e) => e.stopPropagation()}>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={busy}
+                onClick={() => {
+                  setRejectingCart(cartKey);
+                  setRejecting(null);
+                  setReason("");
+                }}
+              >
+                {t("supervisor.approvals.rejectAll")}
+              </Button>
+              <Button type="button" size="sm" disabled={busy} onClick={() => void decideWholeCart(r, "approve")}>
+                {busy ? t("common.loading") : t("supervisor.approvals.approveAll", { count: r.members.length })}
+              </Button>
+            </div>
+          );
+        }
         const busy = busyKey === r.reservationKey;
         if (rejecting === r.reservationKey) {
           return (
@@ -621,12 +748,35 @@ export default function SupervisorApprovalsPage() {
             setRejecting(null);
             setResult(null);
           }}
+          // #204: each pile says how much is in it.
           options={[
-            { value: "requests", label: t("supervisor.approvals.viewRequests") },
-            { value: "extensions", label: t("supervisor.approvals.viewExtensions") },
-            { value: "retirements", label: t("supervisor.approvals.viewRetirements") },
+            {
+              value: "requests",
+              label: t("supervisor.approvals.viewRequests"),
+              count: counts ? counts.supervisor - (counts.extensions?.supervisor ?? 0) : undefined,
+            },
+            {
+              value: "extensions",
+              label: t("supervisor.approvals.viewExtensions"),
+              count: counts?.extensions
+                ? counts.extensions.supervisor + counts.extensions.staff
+                : undefined,
+            },
+            {
+              value: "retirements",
+              label: t("supervisor.approvals.viewRetirements"),
+              count: counts?.retirement,
+            },
           ]}
         />
+        {view === "extensions" && counts?.extensions ? (
+          <p className="mt-1.5 text-xs text-t3">
+            {t("supervisor.approvals.extSplit", {
+              ready: counts.extensions.supervisor,
+              staff: counts.extensions.staff,
+            })}
+          </p>
+        ) : null}
       </div>
 
       {view === "extensions" ? (
@@ -677,8 +827,8 @@ export default function SupervisorApprovalsPage() {
       ) : (
         <DataTable
           columns={columns}
-          rows={rows ?? []}
-          rowKey={(r) => String(r.reservationKey)}
+          rows={entries}
+          rowKey={(r) => (r.members.length > 1 ? `cart${r.cartKey}` : String(r.reservationKey))}
           pageSize={15}
           onRowClick={(row) => setHistoryBorrower(row.borrower)}
           beforeRows={
@@ -714,6 +864,18 @@ export default function SupervisorApprovalsPage() {
       )}
     </div>
   );
+}
+
+/** A queue row standing for one request or a whole cart of them. */
+type ApprovalEntry = ApprovalQueueRow & { members: ApprovalQueueRow[] };
+
+function groupByCart(rows: ApprovalQueueRow[]): ApprovalEntry[] {
+  const carts = new Map<string, ApprovalQueueRow[]>();
+  for (const row of rows) {
+    const key = row.cartKey != null ? `c${row.cartKey}` : `r${row.reservationKey}`;
+    carts.set(key, [...(carts.get(key) ?? []), row]);
+  }
+  return [...carts.values()].map((members) => ({ ...members[0], members }));
 }
 
 function Tile({

@@ -161,6 +161,7 @@ describe("Authentication flow — Module 1.4", () => {
       expect(mocks.login).toHaveBeenCalledWith({
         username: "student@ku.ac.th",
         password: "secret",
+        remember: true,
       })
     );
     await waitFor(() => expect(useAuthStore.getState().user?.id).toBe("1"));
@@ -179,6 +180,7 @@ describe("Authentication flow — Module 1.4", () => {
       expect(mocks.login).toHaveBeenCalledWith({
         username: "staff01",
         password: "secret",
+        remember: true,
       })
     );
     await waitFor(() => expect(useAuthStore.getState().user?.role).toBe("staff"));
@@ -204,9 +206,21 @@ describe("Authentication flow — Module 1.4", () => {
 
   it("1.4.5 auth.me failure clears the store for a signed-out session", async () => {
     useAuthStore.setState({ user: { id: "1" } as never, isLoading: false });
-    mocks.me.mockRejectedValue(new Error("NOT_AUTHENTICATED"));
+    mocks.me.mockRejectedValue(
+      Object.assign(new Error("NOT_AUTHENTICATED"), { data: { httpStatus: 401 } })
+    );
     render(<App />);
     await waitFor(() => expect(useAuthStore.getState().user).toBeNull());
+  });
+
+  it("1.4.5c a network blip while the server wakes up does not sign the user out", async () => {
+    useAuthStore.setState({ user: null, isLoading: true });
+    mocks.me
+      .mockRejectedValueOnce(new TypeError("Failed to fetch"))
+      .mockResolvedValueOnce(borrower);
+    render(<App />);
+    await waitFor(() => expect(mocks.me).toHaveBeenCalledTimes(2), { timeout: 3000 });
+    await waitFor(() => expect(useAuthStore.getState().user).not.toBeNull());
   });
 
   it("1.4.5b auth.me answering null (signed out, #184) leaves no user", async () => {

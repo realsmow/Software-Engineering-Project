@@ -967,6 +967,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 			output: {
 				items: {
 					reservationKey: number;
+					cartKey: number | null;
 					requestedAt: string;
 					borrower: {
 						accountKey: number;
@@ -1024,6 +1025,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 			output: {
 				request: {
 					reservationKey: number;
+					cartKey: number | null;
 					status: "pending" | "approved" | "preparing" | "ready" | "inUse" | "returned" | "done" | "rejected" | "cancelled";
 					resource: {
 						resourceKey: number;
@@ -1069,6 +1071,21 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 					};
 					startTime: string;
 					endTime: string;
+				}[];
+			};
+			meta: object;
+		}>;
+		decideCart: import("@trpc/server").TRPCMutationProcedure<{
+			input: {
+				cartKey: number;
+				decision: "approve" | "reject";
+				reason?: string | undefined;
+			};
+			output: {
+				decided: number[];
+				failed: {
+					reservationKey: number;
+					code: string;
 				}[];
 			};
 			meta: object;
@@ -1303,6 +1320,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 			input: {
 				username: string;
 				password: string;
+				remember?: boolean | undefined;
 			};
 			output: {
 				user: {
@@ -2620,6 +2638,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 			output: {
 				created: {
 					reservationKey: number;
+					cartKey: number | null;
 					status: "pending" | "approved" | "preparing" | "ready" | "inUse" | "returned" | "done" | "rejected" | "cancelled";
 					resource: {
 						resourceKey: number;
@@ -2672,6 +2691,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 			output: {
 				created: {
 					reservationKey: number;
+					cartKey: number | null;
 					status: "pending" | "approved" | "preparing" | "ready" | "inUse" | "returned" | "done" | "rejected" | "cancelled";
 					resource: {
 						resourceKey: number;
@@ -2724,6 +2744,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 			output: {
 				items: {
 					reservationKey: number;
+					cartKey: number | null;
 					status: "pending" | "approved" | "preparing" | "ready" | "inUse" | "returned" | "done" | "rejected" | "cancelled";
 					resource: {
 						resourceKey: number;
@@ -2770,6 +2791,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 			};
 			output: {
 				reservationKey: number;
+				cartKey: number | null;
 				status: "pending" | "approved" | "preparing" | "ready" | "inUse" | "returned" | "done" | "rejected" | "cancelled";
 				resource: {
 					resourceKey: number;
@@ -2813,6 +2835,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 			};
 			output: {
 				reservationKey: number;
+				cartKey: number | null;
 				status: "pending" | "approved" | "preparing" | "ready" | "inUse" | "returned" | "done" | "rejected" | "cancelled";
 				resource: {
 					resourceKey: number;
@@ -2855,6 +2878,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 			};
 			output: {
 				reservationKey: number;
+				cartKey: number | null;
 				status: "pending" | "approved" | "preparing" | "ready" | "inUse" | "returned" | "done" | "rejected" | "cancelled";
 				resource: {
 					resourceKey: number;
@@ -3008,6 +3032,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 				items: {
 					usageKey: number | null;
 					reservationKey: number | null;
+					cartKey: number | null;
 					status: "Pending" | "Prepared" | "Lended" | "Returned" | "Inspected" | null;
 					borrower: {
 						accountKey: number;

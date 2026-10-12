@@ -15,6 +15,8 @@ import type { MyRequest, MyRequestStatus } from "../request-status";
  */
 export interface ServerRequest {
   reservationKey: number;
+  cartKey?: number | null;
+  holdsRoomQuota?: boolean;
   status: MyRequestStatus;
   resource: {
     resourceKey: number;
@@ -60,6 +62,9 @@ export function toBorrowerRequest(s: ServerRequest): BorrowerRequest {
   const dueDate = s.dueAt ? toLocalDayKey(s.dueAt) : undefined;
   return {
     reservationKey: s.reservationKey,
+    cartKey: s.cartKey ?? null,
+    holdsRoomQuota: s.holdsRoomQuota,
+    endsAt: s.endTime,
     cancellable: s.cancellable,
     usageKey: s.usageKey,
 

@@ -27,14 +27,27 @@ export function App() {
 
   useEffect(() => {
     let cancelled = false;
-    trpcClient.auth.me
-      .query()
-      .then((u) => {
-        if (!cancelled) setUser(u ? toClientUser(u) : null);
-      })
-      .catch(() => {
-        if (!cancelled) setUser(null);
-      });
+    // Only the server saying "nobody" signs the user out. A network error or
+    // a 5xx (the free host waking from sleep, a phone resuming a tab) is
+    // retried, which used to log people out on every app switch.
+    async function bootstrap() {
+      for (let attempt = 0; ; attempt++) {
+        try {
+          const u = await trpcClient.auth.me.query();
+          if (!cancelled) setUser(u ? toClientUser(u) : null);
+          return;
+        } catch (error) {
+          const status = (error as { data?: { httpStatus?: number } }).data?.httpStatus;
+          // ponytail: ~45 s of retries covers a cold start; after that, sign-in page.
+          if (cancelled || status === 401 || attempt >= 8) {
+            if (!cancelled) setUser(null);
+            return;
+          }
+          await new Promise((r) => setTimeout(r, Math.min(1000 * 2 ** attempt, 8000)));
+        }
+      }
+    }
+    void bootstrap();
     return () => {
       cancelled = true;
     };

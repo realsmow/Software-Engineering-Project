@@ -36,6 +36,8 @@ export interface ApprovalClash {
 
 export interface ApprovalQueueRow {
   reservationKey: number;
+  /** The cart it was submitted in; one cart is decided as one borrow. */
+  cartKey?: number | null;
   requestedAt: string;
   borrower: BorrowerRef;
   /** The band that put this row on this desk, when it was not the tier. */
@@ -69,6 +71,8 @@ export interface ApprovalCounts {
   autoApprovedToday: number;
   /** Pending FR-EQP-08 retirement requests in the caller's scope. */
   retirement: number;
+  /** #204: the extension part of staff/supervisor above. */
+  extensions?: { staff: number; supervisor: number };
   asOf: string | null;
 }
 

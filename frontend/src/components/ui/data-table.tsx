@@ -36,6 +36,8 @@ interface DataTableProps<T> {
    * table head (filter chips, legends, inline notices).
    */
   beforeRows?: ReactNode;
+  /** Back to page 1 when this changes, e.g. the search text. No remount, so focus stays. */
+  resetPageOn?: unknown;
   /** Localized empty-state strings. */
   emptyTitle?: string;
   emptyDescription?: string;
@@ -69,9 +71,15 @@ export function DataTable<T>({
   emptyTitle = "No data",
   emptyDescription,
   rangeLabel = (s, e, t) => `${s}–${e} of ${t}`,
+  resetPageOn,
 }: DataTableProps<T>) {
   const { t } = useTranslation();
   const [page, setPage] = useState(1);
+  const [seenReset, setSeenReset] = useState(resetPageOn);
+  if (seenReset !== resetPageOn) {
+    setSeenReset(resetPageOn);
+    setPage(1);
+  }
   const total = rows.length;
   const pageCount = Math.max(1, Math.ceil(total / pageSize));
   const safePage = Math.min(page, pageCount);

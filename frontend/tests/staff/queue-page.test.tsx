@@ -231,7 +231,7 @@ describe("StaffQueuePage", () => {
   });
 
   describe("demo feedback: one submit for several units is one row", () => {
-    const four = [77, 78, 79, 80].map((reservationKey) => ({ ...row, reservationKey }));
+    const four = [77, 78, 79, 80].map((reservationKey) => ({ ...row, reservationKey, cartKey: 9 }));
 
     it("prepares all units of the group with one click", async () => {
       mocks.useStaffQueue.mockReturnValue(queryResult(four));
@@ -260,6 +260,32 @@ describe("StaffQueuePage", () => {
       ]);
     });
 
+    it("one cart with different items is one row (one borrow)", () => {
+      mocks.useStaffQueue.mockReturnValue(
+        queryResult([
+          { ...row, reservationKey: 77, cartKey: 5, itemName: "Oscilloscope" },
+          { ...row, reservationKey: 78, cartKey: 5, itemName: "Probe kit" },
+        ])
+      );
+      renderPage();
+      expect(screen.getAllByText("Ada Lovelace")).toHaveLength(1);
+      expect(screen.getByText("Probe kit")).toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: i18n.t("staff.queue.prepareAll", { count: 2 }) })
+      ).toBeInTheDocument();
+    });
+
+    it("#209: two types sharing a display name are not merged", () => {
+      mocks.useStaffQueue.mockReturnValue(
+        queryResult([
+          { ...row, reservationKey: 77, itemKey: 1 },
+          { ...row, reservationKey: 78, itemKey: 2 },
+        ])
+      );
+      renderPage();
+      expect(screen.getAllByText("Ada Lovelace")).toHaveLength(2);
+    });
+
     it("splits the group back into separate rows", () => {
       mocks.useStaffQueue.mockReturnValue(queryResult(four));
       renderPage();
@@ -286,7 +312,7 @@ describe("StaffQueuePage", () => {
         expect(mocks.useStaffQueue).toHaveBeenCalledWith("toPrepare", "");
         expect(screen.getAllByText("Oscilloscope").length).toBeGreaterThan(0);
       });
-      it.fails(
+      it(
         "keeps distinct equipment types with identical names in separate rows",
         () => {
           expect(screen.getAllByText("Ada Lovelace")).toHaveLength(2);

@@ -30,6 +30,7 @@ import {
 import { queryResult } from "../fixtures/query-results";
 
 const hooks = vi.hoisted(() => ({
+  useCartSchedule: vi.fn(() => [] as unknown[]),
   useEquipmentTypes:
     vi.fn<
       typeof import("../../src/features/borrower/catalog/use-equipment-types").useEquipmentTypes
@@ -53,6 +54,7 @@ vi.mock("../../src/lib/trpc", () => ({
 vi.mock("../../src/features/borrower/catalog/use-equipment-types", () => ({
   useEquipmentTypes: hooks.useEquipmentTypes,
   useEquipmentUnits: hooks.useEquipmentUnits,
+  useCartSchedule: hooks.useCartSchedule,
 }));
 vi.mock("../../src/features/account/use-my-credit", () => ({
   useMyCredit: hooks.useMyCredit,
@@ -123,6 +125,7 @@ describe("borrower request checks", () => {
     useRequestDraft.getState().setEndDate(isoOffset(2));
     hooks.useEquipmentTypes.mockReturnValue(queryResult([item]));
     hooks.useEquipmentUnits.mockReturnValue(queryResult(units.map(toUnitRow)));
+    hooks.useCartSchedule.mockReturnValue([]);
     hooks.useMyCredit.mockReturnValue(queryResult(toMyCredit(creditResponse())));
     api.listUnits.mockResolvedValue(units);
   });
@@ -132,6 +135,28 @@ describe("borrower request checks", () => {
     client?.clear();
     useAuthStore.getState().setUser(null);
     vi.useRealTimers();
+  });
+
+  it("demo feedback: quantity can be typed, maxed, or slid", () => {
+    const many = toCatalogItem(itemResponse({ availableUnits: 6, totalUnits: 6 }));
+    hooks.useEquipmentTypes.mockReturnValue(queryResult([many]));
+    useRequestDraft.getState().addItem(many.id, 6);
+    renderPage();
+    const qtyOf = () => useRequestDraft.getState().lines[0].qty;
+    const box = screen.getAllByLabelText(i18n.t("borrower.request.qtyLabel", { item: many.name }))[0];
+    fireEvent.change(box, { target: { value: "4" } });
+    fireEvent.blur(box);
+    expect(qtyOf()).toBe(4);
+    fireEvent.change(box, { target: { value: "99" } });
+    fireEvent.keyDown(box, { key: "Enter" });
+    expect(qtyOf()).toBe(6);
+    fireEvent.change(
+      screen.getAllByLabelText(i18n.t("borrower.request.qtySlider", { item: many.name }))[0],
+      { target: { value: "2" } }
+    );
+    expect(qtyOf()).toBe(2);
+    fireEvent.click(screen.getAllByRole("button", { name: i18n.t("borrower.request.qtyMax", { count: 6 }) })[0]);
+    expect(qtyOf()).toBe(6);
   });
 
   it("keeps all pre-submit checks invalid when the cart is empty", () => {

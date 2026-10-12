@@ -311,6 +311,30 @@ describe("my requests: statuses and penalties come from the server", () => {
     expect(await screen.findByTestId("location")).toHaveTextContent(`${ROUTES.APPEALS}?penalty=4`);
   });
 
+  it("shows one cart as one borrow and cancels all of it (demo feedback)", async () => {
+    db.loans = [
+      request({ reservationKey: 41, cartKey: 4, status: "pending", usageKey: null, cancellable: true }),
+      request({
+        reservationKey: 42,
+        cartKey: 4,
+        status: "approved",
+        usageKey: null,
+        cancellable: true,
+        resource: { ...request({}).resource, name: "Probe kit" },
+      }),
+    ];
+    renderAt(ROUTES.MY_LOANS, <MyLoansPage />);
+    const cart = await screen.findByRole("region", {
+      name: i18n.t("borrower.myRequests.cartTitle", { count: 2 }),
+    });
+    fireEvent.click(
+      within(cart).getByRole("button", { name: i18n.t("borrower.myRequests.cancelCart", { count: 2 }) }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: i18n.t("borrower.myRequests.cancelConfirmYes") }));
+    await waitFor(() => expect(api).toHaveBeenCalledWith("loan.cancel", { reservationKey: 42 }));
+    expect(api).toHaveBeenCalledWith("loan.cancel", { reservationKey: 41 });
+  });
+
   it("shows the approver's reason on a rejected request, not a canned one", async () => {
     renderAt(ROUTES.MY_LOANS, <MyLoansPage />);
     fireEvent.click(await screen.findByRole("tab", { name: new RegExp(i18n.t("borrower.myRequests.tabHistory")) }));

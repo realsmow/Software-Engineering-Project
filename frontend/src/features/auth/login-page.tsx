@@ -58,9 +58,16 @@ export function LoginPage() {
    * INVALID_CREDENTIALS whether the account is missing or the password is
    * wrong, and re-splitting that here would undo it.
    */
-  const signIn = async (username: string, password: string): Promise<string | null> => {
+  const signIn = async (
+    username: string,
+    password: string,
+    remember: boolean,
+  ): Promise<string | null> => {
     try {
-      const { user } = await trpcClient.auth.login.mutate({ username, password });
+      const { user } = await trpcClient.auth.login.mutate({ username, password, remember });
+      // The form is sent in the background, so browsers often miss it and never
+      // offer to save the password. Hand it to the password manager directly.
+      if (remember) void offerToSavePassword(username, password);
       const clientUser = toClientUser(user);
       setUser(clientUser);
       navigate(HOME_ROUTE_BY_ROLE[clientUser.role], { replace: true });
@@ -72,11 +79,11 @@ export function LoginPage() {
 
   // KU email → the email is the identifier.
   const handleKuLogin = (values: KuLoginValues) =>
-    signIn(values.email.trim(), values.password);
+    signIn(values.email.trim(), values.password, values.remember ?? true);
 
   // Local account → the assigned username (AccountInfo.UserID).
   const handleLocalLogin = (values: LocalLoginValues) =>
-    signIn(values.username.trim(), values.password);
+    signIn(values.username.trim(), values.password, values.remember ?? true);
 
   return (
     <div className="login">
@@ -189,4 +196,16 @@ export function LegalDialog({ label, body }: { label: string; body: string }) {
       </Dialog>
     </>
   );
+}
+
+/** Chrome and Edge show their "Save password?" prompt; elsewhere this does nothing. */
+async function offerToSavePassword(id: string, password: string) {
+  const Credential = (window as { PasswordCredential?: new (data: { id: string; password: string }) => Credential })
+    .PasswordCredential;
+  if (!Credential || !navigator.credentials) return;
+  try {
+    await navigator.credentials.store(new Credential({ id, password }));
+  } catch {
+    // The user dismissed it, or the browser refused; signing in already worked.
+  }
 }

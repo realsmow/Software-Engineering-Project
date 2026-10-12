@@ -38,6 +38,10 @@ export interface StaffQueueRow {
   usageKey: number | null;
   /** What `loan.allocate` takes. Null once the row has a usageKey instead. */
   reservationKey: number | null;
+  /** The cart it was submitted in; one cart is one borrow on screen. */
+  cartKey?: number | null;
+  /** The equipment type; null for a room. */
+  itemKey?: number | null;
   status: UsageStatus | null;
   borrower: BorrowerRef;
   itemName: string | null;

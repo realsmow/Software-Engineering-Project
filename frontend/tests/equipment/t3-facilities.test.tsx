@@ -24,6 +24,7 @@ vi.mock("../../src/features/borrower/rooms/use-rooms", () => ({
   useRoom: vi.fn(),
   useRoomDay: vi.fn(),
   useFreeSlots: vi.fn(),
+  useSlotTotals: vi.fn(() => new Map()),
   useCreateRoomBooking: vi.fn(),
 }));
 
@@ -101,6 +102,25 @@ describe("Module 5 T3 facilities", () => {
   });
 
   afterEach(() => vi.useRealTimers());
+
+  it("#211: the room search keeps focus while typing, even with no match", () => {
+    render(
+      <MemoryRouter>
+        <RoomListPage />
+      </MemoryRouter>
+    );
+    const search = screen.getAllByRole("searchbox", {
+      name: i18n.t("borrower.rooms.searchPlaceholder"),
+    })[0];
+    search.focus();
+    for (const text of ["z", "zz", "zzz"]) fireEvent.change(search, { target: { value: text } });
+    const after = screen.getAllByRole("searchbox", {
+      name: i18n.t("borrower.rooms.searchPlaceholder"),
+    })[0];
+    expect(after).toBe(search);
+    expect(document.activeElement).toBe(search);
+    expect(screen.getAllByText(i18n.t("borrower.rooms.emptyTitle")).length).toBeGreaterThan(0);
+  });
 
   it("lists a room with its location, capacity, and free-slot count", () => {
     render(
@@ -284,7 +304,7 @@ describe("Module 5 T3 facilities", () => {
         } as never);
         submit = selectFreeSlot();
       });
-      it.fails(
+      it(
         "blocks a second room request while the existing booking is active",
         () => {
           expect(submit).toBeDisabled();
@@ -339,7 +359,7 @@ describe("Module 5 T3 facilities", () => {
             name: i18n.t("borrower.booking.submit"),
           });
         });
-        it.fails("allows selecting a new booking after the previous window ends", () => {
+        it("allows selecting a new booking after the previous window ends", () => {
           expect(submit).toBeEnabled();
         });
       });
@@ -363,6 +383,7 @@ describe("Module 5 T3 facilities", () => {
         "../../src/features/borrower/rooms/use-rooms"
       );
       vi.mocked(roomHooks.useFreeSlots).mockImplementation(actual.useFreeSlots);
+      vi.mocked(roomHooks.useSlotTotals).mockImplementation(actual.useSlotTotals);
       const date = todayLocalDayKey();
       const day = roomAvailabilityOutput.strict().parse({
         ...buildRoomDay(),
@@ -398,7 +419,7 @@ describe("Module 5 T3 facilities", () => {
       );
     });
     afterEach(() => queryClient?.clear());
-    it.fails("uses the actual four-slot total rather than the default twenty", () => {
+    it("uses the actual four-slot total rather than the default twenty", () => {
       expect(
         screen.getAllByText(i18n.t("borrower.rooms.slots", { free: 4, total: 4 })).length
       ).toBeGreaterThan(0);

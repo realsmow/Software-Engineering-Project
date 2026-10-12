@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQueries, useQuery } from "@tanstack/react-query";
 import { POLLING } from "@/constants";
 import { queryKeys } from "@/lib/query-client";
 import { useTRPCClient } from "@/lib/trpc";
@@ -140,5 +140,18 @@ export function useUnitSchedule(id: string | undefined, from: string, days = 14)
     enabled: itemKey(id) !== null,
     queryFn: () => trpc.item.unitSchedule.query({ id: itemKey(id) as number, from, days }),
     refetchInterval: POLLING.AVAILABILITY,
+  });
+}
+
+/** The same schedule for several types at once: every item in the cart. */
+export function useCartSchedule(ids: string[], from: string, days: number) {
+  const trpc = useTRPCClient();
+  return useQueries({
+    queries: ids.map((id) => ({
+      queryKey: ["unit-schedule", id, from, days],
+      enabled: itemKey(id) !== null,
+      queryFn: () => trpc.item.unitSchedule.query({ id: itemKey(id) as number, from, days }),
+      refetchInterval: POLLING.AVAILABILITY,
+    })),
   });
 }

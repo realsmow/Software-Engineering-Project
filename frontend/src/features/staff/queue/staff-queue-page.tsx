@@ -432,14 +432,19 @@ export default function StaffQueuePage() {
       header: t("staff.queue.colItem"),
       render: (r) => {
         const serials = r.members.flatMap((m) => (m.serialNo ? [m.serialNo] : []));
+        // A cart can mix items: one line per item name with its count.
+        const counts = new Map<string, number>();
+        for (const m of r.members) counts.set(m.itemName ?? "-", (counts.get(m.itemName ?? "-") ?? 0) + 1);
         return (
           <div className="min-w-0">
-            <div className="truncate text-foreground">
-              {r.itemName ?? "-"}
-              {r.members.length > 1 ? (
-                <span className="ml-1.5 font-semibold text-accent">×{r.members.length}</span>
-              ) : null}
-            </div>
+            {[...counts].map(([name, n]) => (
+              <div key={name} className="truncate text-foreground">
+                {name}
+                {n > 1 || r.members.length > 1 ? (
+                  <span className="ml-1.5 font-semibold text-accent">×{n}</span>
+                ) : null}
+              </div>
+            ))}
             <div className="mt-0.5 flex items-center gap-1.5 font-mono text-[11px] text-t4">
               <TierDot tier={r.tier} />
               {r.tier ?? t("borrower.catalog.tierUnknown")}
@@ -685,10 +690,13 @@ export default function StaffQueuePage() {
 /** A queue row standing for one or more units from the same submit. */
 type QueueEntry = StaffQueueRow & { members: StaffQueueRow[] };
 
-// ponytail: there is no submit id, so "same borrower, item, window and state"
-// stands in for one submit. Two separate requests that match exactly merge too.
+// One cart is one borrow, whatever mix of items it holds. Rows from before
+// carts fall back to borrower + type + window (#209: type, not display name).
 function groupKey(r: StaffQueueRow): string {
-  return [r.borrower.accountKey, r.itemName, r.pickupAt, r.dueAt, r.status].join("|");
+  if (r.cartKey != null) return `cart:${r.cartKey}|${r.status}`;
+  // A display name is not unique (#209): without a type id, no grouping.
+  if (r.itemKey == null) return `row:${rowKey(r)}`;
+  return [r.borrower.accountKey, r.itemKey, r.pickupAt, r.dueAt, r.status].join("|");
 }
 
 function groupQueueRows(rows: StaffQueueRow[], split: Set<string>): QueueEntry[] {

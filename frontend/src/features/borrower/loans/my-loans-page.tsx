@@ -69,6 +69,8 @@ export default function MyLoansPage() {
   const [tab, setTab] = useState<RequestTab>("active");
   const [cancelError, setCancelError] = useState<string | null>(null);
   const [cancelTarget, setCancelTarget] = useState<MyRequest | null>(null);
+  // Set when cancelling a whole cart: every line still cancellable goes.
+  const [cancelCart, setCancelCart] = useState<MyRequest[] | null>(null);
 
   const { requests, draft, countByTab } = useMyRequests();
   const penaltiesByUsage = usePenaltiesByUsage();
@@ -76,24 +78,33 @@ export default function MyLoansPage() {
   const clearDraft = useRequestDraft((s) => s.clear);
 
   const rows = requestsInTab(requests, tab);
+  // Demo feedback: one cart is one borrow. Its lines stay separate cards
+  // (they can end differently) inside one box with a whole-borrow cancel.
+  const carts = groupByCart(rows);
   const showDraft = tab === "active" && draft !== null;
   const empty = rows.length === 0 && !showDraft;
 
   function closeCancelModal() {
     if (cancelRequest.isPending) return;
     setCancelTarget(null);
+    setCancelCart(null);
     setCancelError(null);
   }
 
   async function confirmCancellation() {
     // Every listed row comes from loan.list and carries its key.
-    if (!cancelTarget || cancelTarget.reservationKey === undefined) return;
+    const targets = cancelCart ?? (cancelTarget ? [cancelTarget] : []);
+    if (targets.length === 0) return;
 
     setCancelError(null);
 
     try {
-      await cancelRequest.mutateAsync({ reservationKey: cancelTarget.reservationKey });
+      for (const row of targets) {
+        if (row.reservationKey === undefined) continue;
+        await cancelRequest.mutateAsync({ reservationKey: row.reservationKey });
+      }
       setCancelTarget(null);
+      setCancelCart(null);
     } catch (error) {
       setCancelError(getErrorMessage(error));
     }
@@ -154,33 +165,70 @@ export default function MyLoansPage() {
             />
           ) : null}
 
-          {rows.map((row) => (
-            <RequestCard
-              key={row.id}
-              row={row}
-              penalties={
-                row.usageKey != null ? (penaltiesByUsage.get(row.usageKey) ?? []) : []
-              }
-              cancelling={
-                cancelRequest.isPending &&
-                cancelRequest.variables?.reservationKey === row.reservationKey
-              }
-              onCancel={() => {
-                setCancelError(null);
-                setCancelTarget(row);
-              }}
-            />
-          ))}
+          {carts.map((lines) => {
+            const cards = lines.map((row) => (
+              <RequestCard
+                key={row.id}
+                row={row}
+                penalties={
+                  row.usageKey != null ? (penaltiesByUsage.get(row.usageKey) ?? []) : []
+                }
+                cancelling={
+                  cancelRequest.isPending &&
+                  cancelRequest.variables?.reservationKey === row.reservationKey
+                }
+                onCancel={() => {
+                  setCancelError(null);
+                  setCancelTarget(row);
+                }}
+              />
+            ));
+            if (lines.length === 1) return cards;
+            const cancellable = lines.filter((r) => r.cancellable);
+            return (
+              <section
+                key={`cart-${lines[0].cartKey}`}
+                aria-label={t("borrower.myRequests.cartTitle", { count: lines.length })}
+                className="rounded-lg border border-dashed border-line-strong p-2.5"
+              >
+                <div className="mb-2 flex flex-wrap items-center justify-between gap-2 px-1">
+                  <span className="text-[12px] font-semibold uppercase tracking-wide text-t3">
+                    {t("borrower.myRequests.cartTitle", { count: lines.length })}
+                  </span>
+                  {cancellable.length > 0 ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setCancelError(null);
+                        setCancelCart(cancellable);
+                      }}
+                    >
+                      {t("borrower.myRequests.cancelCart", { count: cancellable.length })}
+                    </Button>
+                  ) : null}
+                </div>
+                <div className="flex flex-col gap-2">{cards}</div>
+              </section>
+            );
+          })}
 
           {empty ? <EmptyState /> : null}
         </div>
       </section>
 
       <Modal
-        open={cancelTarget !== null}
+        open={cancelTarget !== null || cancelCart !== null}
         onClose={closeCancelModal}
         title={t("borrower.myRequests.cancelConfirmTitle")}
-        subtitle={cancelTarget ? `${cancelTarget.id} · ${cancelTarget.name}` : undefined}
+        subtitle={
+          cancelCart
+            ? cancelCart.map((r) => r.name).join(" · ")
+            : cancelTarget
+              ? `${cancelTarget.id} · ${cancelTarget.name}`
+              : undefined
+        }
         footer={
           <>
             <Button
@@ -720,4 +768,14 @@ function exportCsv(requests: MyRequest[]): void {
   a.download = "my-requests.csv";
   a.click();
   URL.revokeObjectURL(url);
+}
+
+/** Rows of one cart together, in the order the first of each appears. */
+function groupByCart(rows: MyRequest[]): MyRequest[][] {
+  const groups = new Map<string, MyRequest[]>();
+  for (const row of rows) {
+    const key = row.cartKey != null ? `c${row.cartKey}` : `r${row.id}`;
+    groups.set(key, [...(groups.get(key) ?? []), row]);
+  }
+  return [...groups.values()];
 }

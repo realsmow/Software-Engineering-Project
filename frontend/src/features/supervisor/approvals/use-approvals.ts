@@ -81,6 +81,18 @@ export function useDecideApproval() {
   });
 }
 
+/** One decision for every pending line of a cart; refused lines come back in `failed`. */
+export function useDecideCart() {
+  const trpc = useTRPCClient();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (input: { cartKey: number; decision: "approve" | "reject"; reason?: string }) =>
+      trpc.approval.decideCart.mutate(input),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: APPROVALS_KEY }),
+  });
+}
+
 /**
  * Extension requests waiting on this desk.
  *

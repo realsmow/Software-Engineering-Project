@@ -86,6 +86,28 @@ export function useFreeSlots(rooms: Room[], date: string): Map<string, number> {
 }
 
 /**
+ * Each room's real number of slots that day (#217: a 09:00-11:00 room has 4,
+ * not the 20 of a full day). Same queries as useFreeSlots, so served from cache.
+ */
+export function useSlotTotals(rooms: Room[], date: string): Map<string, number> {
+  const trpc = useTRPCClient();
+  const results = useQueries({
+    queries: rooms.map((room) => ({
+      queryKey: queryKeys.facilitySlots(room.id, date),
+      queryFn: (): Promise<RoomDay> =>
+        trpc.item.roomAvailability.query({ roomKey: Number(room.id), date }),
+      refetchInterval: POLLING.AVAILABILITY,
+      staleTime: 0,
+    })),
+  });
+  const totals = new Map<string, number>();
+  results.forEach((r, i) => {
+    if (r.data) totals.set(rooms[i].id, r.data.slots.length);
+  });
+  return totals;
+}
+
+/**
  * Book a run of slots.
  *
  * The server answers with `created` and `rejected` rather than throwing when a

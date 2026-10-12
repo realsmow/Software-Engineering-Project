@@ -9,6 +9,7 @@ vi.mock("../../src/features/supervisor/approvals/use-approvals", () => ({
   useApprovalCounts: vi.fn(),
   useApprovalQueue: vi.fn(),
   useDecideApproval: vi.fn(),
+  useDecideCart: vi.fn(() => ({ mutateAsync: vi.fn(), isPending: false })),
   useExtensionQueue: vi.fn(),
   useDecideExtension: vi.fn(),
   useRetirementQueue: vi.fn(),
@@ -54,7 +55,7 @@ describe("Supervisor approvals: Retirements tab", () => {
 
   function openRetirementsTab() {
     render(<SupervisorApprovalsPage />);
-    fireEvent.click(screen.getByRole("tab", { name: "Retirements" }));
+    fireEvent.click(screen.getByRole("tab", { name: /^Retirements/ }));
   }
 
   it("renders the pending retirement row", () => {
