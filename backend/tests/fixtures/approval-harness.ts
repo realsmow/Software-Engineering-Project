@@ -70,8 +70,13 @@ const borrower = {
 
 export function setup(row = reservation()) {
   const prisma = {
+    // Row lock and re-read under it (#220).
+    $queryRaw: jest.fn().mockResolvedValue([]),
     reservations: {
       findUnique: jest.fn().mockImplementation(() => Promise.resolve(row)),
+      findUniqueOrThrow: jest
+        .fn()
+        .mockImplementation(() => Promise.resolve(row)),
       findMany: jest.fn().mockResolvedValue([]),
       count: jest.fn().mockResolvedValue(0),
       update: jest

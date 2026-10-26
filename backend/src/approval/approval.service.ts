@@ -18,6 +18,7 @@ import {
   withBuffer,
 } from '../common/booking/booking-window';
 import { BusinessError } from '../common/errors/business-error';
+import { lockRow } from '../common/db/lock-row';
 import {
   daysBetween,
   startOfLocalDay,
@@ -300,6 +301,28 @@ export class ApprovalService {
     return { decided, failed };
   }
 
+  /**
+   * #220: two supervisors deciding the same request at once both passed the
+   * early check. Lock it and re-check under the lock; the second gets
+   * ALREADY_DECIDED instead of overwriting the first decision.
+   */
+  private async lockPending(
+    tx: Prisma.TransactionClient,
+    reservationKey: number,
+  ) {
+    await lockRow(tx, 'Reservations', reservationKey);
+    const fresh = await tx.reservations.findUniqueOrThrow({
+      where: { ReservationKey: reservationKey },
+      select: { ApproveStatus: true },
+    });
+    if (fresh.ApproveStatus !== 'Pending') {
+      throw new BusinessError('ALREADY_DECIDED', {
+        reservationKey,
+        status: fresh.ApproveStatus,
+      });
+    }
+  }
+
   async decide(user: TrpcUser, input: DecideApprovalInput) {
     const row = await this.prisma.reservations.findUnique({
       where: { ReservationKey: input.reservationKey },
@@ -347,6 +370,7 @@ export class ApprovalService {
       // rejection that failed to write. "คำขอถูกปฏิเสธ" for a request still
       // sitting in the queue is worse than no notification.
       await this.prisma.$transaction(async (tx) => {
+        await this.lockPending(tx, input.reservationKey);
         await tx.reservations.update({
           where: { ReservationKey: input.reservationKey },
           data: {
@@ -389,6 +413,7 @@ export class ApprovalService {
     );
 
     const cancelled = await runSerializable(this.prisma, async (tx) => {
+      await this.lockPending(tx, input.reservationKey);
       const clashes = await tx.reservations.findMany({
         where: {
           ...clashingWindowFilter(

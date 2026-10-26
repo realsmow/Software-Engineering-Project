@@ -48,7 +48,10 @@ function setup() {
       aggregate: jest.fn().mockResolvedValue({ _sum: { CreditDeducted: 7 } }),
     },
     accountInfo: { update: jest.fn() },
-    appealInfo: { update: jest.fn() },
+    appealInfo: {
+      update: jest.fn(),
+      findUniqueOrThrow: jest.fn(async () => row),
+    },
   };
   const prisma = {
     appealInfo: { findUnique: jest.fn().mockResolvedValue(row) },

@@ -302,6 +302,12 @@ describe('Module 6 request validation', () => {
       row.Reason = data.Reason;
       return Promise.resolve(row);
     });
+    // Cancel runs in one locked transaction (#220); run it on the same stub.
+    db.$queryRaw = jest.fn().mockResolvedValue([]);
+    db.reservations.findUniqueOrThrow = jest
+      .fn()
+      .mockResolvedValue({ ApproveStatus: 'Pending', UsageLogs: [] });
+    db.$transaction = jest.fn(async (work: any) => work(db));
 
     const result = await service(db).cancel(user as never, {
       reservationKey: 101,

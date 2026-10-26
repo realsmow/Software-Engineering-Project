@@ -91,3 +91,16 @@ function isSerializationFailure(error: unknown): boolean {
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
+
+/**
+ * A unique-constraint violation: Prisma's P2002, or SQLSTATE 23505 through the
+ * pg driver adapter (same two spellings as a serialization failure above).
+ * #221: a race the database caught should read as "already done", not 500.
+ */
+export function isUniqueViolation(error: unknown): boolean {
+  if (typeof error !== 'object' || error === null) return false;
+  const { code, cause } = error as { code?: unknown; cause?: unknown };
+  if (code === 'P2002') return true;
+  if (typeof cause !== 'object' || cause === null) return false;
+  return (cause as { originalCode?: unknown }).originalCode === '23505';
+}

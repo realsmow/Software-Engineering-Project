@@ -54,7 +54,13 @@ function service(overrides: {
 }) {
   const usage = overrides.usage ?? usageRow();
   const tx = {
-    usageLog: { update: jest.fn().mockResolvedValue({}) },
+    $queryRaw: jest.fn().mockResolvedValue([]),
+    usageLog: {
+      findUniqueOrThrow: jest
+        .fn()
+        .mockResolvedValue({ CurrentStatus: 'Lended' }),
+      update: jest.fn().mockResolvedValue({}),
+    },
     resourceInfo: { update: jest.fn().mockResolvedValue({}) },
     conditionLog: {
       create: jest.fn().mockResolvedValue({ ConditionKey: 900 }),

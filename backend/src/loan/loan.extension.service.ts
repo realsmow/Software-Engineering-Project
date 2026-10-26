@@ -22,6 +22,7 @@ import {
   withBuffer,
 } from '../common/booking/booking-window';
 import { BusinessError } from '../common/errors/business-error';
+import { lockRow } from '../common/db/lock-row';
 import {
   addDays,
   daysBetween,
@@ -354,6 +355,30 @@ export class LoanExtensionService {
       // can be committed a millisecond apart, and only one of them may win the
       // days they share.
       await this.assertHoldableUntil(tx, usage, requestedDue);
+
+      // #220: a double click filed two "extension #1"s. Lock the loan and
+      // re-check that this number is still free and nothing is pending.
+      await lockRow(tx, 'UsageLog', usage.UsageKey);
+      const fresh = await tx.usageLog.findUniqueOrThrow({
+        where: { UsageKey: usage.UsageKey },
+        select: {
+          PendingExtension: true,
+          ExtensionRequests: {
+            where: { ExtendNo: extendNo },
+            select: { ExtensionKey: true },
+          },
+        },
+      });
+      if (
+        fresh.PendingExtension !== null ||
+        fresh.ExtensionRequests.length > 0
+      ) {
+        throw new BusinessError('EXTENSION_ALREADY_PENDING', {
+          usageKey: usage.UsageKey,
+          extensionKey:
+            fresh.PendingExtension ?? fresh.ExtensionRequests[0].ExtensionKey,
+        });
+      }
 
       const row = await tx.extensionRequest.create({
         data: {

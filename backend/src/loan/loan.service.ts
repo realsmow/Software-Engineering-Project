@@ -15,6 +15,7 @@ import {
   withBuffer,
 } from '../common/booking/booking-window';
 import { BusinessError } from '../common/errors/business-error';
+import { lockRow } from '../common/db/lock-row';
 import {
   addDays,
   daysBetween,
@@ -298,6 +299,30 @@ export class LoanService {
     await this.assertUnitFree(target.ResourceKey, reservation.ReservationKey);
 
     const usageKey = await this.prisma.$transaction(async (tx) => {
+      // #220: two staff preparing at once, or the borrower cancelling meanwhile.
+      // Lock the request, then re-check it under the lock.
+      await lockRow(tx, 'Reservations', reservation.ReservationKey);
+      const fresh = await tx.reservations.findUniqueOrThrow({
+        where: { ReservationKey: reservation.ReservationKey },
+        select: {
+          ApproveStatus: true,
+          UsageLogs: { take: 1, select: { UsageKey: true } },
+        },
+      });
+      if (fresh.ApproveStatus !== 'Approved') {
+        throw new BusinessError('NOT_APPROVED_YET', {
+          reservationKey: reservation.ReservationKey,
+          status: fresh.ApproveStatus,
+        });
+      }
+      if (fresh.UsageLogs.length > 0) {
+        throw new BusinessError('WRONG_LOAN_STATE', {
+          reservationKey: reservation.ReservationKey,
+          usageKey: fresh.UsageLogs[0].UsageKey,
+          expected: 'not yet prepared',
+        });
+      }
+
       const condition = await tx.conditionLog.create({
         data: {
           ResourceKey: target.ResourceKey,
@@ -452,6 +477,7 @@ export class LoanService {
     await this.assertUnitFree(target.ResourceKey, usage.ReservationKey);
 
     await this.prisma.$transaction(async (tx) => {
+      await this.lockUsageState(tx, input.usageKey, ['Prepared']);
       const condition = await tx.conditionLog.create({
         data: {
           ResourceKey: target.ResourceKey,
@@ -548,6 +574,7 @@ export class LoanService {
     const dueTime = shiftedDue > now ? shiftedDue : usage.DueTime;
 
     await this.prisma.$transaction(async (tx) => {
+      await this.lockUsageState(tx, input.usageKey, ['Prepared']);
       if (early) {
         // Only the stretch before the booked start is new; the rest was
         // already checked when the request was made.
@@ -653,6 +680,7 @@ export class LoanService {
     const now = new Date();
     const overdueDays = this.penalties.overdueDays(usage.DueTime, now);
     const settled = await this.prisma.$transaction(async (tx) => {
+      await this.lockUsageState(tx, input.usageKey, ['Lended']);
       await tx.usageLog.update({
         where: { UsageKey: input.usageKey },
         data: {
@@ -776,6 +804,7 @@ export class LoanService {
     );
 
     await this.prisma.$transaction(async (tx) => {
+      await this.lockUsageState(tx, input.usageKey, ['Lended']);
       const condition = await tx.conditionLog.create({
         data: {
           ResourceKey: usage.Resource.ResourceKey,
@@ -1022,6 +1051,29 @@ export class LoanService {
       throw new BusinessError('LOAN_NOT_FOUND', { usageKey });
     }
     return usage;
+  }
+
+  /**
+   * #220: locks the loan and re-checks its state inside the transaction, so a
+   * second click that passed the early check waits, then fails cleanly.
+   */
+  private async lockUsageState(
+    tx: Prisma.TransactionClient,
+    usageKey: number,
+    expected: UsageRow['CurrentStatus'][],
+  ): Promise<void> {
+    await lockRow(tx, 'UsageLog', usageKey);
+    const fresh = await tx.usageLog.findUniqueOrThrow({
+      where: { UsageKey: usageKey },
+      select: { CurrentStatus: true },
+    });
+    if (!expected.includes(fresh.CurrentStatus)) {
+      throw new BusinessError('WRONG_LOAN_STATE', {
+        usageKey,
+        actual: fresh.CurrentStatus,
+        expected,
+      });
+    }
   }
 
   /**

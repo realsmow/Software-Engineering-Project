@@ -11,6 +11,7 @@ import { StaffScopeService } from '../common/authority/staff-scope.service';
 import { ImageService } from '../image/image.service';
 import { PenaltyService } from '../common/penalty/penalty.service';
 import { BusinessError } from '../common/errors/business-error';
+import { isUniqueViolation } from '../common/db/serializable';
 import {
   daysBetween,
   toIso,
@@ -307,96 +308,105 @@ export class InspectionService {
       level,
     );
 
-    const inspectionKey = await this.prisma.$transaction(async (tx) => {
-      const conditionLog = await tx.conditionLog.create({
-        data: {
-          ResourceKey: usage.Resource.ResourceKey,
-          LoggedBy: user.accountKey,
-          Condition: condition,
-          Notes: input.note ?? null,
-          LoggedAt: now,
-        },
-        select: { ConditionKey: true },
-      });
-
-      const penaltyKey = await this.penalties.apply(tx, quote, {
-        accountKey: usage.Account.AccountKey,
-        usageKey: usage.UsageKey,
-        // Damage is settled the day it is found; the loan is already back.
-        effectiveFrom: now,
-        note: input.note,
-      });
-
-      // FR-NTF-01: tell the borrower, as the late-return penalty does.
-      if (penaltyKey !== null) {
-        const account = await tx.accountInfo.findUniqueOrThrow({
-          where: { AccountKey: usage.Account.AccountKey },
-          select: { UserCredit: true },
+    const inspectionKey = await this.prisma
+      .$transaction(async (tx) => {
+        const conditionLog = await tx.conditionLog.create({
+          data: {
+            ResourceKey: usage.Resource.ResourceKey,
+            LoggedBy: user.accountKey,
+            Condition: condition,
+            Notes: input.note ?? null,
+            LoggedAt: now,
+          },
+          select: { ConditionKey: true },
         });
-        await this.notifications.creditDeducted(tx, {
+
+        const penaltyKey = await this.penalties.apply(tx, quote, {
           accountKey: usage.Account.AccountKey,
-          penaltyKey,
-          amount: quote.amount,
-          reason: quote.reason,
-          newScore: account.UserCredit,
-          expiresAt: addDays(now, quote.lengthDays),
-          itemName: resourceName(usage.Resource),
+          usageKey: usage.UsageKey,
+          // Damage is settled the day it is found; the loan is already back.
+          effectiveFrom: now,
+          note: input.note,
         });
-      }
 
-      const inspection = await tx.inspection.create({
-        data: {
-          UsageKey: usage.UsageKey,
-          ResourceKey: usage.Resource.ResourceKey,
-          InspectorKey: user.accountKey,
-          ConditionKey: conditionLog.ConditionKey,
-          PenaltyKey: penaltyKey,
-          ActionTime: now,
-          Notes: input.note ?? null,
-        },
-        select: { InspectionKey: true },
-      });
+        // FR-NTF-01: tell the borrower, as the late-return penalty does.
+        if (penaltyKey !== null) {
+          const account = await tx.accountInfo.findUniqueOrThrow({
+            where: { AccountKey: usage.Account.AccountKey },
+            select: { UserCredit: true },
+          });
+          await this.notifications.creditDeducted(tx, {
+            accountKey: usage.Account.AccountKey,
+            penaltyKey,
+            amount: quote.amount,
+            reason: quote.reason,
+            newScore: account.UserCredit,
+            expiresAt: addDays(now, quote.lengthDays),
+            itemName: resourceName(usage.Resource),
+          });
+        }
 
-      await tx.usageLog.update({
-        where: { UsageKey: usage.UsageKey },
-        // `Inspected` is what ends the loan's hold on the unit — see
-        // UNAVAILABLE_USAGE_STATES.
-        data: {
-          CurrentStatus: 'Inspected',
-          CheckInCondition: conditionLog.ConditionKey,
-        },
-      });
-
-      await tx.resourceInfo.update({
-        where: { ResourceKey: usage.Resource.ResourceKey },
-        data: {
-          ConditionKey: conditionLog.ConditionKey,
-          ...(condition === 'Missing'
-            ? { ResourceStatus: 'Missing' as const }
-            : {}),
-          // B0 and B1 go back on the shelf; anything worse waits for a repair
-          // decision, because lending out a unit with known major damage makes
-          // the next borrower's grade meaningless.
-          ...(unusable ? { AllowBorrow: false } : {}),
-        },
-      });
-
-      if (input.imageUrls.length > 0) {
-        await tx.images.createMany({
-          data: input.imageUrls.map((url) => ({
-            SubmittedBy: user.accountKey,
+        const inspection = await tx.inspection.create({
+          data: {
             UsageKey: usage.UsageKey,
             ResourceKey: usage.Resource.ResourceKey,
-            InspectionKey: inspection.InspectionKey,
-            ImageURL: this.images.toStoredUrl(url),
-            SubmissionType: 'InspectionPicture' as const,
+            InspectorKey: user.accountKey,
+            ConditionKey: conditionLog.ConditionKey,
+            PenaltyKey: penaltyKey,
             ActionTime: now,
-          })),
+            Notes: input.note ?? null,
+          },
+          select: { InspectionKey: true },
         });
-      }
 
-      return inspection.InspectionKey;
-    });
+        await tx.usageLog.update({
+          where: { UsageKey: usage.UsageKey },
+          // `Inspected` is what ends the loan's hold on the unit — see
+          // UNAVAILABLE_USAGE_STATES.
+          data: {
+            CurrentStatus: 'Inspected',
+            CheckInCondition: conditionLog.ConditionKey,
+          },
+        });
+
+        await tx.resourceInfo.update({
+          where: { ResourceKey: usage.Resource.ResourceKey },
+          data: {
+            ConditionKey: conditionLog.ConditionKey,
+            ...(condition === 'Missing'
+              ? { ResourceStatus: 'Missing' as const }
+              : {}),
+            // B0 and B1 go back on the shelf; anything worse waits for a repair
+            // decision, because lending out a unit with known major damage makes
+            // the next borrower's grade meaningless.
+            ...(unusable ? { AllowBorrow: false } : {}),
+          },
+        });
+
+        if (input.imageUrls.length > 0) {
+          await tx.images.createMany({
+            data: input.imageUrls.map((url) => ({
+              SubmittedBy: user.accountKey,
+              UsageKey: usage.UsageKey,
+              ResourceKey: usage.Resource.ResourceKey,
+              InspectionKey: inspection.InspectionKey,
+              ImageURL: this.images.toStoredUrl(url),
+              SubmissionType: 'InspectionPicture' as const,
+              ActionTime: now,
+            })),
+          });
+        }
+
+        return inspection.InspectionKey;
+      })
+      .catch((error: unknown) => {
+        // #221: the database caught a second save racing this one.
+        if (isUniqueViolation(error))
+          throw new BusinessError('ALREADY_INSPECTED', {
+            usageKey: input.usageKey,
+          });
+        throw error;
+      });
 
     await this.audit.record(
       { accountKey: user.accountKey },

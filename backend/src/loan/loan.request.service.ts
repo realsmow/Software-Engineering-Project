@@ -29,6 +29,7 @@ import {
   toRoomHours,
 } from '../common/booking/room-slots';
 import { BusinessError } from '../common/errors/business-error';
+import { lockRow } from '../common/db/lock-row';
 import {
   NotificationService,
   resourceName,
@@ -842,21 +843,51 @@ export class LoanRequestService {
       ResolvedAt: new Date(),
       DecisionNote: input.reason ?? null,
     };
-    if (usage) {
-      await this.prisma.$transaction(async (tx) => {
-        await tx.images.deleteMany({ where: { UsageKey: usage.UsageKey } });
-        await tx.usageLog.delete({ where: { UsageKey: usage.UsageKey } });
-        await tx.reservations.update({
-          where: { ReservationKey: input.reservationKey },
-          data: cancelled,
-        });
+    await this.prisma.$transaction(async (tx) => {
+      // #220: staff may be preparing this very request. Lock it and re-check:
+      // a cancel that read "not prepared" must not land after the preparation.
+      await lockRow(tx, 'Reservations', input.reservationKey);
+      const fresh = await tx.reservations.findUniqueOrThrow({
+        where: { ReservationKey: input.reservationKey },
+        select: {
+          ApproveStatus: true,
+          UsageLogs: { select: { UsageKey: true, CurrentStatus: true } },
+        },
       });
-    } else {
-      await this.prisma.reservations.update({
+      if (
+        fresh.ApproveStatus === 'Canceled' ||
+        fresh.ApproveStatus === 'Rejected'
+      ) {
+        throw new BusinessError('ALREADY_DECIDED', {
+          reservationKey: input.reservationKey,
+          status: fresh.ApproveStatus,
+        });
+      }
+      const freshUsage = fresh.UsageLogs[0];
+      // Only the prepared room seen above may be cleared; anything else that
+      // appeared meanwhile means it has been prepared, so it is too late.
+      if (
+        freshUsage &&
+        (!usage ||
+          freshUsage.UsageKey !== usage.UsageKey ||
+          freshUsage.CurrentStatus !== 'Prepared')
+      ) {
+        throw new BusinessError('CANNOT_CANCEL', {
+          reservationKey: input.reservationKey,
+          reason: 'ALREADY_PREPARED',
+        });
+      }
+      if (freshUsage) {
+        await tx.images.deleteMany({
+          where: { UsageKey: freshUsage.UsageKey },
+        });
+        await tx.usageLog.delete({ where: { UsageKey: freshUsage.UsageKey } });
+      }
+      await tx.reservations.update({
         where: { ReservationKey: input.reservationKey },
         data: cancelled,
       });
-    }
+    });
 
     await this.audit.record(
       { accountKey: user.accountKey },

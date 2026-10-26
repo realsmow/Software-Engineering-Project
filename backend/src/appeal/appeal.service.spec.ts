@@ -163,7 +163,11 @@ describe('AppealService.decide — who may rule', () => {
   function prismaWith(row: ReturnType<typeof appealRow>) {
     const tx = {
       $queryRaw: jest.fn().mockResolvedValue([]),
-      appealInfo: { update: jest.fn().mockResolvedValue({}) },
+      appealInfo: {
+        update: jest.fn().mockResolvedValue({}),
+        // The re-read under the row lock (#220).
+        findUniqueOrThrow: jest.fn().mockResolvedValue(row),
+      },
       penaltyInfo: {
         update: jest.fn().mockResolvedValue({}),
         create: jest.fn().mockResolvedValue({ PenaltyKey: 56 }),
@@ -241,7 +245,11 @@ describe('AppealService.decide — what approving does', () => {
   function prismaWith(row: ReturnType<typeof appealRow>) {
     const tx = {
       $queryRaw: jest.fn().mockResolvedValue([]),
-      appealInfo: { update: jest.fn().mockResolvedValue({}) },
+      appealInfo: {
+        update: jest.fn().mockResolvedValue({}),
+        // The re-read under the row lock (#220).
+        findUniqueOrThrow: jest.fn().mockResolvedValue(row),
+      },
       penaltyInfo: {
         update: jest.fn().mockResolvedValue({}),
         create: jest.fn().mockResolvedValue({ PenaltyKey: 56 }),

@@ -106,12 +106,18 @@ describe('allocate — audit trail', () => {
   function svcAllocating() {
     const row = reserved('T1');
     const tx = {
+      $queryRaw: jest.fn().mockResolvedValue([]),
       conditionLog: {
         create: jest.fn().mockResolvedValue({ ConditionKey: 900 }),
       },
       usageLog: { create: jest.fn().mockResolvedValue({ UsageKey: 501 }) },
       resourceInfo: { update: jest.fn().mockResolvedValue({}) },
-      reservations: { update: jest.fn().mockResolvedValue({}) },
+      reservations: {
+        findUniqueOrThrow: jest
+          .fn()
+          .mockResolvedValue({ ApproveStatus: 'Approved', UsageLogs: [] }),
+        update: jest.fn().mockResolvedValue({}),
+      },
     };
     const prisma = {
       reservations: {
@@ -208,11 +214,17 @@ describe('confirmPickup before the booked time', () => {
     photo = true,
   ) {
     const tx = {
+      $queryRaw: jest.fn().mockResolvedValue([]),
       reservations: {
         findFirst: jest.fn().mockResolvedValue(clash),
         update: jest.fn().mockResolvedValue({}),
       },
-      usageLog: { update: jest.fn().mockResolvedValue({}) },
+      usageLog: {
+        findUniqueOrThrow: jest
+          .fn()
+          .mockResolvedValue({ CurrentStatus: 'Prepared' }),
+        update: jest.fn().mockResolvedValue({}),
+      },
       resourceInfo: { update: jest.fn().mockResolvedValue({}) },
     };
     const prisma = {

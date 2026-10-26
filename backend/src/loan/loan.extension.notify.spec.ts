@@ -45,7 +45,13 @@ function build(resource: any, supervisors: { AccountKey: number }[] = []) {
     extensionRequest: {
       create: jest.fn().mockResolvedValue({ ExtensionKey: 900 }),
     },
-    usageLog: { update: jest.fn().mockResolvedValue({}) },
+    $queryRaw: jest.fn().mockResolvedValue([]),
+    usageLog: {
+      findUniqueOrThrow: jest
+        .fn()
+        .mockResolvedValue({ PendingExtension: null, ExtensionRequests: [] }),
+      update: jest.fn().mockResolvedValue({}),
+    },
     reservations: { findFirst: jest.fn().mockResolvedValue(null) },
     accountInfo: { findMany: jest.fn().mockResolvedValue(supervisors) },
   };

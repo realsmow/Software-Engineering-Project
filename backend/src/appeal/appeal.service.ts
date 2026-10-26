@@ -4,6 +4,8 @@ import { PrismaService } from '../prisma.service';
 import { AuditService } from '../common/audit/audit.service';
 import { StaffScopeService } from '../common/authority/staff-scope.service';
 import { BusinessError } from '../common/errors/business-error';
+import { isUniqueViolation } from '../common/db/serializable';
+import { lockRow } from '../common/db/lock-row';
 import {
   addDays,
   toIso,
@@ -293,60 +295,69 @@ export class AppealService {
       });
     }
 
-    const appealKey = await this.prisma.$transaction(async (tx) => {
-      const created = await tx.appealInfo.create({
-        data: {
-          OriginalPenalty: input.penaltyKey,
-          FiledBy: user.accountKey,
-          AppealReason: input.appealReason,
-          ApproveStatus: 'Pending',
-          ActionTime: new Date(),
-        },
-        select: { AppealKey: true },
+    const appealKey = await this.prisma
+      .$transaction(async (tx) => {
+        const created = await tx.appealInfo.create({
+          data: {
+            OriginalPenalty: input.penaltyKey,
+            FiledBy: user.accountKey,
+            AppealReason: input.appealReason,
+            ApproveStatus: 'Pending',
+            ActionTime: new Date(),
+          },
+          select: { AppealKey: true },
+        });
+
+        await tx.penaltyInfo.update({
+          where: { PenaltyKey: input.penaltyKey },
+          data: { Appealed: true },
+        });
+
+        // Point the grading back at the appeal. `Inspection.AppealKey` is how the
+        // desk gets from an appeal to the photos and notes that justified the
+        // penalty — without it a supervisor rules on the borrower's account of
+        // the damage and nothing else.
+        await tx.inspection.updateMany({
+          where: { PenaltyKey: input.penaltyKey },
+          data: { AppealKey: created.AppealKey },
+        });
+
+        // FR-NTF-04: an appeal is now awaiting a decision. `listQueue` shows a
+        // penalty with no UsageLog (an administrative ban, no department) to
+        // every supervisor, so an appeal against one is announced the same way;
+        // otherwise only supervisors with authority over the resource's
+        // department, same as a routed request.
+        const department = penalty.UsageKey
+          ? await tx.usageLog.findUnique({
+              where: { UsageKey: penalty.UsageKey },
+              select: { Resource: { select: { ManagedBy: true } } },
+            })
+          : null;
+        const supervisors = department
+          ? await supervisorsForGroup(tx, department.Resource.ManagedBy)
+          : await allSupervisors(tx);
+        await Promise.all(
+          supervisors
+            .filter((s) => s.AccountKey !== user.accountKey)
+            .map((s) =>
+              this.notifications.appealFiled(tx, {
+                accountKey: s.AccountKey,
+                appealKey: created.AppealKey,
+                reason: input.appealReason,
+              }),
+            ),
+        );
+
+        return created.AppealKey;
+      })
+      .catch((error: unknown) => {
+        // #221: the database caught a second save racing this one.
+        if (isUniqueViolation(error))
+          throw new BusinessError('ALREADY_APPEALED', {
+            penaltyKey: input.penaltyKey,
+          });
+        throw error;
       });
-
-      await tx.penaltyInfo.update({
-        where: { PenaltyKey: input.penaltyKey },
-        data: { Appealed: true },
-      });
-
-      // Point the grading back at the appeal. `Inspection.AppealKey` is how the
-      // desk gets from an appeal to the photos and notes that justified the
-      // penalty — without it a supervisor rules on the borrower's account of
-      // the damage and nothing else.
-      await tx.inspection.updateMany({
-        where: { PenaltyKey: input.penaltyKey },
-        data: { AppealKey: created.AppealKey },
-      });
-
-      // FR-NTF-04: an appeal is now awaiting a decision. `listQueue` shows a
-      // penalty with no UsageLog (an administrative ban, no department) to
-      // every supervisor, so an appeal against one is announced the same way;
-      // otherwise only supervisors with authority over the resource's
-      // department, same as a routed request.
-      const department = penalty.UsageKey
-        ? await tx.usageLog.findUnique({
-            where: { UsageKey: penalty.UsageKey },
-            select: { Resource: { select: { ManagedBy: true } } },
-          })
-        : null;
-      const supervisors = department
-        ? await supervisorsForGroup(tx, department.Resource.ManagedBy)
-        : await allSupervisors(tx);
-      await Promise.all(
-        supervisors
-          .filter((s) => s.AccountKey !== user.accountKey)
-          .map((s) =>
-            this.notifications.appealFiled(tx, {
-              accountKey: s.AccountKey,
-              appealKey: created.AppealKey,
-              reason: input.appealReason,
-            }),
-          ),
-      );
-
-      return created.AppealKey;
-    });
 
     await this.audit.record(
       { accountKey: user.accountKey },
@@ -449,6 +460,28 @@ export class AppealService {
   }
 
   /**
+   * #220: two supervisors deciding one appeal at once both passed the early
+   * check; the borrower was told "rejected" while credit came back. Lock the
+   * appeal and re-check under the lock.
+   */
+  private async lockPendingAppeal(
+    tx: Prisma.TransactionClient,
+    appealKey: number,
+  ) {
+    await lockRow(tx, 'AppealInfo', appealKey);
+    const fresh = await tx.appealInfo.findUniqueOrThrow({
+      where: { AppealKey: appealKey },
+      select: { ApproveStatus: true },
+    });
+    if (fresh.ApproveStatus !== 'Pending') {
+      throw new BusinessError('APPEAL_ALREADY_RESOLVED', {
+        appealKey,
+        status: toAppealStatus(fresh.ApproveStatus),
+      });
+    }
+  }
+
+  /**
    * Rule on an appeal (§5.8).
    *
    * Approving lifts the original penalty and gives the credit back. It does not
@@ -509,6 +542,7 @@ export class AppealService {
 
     if (input.decision === 'reject') {
       await this.prisma.$transaction(async (tx) => {
+        await this.lockPendingAppeal(tx, input.appealKey);
         await tx.appealInfo.update({
           where: { AppealKey: input.appealKey },
           data: {
@@ -560,6 +594,7 @@ export class AppealService {
     const restored = deducted - reduced;
 
     await this.prisma.$transaction(async (tx) => {
+      await this.lockPendingAppeal(tx, input.appealKey);
       // The original stops applying whatever happens next. Written before the
       // replacement so that a failure mid-transaction cannot leave two penalties
       // in force for one incident.

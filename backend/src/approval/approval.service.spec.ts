@@ -50,7 +50,11 @@ function service(overrides: {
 }) {
   const row = 'row' in overrides ? overrides.row : baseRow();
   const tx = {
+    $queryRaw: jest.fn().mockResolvedValue([]),
     reservations: {
+      findUniqueOrThrow: jest
+        .fn()
+        .mockResolvedValue({ ApproveStatus: 'Pending' }),
       update: jest.fn().mockResolvedValue({}),
       updateMany: jest.fn().mockResolvedValue({}),
       findMany: jest.fn().mockResolvedValue(overrides.clashes ?? []),
