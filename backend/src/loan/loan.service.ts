@@ -18,6 +18,7 @@ import { BusinessError } from '../common/errors/business-error';
 import { lockRow } from '../common/db/lock-row';
 import {
   addDays,
+  closingTimeOn,
   daysBetween,
   rollDueOffWeekend,
   startOfLocalDay,
@@ -340,7 +341,10 @@ export class LoanService {
           AccountKey: reservation.ReservedBy,
           ResourceKey: target.ResourceKey,
           CurrentStatus: 'Prepared',
-          DueTime: reservation.EndTime,
+          // #229: equipment is due at closing; a room is due at its slot end.
+          DueTime: target.Room
+            ? reservation.EndTime
+            : closingTimeOn(reservation.EndTime),
           // The agreed collection time, overwritten with the real one at pickup.
           // The column is not nullable, so it cannot simply be left empty.
           CheckoutTime: reservation.StartTime,

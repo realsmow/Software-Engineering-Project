@@ -69,6 +69,7 @@ function build(
     issueTicket: jest.fn(),
     toPublicUrl: jest.fn((value: string | null | undefined) => value ?? null),
     toStoredUrl: jest.fn((value: string) => value),
+    toStoredEvidenceUrl: jest.fn((value: string) => value),
   } as unknown as ImageService;
 
   return {

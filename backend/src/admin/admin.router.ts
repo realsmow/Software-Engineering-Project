@@ -209,7 +209,7 @@ export class AdminRouter {
 
   // ── Borrowing ban (department staff) ────────────────────────────────────
 
-  // ── Lending rules (department staff) ────────────────────────────────────
+  // ── Lending rules (read by staff, changed by admin) ─────────────────────
 
   @UseMiddlewares(StaffMiddleware)
   @Query({ output: lendingSettingsOutput })
@@ -217,8 +217,11 @@ export class AdminRouter {
     return this.adminService.getLendingSettings();
   }
 
-  /** Rows listed are upserted; anything omitted is left alone. */
-  @UseMiddlewares(StaffMiddleware)
+  /**
+   * Rows listed are upserted; anything omitted is left alone.
+   * #228: the rules are shared by every department, so admin only.
+   */
+  @UseMiddlewares(AdminMiddleware)
   @Mutation({
     input: updateLendingSettingsInput,
     output: lendingSettingsOutput,

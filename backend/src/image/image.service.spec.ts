@@ -331,6 +331,27 @@ describe('ImageService', () => {
     });
   });
 
+  describe('#225: evidence must be our own evidence upload', () => {
+    it('accepts an evidence path, plain or as our signed URL', () => {
+      const stored = '/media/inspection/2026/10/a.jpg';
+      expect(service.toStoredEvidenceUrl(stored)).toBe(stored);
+      expect(service.toStoredEvidenceUrl(service.toPublicUrl(stored)!)).toBe(
+        stored,
+      );
+    });
+
+    it.each([
+      'https://example.com/not-a-photo.jpg',
+      'https://example.com/media/inspection/2026/10/a.jpg',
+      '/media/itemType/2026/10/a.jpg',
+      '/images/rooms/lab.jpg',
+    ])('refuses %s', (url) => {
+      expect(() => service.toStoredEvidenceUrl(url)).toThrow(
+        expect.objectContaining({ businessCode: 'EVIDENCE_URL_INVALID' }),
+      );
+    });
+  });
+
   it('caps the advertised limit at the global maximum', () => {
     const ticket = service.issueTicket(
       { ...REQUEST, sizeBytes: MAX_UPLOAD_BYTES },

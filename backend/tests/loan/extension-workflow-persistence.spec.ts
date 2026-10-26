@@ -16,7 +16,10 @@ import {
 } from '../fixtures/borrower-history';
 import { creditLoanFixture } from '../fixtures/loan-extension';
 import { freezeBusinessDate } from '../fixtures/business-clock';
-import { workHours } from '../../src/common/schemas/datetime.schema';
+import {
+  closingTimeOn,
+  workHours,
+} from '../../src/common/schemas/datetime.schema';
 import { PenaltyService } from '../../src/common/penalty/penalty.service';
 import { NotificationService } from '../../src/notification/notification.service';
 import { CronService } from '../../src/cron/cron.service';
@@ -35,7 +38,10 @@ type Fixture = Awaited<ReturnType<typeof creditLoanFixture>>;
 function requestFor(f: Fixture) {
   return requestExtensionInput.parse({
     usageKey: f.activeLoan.UsageKey,
-    requestedDueAt: new Date(f.due.getTime() + DAY).toISOString(),
+    // Closing time, which is where the server puts any day asked for (#229).
+    requestedDueAt: closingTimeOn(
+      new Date(f.due.getTime() + DAY),
+    ).toISOString(),
     reason: 'Finish the laboratory project',
   });
 }

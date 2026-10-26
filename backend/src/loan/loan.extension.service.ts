@@ -25,6 +25,7 @@ import { BusinessError } from '../common/errors/business-error';
 import { lockRow } from '../common/db/lock-row';
 import {
   addDays,
+  closingTimeOn,
   daysBetween,
   rollDueOffWeekend,
   toIso,
@@ -338,7 +339,8 @@ export class LoanExtensionService {
     // they asked for; the stored due date is the Monday it rolls to (#178).
     const asked = new Date(input.requestedDueAt);
     this.assertExtensionWindow(usage.DueTime, asked, allowance.maxBorrowDays);
-    const requestedDue = rollDueOffWeekend(asked);
+    // #229: due at closing on the day asked for, like the original loan.
+    const requestedDue = rollDueOffWeekend(closingTimeOn(asked));
 
     const extendNo = allowance.used + 1;
     const route = extensionRouteFor({
@@ -802,7 +804,9 @@ export class LoanExtensionService {
       // failing and being done again.
       const urls = [
         ...new Set(
-          (input.imageUrls ?? []).map((url) => this.images.toStoredUrl(url)),
+          (input.imageUrls ?? []).map((url) =>
+            this.images.toStoredEvidenceUrl(url),
+          ),
         ),
       ];
       if (urls.length > 0) {

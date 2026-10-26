@@ -171,7 +171,7 @@ describe('allocate — audit trail', () => {
         CheckInConditionLog: null,
       }),
     });
-    return { svc, audit };
+    return { svc, audit, tx };
   }
 
   it('records the allocation after it succeeds', async () => {
@@ -183,6 +183,20 @@ describe('allocate — audit trail', () => {
       'update',
       'reservation/11',
       expect.any(String),
+    );
+  });
+
+  it('#229: a 16:00 return is due at 17:00 closing', async () => {
+    const t = svcAllocating();
+    await t.svc.allocate(staff, { reservationKey: 11, condition: 'Normal' });
+
+    // Booked to 11 Jan 16:00 Bangkok (09:00Z); closing is 17:00 (10:00Z).
+    expect(t.tx.usageLog.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          DueTime: new Date('2099-01-11T10:00:00Z'),
+        }),
+      }),
     );
   });
 });

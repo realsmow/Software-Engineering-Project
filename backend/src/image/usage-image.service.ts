@@ -169,7 +169,9 @@ export class UsageImageService {
     // loading. Normalising first also keeps the idempotency check honest: the
     // same file sent twice under two signatures is one photo, not two.
     const fresh = [
-      ...new Set(input.imageUrls.map((url) => this.images.toStoredUrl(url))),
+      ...new Set(
+        input.imageUrls.map((url) => this.images.toStoredEvidenceUrl(url)),
+      ),
     ].filter((url) => !already.has(url));
 
     if (already.size + fresh.length > MAX_PHOTOS_PER_STAGE) {

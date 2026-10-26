@@ -403,27 +403,29 @@ describe('NFR-REL-02 / SDS 4.4: unit selection preserves reserved windows', () =
     describe.each([
       {
         label: 'one millisecond before shifted due',
-        actual: '2026-10-07T15:59:59.999+07:00',
+        actual: '2026-10-07T19:59:59.999+07:00',
         keepOriginal: false,
       },
       {
         label: 'exactly at shifted due',
-        actual: '2026-10-07T16:00:00.000+07:00',
+        actual: '2026-10-07T20:00:00.000+07:00',
         keepOriginal: true,
       },
       {
         label: 'one millisecond after shifted due',
-        actual: '2026-10-07T16:00:00.001+07:00',
+        actual: '2026-10-07T20:00:00.001+07:00',
         keepOriginal: true,
       },
       {
+        // #229: due is now closing (20:00 here), so 18:27 still leaves time.
         label: 'the reported 18:27 receipt',
         actual: '2026-10-07T18:27:00.000+07:00',
-        keepOriginal: true,
+        keepOriginal: false,
       },
     ])('$label', ({ actual, keepOriginal }) => {
       const receiptAt = new Date(actual);
-      const originalDue = new Date('2026-10-08T16:00:00+07:00');
+      // Due at closing on the booked day (#229).
+      const originalDue = new Date('2026-10-08T20:00:00+07:00');
       let actualDue: { api: string; usage: Date; reservation: Date };
       beforeEach(async () => {
         await inHistoryFixture(prisma, async (tx) => {
@@ -495,7 +497,7 @@ describe('NFR-REL-02 / SDS 4.4: unit selection preserves reserved windows', () =
         });
       });
       if (keepOriginal) {
-        it('accepts receipt but retains 8 Oct 16:00 in the API and both SQL records', () => {
+        it('accepts receipt but retains 8 Oct 20:00 in the API and both SQL records', () => {
           expect(actualDue).toEqual({
             api: originalDue.toISOString(),
             usage: originalDue,
@@ -506,8 +508,8 @@ describe('NFR-REL-02 / SDS 4.4: unit selection preserves reserved windows', () =
           );
         });
       } else {
-        it('keeps the usual date-only shift when 7 Oct 16:00 is still in the future', () => {
-          const shiftedDue = new Date('2026-10-07T16:00:00+07:00');
+        it('keeps the usual date-only shift when 7 Oct 20:00 is still in the future', () => {
+          const shiftedDue = new Date('2026-10-07T20:00:00+07:00');
           expect(actualDue).toEqual({
             api: shiftedDue.toISOString(),
             usage: shiftedDue,

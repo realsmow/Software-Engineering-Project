@@ -6,6 +6,7 @@ import {
   toLocalDayKey,
   toDueDate,
   isWeekend,
+  closingTimeOn,
   rollDueOffWeekend,
   weekdayEndBefore,
 } from './datetime.schema';
@@ -189,5 +190,25 @@ describe('#178: Bangkok closed days and rolled deadlines', () => {
     expect(rollDueOffWeekend(new Date(at)).toISOString()).toBe(
       new Date(at).toISOString(),
     );
+  });
+});
+
+describe('#229: a loan falls due at closing time', () => {
+  it('moves a 16:00 return to 17:00 the same day', () => {
+    // 16:00 Bangkok = 09:00Z; closing 17:00 Bangkok = 10:00Z.
+    expect(closingTimeOn(new Date('2031-09-29T09:00:00Z')).toISOString()).toBe(
+      '2031-09-29T10:00:00.000Z',
+    );
+  });
+
+  it('leaves a 17:00 return where it is', () => {
+    expect(closingTimeOn(new Date('2031-09-29T10:00:00Z')).toISOString()).toBe(
+      '2031-09-29T10:00:00.000Z',
+    );
+  });
+
+  it('never moves a time earlier', () => {
+    const late = new Date('2031-09-29T11:00:00Z');
+    expect(closingTimeOn(late)).toEqual(late);
   });
 });

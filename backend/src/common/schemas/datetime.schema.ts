@@ -104,6 +104,18 @@ export function toDueDate(isoDateOnly: string): Date {
 }
 
 /**
+ * Closing time on the day `at` falls on at the counter, never earlier than `at`.
+ *
+ * #229: a loan falls due when the counter closes on its last day (FR-ADM-04,
+ * FR-RTN-07), not at the return hour the borrower picked. A 16:00 return
+ * brought back at 16:30 is on time.
+ */
+export function closingTimeOn(at: Date): Date {
+  const closing = toDueDate(toLocalDayKey(at));
+  return closing > at ? closing : at;
+}
+
+/**
  * Whether `at` is inside the counter's working hours, closing minute included
  * (a loan due at 17:00 is returned at 17:00). Pickup and return both happen at
  * the counter, so neither may fall outside it (FR-ADM-04).

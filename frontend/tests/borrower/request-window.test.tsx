@@ -194,7 +194,8 @@ describe("Request draft stock, serials and date retention", () => {
         startDate: "2031-09-27",
         endDate: "2031-09-27",
         pickupTime: "08:00",
-        returnTime: "16:00",
+        // #229: closing time, which is when a loan falls due anyway.
+        returnTime: "17:00",
       });
     });
   });

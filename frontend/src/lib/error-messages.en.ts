@@ -73,6 +73,7 @@ export const ERROR_MESSAGES_EN: Record<string, string> = {
     "This item was already processed (another staff member may have done it first). Please refresh the queue.",
   LOAN_NOT_FOUND: "This loan was not found. It may have been cancelled or already processed.",
   PICKUP_PHOTO_REQUIRED: "Please photograph the equipment before confirming pickup.",
+  EVIDENCE_URL_INVALID: "Evidence photos must be uploaded here. Links to other sites are not accepted.",
   RETURN_PHOTO_REQUIRED: "Please photograph the equipment on return before recording the return.",
   DAMAGE_PHOTO_REQUIRED: "Please attach at least one photo of the damage for grades B1 to B3.",
   RESERVATION_NOT_FOUND: "This request was not found. It may have been cancelled.",

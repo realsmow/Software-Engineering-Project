@@ -202,6 +202,7 @@ export const ROLE_ROUTES = {
     ROUTES.ADMIN_CONFIG,
     ROUTES.ADMIN_REPORTS,
     ROUTES.ADMIN_ORG,
+    ROUTES.STAFF_SETTINGS,
   ],
 } as const;
 

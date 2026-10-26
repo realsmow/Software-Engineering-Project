@@ -51,9 +51,23 @@ test.describe("Lending settings access and save", () => {
     await editAndRestoreOneSetting(page);
   });
 
-  test("Staff can read and save lending settings", async ({ page }) => {
+  test("Staff can read lending settings but not change them", async ({
+    page,
+  }) => {
     await signIn(page, STAFF, /\/staff$/);
-    await editAndRestoreOneSetting(page);
+    await page.goto("/staff/settings");
+    await expect(page.getByText("Only an admin can change it")).toBeVisible();
+    await expect(page.getByRole("spinbutton").first()).toBeDisabled();
+    await expect(
+      page.getByRole("button", { name: "Save this rule" }).first(),
+    ).toBeDisabled();
+
+    // #228: the rules are shared by every department, so the API refuses too.
+    const response = await page.request.post(
+      "http://localhost:3000/trpc/admin.updateLendingSettings",
+      { data: { borrowRuleKey: 1 } },
+    );
+    expect(response.status()).toBe(403);
   });
 
   test("Borrower is redirected away from lending settings", async ({

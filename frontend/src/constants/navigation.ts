@@ -168,6 +168,7 @@ export const NAV_CONFIG: Record<Role, RoleNav> = {
           { key: "sys-status", labelKey: "nav.systemStatus", icon: "activity", route: ROUTES.ADMIN_STATUS },
           { key: "sys-audit", labelKey: "nav.auditLog", icon: "file-text", route: ROUTES.ADMIN_AUDIT },
           { key: "sys-config", labelKey: "nav.techConfig", icon: "server", route: ROUTES.ADMIN_CONFIG },
+          { key: "sys-lending", labelKey: "nav.lendingSettings", icon: "sliders", route: ROUTES.STAFF_SETTINGS },
         ],
       },
       {

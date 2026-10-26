@@ -390,7 +390,7 @@ export class InspectionService {
               UsageKey: usage.UsageKey,
               ResourceKey: usage.Resource.ResourceKey,
               InspectionKey: inspection.InspectionKey,
-              ImageURL: this.images.toStoredUrl(url),
+              ImageURL: this.images.toStoredEvidenceUrl(url),
               SubmissionType: 'InspectionPicture' as const,
               ActionTime: now,
             })),

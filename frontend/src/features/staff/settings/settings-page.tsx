@@ -5,6 +5,7 @@ import { TierDot } from "@/components/shared/tier-badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { getErrorMessage } from "@/lib/error-messages";
+import { useAuthStore } from "@/features/auth/auth.store";
 import type { Tier } from "@/types/domain";
 import { useLendingSettings, useUpdateLendingSettings } from "./use-lending-settings";
 import {
@@ -14,7 +15,8 @@ import {
 } from "./settings.types";
 
 /**
- * Lending rules (SRS FR-AUTH-05: a department sets the rules for its own kit).
+ * Lending rules. One table for the whole university, so only admin edits it
+ * (#228); staff and supervisors see it read-only.
  *
  * This is the T-tier x D-band matrix the rest of the system reads. The row for
  * (this item's tier, this borrower's credit band) is what `credit.me` resolves
@@ -30,6 +32,7 @@ export default function LendingSettingsPage() {
   const { t } = useTranslation();
   const { data, isLoading } = useLendingSettings();
   const save = useUpdateLendingSettings();
+  const canEdit = useAuthStore((s) => s.hasRole("admin"));
   const [result, setResult] = useState<{ tone: "ok" | "bad"; text: string } | null>(null);
 
   if (isLoading) {
@@ -64,6 +67,7 @@ export default function LendingSettingsPage() {
 
       <p className="mb-4 rounded border border-border bg-secondary px-3 py-2 text-xs leading-relaxed text-t2">
         {t("staff.settings.reachNote")}
+        {canEdit ? null : <> {t("staff.settings.adminOnly")}</>}
       </p>
 
       {result ? (
@@ -79,7 +83,8 @@ export default function LendingSettingsPage() {
         </div>
       ) : null}
 
-      <div className="flex flex-col gap-4">
+      {/* A disabled fieldset disables every input and button inside it. */}
+      <fieldset disabled={!canEdit} className="flex min-w-0 flex-col gap-4">
         {data.borrowRules.map((rule) => (
           <RuleCard
             key={rule.id}
@@ -99,7 +104,7 @@ export default function LendingSettingsPage() {
             }}
           />
         ))}
-      </div>
+      </fieldset>
     </div>
   );
 }

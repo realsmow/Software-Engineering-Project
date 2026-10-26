@@ -50,6 +50,8 @@ export const BUSINESS_ERROR_CODES = {
   USER_ID_ALREADY_IN_USE: 'CONFLICT',
   /** setAvatar was given a path that is not one of our avatar uploads. */
   AVATAR_URL_INVALID: 'BAD_REQUEST',
+  /** #225: an evidence photo that is not one of our own evidence uploads. */
+  EVIDENCE_URL_INVALID: 'BAD_REQUEST',
   FACULTY_NOT_FOUND: 'NOT_FOUND',
   GROUP_NOT_FOUND: 'NOT_FOUND',
   /** A faculty or group still referenced by people, items or rules. */

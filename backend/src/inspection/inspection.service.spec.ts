@@ -113,6 +113,7 @@ function service(overrides: {
   const images = {
     toPublicUrl: jest.fn((u: string) => u),
     toStoredUrl: jest.fn((u: string) => u),
+    toStoredEvidenceUrl: jest.fn((u: string) => u),
   } as unknown as ImageService;
   const audit = { record: jest.fn() };
 

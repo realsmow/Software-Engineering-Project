@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { CREDIT_BANDS, TIER_CONFIG } from "../../src/constants";
 import i18n from "../../src/i18n";
 import LendingSettingsPage from "../../src/features/staff/settings/settings-page";
+import { useAuthStore } from "../../src/features/auth/auth.store";
 import type { LendingSettings } from "../../src/features/staff/settings/settings.types";
 import { lendingSettingsOutput } from "../../../backend/src/admin/admin.schema";
 import {
@@ -65,6 +66,16 @@ describe("LendingSettingsPage", () => {
     vi.clearAllMocks();
     useLendingSettingsMock.mockReturnValue(queryResult(SETTINGS));
     useUpdateLendingSettingsMock.mockReturnValue(mutationResult(mutateAsync));
+    // Only admin edits the shared rules (#228).
+    useAuthStore.setState({ user: { id: "1", role: "admin" } as never });
+  });
+
+  it("#228: shows staff the rules read-only", () => {
+    useAuthStore.setState({ user: { id: "2", role: "staff" } as never });
+    renderPage();
+
+    expect(screen.getByText(i18n.t("staff.settings.adminOnly"), { exact: false })).toBeInTheDocument();
+    for (const field of screen.getAllByRole("spinbutton")) expect(field).toBeDisabled();
   });
 
   it("shows a loading state while lending settings are being fetched", () => {

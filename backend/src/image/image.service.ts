@@ -238,6 +238,19 @@ export class ImageService {
   }
 
   /**
+   * #225: evidence (pickup, return, inspection, extension, appeal photos) must
+   * be a file uploaded here into the evidence folder. A link to another site
+   * would skip the file checks and could be swapped after the fact.
+   */
+  toStoredEvidenceUrl(value: string): string {
+    const stored = this.toStoredUrl(value);
+    if (!stored.startsWith(`${MEDIA_PREFIX}${EVIDENCE_UPLOAD_PURPOSE}/`)) {
+      throw new BusinessError('EVIDENCE_URL_INVALID', { imageUrl: value });
+    }
+    return stored;
+  }
+
+  /**
    * What goes out to clients: relative paths become absolute, URLs pass
    * through.
    *

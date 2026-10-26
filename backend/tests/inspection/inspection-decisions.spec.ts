@@ -116,7 +116,10 @@ function setup(usage = subject()) {
         Promise.resolve(quote.amount > 0 ? 16 : null),
       ),
   };
-  const images = { toStoredUrl: jest.fn((url: string) => url) };
+  const images = {
+    toStoredUrl: jest.fn((url: string) => url),
+    toStoredEvidenceUrl: jest.fn((url: string) => url),
+  };
   const audit = { record: jest.fn().mockResolvedValue(undefined) };
   const service = new InspectionService(
     prisma as never,
@@ -238,7 +241,9 @@ describe('InspectionService grading', () => {
       .calls as unknown as Array<[{ data: { AllowBorrow?: boolean } }]>;
     const update = updateCalls[0][0];
     expect(update.data.AllowBorrow).toBeUndefined();
-    expect(images.toStoredUrl).toHaveBeenCalledWith('/media/evidence.jpg');
+    expect(images.toStoredEvidenceUrl).toHaveBeenCalledWith(
+      '/media/evidence.jpg',
+    );
     expect(prisma.images.createMany).toHaveBeenCalledWith(
       objectContaining({
         data: [objectContaining({ SubmissionType: 'InspectionPicture' })],

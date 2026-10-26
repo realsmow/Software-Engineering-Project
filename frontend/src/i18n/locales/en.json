@@ -1007,6 +1007,7 @@
     "settings": {
       "subtitle": "Borrow periods and penalties for your department's equipment",
       "reachNote": "This is the table the system actually reads. The row for (equipment tier x credit band) decides how long a borrower may keep an item, so a number changed here moves the cap on every borrower's request screen.",
+      "adminOnly": "Only an admin can change it, because every department shares this table.",
       "save": "Save this rule",
       "saved": "Saved {{rule}}",
       "penalties": "Penalties",
