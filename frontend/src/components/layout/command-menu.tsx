@@ -127,12 +127,14 @@ export function CommandMenu({ triggerClassName }: { triggerClassName?: string })
       <button
         type="button"
         className={triggerClassName ?? "top-search"}
-        aria-label={t("common.search")}
         onClick={() => setOpen(true)}
       >
-        <Search size={14} strokeWidth={2} />
+        {/* Named by its visible hint (#226), the shortcut is decoration. */}
+        <Search size={14} strokeWidth={2} aria-hidden />
         <span className="top-search-label">{t("common.searchHint")}</span>
-        <span className="kbd">⌘K</span>
+        <span className="kbd" aria-hidden>
+          ⌘K
+        </span>
       </button>
 
       <Dialog open={open} onOpenChange={setOpen}>

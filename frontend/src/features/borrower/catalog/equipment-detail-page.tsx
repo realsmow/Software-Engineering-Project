@@ -221,7 +221,7 @@ export default function EquipmentDetailPage() {
       </div>
 
       {/* Sticky summary rail (wide screens only). */}
-      <aside className="hidden lg:sticky lg:top-0 lg:block">
+      <aside aria-label={t("borrower.catalog.colAvail")} className="hidden lg:sticky lg:top-0 lg:block">
         <Panel title={t("borrower.catalog.colAvail")}>
           <div className="flex flex-col gap-2.5 p-3.5 text-sm">
             <div className="flex items-baseline justify-between gap-2.5">

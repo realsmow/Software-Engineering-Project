@@ -118,31 +118,46 @@ export default function MyLoansPage() {
       />
 
       <section className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
-        <div
-          role="tablist"
-          aria-label={t("nav.myRequests")}
-          className="flex items-center gap-0.5 overflow-x-auto border-b border-border px-1.5"
-        >
-          {REQUEST_TABS.map((key) => (
-            <button
-              key={key}
-              type="button"
-              role="tab"
-              aria-selected={key === tab}
-              onClick={() => setTab(key)}
-              className={cn(
-                "flex items-center gap-2 whitespace-nowrap border-b-2 px-3.5 py-3 text-[13px] transition-colors",
-                key === tab
-                  ? "border-accent font-semibold text-foreground"
-                  : "border-transparent text-t3 hover:text-foreground"
-              )}
-            >
-              {t(TAB_LABEL[key])}
-              <span className="font-mono text-[11px] tabular-nums text-t4">
-                {countByTab[key]}
-              </span>
-            </button>
-          ))}
+        <div className="flex items-center border-b border-border px-1.5">
+          {/* #226: only tabs inside the tablist; arrows move between them. */}
+          <div
+            role="tablist"
+            aria-label={t("nav.myRequests")}
+            className="flex min-w-0 items-center gap-0.5 overflow-x-auto"
+            onKeyDown={(e) => {
+              const step = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0;
+              if (step === 0) return;
+              e.preventDefault();
+              const at = REQUEST_TABS.indexOf(tab);
+              const next = REQUEST_TABS[(at + step + REQUEST_TABS.length) % REQUEST_TABS.length];
+              setTab(next);
+              document.getElementById(`my-requests-tab-${next}`)?.focus();
+            }}
+          >
+            {REQUEST_TABS.map((key) => (
+              <button
+                key={key}
+                id={`my-requests-tab-${key}`}
+                type="button"
+                role="tab"
+                aria-selected={key === tab}
+                aria-controls="my-requests-panel"
+                tabIndex={key === tab ? 0 : -1}
+                onClick={() => setTab(key)}
+                className={cn(
+                  "flex items-center gap-2 whitespace-nowrap border-b-2 px-3.5 py-3 text-[13px] transition-colors",
+                  key === tab
+                    ? "border-accent font-semibold text-foreground"
+                    : "border-transparent text-t3 hover:text-foreground"
+                )}
+              >
+                {t(TAB_LABEL[key])}
+                <span className="font-mono text-[11px] tabular-nums text-t4">
+                  {countByTab[key]}
+                </span>
+              </button>
+            ))}
+          </div>
 
           <Button
             type="button"
@@ -156,7 +171,12 @@ export default function MyLoansPage() {
           </Button>
         </div>
 
-        <div className="flex flex-col gap-3 p-3.5">
+        <div
+          id="my-requests-panel"
+          role="tabpanel"
+          aria-labelledby={`my-requests-tab-${tab}`}
+          className="flex flex-col gap-3 p-3.5"
+        >
           {showDraft && draft ? (
             <DraftCard
               draft={draft}

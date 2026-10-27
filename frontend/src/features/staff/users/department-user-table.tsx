@@ -61,7 +61,12 @@ export function DepartmentUserTable({
               <Th>{t("staff.users.colRole")}</Th>
               <Th>{t("staff.users.colCredit")}</Th>
               <Th>{t("common.status")}</Th>
-              {action ? <Th className="text-right" /> : null}
+              {action ? (
+                <Th className="text-right">
+                  {/* No visible title; named for screen readers (#226). */}
+                  <span className="sr-only">{t("common.actions")}</span>
+                </Th>
+              ) : null}
             </tr>
           </thead>
           <tbody>

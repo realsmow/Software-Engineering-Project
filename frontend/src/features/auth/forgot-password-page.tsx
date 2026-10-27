@@ -39,7 +39,7 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center gap-5 px-5">
+    <main className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center gap-5 px-5">
       <div>
         <h1 className="text-xl font-semibold text-foreground">{t("auth.forgotTitle")}</h1>
         <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
@@ -77,6 +77,6 @@ export default function ForgotPasswordPage() {
       <Link to={ROUTES.LOGIN} className="text-sm text-accent">
         {t("auth.backToSignIn")}
       </Link>
-    </div>
+    </main>
   );
 }

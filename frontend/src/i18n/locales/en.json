@@ -157,6 +157,7 @@
     "signInWithGoogle": "Sign in with Google (KU account)"
   },
   "nav": {
+    "mainMenu": "Main menu",
     "borrower": "Borrower",
     "staff": "Staff",
     "supervisor": "Supervising lecturer",

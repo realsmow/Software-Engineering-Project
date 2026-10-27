@@ -157,6 +157,7 @@
     "signInWithGoogle": "เข้าสู่ระบบด้วย Google (บัญชี KU)"
   },
   "nav": {
+    "mainMenu": "เมนูหลัก",
     "borrower": "ผู้ยืม",
     "staff": "เจ้าหน้าที่",
     "supervisor": "อาจารย์ผู้ดูแล",

@@ -148,6 +148,18 @@ export function DataTable<T>({
                 key={rowKey(row)}
                 className={onRowClick ? "cursor-pointer" : undefined}
                 onClick={onRowClick ? () => onRowClick(row) : undefined}
+                // #226: a clickable row opens from the keyboard too.
+                tabIndex={onRowClick ? 0 : undefined}
+                onKeyDown={
+                  onRowClick
+                    ? (e) => {
+                        if (e.target !== e.currentTarget) return;
+                        if (e.key !== "Enter" && e.key !== " ") return;
+                        e.preventDefault();
+                        onRowClick(row);
+                      }
+                    : undefined
+                }
               >
                 {columns.map((c) => (
                   <TableCell key={c.key} className={cn(alignClass(c.align), c.className)}>

@@ -61,7 +61,7 @@ export function Sidebar() {
   };
 
   return (
-    <aside className="side">
+    <aside className="side" aria-label={t("nav.mainMenu")}>
       <div className="side-head">
         <KULogo variant="onLight" size={36} />
         <div className="side-head-text">
@@ -106,9 +106,9 @@ export function Sidebar() {
           className="side-profile"
           onClick={() => navigate(ROUTES.PROFILE)}
           title={t("profile.viewProfile")}
-          aria-label={t("profile.viewProfile")}
         >
-          <div className="side-avatar overflow-hidden">
+          {/* Named by the visible name and role (#226); initials repeat it. */}
+          <div className="side-avatar overflow-hidden" aria-hidden>
             {avatarUrl ? (
               <img
                 src={avatarUrl}

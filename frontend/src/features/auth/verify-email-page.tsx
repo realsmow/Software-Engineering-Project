@@ -39,7 +39,7 @@ export default function VerifyEmailPage() {
   }, [token, trpc]);
 
   return (
-    <div className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center gap-5 px-5">
+    <main className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center gap-5 px-5">
       <h1 className="text-xl font-semibold text-foreground">{t("auth.verifyTitle")}</h1>
 
       {state === "checking" ? (
@@ -68,6 +68,6 @@ export default function VerifyEmailPage() {
       <Link to={ROUTES.LOGIN} className="text-sm text-accent">
         {t("auth.backToSignIn")}
       </Link>
-    </div>
+    </main>
   );
 }

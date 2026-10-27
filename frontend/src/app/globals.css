@@ -359,7 +359,8 @@ body.dark .login-left {
 .login-hero .desc {
   font-size: 14.5px;
   line-height: 1.75;
-  color: rgba(255, 255, 255, 0.78);
+  /* Solid white: faded text on the accent failed WCAG contrast (#226). */
+  color: #fff;
   max-width: 440px;
 }
 .login-meta {
@@ -367,7 +368,7 @@ body.dark .login-left {
   gap: 20px;
   font-size: 11px;
   font-family: var(--font-mono);
-  color: rgba(255, 255, 255, 0.55);
+  color: rgba(255, 255, 255, 0.92);
   letter-spacing: 0.02em;
 }
 .login-right {

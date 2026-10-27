@@ -15,7 +15,8 @@ export function LanguageToggle({ className = "chip-btn" }: { className?: string 
       className={className}
       onClick={toggleLocale}
       title={t("common.switchLanguage")}
-      aria-label={t("common.switchLanguage")}
+      // #226: the spoken name starts with the visible "TH"/"EN" (WCAG 2.5.3).
+      aria-label={`${locale.toUpperCase()} ${t("common.switchLanguage")}`}
     >
       <span>{locale.toUpperCase()}</span>
     </button>

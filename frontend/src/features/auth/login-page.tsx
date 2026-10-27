@@ -86,7 +86,7 @@ export function LoginPage() {
     signIn(values.username.trim(), values.password, values.remember ?? true);
 
   return (
-    <div className="login">
+    <main className="login">
       <div className="login-left">
         <div className="login-brand">
           <KULogo variant="onDark" size={64} />
@@ -164,7 +164,7 @@ export function LoginPage() {
           </div>
         </div>
       </div>
-    </div>
+    </main>
   );
 }
 

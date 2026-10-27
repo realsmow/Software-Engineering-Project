@@ -57,10 +57,9 @@ test.describe("Lending settings access and save", () => {
     await signIn(page, STAFF, /\/staff$/);
     await page.goto("/staff/settings");
     await expect(page.getByText("Only an admin can change it")).toBeVisible();
-    await expect(page.getByRole("spinbutton").first()).toBeDisabled();
-    await expect(
-      page.getByRole("button", { name: "Save this rule" }).first(),
-    ).toBeDisabled();
+    // Read-only, not disabled, so keyboard users can still reach the values.
+    await expect(page.getByRole("spinbutton").first()).not.toBeEditable();
+    await expect(page.getByRole("button", { name: "Save this rule" })).toHaveCount(0);
 
     // #228: the rules are shared by every department, so the API refuses too.
     const response = await page.request.post(

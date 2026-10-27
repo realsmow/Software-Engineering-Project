@@ -112,7 +112,7 @@ function OrgRow({
         type="button"
         aria-label={t("admin.org.rename", { name })}
         onClick={() => setDraft(name)}
-        className="rounded p-1 text-t4 hover:bg-muted hover:text-foreground"
+        className="inline-flex h-6 min-w-6 items-center justify-center rounded text-t4 hover:bg-muted hover:text-foreground"
       >
         <Pencil size={12} />
       </button>
@@ -127,7 +127,7 @@ function OrgRow({
             onError: fail,
           });
         }}
-        className="rounded p-1 text-t4 hover:bg-muted hover:text-[var(--s-alert-t)]"
+        className="inline-flex h-6 min-w-6 items-center justify-center rounded text-t4 hover:bg-muted hover:text-[var(--s-alert-t)]"
       >
         <Trash2 size={12} />
       </button>

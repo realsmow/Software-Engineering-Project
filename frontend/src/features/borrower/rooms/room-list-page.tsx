@@ -224,7 +224,7 @@ export default function RoomListPage() {
       />
 
       <div className="grid items-start gap-4 lg:grid-cols-[224px_minmax(0,1fr)]">
-        <aside className="hidden overflow-hidden rounded-lg border border-border bg-card shadow-sm lg:block">
+        <aside aria-label={t("borrower.filters.title")} className="hidden overflow-hidden rounded-lg border border-border bg-card shadow-sm lg:block">
           <FacetFilters
             groups={groups}
             selected={selected}

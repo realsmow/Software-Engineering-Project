@@ -83,12 +83,12 @@ export default function LendingSettingsPage() {
         </div>
       ) : null}
 
-      {/* A disabled fieldset disables every input and button inside it. */}
-      <fieldset disabled={!canEdit} className="flex min-w-0 flex-col gap-4">
+      <div className="flex flex-col gap-4">
         {data.borrowRules.map((rule) => (
           <RuleCard
             key={rule.id}
             rule={rule}
+            readOnly={!canEdit}
             saving={save.isPending}
             onSave={async (input) => {
               setResult(null);
@@ -104,7 +104,7 @@ export default function LendingSettingsPage() {
             }}
           />
         ))}
-      </fieldset>
+      </div>
     </div>
   );
 }
@@ -112,10 +112,13 @@ export default function LendingSettingsPage() {
 /** One borrow rule: its credit-band matrix and its penalty table. */
 function RuleCard({
   rule,
+  readOnly,
   saving,
   onSave,
 }: {
   rule: BorrowRuleSetting;
+  /** #228: staff and supervisors read; read-only, not disabled, so the values stay reachable by keyboard (#226). */
+  readOnly: boolean;
   saving: boolean;
   onSave: (input: {
     borrowRuleKey: number;
@@ -179,28 +182,30 @@ function RuleCard({
             </span>
           ) : null}
         </div>
-        <Button
-          type="button"
-          size="sm"
-          disabled={!dirty || saving}
-          onClick={() =>
-            void onSave({
-              borrowRuleKey: rule.id,
-              constraints: rule.constraints.map((c) => ({
-                creditTierKey: c.creditTierKey,
-                maxBorrowDays: days[c.creditTierKey] ?? c.maxBorrowDays,
-                maxExtendTimes: extends_[c.creditTierKey] ?? c.maxExtendTimes,
-              })),
-              penalties: rule.penalties.map((p) => ({
-                reason: p.reason,
-                amount: penalties[p.reason]?.amount ?? p.amount,
-                lengthDays: penalties[p.reason]?.lengthDays ?? p.lengthDays,
-              })),
-            })
-          }
-        >
-          {saving ? t("common.loading") : t("staff.settings.save")}
-        </Button>
+        {readOnly ? null : (
+          <Button
+            type="button"
+            size="sm"
+            disabled={!dirty || saving}
+            onClick={() =>
+              void onSave({
+                borrowRuleKey: rule.id,
+                constraints: rule.constraints.map((c) => ({
+                  creditTierKey: c.creditTierKey,
+                  maxBorrowDays: days[c.creditTierKey] ?? c.maxBorrowDays,
+                  maxExtendTimes: extends_[c.creditTierKey] ?? c.maxExtendTimes,
+                })),
+                penalties: rule.penalties.map((p) => ({
+                  reason: p.reason,
+                  amount: penalties[p.reason]?.amount ?? p.amount,
+                  lengthDays: penalties[p.reason]?.lengthDays ?? p.lengthDays,
+                })),
+              })
+            }
+          >
+            {saving ? t("common.loading") : t("staff.settings.save")}
+          </Button>
+        )}
       </div>
 
       {rule.constraints.length === 0 ? (
@@ -226,6 +231,7 @@ function RuleCard({
                 </td>
                 <td className="px-3.5 py-2 text-right">
                   <NumField
+                    readOnly={readOnly}
                     value={days[c.creditTierKey] ?? c.maxBorrowDays}
                     min={1}
                     label={`${t("staff.settings.colDays")} · ${c.creditTierName ?? c.creditTierKey}`}
@@ -234,6 +240,7 @@ function RuleCard({
                 </td>
                 <td className="px-3.5 py-2 text-right">
                   <NumField
+                    readOnly={readOnly}
                     value={extends_[c.creditTierKey] ?? c.maxExtendTimes}
                     min={0}
                     label={`${t("staff.settings.colExtends")} · ${c.creditTierName ?? c.creditTierKey}`}
@@ -274,6 +281,7 @@ function RuleCard({
                     </td>
                     <td className="px-3.5 py-2 text-right">
                       <NumField
+                        readOnly={readOnly}
                         value={penalties[r]?.amount ?? row.amount}
                         min={0}
                         label={`${t("staff.settings.colAmount")} · ${t(`staff.settings.reason${r}`)}`}
@@ -290,6 +298,7 @@ function RuleCard({
                     </td>
                     <td className="px-3.5 py-2 text-right">
                       <NumField
+                        readOnly={readOnly}
                         value={penalties[r]?.lengthDays ?? row.lengthDays}
                         min={0}
                         label={`${t("staff.settings.colLength")} · ${t(`staff.settings.reason${r}`)}`}
@@ -316,10 +325,12 @@ function NumField({
   value,
   min,
   label,
+  readOnly,
   onChange,
 }: {
   value: number;
   min: number;
+  readOnly: boolean;
   /** Column and row together; a grid of bare number boxes is unreadable by ear (#174). */
   label: string;
   onChange: (n: number) => void;
@@ -328,9 +339,11 @@ function NumField({
     <Input
       type="number"
       aria-label={label}
-      className="ml-auto h-8 w-20 text-right font-mono"
+      // Read-only reads as a value, not a box to type in.
+      className="ml-auto h-8 w-20 text-right font-mono read-only:border-transparent read-only:bg-secondary"
       value={String(value)}
       min={min}
+      readOnly={readOnly}
       onChange={(e) => {
         const n = Number(e.target.value);
         // An empty or half-typed box must not send NaN to the server.

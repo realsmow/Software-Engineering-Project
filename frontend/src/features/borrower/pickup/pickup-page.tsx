@@ -222,7 +222,7 @@ export default function PickupPage() {
           </Panel>
         </div>
 
-        <aside className="lg:sticky lg:top-0">
+        <aside aria-label={t("borrower.pickup.summary")} className="lg:sticky lg:top-0">
           <Panel
             title={
               <span className="text-[11px] font-semibold uppercase tracking-[0.07em] text-t3">

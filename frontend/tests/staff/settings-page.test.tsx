@@ -75,7 +75,8 @@ describe("LendingSettingsPage", () => {
     renderPage();
 
     expect(screen.getByText(i18n.t("staff.settings.adminOnly"), { exact: false })).toBeInTheDocument();
-    for (const field of screen.getAllByRole("spinbutton")) expect(field).toBeDisabled();
+    for (const field of screen.getAllByRole("spinbutton")) expect(field).toHaveAttribute("readonly");
+    expect(screen.queryByRole("button", { name: i18n.t("staff.settings.save") })).toBeNull();
   });
 
   it("shows a loading state while lending settings are being fetched", () => {

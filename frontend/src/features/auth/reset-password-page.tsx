@@ -45,7 +45,7 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <div className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center gap-5 px-5">
+    <main className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center gap-5 px-5">
       <div>
         <h1 className="text-xl font-semibold text-foreground">{t("auth.resetTitle")}</h1>
         <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
@@ -90,6 +90,6 @@ export default function ResetPasswordPage() {
       <Link to={ROUTES.FORGOT_PASSWORD} className="text-sm text-accent">
         {t("auth.forgotSubmit")}
       </Link>
-    </div>
+    </main>
   );
 }

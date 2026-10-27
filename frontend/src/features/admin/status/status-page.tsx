@@ -103,7 +103,10 @@ export default function AdminStatusPage() {
                       <Th>{t("admin.status.colSchedule")}</Th>
                       <Th>{t("admin.status.colLastRun")}</Th>
                       <Th>{t("common.status")}</Th>
-                      <Th />
+                      <Th>
+                        {/* No visible title; named for screen readers (#226). */}
+                        <span className="sr-only">{t("common.actions")}</span>
+                      </Th>
                     </tr>
                   </thead>
                   <tbody>
