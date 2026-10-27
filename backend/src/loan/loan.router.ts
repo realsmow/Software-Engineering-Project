@@ -23,6 +23,7 @@ import {
   listStaffQueueInput,
   loanOutput,
   markLostInput,
+  recoverLostInput,
   paginatedExtensionReviews,
   paginatedExtensions,
   paginatedStaffQueue,
@@ -41,6 +42,7 @@ import {
   type ListMyExtensionsInput,
   type ListStaffQueueInput,
   type MarkLostInput,
+  type RecoverLostInput,
   type RecordReturnInput,
   type RequestExtensionInput,
   type SwapUnitInput,
@@ -272,6 +274,13 @@ export class LoanRouter {
   @Mutation({ input: markLostInput, output: loanOutput })
   markLost(@Input() input: MarkLostInput, @Ctx() ctx: TrpcContext) {
     return this.loanService.markLost(ctx.user!, input);
+  }
+
+  /** #230: a unit written off as lost came back; it counts as returned late. */
+  @UseMiddlewares(StaffMiddleware)
+  @Mutation({ input: recoverLostInput, output: loanOutput })
+  recoverLost(@Input() input: RecoverLostInput, @Ctx() ctx: TrpcContext) {
+    return this.loanService.recoverLost(ctx.user!, input);
   }
 
   // ── Extensions settled at the counter ───────────────────────────────────

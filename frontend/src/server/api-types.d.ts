@@ -3295,6 +3295,37 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 			};
 			meta: object;
 		}>;
+		recoverLost: import("@trpc/server").TRPCMutationProcedure<{
+			input: {
+				resourceKey: number;
+				note?: string | undefined;
+			};
+			output: {
+				usageKey: number;
+				reservationKey: number | null;
+				status: "Pending" | "Prepared" | "Lended" | "Returned" | "Inspected";
+				borrower: {
+					accountKey: number;
+					studentId: string;
+					firstName: string;
+					lastName: string;
+					creditScore: number;
+				};
+				itemName: string | null;
+				serialNo: string | null;
+				resourceKey: number;
+				tier: "T0" | "T1" | "T2" | "T3" | null;
+				checkoutCondition: "Normal" | "MinorDamage" | "MajorDamage" | "Broken" | "Missing" | null;
+				checkoutConditionNote: string | null;
+				checkinCondition: "Normal" | "MinorDamage" | "MajorDamage" | "Broken" | "Missing" | null;
+				checkoutAt: string;
+				dueAt: string;
+				returnedAt: string | null;
+				overdueDays: number;
+				pendingExtensionKey: number | null;
+			};
+			meta: object;
+		}>;
 		extensionReviews: import("@trpc/server").TRPCQueryProcedure<{
 			input: {
 				page?: number | undefined;

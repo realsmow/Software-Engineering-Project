@@ -6,6 +6,7 @@ import {
 } from "../../../backend/src/notification/notification.schema";
 import { paginatedItems } from "../../../backend/src/item/item.schema";
 import { paginatedRequests } from "../../../backend/src/loan/loan.schema";
+import { workHoursSetting } from "../../../backend/src/admin/admin.schema";
 
 // Browser geometry needs a real layout engine. These fixtures isolate the
 // PDF's wrapping/scrolling regressions; they do not prove database behavior.
@@ -58,6 +59,9 @@ test.describe("PDF text layout regressions", () => {
             page: 1,
             pageSize: 100,
           });
+        } else if (procedure === "admin.workHours") {
+          // The catalog's time picker reads the counter hours (#224).
+          data = workHoursSetting.parse({ start: 8, end: 17 });
         } else if (procedure === "loan.list") {
           data = paginatedRequests.parse({
             items: [],

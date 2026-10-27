@@ -203,6 +203,8 @@ export const BUSINESS_ERROR_CODES = {
   UNIT_SWAP_NOT_ALLOWED: 'FORBIDDEN',
   /** Not yet two weeks overdue, so it is still late rather than lost (§5.7) */
   NOT_YET_LOST: 'CONFLICT',
+  /** #230: the unit is not missing because of a loan written off as lost. */
+  NOT_LOST_ON_LOAN: 'CONFLICT',
 
   // --- file upload (CONTRACT.md §3) ---
   /** The upload URL is forged, malformed, or past its ten minutes */

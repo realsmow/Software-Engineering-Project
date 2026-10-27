@@ -29,6 +29,7 @@ import {
   useManagementGroupOptions,
   useRequestRetirement,
   useSetUnitCondition,
+  useRecoverLost,
   useSetUnitLendable,
   useTierOptions,
   useUpdateItemType,
@@ -687,7 +688,7 @@ function Units({ itemKey }: { itemKey: number }) {
   );
 }
 
-type UnitRowMode = "withdraw" | "edit" | "condition" | "retire" | null;
+type UnitRowMode = "withdraw" | "edit" | "condition" | "retire" | "found" | null;
 
 function UnitRow({ unit }: { unit: ManagedUnit }) {
   const { t } = useTranslation();
@@ -766,8 +767,15 @@ function UnitRow({ unit }: { unit: ManagedUnit }) {
           <UnitConditionForm unit={unit} onClose={() => setMode(null)} />
         ) : mode === "retire" ? (
           <UnitRetireForm unit={unit} onClose={() => setMode(null)} />
+        ) : mode === "found" ? (
+          <UnitFoundForm unit={unit} onClose={() => setMode(null)} />
         ) : (
           <div className="flex flex-wrap items-center justify-end gap-1.5">
+            {unit.status === "Missing" ? (
+              <Button type="button" size="sm" onClick={() => setMode("found")}>
+                {t("staff.inventory.foundUnit")}
+              </Button>
+            ) : null}
             <Button type="button" variant="outline" size="sm" onClick={() => setMode("edit")}>
               {t("staff.inventory.edit")}
             </Button>
@@ -943,6 +951,48 @@ function UnitConditionForm({ unit, onClose }: { unit: ManagedUnit; onClose: () =
         />
         <Button type="button" size="sm" disabled={setCondition.isPending} onClick={() => void save()}>
           {t("common.save")}
+        </Button>
+        <Button type="button" variant="outline" size="sm" onClick={onClose}>
+          {t("common.cancel")}
+        </Button>
+      </div>
+      {error ? <span className="text-[11px] text-[var(--s-warn-t)]">{error}</span> : null}
+    </div>
+  );
+}
+
+/** #230: the lost unit is back; the loan reopens as a late return to grade. */
+function UnitFoundForm({ unit, onClose }: { unit: ManagedUnit; onClose: () => void }) {
+  const { t } = useTranslation();
+  const recover = useRecoverLost();
+  const [note, setNote] = useState("");
+  const [error, setError] = useState<string | null>(null);
+
+  async function confirm() {
+    setError(null);
+    try {
+      await recover.mutateAsync({ resourceKey: unit.resourceKey, note: note.trim() || undefined });
+      onClose();
+    } catch (e) {
+      setError(getErrorMessage(e));
+    }
+  }
+
+  return (
+    <div className="flex flex-col items-end gap-1.5">
+      <p className="max-w-[22rem] text-right text-[11px] leading-relaxed text-t3">
+        {t("staff.inventory.foundHint")}
+      </p>
+      <div className="flex flex-wrap items-center justify-end gap-1.5">
+        <Input
+          autoFocus
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+          placeholder={t("staff.inventory.conditionNotePlaceholder")}
+          className="h-8 w-48"
+        />
+        <Button type="button" size="sm" disabled={recover.isPending} onClick={() => void confirm()}>
+          {t("staff.inventory.foundConfirm")}
         </Button>
         <Button type="button" variant="outline" size="sm" onClick={onClose}>
           {t("common.cancel")}

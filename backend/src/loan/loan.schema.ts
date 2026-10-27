@@ -290,6 +290,16 @@ export const markLostInput = usageIdInput.extend({
 });
 export type MarkLostInput = z.infer<typeof markLostInput>;
 
+/**
+ * #230: a unit written off as lost turns up. Keyed on the unit, because that
+ * is where staff see it (inventory, status Missing).
+ */
+export const recoverLostInput = z.object({
+  resourceKey: dbId,
+  note: z.string().trim().max(500).optional(),
+});
+export type RecoverLostInput = z.infer<typeof recoverLostInput>;
+
 // ---------------------------------------------------------------------------
 // Extensions that need the item on the counter
 // ---------------------------------------------------------------------------

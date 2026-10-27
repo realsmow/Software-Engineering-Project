@@ -106,6 +106,18 @@ export function useSetUnitCondition() {
   });
 }
 
+/** #230: a unit written off as lost came back; it counts as returned late. */
+export function useRecoverLost() {
+  const trpc = useTRPCClient();
+  const refresh = useRefreshInventory();
+
+  return useMutation({
+    mutationFn: (input: { resourceKey: number; note?: string }) =>
+      trpc.loan.recoverLost.mutate(input),
+    onSuccess: refresh,
+  });
+}
+
 /**
  * Edit one catalogue type.
  *

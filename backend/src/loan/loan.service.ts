@@ -42,8 +42,10 @@ import type {
   ListStaffQueueInput,
   MarkLostInput,
   RecordReturnInput,
+  RecoverLostInput,
   SwapUnitInput,
 } from './loan.schema';
+import { recomputeCredit } from '../common/credit/recompute-credit';
 
 /**
  * How long past due before a thing counts as lost (proposal §5.7:
@@ -872,6 +874,108 @@ export class LoanService {
     );
 
     return this.toLoan(await this.readUsage(input.usageKey), now);
+  }
+
+  /**
+   * #230: a unit written off as lost comes back after all.
+   *
+   * It counts as a late return: the lost-item penalty is lifted, the late
+   * penalty is charged up to today, and the loan goes back to `Returned`, so
+   * the unit is photographed and graded like any other return before it can
+   * be lent again.
+   */
+  async recoverLost(user: TrpcUser, input: RecoverLostInput) {
+    await this.scope.assertResourceInScope(user, input.resourceKey);
+    const lost = await this.prisma.usageLog.findFirst({
+      where: {
+        ResourceKey: input.resourceKey,
+        CurrentStatus: 'Inspected',
+        Resource: { ResourceStatus: 'Missing' },
+        Penalties: { some: { Reason: { startsWith: 'LostItem' } } },
+      },
+      orderBy: { UsageKey: 'desc' },
+      select: { UsageKey: true },
+    });
+    if (!lost) {
+      throw new BusinessError('NOT_LOST_ON_LOAN', {
+        resourceKey: input.resourceKey,
+      });
+    }
+    const usage = await this.readUsage(lost.UsageKey);
+    const now = new Date();
+    const overdueDays = this.penalties.overdueDays(usage.DueTime, now);
+
+    const settled = await this.prisma.$transaction(async (tx) => {
+      await this.lockUsageState(tx, usage.UsageKey, ['Inspected']);
+
+      // An appeal may already have lifted it; either way it no longer stands.
+      await tx.penaltyInfo.updateMany({
+        where: {
+          UsageKey: usage.UsageKey,
+          Reason: { startsWith: 'LostItem' },
+          InEffect: true,
+        },
+        data: { InEffect: false },
+      });
+
+      await tx.usageLog.update({
+        where: { UsageKey: usage.UsageKey },
+        data: {
+          CurrentStatus: 'Returned',
+          CheckInTime: now,
+          CheckInCondition: null,
+        },
+      });
+
+      // Same as any return: on the shelf but unavailable until graded.
+      await tx.resourceInfo.update({
+        where: { ResourceKey: input.resourceKey },
+        data: { ResourceStatus: 'InStorage', AllowBorrow: true },
+      });
+
+      if (input.note) {
+        await tx.conditionLog.create({
+          data: {
+            ResourceKey: input.resourceKey,
+            LoggedBy: user.accountKey,
+            Condition: usage.CheckoutConditionLog.Condition,
+            Notes: input.note,
+            LoggedAt: now,
+          },
+        });
+      }
+
+      const late = await this.penalties.settleLate(tx, {
+        accountKey: usage.Account.AccountKey,
+        usageKey: usage.UsageKey,
+        borrowRuleKey: usage.Resource.BorrowRule,
+        creditWeight: this.creditWeightOf(usage.Resource),
+        dueTime: usage.DueTime,
+        until: now,
+      });
+      // settleLate only recomputes when it writes; the lift above needs it too.
+      await recomputeCredit(tx, usage.Account.AccountKey);
+
+      if (late.raised) {
+        await this.notifyDeduction(tx, {
+          penaltyKey: late.penaltyKey,
+          accountKey: usage.Account.AccountKey,
+          quote: late.quote,
+          effectiveFrom: now,
+          itemName: resourceName(usage.Resource),
+        });
+      }
+      return late;
+    });
+
+    await this.audit.record(
+      { accountKey: user.accountKey },
+      'update',
+      `loan/${usage.UsageKey}`,
+      `Lost unit returned, ${overdueDays} days overdue, lost penalty lifted, late penalty ${settled.quote.amount} credit${input.note ? `: ${input.note}` : ''}`,
+    );
+
+    return this.toLoan(await this.readUsage(usage.UsageKey), now);
   }
 
   /**

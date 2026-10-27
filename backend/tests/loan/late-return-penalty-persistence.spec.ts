@@ -822,4 +822,46 @@ describe('FR-RTN-07 / FR-CRD-03/04: late and lost penalty lifecycle', () => {
       },
     );
   });
+
+  describe('#230: a unit written off as lost comes back', () => {
+    it('lifts the lost penalty, charges the late days instead, and sends it to inspection', async () => {
+      await inHistoryFixture(prisma, async (tx) => {
+        const f = await lendedFixture(tx);
+        const { loan } = services(f.client);
+        jest.setSystemTime(RETURN_AFTER_THREE_DAYS);
+        await loan.markLost(f.staff, {
+          usageKey: f.usageKey,
+          reportedByBorrower: true,
+        });
+        expect((await lateState(tx, f, 'LostItem')).creditScore).toBe(24);
+
+        // Due Monday 17:00, back Saturday 09:00: 4 days 16 hours, so 5 days
+        // at 2 credit each.
+        jest.setSystemTime(STILL_OUT);
+        const back = loanOutput.strict().parse(
+          await loan.recoverLost(f.staff, {
+            resourceKey: f.units[0].ResourceKey,
+          }),
+        );
+        expect(back.status).toBe('Returned');
+
+        const lost = await lateState(tx, f, 'LostItem');
+        expect(lost.penalties.map((row) => row.InEffect)).toEqual([false]);
+        const late = await lateState(tx, f);
+        expect(late.active.map((row) => row.CreditDeducted)).toEqual([10]);
+        expect(late.creditScore).toBe(90);
+        expect(
+          await tx.resourceInfo.findUniqueOrThrow({
+            where: { ResourceKey: f.units[0].ResourceKey },
+            select: { ResourceStatus: true, AllowBorrow: true },
+          }),
+        ).toEqual({ ResourceStatus: 'InStorage', AllowBorrow: true });
+
+        // Only once: the loan is no longer a lost one.
+        await expect(
+          loan.recoverLost(f.staff, { resourceKey: f.units[0].ResourceKey }),
+        ).rejects.toMatchObject({ businessCode: 'NOT_LOST_ON_LOAN' });
+      });
+    });
+  });
 });

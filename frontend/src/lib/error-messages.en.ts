@@ -80,6 +80,7 @@ export const ERROR_MESSAGES_EN: Record<string, string> = {
   RESOURCE_NOT_FOUND: "This item was not found in the system.",
   NOT_APPROVED_YET: "This request has not been approved yet, so it cannot be prepared.",
   NOT_YET_LOST: "It is too early to record this as lost (it must be 2 weeks past due).",
+  NOT_LOST_ON_LOAN: "This unit was not written off as lost on a loan. Use \"Set condition\" instead.",
   UNIT_DOES_NOT_MATCH_REQUEST: "The selected unit does not match what the borrower requested.",
   UNIT_SWAP_NOT_ALLOWED: "Equipment at this level cannot be swapped at the counter.",
   TIER_NOT_CONFIGURED: "The borrowing tier for this item is not set up. Please tell an administrator.",
