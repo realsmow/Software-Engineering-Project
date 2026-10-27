@@ -146,7 +146,6 @@ try {
       [
         "run",
         "--coverage",
-        "--coverage.all",
         "--coverage.include=src/**/*.{ts,tsx}",
         "--coverage.reporter=text-summary",
         "--coverage.reporter=json-summary",
