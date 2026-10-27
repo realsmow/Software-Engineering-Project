@@ -793,7 +793,14 @@ export class LoanService {
     const now = new Date();
     const overdueDays = this.penalties.overdueDays(usage.DueTime, now);
 
-    if (!input.reportedByBorrower && overdueDays < LOST_AFTER_OVERDUE_DAYS) {
+    // #230: two full weeks, same as the scheduled write-off. `overdueDays`
+    // rounds up, so it reads 14 a day early.
+    const fullDaysOverdue =
+      (now.getTime() - usage.DueTime.getTime()) / 86_400_000;
+    if (
+      !input.reportedByBorrower &&
+      fullDaysOverdue < LOST_AFTER_OVERDUE_DAYS
+    ) {
       throw new BusinessError('NOT_YET_LOST', {
         usageKey: input.usageKey,
         overdueDays,

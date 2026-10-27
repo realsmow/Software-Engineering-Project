@@ -566,12 +566,23 @@ describe('reservation horizon (FR-RSV-01, FR-RSV-03)', () => {
   });
 });
 
-describe('T1 unit swap (FR-RSV-04)', () => {
+// T0 swaps the same way (#227): the screen sends the first free unit.
+describe.each(['T1', 'T0'])('%s unit swap (FR-RSV-04)', (tier) => {
+  // T0 is same-day only, so stand on the morning of the window.
+  beforeEach(() => {
+    if (tier === 'T0')
+      jest.useFakeTimers({
+        now: new Date('2099-01-14T01:00:00Z'),
+        doNotFake: ['nextTick', 'setImmediate'],
+      });
+  });
+  afterEach(() => jest.useRealTimers());
+
   it('moves to a free sibling of the same item type when the requested unit is taken', async () => {
     const resource = {
       ...baseResource,
       ResourceKey: 7,
-      BorrowRuleInfo: { RuleName: 'T1' },
+      BorrowRuleInfo: { RuleName: tier },
       Item: {
         ItemID: 'CAL-01',
         ItemKey: 55,
@@ -624,6 +635,12 @@ describe('T1 unit swap (FR-RSV-04)', () => {
 
     expect(result.created).toHaveLength(1);
     expect(result.created[0].resource.resourceKey).toBe(8);
+    // #231: only units on the same borrow rule (tier) may stand in.
+    expect(db.resourceInfo.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ BorrowRule: resource.BorrowRule }),
+      }),
+    );
   });
 });
 

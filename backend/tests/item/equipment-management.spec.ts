@@ -95,7 +95,12 @@ function managementHarness() {
       findUnique: jest.fn(),
     },
     borrowRule: { findFirst: jest.fn() },
-    resourceInfo: { findUnique: jest.fn(), update: jest.fn() },
+    resourceInfo: {
+      findUnique: jest.fn(),
+      update: jest.fn(),
+      // The type's live tiers (#231); empty means a new type.
+      findMany: jest.fn().mockResolvedValue([]),
+    },
     roomInfo: { findUnique: jest.fn() },
     $transaction: jest.fn(async (work: (client: typeof tx) => unknown) =>
       work(tx),

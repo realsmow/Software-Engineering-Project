@@ -345,10 +345,12 @@ export class LoanRequestService {
     // that the borrower asks for a type and staff choose the unit (demo
     // feedback); the unit sent is only a placeholder, and refusing it while a
     // sibling is free turned a race between two borrowers into a false "not
-    // available". With no sibling left T2 keeps its clearer refusal. T0 and T3
-    // take the plain check.
+    // available". With no sibling left T2 keeps its clearer refusal. T0 swaps
+    // like T1 (#227): the screen always sends the first free unit, so a unit
+    // taken a moment earlier refused a type that still had others. T3 (a
+    // room) takes the plain check.
     let target: ResourceRow = resource;
-    if (tier === 'T1') {
+    if (tier === 'T0' || tier === 'T1') {
       target = await this.resolveT1Target(resource, startTime, endTime);
     } else if (tier === 'T2') {
       target = await this.assertWindowFreeForSerial(
@@ -546,7 +548,7 @@ export class LoanRequestService {
     }
   }
 
-  /** Other units of the same ItemInfo, in the same department, free for the whole window. */
+  /** Other units of the same ItemInfo and tier, in the same department, free for the whole window. */
   private async findFreeSibling(
     resource: ResourceRow,
     startTime: Date,
@@ -561,6 +563,9 @@ export class LoanRequestService {
         ResourceStatus: { notIn: ['Missing', 'Retired'] },
         ResourceKey: { not: resource.ResourceKey },
         Item: { ItemKey: resource.Item.ItemKey },
+        // #231: same tier only, so the approval route chosen from the unit
+        // asked for is still right for the unit given.
+        BorrowRule: resource.BorrowRule,
       },
       select: RESOURCE_SELECT,
     });

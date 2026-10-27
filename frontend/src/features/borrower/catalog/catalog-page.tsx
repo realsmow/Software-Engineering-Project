@@ -22,13 +22,13 @@ import { cn } from "@/lib/utils";
 import { STOCK_STATUSES, type CatalogItem } from "./catalog.types";
 import { FacetFilters, type FilterGroup } from "../facet-filters";
 import {
-  REQUEST_TIMES,
   isoOffset,
   remainingUnits,
   todayIso,
   useRequestDraft,
   type RequestTime,
 } from "../request/request-draft.store";
+import { useRequestTimes } from "../request/use-request-times";
 import { AddButton } from "./add-button";
 import { toAvailabilityWindow } from "./availability-window";
 import { useCatalogSearch, useEquipmentTypes } from "./use-equipment-types";
@@ -79,6 +79,7 @@ export default function CatalogPage() {
   const setPickupTime = useRequestDraft((s) => s.setPickupTime);
   const setEndDate = useRequestDraft((s) => s.setEndDate);
   const setReturnTime = useRequestDraft((s) => s.setReturnTime);
+  const times = useRequestTimes();
   const availabilityWindow = toAvailabilityWindow(
     startDate,
     pickupTime,
@@ -345,6 +346,7 @@ export default function CatalogPage() {
         pickupTime={pickupTime}
         endDate={endDate}
         returnTime={returnTime}
+        times={times}
         availableOnly={availableOnly}
         onStartDate={handleStartDate}
         onPickupTime={setPickupTime}
@@ -497,6 +499,7 @@ function CatalogPeriodFilter({
   pickupTime,
   endDate,
   returnTime,
+  times,
   availableOnly,
   onStartDate,
   onPickupTime,
@@ -508,6 +511,7 @@ function CatalogPeriodFilter({
   pickupTime: RequestTime;
   endDate: string | null;
   returnTime: RequestTime;
+  times: string[];
   availableOnly: boolean;
   onStartDate: (iso: string) => void;
   onPickupTime: (time: RequestTime) => void;
@@ -543,6 +547,7 @@ function CatalogPeriodFilter({
           label={t("borrower.catalog.periodStart")}
           date={startDate}
           time={pickupTime}
+          times={times}
           min={todayIso()}
           max={maxDate}
           onDate={onStartDate}
@@ -552,6 +557,7 @@ function CatalogPeriodFilter({
           label={t("borrower.catalog.periodEnd")}
           date={endDate ?? ""}
           time={returnTime}
+          times={times}
           min={startDate}
           max={maxDate}
           onDate={onEndDate}
@@ -566,6 +572,7 @@ function CatalogDateTimeField({
   label,
   date,
   time,
+  times,
   min,
   max,
   onDate,
@@ -574,6 +581,7 @@ function CatalogDateTimeField({
   label: string;
   date: string;
   time: RequestTime;
+  times: string[];
   min: string;
   max: string;
   onDate: (iso: string) => void;
@@ -589,7 +597,7 @@ function CatalogDateTimeField({
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {REQUEST_TIMES.map((option) => (
+            {times.map((option) => (
               <SelectItem key={option} value={option}>
                 {option}
               </SelectItem>

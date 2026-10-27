@@ -259,8 +259,19 @@ describe('markLost', () => {
     );
   });
 
+  it('#230: still refuses 13 days and 1 hour past due (rounded up, that reads 14)', async () => {
+    const dueAt = new Date(reportAt.getTime() - (13 * 24 + 1) * 3_600_000);
+    const t = service({ usage: usageRow({ DueTime: dueAt }) });
+    (t.penalties.overdueDays as jest.Mock).mockReturnValue(14);
+    await expect(
+      t.svc.markLost(staff, { usageKey: 8, reportedByBorrower: false }),
+    ).rejects.toMatchObject({ businessCode: 'NOT_YET_LOST' });
+  });
+
   it('writes off the unit, charges the lost-item penalty, and notifies the borrower', async () => {
-    const t = service({});
+    const t = service({
+      usage: usageRow({ DueTime: new Date('2098-12-20T03:00:00Z') }),
+    });
     (t.penalties.overdueDays as jest.Mock).mockReturnValue(20);
     await t.svc.markLost(staff, {
       usageKey: 8,

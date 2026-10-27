@@ -83,17 +83,18 @@ test.describe("Module 5 staff equipment management", () => {
     await typeRow.click();
     await expect(typeRow.getByText("2 / 2")).toBeVisible();
 
-    // ── 3. One T2 unit: serial is mandatory, submit is refused without it ──
+    // ── 3. One more unit: the type's tier is fixed (#231), serial kept ─────
     await page.getByRole("button", { name: "Add units", exact: true }).click();
     const addT2Dialog = page.getByRole("dialog");
     await addT2Dialog.getByRole("combobox").first().click();
     await page.getByRole("option").first().click();
-    await addT2Dialog.getByRole("combobox").nth(1).click();
-    await page.getByRole("option", { name: /^T2/ }).click();
+    const tierPicker = addT2Dialog.getByRole("combobox").nth(1);
+    await expect(tierPicker).toBeDisabled();
+    await expect(tierPicker).toHaveText(/T1/);
 
-    const t2Serial = `E2E-${Date.now()}`;
+    // Sorts after the generated serials, so step 4 deletes a generated one.
+    const t2Serial = `ZZ-E2E-${Date.now()}`;
     const t2Register = addT2Dialog.getByRole("button", { name: "Register" });
-    await expect(t2Register).toBeDisabled();
     await field(addT2Dialog, "Serial number").fill(t2Serial);
     await expect(t2Register).toBeEnabled();
     await t2Register.click();
@@ -107,7 +108,7 @@ test.describe("Module 5 staff equipment management", () => {
 
     // ── 4. Delete one of the two fresh T1 units ────────────────────────────
     // Both T1 units are brand new with no loan history, so either row's
-    // Delete succeeds; take the table's first row (the T2 row sorts after it).
+    // Delete succeeds; take the table's first row (the typed serial sorts after it).
     const firstUnitRow = unitsTable.locator("tbody tr").first();
     await expect(firstUnitRow).toBeVisible();
     acceptNextConfirm(page);

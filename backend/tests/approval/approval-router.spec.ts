@@ -46,3 +46,17 @@ it('forwards a parsed supervisor extension decision through the actual router', 
   expect(extensions.decide).toHaveBeenCalledWith(supervisor, input);
   expect(result).toEqual(output);
 });
+
+it('#227: refuses an extension rejection without a reason', () => {
+  expect(
+    decideExtensionInput.safeParse({ extensionKey: 12, decision: 'reject' })
+      .success,
+  ).toBe(false);
+  expect(
+    decideExtensionInput.safeParse({
+      extensionKey: 12,
+      decision: 'reject',
+      note: 'needs repair first',
+    }).success,
+  ).toBe(true);
+});

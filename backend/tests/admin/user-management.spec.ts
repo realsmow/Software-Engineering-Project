@@ -383,6 +383,28 @@ describe('AdminService user management', () => {
     ).rejects.toMatchObject({ businessCode: 'USER_NOT_FOUND' });
   });
 
+  it('#232: disabling expires an unused verify-email link', async () => {
+    const { result } = await createBorrower();
+    const link = await prisma.emailVerification.create({
+      data: {
+        AccountKey: result.user.id,
+        TokenHash: unique('verify-hash'),
+        ExpiresAt: new Date(Date.now() + 86_400_000),
+      },
+    });
+
+    await adminService.setUserActive(
+      { id: result.user.id, active: false },
+      adminActor,
+    );
+
+    // verify() refuses an expired link, so the suspension sticks.
+    const after = await prisma.emailVerification.findUniqueOrThrow({
+      where: { VerificationKey: link.VerificationKey },
+    });
+    expect(after.ExpiresAt.getTime()).toBeLessThanOrEqual(Date.now());
+  });
+
   it('changes a user role and preserves the detail contract', async () => {
     const { result } = await createBorrower();
     const updated = await adminService.changeRole(

@@ -133,6 +133,19 @@ describe("Staff inventory: add units dialog", () => {
     vi.mocked(inventoryHooks.useTierOptions).mockReturnValue({ data: TIER_OPTIONS, isLoading: false } as never);
     vi.mocked(inventoryHooks.useManagementGroupOptions).mockReturnValue({ data: GROUPS, isLoading: false } as never);
     vi.mocked(inventoryHooks.useCreateItemUnits).mockReturnValue({ mutateAsync: createUnits, isPending: false } as never);
+    // A type with no units yet, so the tier is still free to pick.
+    vi.mocked(inventoryHooks.useManagedItems).mockReturnValue({
+      data: [{ ...MANAGED_ITEM, tiers: [] }],
+      isLoading: false,
+    } as never);
+  });
+
+  it("#231: takes the type's tier and does not let it change", () => {
+    vi.mocked(inventoryHooks.useManagedItems).mockReturnValue({ data: [MANAGED_ITEM], isLoading: false } as never);
+    openAddUnits();
+
+    expect(combos()[1]).toBeDisabled();
+    expect(combos()[1]).toHaveTextContent("T2");
   });
 
   function openAddUnits() {

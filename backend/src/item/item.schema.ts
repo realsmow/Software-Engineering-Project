@@ -185,7 +185,7 @@ export type CreateItemUnitInput = z.infer<typeof createItemUnitInput>;
 export const updateItemUnitInput = resourceIdInput.extend({
   serialNo: z.string().trim().min(1).max(100).optional(),
   imageUrl: imageUrl.optional(),
-  tier: resourceTier.optional(),
+  // No tier: a type has one tier for all its units (#190, #231).
   prepDays: z.number().int().min(0).max(30).optional(),
 });
 export type UpdateItemUnitInput = z.infer<typeof updateItemUnitInput>;

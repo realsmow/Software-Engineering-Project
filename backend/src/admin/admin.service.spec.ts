@@ -113,6 +113,9 @@ function serviceWith(options: {
 
   const prisma: Record<string, unknown> = {
     accountInfo: { findUnique: findAccount, update: updateAccount },
+    emailVerification: {
+      updateMany: jest.fn().mockResolvedValue({ count: 0 }),
+    },
     authority: {
       findMany: findAuthorities,
       deleteMany: jest.fn().mockResolvedValue({ count: 0 }),

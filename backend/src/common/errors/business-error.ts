@@ -122,6 +122,8 @@ export const BUSINESS_ERROR_CODES = {
   // --- catalogue (staff domain) ---
   RESOURCE_NOT_FOUND: 'NOT_FOUND',
   ITEM_TYPE_NOT_FOUND: 'NOT_FOUND',
+  /** #231: new units must share the tier the type's other units have. */
+  TIER_DIFFERS_FROM_TYPE: 'CONFLICT',
   /** Two units of the same type cannot carry the same ItemID (serial) */
   SERIAL_ALREADY_IN_USE: 'CONFLICT',
   /** T1/T2 units must carry a serial; T0 must not pretend to have one */
@@ -434,9 +436,4 @@ export class BusinessError extends TRPCError {
     this.businessCode = code;
     this.details = details ?? null;
   }
-}
-
-/** Shorthand for the NOT_IMPLEMENTED case, so every use spells out what is missing. */
-export function notImplemented(missing: string[], note: string): never {
-  throw new BusinessError('NOT_IMPLEMENTED', { missing, note });
 }

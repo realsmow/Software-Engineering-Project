@@ -1013,7 +1013,9 @@ function AddUnitsDialog({ item, onClose }: { item: ManagedItemType; onClose: () 
   const createUnits = useCreateItemUnits();
 
   const [manageGroupKey, setManageGroupKey] = useState<number | null>(null);
-  const [tier, setTier] = useState<Tier | "">("");
+  // A type has one tier (#231): new units take the one its units already have.
+  const typeTier = item.tiers.length === 1 ? item.tiers[0] : null;
+  const [tier, setTier] = useState<Tier | "">(typeTier ?? "");
   const [serialNo, setSerialNo] = useState("");
   const [quantity, setQuantity] = useState(1);
   const [prepDays, setPrepDays] = useState(0);
@@ -1093,7 +1095,7 @@ function AddUnitsDialog({ item, onClose }: { item: ManagedItemType; onClose: () 
         </Field>
 
         <Field label={t("staff.inventory.fieldTier")} required>
-          <Select value={tier} onValueChange={(v) => changeTier(v as Tier)}>
+          <Select value={tier} onValueChange={(v) => changeTier(v as Tier)} disabled={typeTier !== null}>
             <SelectTrigger>
               <SelectValue placeholder={t("staff.inventory.selectPlaceholder")} />
             </SelectTrigger>

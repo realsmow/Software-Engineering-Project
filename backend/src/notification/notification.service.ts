@@ -817,6 +817,9 @@ export class NotificationService {
         const name = resourceName(loan.Resource);
         const nameEn = resourceNameEn(loan.Resource);
         const overdue = loan.DueTime < now;
+        // #233: keyed on the due date too, so an extension gets its own
+        // reminder (and email) instead of reusing the old one.
+        const dedupeKey = `${usageKeyOf(loan.UsageKey)}:due:${toIso(loan.DueTime)}`;
 
         if (overdue) {
           const days = daysBetween(loan.DueTime, now);
@@ -828,7 +831,9 @@ export class NotificationService {
             titleEn: 'Overdue',
             bodyEn: `${nameEn} · ${days} ${days === 1 ? 'day' : 'days'} overdue, please return it as soon as possible`,
             linkTo: ROUTE_MY_LOANS,
-            dedupeKey: usageKeyOf(loan.UsageKey),
+            dedupeKey,
+            // #233: the day count moves on, so the text is rewritten each time.
+            refreshText: true,
           });
           continue;
         }
@@ -838,7 +843,7 @@ export class NotificationService {
         const already = await this.prisma.notification.findFirst({
           where: {
             AccountKey: accountKey,
-            DedupeKey: usageKeyOf(loan.UsageKey),
+            DedupeKey: dedupeKey,
             NotificationType: 'DueSoon',
           },
           select: { NotificationKey: true },
@@ -853,7 +858,7 @@ export class NotificationService {
           titleEn: 'Due soon',
           bodyEn: `${nameEn} · Due back ${englishDateTime(loan.DueTime)}`,
           linkTo: ROUTE_MY_LOANS,
-          dedupeKey: usageKeyOf(loan.UsageKey),
+          dedupeKey,
         });
       }
     } catch (error) {
@@ -926,6 +931,8 @@ export class NotificationService {
       bodyEn: string;
       linkTo?: string | null;
       dedupeKey?: string | null;
+      /** On a repeat, rewrite the text instead of leaving the first one. */
+      refreshText?: boolean;
     },
   ): Promise<void> {
     const data = {
@@ -953,7 +960,14 @@ export class NotificationService {
         },
       },
       create: data,
-      update: {},
+      update: params.refreshText
+        ? {
+            Title: data.Title,
+            Body: data.Body,
+            TitleEn: data.TitleEn,
+            BodyEn: data.BodyEn,
+          }
+        : {},
     });
   }
 

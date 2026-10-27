@@ -53,6 +53,7 @@ describe('scheduled loan and credit operations', () => {
     UsageKey: 41,
     AccountKey: 7,
     DueTime: new Date('2031-09-10T10:00:00Z'),
+    PendingExtension: null,
     Resource: {
       ResourceKey: 9,
       BorrowRule: 2,
@@ -125,13 +126,19 @@ describe('scheduled loan and credit operations', () => {
         },
       }),
     );
+    // #230: closed like a staff write-off, never 'Returned' (the inspection
+    // queue's state).
     expect(h.tx.usageLog.update).toHaveBeenCalledWith({
       where: { UsageKey: 41 },
-      data: { CurrentStatus: 'Returned' },
+      data: {
+        CurrentStatus: 'Inspected',
+        CheckInTime: expect.any(Date),
+        PendingExtension: null,
+      },
     });
     expect(h.tx.resourceInfo.update).toHaveBeenCalledWith({
       where: { ResourceKey: 9 },
-      data: { ResourceStatus: 'Missing' },
+      data: { ResourceStatus: 'Missing', AllowBorrow: false },
     });
     expect(h.penalties.quoteLost).toHaveBeenCalledWith(2, 4, 15);
     expect(h.penalties.apply).toHaveBeenCalledWith(

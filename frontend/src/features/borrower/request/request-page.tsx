@@ -19,13 +19,13 @@ import { toAvailabilityWindow } from "../catalog/availability-window";
 import { useEquipmentTypes } from "../catalog/use-equipment-types";
 import { useMyCredit } from "@/features/account/use-my-credit";
 import {
-  REQUEST_TIMES,
   isoOffset,
   todayIso,
   useRequestDraft,
   type DraftLine,
   type RequestTime,
 } from "./request-draft.store";
+import { useRequestTimes } from "./use-request-times";
 import {
   MAX_REQUEST_UNITS,
   RequestPreparationError,
@@ -69,6 +69,7 @@ export default function RequestPage() {
   const replaceLines = useRequestDraft((s) => s.replaceLines);
   const clear = useRequestDraft((s) => s.clear);
   const createRequest = useCreateEquipmentRequest();
+  const times = useRequestTimes();
   const [submitMessage, setSubmitMessage] = useState<string | null>(null);
   // Items the server refused for these exact dates. Changing the dates clears
   // it, so the checklist never shows green for what the server just refused.
@@ -410,6 +411,7 @@ export default function RequestPage() {
                   <RequestTimeField
                     label={t("borrower.request.pickupTime")}
                     value={pickupTime}
+                    times={times}
                     onChange={setPickupTime}
                     offerNow={onlyT0 && startDate === todayIso()}
                   />
@@ -425,6 +427,7 @@ export default function RequestPage() {
                   <RequestTimeField
                     label={t("borrower.request.returnTime")}
                     value={returnTime}
+                    times={times}
                     onChange={setReturnTime}
                   />
                 </div>
@@ -596,16 +599,18 @@ function nowPickupTime(): RequestTime {
 function RequestTimeField({
   label,
   value,
+  times,
   onChange,
   offerNow = false,
 }: {
   label: string;
   value: RequestTime;
+  times: string[];
   onChange: (time: RequestTime) => void;
   offerNow?: boolean;
 }) {
   const { t } = useTranslation();
-  const isNow = !(REQUEST_TIMES as readonly string[]).includes(value);
+  const isNow = !times.includes(value);
   return (
     <fieldset>
       <legend className="mb-1.5 text-xs font-medium text-t2">{label}</legend>
@@ -625,7 +630,7 @@ function RequestTimeField({
             {isNow ? t("borrower.request.pickupNowAt", { time: value }) : t("borrower.request.pickupNow")}
           </button>
         ) : null}
-        {REQUEST_TIMES.map((time) => {
+        {times.map((time) => {
           const selected = value === time;
           return (
             <button

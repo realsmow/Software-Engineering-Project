@@ -26,6 +26,10 @@ vi.mock("../../src/features/borrower/catalog/use-equipment-types", () => ({
   useCatalogSearch: vi.fn(() => ({ data: undefined })),
 }));
 
+// Work hours come from the server (#224); the default day here.
+vi.mock("../../src/features/borrower/request/use-request-times", () => ({
+  useRequestTimes: () => ["08:00", "13:00", "16:00", "17:00"],
+}));
 vi.mock("../../src/features/staff/inventory/use-inventory", () => ({
   useManagedItems: vi.fn(),
   useManagedItem: vi.fn(),

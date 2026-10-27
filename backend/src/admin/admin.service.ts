@@ -581,6 +581,12 @@ export class AdminService implements OnModuleInit {
     });
 
     if (!input.active) {
+      // #232: an unused "confirm your email" link would set IsActive back to
+      // true. Expire them, so only an admin can bring the account back.
+      await this.prisma.emailVerification.updateMany({
+        where: { AccountKey: input.id, UsedAt: null },
+        data: { ExpiresAt: new Date() },
+      });
       await this.sessions.revokeAllForAccount(input.id);
     }
 
@@ -597,6 +603,11 @@ export class AdminService implements OnModuleInit {
   // =========================================================================
   // Lending settings
   // =========================================================================
+
+  /** The counter's opening and closing hour (Bangkok). */
+  workHours() {
+    return { ...workHours };
+  }
 
   async getLendingSettings() {
     const [creditTiers, borrowRules] = await this.prisma.$transaction([

@@ -194,7 +194,7 @@ export function useCreateItemUnits() {
   });
 }
 
-/** Correct one unit: its serial, its tier, its prep days, its photo. */
+/** Correct one unit: its serial, its prep days, its photo. Tier belongs to the type. */
 export function useUpdateUnit() {
   const trpc = useTRPCClient();
   const refresh = useRefreshInventory();
@@ -204,7 +204,6 @@ export function useUpdateUnit() {
       resourceKey: number;
       serialNo?: string;
       imageUrl?: string;
-      tier?: Tier;
       prepDays?: number;
     }): Promise<ManagedUnit> => trpc.item.updateUnit.mutate(input),
     onSuccess: refresh,

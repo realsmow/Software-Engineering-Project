@@ -369,17 +369,23 @@ export type ListExtensionReviewsInput = z.infer<
   typeof listExtensionReviewsInput
 >;
 
-export const decideExtensionInput = z.object({
-  extensionKey: dbId,
-  decision: z.enum(['approve', 'reject']),
-  /**
-   * Condition found on the counter. Only the staff route inspects the unit
-   * here; a supervisor-routed one was checked by `inspectExtension` and this
-   * is ignored.
-   */
-  condition: conditionType.default('Normal'),
-  note: z.string().trim().max(500).optional(),
-});
+export const decideExtensionInput = z
+  .object({
+    extensionKey: dbId,
+    decision: z.enum(['approve', 'reject']),
+    /**
+     * Condition found on the counter. Only the staff route inspects the unit
+     * here; a supervisor-routed one was checked by `inspectExtension` and this
+     * is ignored.
+     */
+    condition: conditionType.default('Normal'),
+    note: z.string().trim().max(500).optional(),
+  })
+  .refine((v) => v.decision === 'approve' || (v.note?.length ?? 0) > 0, {
+    // #227: the screen asked for a reason, but the API took a bare refusal.
+    message: 'A rejection must say why',
+    path: ['note'],
+  });
 export type DecideExtensionInput = z.infer<typeof decideExtensionInput>;
 
 /** Staff record the condition of a supervisor-routed extension's unit (#156). */

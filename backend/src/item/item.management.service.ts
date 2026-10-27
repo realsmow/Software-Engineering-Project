@@ -438,6 +438,27 @@ export class ItemManagementService {
     }
 
     const borrowRuleKey = await this.resolveTierRuleKey(input.tier);
+    // #231: one tier per type. A borrower asks for the type and may be given
+    // any free unit of it, so a T2 unit among T1 ones would skip the
+    // supervisor.
+    const live = await this.prisma.resourceInfo.findMany({
+      where: {
+        Item: { ItemKey: input.itemKey },
+        ResourceStatus: { not: 'Retired' },
+      },
+      distinct: ['BorrowRule'],
+      select: { BorrowRuleInfo: { select: { RuleName: true } } },
+    });
+    const typeTier = live
+      .map((r) => tryMapTier(r.BorrowRuleInfo.RuleName))
+      .find((t) => t !== input.tier);
+    if (typeTier !== undefined) {
+      throw new BusinessError('TIER_DIFFERS_FROM_TYPE', {
+        itemKey: input.itemKey,
+        typeTier,
+        tier: input.tier,
+      });
+    }
     const existing = await this.prisma.itemIndiv.findMany({
       where: { ItemKey: input.itemKey },
       select: { ItemID: true },
@@ -545,11 +566,6 @@ export class ItemManagementService {
       );
     }
 
-    const borrowRuleKey =
-      input.tier === undefined
-        ? undefined
-        : await this.resolveTierRuleKey(input.tier);
-
     const newSerial = input.serialNo === undefined ? [] : [input.serialNo];
     await this.serialTx(unit.ItemKey, newSerial, async (tx) => {
       if (input.serialNo !== undefined || input.imageUrl !== undefined) {
@@ -564,17 +580,10 @@ export class ItemManagementService {
         });
       }
 
-      if (borrowRuleKey !== undefined || input.prepDays !== undefined) {
+      if (input.prepDays !== undefined) {
         await tx.resourceInfo.update({
           where: { ResourceKey: input.resourceKey },
-          data: {
-            ...(borrowRuleKey !== undefined
-              ? { BorrowRule: borrowRuleKey }
-              : {}),
-            ...(input.prepDays !== undefined
-              ? { BufferTime: input.prepDays }
-              : {}),
-          },
+          data: { BufferTime: input.prepDays },
         });
       }
     });
@@ -583,7 +592,7 @@ export class ItemManagementService {
       { accountKey: user.accountKey },
       'update',
       `unit/${input.resourceKey}`,
-      `Updated unit${input.serialNo !== undefined ? `, serial ${input.serialNo}` : ''}${input.tier !== undefined ? `, tier ${input.tier}` : ''}`,
+      `Updated unit${input.serialNo !== undefined ? `, serial ${input.serialNo}` : ''}`,
     );
 
     return this.readUnit(input.resourceKey);

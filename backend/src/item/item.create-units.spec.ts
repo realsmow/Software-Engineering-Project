@@ -35,6 +35,8 @@ function harness(inherited: { GroupKey: number; RoleKey: number }[]) {
         .fn()
         .mockResolvedValue({ ItemKey: 9, ItemName: 'LCR meter' }),
     },
+    // The type's live tiers (#231); empty means a new type.
+    resourceInfo: { findMany: jest.fn().mockResolvedValue([]) },
     borrowRule: {
       findFirst: jest.fn().mockResolvedValue({ BorrowRuleKey: 1 }),
     },
@@ -164,5 +166,39 @@ it('answers SERIAL_ALREADY_IN_USE when a concurrent save wins the unique index (
 
   await expect(t.service.createItemUnits(staff, input)).rejects.toMatchObject({
     businessCode: 'SERIAL_ALREADY_IN_USE',
+  });
+});
+
+describe('#231: one tier per type', () => {
+  function withLiveTiers(names: string[]) {
+    const t = harness([]);
+    const prisma = (
+      t.service as unknown as {
+        prisma: { resourceInfo: { findMany: jest.Mock } };
+      }
+    ).prisma;
+    prisma.resourceInfo.findMany.mockResolvedValue(
+      names.map((RuleName) => ({ BorrowRuleInfo: { RuleName } })),
+    );
+    return t;
+  }
+
+  it('refuses a T2 unit for a type whose units are T1', async () => {
+    const t = withLiveTiers(['T1']);
+    await expect(
+      t.service.createItemUnits(staff, {
+        ...input,
+        tier: 'T2',
+        serialNo: 'SN-1',
+        quantity: 1,
+      }),
+    ).rejects.toMatchObject({ businessCode: 'TIER_DIFFERS_FROM_TYPE' });
+    expect(t.tx.resourceInfo.create).not.toHaveBeenCalled();
+  });
+
+  it('adds units of the tier the type already has', async () => {
+    const t = withLiveTiers([' t0 ']);
+    await t.service.createItemUnits(staff, { ...input, quantity: 1 });
+    expect(t.tx.resourceInfo.create).toHaveBeenCalledTimes(1);
   });
 });

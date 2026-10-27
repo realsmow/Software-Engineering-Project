@@ -204,6 +204,10 @@ export class CronService {
    * The unit goes to `Missing` and the borrower is charged the replacement
    * penalty. Loans already marked lost are skipped by the status filter, so
    * this is safe to run repeatedly.
+   *
+   * #230: the loan is closed the way a staff write-off closes it (Inspected),
+   * not 'Returned', which would put it in the inspection queue as if the
+   * unit were back on the counter.
    */
   private async markLost(): Promise<CronOutcome> {
     const now = new Date();
@@ -215,6 +219,7 @@ export class CronService {
         UsageKey: true,
         AccountKey: true,
         DueTime: true,
+        PendingExtension: true,
         Resource: {
           select: {
             ResourceKey: true,
@@ -243,11 +248,24 @@ export class CronService {
       await this.prisma.$transaction(async (tx) => {
         await tx.usageLog.update({
           where: { UsageKey: loan.UsageKey },
-          data: { CurrentStatus: 'Returned' },
+          data: {
+            CurrentStatus: 'Inspected',
+            CheckInTime: now,
+            PendingExtension: null,
+          },
         });
+        if (loan.PendingExtension !== null) {
+          await tx.extensionRequest.updateMany({
+            where: {
+              ExtensionKey: loan.PendingExtension,
+              ApproveStatus: 'Pending',
+            },
+            data: { ApproveStatus: 'Canceled', ResolvedAt: now },
+          });
+        }
         await tx.resourceInfo.update({
           where: { ResourceKey: loan.Resource.ResourceKey },
-          data: { ResourceStatus: 'Missing' },
+          data: { ResourceStatus: 'Missing', AllowBorrow: false },
         });
         await this.penalties.apply(tx, quote, {
           accountKey: loan.AccountKey,

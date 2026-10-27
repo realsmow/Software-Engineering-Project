@@ -474,6 +474,14 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 			};
 			meta: object;
 		}>;
+		workHours: import("@trpc/server").TRPCQueryProcedure<{
+			input: void;
+			output: {
+				start: number;
+				end: number;
+			};
+			meta: object;
+		}>;
 		updateWorkHours: import("@trpc/server").TRPCMutationProcedure<{
 			input: {
 				start: number;
@@ -2280,7 +2288,6 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 				resourceKey: number;
 				serialNo?: string | undefined;
 				imageUrl?: string | undefined;
-				tier?: "T0" | "T1" | "T2" | "T3" | undefined;
 				prepDays?: number | undefined;
 			};
 			output: {

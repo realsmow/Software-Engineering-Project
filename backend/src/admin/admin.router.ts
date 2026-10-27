@@ -7,7 +7,11 @@ import {
   Router,
   UseMiddlewares,
 } from 'nestjs-trpc';
-import { AdminMiddleware, StaffMiddleware } from '../trpc/auth.middleware';
+import {
+  AdminMiddleware,
+  AuthMiddleware,
+  StaffMiddleware,
+} from '../trpc/auth.middleware';
 import type { TrpcContext } from '../trpc/context';
 import type { AuditActor } from '../common/audit/audit.service';
 import { okOutput } from '../common/schemas/ok.schema';
@@ -234,6 +238,17 @@ export class AdminRouter {
       input,
       AdminRouter.actorFrom(ctx),
     );
+  }
+
+  /**
+   * #224: the counter's hours, for every signed-in user. The request page
+   * offers pickup and return times from these, so a borrower is never offered
+   * a time the server would refuse.
+   */
+  @UseMiddlewares(AuthMiddleware)
+  @Query({ output: workHoursSetting })
+  workHours() {
+    return this.adminService.workHours();
   }
 
   /** FR-ADM-04: one working day for the whole university, so admin only. */
