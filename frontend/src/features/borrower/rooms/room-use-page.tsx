@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { Camera, Check, TriangleAlert } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { ImageThumb } from "@/components/shared/image-thumb";
+import { UsagePhotoGallery } from "@/components/shared/usage-photo-gallery";
 import { Badge, type BadgeTone } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
@@ -20,6 +21,7 @@ import {
   usePickupImageUpload,
   useUsagePhotos,
   type UsagePhoto,
+  useDetachUsagePhoto,
 } from "../pickup/use-pickup-image-upload";
 import { prepareBorrowerImage, releaseBorrowerImage } from "../uploads/prepared-image";
 
@@ -322,8 +324,20 @@ function PhotoBox({
 }) {
   const { t } = useTranslation();
   const upload = usePickupImageUpload();
+  const detach = useDetachUsagePhoto();
   const [error, setError] = useState<string | null>(null);
   const latest = photos[photos.length - 1];
+
+  // P-07 (instructor item 2): a wrong photo is removed and taken again while
+  // its phase is open; once the phase is over the photos stay as evidence.
+  async function remove(imageKey: number) {
+    setError(null);
+    try {
+      await detach.mutateAsync({ usageKey, imageKey });
+    } catch (err) {
+      setError(getErrorMessage(err));
+    }
+  }
 
   async function onPick(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -396,6 +410,20 @@ function PhotoBox({
           </span>
         )}
       </label>
+
+      {photos.length > 0 ? (
+        <div className="mt-2">
+          <UsagePhotoGallery
+            photos={{ before: [], after: [], inspection: [], evidence: [], [stage]: photos }}
+            stages={[stage]}
+            showLabels={false}
+            size={40}
+            disabled={detach.isPending || upload.isPending}
+            pendingImageKey={detach.isPending ? detach.variables?.imageKey : undefined}
+            onRemove={editable ? (imageKey) => void remove(imageKey) : undefined}
+          />
+        </div>
+      ) : null}
 
       {error ? (
         <p className="mt-1.5 text-[11.5px] leading-relaxed text-[var(--s-alert-t)]">{error}</p>

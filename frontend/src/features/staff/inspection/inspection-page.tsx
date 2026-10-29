@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { X } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { TierDot } from "@/components/shared/tier-badge";
 import { Badge } from "@/components/ui/badge";
@@ -189,6 +190,15 @@ function Subject({ usageKey }: { usageKey: number }) {
     }
   }
 
+  // P-07: a photo chosen by mistake is dropped before it is filed with the grade.
+  function removePhoto(imageUrl: string) {
+    setPhotos((list) => {
+      const gone = list.find((p) => p.imageUrl === imageUrl);
+      if (gone) URL.revokeObjectURL(gone.previewUrl);
+      return list.filter((p) => p.imageUrl !== imageUrl);
+    });
+  }
+
   async function grade() {
     setError(null);
     if (level === null) {
@@ -315,12 +325,24 @@ function Subject({ usageKey }: { usageKey: number }) {
 
         <div className="mb-2.5 flex flex-wrap items-center gap-2">
           {photos.map((p) => (
-            <img
-              key={p.imageUrl}
-              src={p.previewUrl}
-              alt=""
-              className="h-16 w-20 rounded border border-border bg-surface-inset object-cover"
-            />
+            <div key={p.imageUrl} className="relative">
+              <a href={p.previewUrl} target="_blank" rel="noreferrer" aria-label={t("common.viewPhoto")}>
+                <img
+                  src={p.previewUrl}
+                  alt=""
+                  className="h-16 w-20 rounded border border-border bg-surface-inset object-cover"
+                />
+              </a>
+              <button
+                type="button"
+                aria-label={t("borrower.pickup.removePhoto")}
+                disabled={create.isPending}
+                onClick={() => removePhoto(p.imageUrl)}
+                className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full border border-border bg-card text-t3 shadow-sm disabled:opacity-50"
+              >
+                <X size={11} strokeWidth={2.6} />
+              </button>
+            </div>
           ))}
           <label className="inline-flex h-8 cursor-pointer items-center rounded-md border border-border bg-card px-2.5 text-xs font-medium text-t2 hover:text-foreground">
             <input
@@ -381,12 +403,19 @@ function Side({
       ) : (
         <div className="mt-2 flex flex-wrap gap-2">
           {images.map((img) => (
-            <img
+            <a
               key={img.imageKey}
-              src={img.url}
-              alt=""
-              className="h-24 w-32 rounded border border-border bg-surface-inset object-cover"
-            />
+              href={img.url}
+              target="_blank"
+              rel="noreferrer"
+              aria-label={t("common.viewPhoto")}
+            >
+              <img
+                src={img.url}
+                alt=""
+                className="h-24 w-32 rounded border border-border bg-surface-inset object-cover"
+              />
+            </a>
           ))}
         </div>
       )}

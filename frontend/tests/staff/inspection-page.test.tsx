@@ -185,6 +185,43 @@ describe("StaffInspectionPage", () => {
     );
   });
 
+  it("drops a chosen photo removed before grading (P-07)", async () => {
+    upload.mockResolvedValueOnce("/media/wrong.jpg").mockResolvedValueOnce("/media/right.jpg");
+    create.mockResolvedValue(
+      inspectionResponse({ level: "B1", condition: "MinorDamage", returnedToPool: true })
+    );
+    URL.createObjectURL = vi.fn(() => "blob:preview");
+    URL.revokeObjectURL = vi.fn();
+    const { container } = render(<StaffInspectionPage />);
+    fireEvent.click(screen.getByRole("button", { name: /Oscilloscope/ }));
+    for (const name of ["wrong.jpg", "right.jpg"]) {
+      fireEvent.change(container.querySelector('input[type="file"]')!, {
+        target: { files: [new File([new Uint8Array(8)], name, { type: "image/jpeg" })] },
+      });
+      await waitFor(() =>
+        expect(screen.getAllByRole("button", { name: i18n.t("borrower.pickup.removePhoto") }))
+          .toHaveLength(name === "wrong.jpg" ? 1 : 2)
+      );
+    }
+    fireEvent.click(screen.getAllByRole("button", { name: i18n.t("borrower.pickup.removePhoto") })[0]);
+    fireEvent.click(screen.getByRole("button", { name: /B1/ }));
+    fireEvent.click(screen.getByRole("button", { name: i18n.t("staff.inspection.recordGrade") }));
+
+    await waitFor(() =>
+      expect(create).toHaveBeenCalledWith({ usageKey: 42, level: "B1", imageUrls: ["/media/right.jpg"] })
+    );
+    expect(URL.revokeObjectURL).toHaveBeenCalled();
+  });
+
+  it("opens the handover and return photos full size (P-07)", () => {
+    render(<StaffInspectionPage />);
+    fireEvent.click(screen.getByRole("button", { name: /Oscilloscope/ }));
+    const hrefs = screen
+      .getAllByRole("link", { name: i18n.t("common.viewPhoto") })
+      .map((link) => link.getAttribute("href"));
+    expect(hrefs).toEqual(expect.arrayContaining(["/media/before.jpg", "/media/after.jpg"]));
+  });
+
   it("does not offer a second grade when the server says the return was inspected", () => {
     hooks.useInspectionSubject.mockReturnValue(
       queryResult(

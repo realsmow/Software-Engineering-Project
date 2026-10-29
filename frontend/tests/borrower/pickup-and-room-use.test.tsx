@@ -143,6 +143,15 @@ beforeEach(() => {
         });
         return photos;
       }
+      case "image.detachUsagePhoto": {
+        const { imageKey } = input as { imageKey: number };
+        photos = usagePhotosOutput.parse({
+          ...photos,
+          before: photos.before.filter((photo) => photo.imageKey !== imageKey),
+          after: photos.after.filter((photo) => photo.imageKey !== imageKey),
+        });
+        return photos;
+      }
       case "loan.confirmMyPickup": {
         requests = requests.map((row) => requestResponse({ ...row, status: "inUse" }));
         return requests[0];
@@ -355,6 +364,44 @@ describe("borrower pickup page through its real API hooks", () => {
 });
 
 describe("room use page through its real API hooks", () => {
+  // P-07 (instructor item 2): every photo of a phase can be opened full size,
+  // and removed while that phase is still open.
+  function storedBefore(...keys: number[]) {
+    return keys.map((imageKey) => ({
+      imageKey,
+      imageUrl: `/media/inspection/room-${imageKey}.png`,
+      stage: "before" as const,
+      submittedBy: 7,
+      submittedAt: "2026-09-28T01:00:00.000Z",
+    }));
+  }
+
+  it("lists every before photo full size and removes one before check-in", async () => {
+    requests = [readyRoom()];
+    photos = usagePhotosOutput.parse({ ...photos, before: storedBefore(8, 9) });
+    renderPage("room");
+    const links = await screen.findAllByRole("link", { name: i18n.t("common.viewPhoto") });
+    expect(links.map((link) => link.getAttribute("href"))).toEqual([
+      "/media/inspection/room-8.png",
+      "/media/inspection/room-9.png",
+    ]);
+    fireEvent.click(screen.getAllByRole("button", { name: i18n.t("borrower.pickup.removePhoto") })[0]);
+    await waitFor(() =>
+      expect(api).toHaveBeenCalledWith("image.detachUsagePhoto", { imageKey: 8 })
+    );
+  });
+
+  it("keeps the before photos read-only once the room is in use", async () => {
+    requests = [requestResponse({ ...readyRoom(), status: "inUse" })];
+    photos = usagePhotosOutput.parse({ ...photos, before: storedBefore(8) });
+    renderPage("room");
+    expect(await screen.findByRole("link", { name: i18n.t("common.viewPhoto") })).toHaveAttribute(
+      "href",
+      "/media/inspection/room-8.png"
+    );
+    expect(screen.queryByRole("button", { name: i18n.t("borrower.pickup.removePhoto") })).toBeNull();
+  });
+
   it("gates check-in on stored before evidence and confirms the borrower endpoint", async () => {
     requests = [readyRoom()];
     const { container } = renderPage("room");
