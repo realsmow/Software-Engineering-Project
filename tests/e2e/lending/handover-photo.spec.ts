@@ -127,7 +127,7 @@ async function seedFreshT1Unit(page: Page): Promise<string> {
 }
 
 test.describe("Module 5/6 handover photo gate", () => {
-  test("staff cannot hand over a T1 loan until a handover photo is attached", async ({ page }) => {
+  test("staff cannot hand over a T1 loan until the borrower has photographed it", async ({ page }) => {
     // The borrower picks a same-day pickup slot; after the last one none is left.
     expect(bangkokParts().hm < PICKUP_TIME_SLOTS.at(-1)!, "Use the isolated runner's business clock").toBe(true);
     // This is a full walk of the loan lifecycle (seed -> request -> prepare ->
@@ -178,32 +178,58 @@ test.describe("Module 5/6 handover photo gate", () => {
     await prepareRow.getByRole("button", { name: "Prepare", exact: true }).click();
     expect((await prepare).ok()).toBeTruthy();
 
-    // ── Switch to "To hand over" and confirm the button is gated on a photo ─
+    // ── Switch to "To hand over": the button waits for the borrower's photo ─
     // The bucket switch is the count tile itself (its own `Segmented` control
     // is dead: `DataTable` only renders `headerActions` when a `title` is
     // also passed, and this table has none - see
     // frontend/src/components/ui/data-table.tsx:88-91 vs staff-queue-page.tsx).
     await page.getByRole("button", { name: /^To hand over/ }).click();
     await search.fill(itemName);
-    const handoverRow = page.getByRole("row").filter({ hasText: itemName }).first();
-    await expect(handoverRow).toBeVisible();
+    const waitingRow = page.getByRole("row").filter({ hasText: itemName }).first();
+    await expect(waitingRow).toBeVisible();
+    // #237 (team decision D-05): staff cannot take the handover photo.
+    await expect(waitingRow.getByRole("button", { name: /^Hand over/ })).toBeDisabled();
+    await expect(waitingRow.locator('input[type="file"]')).toHaveCount(0);
+    await expect(
+      waitingRow.getByText("Waiting for the borrower's photo from their Pickup page"),
+    ).toBeVisible();
 
-    // The chosen pickup slot may still be ahead of "now" - the row then reads
-    // "Hand over early" rather than "Hand over".
-    const handoverButton = handoverRow.getByRole("button", { name: /^Hand over/ });
-    await expect(handoverButton).toBeDisabled();
+    // ── The borrower photographs the unit on their own pickup page ─────────
+    await signIn(page, BORROWER, /\/$/);
+    await page.goto("/pickup");
+    await expect(page.getByRole("checkbox", { name: itemName, exact: true })).toBeChecked();
+    for (const box of await page.getByRole("checkbox").all()) {
+      if ((await box.getAttribute("aria-label")) !== itemName && (await box.isChecked())) {
+        await box.uncheck();
+      }
+    }
+    await page.locator('input[type="file"]').first().setInputFiles(jpegFile("handover.jpg"));
+    const attached = mutationResponse(page, "image.attachUsagePhotos");
+    const collect = mutationResponse(page, "loan.confirmMyPickup");
+    await page.getByRole("button", { name: "Confirm collection" }).click();
+    expect((await attached).ok()).toBeTruthy();
+    // Before the slot opens (15 minutes ahead) the borrower's own confirmation
+    // is refused, and staff hand over early with the borrower's photo on file.
+    const collectedByBorrower = (await collect).ok();
 
-    await handoverRow.locator('input[type="file"]').setInputFiles(jpegFile("handover.jpg"));
-    await expect(handoverRow.getByText("+ Add photo")).toBeVisible();
-    await expect(handoverButton).toBeEnabled();
-
-    // An early handover (the pickup slot has not arrived yet) asks for
-    // confirmation first, since it also moves the return date earlier.
-    page.once("dialog", (dialog) => void dialog.accept());
-    const handover = mutationResponse(page, "loan.confirmPickup");
-    await handoverButton.click();
-    expect((await handover).ok()).toBeTruthy();
-    await expect(page.getByText(/Handed over/)).toBeVisible();
+    await signIn(page, STAFF, /\/staff$/);
+    if (!collectedByBorrower) {
+      await page.getByRole("button", { name: /^To hand over/ }).click();
+      await search.fill(itemName);
+      const handoverRow = page.getByRole("row").filter({ hasText: itemName }).first();
+      await expect(handoverRow).toBeVisible();
+      // The chosen pickup slot may still be ahead of "now" - the row then reads
+      // "Hand over early" rather than "Hand over".
+      const handoverButton = handoverRow.getByRole("button", { name: /^Hand over/ });
+      await expect(handoverButton).toBeEnabled();
+      // An early handover (the pickup slot has not arrived yet) asks for
+      // confirmation first, since it also moves the return date earlier.
+      page.once("dialog", (dialog) => void dialog.accept());
+      const handover = mutationResponse(page, "loan.confirmPickup");
+      await handoverButton.click();
+      expect((await handover).ok()).toBeTruthy();
+      await expect(page.getByText(/Handed over/)).toBeVisible();
+    }
 
     // ── Cleanup: return and grade the unit. The type/unit themselves are left
     // behind - once a unit has loan history the server refuses to delete it

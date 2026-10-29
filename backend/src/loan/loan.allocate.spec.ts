@@ -220,6 +220,8 @@ describe('confirmPickup before the booked time', () => {
       Room: room ? { RoomName: 'Lab' } : null,
     },
     CheckoutConditionLog: { Condition: 'Normal' },
+    // #237: the borrower whose own before photo a handover needs.
+    Account: { AccountKey: 3 },
   });
 
   function svcFor(
@@ -498,7 +500,11 @@ describe('confirmPickup before the booked time', () => {
           // Setup and the unaffected handover contract must pass normally.
           // An expected defect must never hide a thrown error or missing write.
           expect(t.prisma.images.findFirst).toHaveBeenCalledWith({
-            where: { UsageKey: 8, SubmissionType: 'BeforePicture' },
+            where: {
+              UsageKey: 8,
+              SubmissionType: 'BeforePicture',
+              SubmittedBy: 3,
+            },
             select: { ImageKey: true },
           });
           expect(t.prisma.$transaction).toHaveBeenCalledTimes(1);

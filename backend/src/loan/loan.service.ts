@@ -540,16 +540,22 @@ export class LoanService {
     assertPickupWindowOpen(input.usageKey, usage.DueTime, new Date());
     assertResourceLendable(usage.Resource.ResourceKey, usage.Resource);
 
-    // FR-PKP-03: the unit is photographed as it leaves, by the borrower on
-    // their pickup page or by staff at the counter. The borrower's own path
-    // already required it; handing over at the counter skipped it.
+    // FR-PKP-03: the unit is photographed as it leaves. #237 (team decision
+    // D-05, FR-PKP-02): by the borrower, on their own pickup page - it is their
+    // record of the condition they accepted, so a photo staff attach at the
+    // counter does not count. confirmMyPickup applies the same rule.
     const beforePhoto = await this.prisma.images.findFirst({
-      where: { UsageKey: input.usageKey, SubmissionType: 'BeforePicture' },
+      where: {
+        UsageKey: input.usageKey,
+        SubmissionType: 'BeforePicture',
+        SubmittedBy: usage.Account.AccountKey,
+      },
       select: { ImageKey: true },
     });
     if (!beforePhoto) {
       throw new BusinessError('PICKUP_PHOTO_REQUIRED', {
         usageKey: input.usageKey,
+        reason: 'BORROWER_PHOTO_REQUIRED',
       });
     }
 

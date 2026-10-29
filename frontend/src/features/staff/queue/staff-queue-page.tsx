@@ -483,12 +483,14 @@ export default function StaffQueuePage() {
     let done = 0;
     let lateCredit = 0;
     try {
-      // One photo covers the group: copy the first unit's onto the rest.
-      if (bucket !== "toPrepare" && members[0].usageKey !== null) {
+      // One return photo covers the group: copy the first unit's onto the rest.
+      // #237: never the handover photo - that is each unit's own, taken by the
+      // borrower on their pickup page, and a staff copy would not count.
+      if ((bucket === "onLoan" || bucket === "overdue") && members[0].usageKey !== null) {
         await copyPhotos.mutateAsync({
           from: members[0].usageKey,
           to: members.slice(1).flatMap((m) => (m.usageKey === null ? [] : [m.usageKey])),
-          stage: bucket === "toHandover" ? "before" : "after",
+          stage: "after",
         });
       }
       for (const m of members) {
@@ -632,10 +634,18 @@ export default function StaffQueuePage() {
               >
                 {t("staff.queue.split")}
               </Button>
-              {bucket !== "toPrepare" && r.usageKey !== null ? (
+              {bucket === "toHandover" && r.usageKey !== null ? (
+                <HandoverAction
+                  usageKey={r.usageKey}
+                  borrowerKey={r.borrower.accountKey}
+                  busy={busy}
+                  label={allLabel}
+                  onAct={() => void actGroup(r)}
+                />
+              ) : bucket !== "toPrepare" && r.usageKey !== null ? (
                 <PhotoGatedAction
                   usageKey={r.usageKey}
-                  stage={bucket === "toHandover" ? "before" : "after"}
+                  stage="after"
                   busy={busy}
                   label={allLabel}
                   onAct={() => void actGroup(r)}
@@ -670,9 +680,9 @@ export default function StaffQueuePage() {
                 onAct={() => void act(r)}
               />
             ) : bucket === "toHandover" && r.usageKey !== null ? (
-              <PhotoGatedAction
+              <HandoverAction
                 usageKey={r.usageKey}
-                stage="before"
+                borrowerKey={r.borrower.accountKey}
                 busy={busy}
                 label={t(isBeforePickup(r) ? "staff.queue.actionHandoverEarly" : ACTION_LABEL[bucket])}
                 onAct={() => void act(r)}
@@ -1066,6 +1076,52 @@ function PhotoGatedAction({
         {busy ? t("common.loading") : label}
       </Button>
       </div>
+    </div>
+  );
+}
+
+/**
+ * #237 (team decision D-05, FR-PKP-02/03): the handover photo is the
+ * borrower's own record of the condition they accept, taken on their pickup
+ * page; staff cannot take it for them. The button waits for that photo and
+ * shows it, read-only, for the check at the counter. For a cart, the first
+ * unit's photo is shown; the server checks every unit.
+ */
+function HandoverAction({
+  usageKey,
+  borrowerKey,
+  busy,
+  label,
+  onAct,
+}: {
+  usageKey: number;
+  borrowerKey: number;
+  busy: boolean;
+  label: string;
+  onAct: () => void;
+}) {
+  const { t } = useTranslation();
+  const { data: photos } = useUsagePhotos(usageKey);
+  const theirs = (photos?.before ?? []).filter((p) => p.submittedBy === borrowerKey);
+
+  return (
+    <div className="flex flex-col items-end gap-1.5">
+      {photos && theirs.length > 0 ? (
+        <UsagePhotoGallery
+          photos={{ ...photos, before: theirs }}
+          stages={["before"]}
+          size={36}
+          showLabels={false}
+          disabled
+        />
+      ) : (
+        <span className="max-w-[220px] text-right text-[11px] leading-snug text-t3">
+          {t("staff.queue.waitBorrowerPhoto")}
+        </span>
+      )}
+      <Button type="button" size="sm" disabled={busy || theirs.length === 0} onClick={onAct}>
+        {busy ? t("common.loading") : label}
+      </Button>
     </div>
   );
 }

@@ -109,8 +109,9 @@ describe('copied group photos remain readable after reloading', () => {
             throw new Error('The group photo upload ticket did not verify');
           await images.store(verified, png, 'image/png');
           if (stage === 'after') {
+            // #237: the handover photo is the borrower's own.
             for (const usage of usages) {
-              await evidence.attach(f.staff, {
+              await evidence.attach(f.users[0], {
                 usageKey: usage.usageKey,
                 stage: 'before',
                 imageUrls: [ticket.imageUrl],

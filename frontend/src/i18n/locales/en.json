@@ -995,7 +995,8 @@
       "actionHandoverEarly": "Hand over early",
       "confirmEarly": "{{who}} is collecting before the booked pickup time. The loan keeps its length, so it will be due back earlier by the same amount. Hand over now?",
       "doneHandoverEarly": "Handed over early to {{who}} - now due back {{due}}",
-      "handoverPhoto": "Photo at handover"
+      "handoverPhoto": "Photo at handover",
+      "waitBorrowerPhoto": "Waiting for the borrower's photo from their Pickup page"
     },
     "handover": {
       "subtitle": "One loan, in full",
