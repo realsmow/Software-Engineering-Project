@@ -219,7 +219,13 @@ export function useStaffInspectExtension() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (input: { extensionKey: number; condition: ConditionType; note?: string }) =>
+    mutationFn: (input: {
+      extensionKey: number;
+      condition: ConditionType;
+      note?: string;
+      /** #205: uploaded with purpose "inspection"; shown to the supervisor. */
+      imageUrls?: string[];
+    }) =>
       trpc.loan.inspectExtension.mutate(input),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: QUEUE_KEY });

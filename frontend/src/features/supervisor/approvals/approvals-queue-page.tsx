@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { ImageThumb } from "@/components/shared/image-thumb";
 import { PageHeader } from "@/components/shared/page-header";
 import { TierDot } from "@/components/shared/tier-badge";
 import { Badge } from "@/components/ui/badge";
@@ -310,6 +311,22 @@ export default function SupervisorApprovalsPage() {
               {r.inspection.loggedBy}
               {r.inspection.note ? ` · ${r.inspection.note}` : ""}
             </div>
+            {/* #205: the only picture of the unit the supervisor gets before deciding. */}
+            {r.inspection.photos.length > 0 ? (
+              <div className="mt-1 flex flex-wrap gap-1">
+                {r.inspection.photos.map((url, i) => (
+                  <a
+                    key={url}
+                    href={url}
+                    target="_blank"
+                    rel="noreferrer"
+                    aria-label={t("supervisor.approvals.checkPhotoN", { n: i + 1 })}
+                  >
+                    <ImageThumb src={url} size={28} />
+                  </a>
+                ))}
+              </div>
+            ) : null}
           </div>
         ) : (
           <Badge tone="warn">{t("supervisor.approvals.awaitingCheck")}</Badge>
@@ -923,6 +940,9 @@ function LoanPhotosDialog({
     { stage: "inspection", label: t("supervisor.appeals.photoInspection") },
   ];
   const shown = data ? groups.filter((g) => data[g.stage].length > 0) : [];
+  // #205: photos from the staff check come with the extension row, not with
+  // the loan's photo set (image.usagePhotos leaves them out on purpose).
+  const checkPhotos = row.inspection?.photos ?? [];
 
   return (
     <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
@@ -934,10 +954,28 @@ function LoanPhotosDialog({
         </DialogHeader>
         {isLoading ? (
           <div className="py-8 text-center text-t3">{t("common.loading")}</div>
-        ) : shown.length === 0 ? (
+        ) : shown.length === 0 && checkPhotos.length === 0 ? (
           <p className="py-8 text-center text-t3">{t("supervisor.appeals.noPhotos")}</p>
         ) : (
           <div className="flex flex-col gap-3">
+            {checkPhotos.length > 0 ? (
+              <div>
+                <div className="mb-1 text-[11px] text-t3">
+                  {t("supervisor.approvals.photoExtensionCheck")}
+                </div>
+                <div className="flex flex-wrap gap-3">
+                  {checkPhotos.map((url, i) => (
+                    <a key={url} href={url} target="_blank" rel="noreferrer">
+                      <img
+                        src={url}
+                        alt={t("supervisor.approvals.checkPhotoN", { n: i + 1 })}
+                        className="h-28 w-40 rounded border border-border bg-surface-inset object-cover"
+                      />
+                    </a>
+                  ))}
+                </div>
+              </div>
+            ) : null}
             {shown.map((group) => (
               <div key={group.stage}>
                 <div className="mb-1 text-[11px] text-t3">{group.label}</div>

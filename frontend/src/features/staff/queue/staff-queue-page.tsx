@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { PageHeader } from "@/components/shared/page-header";
 import { TierDot } from "@/components/shared/tier-badge";
@@ -23,6 +24,8 @@ import {
 import { getErrorMessage } from "@/lib/error-messages";
 import { fmtDateTime } from "@/features/borrower/format";
 import type { ExtensionReviewRow } from "@/features/supervisor/approvals/approval.types";
+import { useUploadImage } from "@/features/staff/inventory/use-item-image";
+import { ImageThumb } from "@/components/shared/image-thumb";
 import {
   useAllocate,
   useConfirmPickup,
@@ -129,6 +132,47 @@ export default function StaffQueuePage() {
   const [extReason, setExtReason] = useState("");
   const [extConditions, setExtConditions] = useState<Record<number, ConditionType>>({});
   const extConditionOf = (key: number): ConditionType => extConditions[key] ?? "Normal";
+  // #205: photos and a note taken at the condition check, per extension row,
+  // sent with the check so the supervisor sees the unit they are deciding on.
+  const uploadImage = useUploadImage();
+  const [extPhotos, setExtPhotos] = useState<
+    Record<number, { imageUrl: string; previewUrl: string }[]>
+  >({});
+  const [extNotes, setExtNotes] = useState<Record<number, string>>({});
+  const [extUploading, setExtUploading] = useState<number | null>(null);
+
+  async function addExtPhotos(row: ExtensionReviewRow, files: File[]) {
+    if (files.length === 0) return;
+    setExtUploading(row.extensionKey);
+    setResult(null);
+    try {
+      for (const file of files) {
+        if (!validateUploadFile(file).ok) {
+          setResult({ tone: "bad", text: t("staff.queue.returnPhotoBad") });
+          continue;
+        }
+        const ticket = await uploadImage.mutateAsync({ file, purpose: "inspection" });
+        const photo = { imageUrl: ticket.imageUrl, previewUrl: URL.createObjectURL(file) };
+        setExtPhotos((all) => ({
+          ...all,
+          [row.extensionKey]: [...(all[row.extensionKey] ?? []), photo],
+        }));
+      }
+    } catch (error) {
+      setResult({ tone: "bad", text: getErrorMessage(error) });
+    } finally {
+      setExtUploading(null);
+    }
+  }
+
+  function removeExtPhoto(extensionKey: number, imageUrl: string) {
+    setExtPhotos((all) => {
+      const list = all[extensionKey] ?? [];
+      const gone = list.find((p) => p.imageUrl === imageUrl);
+      if (gone) URL.revokeObjectURL(gone.previewUrl);
+      return { ...all, [extensionKey]: list.filter((p) => p.imageUrl !== imageUrl) };
+    });
+  }
 
   async function decideExt(row: ExtensionReviewRow, decision: "approve" | "reject") {
     const why = extReason.trim();
@@ -165,10 +209,17 @@ export default function StaffQueuePage() {
     setExtBusyKey(row.extensionKey);
     setResult(null);
     try {
+      const photos = extPhotos[row.extensionKey] ?? [];
+      const note = (extNotes[row.extensionKey] ?? "").trim();
       await inspectExtension.mutateAsync({
         extensionKey: row.extensionKey,
         condition: extConditionOf(row.extensionKey),
+        ...(note ? { note } : {}),
+        ...(photos.length > 0 ? { imageUrls: photos.map((p) => p.imageUrl) } : {}),
       });
+      for (const p of photos) URL.revokeObjectURL(p.previewUrl);
+      setExtPhotos((all) => ({ ...all, [row.extensionKey]: [] }));
+      setExtNotes((all) => ({ ...all, [row.extensionKey]: "" }));
       setResult({ tone: "ok", text: t("staff.queue.doneExtCheck", { item: row.itemName ?? "" }) });
     } catch (error) {
       setResult({ tone: "bad", text: getErrorMessage(error) });
@@ -226,20 +277,66 @@ export default function StaffQueuePage() {
       key: "condition",
       header: t("staff.queue.colCondition"),
       render: (r) => (
-        <select
-          className="rounded border border-border bg-transparent px-1.5 py-1 text-xs text-foreground"
-          value={extConditionOf(r.extensionKey)}
-          onChange={(e) =>
-            setExtConditions((c) => ({ ...c, [r.extensionKey]: e.target.value as ConditionType }))
-          }
-          aria-label={t("staff.queue.colCondition")}
-        >
-          {EXT_CONDITIONS.map((c) => (
-            <option key={c} value={c}>
-              {t(`staff.inspection.cond${c}`)}
-            </option>
-          ))}
-        </select>
+        <div className="flex min-w-[10rem] flex-col gap-1.5">
+          <select
+            className="rounded border border-border bg-transparent px-1.5 py-1 text-xs text-foreground"
+            value={extConditionOf(r.extensionKey)}
+            onChange={(e) =>
+              setExtConditions((c) => ({ ...c, [r.extensionKey]: e.target.value as ConditionType }))
+            }
+            aria-label={t("staff.queue.colCondition")}
+          >
+            {EXT_CONDITIONS.map((c) => (
+              <option key={c} value={c}>
+                {t(`staff.inspection.cond${c}`)}
+              </option>
+            ))}
+          </select>
+          {r.route === "supervisor" ? (
+            <>
+              <div className="flex flex-wrap items-center gap-1.5">
+                {(extPhotos[r.extensionKey] ?? []).map((p) => (
+                  <div key={p.imageUrl} className="relative">
+                    <a href={p.previewUrl} target="_blank" rel="noreferrer" aria-label={t("common.viewPhoto")}>
+                      <ImageThumb src={p.previewUrl} size={32} />
+                    </a>
+                    <button
+                      type="button"
+                      aria-label={t("borrower.pickup.removePhoto")}
+                      onClick={() => removeExtPhoto(r.extensionKey, p.imageUrl)}
+                      className="absolute -right-1.5 -top-1.5 flex h-4 w-4 items-center justify-center rounded-full border border-border bg-card text-t3 shadow-sm"
+                    >
+                      <X size={10} strokeWidth={2.6} />
+                    </button>
+                  </div>
+                ))}
+                <label className="cursor-pointer whitespace-nowrap rounded border border-dashed border-border px-1.5 py-1 text-[11px] text-t3 hover:text-foreground">
+                  {extUploading === r.extensionKey ? t("common.loading") : t("staff.queue.addPhoto")}
+                  <input
+                    type="file"
+                    accept={uploadAcceptAttr()}
+                    multiple
+                    className="sr-only"
+                    aria-label={t("staff.queue.extCheckPhoto")}
+                    disabled={extUploading === r.extensionKey}
+                    onChange={(e) => {
+                      const files = Array.from(e.target.files ?? []);
+                      e.target.value = "";
+                      void addExtPhotos(r, files);
+                    }}
+                  />
+                </label>
+              </div>
+              <Input
+                value={extNotes[r.extensionKey] ?? ""}
+                onChange={(e) => setExtNotes((n) => ({ ...n, [r.extensionKey]: e.target.value }))}
+                placeholder={t("staff.queue.extCheckNote")}
+                aria-label={t("staff.queue.extCheckNote")}
+                className="h-7 text-xs"
+              />
+            </>
+          ) : null}
+        </div>
       ),
     },
     {
@@ -254,7 +351,7 @@ export default function StaffQueuePage() {
             <Button
               type="button"
               size="sm"
-              disabled={extBusyKey === r.extensionKey}
+              disabled={extBusyKey === r.extensionKey || extUploading === r.extensionKey}
               onClick={() => void checkExt(r)}
             >
               {extBusyKey === r.extensionKey ? t("common.loading") : t("staff.queue.extRecordCheck")}

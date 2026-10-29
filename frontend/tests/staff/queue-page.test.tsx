@@ -34,6 +34,11 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("../../src/features/staff/queue/use-staff-queue", () => mocks);
+// #205: extension-check photos go through the staff upload ticket (purpose "inspection").
+const uploadImage = vi.hoisted(() => vi.fn());
+vi.mock("../../src/features/staff/inventory/use-item-image", () => ({
+  useUploadImage: () => ({ mutateAsync: uploadImage, isPending: false }),
+}));
 vi.mock("../../src/features/borrower/pickup/use-pickup-image-upload", () => ({
   useUsagePhotos: mocks.useUsagePhotos,
   usePickupImageUpload: mocks.usePickupImageUpload,
@@ -179,6 +184,82 @@ describe("StaffQueuePage", () => {
       expect(inspect).toHaveBeenCalledWith({ extensionKey: 12, condition: "MajorDamage" })
     );
     expect(decide).not.toHaveBeenCalled();
+  });
+
+  describe("#205: photos taken at the extension check reach the supervisor", () => {
+    const supervisorExtension = () =>
+      extensionReviewRow.strict().parse({
+        extensionKey: 12,
+        usageKey: 9,
+        borrower: row.borrower,
+        creditTier: "D1",
+        route: "supervisor",
+        itemName: "Oscilloscope",
+        serialNo: "OSC-001",
+        tier: "T2",
+        extendNo: 1,
+        previousDueAt: "2026-10-02T06:00:00.000Z",
+        requestedDueAt: "2026-10-03T06:00:00.000Z",
+        requestedAt: "2026-09-24T08:00:00.000Z",
+        reason: null,
+        status: "Pending",
+        inspection: null,
+      });
+
+    function openExtensionRow() {
+      renderPage();
+      fireEvent.click(screen.getByRole("button", { name: new RegExp(i18n.t("staff.queue.tileExtensions")) }));
+      return within(screen.getByText("Oscilloscope").closest("tr")!);
+    }
+
+    it("uploads the check photo and sends it with the note", async () => {
+      const inspect = vi.fn().mockResolvedValue({});
+      mocks.useStaffInspectExtension.mockReturnValue(mutationResult(inspect));
+      mocks.useStaffDecideExtension.mockReturnValue(mutationResult(vi.fn()));
+      mocks.useStaffExtensionQueue.mockReturnValue(queryResult([supervisorExtension()]));
+      uploadImage.mockResolvedValue({ imageUrl: "/media/inspection/2026/10/check.jpg" });
+      const line = openExtensionRow();
+
+      fireEvent.change(line.getByLabelText(i18n.t("staff.queue.extCheckPhoto")), {
+        target: { files: [new File(["x"], "check.jpg", { type: "image/jpeg" })] },
+      });
+      await waitFor(() =>
+        expect(uploadImage).toHaveBeenCalledWith({ file: expect.any(File), purpose: "inspection" })
+      );
+      expect(await line.findByRole("button", { name: i18n.t("borrower.pickup.removePhoto") })).toBeInTheDocument();
+      fireEvent.change(line.getByLabelText(i18n.t("staff.queue.extCheckNote")), {
+        target: { value: "Scratch on the lid" },
+      });
+      fireEvent.click(line.getByRole("button", { name: i18n.t("staff.queue.extRecordCheck") }));
+
+      await waitFor(() =>
+        expect(inspect).toHaveBeenCalledWith({
+          extensionKey: 12,
+          condition: "Normal",
+          note: "Scratch on the lid",
+          imageUrls: ["/media/inspection/2026/10/check.jpg"],
+        })
+      );
+    });
+
+    it("drops a photo removed before the check is recorded", async () => {
+      const inspect = vi.fn().mockResolvedValue({});
+      mocks.useStaffInspectExtension.mockReturnValue(mutationResult(inspect));
+      mocks.useStaffDecideExtension.mockReturnValue(mutationResult(vi.fn()));
+      mocks.useStaffExtensionQueue.mockReturnValue(queryResult([supervisorExtension()]));
+      uploadImage.mockResolvedValue({ imageUrl: "/media/inspection/2026/10/wrong.jpg" });
+      const line = openExtensionRow();
+
+      fireEvent.change(line.getByLabelText(i18n.t("staff.queue.extCheckPhoto")), {
+        target: { files: [new File(["x"], "wrong.jpg", { type: "image/jpeg" })] },
+      });
+      fireEvent.click(await line.findByRole("button", { name: i18n.t("borrower.pickup.removePhoto") }));
+      fireEvent.click(line.getByRole("button", { name: i18n.t("staff.queue.extRecordCheck") }));
+
+      await waitFor(() =>
+        expect(inspect).toHaveBeenCalledWith({ extensionKey: 12, condition: "Normal" })
+      );
+    });
   });
 
   it("allocates the selected request and reports the assigned serial", async () => {
