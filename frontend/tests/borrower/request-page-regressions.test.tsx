@@ -288,18 +288,12 @@ describe("borrower request checks", () => {
     });
   });
 
-  it("keeps rejected units in the cart and reports a partial backend result", async () => {
+  it("#236: keeps the whole cart and says nothing was sent when one unit is refused", async () => {
     useRequestDraft.getState().addItem(item.id, item.availableUnits);
     useRequestDraft.getState().addItem(item.id, item.availableUnits);
-    create.mockImplementation((input: CreateRequestInput) =>
+    create.mockResolvedValue(
       createRequestOutput.parse({
-        created: [
-          requestResponse({
-            reservationKey: 1,
-            startTime: input.startTime,
-            endTime: input.endTime,
-          }),
-        ],
+        created: [],
         rejected: [{ resourceKey: 2, code: "WINDOW_NOT_AVAILABLE", detail: null }],
       })
     );
@@ -310,11 +304,57 @@ describe("borrower request checks", () => {
 
     await waitFor(() => expect(create).toHaveBeenCalledTimes(1));
     expect(await screen.findByRole("alert")).toHaveTextContent(
-      i18n.t("borrower.request.submitPartial", { created: 1, rejected: 1 })
+      i18n.t("borrower.request.submitNone", { rejected: 1 })
     );
+    // Nothing was created, so nothing leaves the cart.
     expect(useRequestDraft.getState().lines).toEqual([
-      { itemId: item.id, qty: 1, serials: [] },
+      { itemId: item.id, qty: 2, serials: [] },
     ]);
+  });
+
+  it("#236: offers the shorter period for the whole cart and resends every unit", async () => {
+    useRequestDraft.getState().addItem(item.id, item.availableUnits);
+    useRequestDraft.getState().addItem(item.id, item.availableUnits);
+    const maxEndTime = "2031-10-01T09:00:00.000Z";
+    create
+      .mockResolvedValueOnce(
+        createRequestOutput.parse({
+          created: [],
+          rejected: [
+            {
+              resourceKey: 2,
+              code: "WINDOW_CROSSES_RESERVATION",
+              detail: { resourceKey: 2, maxEndTime },
+            },
+          ],
+        })
+      )
+      .mockImplementationOnce((input: CreateRequestInput) =>
+        createRequestOutput.parse({
+          created: input.lines.map((line, index) =>
+            requestResponse({
+              reservationKey: index + 1,
+              startTime: input.startTime,
+              endTime: input.endTime,
+              resource: { ...requestResponse().resource, resourceKey: line.resourceKey },
+            })
+          ),
+          rejected: [],
+        })
+      );
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(true);
+    renderPage();
+    fireEvent.click(
+      screen.getByRole("button", { name: i18n.t("borrower.request.submit") })
+    );
+
+    await waitFor(() => expect(create).toHaveBeenCalledTimes(2));
+    expect(create.mock.calls[1][0]).toMatchObject({
+      endTime: maxEndTime,
+      lines: [{ resourceKey: 1 }, { resourceKey: 2 }],
+    });
+    await waitFor(() => expect(useRequestDraft.getState().lines).toEqual([]));
+    confirm.mockRestore();
   });
 
   describe("a server date clash invalidates the stock checklist", () => {

@@ -14,6 +14,29 @@ const baseResource = {
   Room: null,
 };
 
+/**
+ * #236: availability is read inside the cart's transaction, so a test's own
+ * transaction stub must offer these reads as well. They go to the stubs on
+ * the outer client, looked up at call time.
+ */
+function cartReads(db: any) {
+  return {
+    requestCart: { create: (...a: any[]) => db.requestCart.create(...a) },
+    resourceInfo: {
+      findMany: (...a: any[]) => db.resourceInfo.findMany(...a),
+    },
+    usageLog: {
+      findFirst: (...a: any[]) => db.usageLog.findFirst(...a),
+      findMany: (...a: any[]) => db.usageLog.findMany(...a),
+    },
+    accountInfo: { findMany: jest.fn().mockResolvedValue([]) },
+    reservationReads: {
+      findFirst: (...a: any[]) => db.reservations.findFirst(...a),
+      findMany: (...a: any[]) => db.reservations.findMany(...a),
+    },
+  };
+}
+
 function dbFor(resource = baseResource) {
   const row: any = {
     ReservationKey: 101,
@@ -36,6 +59,8 @@ function dbFor(resource = baseResource) {
   const tx = {
     reservations: {
       count: jest.fn().mockResolvedValue(0),
+      findFirst: (...a: any[]) => db.reservations.findFirst(...a),
+      findMany: (...a: any[]) => db.reservations.findMany(...a),
       create: jest.fn().mockImplementation(({ data }: any) => {
         row.ApproveStatus = data.ApproveStatus;
         row.AutoApproved = data.AutoApproved;
@@ -45,11 +70,22 @@ function dbFor(resource = baseResource) {
         return Promise.resolve({ ReservationKey: 101 });
       }),
     },
+    // #236: availability is read inside the cart's transaction now. These go
+    // to the same stubs a test sets on the outer client, looked up at call
+    // time so a test that replaces one still reaches it.
+    requestCart: { create: (...a: any[]) => db.requestCart.create(...a) },
+    resourceInfo: {
+      findMany: (...a: any[]) => db.resourceInfo.findMany(...a),
+    },
+    usageLog: {
+      findFirst: (...a: any[]) => db.usageLog.findFirst(...a),
+      findMany: (...a: any[]) => db.usageLog.findMany(...a),
+    },
     // Supervisor lookup for a route: 'supervisor' request (FR-NTF-04) - empty
     // by default, so a test that never sets it up notifies nobody.
     accountInfo: { findMany: jest.fn().mockResolvedValue([]) },
   };
-  return {
+  const db: any = {
     resourceInfo: {
       findUnique: jest.fn().mockResolvedValue(resource),
       // Siblings for the T1 swap (FR-RSV-04) - empty by default, so a test
@@ -85,6 +121,7 @@ function dbFor(resource = baseResource) {
       Array.isArray(arg) ? Promise.all(arg) : arg(tx),
     ),
   };
+  return db;
 }
 
 function service(
@@ -401,8 +438,11 @@ describe('one room held at a time', () => {
     const tx = db.$transaction as jest.Mock;
     // First count is the window clash, second is what this borrower holds.
     tx.mockImplementation(async (arg: any) => {
+      const { reservationReads, ...reads } = cartReads(db);
       const inner = {
+        ...reads,
         reservations: {
+          ...reservationReads,
           count: jest
             .fn()
             .mockResolvedValueOnce(0)
@@ -657,9 +697,12 @@ describe.each(['T1', 'T0'])('%s unit swap (FR-RSV-04)', (tier) => {
     // The harness's default tx always writes the fixture passed to dbFor();
     // this test needs the write to reflect whichever unit was actually
     // targeted, so it supplies its own.
+    const { reservationReads, ...reads } = cartReads(db);
     db.$transaction = jest.fn(async (arg: any) =>
       arg({
+        ...reads,
         reservations: {
+          ...reservationReads,
           count: jest.fn().mockResolvedValue(0),
           create: jest.fn().mockImplementation(({ data }: any) => {
             row.ApproveStatus = data.ApproveStatus;

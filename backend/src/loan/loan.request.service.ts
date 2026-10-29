@@ -145,6 +145,40 @@ type RequestRow = Prisma.ReservationsGetPayload<{
   select: typeof REQUEST_SELECT;
 }>;
 
+/** The service's own client, or the cart transaction's (#236). */
+type ReadClient = PrismaService | Prisma.TransactionClient;
+
+/** A line that passed every check that does not depend on the rest of the cart. */
+interface LinePlan {
+  /** As requested; refusals are reported against it. */
+  resourceKey: number;
+  resource: ResourceRow;
+  tier: ResourceTier;
+  route: ApprovalRoute;
+  reason: string | null;
+  startTime: Date;
+  /** Already rolled off closed days for equipment. */
+  endTime: Date;
+}
+
+interface BookedLine {
+  reservationKey: number;
+  auditNote: string;
+}
+
+export interface LineRefusal {
+  resourceKey: number;
+  code: string;
+  detail: Record<string, unknown> | null;
+}
+
+/** Carries a cart's refused lines out of its transaction, rolling it back. */
+class CartRefused extends Error {
+  constructor(readonly lines: LineRefusal[]) {
+    super('CART_REFUSED');
+  }
+}
+
 /**
  * The borrower's own view of the loan domain: opening a request, watching it
  * move, and calling it off.
@@ -188,14 +222,22 @@ export class LoanRequestService {
   // =========================================================================
 
   /**
-   * Opens one request per basket line.
+   * Opens one request per basket line, as one cart, whole or not at all.
    *
-   * Lines are checked and written one at a time, and a line that fails is
-   * reported rather than thrown: a basket of five where the fourth item was
-   * taken thirty seconds ago should produce four requests and one explanation,
-   * not five nothings. The two checks that concern the *borrower* rather than
-   * the item — credit block and window shape — are done once up front and do
-   * throw, because they fail every line identically.
+   * #236 (instructor item 1, team decision D-01): a cart is one borrow, so a
+   * line that cannot be had refuses the whole cart instead of leaving half of
+   * it booked. Every refused line is reported, so the borrower can fix them
+   * all before sending again. The two checks that concern the *borrower*
+   * rather than the item - credit block and window shape - are done once up
+   * front and do throw, because they fail every line identically.
+   *
+   * Two passes. The checks that do not depend on the other lines (the unit
+   * exists and is lendable, counter hours, tier, horizon, eligibility,
+   * length) run first, outside any transaction, so a refusal there writes
+   * nothing. Then every line is booked in order inside one serializable
+   * transaction: a later line sees the units the earlier ones took, so two
+   * lines of one type get two units, and one refusal rolls back the cart,
+   * every line and every notice they wrote.
    */
   async create(user: TrpcUser, input: CreateRequestInput) {
     const startTime = new Date(input.startTime);
@@ -204,22 +246,21 @@ export class LoanRequestService {
 
     const band = await this.creditTiers.resolveTier(user.creditScore);
     const toBand = await this.creditTiers.tierMapper();
-    const created: RequestRow[] = [];
-    const rejected: {
-      resourceKey: number;
-      code: string;
-      detail: Record<string, unknown> | null;
-    }[] = [];
-
-    // One cart per submit: its lines are approved and handled as one borrow.
-    const cart = await this.prisma.requestCart.create({
-      data: {},
-      select: { CartKey: true },
+    const refusal = (resourceKey: number, error: BusinessError) => ({
+      resourceKey,
+      code: error.message,
+      detail: error.details,
     });
+    // Typed once so every return has the same shape, refused or not.
+    const noRequests: ReturnType<typeof this.toRequest>[] = [];
+    const noRefusals: LineRefusal[] = [];
+
+    const plans: LinePlan[] = [];
+    const rejected: LineRefusal[] = [];
     for (const line of input.lines) {
       try {
-        created.push(
-          await this.createOne(
+        plans.push(
+          await this.planLine(
             user,
             band.creditTierKey,
             band.creditTier,
@@ -227,22 +268,58 @@ export class LoanRequestService {
             line.reason ?? null,
             startTime,
             endTime,
-            cart.CartKey,
           ),
         );
       } catch (error) {
         if (!(error instanceof BusinessError)) throw error;
-        rejected.push({
-          resourceKey: line.resourceKey,
-          code: error.message,
-          detail: error.details,
-        });
+        rejected.push(refusal(line.resourceKey, error));
       }
     }
+    if (rejected.length > 0) return { created: noRequests, rejected };
 
+    let booked: BookedLine[];
+    try {
+      booked = await runSerializable(this.prisma, async (tx) => {
+        // One cart per submit: its lines are approved and handled as one borrow.
+        const cart = await tx.requestCart.create({
+          data: {},
+          select: { CartKey: true },
+        });
+        const lines: BookedLine[] = [];
+        const refused: LineRefusal[] = [];
+        for (const plan of plans) {
+          try {
+            lines.push(await this.bookLine(tx, user, plan, cart.CartKey));
+          } catch (error) {
+            if (!(error instanceof BusinessError)) throw error;
+            refused.push(refusal(plan.resourceKey, error));
+          }
+        }
+        // Thrown rather than returned, so the transaction rolls back.
+        if (refused.length > 0) throw new CartRefused(refused);
+        return lines;
+      });
+    } catch (error) {
+      if (error instanceof CartRefused) {
+        return { created: noRequests, rejected: error.lines };
+      }
+      throw error;
+    }
+
+    // One audit row per reservation opened, after the write commits.
+    const created: RequestRow[] = [];
+    for (const line of booked) {
+      await this.audit.record(
+        { accountKey: user.accountKey },
+        'create',
+        `reservation/${line.reservationKey}`,
+        line.auditNote,
+      );
+      created.push(await this.read(line.reservationKey));
+    }
     return {
       created: created.map((row) => this.toRequest(row, toBand)),
-      rejected,
+      rejected: noRefusals,
     };
   }
 
@@ -284,7 +361,11 @@ export class LoanRequestService {
     });
   }
 
-  private async createOne(
+  /**
+   * The checks on one line that do not depend on the rest of the cart. Reads
+   * only, so a refusal here writes nothing (#236).
+   */
+  private async planLine(
     user: TrpcUser,
     creditTierKey: number,
     creditTier: Parameters<typeof routeFor>[0]['creditTier'],
@@ -292,8 +373,7 @@ export class LoanRequestService {
     reason: string | null,
     startTime: Date,
     requestedEnd: Date,
-    cartKey: number | null = null,
-  ): Promise<RequestRow> {
+  ): Promise<LinePlan> {
     let endTime = requestedEnd;
     const resource = await this.prisma.resourceInfo.findUnique({
       where: { ResourceKey: resourceKey },
@@ -363,6 +443,29 @@ export class LoanRequestService {
     // for.
     if (!resource.Room) endTime = rollDueOffClosedDays(endTime);
 
+    return {
+      resourceKey,
+      resource,
+      tier,
+      route: routeFor({ tier, creditTier }),
+      reason,
+      startTime,
+      endTime,
+    };
+  }
+
+  /**
+   * Books one planned line inside the cart's transaction (#236). Availability
+   * is read through `tx`, so it sees the units the cart's earlier lines just
+   * took; a refusal rolls back the whole cart.
+   */
+  private async bookLine(
+    tx: Prisma.TransactionClient,
+    user: TrpcUser,
+    plan: LinePlan,
+    cartKey: number,
+  ): Promise<BookedLine> {
+    const { resource, tier, reason, startTime, endTime } = plan;
     // FR-RSV-04 (G1, T1): a T1 unit that is not free for the window is swapped
     // for a free sibling rather than refused outright. T2 does the same now
     // that the borrower asks for a type and staff choose the unit (demo
@@ -374,12 +477,13 @@ export class LoanRequestService {
     // room) takes the plain check.
     let target: ResourceRow = resource;
     if (tier === 'T0' || tier === 'T1') {
-      target = await this.resolveT1Target(resource, startTime, endTime);
+      target = await this.resolveT1Target(resource, startTime, endTime, tx);
     } else if (tier === 'T2') {
       target = await this.assertWindowFreeForSerial(
         resource,
         startTime,
         endTime,
+        tx,
       ).catch(async (error: unknown) => {
         if (
           !(error instanceof BusinessError) ||
@@ -390,22 +494,23 @@ export class LoanRequestService {
           resource,
           startTime,
           endTime,
+          tx,
         );
         if (!sibling) throw error;
         return sibling;
       });
     } else {
-      await this.assertWindowFree(resource, startTime, endTime);
+      await this.assertWindowFree(resource, startTime, endTime, tx);
     }
 
-    const route = routeFor({ tier, creditTier });
+    const route = plan.route;
     const now = new Date();
     const approved = route === 'auto';
 
-    const key = await runSerializable(this.prisma, async (tx) => {
-      // Re-check inside the transaction. Two people submitting the same unit
-      // for the same hours a moment apart both pass the check above; only one
-      // may come out of here holding it.
+    {
+      // Counted once more just before writing. The check above already ran in
+      // this serializable transaction, so two borrowers taking the same unit
+      // a moment apart cannot both commit; this keeps the refusal explicit.
       const { from, to } = withBuffer(startTime, endTime, target.BufferTime);
       const taken = await tx.reservations.count({
         where: clashingWindowFilter(target.ResourceKey, from, to),
@@ -483,18 +588,11 @@ export class LoanRequestService {
         );
       }
 
-      return row.ReservationKey;
-    });
-
-    // One row per reservation opened, after the write commits.
-    await this.audit.record(
-      { accountKey: user.accountKey },
-      'create',
-      `reservation/${key}`,
-      `Requested ${target.Item ? target.Item.Item.ItemName : (target.Room?.RoomName ?? 'resource')} (resourceKey ${target.ResourceKey})${approved ? ', auto-approved' : ''}`,
-    );
-
-    return this.read(key);
+      return {
+        reservationKey: row.ReservationKey,
+        auditNote: `Requested ${target.Item ? target.Item.Item.ItemName : (target.Room?.RoomName ?? 'resource')} (resourceKey ${target.ResourceKey})${approved ? ', auto-approved' : ''}`,
+      };
+    }
   }
 
   /**
@@ -579,13 +677,19 @@ export class LoanRequestService {
     resource: ResourceRow,
     startTime: Date,
     endTime: Date,
+    db: ReadClient = this.prisma,
   ): Promise<ResourceRow> {
     try {
-      await this.assertWindowFree(resource, startTime, endTime);
+      await this.assertWindowFree(resource, startTime, endTime, db);
       return resource;
     } catch (error) {
       if (!(error instanceof BusinessError)) throw error;
-      const sibling = await this.findFreeSibling(resource, startTime, endTime);
+      const sibling = await this.findFreeSibling(
+        resource,
+        startTime,
+        endTime,
+        db,
+      );
       if (!sibling) throw error;
       return sibling;
     }
@@ -596,10 +700,11 @@ export class LoanRequestService {
     resource: ResourceRow,
     startTime: Date,
     endTime: Date,
+    db: ReadClient = this.prisma,
   ): Promise<ResourceRow | null> {
     if (!resource.Item) return null;
 
-    const siblings = await this.prisma.resourceInfo.findMany({
+    const siblings = await db.resourceInfo.findMany({
       where: {
         ManagedBy: resource.ManagedBy,
         AllowBorrow: true,
@@ -615,7 +720,7 @@ export class LoanRequestService {
     if (siblings.length === 0) return null;
 
     const free = await resourcesFreeInWindow(
-      this.prisma,
+      db,
       siblings.map((s) => ({
         ResourceKey: s.ResourceKey,
         BufferTime: s.BufferTime,
@@ -646,9 +751,10 @@ export class LoanRequestService {
     resource: ResourceRow,
     startTime: Date,
     endTime: Date,
+    db: ReadClient = this.prisma,
   ): Promise<ResourceRow> {
     try {
-      await this.assertWindowFree(resource, startTime, endTime);
+      await this.assertWindowFree(resource, startTime, endTime, db);
       return resource;
     } catch (error) {
       if (
@@ -1007,10 +1113,11 @@ export class LoanRequestService {
     resource: { ResourceKey: number; BufferTime: number },
     startTime: Date,
     endTime: Date,
+    db: ReadClient = this.prisma,
   ): Promise<void> {
     const { from, to } = withBuffer(startTime, endTime, resource.BufferTime);
 
-    const clash = await this.prisma.reservations.findFirst({
+    const clash = await db.reservations.findFirst({
       where: clashingWindowFilter(resource.ResourceKey, from, to),
       orderBy: { StartTime: 'asc' },
       select: { ReservationKey: true, StartTime: true, EndTime: true },
@@ -1042,7 +1149,7 @@ export class LoanRequestService {
     // A unit that is physically out on an older loan blocks the window too,
     // even with no reservation row behind it - a walk-in loan recorded at the
     // counter is exactly that case.
-    const held = await this.prisma.usageLog.findFirst({
+    const held = await db.usageLog.findFirst({
       where: heldUsageFilter(resource.ResourceKey, from, to),
       orderBy: { DueTime: 'asc' },
       select: { UsageKey: true, DueTime: true },

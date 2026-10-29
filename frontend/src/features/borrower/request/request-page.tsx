@@ -233,51 +233,40 @@ export default function RequestPage() {
         returnTime,
       });
 
-      // FR-RSV-06 (G2): the unit is free at the start but a later reservation
-      // already claims part of the window. Offer the shortened window that
-      // still fits before falling into the plain partial-failure handling
-      // below - accepted, this replaces `result` with the retry's outcome.
-      const crossing = result.rejected.find(
-        (rejected) =>
-          rejected.code === "WINDOW_CROSSES_RESERVATION" &&
-          typeof rejected.detail?.maxEndTime === "string",
+      // #236: the server creates the whole cart or none of it, so a refusal
+      // here means nothing was booked and every item is still in the cart.
+      //
+      // FR-RSV-06 (G2): when the only problem is a later booking that cuts
+      // into the window, the cart can still go out on a shorter period.
+      // Offered for the whole cart at the earliest end that fits every unit,
+      // and resent whole, because the cart is one borrow with one period.
+      const ends = result.rejected.map((rejected) =>
+        rejected.code === "WINDOW_CROSSES_RESERVATION" &&
+        typeof rejected.detail?.maxEndTime === "string"
+          ? (rejected.detail.maxEndTime as string)
+          : null,
       );
-      if (crossing) {
-        const maxEndTime = crossing.detail!.maxEndTime as string;
+      if (ends.length > 0 && ends.every((end) => end !== null)) {
+        const maxEndTime = (ends as string[]).sort()[0];
         const startInstant = requestInstant(startDate, pickupTime);
         if (
           new Date(maxEndTime) > startInstant &&
           window.confirm(t("borrower.request.shortenConfirm", { date: fmtDateTime(maxEndTime) }))
         ) {
-          const rejectedKeys = new Set(result.rejected.map((row) => row.resourceKey));
-          const rejectedUnits = result.selectedUnits.filter((unit) => rejectedKeys.has(unit.resourceKey));
-          const retryRows = rows.flatMap((row) => {
-            const left = rejectedUnits.filter((unit) => unit.itemId === row.itemId);
-            return left.length
-              ? [
-                  {
-                    itemId: row.itemId,
-                    name: row.item.name,
-                    tier: row.item.tier,
-                    qty: left.length,
-                    serials: row.item.tier === "T2" ? left.map((unit) => unit.serial) : [],
-                  },
-                ]
-              : [];
-          });
-          const retry = await createRequest.mutateAsync({
-            rows: retryRows,
+          result = await createRequest.mutateAsync({
+            rows: rows.map((row) => ({
+              itemId: row.itemId,
+              name: row.item.name,
+              tier: row.item.tier,
+              qty: row.qty,
+              serials: row.serials,
+            })),
             startDate,
             pickupTime,
             endDate,
             returnTime,
             endTimeOverride: maxEndTime,
           });
-          result = {
-            created: [...result.created, ...retry.created],
-            rejected: retry.rejected,
-            selectedUnits: retry.selectedUnits,
-          };
         }
       }
 
@@ -293,30 +282,13 @@ export default function RequestPage() {
         window: windowKey,
         itemIds: [...new Set(rejectedUnits.map((unit) => unit.itemId))],
       });
-      replaceLines(
-        rows.flatMap((row) => {
-          const left = rejectedUnits.filter((unit) => unit.itemId === row.itemId);
-          return left.length
-            ? [
-                {
-                  itemId: row.itemId,
-                  qty: left.length,
-                  serials: row.item.tier === "T2" ? left.map((unit) => unit.serial) : [],
-                },
-              ]
-            : [];
-        }),
-      );
 
       const details = result.rejected.map((rejected) => {
         const unit = result.selectedUnits.find((candidate) => candidate.resourceKey === rejected.resourceKey);
         return `${unit?.itemName ?? `#${rejected.resourceKey}`}: ${getErrorMessage(rejected.code)}`;
       });
       setSubmitMessage(
-        `${t("borrower.request.submitPartial", {
-          created: result.created.length,
-          rejected: result.rejected.length,
-        })} ${details.join(" · ")}`,
+        `${t("borrower.request.submitNone", { rejected: result.rejected.length })} ${details.join(" · ")}`,
       );
     } catch (error) {
       if (error instanceof RequestPreparationError) {

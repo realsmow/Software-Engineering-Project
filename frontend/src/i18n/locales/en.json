@@ -726,7 +726,7 @@
       "apvLowCredit": "Your credit level is {{band}}. Under the rules, both T1 and T2 items need supervisor approval regardless of the item.",
       "submit": "Submit request",
       "submitting": "Submitting request...",
-      "submitPartial": "{{created}} unit(s) submitted and {{rejected}} failed. Failed units remain in the draft:",
+      "submitNone": "Nothing was sent: {{rejected}} unit(s) cannot be borrowed for this period. The whole cart is sent together, so change or remove those and send again. Every item is still in the draft:",
       "submitUnitsChanged": "Availability for {{item}} changed. Review the request and try again.",
       "submitInvalidItem": "The equipment data for {{item}} is invalid. Remove it and select it again.",
       "autoApproveNote": "T0 is approved automatically, T1 too with D0–D1 credit. Collect from the start time once staff have prepared it.",
