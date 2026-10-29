@@ -164,14 +164,8 @@ describe("Module 5 borrower catalogue", () => {
       </MemoryRouter>
     );
 
-    // Available-only is on by default, and "available" means available to them.
-    expect(screen.queryByText(closed.name)).not.toBeInTheDocument();
-
-    fireEvent.click(
-      screen.getAllByLabelText(i18n.t("borrower.catalog.availableOnly"))[0]
-    );
+    // Everything is listed by default (requested 29 Oct 2569), closed to them.
     expect(screen.getAllByText(closed.name).length).toBeGreaterThan(0);
-
     const blocked = screen.getAllByRole("button", {
       name: i18n.t("borrower.catalog.notEligible"),
     });
@@ -179,6 +173,57 @@ describe("Module 5 borrower catalogue", () => {
     blocked.forEach((button) => expect(button).toBeDisabled());
     fireEvent.click(blocked[0]);
     expect(useRequestDraft.getState().lines).toEqual([]);
+
+    // Available-only still hides it: "available" means available to them.
+    fireEvent.click(
+      screen.getAllByLabelText(i18n.t("borrower.catalog.availableOnly"))[0]
+    );
+    expect(screen.queryByText(closed.name)).not.toBeInTheDocument();
+  });
+
+  it("keeps a type with nothing free listed and greyed, with the day it is free again", () => {
+    const busy = {
+      ...AVAILABLE_ITEM,
+      id: "busy-1",
+      name: "Fully booked scope",
+      availableUnits: 0,
+      nextAvailableAt: "2031-10-03T09:00:00.000Z",
+    };
+    vi.mocked(catalogHooks.useEquipmentTypes).mockReturnValue({
+      data: [busy, AVAILABLE_ITEM],
+      isLoading: false,
+    } as never);
+    render(
+      <MemoryRouter>
+        <CatalogPage />
+      </MemoryRouter>
+    );
+
+    // A missing key would render as its own name and still match below.
+    expect(
+      i18n.exists("borrower.catalog.freeAgain") && i18n.exists("borrower.catalog.noneFreeHint")
+    ).toBe(true);
+    const row = screen
+      .getAllByText(busy.name)
+      .map((el) => el.closest("tr"))
+      .find((tr): tr is HTMLTableRowElement => tr !== null)!;
+    expect(
+      within(row).getByText(
+        i18n.t("borrower.catalog.freeAgain", { date: fmtDate(busy.nextAvailableAt) })
+      )
+    ).toBeInTheDocument();
+    const select = within(row).getByRole("button", { name: "Select" });
+    expect(select).toBeDisabled();
+    expect(select.parentElement).toHaveAttribute(
+      "title",
+      i18n.t("borrower.catalog.noneFreeHint")
+    );
+
+    // Available-only hides it again.
+    fireEvent.click(
+      screen.getAllByLabelText(i18n.t("borrower.catalog.availableOnly"))[0]
+    );
+    expect(screen.queryByText(busy.name)).not.toBeInTheDocument();
   });
 
   it("shows an empty state when an API result is loaded but no item matches", () => {
