@@ -11,9 +11,14 @@ import {
   runCronJobInput,
   systemStatusOutput,
   technicalConfigOutput,
+  holidaysSetting,
   workHoursSetting,
 } from '../../src/admin/admin.schema';
-import { workHours } from '../../src/common/schemas/datetime.schema';
+import {
+  isClosedDay,
+  setHolidays,
+  workHours,
+} from '../../src/common/schemas/datetime.schema';
 import { BusinessError } from '../../src/common/errors/business-error';
 
 const ACTOR = {
@@ -101,6 +106,76 @@ describe('IT admin system status, cron, config, and audit procedures', () => {
     ).rejects.toThrow('Storage unavailable');
     expect(workHours).toEqual(original);
     expect(audit.record).not.toHaveBeenCalled();
+  });
+
+  describe('#234: holidays', () => {
+    afterEach(() => setHolidays([]));
+    // 10 Dec 2026, a Thursday, 09:00 Bangkok.
+    const DEC_10 = new Date('2026-12-10T02:00:00Z');
+
+    it('saves the list sorted without repeats, applies it and audits it', async () => {
+      const { service, prisma, audit } = serviceWith();
+      const result = await service.updateHolidays(
+        holidaysSetting.parse({
+          dates: ['2026-12-10', '2026-12-05', '2026-12-10'],
+        }),
+        ACTOR,
+      );
+      const dates = ['2026-12-05', '2026-12-10'];
+      expect(prisma.systemSetting.upsert).toHaveBeenCalledWith({
+        where: { Key: 'holidays' },
+        create: { Key: 'holidays', Value: { dates } },
+        update: { Value: { dates } },
+      });
+      expect(result).toEqual({ dates });
+      expect(service.holidays()).toEqual({ dates });
+      expect(isClosedDay(DEC_10)).toBe(true);
+      expect(audit.record).toHaveBeenCalledWith(
+        ACTOR,
+        'config',
+        'setting/holidays',
+        'Holidays set to 2026-12-05, 2026-12-10',
+      );
+    });
+
+    it('keeps the current list when saving to storage fails', async () => {
+      setHolidays(['2026-12-10']);
+      const { service, prisma, audit } = serviceWith();
+      prisma.systemSetting.upsert.mockRejectedValueOnce(
+        new Error('Storage unavailable'),
+      );
+      await expect(
+        service.updateHolidays(
+          holidaysSetting.parse({ dates: ['2026-12-31'] }),
+          ACTOR,
+        ),
+      ).rejects.toThrow('Storage unavailable');
+      expect(service.holidays()).toEqual({ dates: ['2026-12-10'] });
+      expect(audit.record).not.toHaveBeenCalled();
+    });
+
+    it('refuses a date that is not on the calendar', () => {
+      expect(holidaysSetting.safeParse({ dates: ['2026-02-30'] }).success).toBe(
+        false,
+      );
+      expect(holidaysSetting.safeParse({ dates: ['10/12/2026'] }).success).toBe(
+        false,
+      );
+    });
+
+    it('puts the saved list in force at boot', async () => {
+      const { service, prisma } = serviceWith();
+      (prisma.systemSetting as Record<string, unknown>).findUnique = jest.fn(
+        ({ where }: { where: { Key: string } }) =>
+          Promise.resolve(
+            where.Key === 'holidays'
+              ? { Key: 'holidays', Value: { dates: ['2026-12-10'] } }
+              : null,
+          ),
+      );
+      await service.onModuleInit();
+      expect(isClosedDay(DEC_10)).toBe(true);
+    });
   });
 
   it('returns an operational status with entity counts and validates its output', async () => {

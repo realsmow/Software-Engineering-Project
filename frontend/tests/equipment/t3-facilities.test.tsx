@@ -15,6 +15,7 @@ import type { Room, RoomDay } from "../../src/features/borrower/rooms/room.adapt
 import { requestResponse } from "../fixtures/api-responses";
 import { toBorrowerRequest } from "../../src/features/borrower/loans/request.adapter";
 import { useTRPCClient } from "../../src/lib/trpc";
+import * as closedDays from "../../src/lib/closed-days";
 import { roomAvailabilityOutput } from "../../../backend/src/item/item.schema";
 
 vi.mock("../../src/lib/trpc", () => ({ useTRPCClient: vi.fn() }));
@@ -31,6 +32,13 @@ vi.mock("../../src/features/borrower/rooms/use-rooms", () => ({
 
 vi.mock("../../src/features/borrower/loans/use-my-requests", () => ({
   useMyRequests: vi.fn(),
+}));
+
+// #234: the holiday list is a query; the booking page renders without a
+// query client here, so the hook is replaced and isClosedDay stays real.
+vi.mock("../../src/lib/closed-days", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../src/lib/closed-days")>()),
+  useHolidays: vi.fn(() => new Set<string>()),
 }));
 
 const ROOM: Room = {
@@ -214,6 +222,9 @@ describe("Module 5 T3 facilities", () => {
   });
 
   it("submits a booking with the room key, today's date, and the picked slot indices", async () => {
+    // A weekday: on a closed day the page opens on the next open day (#234).
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2031-09-29T01:00:00.000Z")); // Monday 08:00 Bangkok
     mutateAsync.mockResolvedValue({ created: [{ id: "req-1" }], rejected: [] });
     renderBookingPage();
 
@@ -252,6 +263,40 @@ describe("Module 5 T3 facilities", () => {
     await waitFor(() =>
       expect(mutateAsync).toHaveBeenCalledWith(expect.objectContaining({ date: "2031-10-01" }))
     );
+    vi.useRealTimers();
+  });
+
+  it.each([
+    {
+      label: "a Saturday",
+      now: "2031-10-04T01:00:00.000Z",
+      holidays: [] as string[],
+      opens: "2031-10-06",
+    },
+    {
+      label: "a listed holiday",
+      now: "2031-09-29T01:00:00.000Z",
+      holidays: ["2031-09-29"],
+      opens: "2031-09-30",
+    },
+  ])("#234: opens on the next open day when today is $label", ({ now, holidays, opens }) => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date(now));
+    vi.mocked(closedDays.useHolidays).mockReturnValue(new Set(holidays));
+    renderBookingPage();
+    expect(vi.mocked(roomHooks.useRoomDay)).toHaveBeenLastCalledWith(ROOM.id, opens);
+    vi.useRealTimers();
+  });
+
+  it("#234: a holiday the admin listed is closed in the room's week, like Saturday", () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2031-09-29T01:00:00.000Z")); // Monday 08:00 Bangkok
+    vi.mocked(closedDays.useHolidays).mockReturnValue(new Set(["2031-10-01"]));
+    renderBookingPage();
+    const wednesday = screen.getByRole("button", { name: /^1 Oct 2031:/ });
+    expect(wednesday).toBeDisabled();
+    expect(wednesday).toHaveAccessibleName(/Counter closed/);
+    expect(screen.getByRole("button", { name: /^2 Oct 2031:/ })).toBeEnabled();
     vi.useRealTimers();
   });
 

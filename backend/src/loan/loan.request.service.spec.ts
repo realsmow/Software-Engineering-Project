@@ -1,6 +1,6 @@
 import { LoanRequestService } from './loan.request.service';
 import { BusinessError } from '../common/errors/business-error';
-import { workHours } from '../common/schemas/datetime.schema';
+import { setHolidays, workHours } from '../common/schemas/datetime.schema';
 
 const user = { accountKey: 10, creditScore: 80 } as any;
 const baseResource = {
@@ -813,6 +813,37 @@ describe('counter hours and weekends (#179, #178)', () => {
       expect(result.created[0].endTime).toBe('2099-01-12T10:00:00.000Z');
     },
   );
+
+  describe('#234: a holiday the admin listed (Monday 12 Jan)', () => {
+    beforeEach(() => setHolidays(['2099-01-12']));
+    afterEach(() => setHolidays([]));
+
+    it('refuses a pickup on the holiday before writing', async () => {
+      const db = dbFor();
+      const result = await service(db).create(user as never, {
+        startTime: '2099-01-12T02:00:00.000Z',
+        endTime: '2099-01-12T06:00:00.000Z',
+        lines: [{ resourceKey: 7 }],
+      });
+      expect(result.rejected[0].code).toBe('OUTSIDE_WORK_HOURS');
+      expect(result.rejected[0].detail).toMatchObject({
+        edge: 'START',
+        reason: 'CLOSED_DAY',
+      });
+      expect(db.$transaction).not.toHaveBeenCalled();
+    });
+
+    it('moves a return on the holiday to Tuesday at closing time', async () => {
+      const db = dbFor({ ...baseResource, BorrowRuleInfo: { RuleName: 'T1' } });
+      const result = await service(db).create(user as never, {
+        startTime: '2099-01-09T02:00:00.000Z',
+        endTime: '2099-01-12T06:00:00.000Z',
+        lines: [{ resourceKey: 7 }],
+      });
+      expect(result.rejected).toEqual([]);
+      expect(result.created[0].endTime).toBe('2099-01-13T10:00:00.000Z');
+    });
+  });
 
   describe('FR-ADM-04: configured counter hours (09:00–16:00 Bangkok)', () => {
     let original: { start: number; end: number };

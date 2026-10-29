@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { BUSINESS, CREDIT_BANDS, CREDIT_BAND_POLICY, ROUTES } from "@/constants";
 import { useAuthStore } from "@/features/auth/auth.store";
 import { getErrorMessage } from "@/lib/error-messages";
+import { isClosedDay, useHolidays } from "@/lib/closed-days";
 import { cn } from "@/lib/utils";
 import type { CatalogItem } from "../catalog/catalog.types";
 import { toAvailabilityWindow } from "../catalog/availability-window";
@@ -70,6 +71,7 @@ export default function RequestPage() {
   const clear = useRequestDraft((s) => s.clear);
   const createRequest = useCreateEquipmentRequest();
   const times = useRequestTimes();
+  const holidays = useHolidays();
   const [submitMessage, setSubmitMessage] = useState<string | null>(null);
   // Items the server refused for these exact dates. Changing the dates clears
   // it, so the checklist never shows green for what the server just refused.
@@ -136,9 +138,9 @@ export default function RequestPage() {
   const startTime = requestInstant(startDate, pickupTime);
   const endTime = endDate ? requestInstant(endDate, returnTime) : null;
   const startsInPast = startTime.getTime() < Date.now();
-  // The counter is closed on weekends; the backend refuses these too (#197).
-  const pickupDay = parseISO(startDate).getDay();
-  const pickupClosed = pickupDay === 0 || pickupDay === 6;
+  // The counter is closed on weekends and the admin's holidays; the backend
+  // refuses these too (#197, #234).
+  const pickupClosed = isClosedDay(startDate, holidays);
   const invalidTimeOrder = endTime !== null && endTime <= startTime;
   const hasItems = rows.length > 0;
   const checks = [
@@ -390,6 +392,7 @@ export default function RequestPage() {
                     startDate={startDate}
                     endDate={endDate}
                     maxDate={isoOffset(BUSINESS.RESERVATION_MAX_DAYS)}
+                    holidays={holidays}
                     onPickup={(iso) => {
                       handleStart(iso);
                       setEndDate(null);

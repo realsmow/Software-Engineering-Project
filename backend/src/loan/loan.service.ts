@@ -20,7 +20,7 @@ import {
   addDays,
   closingTimeOn,
   daysBetween,
-  rollDueOffWeekend,
+  rollDueOffClosedDays,
   startOfLocalDay,
   toIso,
   toIsoNullable,
@@ -580,7 +580,7 @@ export class LoanService {
     );
     const shiftedDue =
       early && daysEarly > 0
-        ? rollDueOffWeekend(addDays(usage.DueTime, -daysEarly))
+        ? rollDueOffClosedDays(addDays(usage.DueTime, -daysEarly))
         : usage.DueTime;
     // #194: a late-in-the-day early pickup would be due already; keep the booking.
     const dueTime = shiftedDue > now ? shiftedDue : usage.DueTime;

@@ -4,7 +4,15 @@ import { Badge } from "@/components/ui/badge";
 import { Fragment, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useTechnicalConfig, useUpdateWorkHours, useWorkHours } from "./use-config";
+import { X } from "lucide-react";
+import { fmtDate, localInstant } from "@/lib/datetime";
+import {
+  useHolidaysSetting,
+  useTechnicalConfig,
+  useUpdateHolidays,
+  useUpdateWorkHours,
+  useWorkHours,
+} from "./use-config";
 
 /**
  * What this server instance is deployed with.
@@ -32,6 +40,7 @@ export default function AdminConfigPage() {
     <div className="mx-auto max-w-3xl">
       <PageHeader title={t("nav.technicalConfig")} subtitle={t("admin.config.subtitle")} />
       <WorkHoursCard />
+      <HolidaysCard />
 
       {isLoading ? (
         <p className="py-16 text-center text-sm text-t3">{t("common.loading")}</p>
@@ -230,6 +239,75 @@ function WorkHoursCard() {
           {t("common.save")}
         </Button>
         {save.isError && <span className="text-xs text-[var(--s-alert-t)]">{t("admin.config.workHoursError")}</span>}
+      </div>
+    </section>
+  );
+}
+
+/**
+ * #234: days the counter is shut besides weekends. Each add or remove saves
+ * the whole list at once, so there is no unsaved state to lose.
+ */
+function HolidaysCard() {
+  const { t } = useTranslation();
+  const { data } = useHolidaysSetting();
+  const save = useUpdateHolidays();
+  const [day, setDay] = useState("");
+  if (!data) return null;
+  const dates = data.dates;
+  const canAdd = day !== "" && !dates.includes(day) && !save.isPending;
+
+  return (
+    <section className="mb-5 rounded-lg border border-border bg-card px-3.5 py-3">
+      <h2 className="text-sm font-semibold text-foreground">{t("admin.config.holidays")}</h2>
+      <p className="mt-0.5 text-xs text-t3">{t("admin.config.holidaysHint")}</p>
+      {dates.length === 0 ? (
+        <p className="mt-2.5 text-xs text-t3">{t("admin.config.holidaysNone")}</p>
+      ) : (
+        <ul className="mt-2.5 flex flex-wrap gap-1.5">
+          {dates.map((d) => {
+            const label = fmtDate(localInstant(d, 12));
+            return (
+              <li
+                key={d}
+                className="inline-flex items-center gap-1 rounded border border-border bg-secondary py-0.5 pl-2 pr-0.5 text-xs text-t2"
+              >
+                {label}
+                <button
+                  type="button"
+                  disabled={save.isPending}
+                  aria-label={t("admin.config.holidayRemove", { date: label })}
+                  onClick={() => save.mutate(dates.filter((x) => x !== d))}
+                  className="rounded p-0.5 text-t3 hover:bg-muted hover:text-foreground disabled:opacity-40"
+                >
+                  <X size={12} />
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+      <div className="mt-2.5 flex flex-wrap items-center gap-2">
+        <Input
+          type="date"
+          className="w-44"
+          aria-label={t("admin.config.holidayDate")}
+          value={day}
+          onChange={(e) => setDay(e.target.value)}
+        />
+        <Button
+          type="button"
+          variant="outline"
+          disabled={!canAdd}
+          onClick={() =>
+            save.mutate([...dates, day].sort(), { onSuccess: () => setDay("") })
+          }
+        >
+          {t("admin.config.holidayAdd")}
+        </Button>
+        {save.isError && (
+          <span className="text-xs text-[var(--s-alert-t)]">{t("admin.config.holidaysError")}</span>
+        )}
       </div>
     </section>
   );

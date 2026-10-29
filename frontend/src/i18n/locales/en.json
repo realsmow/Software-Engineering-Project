@@ -382,7 +382,14 @@
       "workHoursHint": "Counter hours in Bangkok time. Loans fall due at the closing hour.",
       "work_start": "Opening hour",
       "work_end": "Closing hour",
-      "workHoursError": "Could not save"
+      "workHoursError": "Could not save",
+      "holidays": "Holidays",
+      "holidaysHint": "Days the counter is closed besides Saturday and Sunday. Borrowers cannot start a loan or book a room on them, and a due date that falls on one moves to the next open day. Applies to requests sent after saving; due dates already set do not change.",
+      "holidaysNone": "No holidays yet",
+      "holidayDate": "Holiday to add",
+      "holidayAdd": "Add holiday",
+      "holidayRemove": "Remove holiday {{date}}",
+      "holidaysError": "Could not save the holidays"
     },
     "reports": {
       "subtitle": "Lending activity, counted from the records when this page opened",
@@ -706,7 +713,7 @@
       "pcCreditNoEnd": "Return date not set yet",
       "pcCreditIdle": "Nothing in the request yet",
       "pcTimePast": "The selected pickup time has passed. Choose another time or date.",
-      "pcPickupClosed": "The counter is closed on Saturday and Sunday. Choose a weekday pickup date.",
+      "pcPickupClosed": "The counter is closed on Saturdays, Sundays and holidays. Choose an open day for pickup.",
       "pcTimeOrder": "The return time must be after the pickup time.",
       "pcStock": "Availability for your dates",
       "pcStockOk": "Every line has enough units free.",

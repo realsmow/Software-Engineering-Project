@@ -43,11 +43,16 @@ const hooks = vi.hoisted(() => ({
     vi.fn<typeof import("../../src/features/account/use-my-credit").useMyCredit>(),
 }));
 
-const api = vi.hoisted(() => ({ listUnits: vi.fn(), create: vi.fn() }));
+const api = vi.hoisted(() => ({
+  listUnits: vi.fn(),
+  create: vi.fn(),
+  holidays: vi.fn(),
+}));
 vi.mock("../../src/lib/trpc", () => ({
   useTRPCClient: () => ({
     item: { listUnits: { query: api.listUnits } },
     loan: { create: { mutate: api.create } },
+    admin: { holidays: { query: api.holidays } },
   }),
 }));
 
@@ -128,6 +133,7 @@ describe("borrower request checks", () => {
     hooks.useCartSchedule.mockReturnValue([]);
     hooks.useMyCredit.mockReturnValue(queryResult(toMyCredit(creditResponse())));
     api.listUnits.mockResolvedValue(units);
+    api.holidays.mockResolvedValue({ dates: [] });
   });
 
   afterEach(() => {
@@ -392,6 +398,29 @@ describe("borrower request checks", () => {
           expect(submit).toBeEnabled();
         });
       }
+    });
+
+    it("#234: blocks a pickup on a holiday the admin listed, like a weekend", async () => {
+      api.holidays.mockResolvedValue({ dates: ["2031-10-03"] }); // the Friday
+      vi.setSystemTime(new Date("2031-10-03T00:00:00.000Z")); // 07:00 Bangkok
+      const catalogItem = toCatalogItem(
+        itemResponse({ tier: "T1", availableUnits: 2, totalUnits: 2 })
+      );
+      hooks.useEquipmentTypes.mockReturnValue(queryResult([catalogItem]));
+      useRequestDraft.getState().addItem(catalogItem.id, catalogItem.availableUnits);
+      useRequestDraft.getState().setStartDate("2031-10-03");
+      useRequestDraft.getState().setEndDate("2031-10-06");
+      useRequestDraft.getState().setPickupTime("08:00");
+      useRequestDraft.getState().setReturnTime("17:00");
+      await act(async () => {
+        renderPage();
+      });
+      await waitFor(() =>
+        expect(
+          screen.getByRole("button", { name: i18n.t("borrower.request.submit") })
+        ).toBeDisabled()
+      );
+      expect(screen.getByText(i18n.t("borrower.request.pcPickupClosed"))).toBeInTheDocument();
     });
 
     it.each([

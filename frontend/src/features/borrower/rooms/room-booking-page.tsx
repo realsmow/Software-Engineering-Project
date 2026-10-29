@@ -10,6 +10,7 @@ import { ImageThumb } from "@/components/shared/image-thumb";
 import { fmtDate, localInstant, todayLocalDayKey } from "@/lib/datetime";
 import { getErrorMessage } from "@/lib/error-messages";
 import { cn } from "@/lib/utils";
+import { isClosedDay, useHolidays } from "@/lib/closed-days";
 import { activeRoomBookings } from "../request-status";
 import { useMyRequests } from "../loans/use-my-requests";
 import type { Room, RoomSlot } from "./room.adapter";
@@ -44,7 +45,14 @@ export default function RoomBookingPage() {
     () => Array.from({ length: ROOM_DAYS_AHEAD + 1 }, (_, i) => isoOffset(i)),
     [],
   );
-  const [date, setDate] = useState(today);
+  const holidays = useHolidays();
+  const [chosen, setDate] = useState<string | null>(null);
+  // Today, or the next open day when the counter is shut today (#234): the
+  // week strip offers no closed day, so the default must not be one either.
+  // Derived until the borrower picks, so a holiday list that arrives late
+  // still moves the default.
+  const date =
+    chosen ?? week.find((d) => !isClosedDay(d, holidays)) ?? today;
   const { data: room, isLoading } = useRoom(id);
   const { data: day } = useRoomDay(id, date);
   const freeByDay = useRoomWeek(id, week);
@@ -224,11 +232,10 @@ export default function RoomBookingPage() {
 
               <div>
                 <div className="mb-1.5 text-xs font-medium text-t2">{t("borrower.booking.date")}</div>
-                {/* The room's week: free slots per day; weekends the counter is shut. */}
+                {/* The room's week: free slots per day; weekends and holidays the counter is shut. */}
                 <div className="grid grid-cols-4 gap-1.5 sm:grid-cols-8">
                   {week.map((d) => {
-                    const weekday = new Date(localInstant(d, 12).getTime() + 7 * 3_600_000).getUTCDay();
-                    const closed = weekday === 0 || weekday === 6;
+                    const closed = isClosedDay(d, holidays);
                     const free = freeByDay.get(d);
                     const selected = d === date;
                     return (

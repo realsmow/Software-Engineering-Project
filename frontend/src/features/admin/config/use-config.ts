@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTRPCClient } from "@/lib/trpc";
 import type { TechnicalConfig } from "./config.types";
+import { HOLIDAYS_QUERY_KEY } from "@/lib/closed-days";
 
 /**
  * What this server instance is running with.
@@ -36,5 +37,24 @@ export function useUpdateWorkHours() {
       trpc.admin.updateWorkHours.mutate(hours),
     onSuccess: (settings) =>
       queryClient.setQueryData(["admin", "workHours"], settings.workHours),
+  });
+}
+
+/** #234: the counter's closed days besides weekends, as `YYYY-MM-DD`. */
+export function useHolidaysSetting() {
+  const trpc = useTRPCClient();
+  return useQuery({
+    queryKey: HOLIDAYS_QUERY_KEY,
+    queryFn: async () => trpc.admin.holidays.query(),
+  });
+}
+
+/** Replaces the whole list; the borrower screens share the cache entry. */
+export function useUpdateHolidays() {
+  const trpc = useTRPCClient();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (dates: string[]) => trpc.admin.updateHolidays.mutate({ dates }),
+    onSuccess: (saved) => queryClient.setQueryData(HOLIDAYS_QUERY_KEY, saved),
   });
 }

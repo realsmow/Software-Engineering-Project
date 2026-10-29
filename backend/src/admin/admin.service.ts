@@ -41,7 +41,11 @@ import {
 import { UNAVAILABLE_USAGE_STATES } from '../common/usage/usage-states';
 import { runSerializable } from '../common/db/serializable';
 import { OK } from '../common/schemas/ok.schema';
-import { workHours } from '../common/schemas/datetime.schema';
+import {
+  holidayList,
+  setHolidays,
+  workHours,
+} from '../common/schemas/datetime.schema';
 import { resourceName } from '../notification/notification.service';
 import type {
   ChangeRoleInput,
@@ -58,8 +62,9 @@ import type {
   UpdateLendingSettingsInput,
   UpdateUserInput,
   WorkHoursSetting,
+  HolidaysSetting,
 } from './admin.schema';
-import { workHoursSetting } from './admin.schema';
+import { holidaysSetting, workHoursSetting } from './admin.schema';
 
 /**
  * Sort keys the client may send, mapped to real columns.
@@ -237,7 +242,10 @@ export class AdminService implements OnModuleInit {
     private readonly cron: CronService,
   ) {}
 
-  /** Puts the saved working hours in force; the defaults stand until one is saved. */
+  /**
+   * Puts the saved working hours and holidays in force; the defaults (08-17,
+   * no holidays) stand until one is saved.
+   */
   async onModuleInit() {
     // A setting that cannot be read leaves the defaults; it must not stop boot.
     const row = await this.prisma.systemSetting
@@ -245,6 +253,40 @@ export class AdminService implements OnModuleInit {
       .catch(() => null);
     const saved = workHoursSetting.safeParse(row?.Value);
     if (saved.success) Object.assign(workHours, saved.data);
+
+    const holidayRow = await this.prisma.systemSetting
+      ?.findUnique({ where: { Key: 'holidays' } })
+      .catch(() => null);
+    const savedHolidays = holidaysSetting.safeParse(holidayRow?.Value);
+    if (savedHolidays.success) setHolidays(savedHolidays.data.dates);
+  }
+
+  /** #234: the days the counter is shut besides weekends. */
+  holidays() {
+    return { dates: holidayList() };
+  }
+
+  /**
+   * #234: replaces the whole list. Saved first and applied second, so a save
+   * that fails leaves the list in force unchanged, like `updateWorkHours`.
+   */
+  async updateHolidays(input: HolidaysSetting, actor: AuditActor) {
+    const dates = [...new Set(input.dates)].sort();
+    await this.prisma.systemSetting.upsert({
+      where: { Key: 'holidays' },
+      create: { Key: 'holidays', Value: { dates } },
+      update: { Value: { dates } },
+    });
+    setHolidays(dates);
+    await this.audit.record(
+      actor,
+      'config',
+      'setting/holidays',
+      dates.length > 0
+        ? `Holidays set to ${dates.join(', ')}`
+        : 'Holidays cleared',
+    );
+    return { dates };
   }
 
   async updateWorkHours(input: WorkHoursSetting, actor: AuditActor) {

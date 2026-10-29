@@ -6,9 +6,11 @@ import {
   toLocalDayKey,
   toDueDate,
   isWeekend,
+  isClosedDay,
   closingTimeOn,
-  rollDueOffWeekend,
-  weekdayEndBefore,
+  rollDueOffClosedDays,
+  openDayEndBefore,
+  setHolidays,
 } from './datetime.schema';
 
 /**
@@ -123,23 +125,23 @@ describe('toLocalDayKey', () => {
 });
 
 // FR-RSV-06 with #178: an offered end on a weekend would roll into the clash.
-describe('weekdayEndBefore', () => {
+describe('openDayEndBefore', () => {
   const start = new Date('2031-09-25T01:00:00.000Z'); // Thu 08:00 Bangkok
 
   it.each(['2031-09-27T01:00:00Z', '2031-09-28T01:00:00Z'])(
     'moves weekend cap %s back to Friday closing',
     (limit) => {
-      const friday = weekdayEndBefore(new Date(limit), start);
+      const friday = openDayEndBefore(new Date(limit), start);
       expect(friday.toISOString()).toBe('2031-09-26T10:00:00.000Z');
     },
   );
 
   it('keeps a weekday cap, and a cap whose Friday is not after the start', () => {
     const tuesday = new Date('2031-09-30T01:00:00.000Z');
-    expect(weekdayEndBefore(tuesday, start)).toEqual(tuesday);
+    expect(openDayEndBefore(tuesday, start)).toEqual(tuesday);
     const sunday = new Date('2031-09-28T01:00:00.000Z');
     expect(
-      weekdayEndBefore(sunday, new Date('2031-09-27T01:00:00.000Z')),
+      openDayEndBefore(sunday, new Date('2031-09-27T01:00:00.000Z')),
     ).toEqual(sunday);
   });
 });
@@ -175,10 +177,10 @@ describe('#178: Bangkok closed days and rolled deadlines', () => {
     (at, expected) => {
       const input = new Date(at);
       const before = input.toISOString();
-      const rolled = rollDueOffWeekend(input);
+      const rolled = rollDueOffClosedDays(input);
       expect(rolled.toISOString()).toBe(expected);
       expect(input.toISOString()).toBe(before);
-      expect(rollDueOffWeekend(rolled).toISOString()).toBe(expected);
+      expect(rollDueOffClosedDays(rolled).toISOString()).toBe(expected);
     },
   );
 
@@ -187,9 +189,52 @@ describe('#178: Bangkok closed days and rolled deadlines', () => {
     '2031-09-28T17:00:00Z',
     '2031-09-29T06:00:00Z',
   ])('does not change a weekday deadline %s', (at) => {
-    expect(rollDueOffWeekend(new Date(at)).toISOString()).toBe(
+    expect(rollDueOffClosedDays(new Date(at)).toISOString()).toBe(
       new Date(at).toISOString(),
     );
+  });
+});
+
+// #234: the admin's holiday list closes the counter the way a weekend does.
+describe('#234: listed holidays are closed days', () => {
+  afterEach(() => setHolidays([]));
+
+  it('closes a listed day by the Bangkok calendar, nothing else', () => {
+    setHolidays(['2031-09-30']); // a Tuesday
+    expect(isClosedDay(new Date('2031-09-30T02:00:00Z'))).toBe(true);
+    // Monday 23:59 and Tuesday 00:00 in Bangkok.
+    expect(isClosedDay(new Date('2031-09-29T16:59:59.999Z'))).toBe(false);
+    expect(isClosedDay(new Date('2031-09-29T17:00:00.000Z'))).toBe(true);
+    expect(isClosedDay(new Date('2031-10-01T02:00:00Z'))).toBe(false);
+  });
+
+  it('moves a due date on a holiday to closing on the next open day', () => {
+    setHolidays(['2031-09-30']);
+    expect(
+      rollDueOffClosedDays(new Date('2031-09-30T10:00:00Z')).toISOString(),
+    ).toBe('2031-10-01T10:00:00.000Z');
+  });
+
+  it('rolls a Saturday due date past a Monday holiday to Tuesday', () => {
+    setHolidays(['2031-09-29']);
+    expect(
+      rollDueOffClosedDays(new Date('2031-09-27T01:00:00Z')).toISOString(),
+    ).toBe('2031-09-30T10:00:00.000Z');
+  });
+
+  it('moves an offered end back over a Friday holiday to Thursday', () => {
+    setHolidays(['2031-09-26']);
+    const start = new Date('2031-09-24T01:00:00.000Z'); // Wednesday 08:00
+    expect(
+      openDayEndBefore(new Date('2031-09-28T01:00:00Z'), start).toISOString(),
+    ).toBe('2031-09-25T10:00:00.000Z');
+  });
+
+  it('forgets the old list when a new one is set', () => {
+    setHolidays(['2031-09-30']);
+    setHolidays(['2031-10-01']);
+    expect(isClosedDay(new Date('2031-09-30T02:00:00Z'))).toBe(false);
+    expect(isClosedDay(new Date('2031-10-01T02:00:00Z'))).toBe(true);
   });
 });
 

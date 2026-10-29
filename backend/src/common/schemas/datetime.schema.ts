@@ -135,30 +135,68 @@ export function isWeekend(at: Date): boolean {
 }
 
 /**
- * A due instant that lands on a Saturday or Sunday in Bangkok moves to closing
- * time the following Monday. The counter is shut at weekends, so a loan due
- * then could only come back on Monday and would be counted late (#178).
+ * Days the counter is shut besides weekends (#234, FR-ADM-04): public and
+ * university holidays as Bangkok `YYYY-MM-DD` keys.
+ *
+ * One list for the whole university, set by the admin and loaded from
+ * SystemSetting at boot by AdminService, the same way as `workHours`. It is
+ * read when a date is decided (request, early pickup, extension), so a holiday
+ * added later does not move a due date that was already set.
  */
-export function rollDueOffWeekend(due: Date): Date {
-  if (!isWeekend(due)) return due;
-  const weekday = new Date(due.getTime() + APP_UTC_OFFSET_MS).getUTCDay();
-  return toDueDate(toLocalDayKey(addDays(due, weekday === 6 ? 2 : 1)));
+const holidays = new Set<string>();
+
+/** Replaces the holiday list in force; AdminService is the only writer. */
+export function setHolidays(dates: readonly string[]): void {
+  holidays.clear();
+  for (const day of dates) holidays.add(day);
+}
+
+/** The holiday list in force, oldest first. */
+export function holidayList(): string[] {
+  return [...holidays].sort();
+}
+
+/** A weekend or a listed holiday in Bangkok: the counter is shut all day. */
+export function isClosedDay(at: Date): boolean {
+  return isWeekend(at) || holidays.has(toLocalDayKey(at));
 }
 
 /**
- * The latest end on or before `limit` that the weekend roll leaves alone.
- *
- * An end offered on a Saturday or Sunday would roll forward to Monday and back
- * into the booking that capped it, so the offer moves back to Friday at
- * closing instead. Unchanged if that would not be after `start`.
+ * How far a date may be moved past closed days. Every listed holiday plus the
+ * weekends between them stays well inside this; it only stops a loop.
  */
-export function weekdayEndBefore(limit: Date, start: Date): Date {
-  const weekday = new Date(limit.getTime() + APP_UTC_OFFSET_MS).getUTCDay();
-  if (weekday !== 0 && weekday !== 6) return limit;
-  const friday = toDueDate(
-    toLocalDayKey(addDays(limit, weekday === 6 ? -1 : -2)),
-  );
-  return friday > start ? friday : limit;
+const MAX_CLOSED_RUN_DAYS = 400;
+
+/**
+ * A due instant that lands on a closed day (weekend or listed holiday, in
+ * Bangkok) moves to closing time on the next open day. The counter is shut
+ * then, so a loan due that day could only come back later and would be
+ * counted late (#178, #234).
+ */
+export function rollDueOffClosedDays(due: Date): Date {
+  if (!isClosedDay(due)) return due;
+  let day = due;
+  for (let i = 0; i < MAX_CLOSED_RUN_DAYS && isClosedDay(day); i++) {
+    day = addDays(day, 1);
+  }
+  return toDueDate(toLocalDayKey(day));
+}
+
+/**
+ * The latest end on or before `limit` that the closed-day roll leaves alone.
+ *
+ * An end offered on a closed day would roll forward into the booking that
+ * capped it, so the offer moves back to closing on the last open day before
+ * it instead. Unchanged if that would not be after `start`.
+ */
+export function openDayEndBefore(limit: Date, start: Date): Date {
+  if (!isClosedDay(limit)) return limit;
+  let day = limit;
+  for (let i = 0; i < MAX_CLOSED_RUN_DAYS && isClosedDay(day); i++) {
+    day = addDays(day, -1);
+  }
+  const end = toDueDate(toLocalDayKey(day));
+  return end > start ? end : limit;
 }
 
 /** `from` plus N whole days, keeping the time of day. */

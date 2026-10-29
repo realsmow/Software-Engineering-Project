@@ -39,9 +39,9 @@ import {
   addDays,
   daysBetween,
   localTimeToUtc,
-  isWeekend,
-  rollDueOffWeekend,
-  weekdayEndBefore,
+  isClosedDay,
+  rollDueOffClosedDays,
+  openDayEndBefore,
   toIso,
   toLocalDayKey,
   withinWorkHours,
@@ -314,14 +314,17 @@ export class LoanRequestService {
         ['START', startTime],
         ['END', endTime],
       ] as const) {
-        // A weekend pickup is refused too: the counter is shut. A weekend
-        // return is fine, it rolls to Monday (#178).
-        if (!withinWorkHours(at) || (edge === 'START' && isWeekend(at))) {
+        // A pickup on a closed day is refused too: the counter is shut. A
+        // return then is fine, it rolls to the next open day (#178 weekends,
+        // #234 holidays).
+        const closedDay = edge === 'START' && isClosedDay(at);
+        if (!withinWorkHours(at) || closedDay) {
           throw new BusinessError('OUTSIDE_WORK_HOURS', {
             edge,
             at: toIso(at),
             opensAt: workHours.start,
             closesAt: workHours.end,
+            ...(closedDay ? { reason: 'CLOSED_DAY' } : {}),
           });
         }
       }
@@ -355,9 +358,10 @@ export class LoanRequestService {
         creditTier,
       });
     }
-    // After the day limit: the borrower asked for a weekday-sized loan, and
-    // the weekend the counter is shut is not theirs to be charged for.
-    if (!resource.Room) endTime = rollDueOffWeekend(endTime);
+    // After the day limit: the borrower asked for a loan of open days, and
+    // the weekend or holiday the counter is shut is not theirs to be charged
+    // for.
+    if (!resource.Room) endTime = rollDueOffClosedDays(endTime);
 
     // FR-RSV-04 (G1, T1): a T1 unit that is not free for the window is swapped
     // for a free sibling rather than refused outright. T2 does the same now
@@ -1022,7 +1026,7 @@ export class LoanRequestService {
         throw new BusinessError('WINDOW_CROSSES_RESERVATION', {
           resourceKey: resource.ResourceKey,
           maxEndTime: toIso(
-            weekdayEndBefore(
+            openDayEndBefore(
               addDays(clash.StartTime, -resource.BufferTime),
               startTime,
             ),

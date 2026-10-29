@@ -4,12 +4,15 @@ import { addMonths, eachDayOfInterval, endOfMonth, format, getDay, parseISO, sta
 import { useTranslation } from "react-i18next";
 import { fmtDate, localInstant, todayLocalDayKey } from "@/lib/datetime";
 import { cn } from "@/lib/utils";
+import { isClosedDay } from "@/lib/closed-days";
 import { useCartSchedule } from "../catalog/use-equipment-types";
 
 const DAY_MS = 86_400_000;
 const HORIZON_DAYS = 92;
 
 type DayState = "free" | "partial" | "none" | "closed" | "past";
+
+const NO_HOLIDAYS: ReadonlySet<string> = new Set();
 
 export interface CalendarLine {
   itemId: string;
@@ -28,6 +31,7 @@ export function AvailabilityCalendar({
   startDate,
   endDate,
   maxDate,
+  holidays = NO_HOLIDAYS,
   onPickup,
   onReturn,
 }: {
@@ -35,6 +39,8 @@ export function AvailabilityCalendar({
   startDate: string;
   endDate: string | null;
   maxDate: string;
+  /** #234: the admin's holidays, closed like a weekend. */
+  holidays?: ReadonlySet<string>;
   onPickup: (iso: string) => void;
   onReturn: (iso: string) => void;
 }) {
@@ -79,8 +85,7 @@ export function AvailabilityCalendar({
 
   function stateOf(iso: string, counts: number[] | null): DayState {
     if (iso < today || iso > maxDate) return "past";
-    const weekday = getDay(parseISO(iso));
-    if (weekday === 0 || weekday === 6) return "closed";
+    if (isClosedDay(iso, holidays)) return "closed";
     if (!counts || lines.length === 0) return "free";
     if (counts.some((n) => n === 0)) return "none";
     return counts.every((n, i) => n >= lines[i].qty) ? "free" : "partial";
@@ -90,11 +95,11 @@ export function AvailabilityCalendar({
     if (state === "past") return;
     // A day before the pickup starts over instead of making a backwards range.
     if (picking === "pickup" || iso < startDate) {
-      // The counter is shut at weekends, so nobody collects then.
+      // The counter is shut at weekends and on holidays, so nobody collects then.
       if (state === "closed") return;
       onPickup(iso);
     } else {
-      // A weekend return is fine: it rolls to Monday closing.
+      // A return on a closed day is fine: it rolls to the next open day.
       onReturn(iso);
     }
   }

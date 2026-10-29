@@ -68,4 +68,23 @@ describe("AvailabilityCalendar", () => {
     fireEvent.click(day("26 Sept 2031"));
     expect(onReturn).toHaveBeenCalledWith("2031-09-26");
   });
+
+  it("#234: shows a holiday the admin listed as closed and refuses it as a pickup day", () => {
+    const onPickup = vi.fn();
+    render(
+      <AvailabilityCalendar
+        lines={[{ itemId: "5", name: "Scope", qty: 1 }]}
+        startDate="2031-09-22"
+        endDate="2031-09-22"
+        maxDate="2031-12-28"
+        holidays={new Set(["2031-09-25"])}
+        onPickup={onPickup}
+        onReturn={vi.fn()}
+      />
+    );
+    expect(day("25 Sept 2031").getAttribute("aria-label")).toContain("Counter closed");
+    fireEvent.click(day("25 Sept 2031"));
+    expect(onPickup).not.toHaveBeenCalled();
+    expect(day("26 Sept 2031").getAttribute("aria-label")).not.toContain("Counter closed");
+  });
 });

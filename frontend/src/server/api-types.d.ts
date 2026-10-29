@@ -517,6 +517,22 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 			};
 			meta: object;
 		}>;
+		holidays: import("@trpc/server").TRPCQueryProcedure<{
+			input: void;
+			output: {
+				dates: string[];
+			};
+			meta: object;
+		}>;
+		updateHolidays: import("@trpc/server").TRPCMutationProcedure<{
+			input: {
+				dates: string[];
+			};
+			output: {
+				dates: string[];
+			};
+			meta: object;
+		}>;
 		getConfig: import("@trpc/server").TRPCQueryProcedure<{
 			input: void;
 			output: {
