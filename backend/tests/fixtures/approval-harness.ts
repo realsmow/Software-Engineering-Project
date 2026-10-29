@@ -28,6 +28,8 @@ export function reservation(
 function baseReservation() {
   return {
     ReservationKey: 77,
+    // QUEUE_SELECT reads it; null is a request sent on its own.
+    CartKey: null as number | null,
     ReservedBy: 42,
     Reason: 'Lab project',
     DecisionNote: null as string | null,

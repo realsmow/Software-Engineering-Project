@@ -335,6 +335,52 @@ describe("my requests: statuses and penalties come from the server", () => {
     expect(api).toHaveBeenCalledWith("loan.cancel", { reservationKey: 41 });
   });
 
+  it("#236: asks what to do with a cart the supervisor partly rejected", async () => {
+    db.loans = [
+      request({
+        reservationKey: 51,
+        cartKey: 6,
+        status: "rejected",
+        usageKey: null,
+        cancellable: false,
+        decisionNote: "Not for coursework",
+        resource: { ...request({}).resource, name: "Probe kit" },
+      }),
+      request({ reservationKey: 52, cartKey: 6, status: "approved", usageKey: null, cancellable: true }),
+    ];
+    renderAt(`${ROUTES.MY_LOANS}?cart=6`, <MyLoansPage />);
+    const question = i18n.t("borrower.myRequests.partRejected", { names: "Probe kit" });
+    const cart = (await screen.findByText(question)).closest("section")!;
+
+    // Keeping what was approved only closes the question.
+    fireEvent.click(within(cart).getByRole("button", { name: i18n.t("borrower.myRequests.keepApproved") }));
+    expect(screen.queryByText(question)).not.toBeInTheDocument();
+    expect(api).not.toHaveBeenCalledWith("loan.cancel", expect.anything());
+    expect(screen.getByText("52")).toBeInTheDocument();
+  });
+
+  it("#236: cancels the rest of a partly rejected cart from the question", async () => {
+    db.loans = [
+      request({
+        reservationKey: 61,
+        cartKey: 7,
+        status: "rejected",
+        usageKey: null,
+        cancellable: false,
+        resource: { ...request({}).resource, name: "Probe kit" },
+      }),
+      request({ reservationKey: 62, cartKey: 7, status: "approved", usageKey: null, cancellable: true }),
+    ];
+    renderAt(ROUTES.MY_LOANS, <MyLoansPage />);
+    const question = i18n.t("borrower.myRequests.partRejected", { names: "Probe kit" });
+    const cart = (await screen.findByText(question)).closest("section")!;
+    fireEvent.click(
+      within(cart).getByRole("button", { name: i18n.t("borrower.myRequests.cancelCart", { count: 1 }) })
+    );
+    fireEvent.click(screen.getByRole("button", { name: i18n.t("borrower.myRequests.cancelConfirmYes") }));
+    await waitFor(() => expect(api).toHaveBeenCalledWith("loan.cancel", { reservationKey: 62 }));
+  });
+
   it("shows the approver's reason on a rejected request, not a canned one", async () => {
     renderAt(ROUTES.MY_LOANS, <MyLoansPage />);
     fireEvent.click(await screen.findByRole("tab", { name: new RegExp(i18n.t("borrower.myRequests.tabHistory")) }));

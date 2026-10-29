@@ -282,13 +282,18 @@ export class ApprovalService {
     });
     const decided: number[] = [];
     const failed: { reservationKey: number; code: string }[] = [];
+    const batch = lines.map((l) => l.ReservationKey);
     for (const line of lines) {
       try {
-        await this.decide(user, {
-          reservationKey: line.ReservationKey,
-          decision: input.decision,
-          reason: input.reason,
-        });
+        await this.decide(
+          user,
+          {
+            reservationKey: line.ReservationKey,
+            decision: input.decision,
+            reason: input.reason,
+          },
+          batch,
+        );
         decided.push(line.ReservationKey);
       } catch (error) {
         if (!(error instanceof BusinessError)) throw error;
@@ -299,6 +304,30 @@ export class ApprovalService {
       }
     }
     return { decided, failed };
+  }
+
+  /**
+   * #236 step 3 (D-01): lines of a cart, other than `decided`, that are still
+   * on their way to the borrower: undecided or approved, and not collected
+   * yet. A collected item is no longer part of "cancel the whole cart".
+   */
+  private async stillOpenInCart(
+    tx: Prisma.TransactionClient,
+    cartKey: number | null | undefined,
+    decided: ReadonlySet<number>,
+  ): Promise<number> {
+    if (cartKey == null) return 0;
+    return tx.reservations.count({
+      where: {
+        CartKey: cartKey,
+        ReservationKey: { notIn: [...decided] },
+        ApproveStatus: { in: ['Pending', 'Approved'] },
+        OR: [
+          { UsageLogs: { none: {} } },
+          { UsageLogs: { some: { CurrentStatus: 'Prepared' } } },
+        ],
+      },
+    });
   }
 
   /**
@@ -323,7 +352,15 @@ export class ApprovalService {
     }
   }
 
-  async decide(user: TrpcUser, input: DecideApprovalInput) {
+  /**
+   * `batch`: the other lines of a whole-cart decision (decideCart), which are
+   * not "left in the cart" when this one is rejected.
+   */
+  async decide(
+    user: TrpcUser,
+    input: DecideApprovalInput,
+    batch: readonly number[] = [],
+  ) {
     const row = await this.prisma.reservations.findUnique({
       where: { ReservationKey: input.reservationKey },
       select: { ...QUEUE_SELECT, AutoApproved: true, ResolvedAt: true },
@@ -388,6 +425,12 @@ export class ApprovalService {
           reservationKey: input.reservationKey,
           itemName: resourceName(row.Resource),
           reason: input.reason,
+          cartKey: row.CartKey,
+          remainingInCart: await this.stillOpenInCart(
+            tx,
+            row.CartKey,
+            new Set([input.reservationKey, ...batch]),
+          ),
         });
       });
 
@@ -428,6 +471,7 @@ export class ApprovalService {
         },
         select: {
           ReservationKey: true,
+          CartKey: true,
           StartTime: true,
           EndTime: true,
           ReservedByUser: { select: BORROWER_SELECT },
@@ -501,6 +545,12 @@ export class ApprovalService {
             reservationKey: clash.ReservationKey,
             itemName,
             reason: 'อุปกรณ์ถูกจองในช่วงเวลาที่ทับซ้อนกันแล้ว',
+            cartKey: clash.CartKey,
+            remainingInCart: await this.stillOpenInCart(
+              tx,
+              clash.CartKey,
+              new Set(clashes.map((c) => c.ReservationKey)),
+            ),
           });
         }
       }

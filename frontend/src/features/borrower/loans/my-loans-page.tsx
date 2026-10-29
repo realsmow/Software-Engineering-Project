@@ -1,7 +1,7 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { fmtDate, fmtDayMonth, fmtDayNum } from "@/lib/datetime";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Download, FileText } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { TierDot } from "@/components/shared/tier-badge";
@@ -81,6 +81,34 @@ export default function MyLoansPage() {
   // Demo feedback: one cart is one borrow. Its lines stay separate cards
   // (they can end differently) inside one box with a whole-borrow cancel.
   const carts = groupByCart(rows);
+
+  // #236 step 3 (team decision D-01): a cart the supervisor partly refused asks
+  // whether to cancel the rest or keep it; with no answer the rest goes ahead.
+  // The refused lines sit in the history tab, so they are looked up across
+  // every request, and a notice links here with ?cart=<key>.
+  const [params] = useSearchParams();
+  const linkedCart = Number(params.get("cart")) || null;
+  // Answered on an earlier visit (a new notice link asks again), and on this one.
+  const [dismissed] = useState<ReadonlySet<number>>(readDismissedCarts);
+  const [answeredNow, setAnsweredNow] = useState<ReadonlySet<number>>(new Set());
+  const refusedByCart = useMemo(() => {
+    const byCart = new Map<number, MyRequest[]>();
+    for (const r of requests) {
+      const refused = r.status === "rejected" || (r.status === "cancelled" && r.cartKey === linkedCart);
+      if (r.cartKey == null || !refused) continue;
+      byCart.set(r.cartKey, [...(byCart.get(r.cartKey) ?? []), r]);
+    }
+    return byCart;
+  }, [requests, linkedCart]);
+  useEffect(() => {
+    if (linkedCart === null) return;
+    document.getElementById(`cart-${linkedCart}`)?.scrollIntoView?.({ block: "center" });
+  }, [linkedCart, carts.length]);
+
+  function keepApproved(cartKey: number) {
+    setAnsweredNow((prev) => new Set(prev).add(cartKey));
+    writeDismissedCarts(new Set(readDismissedCarts()).add(cartKey));
+  }
   const showDraft = tab === "active" && draft !== null;
   const empty = rows.length === 0 && !showDraft;
 
@@ -203,19 +231,56 @@ export default function MyLoansPage() {
                 }}
               />
             ));
-            if (lines.length === 1) return cards;
             const cancellable = lines.filter((r) => r.cancellable);
+            const cartKey = lines[0].cartKey;
+            const refused = cartKey != null ? (refusedByCart.get(cartKey) ?? []) : [];
+            const ask =
+              cartKey != null &&
+              refused.length > 0 &&
+              cancellable.length > 0 &&
+              !answeredNow.has(cartKey) &&
+              (!dismissed.has(cartKey) || linkedCart === cartKey);
+            if (lines.length === 1 && !ask) return cards;
             return (
               <section
-                key={`cart-${lines[0].cartKey}`}
+                key={`cart-${cartKey}`}
+                id={cartKey != null ? `cart-${cartKey}` : undefined}
                 aria-label={t("borrower.myRequests.cartTitle", { count: lines.length })}
-                className="rounded-lg border border-dashed border-line-strong p-2.5"
+                className={cn(
+                  "rounded-lg border border-dashed border-line-strong p-2.5",
+                  ask && linkedCart === cartKey && "border-solid border-[var(--s-warn-b)]",
+                )}
               >
+                {ask ? (
+                  <div className="mb-2.5 rounded border border-[var(--s-warn-b)] bg-[var(--s-warn-bg)] px-3 py-2 text-[12.5px] text-[var(--s-warn-t)]">
+                    <p>
+                      {t("borrower.myRequests.partRejected", {
+                        names: refused.map((r) => r.name).join(", "),
+                      })}
+                    </p>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setCancelError(null);
+                          setCancelCart(cancellable);
+                        }}
+                      >
+                        {t("borrower.myRequests.cancelCart", { count: cancellable.length })}
+                      </Button>
+                      <Button type="button" variant="outline" size="sm" onClick={() => keepApproved(cartKey)}>
+                        {t("borrower.myRequests.keepApproved")}
+                      </Button>
+                    </div>
+                  </div>
+                ) : null}
                 <div className="mb-2 flex flex-wrap items-center justify-between gap-2 px-1">
                   <span className="text-[12px] font-semibold uppercase tracking-wide text-t3">
                     {t("borrower.myRequests.cartTitle", { count: lines.length })}
                   </span>
-                  {cancellable.length > 0 ? (
+                  {cancellable.length > 0 && !ask ? (
                     <Button
                       type="button"
                       variant="outline"
@@ -791,6 +856,26 @@ function exportCsv(requests: MyRequest[]): void {
 }
 
 /** Rows of one cart together, in the order the first of each appears. */
+/** Carts whose "cancel the rest?" question this browser already answered. */
+const DISMISSED_CARTS_KEY = "ulms-cart-question-dismissed";
+
+function readDismissedCarts(): ReadonlySet<number> {
+  try {
+    const raw = localStorage.getItem(DISMISSED_CARTS_KEY);
+    return new Set(raw ? (JSON.parse(raw) as number[]) : []);
+  } catch {
+    return new Set();
+  }
+}
+
+function writeDismissedCarts(keys: ReadonlySet<number>) {
+  try {
+    localStorage.setItem(DISMISSED_CARTS_KEY, JSON.stringify([...keys]));
+  } catch {
+    // Private mode or blocked storage: the question just comes back next visit.
+  }
+}
+
 function groupByCart(rows: MyRequest[]): MyRequest[][] {
   const groups = new Map<string, MyRequest[]>();
   for (const row of rows) {

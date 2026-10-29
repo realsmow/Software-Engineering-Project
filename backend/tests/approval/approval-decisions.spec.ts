@@ -456,6 +456,70 @@ describe('one decision for a whole cart (demo feedback)', () => {
   });
 });
 
+describe('#236 step 3: a rejection that leaves other items in the cart', () => {
+  const reject = decideApprovalInput.parse({
+    reservationKey: 77,
+    decision: 'reject',
+    reason: 'Not for coursework',
+  });
+  const notice = (t: ReturnType<typeof setup>) =>
+    t.prisma.notification.upsert.mock.calls
+      .map(([args]: [{ create: Record<string, unknown> }]) => args.create)
+      .find(
+        (c: Record<string, unknown>) =>
+          c.NotificationType === 'RequestRejected',
+      );
+
+  it('tells the borrower how many items are left and links to the cart', async () => {
+    const t = setup(reservation({ CartKey: 9 }));
+    t.prisma.reservations.count.mockResolvedValue(2);
+    await t.service.decide(supervisor, reject);
+
+    expect(t.prisma.reservations.count).toHaveBeenCalledWith({
+      where: expect.objectContaining({
+        CartKey: 9,
+        ReservationKey: { notIn: [77] },
+        ApproveStatus: { in: ['Pending', 'Approved'] },
+      }),
+    });
+    expect(notice(t)).toMatchObject({
+      Body: expect.stringContaining('ยังมีของอีก 2 ชิ้นในตะกร้านี้'),
+      BodyEn: expect.stringContaining('2 more item(s) in this cart'),
+      LinkTo: '/my/loans?cart=9',
+    });
+  });
+
+  it('keeps the plain notice when nothing else in the cart is still open', async () => {
+    const t = setup(reservation({ CartKey: 9 }));
+    await t.service.decide(supervisor, reject);
+    expect(notice(t)).toMatchObject({
+      Body: 'Oscilloscope · Not for coursework',
+      LinkTo: '/my/loans',
+    });
+  });
+
+  it('does not count the lines rejected together as left over', async () => {
+    const t = setup();
+    t.prisma.reservations.findMany.mockResolvedValueOnce([
+      { ReservationKey: 77 },
+      { ReservationKey: 78 },
+    ]);
+    const decide = jest
+      .spyOn(t.service, 'decide')
+      .mockResolvedValue({} as never);
+    await t.service.decideCart(supervisor, {
+      cartKey: 9,
+      decision: 'reject',
+      reason: 'Not for coursework',
+    });
+    expect(decide).toHaveBeenCalledWith(
+      supervisor,
+      expect.objectContaining({ reservationKey: 77 }),
+      [77, 78],
+    );
+  });
+});
+
 describe('staff remind supervisors (demo feedback)', () => {
   const staff: TrpcUser = {
     accountKey: 50,
