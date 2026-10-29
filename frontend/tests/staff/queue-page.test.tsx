@@ -475,6 +475,29 @@ describe("StaffQueuePage", () => {
     expect(screen.getByText("Ada Lovelace")).toBeInTheDocument();
   });
 
+  it("attaches every return photo chosen at once (#238)", async () => {
+    const uploadPhoto = vi.fn().mockResolvedValue({});
+    mocks.usePickupImageUpload.mockReturnValue(mutationResult(uploadPhoto));
+    mocks.useStaffQueue.mockImplementation((bucket: string) =>
+      queryResult(
+        bucket === "onLoan"
+          ? [staffQueueRow.strict().parse({ ...row, usageKey: 9, status: "Lended", serialNo: "OSC-001" })]
+          : [row]
+      )
+    );
+    const { container } = renderPage();
+    fireEvent.click(screen.getAllByRole("button", { name: /On loan/i })[0]);
+    const files = ["a.jpg", "b.jpg"].map(
+      (name) => new File([new Uint8Array(8)], name, { type: "image/jpeg" })
+    );
+    fireEvent.change(container.querySelector('input[type="file"]')!, { target: { files } });
+    await waitFor(() => expect(uploadPhoto).toHaveBeenCalledTimes(2));
+    expect(uploadPhoto.mock.calls.map(([input]) => [input.stage, input.image.file])).toEqual([
+      ["after", files[0]],
+      ["after", files[1]],
+    ]);
+  });
+
   it("blocks return without an after photo and displays the late penalty after return", async () => {
     mocks.useStaffQueue.mockImplementation((bucket: string) =>
       queryResult(

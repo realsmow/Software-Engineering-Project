@@ -47,6 +47,8 @@ export const BUSINESS = {
 // Matches the FILE_TOO_LARGE / INVALID_FILE_TYPE copy in error-messages.ts.
 export const UPLOAD = {
   MAX_MB: 5,
+  // #238: photos per loan stage; same as the backend MAX_PHOTOS_PER_STAGE (image.schema.ts).
+  MAX_PHOTOS_PER_STAGE: 30,
   MAX_BYTES: 5 * 1024 * 1024,
   ALLOWED_MIME: ["image/jpeg", "image/png"],
   ALLOWED_EXT: [".jpg", ".jpeg", ".png"],

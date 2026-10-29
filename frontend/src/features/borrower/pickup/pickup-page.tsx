@@ -9,14 +9,16 @@ import {
 import { useTranslation } from "react-i18next";
 import { fmtDayMonth, fmtDayNum } from "@/lib/datetime";
 import { useNavigate } from "react-router-dom";
-import { Camera, Check, Package, TriangleAlert } from "lucide-react";
+import { Camera, Check, Package, TriangleAlert, X } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { Button } from "@/components/ui/button";
 import { UsagePhotoGallery } from "@/components/shared/usage-photo-gallery";
+import { PhotoCount } from "@/components/shared/photo-count";
 import { BUSINESS, ROUTES, UPLOAD } from "@/constants";
 import { getErrorMessage } from "@/lib/error-messages";
 import { cn } from "@/lib/utils";
-import { uploadAcceptAttr, validateUploadFile } from "@/lib/upload-validation";
+import { uploadAcceptAttr } from "@/lib/upload-validation";
+import { takePhotos } from "@/lib/photo-picks";
 import type { MyRequest } from "../request-status";
 import { useMyRequests } from "../loans/use-my-requests";
 import {
@@ -56,8 +58,8 @@ export default function PickupPage() {
 
   /** Rows the borrower has un-ticked. Absent means selected - everything waiting is taken by default. */
   const [dropped, setDropped] = useState<Set<string>>(new Set());
-  /** Validated File + preview and upload state per request id. */
-  const [shots, setShots] = useState<Record<string, PreparedBorrowerImage>>({});
+  /** Validated Files + previews and upload state per request id (#238: several per unit). */
+  const [shots, setShots] = useState<Record<string, PreparedBorrowerImage[]>>({});
   const [uploadError, setUploadError] = useState<string | null>(null);
   const shotsRef = useRef(shots);
   shotsRef.current = shots;
@@ -74,11 +76,11 @@ export default function PickupPage() {
   }, []);
 
   useEffect(() => {
-    return () => releaseBorrowerImages(Object.values(shotsRef.current));
+    return () => releaseBorrowerImages(Object.values(shotsRef.current).flat());
   }, []);
 
   const selected = rows.filter((r) => !dropped.has(r.id));
-  const missingShots = selected.filter((r) => !shots[r.id] && !onFile.has(r.id));
+  const missingShots = selected.filter((r) => !shots[r.id]?.length && !onFile.has(r.id));
   const missingUsage = selected.some((r) => r.usageKey == null);
   const canConfirm =
     selected.length > 0 &&
@@ -95,20 +97,28 @@ export default function PickupPage() {
     });
   }
 
-  function replaceShot(id: string, image: PreparedBorrowerImage) {
-    releaseBorrowerImage(shotsRef.current[id]);
-    const next = { ...shotsRef.current, [id]: image };
+  function setRowShots(id: string, list: PreparedBorrowerImage[]) {
+    const next = { ...shotsRef.current, [id]: list };
     shotsRef.current = next;
     setShots(next);
+  }
+
+  function addShots(id: string, images: PreparedBorrowerImage[]) {
+    setRowShots(id, [...(shotsRef.current[id] ?? []), ...images]);
     setUploadError(null);
   }
 
-  function patchShot(id: string, changes: Partial<PreparedBorrowerImage>) {
-    const current = shotsRef.current[id];
-    if (!current) return;
-    const next = { ...shotsRef.current, [id]: { ...current, ...changes } };
-    shotsRef.current = next;
-    setShots(next);
+  /** A queued photo taken by mistake is dropped before anything is uploaded. */
+  function removeShot(id: string, index: number) {
+    const list = shotsRef.current[id] ?? [];
+    releaseBorrowerImage(list[index]);
+    setRowShots(id, list.filter((_, i) => i !== index));
+  }
+
+  function patchShot(id: string, index: number, changes: Partial<PreparedBorrowerImage>) {
+    const list = shotsRef.current[id] ?? [];
+    if (!list[index]) return;
+    setRowShots(id, list.map((image, i) => (i === index ? { ...image, ...changes } : image)));
   }
 
   async function confirm() {
@@ -117,20 +127,23 @@ export default function PickupPage() {
 
     for (const row of selected) {
       const usageKey = row.usageKey;
-      const image = shotsRef.current[row.id];
       if (usageKey == null) return;
-      // No new shot means the photo on file from an earlier visit counts.
-      if (!image || image.status === "uploaded") continue;
-
-      patchShot(row.id, { status: "uploading", error: undefined });
-      try {
-        const uploaded = await uploadPickupImage.mutateAsync({ usageKey, image });
-        patchShot(row.id, uploaded.image);
-      } catch (error) {
-        const message = getErrorMessage(error);
-        patchShot(row.id, { status: "error", error: message });
-        setUploadError(message);
-        return;
+      // No new shot means the photo on file from an earlier visit counts; one
+      // already uploaded by an interrupted earlier press is not sent again.
+      const queued = shotsRef.current[row.id] ?? [];
+      for (let index = 0; index < queued.length; index++) {
+        const image = shotsRef.current[row.id]?.[index];
+        if (!image || image.status === "uploaded") continue;
+        patchShot(row.id, index, { status: "uploading", error: undefined });
+        try {
+          const uploaded = await uploadPickupImage.mutateAsync({ usageKey, image });
+          patchShot(row.id, index, uploaded.image);
+        } catch (error) {
+          const message = getErrorMessage(error);
+          patchShot(row.id, index, { status: "error", error: message });
+          setUploadError(message);
+          return;
+        }
       }
     }
 
@@ -170,7 +183,7 @@ export default function PickupPage() {
                   key={row.id}
                   row={row}
                   selected={!dropped.has(row.id)}
-                  photographed={Boolean(shots[row.id])}
+                  photographed={(shots[row.id]?.length ?? 0) > 0}
                   onToggle={() => toggle(row.id)}
                 />
               ))}
@@ -207,14 +220,11 @@ export default function PickupPage() {
                   <PhotoBox
                     key={row.id}
                     row={row}
-                    image={shots[row.id]}
+                    images={shots[row.id] ?? []}
                     onExisting={markOnFile}
-                    disabled={
-                      uploadPickupImage.isPending ||
-                      finalizePickup.isPending ||
-                      shots[row.id]?.status === "uploaded"
-                    }
-                    onPicked={(image) => replaceShot(row.id, image)}
+                    disabled={uploadPickupImage.isPending || finalizePickup.isPending}
+                    onPicked={(images) => addShots(row.id, images)}
+                    onRemoveQueued={(index) => removeShot(row.id, index)}
                   />
                 ))}
               </div>
@@ -351,15 +361,17 @@ function PickRow({
  */
 function PhotoBox({
   row,
-  image,
+  images,
   disabled,
   onPicked,
+  onRemoveQueued,
   onExisting,
 }: {
   row: MyRequest;
-  image?: PreparedBorrowerImage;
+  images: PreparedBorrowerImage[];
   disabled: boolean;
-  onPicked: (image: PreparedBorrowerImage) => void;
+  onPicked: (images: PreparedBorrowerImage[]) => void;
+  onRemoveQueued: (index: number) => void;
   onExisting: (id: string, has: boolean) => void;
 }) {
   const { t } = useTranslation();
@@ -381,26 +393,28 @@ function PhotoBox({
     );
   }
 
+  const onFileCount = existingPhotos?.before.length ?? 0;
+  // Only photos not yet sent count against the cap twice; uploaded ones are on file.
+  const pending = images.filter((image) => image.status !== "uploaded");
+
+  // #238 (instructor item 3): several photos per unit, chosen at once.
   function onPick(e: ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
+    const pick = takePhotos(Array.from(e.target.files ?? []), onFileCount + pending.length);
     // Let the same file be chosen again after a rejection.
     e.target.value = "";
-    if (!file) return;
-
-    const result = validateUploadFile(file);
-    if (!result.ok) {
-      setError(
-        result.code === "FILE_TOO_LARGE"
-          ? t("borrower.pickup.photoTooLarge", { max: UPLOAD.MAX_MB })
-          : t("borrower.pickup.photoBadType")
-      );
-      return;
-    }
-
-    setError(null);
-    onPicked(prepareBorrowerImage(file));
+    setError(
+      pick.problem === null
+        ? null
+        : pick.problem === "TOO_MANY"
+          ? t("common.photoCapReached", { max: UPLOAD.MAX_PHOTOS_PER_STAGE })
+          : pick.problem === "FILE_TOO_LARGE"
+            ? t("borrower.pickup.photoTooLarge", { max: UPLOAD.MAX_MB })
+            : t("borrower.pickup.photoBadType")
+    );
+    if (pick.accepted.length > 0) onPicked(pick.accepted.map(prepareBorrowerImage));
   }
 
+  const image = pending[pending.length - 1];
   const taken = Boolean(image);
 
   return (
@@ -422,7 +436,8 @@ function PhotoBox({
         <input
           type="file"
           accept={uploadAcceptAttr()}
-          disabled={disabled}
+          multiple
+          disabled={disabled || onFileCount + pending.length >= UPLOAD.MAX_PHOTOS_PER_STAGE}
           onChange={onPick}
           className="sr-only"
         />
@@ -441,6 +456,32 @@ function PhotoBox({
           </span>
         )}
       </label>
+
+      {pending.length > 0 ? (
+        <div className="mt-2 flex flex-wrap items-center gap-1.5">
+          {pending.map((queued, index) => (
+            <div key={`${queued.previewUrl}-${index}`} className="relative">
+              <img
+                src={queued.previewUrl}
+                alt=""
+                className="h-10 w-10 rounded border border-border bg-surface-inset object-cover"
+              />
+              <button
+                type="button"
+                aria-label={t("borrower.pickup.removePhoto")}
+                disabled={disabled}
+                onClick={() => onRemoveQueued(images.indexOf(queued))}
+                className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full border border-border bg-card text-t3 shadow-sm disabled:opacity-50"
+              >
+                <X size={11} strokeWidth={2.6} />
+              </button>
+            </div>
+          ))}
+        </div>
+      ) : null}
+      {onFileCount + pending.length > 0 ? (
+        <PhotoCount count={onFileCount + pending.length} className="mt-1 block" />
+      ) : null}
 
       {error ? (
         <p className="mt-1.5 text-[11.5px] leading-relaxed text-[var(--s-alert-t)]">

@@ -9,14 +9,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Segmented } from "@/components/ui/segmented";
 import { DataTable, type Column } from "@/components/ui/data-table";
-import { ROUTES } from "@/constants";
-import { uploadAcceptAttr, validateUploadFile } from "@/lib/upload-validation";
+import { ROUTES, UPLOAD } from "@/constants";
+import { uploadAcceptAttr } from "@/lib/upload-validation";
+import { takePhotos } from "@/lib/photo-picks";
 import {
   useDetachUsagePhoto,
   usePickupImageUpload,
   useUsagePhotos,
 } from "@/features/borrower/pickup/use-pickup-image-upload";
 import { UsagePhotoGallery } from "@/components/shared/usage-photo-gallery";
+import { PhotoCount } from "@/components/shared/photo-count";
 import {
   prepareBorrowerImage,
   releaseBorrowerImage,
@@ -142,15 +144,22 @@ export default function StaffQueuePage() {
   const [extUploading, setExtUploading] = useState<number | null>(null);
 
   async function addExtPhotos(row: ExtensionReviewRow, files: File[]) {
-    if (files.length === 0) return;
+    const pick = takePhotos(files, (extPhotos[row.extensionKey] ?? []).length);
+    if (pick.problem !== null) {
+      setResult({
+        tone: "bad",
+        text:
+          pick.problem === "TOO_MANY"
+            ? t("common.photoCapReached", { max: UPLOAD.MAX_PHOTOS_PER_STAGE })
+            : t("staff.queue.returnPhotoBad"),
+      });
+    } else {
+      setResult(null);
+    }
+    if (pick.accepted.length === 0) return;
     setExtUploading(row.extensionKey);
-    setResult(null);
     try {
-      for (const file of files) {
-        if (!validateUploadFile(file).ok) {
-          setResult({ tone: "bad", text: t("staff.queue.returnPhotoBad") });
-          continue;
-        }
+      for (const file of pick.accepted) {
         const ticket = await uploadImage.mutateAsync({ file, purpose: "inspection" });
         const photo = { imageUrl: ticket.imageUrl, previewUrl: URL.createObjectURL(file) };
         setExtPhotos((all) => ({
@@ -991,27 +1000,33 @@ function PhotoGatedAction({
     }
   }
 
+  // #238: several photos per pick, uploaded one after another, up to the cap.
   async function onPick(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
+    const pick = takePhotos(Array.from(e.target.files ?? []), photos?.[stage].length ?? 0);
     e.target.value = "";
-    if (!file) return;
-    if (!validateUploadFile(file).ok) {
-      setError(t("staff.queue.returnPhotoBad"));
-      return;
-    }
-    setError(null);
-    const prepared = prepareBorrowerImage(file);
-    try {
-      await upload.mutateAsync({ usageKey, stage, image: prepared });
-    } catch (err) {
-      setError(getErrorMessage(err));
-    } finally {
-      releaseBorrowerImage(prepared);
+    setError(
+      pick.problem === null
+        ? null
+        : pick.problem === "TOO_MANY"
+          ? t("common.photoCapReached", { max: UPLOAD.MAX_PHOTOS_PER_STAGE })
+          : t("staff.queue.returnPhotoBad")
+    );
+    for (const file of pick.accepted) {
+      const prepared = prepareBorrowerImage(file);
+      try {
+        await upload.mutateAsync({ usageKey, stage, image: prepared });
+      } catch (err) {
+        setError(getErrorMessage(err));
+        return;
+      } finally {
+        releaseBorrowerImage(prepared);
+      }
     }
   }
 
   return (
     <div className="flex flex-col items-end gap-1.5">
+      {hasPhoto ? <PhotoCount count={photos?.[stage].length ?? 0} /> : null}
       {photos ? (
         <UsagePhotoGallery
           photos={photos}
@@ -1036,7 +1051,7 @@ function PhotoGatedAction({
         <input
           type="file"
           accept={uploadAcceptAttr()}
-          capture="environment"
+          multiple
           className="sr-only"
           disabled={upload.isPending}
           onChange={(e) => void onPick(e)}

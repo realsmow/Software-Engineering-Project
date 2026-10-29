@@ -28,6 +28,8 @@
     "prevMonth": "เดือนก่อน",
     "nextMonth": "เดือนถัดไป",
     "viewPhoto": "เปิดรูป",
+    "photoCount": "{{count}}/{{max}} รูป",
+    "photoCapReached": "แนบได้สูงสุด {{max}} รูปต่อขั้น รูปที่เกินไม่ได้แนบ",
     "lastUpdated": "อัปเดตล่าสุด",
     "role": "บทบาท",
     "department": "ภาควิชา",

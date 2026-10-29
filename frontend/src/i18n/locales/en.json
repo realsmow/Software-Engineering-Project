@@ -28,6 +28,8 @@
     "prevMonth": "Previous month",
     "nextMonth": "Next month",
     "viewPhoto": "Open photo",
+    "photoCount": "{{count}}/{{max}} photos",
+    "photoCapReached": "Up to {{max}} photos per stage; the rest were not added.",
     "lastUpdated": "Last updated",
     "role": "Role",
     "department": "Department",

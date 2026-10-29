@@ -4,13 +4,15 @@ import { useSearchParams } from "react-router-dom";
 import { Camera, TriangleAlert, X } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { ImageThumb } from "@/components/shared/image-thumb";
+import { PhotoCount } from "@/components/shared/photo-count";
 import { Badge, type BadgeTone } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { UPLOAD } from "@/constants";
 import { getErrorMessage } from "@/lib/error-messages";
 import { fmtDate } from "@/lib/datetime";
 import { cn } from "@/lib/utils";
-import { uploadAcceptAttr, validateUploadFile } from "@/lib/upload-validation";
+import { uploadAcceptAttr } from "@/lib/upload-validation";
+import { takePhotos } from "@/lib/photo-picks";
 import type {
   AppealOutput,
   AppealStatus,
@@ -414,31 +416,31 @@ function EvidenceUpload({
   const detachPhoto = useDetachUsagePhoto();
   const [error, setError] = useState<string | null>(null);
 
-  function onPick(e: ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
+  // #238: several evidence photos per pick, uploaded one after another.
+  async function onPick(e: ChangeEvent<HTMLInputElement>) {
+    const pick = takePhotos(Array.from(e.target.files ?? []), evidence.length);
     // Let the same file be chosen again after a rejection.
     e.target.value = "";
-    if (!file) return;
-
-    const result = validateUploadFile(file);
-    if (!result.ok) {
-      setError(
-        result.code === "FILE_TOO_LARGE"
-          ? t("borrower.pickup.photoTooLarge", { max: UPLOAD.MAX_MB })
-          : t("borrower.pickup.photoBadType"),
-      );
-      return;
-    }
-
-    setError(null);
-    const image = prepareBorrowerImage(file);
-    uploadEvidence.mutate(
-      { usageKey, image, stage: "evidence" },
-      {
-        onSettled: () => releaseBorrowerImage(image),
-        onError: (err) => setError(getErrorMessage(err)),
-      },
+    setError(
+      pick.problem === null
+        ? null
+        : pick.problem === "TOO_MANY"
+          ? t("common.photoCapReached", { max: UPLOAD.MAX_PHOTOS_PER_STAGE })
+          : pick.problem === "FILE_TOO_LARGE"
+            ? t("borrower.pickup.photoTooLarge", { max: UPLOAD.MAX_MB })
+            : t("borrower.pickup.photoBadType"),
     );
+    for (const file of pick.accepted) {
+      const image = prepareBorrowerImage(file);
+      try {
+        await uploadEvidence.mutateAsync({ usageKey, image, stage: "evidence" });
+      } catch (err) {
+        setError(getErrorMessage(err));
+        return;
+      } finally {
+        releaseBorrowerImage(image);
+      }
+    }
   }
 
   function removePhoto(imageKey: number) {
@@ -487,12 +489,14 @@ function EvidenceUpload({
           <input
             type="file"
             accept={uploadAcceptAttr()}
-            disabled={busy}
-            onChange={onPick}
+            multiple
+            disabled={busy || evidence.length >= UPLOAD.MAX_PHOTOS_PER_STAGE}
+            onChange={(e) => void onPick(e)}
             className="sr-only"
           />
           <Camera size={18} strokeWidth={1.5} />
         </label>
+        {evidence.length > 0 ? <PhotoCount count={evidence.length} /> : null}
       </div>
 
       {error ? (

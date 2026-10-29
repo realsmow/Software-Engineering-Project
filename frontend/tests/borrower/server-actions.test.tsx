@@ -356,6 +356,8 @@ describe("appeals: filed against a penalty on the server", () => {
     // FR-APL-02: evidence photos are offered, but they go up through the loan's
     // `evidence` photo stage, not through appeal.create (checked below).
     expect(container.querySelector('input[type="file"]')).not.toBeNull();
+    // #238: several evidence photos can be chosen at once.
+    expect(container.querySelector('input[type="file"]')).toHaveAttribute("multiple");
 
     const summary = screen.getByText(i18n.t("borrower.appeals.sumCut")).parentElement!;
     expect(summary).toHaveTextContent("8");

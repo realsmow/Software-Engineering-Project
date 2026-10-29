@@ -185,7 +185,36 @@ describe("StaffInspectionPage", () => {
     );
   });
 
+  it("adds every photo chosen at once and shows the count (#238)", async () => {
+    upload.mockReset(); // clearAllMocks keeps queued values from earlier tests
+    upload.mockResolvedValueOnce("/media/one.jpg").mockResolvedValueOnce("/media/two.jpg");
+    create.mockResolvedValue(
+      inspectionResponse({ level: "B1", condition: "MinorDamage", returnedToPool: true })
+    );
+    URL.createObjectURL = vi.fn(() => "blob:preview");
+    const { container } = render(<StaffInspectionPage />);
+    fireEvent.click(screen.getByRole("button", { name: /Oscilloscope/ }));
+    fireEvent.change(container.querySelector('input[type="file"]')!, {
+      target: {
+        files: ["one.jpg", "two.jpg"].map(
+          (name) => new File([new Uint8Array(8)], name, { type: "image/jpeg" })
+        ),
+      },
+    });
+    expect(await screen.findByText(i18n.t("common.photoCount", { count: 2, max: 30 }))).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /B1/ }));
+    fireEvent.click(screen.getByRole("button", { name: i18n.t("staff.inspection.recordGrade") }));
+    await waitFor(() =>
+      expect(create).toHaveBeenCalledWith({
+        usageKey: 42,
+        level: "B1",
+        imageUrls: ["/media/one.jpg", "/media/two.jpg"],
+      })
+    );
+  });
+
   it("drops a chosen photo removed before grading (P-07)", async () => {
+    upload.mockReset(); // clearAllMocks keeps queued values from earlier tests
     upload.mockResolvedValueOnce("/media/wrong.jpg").mockResolvedValueOnce("/media/right.jpg");
     create.mockResolvedValue(
       inspectionResponse({ level: "B1", condition: "MinorDamage", returnedToPool: true })

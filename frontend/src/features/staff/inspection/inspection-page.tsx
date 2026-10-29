@@ -2,13 +2,15 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { X } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
+import { PhotoCount } from "@/components/shared/photo-count";
 import { TierDot } from "@/components/shared/tier-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { DAMAGE_LEVELS } from "@/constants";
+import { DAMAGE_LEVELS, UPLOAD } from "@/constants";
 import { getErrorMessage } from "@/lib/error-messages";
-import { uploadAcceptAttr, validateUploadFile } from "@/lib/upload-validation";
+import { uploadAcceptAttr } from "@/lib/upload-validation";
+import { takePhotos } from "@/lib/photo-picks";
 import { fmtDateTime } from "@/features/borrower/format";
 import type { DamageLevel } from "@/types/domain";
 import {
@@ -21,7 +23,7 @@ import type { InspectionQueueRow } from "./inspection.types";
 
 const GRADES: DamageLevel[] = ["B0", "B1", "B2", "B3"];
 // Same as the backend MAX_PHOTOS_PER_STAGE.
-const MAX_PHOTOS = 30;
+const MAX_PHOTOS = UPLOAD.MAX_PHOTOS_PER_STAGE;
 
 /**
  * The inspection desk (proposal 5.9 "รับคืนและตรวจสภาพ", grades 5.7 B0-B3).
@@ -173,20 +175,25 @@ function Subject({ usageKey }: { usageKey: number }) {
   const preview =
     level === null ? null : Math.round(subject.creditWeight * DAMAGE_LEVELS[level].weight);
 
+  // #238: several photos per pick, uploaded one after another, up to the cap.
   async function addPhoto(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
+    const pick = takePhotos(Array.from(e.target.files ?? []), photos.length, MAX_PHOTOS);
     e.target.value = "";
-    if (!file) return;
-    if (!validateUploadFile(file).ok) {
-      setError(t("staff.queue.returnPhotoBad"));
-      return;
-    }
-    setError(null);
-    try {
-      const imageUrl = await upload.mutateAsync({ usageKey: s.usageKey, file });
-      setPhotos((list) => [...list, { previewUrl: URL.createObjectURL(file), imageUrl }]);
-    } catch (err) {
-      setError(getErrorMessage(err));
+    setError(
+      pick.problem === null
+        ? null
+        : pick.problem === "TOO_MANY"
+          ? t("common.photoCapReached", { max: MAX_PHOTOS })
+          : t("staff.queue.returnPhotoBad")
+    );
+    for (const file of pick.accepted) {
+      try {
+        const imageUrl = await upload.mutateAsync({ usageKey: s.usageKey, file });
+        setPhotos((list) => [...list, { previewUrl: URL.createObjectURL(file), imageUrl }]);
+      } catch (err) {
+        setError(getErrorMessage(err));
+        return;
+      }
     }
   }
 
@@ -348,13 +355,14 @@ function Subject({ usageKey }: { usageKey: number }) {
             <input
               type="file"
               accept={uploadAcceptAttr()}
-              capture="environment"
+              multiple
               className="sr-only"
               disabled={upload.isPending || photos.length >= MAX_PHOTOS}
               onChange={(e) => void addPhoto(e)}
             />
             {upload.isPending ? t("common.loading") : t("staff.inspection.addPhoto")}
           </label>
+          {photos.length > 0 ? <PhotoCount count={photos.length} /> : null}
         </div>
 
         {error ? <p className="mb-2.5 text-xs text-[var(--s-warn-t)]">{error}</p> : null}

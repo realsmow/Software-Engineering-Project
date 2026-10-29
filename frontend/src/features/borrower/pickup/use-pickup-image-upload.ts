@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api-client";
+import { resizeForUpload } from "@/lib/resize-image";
 import { useTRPCClient } from "@/lib/trpc";
 import type { PreparedBorrowerImage } from "../uploads/prepared-image";
 
@@ -55,13 +56,16 @@ export function usePickupImageUpload() {
       // Not `image.requestUpload`: that one is staff-only, so a borrower
       // standing at the counter could never get a URL from it. This one checks
       // the loan is theirs and fixes the purpose server-side.
+      // #238 / P-01: shrink a phone photo first; the ticket signs the type and
+      // size of the bytes actually sent.
+      const file = await resizeForUpload(image.file);
       const ticket = await trpc.image.requestUsagePhotoUpload.mutate({
         usageKey,
-        contentType: image.contentType,
-        sizeBytes: image.sizeBytes,
+        contentType: file.type as "image/jpeg" | "image/png",
+        sizeBytes: file.size,
       });
 
-      await apiClient.uploadFile(ticket.uploadUrl, image.file);
+      await apiClient.uploadFile(ticket.uploadUrl, file);
 
       const attached = await trpc.image.attachUsagePhotos.mutate({
         usageKey,
