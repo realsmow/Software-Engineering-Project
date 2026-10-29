@@ -989,6 +989,8 @@
       "returnPhotoDone": "Photo taken",
       "addPhoto": "+ Add photo",
       "pickUnit": "Unit to set aside",
+      "showUnitSchedule": "Unit timetable",
+      "hideUnitSchedule": "Hide timetable",
       "tileWaitingSupervisor": "Waiting on supervisor",
       "remindSupervisor": "Remind supervisor",
       "reminded": "Reminded {{count}} supervisor(s).",

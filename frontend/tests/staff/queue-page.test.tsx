@@ -39,6 +39,16 @@ const uploadImage = vi.hoisted(() => vi.fn());
 vi.mock("../../src/features/staff/inventory/use-item-image", () => ({
   useUploadImage: () => ({ mutateAsync: uploadImage, isPending: false }),
 }));
+// #235: the unit timetable reads through the catalogue hook and the holiday
+// list; replaced so the page needs no query client.
+const unitSchedule = vi.hoisted(() => vi.fn());
+vi.mock("../../src/features/borrower/catalog/use-equipment-types", () => ({
+  useUnitSchedule: unitSchedule,
+}));
+vi.mock("../../src/lib/closed-days", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../src/lib/closed-days")>()),
+  useHolidays: () => new Set<string>(),
+}));
 vi.mock("../../src/features/borrower/pickup/use-pickup-image-upload", () => ({
   useUsagePhotos: mocks.useUsagePhotos,
   usePickupImageUpload: mocks.usePickupImageUpload,
@@ -314,6 +324,34 @@ describe("StaffQueuePage", () => {
     await waitFor(() =>
       expect(allocate).toHaveBeenCalledWith({ reservationKey: 77, resourceKey: 8 })
     );
+  });
+
+  it("#235: opens the unit timetable while preparing", () => {
+    mocks.useStaffQueue.mockReturnValue(queryResult([{ ...row, itemKey: 5 }]));
+    mocks.usePrepareOptions.mockReturnValue(
+      queryResult([
+        { resourceKey: 7, serialNo: "OSC-001", reserved: true },
+        { resourceKey: 8, serialNo: "OSC-002", reserved: false },
+      ])
+    );
+    unitSchedule.mockReturnValue(
+      queryResult([
+        { resourceKey: 7, serialNo: "OSC-001", unavailable: false, busy: [] },
+        { resourceKey: 8, serialNo: "OSC-002", unavailable: false, busy: [] },
+      ])
+    );
+    renderPage();
+    // Closed until asked for, so the queue stays one line per request.
+    expect(unitSchedule).not.toHaveBeenCalled();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: i18n.t("staff.queue.showUnitSchedule") })
+    );
+
+    expect(unitSchedule).toHaveBeenCalledWith("5", expect.any(String), 14);
+    expect(screen.getAllByLabelText(/^OSC-002 \d{4}-\d{2}-\d{2}:/).length).toBe(14);
+    // D-04: who has the unit is not shown.
+    expect(screen.queryByText(/Lovelace.*OSC/)).not.toBeInTheDocument();
   });
 
   describe("demo feedback: one submit for several units is one row", () => {

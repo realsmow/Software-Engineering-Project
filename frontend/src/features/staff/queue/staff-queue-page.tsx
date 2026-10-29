@@ -49,6 +49,7 @@ import {
   type StaffQueueBucket,
   type StaffQueueRow,
 } from "./queue.types";
+import { UnitSchedule } from "./unit-schedule";
 
 const BUCKET_LABEL: Record<StaffQueueBucket, string> = {
   toPrepare: "staff.queue.bucketToPrepare",
@@ -1143,26 +1144,42 @@ function PrepareAction({
   const { data: options } = usePrepareOptions(row.reservationKey);
   const [picked, setPicked] = useState<number | null>(null);
   const chosen = picked ?? options?.find((o) => o.reserved)?.resourceKey ?? null;
+  // #235: closed until asked for, so the queue stays one line per request.
+  const [showSchedule, setShowSchedule] = useState(false);
 
   return (
-    <div className="flex items-center gap-2">
-      {options && options.length > 0 ? (
-        <select
-          aria-label={t("staff.queue.pickUnit")}
-          value={chosen ?? ""}
-          onChange={(e) => setPicked(Number(e.target.value))}
-          className="h-8 rounded border border-border bg-card px-1.5 font-mono text-xs text-foreground"
-        >
-          {options.map((o) => (
-            <option key={o.resourceKey} value={o.resourceKey}>
-              {o.serialNo}
-            </option>
-          ))}
-        </select>
-      ) : null}
-      <Button type="button" size="sm" disabled={busy} onClick={() => onPrepare(chosen ?? undefined)}>
-        {busy ? t("common.loading") : t("staff.queue.actionPrepare")}
-      </Button>
+    <div className="flex flex-col items-end gap-1.5">
+      <div className="flex items-center gap-2">
+        {options && options.length > 0 ? (
+          <select
+            aria-label={t("staff.queue.pickUnit")}
+            value={chosen ?? ""}
+            onChange={(e) => setPicked(Number(e.target.value))}
+            className="h-8 rounded border border-border bg-card px-1.5 font-mono text-xs text-foreground"
+          >
+            {options.map((o) => (
+              <option key={o.resourceKey} value={o.resourceKey}>
+                {o.serialNo}
+              </option>
+            ))}
+          </select>
+        ) : null}
+        <Button type="button" size="sm" disabled={busy} onClick={() => onPrepare(chosen ?? undefined)}>
+          {busy ? t("common.loading") : t("staff.queue.actionPrepare")}
+        </Button>
+        {row.itemKey != null ? (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            aria-expanded={showSchedule}
+            onClick={() => setShowSchedule((open) => !open)}
+          >
+            {showSchedule ? t("staff.queue.hideUnitSchedule") : t("staff.queue.showUnitSchedule")}
+          </Button>
+        ) : null}
+      </div>
+      {showSchedule && row.itemKey != null ? <UnitSchedule itemKey={row.itemKey} /> : null}
     </div>
   );
 }

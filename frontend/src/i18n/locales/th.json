@@ -989,6 +989,8 @@
       "returnPhotoDone": "ถ่ายรูปแล้ว",
       "addPhoto": "+ เพิ่มรูป",
       "pickUnit": "ชิ้นที่จะจัดเตรียม",
+      "showUnitSchedule": "ดูตารางเครื่อง",
+      "hideUnitSchedule": "ซ่อนตารางเครื่อง",
       "tileWaitingSupervisor": "รอผู้ดูแลอนุมัติ",
       "remindSupervisor": "แจ้งเตือนผู้ดูแล",
       "reminded": "แจ้งเตือนผู้ดูแลแล้ว {{count}} คน",
