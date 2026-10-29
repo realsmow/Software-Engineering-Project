@@ -92,7 +92,12 @@ function setup(usage = subject()) {
     usageLog: {
       findUnique: jest.fn().mockResolvedValue(usage),
       update: jest.fn().mockResolvedValue(usage),
+      // #220 R4: the save locks the loan and re-reads it before grading.
+      findUniqueOrThrow: jest
+        .fn()
+        .mockResolvedValue({ CurrentStatus: 'Returned', Inspections: [] }),
     },
+    $queryRaw: jest.fn().mockResolvedValue([]),
     penaltyRule: { findUnique: jest.fn().mockResolvedValue(null) },
     accountInfo: {
       findUniqueOrThrow: jest.fn().mockResolvedValue({ UserCredit: 64 }),
