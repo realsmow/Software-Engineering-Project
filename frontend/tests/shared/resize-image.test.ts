@@ -73,6 +73,15 @@ describe("resizeForUpload (#238, P-01)", () => {
     expect(result.name).toBe("IMG_1.jpg");
   });
 
+  it("asks the browser to turn the photo the way the camera recorded it", async () => {
+    // Re-encoding drops the EXIF orientation tag, so the pixels must already be
+    // upright; without this a portrait phone photo can arrive sideways.
+    stubBrowser({ width: 4000, height: 3000, outBytes: 300 * 1024 });
+    const file = jpeg(4 * 1024 * 1024);
+    await resizeForUpload(file);
+    expect(createImageBitmap).toHaveBeenCalledWith(file, { imageOrientation: "from-image" });
+  });
+
   it("keeps the original when re-encoding would not make it smaller", async () => {
     stubBrowser({ width: 1200, height: 900, outBytes: 900 * 1024 });
     const file = jpeg(600 * 1024);

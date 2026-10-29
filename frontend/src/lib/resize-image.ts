@@ -24,7 +24,11 @@ export async function resizeForUpload(file: File): Promise<File> {
 
   let bitmap: ImageBitmap;
   try {
-    bitmap = await createImageBitmap(file);
+    // Re-encoding drops the EXIF orientation tag, so the pixels have to be
+    // turned upright now. Said explicitly because older browsers defaulted to
+    // ignoring the tag; one that does not know this value throws, and the
+    // original file goes up instead.
+    bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
   } catch {
     return file;
   }
