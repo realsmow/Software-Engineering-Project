@@ -25,6 +25,7 @@ import { usePenaltiesByUsage, type LoanPenalty } from "../appeals/use-my-appeals
 import { useLoanExtension, type LoanExtension } from "./use-extensions";
 import { useMyRequests, requestsInTab, type DraftSummary } from "./use-my-requests";
 import { useCancelCart, useCancelRequest } from "./use-my-requests-api";
+import { byPickupPlace } from "../pickup-points";
 
 const STATUS_TONE: Record<MyRequestStatus, BadgeTone> = {
   pending: "warn",
@@ -215,7 +216,7 @@ export default function MyLoansPage() {
           ) : null}
 
           {carts.map((lines) => {
-            const cards = lines.map((row) => (
+            const card = (row: MyRequest) => (
               <RequestCard
                 key={row.id}
                 row={row}
@@ -231,7 +232,10 @@ export default function MyLoansPage() {
                   setCancelTarget(row);
                 }}
               />
-            ));
+            );
+            const cards = lines.map(card);
+            // #239: a cart collected at more than one counter is split by place.
+            const stops = byPickupPlace(lines, (r) => r.pickupPlace);
             const cancellable = lines.filter((r) => r.cancellable);
             const cartKey = lines[0].cartKey;
             const refused = cartKey != null ? (refusedByCart.get(cartKey) ?? []) : [];
@@ -280,6 +284,11 @@ export default function MyLoansPage() {
                 <div className="mb-2 flex flex-wrap items-center justify-between gap-2 px-1">
                   <span className="text-[12px] font-semibold uppercase tracking-wide text-t3">
                     {t("borrower.myRequests.cartTitle", { count: lines.length })}
+                    {stops.length > 1 ? (
+                      <span className="ml-2 font-medium normal-case tracking-normal text-t2">
+                        {t("borrower.request.pickupPoints", { count: stops.length })}
+                      </span>
+                    ) : null}
                   </span>
                   {cancellable.length > 0 && !ask ? (
                     <Button
@@ -295,7 +304,23 @@ export default function MyLoansPage() {
                     </Button>
                   ) : null}
                 </div>
-                <div className="flex flex-col gap-2">{cards}</div>
+                {stops.length > 1 ? (
+                  <div className="flex flex-col gap-3">
+                    {stops.map((stop) => (
+                      <div key={stop.place ?? ""} className="flex flex-col gap-2">
+                        <div className="px-1 text-xs font-semibold text-t2">
+                          {t("borrower.request.pickupAt", {
+                            place: stop.place ?? t("borrower.request.pickupUnknown"),
+                            count: stop.rows.length,
+                          })}
+                        </div>
+                        {stop.rows.map(card)}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-2">{cards}</div>
+                )}
               </section>
             );
           })}

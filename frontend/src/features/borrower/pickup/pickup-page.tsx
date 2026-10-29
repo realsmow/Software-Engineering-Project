@@ -21,6 +21,7 @@ import { uploadAcceptAttr } from "@/lib/upload-validation";
 import { takePhotos } from "@/lib/photo-picks";
 import type { MyRequest } from "../request-status";
 import { useMyRequests } from "../loans/use-my-requests";
+import { byPickupPlace } from "../pickup-points";
 import {
   prepareBorrowerImage,
   releaseBorrowerImage,
@@ -55,6 +56,7 @@ export default function PickupPage() {
   const finalizePickup = useFinalizePickup();
 
   const rows = requests.filter((r) => r.kind === "equipment" && r.status === "ready");
+  const stops = byPickupPlace(rows, (r) => r.pickupPlace);
 
   /** Rows the borrower has un-ticked. Absent means selected - everything waiting is taken by default. */
   const [dropped, setDropped] = useState<Set<string>>(new Set());
@@ -178,14 +180,32 @@ export default function PickupPage() {
             </p>
 
             <div className="flex flex-col gap-2 px-3.5 pb-3.5 pt-1.5">
-              {rows.map((row) => (
-                <PickRow
-                  key={row.id}
-                  row={row}
-                  selected={!dropped.has(row.id)}
-                  photographed={(shots[row.id]?.length ?? 0) > 0}
-                  onToggle={() => toggle(row.id)}
-                />
+              {/* #239: units from more than one counter are listed by place. */}
+              {stops.length > 1 ? (
+                <p className="text-xs font-medium text-t2">
+                  {t("borrower.request.pickupPoints", { count: stops.length })}
+                </p>
+              ) : null}
+              {stops.map((stop) => (
+                <div key={stop.place ?? ""} className="flex flex-col gap-2">
+                  {stops.length > 1 ? (
+                    <div className="pt-1 text-xs font-semibold text-t2">
+                      {t("borrower.request.pickupAt", {
+                        place: stop.place ?? t("borrower.request.pickupUnknown"),
+                        count: stop.rows.length,
+                      })}
+                    </div>
+                  ) : null}
+                  {stop.rows.map((row) => (
+                    <PickRow
+                      key={row.id}
+                      row={row}
+                      selected={!dropped.has(row.id)}
+                      photographed={(shots[row.id]?.length ?? 0) > 0}
+                      onToggle={() => toggle(row.id)}
+                    />
+                  ))}
+                </div>
               ))}
             </div>
 

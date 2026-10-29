@@ -350,6 +350,7 @@ describe("Module 5 T3 facilities", () => {
           resourceKey: 99,
           name: "Existing room booking",
           serialNo: null,
+          pickupPoint: null,
           kind: "room",
           tier: "T3",
           creditWeight: 0,

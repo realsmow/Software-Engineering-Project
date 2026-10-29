@@ -53,6 +53,7 @@ import {
   type CreditTier,
   type ResourceTier,
 } from '../common/schemas/status.schema';
+import { toOwner } from '../common/mappers/item.mapper';
 import type { TrpcUser } from '../trpc/context';
 import type {
   CancelCartInput,
@@ -90,6 +91,15 @@ const RESOURCE_SELECT = {
   ResourceStatus: true,
   BorrowRule: true,
   BorrowRuleInfo: { select: { RuleName: true } },
+  // #239: the counter it is collected from.
+  ManagementGroup: {
+    select: {
+      ManageGroupKey: true,
+      GroupType: true,
+      Branch: { select: { BranchName: true } },
+      Club: { select: { ClubName: true } },
+    },
+  },
   Item: {
     select: {
       ItemID: true,
@@ -1235,6 +1245,7 @@ export class LoanRequestService {
           row.Resource.Room?.RoomName ??
           null,
         serialNo: row.Resource.Item?.ItemID ?? null,
+        pickupPoint: toOwner(row.Resource.ManagementGroup).name,
         kind: row.Resource.Room ? 'room' : 'equipment',
         tier: tryMapTier(row.Resource.BorrowRuleInfo.RuleName),
         creditWeight:

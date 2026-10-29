@@ -336,6 +336,35 @@ describe("my requests: statuses and penalties come from the server", () => {
     expect(api).not.toHaveBeenCalledWith("loan.cancel", expect.anything());
   });
 
+  it("#239: a cart collected at two counters says so, place by place", async () => {
+    db.loans = [
+      request({
+        reservationKey: 71,
+        cartKey: 8,
+        status: "approved",
+        usageKey: null,
+        cancellable: true,
+        resource: { ...request({}).resource, name: "Meter", pickupPoint: "Electrical Engineering" },
+      }),
+      request({
+        reservationKey: 72,
+        cartKey: 8,
+        status: "approved",
+        usageKey: null,
+        cancellable: true,
+        resource: { ...request({}).resource, name: "Robot arm", pickupPoint: "Robotics Club" },
+      }),
+    ];
+    renderAt(ROUTES.MY_LOANS, <MyLoansPage />);
+    const cart = await screen.findByRole("region", {
+      name: i18n.t("borrower.myRequests.cartTitle", { count: 2 }),
+    });
+    expect(within(cart).getByText(i18n.t("borrower.request.pickupPoints", { count: 2 }))).toBeInTheDocument();
+    expect(
+      within(cart).getByText(i18n.t("borrower.request.pickupAt", { place: "Robotics Club", count: 1 }))
+    ).toBeInTheDocument();
+  });
+
   it("#236: asks what to do with a cart the supervisor partly rejected", async () => {
     db.loans = [
       request({

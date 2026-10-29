@@ -53,6 +53,13 @@ function baseReservation() {
       ResourceStatus: 'InStorage',
       BorrowRule: 3,
       BorrowRuleInfo: { RuleName: 'T2' },
+      // #239: the counter it is collected from (no name here).
+      ManagementGroup: {
+        ManageGroupKey: 1,
+        GroupType: 'Faculty',
+        Branch: null,
+        Club: null,
+      },
       Item: {
         ItemID: 'OSC-001',
         Item: { ItemName: 'Oscilloscope', CreditWeight: 12 },

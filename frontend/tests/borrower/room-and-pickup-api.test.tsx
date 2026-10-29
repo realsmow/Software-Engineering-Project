@@ -149,6 +149,7 @@ describe("room and pickup API regressions from the PDF", () => {
             resourceKey: 7603,
             name: room.name,
             serialNo: null,
+            pickupPoint: null,
             kind: "room",
             tier: "T3",
             creditWeight: 1,

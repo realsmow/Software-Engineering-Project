@@ -581,6 +581,12 @@ export const requestResourceRef = z.object({
   kind: z.enum(['equipment', 'room']),
   tier: resourceTier.nullable(),
   creditWeight: z.number(),
+  /**
+   * #239 (team decision D-08): where it is collected - the department or club
+   * that manages the unit. Null when that group has no name yet; defaulted so
+   * clients and fixtures written before it keep parsing.
+   */
+  pickupPoint: z.string().nullable().default(null),
 });
 
 /** Who signed off, when, and whether a person was involved at all. */

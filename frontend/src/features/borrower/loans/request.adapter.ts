@@ -26,6 +26,8 @@ export interface ServerRequest {
     kind: "equipment" | "room";
     tier: Tier | null;
     creditWeight: number;
+    /** #239: the department or club it is collected from. */
+    pickupPoint?: string | null;
   };
   startTime: string;
   endTime: string;
@@ -90,6 +92,7 @@ export function toBorrowerRequest(s: ServerRequest): BorrowerRequest {
         : "",
     status: s.status,
     decisionNote: s.decisionNote,
+    pickupPlace: s.resource.pickupPoint ?? null,
     // The Bangkok day, not the UTC one. `slice(0, 10)` on the ISO string names
     // the UTC day, which is the day before for anything the borrower holds in
     // the first seven hours of a Bangkok morning.

@@ -407,6 +407,7 @@ describe("SupervisorApprovalsPage", () => {
             resourceKey: request.resourceKey,
             name: request.itemName,
             serialNo: request.serialNo,
+            pickupPoint: null,
             kind: request.kind,
             tier: request.tier,
             creditWeight: 1,

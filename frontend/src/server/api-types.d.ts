@@ -1083,6 +1083,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 						kind: "room" | "equipment";
 						tier: "T0" | "T1" | "T2" | "T3" | null;
 						creditWeight: number;
+						pickupPoint: string | null;
 					};
 					startTime: string;
 					endTime: string;
@@ -2761,6 +2762,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 						kind: "room" | "equipment";
 						tier: "T0" | "T1" | "T2" | "T3" | null;
 						creditWeight: number;
+						pickupPoint: string | null;
 					};
 					startTime: string;
 					endTime: string;
@@ -2814,6 +2816,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 						kind: "room" | "equipment";
 						tier: "T0" | "T1" | "T2" | "T3" | null;
 						creditWeight: number;
+						pickupPoint: string | null;
 					};
 					startTime: string;
 					endTime: string;
@@ -2867,6 +2870,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 						kind: "room" | "equipment";
 						tier: "T0" | "T1" | "T2" | "T3" | null;
 						creditWeight: number;
+						pickupPoint: string | null;
 					};
 					startTime: string;
 					endTime: string;
@@ -2914,6 +2918,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 					kind: "room" | "equipment";
 					tier: "T0" | "T1" | "T2" | "T3" | null;
 					creditWeight: number;
+					pickupPoint: string | null;
 				};
 				startTime: string;
 				endTime: string;
@@ -2958,6 +2963,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 					kind: "room" | "equipment";
 					tier: "T0" | "T1" | "T2" | "T3" | null;
 					creditWeight: number;
+					pickupPoint: string | null;
 				};
 				startTime: string;
 				endTime: string;
@@ -3001,6 +3007,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 					kind: "room" | "equipment";
 					tier: "T0" | "T1" | "T2" | "T3" | null;
 					creditWeight: number;
+					pickupPoint: string | null;
 				};
 				startTime: string;
 				endTime: string;
@@ -3044,6 +3051,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 					kind: "room" | "equipment";
 					tier: "T0" | "T1" | "T2" | "T3" | null;
 					creditWeight: number;
+					pickupPoint: string | null;
 				};
 				startTime: string;
 				endTime: string;
@@ -3087,6 +3095,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 					kind: "room" | "equipment";
 					tier: "T0" | "T1" | "T2" | "T3" | null;
 					creditWeight: number;
+					pickupPoint: string | null;
 				};
 				startTime: string;
 				endTime: string;

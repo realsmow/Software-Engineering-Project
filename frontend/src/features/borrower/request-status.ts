@@ -136,6 +136,8 @@ export interface MyRequest {
   name: string;
   /** Unit serial, or the room code for a booking. */
   serial: string;
+  /** #239: the department or club it is collected from, when the server names it. */
+  pickupPlace?: string | null;
   status: MyRequestStatus;
   /** Why a rejected or cancelled request ended, as the server recorded it. */
   decisionNote?: string | null;
