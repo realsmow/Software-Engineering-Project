@@ -50,7 +50,14 @@ function service(overrides: {
     inspection: {
       create: jest.fn().mockResolvedValue({ InspectionKey: 700 }),
     },
-    usageLog: { update: jest.fn().mockResolvedValue({}) },
+    // #220 R4: the save locks the loan and re-reads it before grading.
+    $queryRaw: jest.fn().mockResolvedValue([]),
+    usageLog: {
+      update: jest.fn().mockResolvedValue({}),
+      findUniqueOrThrow: jest
+        .fn()
+        .mockResolvedValue({ CurrentStatus: 'Returned', Inspections: [] }),
+    },
     accountInfo: {
       findUniqueOrThrow: jest.fn().mockResolvedValue({ UserCredit: 80 }),
     },

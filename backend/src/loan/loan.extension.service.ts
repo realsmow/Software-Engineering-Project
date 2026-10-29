@@ -27,7 +27,7 @@ import {
   addDays,
   closingTimeOn,
   daysBetween,
-  rollDueOffWeekend,
+  rollDueOffClosedDays,
   toIso,
   toIsoNullable,
 } from '../common/schemas/datetime.schema';
@@ -336,11 +336,12 @@ export class LoanExtensionService {
     }
 
     // Rolled after the window check so the borrower is judged on the day
-    // they asked for; the stored due date is the Monday it rolls to (#178).
+    // they asked for; the stored due date is the open day it rolls to
+    // (#178 weekends, #234 holidays).
     const asked = new Date(input.requestedDueAt);
     this.assertExtensionWindow(usage.DueTime, asked, allowance.maxBorrowDays);
     // #229: due at closing on the day asked for, like the original loan.
-    const requestedDue = rollDueOffWeekend(closingTimeOn(asked));
+    const requestedDue = rollDueOffClosedDays(closingTimeOn(asked));
 
     const extendNo = allowance.used + 1;
     const route = extensionRouteFor({

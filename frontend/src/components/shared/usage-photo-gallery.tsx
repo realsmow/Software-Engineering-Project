@@ -8,7 +8,8 @@ type Stage = "before" | "after" | "inspection";
 /**
  * Photos already on file for a loan, grouped by stage. A thumbnail opens the
  * full photo; the x removes it so it can be taken again. Inspection photos
- * come from grading and are never removable here.
+ * come from grading and are never removable here, and without `onRemove` the
+ * gallery is read-only (P-07: a phase that is over keeps its photos).
  */
 export function UsagePhotoGallery({
   photos,
@@ -23,7 +24,7 @@ export function UsagePhotoGallery({
   stages?: Stage[];
   disabled: boolean;
   pendingImageKey?: number;
-  onRemove: (imageKey: number) => void;
+  onRemove?: (imageKey: number) => void;
   size?: number;
   showLabels?: boolean;
 }) {
@@ -56,7 +57,7 @@ export function UsagePhotoGallery({
                 >
                   <ImageThumb src={photo.imageUrl} size={size} />
                 </a>
-                {stage !== "inspection" ? (
+                {onRemove && stage !== "inspection" ? (
                   <button
                     type="button"
                     aria-label={t("borrower.pickup.removePhoto")}

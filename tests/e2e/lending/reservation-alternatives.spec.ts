@@ -82,6 +82,11 @@ test("FR-RSV-06: accepts the offered shorter period after a real booking race", 
   await page.route("**/trpc/loan.create*", handler);
   try {
     await visitAs(page, "borrower", "/catalog");
+    // The catalogue lists every type now, fully booked ones included, so the
+    // fresh type may be on a later page: find it by name, as the other specs do.
+    await page
+      .getByRole("searchbox", { name: "Search by name, code or brand" })
+      .fill(fixture.type.name!);
     const row = page.getByRole("row").filter({ hasText: fixture.type.name! });
     await row.getByRole("button", { name: "Select", exact: true }).click();
     await page.getByRole("button", { name: "1 selected", exact: true }).click();

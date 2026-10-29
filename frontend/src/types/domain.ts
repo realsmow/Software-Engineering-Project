@@ -19,6 +19,14 @@ export interface User {
   signInMethod?: "password" | "google" | null;
   /** Profile picture URL; null or absent shows initials. */
   avatarUrl?: string | null;
+  /** Departments and clubs the account belongs to; absent or empty when none. */
+  groups?: UserGroup[];
+}
+
+export interface UserGroup {
+  id: string;
+  kind: "department" | "club";
+  name: string | null;
 }
 
 // ==================== Credit System ====================

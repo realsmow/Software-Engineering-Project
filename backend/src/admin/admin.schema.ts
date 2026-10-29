@@ -1,6 +1,9 @@
 import { z } from 'zod';
 import { dbId } from '../common/schemas/id.schema';
-import { isoDateTimeNullable } from '../common/schemas/datetime.schema';
+import {
+  isoDate,
+  isoDateTimeNullable,
+} from '../common/schemas/datetime.schema';
 import {
   paginated,
   paginationInput,
@@ -229,6 +232,28 @@ export const workHoursSetting = z
   })
   .refine((h) => h.start < h.end, { message: 'start must be before end' });
 export type WorkHoursSetting = z.infer<typeof workHoursSetting>;
+
+/** Upper bound on the holiday list, about three years of Thai public holidays. */
+export const MAX_HOLIDAYS = 100;
+
+/**
+ * #234: days the counter is shut besides weekends, as Bangkok calendar days.
+ * Each must be a real date (no 30 February); repeats are dropped on save.
+ */
+export const holidaysSetting = z.object({
+  dates: z
+    .array(
+      isoDate.refine((day) => {
+        // Zod runs this even when the pattern above already failed, so an
+        // unparseable string must not reach toISOString(), which throws.
+        const at = Date.parse(`${day}T00:00:00Z`);
+        // A rolled-over day (30 Feb -> 2 Mar) no longer starts with the input.
+        return !Number.isNaN(at) && new Date(at).toISOString().startsWith(day);
+      }, 'not a calendar day'),
+    )
+    .max(MAX_HOLIDAYS),
+});
+export type HolidaysSetting = z.infer<typeof holidaysSetting>;
 
 export const lendingSettingsOutput = z.object({
   workHours: workHoursSetting,

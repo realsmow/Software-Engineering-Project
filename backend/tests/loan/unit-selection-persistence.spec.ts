@@ -271,7 +271,8 @@ describe('NFR-REL-02 / SDS 4.4: unit selection preserves reserved windows', () =
             data: {
               UsageKey: prepared.usageKey,
               ResourceKey: prepared.resourceKey,
-              SubmittedBy: f.staff.accountKey,
+              // #237: the handover photo is the borrower's own.
+              SubmittedBy: f.users[0].accountKey,
               SubmissionType: 'BeforePicture',
               ImageURL: '/media/inspection/calendar-before.png',
             },

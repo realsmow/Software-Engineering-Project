@@ -390,6 +390,113 @@ describe('Module 5 equipment management', () => {
     );
   });
 
+  describe('lent outside the system (requested 29 Oct 2569)', () => {
+    const LOGGED_AT = new Date('2026-10-30T02:00:00.000Z');
+    function freeUnit(prisma: ReturnType<typeof managementHarness>['prisma']) {
+      prisma.resourceInfo.findUnique.mockResolvedValue({
+        ResourceKey: 501,
+        ConditionKey: null,
+        UsageLogs: [],
+      });
+    }
+
+    it('withdraws the unit with its own note and reports it as lent outside', async () => {
+      const { service, prisma, tx, audit } = managementHarness();
+      freeUnit(prisma);
+      prisma.itemIndiv.findUnique.mockResolvedValue(
+        unitRow({
+          Resource: {
+            ...unitRow().Resource,
+            AllowBorrow: false,
+            ConditionLogs: [{ Notes: 'ยืมนอกระบบ', LoggedAt: LOGGED_AT }],
+          },
+        }),
+      );
+
+      const unit = await service.setUnitLendable(user(), {
+        resourceKey: 501,
+        lendable: false,
+        lentOutside: true,
+      });
+
+      expect(tx.resourceInfo.update).toHaveBeenCalledWith({
+        where: { ResourceKey: 501 },
+        data: { AllowBorrow: false },
+      });
+      expect(tx.conditionLog.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            ResourceKey: 501,
+            Notes: 'ยืมนอกระบบ',
+          }),
+        }),
+      );
+      expect(unit.withdrawal).toEqual({
+        note: 'ยืมนอกระบบ',
+        at: LOGGED_AT.toISOString(),
+        lentOutside: true,
+      });
+      expect(audit.record).toHaveBeenCalledWith(
+        expect.anything(),
+        'update',
+        'unit/501',
+        expect.stringContaining('lent outside the system'),
+      );
+    });
+
+    it('records every withdrawal, so the unit can show since when', async () => {
+      const { service, prisma, tx } = managementHarness();
+      freeUnit(prisma);
+      prisma.itemIndiv.findUnique.mockResolvedValue(
+        unitRow({
+          Resource: {
+            ...unitRow().Resource,
+            AllowBorrow: false,
+            ConditionLogs: [{ Notes: null, LoggedAt: LOGGED_AT }],
+          },
+        }),
+      );
+
+      const unit = await service.setUnitLendable(user(), {
+        resourceKey: 501,
+        lendable: false,
+      });
+
+      expect(tx.conditionLog.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ ResourceKey: 501, Notes: null }),
+        }),
+      );
+      expect(unit.withdrawal).toEqual({
+        note: null,
+        at: LOGGED_AT.toISOString(),
+        lentOutside: false,
+      });
+    });
+
+    it('reports no withdrawal once the unit is lendable again', async () => {
+      const { service, prisma, tx } = managementHarness();
+      freeUnit(prisma);
+      prisma.itemIndiv.findUnique.mockResolvedValue(
+        unitRow({
+          Resource: {
+            ...unitRow().Resource,
+            AllowBorrow: true,
+            ConditionLogs: [{ Notes: 'ยืมนอกระบบ', LoggedAt: LOGGED_AT }],
+          },
+        }),
+      );
+
+      const unit = await service.setUnitLendable(user(), {
+        resourceKey: 501,
+        lendable: true,
+      });
+
+      expect(tx.conditionLog.create).not.toHaveBeenCalled();
+      expect(unit.withdrawal).toBeNull();
+    });
+  });
+
   it('marks missing equipment unavailable and records its condition', async () => {
     const { service, prisma, tx } = managementHarness();
     prisma.itemIndiv.findUnique.mockResolvedValue(

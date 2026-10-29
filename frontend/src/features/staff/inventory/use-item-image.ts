@@ -1,5 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api-client";
+import { resizeForUpload } from "@/lib/resize-image";
 import { useTRPCClient } from "@/lib/trpc";
 
 /**
@@ -19,7 +20,9 @@ export function useUploadImage() {
   const trpc = useTRPCClient();
 
   return useMutation({
-    mutationFn: async ({ file, purpose }: { file: File; purpose: UploadPurpose }) => {
+    mutationFn: async ({ file: picked, purpose }: { file: File; purpose: UploadPurpose }) => {
+      // #238 / P-01: shrink a phone photo first; the ticket signs the bytes sent.
+      const file = await resizeForUpload(picked);
       // Callers run `validateUploadFile` first, which checks `file.type`
       // against UPLOAD.ALLOWED_MIME (the same two values the server accepts) -
       // narrowed here the way `prepareBorrowerImage` does for the borrower flow.

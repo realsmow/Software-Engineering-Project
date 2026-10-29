@@ -1,5 +1,5 @@
 import { toBorrowerRef } from './loan.schema';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import type { Prisma } from '../generated/prisma/client';
 import { PrismaService } from '../prisma.service';
 import { AuditService } from '../common/audit/audit.service';
@@ -39,9 +39,9 @@ import {
   addDays,
   daysBetween,
   localTimeToUtc,
-  isWeekend,
-  rollDueOffWeekend,
-  weekdayEndBefore,
+  isClosedDay,
+  rollDueOffClosedDays,
+  openDayEndBefore,
   toIso,
   toLocalDayKey,
   withinWorkHours,
@@ -145,6 +145,40 @@ type RequestRow = Prisma.ReservationsGetPayload<{
   select: typeof REQUEST_SELECT;
 }>;
 
+/** The service's own client, or the cart transaction's (#236). */
+type ReadClient = PrismaService | Prisma.TransactionClient;
+
+/** A line that passed every check that does not depend on the rest of the cart. */
+interface LinePlan {
+  /** As requested; refusals are reported against it. */
+  resourceKey: number;
+  resource: ResourceRow;
+  tier: ResourceTier;
+  route: ApprovalRoute;
+  reason: string | null;
+  startTime: Date;
+  /** Already rolled off closed days for equipment. */
+  endTime: Date;
+}
+
+interface BookedLine {
+  reservationKey: number;
+  auditNote: string;
+}
+
+export interface LineRefusal {
+  resourceKey: number;
+  code: string;
+  detail: Record<string, unknown> | null;
+}
+
+/** Carries a cart's refused lines out of its transaction, rolling it back. */
+class CartRefused extends Error {
+  constructor(readonly lines: LineRefusal[]) {
+    super('CART_REFUSED');
+  }
+}
+
 /**
  * The borrower's own view of the loan domain: opening a request, watching it
  * move, and calling it off.
@@ -154,6 +188,25 @@ type RequestRow = Prisma.ReservationsGetPayload<{
  * departmental scope. This one takes a borrower and asserts ownership: the
  * only rows it will ever touch are the caller's own.
  */
+/**
+ * P-10: how many days ahead a T1/T2 booking may end. Same number as the
+ * request screen's BUSINESS.RESERVATION_MAX_DAYS (frontend/src/constants);
+ * change both together.
+ */
+export const RESERVATION_MAX_DAYS = 90;
+
+const termEndLogger = new Logger('ReservationHorizon');
+let warnedTermEnd: string | null = null;
+
+/** Once per distinct bad value, so a typo in TERM_END_DATE does not flood the log. */
+function warnBadTermEnd(value: string): void {
+  if (warnedTermEnd === value) return;
+  warnedTermEnd = value;
+  termEndLogger.warn(
+    `TERM_END_DATE "${value}" is not a YYYY-MM-DD date; the term-end check is off, the ${RESERVATION_MAX_DAYS}-day cap still applies`,
+  );
+}
+
 @Injectable()
 export class LoanRequestService {
   constructor(
@@ -169,14 +222,22 @@ export class LoanRequestService {
   // =========================================================================
 
   /**
-   * Opens one request per basket line.
+   * Opens one request per basket line, as one cart, whole or not at all.
    *
-   * Lines are checked and written one at a time, and a line that fails is
-   * reported rather than thrown: a basket of five where the fourth item was
-   * taken thirty seconds ago should produce four requests and one explanation,
-   * not five nothings. The two checks that concern the *borrower* rather than
-   * the item — credit block and window shape — are done once up front and do
-   * throw, because they fail every line identically.
+   * #236 (instructor item 1, team decision D-01): a cart is one borrow, so a
+   * line that cannot be had refuses the whole cart instead of leaving half of
+   * it booked. Every refused line is reported, so the borrower can fix them
+   * all before sending again. The two checks that concern the *borrower*
+   * rather than the item - credit block and window shape - are done once up
+   * front and do throw, because they fail every line identically.
+   *
+   * Two passes. The checks that do not depend on the other lines (the unit
+   * exists and is lendable, counter hours, tier, horizon, eligibility,
+   * length) run first, outside any transaction, so a refusal there writes
+   * nothing. Then every line is booked in order inside one serializable
+   * transaction: a later line sees the units the earlier ones took, so two
+   * lines of one type get two units, and one refusal rolls back the cart,
+   * every line and every notice they wrote.
    */
   async create(user: TrpcUser, input: CreateRequestInput) {
     const startTime = new Date(input.startTime);
@@ -185,22 +246,21 @@ export class LoanRequestService {
 
     const band = await this.creditTiers.resolveTier(user.creditScore);
     const toBand = await this.creditTiers.tierMapper();
-    const created: RequestRow[] = [];
-    const rejected: {
-      resourceKey: number;
-      code: string;
-      detail: Record<string, unknown> | null;
-    }[] = [];
-
-    // One cart per submit: its lines are approved and handled as one borrow.
-    const cart = await this.prisma.requestCart.create({
-      data: {},
-      select: { CartKey: true },
+    const refusal = (resourceKey: number, error: BusinessError) => ({
+      resourceKey,
+      code: error.message,
+      detail: error.details,
     });
+    // Typed once so every return has the same shape, refused or not.
+    const noRequests: ReturnType<typeof this.toRequest>[] = [];
+    const noRefusals: LineRefusal[] = [];
+
+    const plans: LinePlan[] = [];
+    const rejected: LineRefusal[] = [];
     for (const line of input.lines) {
       try {
-        created.push(
-          await this.createOne(
+        plans.push(
+          await this.planLine(
             user,
             band.creditTierKey,
             band.creditTier,
@@ -208,22 +268,58 @@ export class LoanRequestService {
             line.reason ?? null,
             startTime,
             endTime,
-            cart.CartKey,
           ),
         );
       } catch (error) {
         if (!(error instanceof BusinessError)) throw error;
-        rejected.push({
-          resourceKey: line.resourceKey,
-          code: error.message,
-          detail: error.details,
-        });
+        rejected.push(refusal(line.resourceKey, error));
       }
     }
+    if (rejected.length > 0) return { created: noRequests, rejected };
 
+    let booked: BookedLine[];
+    try {
+      booked = await runSerializable(this.prisma, async (tx) => {
+        // One cart per submit: its lines are approved and handled as one borrow.
+        const cart = await tx.requestCart.create({
+          data: {},
+          select: { CartKey: true },
+        });
+        const lines: BookedLine[] = [];
+        const refused: LineRefusal[] = [];
+        for (const plan of plans) {
+          try {
+            lines.push(await this.bookLine(tx, user, plan, cart.CartKey));
+          } catch (error) {
+            if (!(error instanceof BusinessError)) throw error;
+            refused.push(refusal(plan.resourceKey, error));
+          }
+        }
+        // Thrown rather than returned, so the transaction rolls back.
+        if (refused.length > 0) throw new CartRefused(refused);
+        return lines;
+      });
+    } catch (error) {
+      if (error instanceof CartRefused) {
+        return { created: noRequests, rejected: error.lines };
+      }
+      throw error;
+    }
+
+    // One audit row per reservation opened, after the write commits.
+    const created: RequestRow[] = [];
+    for (const line of booked) {
+      await this.audit.record(
+        { accountKey: user.accountKey },
+        'create',
+        `reservation/${line.reservationKey}`,
+        line.auditNote,
+      );
+      created.push(await this.read(line.reservationKey));
+    }
     return {
       created: created.map((row) => this.toRequest(row, toBand)),
-      rejected,
+      rejected: noRefusals,
     };
   }
 
@@ -265,7 +361,11 @@ export class LoanRequestService {
     });
   }
 
-  private async createOne(
+  /**
+   * The checks on one line that do not depend on the rest of the cart. Reads
+   * only, so a refusal here writes nothing (#236).
+   */
+  private async planLine(
     user: TrpcUser,
     creditTierKey: number,
     creditTier: Parameters<typeof routeFor>[0]['creditTier'],
@@ -273,8 +373,7 @@ export class LoanRequestService {
     reason: string | null,
     startTime: Date,
     requestedEnd: Date,
-    cartKey: number | null = null,
-  ): Promise<RequestRow> {
+  ): Promise<LinePlan> {
     let endTime = requestedEnd;
     const resource = await this.prisma.resourceInfo.findUnique({
       where: { ResourceKey: resourceKey },
@@ -295,14 +394,17 @@ export class LoanRequestService {
         ['START', startTime],
         ['END', endTime],
       ] as const) {
-        // A weekend pickup is refused too: the counter is shut. A weekend
-        // return is fine, it rolls to Monday (#178).
-        if (!withinWorkHours(at) || (edge === 'START' && isWeekend(at))) {
+        // A pickup on a closed day is refused too: the counter is shut. A
+        // return then is fine, it rolls to the next open day (#178 weekends,
+        // #234 holidays).
+        const closedDay = edge === 'START' && isClosedDay(at);
+        if (!withinWorkHours(at) || closedDay) {
           throw new BusinessError('OUTSIDE_WORK_HOURS', {
             edge,
             at: toIso(at),
             opensAt: workHours.start,
             closesAt: workHours.end,
+            ...(closedDay ? { reason: 'CLOSED_DAY' } : {}),
           });
         }
       }
@@ -336,10 +438,34 @@ export class LoanRequestService {
         creditTier,
       });
     }
-    // After the day limit: the borrower asked for a weekday-sized loan, and
-    // the weekend the counter is shut is not theirs to be charged for.
-    if (!resource.Room) endTime = rollDueOffWeekend(endTime);
+    // After the day limit: the borrower asked for a loan of open days, and
+    // the weekend or holiday the counter is shut is not theirs to be charged
+    // for.
+    if (!resource.Room) endTime = rollDueOffClosedDays(endTime);
 
+    return {
+      resourceKey,
+      resource,
+      tier,
+      route: routeFor({ tier, creditTier }),
+      reason,
+      startTime,
+      endTime,
+    };
+  }
+
+  /**
+   * Books one planned line inside the cart's transaction (#236). Availability
+   * is read through `tx`, so it sees the units the cart's earlier lines just
+   * took; a refusal rolls back the whole cart.
+   */
+  private async bookLine(
+    tx: Prisma.TransactionClient,
+    user: TrpcUser,
+    plan: LinePlan,
+    cartKey: number,
+  ): Promise<BookedLine> {
+    const { resource, tier, reason, startTime, endTime } = plan;
     // FR-RSV-04 (G1, T1): a T1 unit that is not free for the window is swapped
     // for a free sibling rather than refused outright. T2 does the same now
     // that the borrower asks for a type and staff choose the unit (demo
@@ -351,12 +477,13 @@ export class LoanRequestService {
     // room) takes the plain check.
     let target: ResourceRow = resource;
     if (tier === 'T0' || tier === 'T1') {
-      target = await this.resolveT1Target(resource, startTime, endTime);
+      target = await this.resolveT1Target(resource, startTime, endTime, tx);
     } else if (tier === 'T2') {
       target = await this.assertWindowFreeForSerial(
         resource,
         startTime,
         endTime,
+        tx,
       ).catch(async (error: unknown) => {
         if (
           !(error instanceof BusinessError) ||
@@ -367,22 +494,23 @@ export class LoanRequestService {
           resource,
           startTime,
           endTime,
+          tx,
         );
         if (!sibling) throw error;
         return sibling;
       });
     } else {
-      await this.assertWindowFree(resource, startTime, endTime);
+      await this.assertWindowFree(resource, startTime, endTime, tx);
     }
 
-    const route = routeFor({ tier, creditTier });
+    const route = plan.route;
     const now = new Date();
     const approved = route === 'auto';
 
-    const key = await runSerializable(this.prisma, async (tx) => {
-      // Re-check inside the transaction. Two people submitting the same unit
-      // for the same hours a moment apart both pass the check above; only one
-      // may come out of here holding it.
+    {
+      // Counted once more just before writing. The check above already ran in
+      // this serializable transaction, so two borrowers taking the same unit
+      // a moment apart cannot both commit; this keeps the refusal explicit.
       const { from, to } = withBuffer(startTime, endTime, target.BufferTime);
       const taken = await tx.reservations.count({
         where: clashingWindowFilter(target.ResourceKey, from, to),
@@ -460,18 +588,11 @@ export class LoanRequestService {
         );
       }
 
-      return row.ReservationKey;
-    });
-
-    // One row per reservation opened, after the write commits.
-    await this.audit.record(
-      { accountKey: user.accountKey },
-      'create',
-      `reservation/${key}`,
-      `Requested ${target.Item ? target.Item.Item.ItemName : (target.Room?.RoomName ?? 'resource')} (resourceKey ${target.ResourceKey})${approved ? ', auto-approved' : ''}`,
-    );
-
-    return this.read(key);
+      return {
+        reservationKey: row.ReservationKey,
+        auditNote: `Requested ${target.Item ? target.Item.Item.ItemName : (target.Room?.RoomName ?? 'resource')} (resourceKey ${target.ResourceKey})${approved ? ', auto-approved' : ''}`,
+      };
+    }
   }
 
   /**
@@ -486,10 +607,16 @@ export class LoanRequestService {
    * FR-RSV-01: T1/T2 may be reserved ahead, but only to the end of the current
    * term. `TERM_END_DATE` is read here, at call time, rather than into a
    * module-level constant at import time, so changing it takes effect on the
-   * next request instead of needing a restart. Left unset, this half of the
-   * check is skipped - the 90-day cap a borrower sees on the request screen
-   * (`BUSINESS.RESERVATION_MAX_DAYS`) is enforced there only, same as before
-   * this method existed.
+   * next request instead of needing a restart. A value that is not a
+   * YYYY-MM-DD date is logged and skipped rather than compared as NaN, which
+   * used to switch the check off without a word.
+   *
+   * P-10: whatever the term, the booking may not end later than the 90th day
+   * from today - the last day the request screen offers
+   * (`BUSINESS.RESERVATION_MAX_DAYS`). Before this the cap lived only in the
+   * screen, so with TERM_END_DATE unset (as on Render) a booking for 2031 was
+   * accepted. The term check runs first because its message is the more
+   * specific one when both apply.
    */
   private assertReservationHorizon(
     tier: ResourceTier,
@@ -508,14 +635,28 @@ export class LoanRequestService {
     if (tier !== 'T1' && tier !== 'T2') return;
 
     const termEnd = process.env.TERM_END_DATE;
-    if (!termEnd) return;
+    if (termEnd) {
+      // Midnight Bangkok the day after TERM_END_DATE - the first instant that
+      // no longer belongs to the current term.
+      const termEndExclusive = addDays(localTimeToUtc(termEnd, '00:00'), 1);
+      if (
+        !/^\d{4}-\d{2}-\d{2}$/.test(termEnd) ||
+        Number.isNaN(termEndExclusive.getTime())
+      ) {
+        warnBadTermEnd(termEnd);
+      } else if (endTime.getTime() >= termEndExclusive.getTime()) {
+        throw new BusinessError('RESERVATION_PAST_TERM_END', {
+          termEnd: toIso(new Date(termEndExclusive.getTime() - 1)),
+        });
+      }
+    }
 
-    // Midnight Bangkok the day after TERM_END_DATE - the first instant that
-    // no longer belongs to the current term.
-    const termEndExclusive = addDays(localTimeToUtc(termEnd, '00:00'), 1);
-    if (endTime.getTime() >= termEndExclusive.getTime()) {
-      throw new BusinessError('RESERVATION_PAST_TERM_END', {
-        termEnd: toIso(new Date(termEndExclusive.getTime() - 1)),
+    const lastDay = toLocalDayKey(addDays(new Date(), RESERVATION_MAX_DAYS));
+    const capExclusive = addDays(localTimeToUtc(lastDay, '00:00'), 1);
+    if (endTime.getTime() >= capExclusive.getTime()) {
+      throw new BusinessError('RESERVATION_TOO_FAR', {
+        maxDays: RESERVATION_MAX_DAYS,
+        lastDay,
       });
     }
   }
@@ -536,13 +677,19 @@ export class LoanRequestService {
     resource: ResourceRow,
     startTime: Date,
     endTime: Date,
+    db: ReadClient = this.prisma,
   ): Promise<ResourceRow> {
     try {
-      await this.assertWindowFree(resource, startTime, endTime);
+      await this.assertWindowFree(resource, startTime, endTime, db);
       return resource;
     } catch (error) {
       if (!(error instanceof BusinessError)) throw error;
-      const sibling = await this.findFreeSibling(resource, startTime, endTime);
+      const sibling = await this.findFreeSibling(
+        resource,
+        startTime,
+        endTime,
+        db,
+      );
       if (!sibling) throw error;
       return sibling;
     }
@@ -553,10 +700,11 @@ export class LoanRequestService {
     resource: ResourceRow,
     startTime: Date,
     endTime: Date,
+    db: ReadClient = this.prisma,
   ): Promise<ResourceRow | null> {
     if (!resource.Item) return null;
 
-    const siblings = await this.prisma.resourceInfo.findMany({
+    const siblings = await db.resourceInfo.findMany({
       where: {
         ManagedBy: resource.ManagedBy,
         AllowBorrow: true,
@@ -572,7 +720,7 @@ export class LoanRequestService {
     if (siblings.length === 0) return null;
 
     const free = await resourcesFreeInWindow(
-      this.prisma,
+      db,
       siblings.map((s) => ({
         ResourceKey: s.ResourceKey,
         BufferTime: s.BufferTime,
@@ -603,9 +751,10 @@ export class LoanRequestService {
     resource: ResourceRow,
     startTime: Date,
     endTime: Date,
+    db: ReadClient = this.prisma,
   ): Promise<ResourceRow> {
     try {
-      await this.assertWindowFree(resource, startTime, endTime);
+      await this.assertWindowFree(resource, startTime, endTime, db);
       return resource;
     } catch (error) {
       if (
@@ -810,14 +959,12 @@ export class LoanRequestService {
   /**
    * Calls off the caller's own request.
    *
-   * Allowed while nothing physical has happened yet: pending, or approved but
-   * not prepared. Once staff have set a unit aside the borrower cannot undo it
-   * from here - that unit is off the shelf and someone has to put it back, so
-   * it goes through the counter instead.
-   *
-   * A room is the exception (#162): preparing it moves nothing, so the booking
-   * stays cancellable until check-in, and the prepared row is removed exactly
-   * as the no-show job does, which frees the slots.
+   * Allowed until the borrower collects it (FR-REQ-10, revised 29 Oct 2569):
+   * pending, approved, or prepared and waiting at the counter. A prepared row
+   * is removed with its pickup photos, exactly as the no-show job does, which
+   * frees the unit's hours; staff are told to put a prepared item back on the
+   * shelf. A room counts from preparation until check-in (#162), and
+   * preparing one moves nothing, so there is nothing to tell the counter.
    */
   async cancel(user: TrpcUser, input: CancelRequestInput) {
     const row = await this.read(input.reservationKey);
@@ -835,11 +982,11 @@ export class LoanRequestService {
       });
     }
     const usage = row.UsageLogs[0] ?? null;
-    if (usage && !LoanRequestService.preparedRoom(row)) {
+    if (usage && !LoanRequestService.awaitingCollection(row)) {
       throw new BusinessError('CANNOT_CANCEL', {
         reservationKey: input.reservationKey,
         usageKey: usage.UsageKey,
-        reason: 'ALREADY_PREPARED',
+        reason: 'ALREADY_COLLECTED',
       });
     }
 
@@ -848,15 +995,28 @@ export class LoanRequestService {
       ResolvedAt: new Date(),
       DecisionNote: input.reason ?? null,
     };
-    await this.prisma.$transaction(async (tx) => {
-      // #220: staff may be preparing this very request. Lock it and re-check:
-      // a cancel that read "not prepared" must not land after the preparation.
+    const released = await this.prisma.$transaction(async (tx) => {
+      // #220: lock, then re-check under the lock. The loan row goes first when
+      // there is one, the order a handover and a unit swap use (they lock it,
+      // then touch the request), so a cancel racing a handover waits for it
+      // and then sees "collected" instead of deleting a loan already lent.
+      // The request lock serialises the cancel with staff preparing it.
+      if (usage) await lockRow(tx, 'UsageLog', usage.UsageKey);
       await lockRow(tx, 'Reservations', input.reservationKey);
       const fresh = await tx.reservations.findUniqueOrThrow({
         where: { ReservationKey: input.reservationKey },
         select: {
           ApproveStatus: true,
           UsageLogs: { select: { UsageKey: true, CurrentStatus: true } },
+          Resource: {
+            select: {
+              ManagedBy: true,
+              Item: {
+                select: { ItemID: true, Item: { select: { ItemName: true } } },
+              },
+              Room: { select: { RoomName: true } },
+            },
+          },
         },
       });
       if (
@@ -869,20 +1029,22 @@ export class LoanRequestService {
         });
       }
       const freshUsage = fresh.UsageLogs[0];
-      // Only the prepared room seen above may be cleared; anything else that
-      // appeared meanwhile means it has been prepared, so it is too late.
-      if (
-        freshUsage &&
-        (!usage ||
-          freshUsage.UsageKey !== usage.UsageKey ||
-          freshUsage.CurrentStatus !== 'Prepared')
-      ) {
-        throw new BusinessError('CANNOT_CANCEL', {
-          reservationKey: input.reservationKey,
-          reason: 'ALREADY_PREPARED',
-        });
-      }
       if (freshUsage) {
+        // Already held when the read above saw it (locking again is a no-op);
+        // its first lock when staff prepared it in between. Read its state
+        // under the lock either way.
+        await lockRow(tx, 'UsageLog', freshUsage.UsageKey);
+        const { CurrentStatus } = await tx.usageLog.findUniqueOrThrow({
+          where: { UsageKey: freshUsage.UsageKey },
+          select: { CurrentStatus: true },
+        });
+        if (CurrentStatus !== 'Prepared') {
+          throw new BusinessError('CANNOT_CANCEL', {
+            reservationKey: input.reservationKey,
+            usageKey: freshUsage.UsageKey,
+            reason: 'ALREADY_COLLECTED',
+          });
+        }
         await tx.images.deleteMany({
           where: { UsageKey: freshUsage.UsageKey },
         });
@@ -892,13 +1054,22 @@ export class LoanRequestService {
         where: { ReservationKey: input.reservationKey },
         data: cancelled,
       });
+      if (freshUsage && fresh.Resource.Item) {
+        await this.notifications.preparedUnitReleased(tx, {
+          manageGroupKey: fresh.Resource.ManagedBy,
+          reservationKey: input.reservationKey,
+          itemName: resourceName(fresh.Resource),
+          serialNo: fresh.Resource.Item.ItemID,
+        });
+      }
+      return freshUsage !== undefined;
     });
 
     await this.audit.record(
       { accountKey: user.accountKey },
       'update',
       `reservation/${input.reservationKey}`,
-      `Borrower cancelled the request${input.reason ? `: ${input.reason}` : ''}`,
+      `Borrower cancelled the request${released ? ' after it was prepared (unit released)' : ''}${input.reason ? `: ${input.reason}` : ''}`,
     );
 
     return this.toRequest(
@@ -911,12 +1082,12 @@ export class LoanRequestService {
   // Internals
   // =========================================================================
 
-  /** A room set up but not yet checked into: still the borrower's to cancel. */
-  private static preparedRoom(row: RequestRow): boolean {
-    return (
-      row.Resource.Room !== null &&
-      row.UsageLogs[0]?.CurrentStatus === 'Prepared'
-    );
+  /**
+   * Set aside at the counter but not yet collected (a room: not yet checked
+   * into), so still the borrower's to cancel.
+   */
+  private static awaitingCollection(row: RequestRow): boolean {
+    return row.UsageLogs[0]?.CurrentStatus === 'Prepared';
   }
 
   private assertWindowShape(startTime: Date, endTime: Date): void {
@@ -942,10 +1113,11 @@ export class LoanRequestService {
     resource: { ResourceKey: number; BufferTime: number },
     startTime: Date,
     endTime: Date,
+    db: ReadClient = this.prisma,
   ): Promise<void> {
     const { from, to } = withBuffer(startTime, endTime, resource.BufferTime);
 
-    const clash = await this.prisma.reservations.findFirst({
+    const clash = await db.reservations.findFirst({
       where: clashingWindowFilter(resource.ResourceKey, from, to),
       orderBy: { StartTime: 'asc' },
       select: { ReservationKey: true, StartTime: true, EndTime: true },
@@ -961,7 +1133,7 @@ export class LoanRequestService {
         throw new BusinessError('WINDOW_CROSSES_RESERVATION', {
           resourceKey: resource.ResourceKey,
           maxEndTime: toIso(
-            weekdayEndBefore(
+            openDayEndBefore(
               addDays(clash.StartTime, -resource.BufferTime),
               startTime,
             ),
@@ -977,7 +1149,7 @@ export class LoanRequestService {
     // A unit that is physically out on an older loan blocks the window too,
     // even with no reservation row behind it - a walk-in loan recorded at the
     // counter is exactly that case.
-    const held = await this.prisma.usageLog.findFirst({
+    const held = await db.usageLog.findFirst({
       where: heldUsageFilter(resource.ResourceKey, from, to),
       orderBy: { DueTime: 'asc' },
       select: { UsageKey: true, DueTime: true },
@@ -1058,7 +1230,7 @@ export class LoanRequestService {
       dueAt: usage ? toIso(usage.DueTime) : null,
       cancellable:
         (row.ApproveStatus === 'Pending' || row.ApproveStatus === 'Approved') &&
-        (usage === null || LoanRequestService.preparedRoom(row)),
+        (usage === null || LoanRequestService.awaitingCollection(row)),
       holdsRoomQuota: holdsRoomQuota({
         ApproveStatus: row.ApproveStatus,
         EndTime: row.EndTime,

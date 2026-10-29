@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api-client";
+import { resizeForUpload } from "@/lib/resize-image";
 import { useTRPCClient } from "@/lib/trpc";
 import { fetchAllPages } from "@/lib/paging";
 import type {
@@ -76,12 +77,14 @@ export function useUploadInspectionPhoto() {
 
   return useMutation({
     mutationFn: async (input: { usageKey: number; file: File }): Promise<string> => {
+      // #238 / P-01: shrink first; the ticket signs the bytes actually sent.
+      const file = await resizeForUpload(input.file);
       const ticket = await trpc.image.requestUsagePhotoUpload.mutate({
         usageKey: input.usageKey,
-        contentType: input.file.type as "image/jpeg" | "image/png",
-        sizeBytes: input.file.size,
+        contentType: file.type as "image/jpeg" | "image/png",
+        sizeBytes: file.size,
       });
-      await apiClient.uploadFile(ticket.uploadUrl, input.file);
+      await apiClient.uploadFile(ticket.uploadUrl, file);
       return ticket.imageUrl;
     },
   });

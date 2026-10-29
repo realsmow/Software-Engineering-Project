@@ -16,6 +16,7 @@ import type {
   ManagedUnit,
 } from "../../src/features/staff/inventory/inventory.types";
 import { getErrorMessage } from "../../src/lib/error-messages";
+import { fmtDate } from "../../src/lib/datetime";
 import { itemResponse } from "../fixtures/api-responses";
 import { queryResult } from "../fixtures/query-results";
 import { toCatalogItem } from "../../src/features/borrower/catalog/item.adapter";
@@ -163,14 +164,8 @@ describe("Module 5 borrower catalogue", () => {
       </MemoryRouter>
     );
 
-    // Available-only is on by default, and "available" means available to them.
-    expect(screen.queryByText(closed.name)).not.toBeInTheDocument();
-
-    fireEvent.click(
-      screen.getAllByLabelText(i18n.t("borrower.catalog.availableOnly"))[0]
-    );
+    // Everything is listed by default (requested 29 Oct 2569), closed to them.
     expect(screen.getAllByText(closed.name).length).toBeGreaterThan(0);
-
     const blocked = screen.getAllByRole("button", {
       name: i18n.t("borrower.catalog.notEligible"),
     });
@@ -178,6 +173,57 @@ describe("Module 5 borrower catalogue", () => {
     blocked.forEach((button) => expect(button).toBeDisabled());
     fireEvent.click(blocked[0]);
     expect(useRequestDraft.getState().lines).toEqual([]);
+
+    // Available-only still hides it: "available" means available to them.
+    fireEvent.click(
+      screen.getAllByLabelText(i18n.t("borrower.catalog.availableOnly"))[0]
+    );
+    expect(screen.queryByText(closed.name)).not.toBeInTheDocument();
+  });
+
+  it("keeps a type with nothing free listed and greyed, with the day it is free again", () => {
+    const busy = {
+      ...AVAILABLE_ITEM,
+      id: "busy-1",
+      name: "Fully booked scope",
+      availableUnits: 0,
+      nextAvailableAt: "2031-10-03T09:00:00.000Z",
+    };
+    vi.mocked(catalogHooks.useEquipmentTypes).mockReturnValue({
+      data: [busy, AVAILABLE_ITEM],
+      isLoading: false,
+    } as never);
+    render(
+      <MemoryRouter>
+        <CatalogPage />
+      </MemoryRouter>
+    );
+
+    // A missing key would render as its own name and still match below.
+    expect(
+      i18n.exists("borrower.catalog.freeAgain") && i18n.exists("borrower.catalog.noneFreeHint")
+    ).toBe(true);
+    const row = screen
+      .getAllByText(busy.name)
+      .map((el) => el.closest("tr"))
+      .find((tr): tr is HTMLTableRowElement => tr !== null)!;
+    expect(
+      within(row).getByText(
+        i18n.t("borrower.catalog.freeAgain", { date: fmtDate(busy.nextAvailableAt) })
+      )
+    ).toBeInTheDocument();
+    const select = within(row).getByRole("button", { name: "Select" });
+    expect(select).toBeDisabled();
+    expect(select.parentElement).toHaveAttribute(
+      "title",
+      i18n.t("borrower.catalog.noneFreeHint")
+    );
+
+    // Available-only hides it again.
+    fireEvent.click(
+      screen.getAllByLabelText(i18n.t("borrower.catalog.availableOnly"))[0]
+    );
+    expect(screen.queryByText(busy.name)).not.toBeInTheDocument();
   });
 
   it("shows an empty state when an API result is loaded but no item matches", () => {
@@ -297,6 +343,57 @@ describe("Module 5 staff inventory", () => {
         lendable: false,
         reason: "Awaiting calibration",
       });
+    });
+  });
+
+  describe("lent outside the system (requested 29 Oct 2569)", () => {
+    it("marks a lendable unit lent outside in one click", async () => {
+      mutateAsync.mockResolvedValue(UNIT);
+      render(<StaffInventoryPage />);
+      fireEvent.click(screen.getAllByRole("button", { name: /view units/i })[0]);
+
+      fireEvent.click(
+        screen.getByRole("button", { name: i18n.t("staff.inventory.markLentOutside") })
+      );
+
+      await waitFor(() =>
+        expect(mutateAsync).toHaveBeenCalledWith({
+          resourceKey: 501,
+          lendable: false,
+          lentOutside: true,
+        })
+      );
+    });
+
+    it("shows its own badge and since when, instead of plain withdrawn", () => {
+      const at = "2026-10-30T02:00:00.000Z";
+      const lentOut = itemUnitOutput.strict().parse({
+        ...UNIT,
+        lendable: false,
+        withdrawal: { note: "ยืมนอกระบบ", at, lentOutside: true },
+      });
+      vi.mocked(inventoryHooks.useManagedItem).mockReturnValue({
+        data: { ...DETAIL, units: [lentOut] },
+        isLoading: false,
+      } as never);
+      render(<StaffInventoryPage />);
+      fireEvent.click(screen.getAllByRole("button", { name: /view units/i })[0]);
+
+      // A missing key would render as its own name and still match below.
+      expect(
+        ["lentOutside", "markLentOutside", "withdrawnSince"].every((k) =>
+          i18n.exists(`staff.inventory.${k}`)
+        )
+      ).toBe(true);
+      expect(screen.getByText(i18n.t("staff.inventory.lentOutside"))).toBeInTheDocument();
+      expect(screen.queryByText(i18n.t("staff.inventory.withdrawn"))).not.toBeInTheDocument();
+      expect(
+        screen.getByText(i18n.t("staff.inventory.withdrawnSince", { date: fmtDate(at) }))
+      ).toBeInTheDocument();
+      // Already out of the pool: the one-click action is not offered again.
+      expect(
+        screen.queryByRole("button", { name: i18n.t("staff.inventory.markLentOutside") })
+      ).not.toBeInTheDocument();
     });
   });
 

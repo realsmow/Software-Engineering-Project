@@ -80,6 +80,15 @@ function readyRoom() {
     },
   });
 }
+function choosePhotos(container: HTMLElement, count: number, index = 0) {
+  const files = Array.from({ length: count }, (_, i) =>
+    new File([`photo ${i}`], `photo-${i}.png`, { type: "image/png" })
+  );
+  fireEvent.change(container.querySelectorAll('input[type="file"]')[index], {
+    target: { files },
+  });
+  return files;
+}
 function choosePhoto(container: HTMLElement, index = 0, type = "image/png") {
   const file = new File(["photo bytes"], "before.png", { type });
   fireEvent.change(container.querySelectorAll('input[type="file"]')[index], {
@@ -143,6 +152,15 @@ beforeEach(() => {
         });
         return photos;
       }
+      case "image.detachUsagePhoto": {
+        const { imageKey } = input as { imageKey: number };
+        photos = usagePhotosOutput.parse({
+          ...photos,
+          before: photos.before.filter((photo) => photo.imageKey !== imageKey),
+          after: photos.after.filter((photo) => photo.imageKey !== imageKey),
+        });
+        return photos;
+      }
       case "loan.confirmMyPickup": {
         requests = requests.map((row) => requestResponse({ ...row, status: "inUse" }));
         return requests[0];
@@ -164,6 +182,30 @@ afterEach(() => {
 });
 
 describe("borrower pickup page through its real API hooks", () => {
+  // #238 (instructor item 3): several photos per unit, chosen at once.
+  it("keeps every photo chosen at once and uploads them all before confirming", async () => {
+    const { container } = renderPage("pickup");
+    const confirm = await screen.findByRole("button", { name: i18n.t("borrower.pickup.confirm") });
+    const files = choosePhotos(container, 2);
+    expect(await screen.findByText(i18n.t("common.photoCount", { count: 2, max: 30 }))).toBeInTheDocument();
+    fireEvent.click(confirm);
+    await screen.findByRole("heading", { name: "My requests destination" });
+    expect(upload.mock.calls.map(([, sent]) => sent)).toEqual(files);
+    expect(api.mock.calls.filter(([path]) => path === "image.attachUsagePhotos")).toHaveLength(2);
+  });
+
+  it("drops a queued photo removed before confirming", async () => {
+    const { container } = renderPage("pickup");
+    const confirm = await screen.findByRole("button", { name: i18n.t("borrower.pickup.confirm") });
+    const files = choosePhotos(container, 2);
+    fireEvent.click(
+      (await screen.findAllByRole("button", { name: i18n.t("borrower.pickup.removePhoto") }))[0]
+    );
+    fireEvent.click(confirm);
+    await screen.findByRole("heading", { name: "My requests destination" });
+    expect(upload.mock.calls.map(([, sent]) => sent)).toEqual([files[1]]);
+  });
+
   it("reuses an attached pickup photo after reopening the page without uploading or taking another photo", async () => {
     const respond = api.getMockImplementation()!;
     let refuseConfirmation = true;
@@ -355,6 +397,59 @@ describe("borrower pickup page through its real API hooks", () => {
 });
 
 describe("room use page through its real API hooks", () => {
+  // P-07 (instructor item 2): every photo of a phase can be opened full size,
+  // and removed while that phase is still open.
+  function storedBefore(...keys: number[]) {
+    return keys.map((imageKey) => ({
+      imageKey,
+      imageUrl: `/media/inspection/room-${imageKey}.png`,
+      stage: "before" as const,
+      submittedBy: 7,
+      submittedAt: "2026-09-28T01:00:00.000Z",
+    }));
+  }
+
+  it("lists every before photo full size and removes one before check-in", async () => {
+    requests = [readyRoom()];
+    photos = usagePhotosOutput.parse({ ...photos, before: storedBefore(8, 9) });
+    renderPage("room");
+    const links = await screen.findAllByRole("link", { name: i18n.t("common.viewPhoto") });
+    expect(links.map((link) => link.getAttribute("href"))).toEqual([
+      "/media/inspection/room-8.png",
+      "/media/inspection/room-9.png",
+    ]);
+    fireEvent.click(screen.getAllByRole("button", { name: i18n.t("borrower.pickup.removePhoto") })[0]);
+    await waitFor(() =>
+      expect(api).toHaveBeenCalledWith("image.detachUsagePhoto", { imageKey: 8 })
+    );
+  });
+
+  it("uploads every room photo chosen at once (#238)", async () => {
+    requests = [readyRoom()];
+    const { container } = renderPage("room");
+    await screen.findByRole("button", { name: i18n.t("borrower.roomUse.checkIn") });
+    choosePhotos(container, 2);
+    await waitFor(() =>
+      expect(
+        api.mock.calls.filter(
+          ([path, input]) =>
+            path === "image.attachUsagePhotos" && (input as { stage: string }).stage === "before"
+        )
+      ).toHaveLength(2)
+    );
+  });
+
+  it("keeps the before photos read-only once the room is in use", async () => {
+    requests = [requestResponse({ ...readyRoom(), status: "inUse" })];
+    photos = usagePhotosOutput.parse({ ...photos, before: storedBefore(8) });
+    renderPage("room");
+    expect(await screen.findByRole("link", { name: i18n.t("common.viewPhoto") })).toHaveAttribute(
+      "href",
+      "/media/inspection/room-8.png"
+    );
+    expect(screen.queryByRole("button", { name: i18n.t("borrower.pickup.removePhoto") })).toBeNull();
+  });
+
   it("gates check-in on stored before evidence and confirms the borrower endpoint", async () => {
     requests = [readyRoom()];
     const { container } = renderPage("room");

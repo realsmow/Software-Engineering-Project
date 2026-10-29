@@ -134,6 +134,70 @@ describe('AuthService', () => {
     });
   });
 
+  it('lists the departments and clubs the account belongs to', async () => {
+    const faculty = await prisma.facultyInfo.create({
+      data: { FacultyName: 'auth.service.spec faculty' },
+    });
+    const department = await prisma.managementGroup.create({
+      data: {
+        GroupType: 'Faculty',
+        Branch: {
+          create: {
+            BranchName: 'Computer Engineering',
+            FacultyKey: faculty.FacultyKey,
+          },
+        },
+      },
+    });
+    const club = await prisma.managementGroup.create({
+      data: {
+        GroupType: 'Club',
+        Club: { create: { ClubName: 'Robotics Club' } },
+      },
+    });
+    const member = await prisma.authorityRole.create({
+      data: { AuthorityName: 'auth.service.spec member', AuthorityLevel: 1 },
+    });
+    await prisma.authority.createMany({
+      data: [department, club].map((group) => ({
+        AccountKey: accountKey,
+        ManageGroupKey: group.ManageGroupKey,
+        AuthorityRoleKey: member.AuthorityRoleKey,
+      })),
+    });
+    try {
+      const profile = await service.getProfile(accountKey);
+
+      expect(userOutput.safeParse(profile).success).toBe(true);
+      expect(profile.groups).toEqual([
+        {
+          id: department.ManageGroupKey,
+          kind: 'department',
+          name: 'Computer Engineering',
+        },
+        { id: club.ManageGroupKey, kind: 'club', name: 'Robotics Club' },
+      ]);
+    } finally {
+      const groups = [department.ManageGroupKey, club.ManageGroupKey];
+      await prisma.authority.deleteMany({ where: { AccountKey: accountKey } });
+      await prisma.branchInfo.deleteMany({
+        where: { ManageGroupKey: { in: groups } },
+      });
+      await prisma.clubInfo.deleteMany({
+        where: { ManageGroupKey: { in: groups } },
+      });
+      await prisma.managementGroup.deleteMany({
+        where: { ManageGroupKey: { in: groups } },
+      });
+      await prisma.authorityRole.delete({
+        where: { AuthorityRoleKey: member.AuthorityRoleKey },
+      });
+      await prisma.facultyInfo.delete({
+        where: { FacultyKey: faculty.FacultyKey },
+      });
+    }
+  });
+
   describe('authenticate', () => {
     it('accepts the KU email', async () => {
       await expect(service.authenticate(EMAIL, PASSWORD)).resolves.toBe(

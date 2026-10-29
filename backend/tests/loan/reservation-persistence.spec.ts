@@ -14,8 +14,12 @@ import {
   requestFixture,
   requestService,
 } from '../fixtures/loan-request';
+import { freezeBusinessDate } from '../fixtures/business-clock';
 
 const DAY = 86_400_000;
+// P-10: a T1/T2 booking may end at most 90 days ahead, so stand a few days
+// before the fixed 2031 window below rather than on the real date.
+const SPEC_NOW = new Date('2031-09-26T02:00:00.000Z');
 function windowInput(resourceKey: number) {
   return createRequestInput.parse({
     // Fixed weekday hours: the server refuses times outside the counter's
@@ -31,6 +35,8 @@ describe('persisted reservation conflict handling', () => {
   let database: IsolatedTestDatabase | undefined;
   let termEnd: string | undefined;
   beforeAll(async () => {
+    // Before the nested beforeAll below, which books the window.
+    freezeBusinessDate(SPEC_NOW);
     termEnd = process.env.TERM_END_DATE;
     delete process.env.TERM_END_DATE;
     database = await createIsolatedDatabase('reservation', {
@@ -38,7 +44,9 @@ describe('persisted reservation conflict handling', () => {
     });
     prisma = database.client;
   }, 60_000);
+  beforeEach(() => freezeBusinessDate(SPEC_NOW));
   afterAll(async () => {
+    jest.useRealTimers();
     if (termEnd === undefined) delete process.env.TERM_END_DATE;
     else process.env.TERM_END_DATE = termEnd;
     await database?.dispose();

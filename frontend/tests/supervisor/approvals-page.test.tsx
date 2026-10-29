@@ -58,6 +58,13 @@ const hooks = vi.hoisted(() => ({
 }));
 
 vi.mock("../../src/features/supervisor/approvals/use-approvals", () => hooks);
+// The photos dialog also lists the loan's own photos; none are on file here.
+vi.mock("../../src/features/borrower/pickup/use-pickup-image-upload", () => ({
+  useUsagePhotos: () => ({
+    data: { before: [], after: [], inspection: [] },
+    isLoading: false,
+  }),
+}));
 
 const borrower = {
   accountKey: 42,
@@ -111,6 +118,12 @@ const checked = extensionReviewRow.strict().parse({
     loggedAt: "2026-09-25T07:00:00.000Z",
     loggedBy: "Sam Staff",
   },
+});
+
+const CHECK_PHOTO = "https://api.example.test/media/inspection/2026/10/check.jpg?exp=1&sig=a";
+const checkedWithPhotos = extensionReviewRow.strict().parse({
+  ...checked,
+  inspection: { ...checked.inspection, photos: [CHECK_PHOTO] },
 });
 
 const history = borrowerHistoryOutput.strict().parse({
@@ -522,5 +535,29 @@ describe("SupervisorApprovalsPage", () => {
         decision: "approve",
       })
     );
+  });
+
+  describe("#205: photos from the staff check before an extension", () => {
+    function openExtensions() {
+      hooks.useExtensionQueue.mockReturnValue(queryResult([checkedWithPhotos]));
+      render(<SupervisorApprovalsPage />);
+      fireEvent.click(screen.getByText(new RegExp(`^${i18n.t("supervisor.approvals.viewExtensions")}`)));
+      return within(screen.getByText("Oscilloscope").closest("tr")!);
+    }
+
+    it("links each check photo from the staff-check column", () => {
+      const row = openExtensions();
+      expect(
+        row.getByRole("link", { name: i18n.t("supervisor.approvals.checkPhotoN", { n: 1 }) })
+      ).toHaveAttribute("href", CHECK_PHOTO);
+    });
+
+    it("lists the check photos first in the photos dialog", () => {
+      const row = openExtensions();
+      fireEvent.click(row.getByRole("button", { name: i18n.t("supervisor.approvals.photos") }));
+      const dialog = within(screen.getByRole("dialog"));
+      expect(dialog.getByText(i18n.t("supervisor.approvals.photoExtensionCheck"))).toBeInTheDocument();
+      expect(dialog.getByRole("img")).toHaveAttribute("src", CHECK_PHOTO);
+    });
   });
 });

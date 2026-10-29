@@ -19,6 +19,7 @@ import {
   NotificationService,
   supervisorsForGroup,
 } from '../notification/notification.service';
+import { isLentOutsideNote, lentOutsideNote } from './lent-outside';
 import { BusinessError } from '../common/errors/business-error';
 import { toIso, toIsoNullable } from '../common/schemas/datetime.schema';
 import {
@@ -81,6 +82,13 @@ const UNIT_SELECT = {
       BorrowRuleInfo: { select: { RuleName: true } },
       CurrentCondition: {
         select: { Condition: true, Notes: true, LoggedAt: true },
+      },
+      // The newest record, which a withdrawal always writes: why and since
+      // when the unit is out of the pool (`withdrawal`).
+      ConditionLogs: {
+        orderBy: [{ LoggedAt: 'desc' }, { ConditionKey: 'desc' }],
+        take: 1,
+        select: { Notes: true, LoggedAt: true },
       },
       ManagementGroup: {
         select: {
@@ -649,7 +657,16 @@ export class ItemManagementService {
         data: { AllowBorrow: input.lendable },
       });
 
-      if (input.reason) {
+      // A withdrawal is always recorded, with its reason if any, so the unit
+      // shows why and since when it is out of the pool; lent outside the
+      // system gets its fixed note first. Lending again is recorded only
+      // when a reason is given.
+      const note = input.lendable
+        ? (input.reason ?? null)
+        : input.lentOutside
+          ? lentOutsideNote(input.reason)
+          : (input.reason ?? null);
+      if (!input.lendable || note) {
         // ConditionLog is the only place a free-text note about a unit
         // survives, so a stated reason goes there rather than being dropped.
         // The condition itself is unchanged — this is an availability
@@ -666,7 +683,7 @@ export class ItemManagementService {
             ResourceKey: input.resourceKey,
             LoggedBy: user.accountKey,
             Condition: current?.Condition ?? 'Normal',
-            Notes: input.reason,
+            Notes: note,
             LoggedAt: new Date(),
           },
         });
@@ -677,7 +694,7 @@ export class ItemManagementService {
       { accountKey: user.accountKey },
       'update',
       `unit/${input.resourceKey}`,
-      `Set lendable = ${input.lendable}${input.reason ? `: ${input.reason}` : ''}`,
+      `Set lendable = ${input.lendable}${!input.lendable && input.lentOutside ? ' (lent outside the system)' : ''}${input.reason ? `: ${input.reason}` : ''}`,
     );
 
     return this.readUnit(input.resourceKey);
@@ -1711,6 +1728,22 @@ export class ItemManagementService {
       conditionLoggedAt: toIsoNullable(condition?.LoggedAt ?? null),
       managementGroup: this.toGroupRef(row.Resource.ManagementGroup),
       currentDueAt: toIsoNullable(row.Resource.UsageLogs[0]?.DueTime ?? null),
+      withdrawal: this.toWithdrawal(row),
+    };
+  }
+
+  /** Why and since when a withdrawn unit is out of the pool; null if lendable. */
+  private toWithdrawal(row: UnitRow) {
+    // Optional because older fixtures and selects may not carry the history.
+    const latest = (
+      row.Resource.ConditionLogs as
+        UnitRow['Resource']['ConditionLogs'] | undefined
+    )?.[0];
+    if (row.Resource.AllowBorrow || !latest) return null;
+    return {
+      note: latest.Notes,
+      at: toIsoNullable(latest.LoggedAt),
+      lentOutside: isLentOutsideNote(latest.Notes),
     };
   }
 

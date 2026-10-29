@@ -335,6 +335,11 @@ export const BUSINESS_ERROR_CODES = {
    * term (`TERM_END_DATE`). `cause.termEnd` is the last instant of the term.
    */
   RESERVATION_PAST_TERM_END: 'BAD_REQUEST',
+  /**
+   * P-10: a T1/T2 booking ends later than the 90th day from today, the last
+   * day the request screen offers. `cause.maxDays` and `cause.lastDay`.
+   */
+  RESERVATION_TOO_FAR: 'BAD_REQUEST',
   /** Somebody else's request already holds this unit for part of the window */
   WINDOW_NOT_AVAILABLE: 'CONFLICT',
   /**

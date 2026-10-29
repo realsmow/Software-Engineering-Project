@@ -34,6 +34,21 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("../../src/features/staff/queue/use-staff-queue", () => mocks);
+// #205: extension-check photos go through the staff upload ticket (purpose "inspection").
+const uploadImage = vi.hoisted(() => vi.fn());
+vi.mock("../../src/features/staff/inventory/use-item-image", () => ({
+  useUploadImage: () => ({ mutateAsync: uploadImage, isPending: false }),
+}));
+// #235: the unit timetable reads through the catalogue hook and the holiday
+// list; replaced so the page needs no query client.
+const unitSchedule = vi.hoisted(() => vi.fn());
+vi.mock("../../src/features/borrower/catalog/use-equipment-types", () => ({
+  useUnitSchedule: unitSchedule,
+}));
+vi.mock("../../src/lib/closed-days", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../src/lib/closed-days")>()),
+  useHolidays: () => new Set<string>(),
+}));
 vi.mock("../../src/features/borrower/pickup/use-pickup-image-upload", () => ({
   useUsagePhotos: mocks.useUsagePhotos,
   usePickupImageUpload: mocks.usePickupImageUpload,
@@ -181,6 +196,82 @@ describe("StaffQueuePage", () => {
     expect(decide).not.toHaveBeenCalled();
   });
 
+  describe("#205: photos taken at the extension check reach the supervisor", () => {
+    const supervisorExtension = () =>
+      extensionReviewRow.strict().parse({
+        extensionKey: 12,
+        usageKey: 9,
+        borrower: row.borrower,
+        creditTier: "D1",
+        route: "supervisor",
+        itemName: "Oscilloscope",
+        serialNo: "OSC-001",
+        tier: "T2",
+        extendNo: 1,
+        previousDueAt: "2026-10-02T06:00:00.000Z",
+        requestedDueAt: "2026-10-03T06:00:00.000Z",
+        requestedAt: "2026-09-24T08:00:00.000Z",
+        reason: null,
+        status: "Pending",
+        inspection: null,
+      });
+
+    function openExtensionRow() {
+      renderPage();
+      fireEvent.click(screen.getByRole("button", { name: new RegExp(i18n.t("staff.queue.tileExtensions")) }));
+      return within(screen.getByText("Oscilloscope").closest("tr")!);
+    }
+
+    it("uploads the check photo and sends it with the note", async () => {
+      const inspect = vi.fn().mockResolvedValue({});
+      mocks.useStaffInspectExtension.mockReturnValue(mutationResult(inspect));
+      mocks.useStaffDecideExtension.mockReturnValue(mutationResult(vi.fn()));
+      mocks.useStaffExtensionQueue.mockReturnValue(queryResult([supervisorExtension()]));
+      uploadImage.mockResolvedValue({ imageUrl: "/media/inspection/2026/10/check.jpg" });
+      const line = openExtensionRow();
+
+      fireEvent.change(line.getByLabelText(i18n.t("staff.queue.extCheckPhoto")), {
+        target: { files: [new File(["x"], "check.jpg", { type: "image/jpeg" })] },
+      });
+      await waitFor(() =>
+        expect(uploadImage).toHaveBeenCalledWith({ file: expect.any(File), purpose: "inspection" })
+      );
+      expect(await line.findByRole("button", { name: i18n.t("borrower.pickup.removePhoto") })).toBeInTheDocument();
+      fireEvent.change(line.getByLabelText(i18n.t("staff.queue.extCheckNote")), {
+        target: { value: "Scratch on the lid" },
+      });
+      fireEvent.click(line.getByRole("button", { name: i18n.t("staff.queue.extRecordCheck") }));
+
+      await waitFor(() =>
+        expect(inspect).toHaveBeenCalledWith({
+          extensionKey: 12,
+          condition: "Normal",
+          note: "Scratch on the lid",
+          imageUrls: ["/media/inspection/2026/10/check.jpg"],
+        })
+      );
+    });
+
+    it("drops a photo removed before the check is recorded", async () => {
+      const inspect = vi.fn().mockResolvedValue({});
+      mocks.useStaffInspectExtension.mockReturnValue(mutationResult(inspect));
+      mocks.useStaffDecideExtension.mockReturnValue(mutationResult(vi.fn()));
+      mocks.useStaffExtensionQueue.mockReturnValue(queryResult([supervisorExtension()]));
+      uploadImage.mockResolvedValue({ imageUrl: "/media/inspection/2026/10/wrong.jpg" });
+      const line = openExtensionRow();
+
+      fireEvent.change(line.getByLabelText(i18n.t("staff.queue.extCheckPhoto")), {
+        target: { files: [new File(["x"], "wrong.jpg", { type: "image/jpeg" })] },
+      });
+      fireEvent.click(await line.findByRole("button", { name: i18n.t("borrower.pickup.removePhoto") }));
+      fireEvent.click(line.getByRole("button", { name: i18n.t("staff.queue.extRecordCheck") }));
+
+      await waitFor(() =>
+        expect(inspect).toHaveBeenCalledWith({ extensionKey: 12, condition: "Normal" })
+      );
+    });
+  });
+
   it("allocates the selected request and reports the assigned serial", async () => {
     allocate.mockResolvedValue(
       loanResponse({
@@ -233,6 +324,34 @@ describe("StaffQueuePage", () => {
     await waitFor(() =>
       expect(allocate).toHaveBeenCalledWith({ reservationKey: 77, resourceKey: 8 })
     );
+  });
+
+  it("#235: opens the unit timetable while preparing", () => {
+    mocks.useStaffQueue.mockReturnValue(queryResult([{ ...row, itemKey: 5 }]));
+    mocks.usePrepareOptions.mockReturnValue(
+      queryResult([
+        { resourceKey: 7, serialNo: "OSC-001", reserved: true },
+        { resourceKey: 8, serialNo: "OSC-002", reserved: false },
+      ])
+    );
+    unitSchedule.mockReturnValue(
+      queryResult([
+        { resourceKey: 7, serialNo: "OSC-001", unavailable: false, busy: [] },
+        { resourceKey: 8, serialNo: "OSC-002", unavailable: false, busy: [] },
+      ])
+    );
+    renderPage();
+    // Closed until asked for, so the queue stays one line per request.
+    expect(unitSchedule).not.toHaveBeenCalled();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: i18n.t("staff.queue.showUnitSchedule") })
+    );
+
+    expect(unitSchedule).toHaveBeenCalledWith("5", expect.any(String), 14);
+    expect(screen.getAllByLabelText(/^OSC-002 \d{4}-\d{2}-\d{2}:/).length).toBe(14);
+    // D-04: who has the unit is not shown.
+    expect(screen.queryByText(/Lovelace.*OSC/)).not.toBeInTheDocument();
   });
 
   describe("demo feedback: one submit for several units is one row", () => {
@@ -392,6 +511,100 @@ describe("StaffQueuePage", () => {
       )
     );
     expect(screen.getByText("Ada Lovelace")).toBeInTheDocument();
+  });
+
+  describe("#237: the handover photo is the borrower's own", () => {
+    const prepared = staffQueueRow.strict().parse({ ...row, usageKey: 9, status: "Prepared", serialNo: "OSC-001" });
+    const photoBy = (submittedBy: number) =>
+      queryResult(
+        usagePhotosOutput.strict().parse({
+          before: [
+            {
+              imageKey: 3,
+              imageUrl: "/media/inspection/pickup.jpg",
+              stage: "before",
+              submittedBy,
+              submittedAt: "2026-09-30T06:00:00.000Z",
+            },
+          ],
+          after: [],
+          inspection: [],
+          evidence: [],
+        })
+      );
+    const openHandover = () => {
+      const view = renderPage();
+      fireEvent.click(
+        screen.getAllByRole("button", { name: new RegExp(i18n.t("staff.queue.bucketToHandover")) })[0]
+      );
+      return view;
+    };
+
+    it("waits for the borrower's pickup photo and offers no camera to staff", () => {
+      mocks.useStaffQueue.mockImplementation((bucket: string) =>
+        queryResult(bucket === "toHandover" ? [prepared] : [row])
+      );
+      mocks.useUsagePhotos.mockReturnValue(photoBy(7)); // a staff upload
+      const { container } = openHandover();
+      expect(screen.getByRole("button", { name: i18n.t("staff.queue.actionHandover") })).toBeDisabled();
+      expect(screen.getByText(i18n.t("staff.queue.waitBorrowerPhoto"))).toBeInTheDocument();
+      expect(container.querySelector('input[type="file"]')).toBeNull();
+    });
+
+    it("hands over once the borrower's photo is on file and shows it", async () => {
+      const handover = vi.fn().mockResolvedValue(loanResponse({ usageKey: 9, status: "Lended" }));
+      mocks.useConfirmPickup.mockReturnValue(mutationResult(handover));
+      mocks.useStaffQueue.mockImplementation((bucket: string) =>
+        queryResult(bucket === "toHandover" ? [prepared] : [row])
+      );
+      mocks.useUsagePhotos.mockReturnValue(photoBy(row.borrower.accountKey));
+      openHandover();
+      expect(screen.getByRole("link", { name: i18n.t("common.viewPhoto") })).toHaveAttribute(
+        "href",
+        "/media/inspection/pickup.jpg"
+      );
+      fireEvent.click(screen.getByRole("button", { name: i18n.t("staff.queue.actionHandover") }));
+      await waitFor(() => expect(handover).toHaveBeenCalledWith({ usageKey: 9, early: false }));
+    });
+
+    it("hands a cart over without copying one unit's photo onto the others", async () => {
+      const handover = vi.fn().mockResolvedValue(loanResponse({ usageKey: 9, status: "Lended" }));
+      mocks.useConfirmPickup.mockReturnValue(mutationResult(handover));
+      const cart = [101, 102].map((usageKey, i) =>
+        staffQueueRow.strict().parse({ ...row, usageKey, reservationKey: 77 + i, cartKey: 9, status: "Prepared" })
+      );
+      mocks.useStaffQueue.mockImplementation((bucket: string) =>
+        queryResult(bucket === "toHandover" ? cart : [row])
+      );
+      mocks.useUsagePhotos.mockReturnValue(photoBy(row.borrower.accountKey));
+      openHandover();
+      fireEvent.click(screen.getByRole("button", { name: i18n.t("staff.queue.handoverAll", { count: 2 }) }));
+      await waitFor(() => expect(handover).toHaveBeenCalledTimes(2));
+      expect(copyPhotos).not.toHaveBeenCalled();
+    });
+  });
+
+  it("attaches every return photo chosen at once (#238)", async () => {
+    const uploadPhoto = vi.fn().mockResolvedValue({});
+    mocks.usePickupImageUpload.mockReturnValue(mutationResult(uploadPhoto));
+    mocks.useStaffQueue.mockImplementation((bucket: string) =>
+      queryResult(
+        bucket === "onLoan"
+          ? [staffQueueRow.strict().parse({ ...row, usageKey: 9, status: "Lended", serialNo: "OSC-001" })]
+          : [row]
+      )
+    );
+    const { container } = renderPage();
+    fireEvent.click(screen.getAllByRole("button", { name: /On loan/i })[0]);
+    const files = ["a.jpg", "b.jpg"].map(
+      (name) => new File([new Uint8Array(8)], name, { type: "image/jpeg" })
+    );
+    fireEvent.change(container.querySelector('input[type="file"]')!, { target: { files } });
+    await waitFor(() => expect(uploadPhoto).toHaveBeenCalledTimes(2));
+    expect(uploadPhoto.mock.calls.map(([input]) => [input.stage, input.image.file])).toEqual([
+      ["after", files[0]],
+      ["after", files[1]],
+    ]);
   });
 
   it("blocks return without an after photo and displays the late penalty after return", async () => {

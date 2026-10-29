@@ -9,6 +9,7 @@ import type { TechnicalConfig } from "../../src/features/admin/config/config.typ
 import type { CronJob, SystemStatus } from "../../src/features/admin/status/status.types";
 import { getErrorMessage } from "../../src/lib/error-messages";
 import { workHoursSetting } from "../../../backend/src/admin/admin.schema";
+import { fmtDate, localInstant } from "../../src/lib/datetime";
 
 const useSystemStatusMock = vi.hoisted(() => vi.fn());
 const useCronJobsMock = vi.hoisted(() => vi.fn());
@@ -16,6 +17,8 @@ const useRunCronJobMock = vi.hoisted(() => vi.fn());
 const useTechnicalConfigMock = vi.hoisted(() => vi.fn());
 const useWorkHoursMock = vi.hoisted(() => vi.fn());
 const useUpdateWorkHoursMock = vi.hoisted(() => vi.fn());
+const useHolidaysSettingMock = vi.hoisted(() => vi.fn());
+const useUpdateHolidaysMock = vi.hoisted(() => vi.fn());
 
 vi.mock("../../src/features/admin/status/use-system-status", () => ({
   useSystemStatus: useSystemStatusMock,
@@ -35,6 +38,8 @@ vi.mock("../../src/features/admin/config/use-config", () => ({
   useTechnicalConfig: useTechnicalConfigMock,
   useWorkHours: useWorkHoursMock,
   useUpdateWorkHours: useUpdateWorkHoursMock,
+  useHolidaysSetting: useHolidaysSettingMock,
+  useUpdateHolidays: useUpdateHolidaysMock,
 }));
 
 const STATUS: SystemStatus = {
@@ -99,11 +104,19 @@ const CONFIG: TechnicalConfig = {
 describe("IT admin status and technical configuration pages", () => {
   const mutateAsync = vi.fn();
   const saveHours = vi.fn();
+  const saveHolidays = vi.fn();
 
   beforeEach(() => {
     i18n.changeLanguage("en");
     vi.clearAllMocks();
     useWorkHoursMock.mockReturnValue({ data: undefined });
+    // Like the hours card: no data hides the editable card in the read-only checks.
+    useHolidaysSettingMock.mockReturnValue({ data: undefined });
+    useUpdateHolidaysMock.mockReturnValue({
+      mutate: saveHolidays,
+      isPending: false,
+      isError: false,
+    });
     useUpdateWorkHoursMock.mockReturnValue({
       mutate: saveHours,
       isPending: false,
@@ -165,6 +178,46 @@ describe("IT admin status and technical configuration pages", () => {
     );
     expect(screen.getByRole("button", { name: i18n.t("common.save") })).toBeDisabled();
     expect(saveHours).not.toHaveBeenCalled();
+  });
+
+  it("#234: adds a holiday and saves the whole list", () => {
+    useHolidaysSettingMock.mockReturnValue({ data: { dates: ["2026-12-05"] } });
+    render(<AdminConfigPage />);
+    const add = screen.getByRole("button", { name: i18n.t("admin.config.holidayAdd") });
+    expect(add).toBeDisabled();
+    fireEvent.change(screen.getByLabelText(i18n.t("admin.config.holidayDate")), {
+      target: { value: "2026-12-10" },
+    });
+    fireEvent.click(add);
+    expect(saveHolidays).toHaveBeenCalledWith(["2026-12-05", "2026-12-10"], {
+      onSuccess: expect.any(Function),
+    });
+  });
+
+  it("#234: does not add a day that is already listed", () => {
+    useHolidaysSettingMock.mockReturnValue({ data: { dates: ["2026-12-05"] } });
+    render(<AdminConfigPage />);
+    fireEvent.change(screen.getByLabelText(i18n.t("admin.config.holidayDate")), {
+      target: { value: "2026-12-05" },
+    });
+    expect(
+      screen.getByRole("button", { name: i18n.t("admin.config.holidayAdd") })
+    ).toBeDisabled();
+  });
+
+  it("#234: removes one holiday and keeps the rest", () => {
+    useHolidaysSettingMock.mockReturnValue({
+      data: { dates: ["2026-12-05", "2026-12-10"] },
+    });
+    render(<AdminConfigPage />);
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: i18n.t("admin.config.holidayRemove", {
+          date: fmtDate(localInstant("2026-12-05", 12)),
+        }),
+      })
+    );
+    expect(saveHolidays).toHaveBeenCalledWith(["2026-12-10"]);
   });
 
   it("renders live status metrics, cron state, and a successful job result", () => {

@@ -517,6 +517,22 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 			};
 			meta: object;
 		}>;
+		holidays: import("@trpc/server").TRPCQueryProcedure<{
+			input: void;
+			output: {
+				dates: string[];
+			};
+			meta: object;
+		}>;
+		updateHolidays: import("@trpc/server").TRPCMutationProcedure<{
+			input: {
+				dates: string[];
+			};
+			output: {
+				dates: string[];
+			};
+			meta: object;
+		}>;
 		getConfig: import("@trpc/server").TRPCQueryProcedure<{
 			input: void;
 			output: {
@@ -1295,6 +1311,11 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 				maxExtendTimes: number;
 				signInMethod: "password" | "google" | null;
 				avatarUrl: string | null;
+				groups: {
+					id: number;
+					kind: "department" | "club";
+					name: string | null;
+				}[];
 			} | null;
 			meta: object;
 		}>;
@@ -1330,6 +1351,11 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 				maxExtendTimes: number;
 				signInMethod: "password" | "google" | null;
 				avatarUrl: string | null;
+				groups: {
+					id: number;
+					kind: "department" | "club";
+					name: string | null;
+				}[];
 			};
 			meta: object;
 		}>;
@@ -1354,6 +1380,11 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 					maxExtendTimes: number;
 					signInMethod: "password" | "google" | null;
 					avatarUrl: string | null;
+					groups: {
+						id: number;
+						kind: "department" | "club";
+						name: string | null;
+					}[];
 				};
 			};
 			meta: object;
@@ -2133,6 +2164,11 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 						type: "Club" | "Faculty";
 					};
 					currentDueAt: string | null;
+					withdrawal: {
+						note: string | null;
+						at: string | null;
+						lentOutside: boolean;
+					} | null;
 				}[];
 			};
 			meta: object;
@@ -2175,6 +2211,11 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 						type: "Club" | "Faculty";
 					};
 					currentDueAt: string | null;
+					withdrawal: {
+						note: string | null;
+						at: string | null;
+						lentOutside: boolean;
+					} | null;
 				}[];
 			};
 			meta: object;
@@ -2218,6 +2259,11 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 						type: "Club" | "Faculty";
 					};
 					currentDueAt: string | null;
+					withdrawal: {
+						note: string | null;
+						at: string | null;
+						lentOutside: boolean;
+					} | null;
 				}[];
 			};
 			meta: object;
@@ -2247,6 +2293,11 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 					type: "Club" | "Faculty";
 				};
 				currentDueAt: string | null;
+				withdrawal: {
+					note: string | null;
+					at: string | null;
+					lentOutside: boolean;
+				} | null;
 			}[];
 			meta: object;
 		}>;
@@ -2280,6 +2331,11 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 					type: "Club" | "Faculty";
 				};
 				currentDueAt: string | null;
+				withdrawal: {
+					note: string | null;
+					at: string | null;
+					lentOutside: boolean;
+				} | null;
 			}[];
 			meta: object;
 		}>;
@@ -2309,6 +2365,11 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 					type: "Club" | "Faculty";
 				};
 				currentDueAt: string | null;
+				withdrawal: {
+					note: string | null;
+					at: string | null;
+					lentOutside: boolean;
+				} | null;
 			};
 			meta: object;
 		}>;
@@ -2317,6 +2378,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 				resourceKey: number;
 				lendable: boolean;
 				reason?: string | undefined;
+				lentOutside?: boolean | undefined;
 			};
 			output: {
 				resourceKey: number;
@@ -2337,6 +2399,11 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 					type: "Club" | "Faculty";
 				};
 				currentDueAt: string | null;
+				withdrawal: {
+					note: string | null;
+					at: string | null;
+					lentOutside: boolean;
+				} | null;
 			};
 			meta: object;
 		}>;
@@ -2365,6 +2432,11 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 					type: "Club" | "Faculty";
 				};
 				currentDueAt: string | null;
+				withdrawal: {
+					note: string | null;
+					at: string | null;
+					lentOutside: boolean;
+				} | null;
 			};
 			meta: object;
 		}>;

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { fmtDate } from "@/lib/datetime";
 import { useNavigate } from "react-router-dom";
 import { ShoppingCart, SlidersHorizontal, X } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
@@ -66,7 +67,9 @@ export default function CatalogPage() {
   const [sort, setSort] = useState<SortKey>("avail");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [availableOnly, setAvailableOnly] = useState(true);
+  // Off by default (requested 29 Oct 2569): a type with nothing free stays
+  // listed, greyed with the day it is free again, instead of vanishing.
+  const [availableOnly, setAvailableOnly] = useState(false);
   // Draft lines live in the shared store so the request page picks them up.
   const draftLines = useRequestDraft((s) => s.lines);
   const startDate = useRequestDraft((s) => s.startDate);
@@ -226,7 +229,7 @@ export default function CatalogPage() {
       render: (e) => (
         <div className="flex items-center gap-3">
           <ImageThumb src={e.imageUrl} size={44} />
-          <div className="min-w-0">
+          <div className={cn("min-w-0", e.availableUnits === 0 && "opacity-60")}>
             <div className="font-medium text-foreground">{e.name}</div>
             <div className="mt-0.5 font-mono text-[11px] text-t4">{e.code}</div>
           </div>
@@ -271,9 +274,11 @@ export default function CatalogPage() {
           title={
             !e.eligible
               ? t("borrower.catalog.notEligibleHint")
-              : atCap(e)
-                ? t("borrower.catalog.addCapped")
-                : undefined
+              : e.availableUnits === 0
+                ? t("borrower.catalog.noneFreeHint")
+                : atCap(e)
+                  ? t("borrower.catalog.addCapped")
+                  : undefined
           }
           onClick={(ev) => ev.stopPropagation()}
         >
@@ -729,7 +734,7 @@ function ItemCard({
     <div className="rounded-lg border border-border bg-card p-3.5 shadow-sm">
       <div className="flex items-start gap-3">
         <ImageThumb src={item.imageUrl} size={64} />
-        <div className="min-w-0">
+        <div className={cn("min-w-0", item.availableUnits === 0 && "opacity-60")}>
           <div className="text-sm font-semibold leading-snug text-foreground">
             {item.name}
           </div>
@@ -770,7 +775,8 @@ function ItemCard({
 }
 
 function AvailCount({ item }: { item: CatalogItem }) {
-  return (
+  const { t } = useTranslation();
+  const count = (
     <span
       className={cn(
         "whitespace-nowrap font-mono text-xs tabular-nums",
@@ -778,6 +784,18 @@ function AvailCount({ item }: { item: CatalogItem }) {
       )}
     >
       {item.availableUnits} / {item.totalUnits}
+    </span>
+  );
+  if (item.availableUnits > 0) return count;
+  // Nothing free for the dates asked: say when it is, if a unit is due back.
+  return (
+    <span className="inline-flex flex-col items-end">
+      {count}
+      <span className="whitespace-nowrap text-[11px] text-t4">
+        {item.nextAvailableAt
+          ? t("borrower.catalog.freeAgain", { date: fmtDate(item.nextAvailableAt) })
+          : t("borrower.catalog.noneFree")}
+      </span>
     </span>
   );
 }

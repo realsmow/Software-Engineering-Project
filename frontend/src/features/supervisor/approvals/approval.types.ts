@@ -137,6 +137,8 @@ export interface ExtensionReviewRow {
     note: string | null;
     loggedAt: string | null;
     loggedBy: string;
+    /** #205: signed URLs of the photos staff took at this check. */
+    photos: string[];
   } | null;
 }
 

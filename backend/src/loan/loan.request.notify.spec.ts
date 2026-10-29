@@ -54,6 +54,10 @@ function dbFor(resource: any, supervisors: { AccountKey: number }[] = []) {
   const tx = {
     reservations: {
       count: jest.fn().mockResolvedValue(0),
+      // #236: availability is read inside the cart's transaction now; these
+      // reach the same stubs as the outer client.
+      findFirst: (...a: any[]) => db.reservations.findFirst(...a),
+      findMany: (...a: any[]) => db.reservations.findMany(...a),
       create: jest.fn().mockImplementation(({ data }: any) => {
         row.ApproveStatus = data.ApproveStatus;
         row.AutoApproved = data.AutoApproved;
@@ -61,9 +65,17 @@ function dbFor(resource: any, supervisors: { AccountKey: number }[] = []) {
         return Promise.resolve({ ReservationKey: 101 });
       }),
     },
+    requestCart: { create: (...a: any[]) => db.requestCart.create(...a) },
+    resourceInfo: {
+      findMany: (...a: any[]) => db.resourceInfo.findMany(...a),
+    },
+    usageLog: {
+      findFirst: (...a: any[]) => db.usageLog.findFirst(...a),
+      findMany: (...a: any[]) => db.usageLog.findMany(...a),
+    },
     accountInfo: { findMany: jest.fn().mockResolvedValue(supervisors) },
   };
-  return {
+  const db: any = {
     resourceInfo: {
       findUnique: jest.fn().mockResolvedValue(resource),
       findMany: jest.fn().mockResolvedValue([]),
@@ -84,6 +96,7 @@ function dbFor(resource: any, supervisors: { AccountKey: number }[] = []) {
     ),
     __tx: tx,
   };
+  return db;
 }
 
 function service(db: any, creditTier = 'D0') {
@@ -110,6 +123,15 @@ const future = {
   endTime: '2099-01-12T08:00:00.000Z',
   lines: [{ resourceKey: 7 }],
 };
+
+// P-10: a booking may end at most 90 days ahead; stand on the day before it.
+beforeEach(() =>
+  jest.useFakeTimers({
+    now: new Date('2099-01-11T01:00:00Z'),
+    doNotFake: ['nextTick', 'setImmediate'],
+  }),
+);
+afterEach(() => jest.useRealTimers());
 
 describe('FR-NTF-04: a request routed to a supervisor', () => {
   it('notifies every supervisor with authority over the department', async () => {

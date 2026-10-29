@@ -21,6 +21,15 @@ export interface AccountRow {
   // name recorded. Both collapse to facultyName: null downstream.
   Faculty?: { FacultyName: string | null } | null;
   AvatarUrl?: string | null;
+  // A group is a department (BranchInfo) or a club (ClubInfo); the name is
+  // nullable in the schema.
+  Authorities?: {
+    ManageGroup: {
+      ManageGroupKey: number;
+      Branch: { BranchName: string | null } | null;
+      Club: { ClubName: string | null } | null;
+    };
+  }[];
 }
 
 /**
@@ -54,5 +63,18 @@ export function toUserOutput(
     signInMethod: null,
     // Stored path; the router turns it into a public URL.
     avatarUrl: row.AvatarUrl ?? null,
+    groups: (row.Authorities ?? []).map(({ ManageGroup: group }) =>
+      group.Branch
+        ? {
+            id: group.ManageGroupKey,
+            kind: 'department' as const,
+            name: group.Branch.BranchName,
+          }
+        : {
+            id: group.ManageGroupKey,
+            kind: 'club' as const,
+            name: group.Club?.ClubName ?? null,
+          },
+    ),
   };
 }

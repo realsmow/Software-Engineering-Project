@@ -4,13 +4,16 @@ import { useNavigate } from "react-router-dom";
 import { Camera, Check, TriangleAlert } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { ImageThumb } from "@/components/shared/image-thumb";
+import { UsagePhotoGallery } from "@/components/shared/usage-photo-gallery";
+import { PhotoCount } from "@/components/shared/photo-count";
 import { Badge, type BadgeTone } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 import { ROUTES, UPLOAD } from "@/constants";
 import { getErrorMessage } from "@/lib/error-messages";
 import { cn } from "@/lib/utils";
-import { uploadAcceptAttr, validateUploadFile } from "@/lib/upload-validation";
+import { uploadAcceptAttr } from "@/lib/upload-validation";
+import { takePhotos } from "@/lib/photo-picks";
 import type { MyRequest } from "../request-status";
 import { fmtDayMonth } from "../format";
 import { useMyRequests, type LoanRow } from "../loans/use-my-requests";
@@ -20,6 +23,7 @@ import {
   usePickupImageUpload,
   useUsagePhotos,
   type UsagePhoto,
+  useDetachUsagePhoto,
 } from "../pickup/use-pickup-image-upload";
 import { prepareBorrowerImage, releaseBorrowerImage } from "../uploads/prepared-image";
 
@@ -322,35 +326,47 @@ function PhotoBox({
 }) {
   const { t } = useTranslation();
   const upload = usePickupImageUpload();
+  const detach = useDetachUsagePhoto();
   const [error, setError] = useState<string | null>(null);
   const latest = photos[photos.length - 1];
 
-  async function onPick(e: ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    // Let the same file be chosen again after a rejection.
-    e.target.value = "";
-    if (!file) return;
-
-    const result = validateUploadFile(file);
-    if (!result.ok) {
-      setError(
-        result.code === "FILE_TOO_LARGE"
-          ? t("borrower.roomUse.photoTooLarge", { max: UPLOAD.MAX_MB })
-          : t("borrower.roomUse.photoBadType"),
-      );
-      return;
-    }
-
+  // P-07 (instructor item 2): a wrong photo is removed and taken again while
+  // its phase is open; once the phase is over the photos stay as evidence.
+  async function remove(imageKey: number) {
     setError(null);
-    // The preview is the server's copy once it lands, so this one's blob URL
-    // is only needed for the upload and is released either way.
-    const prepared = prepareBorrowerImage(file);
     try {
-      await upload.mutateAsync({ usageKey, stage, image: prepared });
+      await detach.mutateAsync({ usageKey, imageKey });
     } catch (err) {
       setError(getErrorMessage(err));
-    } finally {
-      releaseBorrowerImage(prepared);
+    }
+  }
+
+  // #238: several photos per pick, uploaded one after another, up to the cap.
+  async function onPick(e: ChangeEvent<HTMLInputElement>) {
+    const pick = takePhotos(Array.from(e.target.files ?? []), photos.length);
+    // Let the same file be chosen again after a rejection.
+    e.target.value = "";
+    setError(
+      pick.problem === null
+        ? null
+        : pick.problem === "TOO_MANY"
+          ? t("common.photoCapReached", { max: UPLOAD.MAX_PHOTOS_PER_STAGE })
+          : pick.problem === "FILE_TOO_LARGE"
+            ? t("borrower.roomUse.photoTooLarge", { max: UPLOAD.MAX_MB })
+            : t("borrower.roomUse.photoBadType"),
+    );
+    for (const file of pick.accepted) {
+      // The preview is the server's copy once it lands, so this one's blob URL
+      // is only needed for the upload and is released either way.
+      const prepared = prepareBorrowerImage(file);
+      try {
+        await upload.mutateAsync({ usageKey, stage, image: prepared });
+      } catch (err) {
+        setError(getErrorMessage(err));
+        return;
+      } finally {
+        releaseBorrowerImage(prepared);
+      }
     }
   }
 
@@ -375,7 +391,8 @@ function PhotoBox({
         <input
           type="file"
           accept={uploadAcceptAttr()}
-          disabled={!canPick}
+          multiple
+          disabled={!canPick || photos.length >= UPLOAD.MAX_PHOTOS_PER_STAGE}
           onChange={(e) => void onPick(e)}
           className="sr-only"
         />
@@ -396,6 +413,21 @@ function PhotoBox({
           </span>
         )}
       </label>
+
+      {photos.length > 0 ? (
+        <div className="mt-2">
+          <PhotoCount count={photos.length} className="mb-1 block" />
+          <UsagePhotoGallery
+            photos={{ before: [], after: [], inspection: [], evidence: [], [stage]: photos }}
+            stages={[stage]}
+            showLabels={false}
+            size={40}
+            disabled={detach.isPending || upload.isPending}
+            pendingImageKey={detach.isPending ? detach.variables?.imageKey : undefined}
+            onRemove={editable ? (imageKey) => void remove(imageKey) : undefined}
+          />
+        </div>
+      ) : null}
 
       {error ? (
         <p className="mt-1.5 text-[11.5px] leading-relaxed text-[var(--s-alert-t)]">{error}</p>

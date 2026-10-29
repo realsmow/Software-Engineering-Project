@@ -132,6 +132,20 @@ export function useCatalogSearch(q: string) {
   });
 }
 
+/**
+ * #235: one type's units and the days each is busy, for staff choosing which
+ * unit to set aside. Shares its cache entries with useCartSchedule.
+ */
+export function useUnitSchedule(id: string | undefined, from: string, days = 14) {
+  const trpc = useTRPCClient();
+  return useQuery({
+    queryKey: ["unit-schedule", id ?? "", from, days],
+    enabled: itemKey(id) !== null,
+    queryFn: () => trpc.item.unitSchedule.query({ id: itemKey(id) as number, from, days }),
+    refetchInterval: POLLING.AVAILABILITY,
+  });
+}
+
 /** Busy windows per unit of each type, for the availability calendar. */
 export function useCartSchedule(ids: string[], from: string, days: number) {
   const trpc = useTRPCClient();

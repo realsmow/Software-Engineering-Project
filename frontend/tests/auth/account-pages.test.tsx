@@ -279,6 +279,29 @@ describe("profile account actions through real hooks", () => {
     expect(screen.queryByText(/backend/i)).not.toBeInTheDocument();
   });
 
+  it("lists the departments and clubs the account belongs to", () => {
+    useAuthStore.getState().setUser(
+      toClientUser(
+        userResponse({
+          groups: [
+            { id: 4, kind: "department", name: "Computer Engineering" },
+            { id: 5, kind: "club", name: "Robotics Club" },
+          ],
+        })
+      )
+    );
+    mount(<ProfilePage />);
+    // A missing key would render as its own name and still match below.
+    expect(i18n.exists("profile.groups") && i18n.exists("profile.noGroups")).toBe(true);
+    expect(screen.getByText(i18n.t("profile.groups"))).toBeInTheDocument();
+    expect(screen.getByText("Computer Engineering · Robotics Club")).toBeInTheDocument();
+  });
+
+  it("says when the account belongs to no department or club yet", () => {
+    mount(<ProfilePage />);
+    expect(screen.getByText(i18n.t("profile.noGroups"))).toBeInTheDocument();
+  });
+
   it.each([
     ["google", "profile.authGoogle"],
     ["password", "profile.authPassword"],

@@ -11,6 +11,7 @@ import { StaffScopeService } from '../common/authority/staff-scope.service';
 import { ImageService } from '../image/image.service';
 import { PenaltyService } from '../common/penalty/penalty.service';
 import { BusinessError } from '../common/errors/business-error';
+import { lockRow } from '../common/db/lock-row';
 import { isUniqueViolation } from '../common/db/serializable';
 import {
   daysBetween,
@@ -310,6 +311,32 @@ export class InspectionService {
 
     const inspectionKey = await this.prisma
       .$transaction(async (tx) => {
+        // #220 R4: two inspectors saving the same return at once both passed
+        // the checks above and both graded it, so the borrower was charged
+        // twice. Lock the loan and re-read it: the second caller waits for the
+        // first to commit, then finds the grade already recorded.
+        await lockRow(tx, 'UsageLog', usage.UsageKey);
+        const fresh = await tx.usageLog.findUniqueOrThrow({
+          where: { UsageKey: usage.UsageKey },
+          select: {
+            CurrentStatus: true,
+            Inspections: { take: 1, select: { InspectionKey: true } },
+          },
+        });
+        if (fresh.Inspections.length > 0) {
+          throw new BusinessError('ALREADY_INSPECTED', {
+            usageKey: usage.UsageKey,
+            inspectionKey: fresh.Inspections[0].InspectionKey,
+          });
+        }
+        if (fresh.CurrentStatus !== 'Returned') {
+          throw new BusinessError('WRONG_LOAN_STATE', {
+            usageKey: usage.UsageKey,
+            actual: fresh.CurrentStatus,
+            expected: ['Returned'],
+          });
+        }
+
         const conditionLog = await tx.conditionLog.create({
           data: {
             ResourceKey: usage.Resource.ResourceKey,

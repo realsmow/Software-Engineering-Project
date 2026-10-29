@@ -1,6 +1,6 @@
 import { LoanRequestService } from './loan.request.service';
 import { BusinessError } from '../common/errors/business-error';
-import { workHours } from '../common/schemas/datetime.schema';
+import { setHolidays, workHours } from '../common/schemas/datetime.schema';
 
 const user = { accountKey: 10, creditScore: 80 } as any;
 const baseResource = {
@@ -13,6 +13,29 @@ const baseResource = {
   Item: { ItemID: 'CAL-01', Item: { ItemName: 'Caliper', CreditWeight: 1 } },
   Room: null,
 };
+
+/**
+ * #236: availability is read inside the cart's transaction, so a test's own
+ * transaction stub must offer these reads as well. They go to the stubs on
+ * the outer client, looked up at call time.
+ */
+function cartReads(db: any) {
+  return {
+    requestCart: { create: (...a: any[]) => db.requestCart.create(...a) },
+    resourceInfo: {
+      findMany: (...a: any[]) => db.resourceInfo.findMany(...a),
+    },
+    usageLog: {
+      findFirst: (...a: any[]) => db.usageLog.findFirst(...a),
+      findMany: (...a: any[]) => db.usageLog.findMany(...a),
+    },
+    accountInfo: { findMany: jest.fn().mockResolvedValue([]) },
+    reservationReads: {
+      findFirst: (...a: any[]) => db.reservations.findFirst(...a),
+      findMany: (...a: any[]) => db.reservations.findMany(...a),
+    },
+  };
+}
 
 function dbFor(resource = baseResource) {
   const row: any = {
@@ -36,6 +59,8 @@ function dbFor(resource = baseResource) {
   const tx = {
     reservations: {
       count: jest.fn().mockResolvedValue(0),
+      findFirst: (...a: any[]) => db.reservations.findFirst(...a),
+      findMany: (...a: any[]) => db.reservations.findMany(...a),
       create: jest.fn().mockImplementation(({ data }: any) => {
         row.ApproveStatus = data.ApproveStatus;
         row.AutoApproved = data.AutoApproved;
@@ -45,11 +70,22 @@ function dbFor(resource = baseResource) {
         return Promise.resolve({ ReservationKey: 101 });
       }),
     },
+    // #236: availability is read inside the cart's transaction now. These go
+    // to the same stubs a test sets on the outer client, looked up at call
+    // time so a test that replaces one still reaches it.
+    requestCart: { create: (...a: any[]) => db.requestCart.create(...a) },
+    resourceInfo: {
+      findMany: (...a: any[]) => db.resourceInfo.findMany(...a),
+    },
+    usageLog: {
+      findFirst: (...a: any[]) => db.usageLog.findFirst(...a),
+      findMany: (...a: any[]) => db.usageLog.findMany(...a),
+    },
     // Supervisor lookup for a route: 'supervisor' request (FR-NTF-04) - empty
     // by default, so a test that never sets it up notifies nobody.
     accountInfo: { findMany: jest.fn().mockResolvedValue([]) },
   };
-  return {
+  const db: any = {
     resourceInfo: {
       findUnique: jest.fn().mockResolvedValue(resource),
       // Siblings for the T1 swap (FR-RSV-04) - empty by default, so a test
@@ -85,6 +121,7 @@ function dbFor(resource = baseResource) {
       Array.isArray(arg) ? Promise.all(arg) : arg(tx),
     ),
   };
+  return db;
 }
 
 function service(
@@ -401,8 +438,11 @@ describe('one room held at a time', () => {
     const tx = db.$transaction as jest.Mock;
     // First count is the window clash, second is what this borrower holds.
     tx.mockImplementation(async (arg: any) => {
+      const { reservationReads, ...reads } = cartReads(db);
       const inner = {
+        ...reads,
         reservations: {
+          ...reservationReads,
           count: jest
             .fn()
             .mockResolvedValueOnce(0)
@@ -564,17 +604,59 @@ describe('reservation horizon (FR-RSV-01, FR-RSV-03)', () => {
       termEnd: expect.any(String),
     });
   });
+
+  // P-10: the screen offers dates up to 90 days ahead; the server had no cap at
+  // all while TERM_END_DATE was unset (as on Render), so a 2031 booking went in.
+  const t1 = () =>
+    dbFor({ ...baseResource, BorrowRuleInfo: { RuleName: 'T1' } });
+
+  it('refuses a T1 request ending after the 90th day when TERM_END_DATE is unset', async () => {
+    const result = await service(t1()).create(user as never, {
+      startTime: '2099-04-14T02:00:00.000Z', // day 90, Tue
+      endTime: '2099-04-15T08:00:00.000Z', // day 91
+      lines: [{ resourceKey: 7 }],
+    });
+
+    expect(result.created).toHaveLength(0);
+    expect(result.rejected[0]).toMatchObject({
+      code: 'RESERVATION_TOO_FAR',
+      detail: { maxDays: 90 },
+    });
+  });
+
+  it('accepts a T1 request ending on the 90th day, the last day the screen offers', async () => {
+    const result = await service(t1()).create(user as never, {
+      startTime: '2099-04-13T02:00:00.000Z', // day 89, Mon
+      endTime: '2099-04-14T08:00:00.000Z', // day 90
+      lines: [{ resourceKey: 7 }],
+    });
+
+    expect(result.rejected).toEqual([]);
+    expect(result.created).toHaveLength(1);
+  });
+
+  it('keeps the 90-day cap when TERM_END_DATE is later or not a date', async () => {
+    for (const termEnd of ['2099-12-31', 'YYYY-MM-DD']) {
+      process.env.TERM_END_DATE = termEnd;
+      const result = await service(t1()).create(user as never, {
+        startTime: '2099-04-14T02:00:00.000Z',
+        endTime: '2099-04-15T08:00:00.000Z',
+        lines: [{ resourceKey: 7 }],
+      });
+      expect(result.rejected[0]?.code).toBe('RESERVATION_TOO_FAR');
+    }
+  });
 });
 
 // T0 swaps the same way (#227): the screen sends the first free unit.
 describe.each(['T1', 'T0'])('%s unit swap (FR-RSV-04)', (tier) => {
-  // T0 is same-day only, so stand on the morning of the window.
+  // Stand on the morning of the window: T0 is same-day only, and a T1
+  // booking may end at most 90 days ahead (P-10).
   beforeEach(() => {
-    if (tier === 'T0')
-      jest.useFakeTimers({
-        now: new Date('2099-01-14T01:00:00Z'),
-        doNotFake: ['nextTick', 'setImmediate'],
-      });
+    jest.useFakeTimers({
+      now: new Date('2099-01-14T01:00:00Z'),
+      doNotFake: ['nextTick', 'setImmediate'],
+    });
   });
   afterEach(() => jest.useRealTimers());
 
@@ -615,9 +697,12 @@ describe.each(['T1', 'T0'])('%s unit swap (FR-RSV-04)', (tier) => {
     // The harness's default tx always writes the fixture passed to dbFor();
     // this test needs the write to reflect whichever unit was actually
     // targeted, so it supplies its own.
+    const { reservationReads, ...reads } = cartReads(db);
     db.$transaction = jest.fn(async (arg: any) =>
       arg({
+        ...reads,
         reservations: {
+          ...reservationReads,
           count: jest.fn().mockResolvedValue(0),
           create: jest.fn().mockImplementation(({ data }: any) => {
             row.ApproveStatus = data.ApproveStatus;
@@ -771,6 +856,37 @@ describe('counter hours and weekends (#179, #178)', () => {
       expect(result.created[0].endTime).toBe('2099-01-12T10:00:00.000Z');
     },
   );
+
+  describe('#234: a holiday the admin listed (Monday 12 Jan)', () => {
+    beforeEach(() => setHolidays(['2099-01-12']));
+    afterEach(() => setHolidays([]));
+
+    it('refuses a pickup on the holiday before writing', async () => {
+      const db = dbFor();
+      const result = await service(db).create(user as never, {
+        startTime: '2099-01-12T02:00:00.000Z',
+        endTime: '2099-01-12T06:00:00.000Z',
+        lines: [{ resourceKey: 7 }],
+      });
+      expect(result.rejected[0].code).toBe('OUTSIDE_WORK_HOURS');
+      expect(result.rejected[0].detail).toMatchObject({
+        edge: 'START',
+        reason: 'CLOSED_DAY',
+      });
+      expect(db.$transaction).not.toHaveBeenCalled();
+    });
+
+    it('moves a return on the holiday to Tuesday at closing time', async () => {
+      const db = dbFor({ ...baseResource, BorrowRuleInfo: { RuleName: 'T1' } });
+      const result = await service(db).create(user as never, {
+        startTime: '2099-01-09T02:00:00.000Z',
+        endTime: '2099-01-12T06:00:00.000Z',
+        lines: [{ resourceKey: 7 }],
+      });
+      expect(result.rejected).toEqual([]);
+      expect(result.created[0].endTime).toBe('2099-01-13T10:00:00.000Z');
+    });
+  });
 
   describe('FR-ADM-04: configured counter hours (09:00–16:00 Bangkok)', () => {
     let original: { start: number; end: number };

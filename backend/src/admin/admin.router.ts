@@ -21,6 +21,8 @@ import {
   userLoanHistory,
   workHoursSetting,
   type WorkHoursSetting,
+  holidaysSetting,
+  type HolidaysSetting,
   auditEventIdInput,
   auditEventOutput,
   changeRoleInput,
@@ -256,6 +258,20 @@ export class AdminRouter {
   @Mutation({ input: workHoursSetting, output: lendingSettingsOutput })
   updateWorkHours(@Input() input: WorkHoursSetting, @Ctx() ctx: TrpcContext) {
     return this.adminService.updateWorkHours(input, AdminRouter.actorFrom(ctx));
+  }
+
+  /** #234: every signed-in role reads the closed days, like workHours. */
+  @UseMiddlewares(AuthMiddleware)
+  @Query({ output: holidaysSetting })
+  holidays() {
+    return this.adminService.holidays();
+  }
+
+  /** #234: one holiday list for the whole university, so admin only. */
+  @UseMiddlewares(AdminMiddleware)
+  @Mutation({ input: holidaysSetting, output: holidaysSetting })
+  updateHolidays(@Input() input: HolidaysSetting, @Ctx() ctx: TrpcContext) {
+    return this.adminService.updateHolidays(input, AdminRouter.actorFrom(ctx));
   }
 
   // ── Technical config (IT admin) ─────────────────────────────────────────

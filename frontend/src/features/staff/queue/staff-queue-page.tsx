@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { PageHeader } from "@/components/shared/page-header";
 import { TierDot } from "@/components/shared/tier-badge";
@@ -8,14 +9,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Segmented } from "@/components/ui/segmented";
 import { DataTable, type Column } from "@/components/ui/data-table";
-import { ROUTES } from "@/constants";
-import { uploadAcceptAttr, validateUploadFile } from "@/lib/upload-validation";
+import { ROUTES, UPLOAD } from "@/constants";
+import { uploadAcceptAttr } from "@/lib/upload-validation";
+import { takePhotos } from "@/lib/photo-picks";
 import {
   useDetachUsagePhoto,
   usePickupImageUpload,
   useUsagePhotos,
 } from "@/features/borrower/pickup/use-pickup-image-upload";
 import { UsagePhotoGallery } from "@/components/shared/usage-photo-gallery";
+import { PhotoCount } from "@/components/shared/photo-count";
 import {
   prepareBorrowerImage,
   releaseBorrowerImage,
@@ -23,6 +26,8 @@ import {
 import { getErrorMessage } from "@/lib/error-messages";
 import { fmtDateTime } from "@/features/borrower/format";
 import type { ExtensionReviewRow } from "@/features/supervisor/approvals/approval.types";
+import { useUploadImage } from "@/features/staff/inventory/use-item-image";
+import { ImageThumb } from "@/components/shared/image-thumb";
 import {
   useAllocate,
   useConfirmPickup,
@@ -44,6 +49,7 @@ import {
   type StaffQueueBucket,
   type StaffQueueRow,
 } from "./queue.types";
+import { UnitSchedule } from "./unit-schedule";
 
 const BUCKET_LABEL: Record<StaffQueueBucket, string> = {
   toPrepare: "staff.queue.bucketToPrepare",
@@ -129,6 +135,54 @@ export default function StaffQueuePage() {
   const [extReason, setExtReason] = useState("");
   const [extConditions, setExtConditions] = useState<Record<number, ConditionType>>({});
   const extConditionOf = (key: number): ConditionType => extConditions[key] ?? "Normal";
+  // #205: photos and a note taken at the condition check, per extension row,
+  // sent with the check so the supervisor sees the unit they are deciding on.
+  const uploadImage = useUploadImage();
+  const [extPhotos, setExtPhotos] = useState<
+    Record<number, { imageUrl: string; previewUrl: string }[]>
+  >({});
+  const [extNotes, setExtNotes] = useState<Record<number, string>>({});
+  const [extUploading, setExtUploading] = useState<number | null>(null);
+
+  async function addExtPhotos(row: ExtensionReviewRow, files: File[]) {
+    const pick = takePhotos(files, (extPhotos[row.extensionKey] ?? []).length);
+    if (pick.problem !== null) {
+      setResult({
+        tone: "bad",
+        text:
+          pick.problem === "TOO_MANY"
+            ? t("common.photoCapReached", { max: UPLOAD.MAX_PHOTOS_PER_STAGE })
+            : t("staff.queue.returnPhotoBad"),
+      });
+    } else {
+      setResult(null);
+    }
+    if (pick.accepted.length === 0) return;
+    setExtUploading(row.extensionKey);
+    try {
+      for (const file of pick.accepted) {
+        const ticket = await uploadImage.mutateAsync({ file, purpose: "inspection" });
+        const photo = { imageUrl: ticket.imageUrl, previewUrl: URL.createObjectURL(file) };
+        setExtPhotos((all) => ({
+          ...all,
+          [row.extensionKey]: [...(all[row.extensionKey] ?? []), photo],
+        }));
+      }
+    } catch (error) {
+      setResult({ tone: "bad", text: getErrorMessage(error) });
+    } finally {
+      setExtUploading(null);
+    }
+  }
+
+  function removeExtPhoto(extensionKey: number, imageUrl: string) {
+    setExtPhotos((all) => {
+      const list = all[extensionKey] ?? [];
+      const gone = list.find((p) => p.imageUrl === imageUrl);
+      if (gone) URL.revokeObjectURL(gone.previewUrl);
+      return { ...all, [extensionKey]: list.filter((p) => p.imageUrl !== imageUrl) };
+    });
+  }
 
   async function decideExt(row: ExtensionReviewRow, decision: "approve" | "reject") {
     const why = extReason.trim();
@@ -165,10 +219,17 @@ export default function StaffQueuePage() {
     setExtBusyKey(row.extensionKey);
     setResult(null);
     try {
+      const photos = extPhotos[row.extensionKey] ?? [];
+      const note = (extNotes[row.extensionKey] ?? "").trim();
       await inspectExtension.mutateAsync({
         extensionKey: row.extensionKey,
         condition: extConditionOf(row.extensionKey),
+        ...(note ? { note } : {}),
+        ...(photos.length > 0 ? { imageUrls: photos.map((p) => p.imageUrl) } : {}),
       });
+      for (const p of photos) URL.revokeObjectURL(p.previewUrl);
+      setExtPhotos((all) => ({ ...all, [row.extensionKey]: [] }));
+      setExtNotes((all) => ({ ...all, [row.extensionKey]: "" }));
       setResult({ tone: "ok", text: t("staff.queue.doneExtCheck", { item: row.itemName ?? "" }) });
     } catch (error) {
       setResult({ tone: "bad", text: getErrorMessage(error) });
@@ -226,20 +287,66 @@ export default function StaffQueuePage() {
       key: "condition",
       header: t("staff.queue.colCondition"),
       render: (r) => (
-        <select
-          className="rounded border border-border bg-transparent px-1.5 py-1 text-xs text-foreground"
-          value={extConditionOf(r.extensionKey)}
-          onChange={(e) =>
-            setExtConditions((c) => ({ ...c, [r.extensionKey]: e.target.value as ConditionType }))
-          }
-          aria-label={t("staff.queue.colCondition")}
-        >
-          {EXT_CONDITIONS.map((c) => (
-            <option key={c} value={c}>
-              {t(`staff.inspection.cond${c}`)}
-            </option>
-          ))}
-        </select>
+        <div className="flex min-w-[10rem] flex-col gap-1.5">
+          <select
+            className="rounded border border-border bg-transparent px-1.5 py-1 text-xs text-foreground"
+            value={extConditionOf(r.extensionKey)}
+            onChange={(e) =>
+              setExtConditions((c) => ({ ...c, [r.extensionKey]: e.target.value as ConditionType }))
+            }
+            aria-label={t("staff.queue.colCondition")}
+          >
+            {EXT_CONDITIONS.map((c) => (
+              <option key={c} value={c}>
+                {t(`staff.inspection.cond${c}`)}
+              </option>
+            ))}
+          </select>
+          {r.route === "supervisor" ? (
+            <>
+              <div className="flex flex-wrap items-center gap-1.5">
+                {(extPhotos[r.extensionKey] ?? []).map((p) => (
+                  <div key={p.imageUrl} className="relative">
+                    <a href={p.previewUrl} target="_blank" rel="noreferrer" aria-label={t("common.viewPhoto")}>
+                      <ImageThumb src={p.previewUrl} size={32} />
+                    </a>
+                    <button
+                      type="button"
+                      aria-label={t("borrower.pickup.removePhoto")}
+                      onClick={() => removeExtPhoto(r.extensionKey, p.imageUrl)}
+                      className="absolute -right-1.5 -top-1.5 flex h-4 w-4 items-center justify-center rounded-full border border-border bg-card text-t3 shadow-sm"
+                    >
+                      <X size={10} strokeWidth={2.6} />
+                    </button>
+                  </div>
+                ))}
+                <label className="cursor-pointer whitespace-nowrap rounded border border-dashed border-border px-1.5 py-1 text-[11px] text-t3 hover:text-foreground">
+                  {extUploading === r.extensionKey ? t("common.loading") : t("staff.queue.addPhoto")}
+                  <input
+                    type="file"
+                    accept={uploadAcceptAttr()}
+                    multiple
+                    className="sr-only"
+                    aria-label={t("staff.queue.extCheckPhoto")}
+                    disabled={extUploading === r.extensionKey}
+                    onChange={(e) => {
+                      const files = Array.from(e.target.files ?? []);
+                      e.target.value = "";
+                      void addExtPhotos(r, files);
+                    }}
+                  />
+                </label>
+              </div>
+              <Input
+                value={extNotes[r.extensionKey] ?? ""}
+                onChange={(e) => setExtNotes((n) => ({ ...n, [r.extensionKey]: e.target.value }))}
+                placeholder={t("staff.queue.extCheckNote")}
+                aria-label={t("staff.queue.extCheckNote")}
+                className="h-7 text-xs"
+              />
+            </>
+          ) : null}
+        </div>
       ),
     },
     {
@@ -254,7 +361,7 @@ export default function StaffQueuePage() {
             <Button
               type="button"
               size="sm"
-              disabled={extBusyKey === r.extensionKey}
+              disabled={extBusyKey === r.extensionKey || extUploading === r.extensionKey}
               onClick={() => void checkExt(r)}
             >
               {extBusyKey === r.extensionKey ? t("common.loading") : t("staff.queue.extRecordCheck")}
@@ -377,12 +484,14 @@ export default function StaffQueuePage() {
     let done = 0;
     let lateCredit = 0;
     try {
-      // One photo covers the group: copy the first unit's onto the rest.
-      if (bucket !== "toPrepare" && members[0].usageKey !== null) {
+      // One return photo covers the group: copy the first unit's onto the rest.
+      // #237: never the handover photo - that is each unit's own, taken by the
+      // borrower on their pickup page, and a staff copy would not count.
+      if ((bucket === "onLoan" || bucket === "overdue") && members[0].usageKey !== null) {
         await copyPhotos.mutateAsync({
           from: members[0].usageKey,
           to: members.slice(1).flatMap((m) => (m.usageKey === null ? [] : [m.usageKey])),
-          stage: bucket === "toHandover" ? "before" : "after",
+          stage: "after",
         });
       }
       for (const m of members) {
@@ -526,10 +635,18 @@ export default function StaffQueuePage() {
               >
                 {t("staff.queue.split")}
               </Button>
-              {bucket !== "toPrepare" && r.usageKey !== null ? (
+              {bucket === "toHandover" && r.usageKey !== null ? (
+                <HandoverAction
+                  usageKey={r.usageKey}
+                  borrowerKey={r.borrower.accountKey}
+                  busy={busy}
+                  label={allLabel}
+                  onAct={() => void actGroup(r)}
+                />
+              ) : bucket !== "toPrepare" && r.usageKey !== null ? (
                 <PhotoGatedAction
                   usageKey={r.usageKey}
-                  stage={bucket === "toHandover" ? "before" : "after"}
+                  stage="after"
                   busy={busy}
                   label={allLabel}
                   onAct={() => void actGroup(r)}
@@ -564,9 +681,9 @@ export default function StaffQueuePage() {
                 onAct={() => void act(r)}
               />
             ) : bucket === "toHandover" && r.usageKey !== null ? (
-              <PhotoGatedAction
+              <HandoverAction
                 usageKey={r.usageKey}
-                stage="before"
+                borrowerKey={r.borrower.accountKey}
                 busy={busy}
                 label={t(isBeforePickup(r) ? "staff.queue.actionHandoverEarly" : ACTION_LABEL[bucket])}
                 onAct={() => void act(r)}
@@ -894,27 +1011,33 @@ function PhotoGatedAction({
     }
   }
 
+  // #238: several photos per pick, uploaded one after another, up to the cap.
   async function onPick(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
+    const pick = takePhotos(Array.from(e.target.files ?? []), photos?.[stage].length ?? 0);
     e.target.value = "";
-    if (!file) return;
-    if (!validateUploadFile(file).ok) {
-      setError(t("staff.queue.returnPhotoBad"));
-      return;
-    }
-    setError(null);
-    const prepared = prepareBorrowerImage(file);
-    try {
-      await upload.mutateAsync({ usageKey, stage, image: prepared });
-    } catch (err) {
-      setError(getErrorMessage(err));
-    } finally {
-      releaseBorrowerImage(prepared);
+    setError(
+      pick.problem === null
+        ? null
+        : pick.problem === "TOO_MANY"
+          ? t("common.photoCapReached", { max: UPLOAD.MAX_PHOTOS_PER_STAGE })
+          : t("staff.queue.returnPhotoBad")
+    );
+    for (const file of pick.accepted) {
+      const prepared = prepareBorrowerImage(file);
+      try {
+        await upload.mutateAsync({ usageKey, stage, image: prepared });
+      } catch (err) {
+        setError(getErrorMessage(err));
+        return;
+      } finally {
+        releaseBorrowerImage(prepared);
+      }
     }
   }
 
   return (
     <div className="flex flex-col items-end gap-1.5">
+      {hasPhoto ? <PhotoCount count={photos?.[stage].length ?? 0} /> : null}
       {photos ? (
         <UsagePhotoGallery
           photos={photos}
@@ -939,7 +1062,7 @@ function PhotoGatedAction({
         <input
           type="file"
           accept={uploadAcceptAttr()}
-          capture="environment"
+          multiple
           className="sr-only"
           disabled={upload.isPending}
           onChange={(e) => void onPick(e)}
@@ -954,6 +1077,52 @@ function PhotoGatedAction({
         {busy ? t("common.loading") : label}
       </Button>
       </div>
+    </div>
+  );
+}
+
+/**
+ * #237 (team decision D-05, FR-PKP-02/03): the handover photo is the
+ * borrower's own record of the condition they accept, taken on their pickup
+ * page; staff cannot take it for them. The button waits for that photo and
+ * shows it, read-only, for the check at the counter. For a cart, the first
+ * unit's photo is shown; the server checks every unit.
+ */
+function HandoverAction({
+  usageKey,
+  borrowerKey,
+  busy,
+  label,
+  onAct,
+}: {
+  usageKey: number;
+  borrowerKey: number;
+  busy: boolean;
+  label: string;
+  onAct: () => void;
+}) {
+  const { t } = useTranslation();
+  const { data: photos } = useUsagePhotos(usageKey);
+  const theirs = (photos?.before ?? []).filter((p) => p.submittedBy === borrowerKey);
+
+  return (
+    <div className="flex flex-col items-end gap-1.5">
+      {photos && theirs.length > 0 ? (
+        <UsagePhotoGallery
+          photos={{ ...photos, before: theirs }}
+          stages={["before"]}
+          size={36}
+          showLabels={false}
+          disabled
+        />
+      ) : (
+        <span className="max-w-[220px] text-right text-[11px] leading-snug text-t3">
+          {t("staff.queue.waitBorrowerPhoto")}
+        </span>
+      )}
+      <Button type="button" size="sm" disabled={busy || theirs.length === 0} onClick={onAct}>
+        {busy ? t("common.loading") : label}
+      </Button>
     </div>
   );
 }
@@ -975,26 +1144,42 @@ function PrepareAction({
   const { data: options } = usePrepareOptions(row.reservationKey);
   const [picked, setPicked] = useState<number | null>(null);
   const chosen = picked ?? options?.find((o) => o.reserved)?.resourceKey ?? null;
+  // #235: closed until asked for, so the queue stays one line per request.
+  const [showSchedule, setShowSchedule] = useState(false);
 
   return (
-    <div className="flex items-center gap-2">
-      {options && options.length > 0 ? (
-        <select
-          aria-label={t("staff.queue.pickUnit")}
-          value={chosen ?? ""}
-          onChange={(e) => setPicked(Number(e.target.value))}
-          className="h-8 rounded border border-border bg-card px-1.5 font-mono text-xs text-foreground"
-        >
-          {options.map((o) => (
-            <option key={o.resourceKey} value={o.resourceKey}>
-              {o.serialNo}
-            </option>
-          ))}
-        </select>
-      ) : null}
-      <Button type="button" size="sm" disabled={busy} onClick={() => onPrepare(chosen ?? undefined)}>
-        {busy ? t("common.loading") : t("staff.queue.actionPrepare")}
-      </Button>
+    <div className="flex flex-col items-end gap-1.5">
+      <div className="flex items-center gap-2">
+        {options && options.length > 0 ? (
+          <select
+            aria-label={t("staff.queue.pickUnit")}
+            value={chosen ?? ""}
+            onChange={(e) => setPicked(Number(e.target.value))}
+            className="h-8 rounded border border-border bg-card px-1.5 font-mono text-xs text-foreground"
+          >
+            {options.map((o) => (
+              <option key={o.resourceKey} value={o.resourceKey}>
+                {o.serialNo}
+              </option>
+            ))}
+          </select>
+        ) : null}
+        <Button type="button" size="sm" disabled={busy} onClick={() => onPrepare(chosen ?? undefined)}>
+          {busy ? t("common.loading") : t("staff.queue.actionPrepare")}
+        </Button>
+        {row.itemKey != null ? (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            aria-expanded={showSchedule}
+            onClick={() => setShowSchedule((open) => !open)}
+          >
+            {showSchedule ? t("staff.queue.hideUnitSchedule") : t("staff.queue.showUnitSchedule")}
+          </Button>
+        ) : null}
+      </div>
+      {showSchedule && row.itemKey != null ? <UnitSchedule itemKey={row.itemKey} /> : null}
     </div>
   );
 }
