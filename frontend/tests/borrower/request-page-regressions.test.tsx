@@ -388,6 +388,39 @@ describe("borrower request checks", () => {
     });
   });
 
+  it("#239: groups the cart by where each item is picked up and counts the stops", async () => {
+    const ee = { id: 3, name: "Electrical Engineering", type: "Faculty" as const };
+    const club = { id: 8, name: "Robotics Club", type: "Club" as const };
+    const items = [
+      toCatalogItem(itemResponse({ id: 21, name: "Oscilloscope", owner: ee })),
+      toCatalogItem(itemResponse({ id: 22, name: "Arduino kit", owner: club })),
+      toCatalogItem(itemResponse({ id: 23, name: "Soldering station", owner: ee })),
+    ];
+    hooks.useEquipmentTypes.mockReturnValue(queryResult(items));
+    for (const i of items) useRequestDraft.getState().addItem(i.id, i.availableUnits);
+    await act(async () => {
+      renderPage();
+    });
+
+    expect(screen.getByText(i18n.t("borrower.request.pickupPoints", { count: 2 }))).toBeInTheDocument();
+    // Desktop table: each stop's heading, then its items, in the cart's order.
+    const rows = within(screen.getAllByRole("table")[0])
+      .getAllByRole("row")
+      .map((r) => r.textContent ?? "");
+    const at = (text: string) => rows.findIndex((r) => r.includes(text));
+    const eeHead = at(i18n.t("borrower.request.pickupAt", { place: ee.name, count: 2 }));
+    const clubHead = at(i18n.t("borrower.request.pickupAt", { place: club.name, count: 1 }));
+    expect(eeHead).toBeGreaterThan(-1);
+    expect(clubHead).toBeGreaterThan(-1);
+    expect([eeHead, at("Oscilloscope"), at("Soldering station"), clubHead, at("Arduino kit")]).toEqual(
+      [...[eeHead, at("Oscilloscope"), at("Soldering station"), clubHead, at("Arduino kit")]].sort((a, b) => a - b)
+    );
+    // Phone cards show the same headings.
+    expect(
+      screen.getAllByText(i18n.t("borrower.request.pickupAt", { place: club.name, count: 1 }))
+    ).toHaveLength(2);
+  });
+
   describe("closed-issue audit: weekend pickup choices", () => {
     beforeEach(async () => {
       // Monday, 09:00 Bangkok. Only Date is frozen; query timers stay real.

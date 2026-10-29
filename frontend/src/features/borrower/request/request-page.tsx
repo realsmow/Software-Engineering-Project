@@ -652,8 +652,17 @@ function LineTable({
   onRemove: (itemId: string) => void;
 }) {
   const { t } = useTranslation();
+  const groups = pickupGroups(rows);
+  const heading = (g: PickupGroup) =>
+    t("borrower.request.pickupAt", {
+      place: g.place ?? t("borrower.request.pickupUnknown"),
+      count: g.rows.length,
+    });
   return (
     <>
+      <div className="border-b border-border px-3.5 py-2 text-xs font-medium text-t2">
+        {t("borrower.request.pickupPoints", { count: groups.length })}
+      </div>
       <div className="hidden md:block">
         <table className="w-full border-collapse text-[13px]">
           <thead>
@@ -664,56 +673,95 @@ function LineTable({
               <Th />
             </tr>
           </thead>
-          <tbody>
-            {rows.map((r) => (
-              <tr key={r.itemId} className="border-b border-border last:border-b-0">
-                <td className="px-3.5 py-2.5">
-                  <ItemCell row={r} />
-                </td>
-                <td className="whitespace-nowrap px-3.5 py-2.5 text-t2">
-                  <span className="inline-flex items-center gap-2">
-                    <TierDot tier={r.item.tier} />
-                    {r.item.tier ?? t("borrower.catalog.tierUnknown")}
-                  </span>
-                </td>
-                <td className="px-3.5 py-2.5">
-                  <QtyStepper row={r} onQty={onQty} />
-                </td>
-                <td className="px-3.5 py-2.5 text-right">
-                  <Button type="button" variant="outline" size="sm" onClick={() => onRemove(r.itemId)}>
-                    {t("borrower.request.remove")}
-                  </Button>
-                </td>
+          {groups.map((g) => (
+            <tbody key={g.key}>
+              <tr className="border-b border-border bg-secondary/50">
+                <th
+                  scope="rowgroup"
+                  colSpan={4}
+                  className="px-3.5 py-1.5 text-left text-xs font-semibold text-t2"
+                >
+                  {heading(g)}
+                </th>
               </tr>
-            ))}
-          </tbody>
+              {g.rows.map((r) => (
+                <tr key={r.itemId} className="border-b border-border last:border-b-0">
+                  <td className="px-3.5 py-2.5">
+                    <ItemCell row={r} />
+                  </td>
+                  <td className="whitespace-nowrap px-3.5 py-2.5 text-t2">
+                    <span className="inline-flex items-center gap-2">
+                      <TierDot tier={r.item.tier} />
+                      {r.item.tier ?? t("borrower.catalog.tierUnknown")}
+                    </span>
+                  </td>
+                  <td className="px-3.5 py-2.5">
+                    <QtyStepper row={r} onQty={onQty} />
+                  </td>
+                  <td className="px-3.5 py-2.5 text-right">
+                    <Button type="button" variant="outline" size="sm" onClick={() => onRemove(r.itemId)}>
+                      {t("borrower.request.remove")}
+                    </Button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          ))}
         </table>
       </div>
 
       <div className="divide-y divide-border md:hidden">
-        {rows.map((r) => (
-          <div key={r.itemId} className="p-3.5">
-            <ItemCell row={r} />
-            <div className="mt-3 flex items-center justify-between gap-3">
-              <span className="inline-flex items-center gap-2 text-xs text-t2">
-                <TierDot tier={r.item.tier} />
-                {r.item.tier ?? t("borrower.catalog.tierUnknown")}
-              </span>
-              <QtyStepper row={r} onQty={onQty} />
-            </div>
-            <Button
-              type="button"
-              variant="outline"
-              className="mt-3 h-10 w-full"
-              onClick={() => onRemove(r.itemId)}
-            >
-              {t("borrower.request.remove")}
-            </Button>
+        {groups.map((g) => (
+          <div key={g.key} className="divide-y divide-border">
+            <div className="bg-secondary/50 px-3.5 py-1.5 text-xs font-semibold text-t2">{heading(g)}</div>
+            {g.rows.map((r) => (
+              <div key={r.itemId} className="p-3.5">
+                <ItemCell row={r} />
+                <div className="mt-3 flex items-center justify-between gap-3">
+                  <span className="inline-flex items-center gap-2 text-xs text-t2">
+                    <TierDot tier={r.item.tier} />
+                    {r.item.tier ?? t("borrower.catalog.tierUnknown")}
+                  </span>
+                  <QtyStepper row={r} onQty={onQty} />
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="mt-3 h-10 w-full"
+                  onClick={() => onRemove(r.itemId)}
+                >
+                  {t("borrower.request.remove")}
+                </Button>
+              </div>
+            ))}
           </div>
         ))}
       </div>
     </>
   );
+}
+
+interface PickupGroup {
+  key: string;
+  /** The department or club that hands these out; null when the type has no units yet. */
+  place: string | null;
+  rows: CartRow[];
+}
+
+/**
+ * #239 (team decision D-08): one cart may hold items of several departments,
+ * each handed out at its own counter. Group the lines by owner, in the order
+ * they were added, so the borrower sees how many places to go.
+ */
+function pickupGroups(rows: CartRow[]): PickupGroup[] {
+  const groups = new Map<string, PickupGroup>();
+  for (const r of rows) {
+    const key = r.item.owner ? String(r.item.owner.id) : "none";
+    const group = groups.get(key) ?? { key, place: r.item.owner?.name ?? null, rows: [] };
+    group.rows.push(r);
+    groups.set(key, group);
+  }
+  return [...groups.values()];
 }
 
 function ItemCell({ row }: { row: CartRow }) {
