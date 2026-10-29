@@ -29,6 +29,11 @@ import {
 import { toPage, toSkipTake } from '../common/schemas/pagination.schema';
 import { tryMapTier, type ResourceTier } from '../common/schemas/status.schema';
 import { UNAVAILABLE_USAGE_STATES } from '../common/usage/usage-states';
+import {
+  boundToCart,
+  eachLine,
+  inCartTransaction,
+} from '../common/db/cart-transaction';
 import { countExtensionsByDesk } from '../common/approval/extension-desk';
 import { CreditTierService } from '../common/credit/credit-tier.service';
 import {
@@ -38,10 +43,13 @@ import {
 import type { TrpcUser } from '../trpc/context';
 import { toBorrowerRef } from './loan.schema';
 import type {
+  AllocateCartInput,
   AllocateLoanInput,
+  ConfirmPickupCartInput,
   ConfirmPickupInput,
   ListStaffQueueInput,
   MarkLostInput,
+  RecordReturnCartInput,
   RecordReturnInput,
   RecoverLostInput,
   SwapUnitInput,
@@ -886,6 +894,47 @@ export class LoanService {
    * — carries the fact that the thing is gone. Whoever reverses this when the
    * item turns up looks for exactly that pair.
    */
+  // =========================================================================
+  // Whole-cart actions (#236 step 2, instructor item 1, team decision D-01)
+  // =========================================================================
+
+  /**
+   * Prepares every line of a cart in one transaction: all of them or none.
+   * Each line goes through `allocate` unchanged; lines run in key order, so
+   * two whole-cart actions on one cart take their row locks in one order.
+   */
+  async allocateCart(user: TrpcUser, input: AllocateCartInput) {
+    const lines = [...input.lines].sort(
+      (a, b) => a.reservationKey - b.reservationKey,
+    );
+    return inCartTransaction(this.prisma, this.audit, (db, audits) => {
+      const cart = boundToCart(this, db, audits);
+      return eachLine(lines, (line) => cart.allocate(user, line));
+    });
+  }
+
+  /** Hands every unit of a cart over together, or none (see allocateCart). */
+  async confirmPickupCart(user: TrpcUser, input: ConfirmPickupCartInput) {
+    const usageKeys = [...input.usageKeys].sort((a, b) => a - b);
+    return inCartTransaction(this.prisma, this.audit, (db, audits) => {
+      const cart = boundToCart(this, db, audits);
+      return eachLine(usageKeys, (usageKey) =>
+        cart.confirmPickup(user, { usageKey, early: input.early }),
+      );
+    });
+  }
+
+  /** Takes every unit of a cart back together, or none (see allocateCart). */
+  async recordReturnCart(user: TrpcUser, input: RecordReturnCartInput) {
+    const usageKeys = [...input.usageKeys].sort((a, b) => a - b);
+    return inCartTransaction(this.prisma, this.audit, (db, audits) => {
+      const cart = boundToCart(this, db, audits);
+      return eachLine(usageKeys, (usageKey) =>
+        cart.recordReturn(user, { usageKey }),
+      );
+    });
+  }
+
   async markLost(user: TrpcUser, input: MarkLostInput) {
     const usage = await this.readUsage(input.usageKey);
     await this.scope.assertResourceInScope(user, usage.Resource.ResourceKey);

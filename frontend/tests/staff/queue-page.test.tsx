@@ -22,6 +22,9 @@ const mocks = vi.hoisted(() => ({
   useAllocate: vi.fn(),
   useConfirmPickup: vi.fn(),
   useRecordReturn: vi.fn(),
+  useAllocateCart: vi.fn(),
+  useConfirmPickupCart: vi.fn(),
+  useRecordReturnCart: vi.fn(),
   useMarkLost: vi.fn(),
   useStaffDecideExtension: vi.fn(),
   useStaffInspectExtension: vi.fn(),
@@ -84,6 +87,10 @@ describe("StaffQueuePage", () => {
   const copyPhotos = vi.fn();
   const remindSupervisor = vi.fn();
   const recordReturn = vi.fn();
+  // #236 step 2: the whole-cart buttons make one call each.
+  const allocateCart = vi.fn();
+  const handoverCart = vi.fn();
+  const returnCart = vi.fn();
 
   const renderPage = () =>
     render(
@@ -116,6 +123,9 @@ describe("StaffQueuePage", () => {
     mocks.useRemindSupervisor.mockReturnValue(mutationResult(remindSupervisor));
     mocks.useConfirmPickup.mockReturnValue(mutationResult(vi.fn()));
     mocks.useRecordReturn.mockReturnValue(mutationResult(recordReturn));
+    mocks.useAllocateCart.mockReturnValue(mutationResult(allocateCart));
+    mocks.useConfirmPickupCart.mockReturnValue(mutationResult(handoverCart));
+    mocks.useRecordReturnCart.mockReturnValue(mutationResult(returnCart));
     mocks.useMarkLost.mockReturnValue(mutationResult(vi.fn()));
     mocks.useStaffDecideExtension.mockReturnValue(mutationResult(vi.fn()));
     mocks.useStaffInspectExtension.mockReturnValue(mutationResult(vi.fn()));
@@ -422,10 +432,22 @@ describe("StaffQueuePage", () => {
       fireEvent.click(
         screen.getByRole("button", { name: i18n.t("staff.queue.prepareAll", { count: 4 }) })
       );
-      await waitFor(() => expect(allocate).toHaveBeenCalledTimes(4));
-      expect(allocate.mock.calls.map(([input]) => input.reservationKey)).toEqual([
-        77, 78, 79, 80,
-      ]);
+      // #236 step 2: one call for the whole cart, every unit or none.
+      await waitFor(() => expect(allocateCart).toHaveBeenCalledTimes(1));
+      expect(allocateCart).toHaveBeenCalledWith({
+        lines: [77, 78, 79, 80].map((reservationKey) => ({ reservationKey })),
+      });
+      expect(allocate).not.toHaveBeenCalled();
+    });
+
+    it("#236 step 2: says nothing in the cart changed when the server refuses one unit", async () => {
+      mocks.useStaffQueue.mockReturnValue(queryResult(four));
+      allocateCart.mockRejectedValue(new Error("Unit taken"));
+      renderPage();
+      fireEvent.click(
+        screen.getByRole("button", { name: i18n.t("staff.queue.prepareAll", { count: 4 }) })
+      );
+      expect(await screen.findByText(new RegExp(i18n.t("staff.queue.groupNothingDone")))).toBeInTheDocument();
     });
 
     it("one cart with different items is one row (one borrow)", () => {
@@ -623,7 +645,8 @@ describe("StaffQueuePage", () => {
       mocks.useUsagePhotos.mockReturnValue(photoBy(row.borrower.accountKey));
       openHandover();
       fireEvent.click(screen.getByRole("button", { name: i18n.t("staff.queue.handoverAll", { count: 2 }) }));
-      await waitFor(() => expect(handover).toHaveBeenCalledTimes(2));
+      await waitFor(() => expect(handoverCart).toHaveBeenCalledWith({ usageKeys: [101, 102], early: false }));
+      expect(handover).not.toHaveBeenCalled();
       expect(copyPhotos).not.toHaveBeenCalled();
     });
   });
@@ -682,6 +705,42 @@ describe("StaffQueuePage", () => {
     expect(
       screen.getByText(i18n.t("common.photoCount", { count: 30, max: UPLOAD.MAX_PHOTOS_PER_STAGE }))
     ).toBeInTheDocument();
+  });
+
+  it("#236 step 2: takes a whole cart back in one call and adds up the late credit", async () => {
+    const cart = [201, 202].map((usageKey, i) =>
+      staffQueueRow.strict().parse({ ...row, usageKey, reservationKey: 90 + i, cartKey: 4, status: "Lended" })
+    );
+    mocks.useStaffQueue.mockImplementation((bucket: string) => queryResult(bucket === "onLoan" ? cart : [row]));
+    mocks.useUsagePhotos.mockReturnValue(
+      queryResult(
+        usagePhotosOutput.strict().parse({
+          before: [],
+          after: [
+            {
+              imageKey: 5,
+              imageUrl: "/media/inspection/return.jpg",
+              stage: "after",
+              submittedBy: 1,
+              submittedAt: "2026-09-30T06:00:00.000Z",
+            },
+          ],
+          inspection: [],
+          evidence: [],
+        })
+      )
+    );
+    returnCart.mockResolvedValue([
+      { latePenalty: { penaltyKey: 1, creditDeducted: 3, overdueDays: 1, expiresAt: "2026-12-01T00:00:00.000Z" } },
+      { latePenalty: null },
+    ]);
+    renderPage();
+    fireEvent.click(screen.getAllByRole("button", { name: /On loan/i })[0]);
+    fireEvent.click(screen.getByRole("button", { name: i18n.t("staff.queue.returnAll", { count: 2 }) }));
+
+    await waitFor(() => expect(returnCart).toHaveBeenCalledWith({ usageKeys: [201, 202] }));
+    expect(recordReturn).not.toHaveBeenCalled();
+    expect(await screen.findByText(new RegExp(i18n.t("staff.queue.doneGroupLate", { credit: 3 })))).toBeInTheDocument();
   });
 
   it("blocks return without an after photo and displays the late penalty after return", async () => {

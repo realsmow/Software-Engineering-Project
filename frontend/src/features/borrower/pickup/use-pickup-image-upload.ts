@@ -150,14 +150,13 @@ export function useFinalizePickup() {
 
   return useMutation({
     mutationFn: async (usageKeys: number[]) => {
-      const confirmed: number[] = [];
-      for (const usageKey of usageKeys) {
-        await trpc.loan.confirmMyPickup.mutate({ usageKey });
-        confirmed.push(usageKey);
-      }
-      return { finalizedUsageKeys: confirmed };
+      // #236 step 2 (D-01): several units are confirmed together, or none.
+      if (usageKeys.length > 1) await trpc.loan.confirmMyPickupCart.mutate({ usageKeys });
+      else if (usageKeys.length === 1) await trpc.loan.confirmMyPickup.mutate({ usageKey: usageKeys[0] });
+      return { finalizedUsageKeys: usageKeys };
     },
-    onSuccess: async () => {
+    // Reload after a refusal too, so the page shows what the server holds.
+    onSettled: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["loan", "my-requests"] }),
         queryClient.invalidateQueries({ queryKey: ["equipment-types"] }),

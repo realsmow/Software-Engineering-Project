@@ -427,8 +427,10 @@ describe('Persisted business records', () => {
   });
 });
 
-describe('one decision for a whole cart (demo feedback)', () => {
-  it('decides every pending line and reports the ones the rules refused', async () => {
+describe('one decision for a whole cart (demo feedback, #236 step 2)', () => {
+  it('decides the cart together: one refused line refuses the whole decision', async () => {
+    // Team decision D-01 replaced "decide what you can, report the rest":
+    // the lines run in one transaction, so the first approval is rolled back.
     const t = setup();
     t.prisma.reservations.findMany.mockResolvedValueOnce([
       { ReservationKey: 1 },
@@ -438,21 +440,46 @@ describe('one decision for a whole cart (demo feedback)', () => {
     const decide = jest
       .spyOn(t.service, 'decide')
       .mockResolvedValueOnce({} as never)
-      .mockRejectedValueOnce(new BusinessError('WINDOW_NOT_AVAILABLE', {}))
-      .mockResolvedValueOnce({} as never);
+      .mockRejectedValueOnce(new BusinessError('WINDOW_NOT_AVAILABLE', {}));
 
     await expect(
       t.service.decideCart(supervisor, { cartKey: 9, decision: 'approve' }),
-    ).resolves.toEqual({
-      decided: [1, 3],
-      failed: [{ reservationKey: 2, code: 'WINDOW_NOT_AVAILABLE' }],
-    });
+    ).rejects.toMatchObject({ message: 'WINDOW_NOT_AVAILABLE' });
     expect(t.prisma.reservations.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { CartKey: 9, ApproveStatus: 'Pending' },
       }),
     );
-    expect(decide).toHaveBeenCalledTimes(3);
+    // It stops at the refused line; the third is never tried.
+    expect(decide).toHaveBeenCalledTimes(2);
+  });
+
+  it('leaves a line another decider owns pending and decides the rest', async () => {
+    const t = setup();
+    t.prisma.reservations.findMany.mockResolvedValueOnce([
+      { ReservationKey: 1 },
+      { ReservationKey: 2 },
+    ]);
+    // The second line belongs to another department's queue.
+    t.scope.assertResourceInScope
+      .mockResolvedValueOnce(undefined)
+      .mockRejectedValueOnce(new BusinessError('OUT_OF_MANAGEMENT_SCOPE', {}));
+    const decide = jest
+      .spyOn(t.service, 'decide')
+      .mockResolvedValue({} as never);
+
+    await expect(
+      t.service.decideCart(supervisor, { cartKey: 9, decision: 'approve' }),
+    ).resolves.toEqual({
+      decided: [1],
+      failed: [{ reservationKey: 2, code: 'OUT_OF_MANAGEMENT_SCOPE' }],
+    });
+    expect(decide).toHaveBeenCalledTimes(1);
+    expect(decide).toHaveBeenCalledWith(
+      supervisor,
+      expect.objectContaining({ reservationKey: 1 }),
+      [1],
+    );
   });
 });
 

@@ -331,8 +331,9 @@ describe("my requests: statuses and penalties come from the server", () => {
       within(cart).getByRole("button", { name: i18n.t("borrower.myRequests.cancelCart", { count: 2 }) }),
     );
     fireEvent.click(screen.getByRole("button", { name: i18n.t("borrower.myRequests.cancelConfirmYes") }));
-    await waitFor(() => expect(api).toHaveBeenCalledWith("loan.cancel", { reservationKey: 42 }));
-    expect(api).toHaveBeenCalledWith("loan.cancel", { reservationKey: 41 });
+    // #236 step 2: one call for the whole cart, every line or none.
+    await waitFor(() => expect(api).toHaveBeenCalledWith("loan.cancelCart", { reservationKeys: [41, 42] }));
+    expect(api).not.toHaveBeenCalledWith("loan.cancel", expect.anything());
   });
 
   it("#236: asks what to do with a cart the supervisor partly rejected", async () => {

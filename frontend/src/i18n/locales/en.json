@@ -1022,7 +1022,7 @@
       "split": "Split",
       "doneGroup": "Done: {{count}} × {{item}} for {{who}}.",
       "doneGroupLate": "Late return: {{credit}} credit deducted in total.",
-      "groupStopped": "Stopped after {{done}} of {{count}} units.",
+      "groupNothingDone": "Nothing in this cart was changed.",
       "returnPhotoBad": "Use a JPG or PNG under the size limit.",
       "actionHandoverEarly": "Hand over early",
       "confirmEarly": "{{who}} is collecting before the booked pickup time. The loan keeps its length, so it will be due back earlier by the same amount. Hand over now?",

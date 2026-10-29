@@ -58,6 +58,19 @@ import {
   type CreateRequestInput,
   type CreateRoomBookingInput,
   type ListMyRequestsInput,
+  allocateCartInput,
+  type AllocateCartInput,
+  confirmPickupCartInput,
+  type ConfirmPickupCartInput,
+  recordReturnCartInput,
+  type RecordReturnCartInput,
+  confirmMyPickupCartInput,
+  type ConfirmMyPickupCartInput,
+  cancelCartInput,
+  type CancelCartInput,
+  loansOutput,
+  recordReturnsOutput,
+  requestsOutput,
 } from './loan.schema';
 import { LoanService } from './loan.service';
 import { LoanRequestService } from './loan.request.service';
@@ -150,6 +163,23 @@ export class LoanRouter {
     @Ctx() ctx: TrpcContext,
   ) {
     return this.requests.confirmMyPickup(ctx.user!, input.usageKey);
+  }
+
+  /** #236 step 2: cancel several lines of the borrower's cart together, or none. */
+  @UseMiddlewares(AuthMiddleware)
+  @Mutation({ input: cancelCartInput, output: requestsOutput })
+  cancelCart(@Input() input: CancelCartInput, @Ctx() ctx: TrpcContext) {
+    return this.requests.cancelCart(ctx.user!, input);
+  }
+
+  /** #236 step 2: confirm receipt of every unit of a cart together, or none. */
+  @UseMiddlewares(AuthMiddleware)
+  @Mutation({ input: confirmMyPickupCartInput, output: requestsOutput })
+  confirmMyPickupCart(
+    @Input() input: ConfirmMyPickupCartInput,
+    @Ctx() ctx: TrpcContext,
+  ) {
+    return this.requests.confirmMyPickupCart(ctx.user!, input);
   }
 
   // ── Keeping it longer (§5.4 "ขอต่ออายุการยืม") ──────────────────────────
@@ -267,6 +297,33 @@ export class LoanRouter {
   @Mutation({ input: recordReturnInput, output: recordReturnOutput })
   recordReturn(@Input() input: RecordReturnInput, @Ctx() ctx: TrpcContext) {
     return this.loanService.recordReturn(ctx.user!, input);
+  }
+
+  /** #236 step 2: prepare every line of a cart together, or none. */
+  @UseMiddlewares(StaffMiddleware)
+  @Mutation({ input: allocateCartInput, output: loansOutput })
+  allocateCart(@Input() input: AllocateCartInput, @Ctx() ctx: TrpcContext) {
+    return this.loanService.allocateCart(ctx.user!, input);
+  }
+
+  /** #236 step 2: hand every unit of a cart over together, or none. */
+  @UseMiddlewares(StaffMiddleware)
+  @Mutation({ input: confirmPickupCartInput, output: loansOutput })
+  confirmPickupCart(
+    @Input() input: ConfirmPickupCartInput,
+    @Ctx() ctx: TrpcContext,
+  ) {
+    return this.loanService.confirmPickupCart(ctx.user!, input);
+  }
+
+  /** #236 step 2: take every unit of a cart back together, or none. */
+  @UseMiddlewares(StaffMiddleware)
+  @Mutation({ input: recordReturnCartInput, output: recordReturnsOutput })
+  recordReturnCart(
+    @Input() input: RecordReturnCartInput,
+    @Ctx() ctx: TrpcContext,
+  ) {
+    return this.loanService.recordReturnCart(ctx.user!, input);
   }
 
   /** Two weeks past due, or reported lost in person. */

@@ -1,5 +1,6 @@
 import type { Prisma } from '../../generated/prisma/client';
 import { BusinessError } from '../errors/business-error';
+import { isJoinedTransaction } from './join-transaction';
 
 /**
  * "This transaction lost a serialization race." Not a bug and not the caller's
@@ -25,7 +26,10 @@ const MAX_ATTEMPTS = 3;
 export interface SerializableRunner {
   $transaction<T>(
     fn: (tx: Prisma.TransactionClient) => Promise<T>,
-    options?: { isolationLevel?: Prisma.TransactionIsolationLevel },
+    options?: {
+      isolationLevel?: Prisma.TransactionIsolationLevel;
+      timeout?: number;
+    },
   ): Promise<T>;
 }
 
@@ -59,10 +63,20 @@ export interface SerializableRunner {
 export async function runSerializable<T>(
   db: SerializableRunner,
   work: (tx: Prisma.TransactionClient) => Promise<T>,
+  // A whole cart runs many lines in one transaction (#236 step 2) and needs
+  // longer than Prisma's 5 s default.
+  options: { timeout?: number } = {},
 ): Promise<T> {
+  // Inside a whole-cart transaction (joinTransaction) the outer runner owns
+  // the isolation level and the retries: retrying in here would replay the
+  // work on a transaction Postgres has already aborted.
+  if (isJoinedTransaction(db)) return db.$transaction(work);
   for (let attempt = 1; ; attempt++) {
     try {
-      return await db.$transaction(work, { isolationLevel: 'Serializable' });
+      return await db.$transaction(work, {
+        isolationLevel: 'Serializable',
+        ...options,
+      });
     } catch (error) {
       if (!isSerializationFailure(error)) throw error;
       if (attempt >= MAX_ATTEMPTS) {

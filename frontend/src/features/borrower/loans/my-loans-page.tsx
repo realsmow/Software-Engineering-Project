@@ -24,7 +24,7 @@ import { penaltyReasonText } from "../appeals/penalty-reason";
 import { usePenaltiesByUsage, type LoanPenalty } from "../appeals/use-my-appeals";
 import { useLoanExtension, type LoanExtension } from "./use-extensions";
 import { useMyRequests, requestsInTab, type DraftSummary } from "./use-my-requests";
-import { useCancelRequest } from "./use-my-requests-api";
+import { useCancelCart, useCancelRequest } from "./use-my-requests-api";
 
 const STATUS_TONE: Record<MyRequestStatus, BadgeTone> = {
   pending: "warn",
@@ -75,6 +75,7 @@ export default function MyLoansPage() {
   const { requests, draft, countByTab } = useMyRequests();
   const penaltiesByUsage = usePenaltiesByUsage();
   const cancelRequest = useCancelRequest();
+  const cancelWholeCart = useCancelCart();
   const clearDraft = useRequestDraft((s) => s.clear);
 
   const rows = requestsInTab(requests, tab);
@@ -113,7 +114,7 @@ export default function MyLoansPage() {
   const empty = rows.length === 0 && !showDraft;
 
   function closeCancelModal() {
-    if (cancelRequest.isPending) return;
+    if (cancelRequest.isPending || cancelWholeCart.isPending) return;
     setCancelTarget(null);
     setCancelCart(null);
     setCancelError(null);
@@ -127,10 +128,10 @@ export default function MyLoansPage() {
     setCancelError(null);
 
     try {
-      for (const row of targets) {
-        if (row.reservationKey === undefined) continue;
-        await cancelRequest.mutateAsync({ reservationKey: row.reservationKey });
-      }
+      const keys = targets.flatMap((row) => (row.reservationKey === undefined ? [] : [row.reservationKey]));
+      // #236 step 2 (D-01): a whole cart is cancelled together, or not at all.
+      if (keys.length > 1) await cancelWholeCart.mutateAsync({ reservationKeys: keys });
+      else if (keys.length === 1) await cancelRequest.mutateAsync({ reservationKey: keys[0] });
       setCancelTarget(null);
       setCancelCart(null);
     } catch (error) {

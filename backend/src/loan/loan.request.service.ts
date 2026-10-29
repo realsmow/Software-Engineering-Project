@@ -55,12 +55,19 @@ import {
 } from '../common/schemas/status.schema';
 import type { TrpcUser } from '../trpc/context';
 import type {
+  CancelCartInput,
   CancelRequestInput,
+  ConfirmMyPickupCartInput,
   CreateRequestInput,
   CreateRoomBookingInput,
   ListMyRequestsInput,
   RequestStatus,
 } from './loan.schema';
+import {
+  boundToCart,
+  eachLine,
+  inCartTransaction,
+} from '../common/db/cart-transaction';
 
 /** Which tab of "คำขอของฉัน" each status belongs to (mock-data.ts STATUS_TAB). */
 const STATUS_TAB: Record<RequestStatus, 'active' | 'using' | 'history'> = {
@@ -958,6 +965,30 @@ export class LoanRequestService {
   // =========================================================================
   // Cancelling
   // =========================================================================
+
+  /**
+   * #236 step 2 (instructor item 1, team decision D-01): cancel several lines
+   * of the borrower's cart together, or none. Each line goes through `cancel`
+   * unchanged, in key order (see LoanService.allocateCart).
+   */
+  async cancelCart(user: TrpcUser, input: CancelCartInput) {
+    const keys = [...input.reservationKeys].sort((a, b) => a - b);
+    return inCartTransaction(this.prisma, this.audit, (db, audits) => {
+      const cart = boundToCart(this, db, audits);
+      return eachLine(keys, (reservationKey) =>
+        cart.cancel(user, { reservationKey }),
+      );
+    });
+  }
+
+  /** #236 step 2: confirm receipt of every unit of a cart together, or none. */
+  async confirmMyPickupCart(user: TrpcUser, input: ConfirmMyPickupCartInput) {
+    const keys = [...input.usageKeys].sort((a, b) => a - b);
+    return inCartTransaction(this.prisma, this.audit, (db, audits) => {
+      const cart = boundToCart(this, db, audits);
+      return eachLine(keys, (usageKey) => cart.confirmMyPickup(user, usageKey));
+    });
+  }
 
   /**
    * Calls off the caller's own request.
