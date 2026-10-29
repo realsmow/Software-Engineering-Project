@@ -5,6 +5,7 @@ import {
   type SerializableRunner,
 } from './booking-window';
 import { BusinessError } from '../errors/business-error';
+import { joinTransaction } from '../db/join-transaction';
 
 /**
  * The overlap rule, which decides whose request gets cancelled.
@@ -140,5 +141,44 @@ describe('runSerializable', () => {
     const { db, isolationLevels } = runnerThatFails(boom);
     await expect(runSerializable(db, work('never reached'))).rejects.toBe(boom);
     expect(isolationLevels).toHaveLength(1);
+  });
+
+  /**
+   * A raw query (lockRow's SELECT ... FOR UPDATE) reports a lost race as
+   * P2010 with the SQLSTATE under meta.driverAdapterError. Round 6 R6/R7: the
+   * losing click got a 500 instead of the business answer a rerun gives.
+   */
+  const rawQueryFailure = (sqlState: string) =>
+    Object.assign(new Error(`Raw query failed. Code: \`${sqlState}\``), {
+      code: 'P2010',
+      meta: { driverAdapterError: { cause: { originalCode: sqlState } } },
+    });
+
+  it.each([
+    ['a lost serialization race', '40001'],
+    ['a deadlock', '40P01'],
+  ])('runs the work again after %s seen by a row lock', async (_, state) => {
+    const { db, isolationLevels } = runnerThatFails(rawQueryFailure(state));
+    await expect(runSerializable(db, work('rerun'))).resolves.toBe('rerun');
+    expect(isolationLevels).toHaveLength(2);
+  });
+
+  it('lets any other raw query failure through untouched', async () => {
+    const boom = rawQueryFailure('42P01');
+    const { db, isolationLevels } = runnerThatFails(boom);
+    await expect(runSerializable(db, work('never reached'))).rejects.toBe(boom);
+    expect(isolationLevels).toHaveLength(1);
+  });
+
+  it('inside a whole-cart transaction runs once and leaves retries to it (#236)', async () => {
+    let calls = 0;
+    const joined = joinTransaction({} as never);
+    await expect(
+      runSerializable(joined, () => {
+        calls++;
+        return Promise.reject(rawQueryFailure('40001'));
+      }),
+    ).rejects.toMatchObject({ code: 'P2010' });
+    expect(calls).toBe(1);
   });
 });

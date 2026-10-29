@@ -93,8 +93,19 @@ export async function runSerializable<T>(
 
 function isSerializationFailure(error: unknown): boolean {
   if (typeof error !== 'object' || error === null) return false;
-  const { code, cause } = error as { code?: unknown; cause?: unknown };
+  const { code, cause, meta } = error as {
+    code?: unknown;
+    cause?: unknown;
+    meta?: { driverAdapterError?: { cause?: unknown } };
+  };
   if (code === SERIALIZATION_FAILURE) return true;
+  // The SQLSTATE sits on `cause` for model queries, and under
+  // meta.driverAdapterError for a raw query (P2010) - lockRow's
+  // SELECT ... FOR UPDATE, which is where a lost race usually surfaces.
+  return [cause, meta?.driverAdapterError?.cause].some(isRetryableCause);
+}
+
+function isRetryableCause(cause: unknown): boolean {
   if (typeof cause !== 'object' || cause === null) return false;
   const { originalCode } = cause as { originalCode?: unknown };
   return (
