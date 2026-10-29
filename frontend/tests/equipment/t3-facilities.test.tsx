@@ -50,6 +50,7 @@ const ROOM: Room = {
   capacity: 24,
   imageUrl: null,
   bookable: true,
+  ownerGroupKey: null,
 };
 
 /** Small on purpose: proves the page reads the cap from the server, not BUSINESS.MAX_ROOM_BOOKING_SLOTS. */
@@ -289,6 +290,21 @@ describe("Module 5 T3 facilities", () => {
     vi.useRealTimers();
   });
 
+  it("opens on a Saturday the admin opened for the room's department", () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2031-10-04T01:00:00.000Z")); // Saturday 08:00 Bangkok
+    vi.mocked(roomHooks.useRoom).mockReturnValue({
+      data: { ...ROOM, ownerGroupKey: 3 },
+      isLoading: false,
+    } as never);
+    vi.mocked(closedDays.useOpenDates).mockReturnValue(new Set(["2031-10-04"]));
+    renderBookingPage();
+    expect(vi.mocked(closedDays.useOpenDates)).toHaveBeenCalledWith([3]);
+    expect(vi.mocked(roomHooks.useRoomDay)).toHaveBeenLastCalledWith(ROOM.id, "2031-10-04");
+    vi.mocked(closedDays.useOpenDates).mockReturnValue(new Set());
+    vi.useRealTimers();
+  });
+
   it("#234: a holiday the admin listed is closed in the room's week, like Saturday", () => {
     vi.useFakeTimers({ toFake: ["Date"] });
     vi.setSystemTime(new Date("2031-09-29T01:00:00.000Z")); // Monday 08:00 Bangkok
@@ -334,6 +350,7 @@ describe("Module 5 T3 facilities", () => {
           resourceKey: 99,
           name: "Existing room booking",
           serialNo: null,
+          pickupPoint: null,
           kind: "room",
           tier: "T3",
           creditWeight: 0,

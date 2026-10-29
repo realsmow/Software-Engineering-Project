@@ -95,7 +95,9 @@ export default function AdminStatusPage() {
               // The section clips, so the table needs its own scroller: five
               // columns ending in a status badge and the Run now button do not
               // fit a phone, and without this they are cut off unreachably.
-              <div className="overflow-x-auto">
+              // Relative, so the hidden "actions" header label is positioned
+              // inside the scroller instead of widening the whole page.
+              <div className="relative overflow-x-auto">
                 <table className="w-full min-w-[36rem] border-collapse text-[13px]">
                   <thead>
                     <tr className="bg-secondary">

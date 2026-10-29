@@ -341,6 +341,31 @@ describe("borrower pickup page through its real API hooks", () => {
     expect(api).toHaveBeenCalledWith("loan.confirmMyPickup", { usageKey: 42 });
   });
 
+  it("#239: groups the units to collect by the counter that hands them out", async () => {
+    requests = [
+      requestResponse({
+        status: "ready",
+        usageKey: 42,
+        cancellable: false,
+        resource: { ...requestResponse({}).resource, name: "Meter", pickupPoint: "Electrical Engineering" },
+      }),
+      requestResponse({
+        reservationKey: 30,
+        status: "ready",
+        usageKey: 43,
+        resource: { ...requestResponse({}).resource, name: "Robot arm", pickupPoint: "Robotics Club" },
+      }),
+    ];
+    renderPage("pickup");
+    expect(await screen.findByText(i18n.t("borrower.request.pickupPoints", { count: 2 }))).toBeInTheDocument();
+    expect(
+      screen.getByText(i18n.t("borrower.request.pickupAt", { place: "Robotics Club", count: 1 }))
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(i18n.t("borrower.request.pickupAt", { place: "Electrical Engineering", count: 1 }))
+    ).toBeInTheDocument();
+  });
+
   it("does not collect unchecked items or display room bookings in the equipment pickup list", async () => {
     requests.push(
       requestResponse({

@@ -53,14 +53,22 @@ import {
   type CreditTier,
   type ResourceTier,
 } from '../common/schemas/status.schema';
+import { toOwner } from '../common/mappers/item.mapper';
 import type { TrpcUser } from '../trpc/context';
 import type {
+  CancelCartInput,
   CancelRequestInput,
+  ConfirmMyPickupCartInput,
   CreateRequestInput,
   CreateRoomBookingInput,
   ListMyRequestsInput,
   RequestStatus,
 } from './loan.schema';
+import {
+  boundToCart,
+  eachLine,
+  inCartTransaction,
+} from '../common/db/cart-transaction';
 
 /** Which tab of "คำขอของฉัน" each status belongs to (mock-data.ts STATUS_TAB). */
 const STATUS_TAB: Record<RequestStatus, 'active' | 'using' | 'history'> = {
@@ -83,6 +91,15 @@ const RESOURCE_SELECT = {
   ResourceStatus: true,
   BorrowRule: true,
   BorrowRuleInfo: { select: { RuleName: true } },
+  // #239: the counter it is collected from.
+  ManagementGroup: {
+    select: {
+      ManageGroupKey: true,
+      GroupType: true,
+      Branch: { select: { BranchName: true } },
+      Club: { select: { ClubName: true } },
+    },
+  },
   Item: {
     select: {
       ItemID: true,
@@ -960,6 +977,30 @@ export class LoanRequestService {
   // =========================================================================
 
   /**
+   * #236 step 2 (instructor item 1, team decision D-01): cancel several lines
+   * of the borrower's cart together, or none. Each line goes through `cancel`
+   * unchanged, in key order (see LoanService.allocateCart).
+   */
+  async cancelCart(user: TrpcUser, input: CancelCartInput) {
+    const keys = [...input.reservationKeys].sort((a, b) => a - b);
+    return inCartTransaction(this.prisma, this.audit, (db, audits) => {
+      const cart = boundToCart(this, db, audits);
+      return eachLine(keys, (reservationKey) =>
+        cart.cancel(user, { reservationKey }),
+      );
+    });
+  }
+
+  /** #236 step 2: confirm receipt of every unit of a cart together, or none. */
+  async confirmMyPickupCart(user: TrpcUser, input: ConfirmMyPickupCartInput) {
+    const keys = [...input.usageKeys].sort((a, b) => a - b);
+    return inCartTransaction(this.prisma, this.audit, (db, audits) => {
+      const cart = boundToCart(this, db, audits);
+      return eachLine(keys, (usageKey) => cart.confirmMyPickup(user, usageKey));
+    });
+  }
+
+  /**
    * Calls off the caller's own request.
    *
    * Allowed until the borrower collects it (FR-REQ-10, revised 29 Oct 2569):
@@ -1204,6 +1245,7 @@ export class LoanRequestService {
           row.Resource.Room?.RoomName ??
           null,
         serialNo: row.Resource.Item?.ItemID ?? null,
+        pickupPoint: toOwner(row.Resource.ManagementGroup).name,
         kind: row.Resource.Room ? 'room' : 'equipment',
         tier: tryMapTier(row.Resource.BorrowRuleInfo.RuleName),
         creditWeight:

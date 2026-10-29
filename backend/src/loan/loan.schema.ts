@@ -212,6 +212,11 @@ export const prepareOptionsOutput = z.array(
     serialNo: z.string(),
     /** The unit the booking holds now. */
     reserved: z.boolean(),
+    /**
+     * #235: the unit whose bookings before and after sit closest to this one,
+     * so a unit with a long free stretch stays free for a long loan.
+     */
+    recommended: z.boolean(),
   }),
 );
 
@@ -557,10 +562,13 @@ export const createRequestLine = z.object({
  * `startTime`/`endTime` are full instants rather than dates because T3 rooms
  * are booked by the hour. Equipment clients send the agreed counter times.
  */
+/** The most lines one cart holds, so also the most one whole-cart action takes. */
+export const MAX_CART_LINES = 10;
+
 export const createRequestInput = z.object({
   startTime: isoDateTime,
   endTime: isoDateTime,
-  lines: z.array(createRequestLine).min(1).max(10),
+  lines: z.array(createRequestLine).min(1).max(MAX_CART_LINES),
 });
 export type CreateRequestInput = z.infer<typeof createRequestInput>;
 
@@ -573,6 +581,12 @@ export const requestResourceRef = z.object({
   kind: z.enum(['equipment', 'room']),
   tier: resourceTier.nullable(),
   creditWeight: z.number(),
+  /**
+   * #239 (team decision D-08): where it is collected - the department or club
+   * that manages the unit. Null when that group has no name yet; defaulted so
+   * clients and fixtures written before it keep parsing.
+   */
+  pickupPoint: z.string().nullable().default(null),
 });
 
 /** Who signed off, when, and whether a person was involved at all. */
@@ -688,3 +702,49 @@ export const cancelRequestInput = requestIdInput.extend({
   reason: z.string().max(500).optional(),
 });
 export type CancelRequestInput = z.infer<typeof cancelRequestInput>;
+
+// ---------------------------------------------------------------------------
+// Whole-cart actions (#236 step 2, team decision D-01): one transaction,
+// every line or none. Each line goes through the per-item procedure's rules.
+// ---------------------------------------------------------------------------
+
+const eachOnce = (keys: number[]) => new Set(keys).size === keys.length;
+
+/** The lines one whole-cart action takes, each once. */
+const cartLineKeys = z
+  .array(dbId)
+  .min(1)
+  .max(MAX_CART_LINES)
+  .refine(eachOnce, { message: 'each line once' });
+
+export const allocateCartInput = z.object({
+  lines: z
+    .array(allocateLoanInput)
+    .min(1)
+    .max(MAX_CART_LINES)
+    .refine((lines) => eachOnce(lines.map((l) => l.reservationKey)), {
+      message: 'each line once',
+    }),
+});
+export type AllocateCartInput = z.infer<typeof allocateCartInput>;
+
+export const confirmPickupCartInput = z.object({
+  usageKeys: cartLineKeys,
+  /** As in confirmPickup: before the booked time, with the borrower at the counter. */
+  early: z.boolean().optional(),
+});
+export type ConfirmPickupCartInput = z.infer<typeof confirmPickupCartInput>;
+
+export const recordReturnCartInput = z.object({ usageKeys: cartLineKeys });
+export type RecordReturnCartInput = z.infer<typeof recordReturnCartInput>;
+
+export const confirmMyPickupCartInput = z.object({ usageKeys: cartLineKeys });
+export type ConfirmMyPickupCartInput = z.infer<typeof confirmMyPickupCartInput>;
+
+export const cancelCartInput = z.object({ reservationKeys: cartLineKeys });
+export type CancelCartInput = z.infer<typeof cancelCartInput>;
+
+/** One per line, in key order. */
+export const loansOutput = z.array(loanOutput);
+export const recordReturnsOutput = z.array(recordReturnOutput);
+export const requestsOutput = z.array(requestOutput);

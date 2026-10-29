@@ -113,7 +113,11 @@ export type DecideCartInput = z.infer<typeof decideCartInput>;
 export const remindOutput = z.object({ notified: z.number().int() });
 export const decideCartOutput = z.object({
   decided: z.array(z.number().int()),
-  /** Lines the rules refused, e.g. the unit was taken meanwhile. They stay pending. */
+  /**
+   * Lines this decider may not decide (another department's, or a T2 line
+   * for staff); they stay pending for the one who may. Since #236 step 2 the
+   * rest are decided in one transaction, and a refusal there is thrown.
+   */
   failed: z.array(
     z.object({ reservationKey: z.number().int(), code: z.string() }),
   ),

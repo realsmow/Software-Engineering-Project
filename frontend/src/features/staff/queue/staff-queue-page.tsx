@@ -30,11 +30,14 @@ import { useUploadImage } from "@/features/staff/inventory/use-item-image";
 import { ImageThumb } from "@/components/shared/image-thumb";
 import {
   useAllocate,
+  useAllocateCart,
   useConfirmPickup,
+  useConfirmPickupCart,
   useCopyGroupPhotos,
   useMarkLost,
   usePrepareOptions,
   useRecordReturn,
+  useRecordReturnCart,
   useRemindSupervisor,
   useWaitingOnSupervisor,
   useStaffDecideExtension,
@@ -123,6 +126,9 @@ export default function StaffQueuePage() {
   const allocate = useAllocate();
   const confirmPickup = useConfirmPickup();
   const recordReturn = useRecordReturn();
+  const allocateCart = useAllocateCart();
+  const confirmPickupCart = useConfirmPickupCart();
+  const recordReturnCart = useRecordReturnCart();
   const markLost = useMarkLost();
 
   const { data: extRows, isLoading: extLoading } = useStaffExtensionQueue(
@@ -328,7 +334,10 @@ export default function StaffQueuePage() {
                     multiple
                     className="sr-only"
                     aria-label={t("staff.queue.extCheckPhoto")}
-                    disabled={extUploading === r.extensionKey}
+                    disabled={
+                      extUploading === r.extensionKey ||
+                      (extPhotos[r.extensionKey] ?? []).length >= UPLOAD.MAX_PHOTOS_PER_STAGE
+                    }
                     onChange={(e) => {
                       const files = Array.from(e.target.files ?? []);
                       e.target.value = "";
@@ -336,6 +345,9 @@ export default function StaffQueuePage() {
                     }}
                   />
                 </label>
+                {(extPhotos[r.extensionKey] ?? []).length > 0 ? (
+                  <PhotoCount count={(extPhotos[r.extensionKey] ?? []).length} />
+                ) : null}
               </div>
               <Input
                 value={extNotes[r.extensionKey] ?? ""}
@@ -481,8 +493,8 @@ export default function StaffQueuePage() {
     if (early && !window.confirm(t("staff.queue.confirmEarly", { who }))) return;
     setBusyKey(rowKey(entry));
     setResult(null);
-    let done = 0;
     let lateCredit = 0;
+    const usageKeys = members.flatMap((m) => (m.usageKey === null ? [] : [m.usageKey]));
     try {
       // One return photo covers the group: copy the first unit's onto the rest.
       // #237: never the handover photo - that is each unit's own, taken by the
@@ -494,29 +506,26 @@ export default function StaffQueuePage() {
           stage: "after",
         });
       }
-      for (const m of members) {
-        if (bucket === "toPrepare" && m.reservationKey !== null) {
-          await allocate.mutateAsync({ reservationKey: m.reservationKey });
-        } else if (bucket === "toHandover" && m.usageKey !== null) {
-          await confirmPickup.mutateAsync({ usageKey: m.usageKey, early });
-        } else if (m.usageKey !== null) {
-          const out = await recordReturn.mutateAsync({ usageKey: m.usageKey });
-          lateCredit += out.latePenalty?.creditDeducted ?? 0;
-        }
-        done++;
+      // #236 step 2 (D-01): one call for the whole cart - every unit or none.
+      if (bucket === "toPrepare") {
+        await allocateCart.mutateAsync({
+          lines: members.flatMap((m) => (m.reservationKey === null ? [] : [{ reservationKey: m.reservationKey }])),
+        });
+      } else if (bucket === "toHandover") {
+        await confirmPickupCart.mutateAsync({ usageKeys, early });
+      } else {
+        const out = await recordReturnCart.mutateAsync({ usageKeys });
+        lateCredit = out.reduce((sum, r) => sum + (r.latePenalty?.creditDeducted ?? 0), 0);
       }
       setResult({
         tone: "ok",
         text:
-          t("staff.queue.doneGroup", { count: done, item: entry.itemName ?? "", who }) +
+          t("staff.queue.doneGroup", { count: members.length, item: entry.itemName ?? "", who }) +
           (lateCredit > 0 ? ` ${t("staff.queue.doneGroupLate", { credit: lateCredit })}` : ""),
       });
     } catch (error) {
-      // Units already done stay done; the message says how far it got.
-      setResult({
-        tone: "bad",
-        text: `${t("staff.queue.groupStopped", { done, count: members.length })} ${getErrorMessage(error)}`,
-      });
+      // One transaction, so a refused cart changed nothing; the queue reloads.
+      setResult({ tone: "bad", text: `${t("staff.queue.groupNothingDone")} ${getErrorMessage(error)}` });
     } finally {
       setBusyKey(null);
     }
@@ -1064,7 +1073,8 @@ function PhotoGatedAction({
           accept={uploadAcceptAttr()}
           multiple
           className="sr-only"
-          disabled={upload.isPending}
+          // #238: closed at the cap; the count beside it says why.
+          disabled={upload.isPending || (photos?.[stage].length ?? 0) >= UPLOAD.MAX_PHOTOS_PER_STAGE}
           onChange={(e) => void onPick(e)}
         />
         {upload.isPending
@@ -1159,7 +1169,7 @@ function PrepareAction({
           >
             {options.map((o) => (
               <option key={o.resourceKey} value={o.resourceKey}>
-                {o.serialNo}
+                {o.recommended ? t("staff.queue.unitRecommended", { serial: o.serialNo }) : o.serialNo}
               </option>
             ))}
           </select>
@@ -1179,7 +1189,14 @@ function PrepareAction({
           </Button>
         ) : null}
       </div>
-      {showSchedule && row.itemKey != null ? <UnitSchedule itemKey={row.itemKey} /> : null}
+      {showSchedule && row.itemKey != null ? (
+        <UnitSchedule
+          itemKey={row.itemKey}
+          window={row.pickupAt && row.dueAt ? { start: row.pickupAt, end: row.dueAt } : null}
+          exclude={row.reservationKey}
+          options={options}
+        />
+      ) : null}
     </div>
   );
 }

@@ -14,6 +14,13 @@ const baseResource = {
   ResourceStatus: 'InStorage',
   BufferTime: 0,
   BorrowRuleInfo: { RuleName: 'T0' },
+  // #239: the counter it is collected from (no name in these fixtures).
+  ManagementGroup: {
+    ManageGroupKey: 1,
+    GroupType: 'Faculty',
+    Branch: null,
+    Club: null,
+  },
   Item: { ItemID: 'CAL-01', Item: { ItemName: 'Caliper', CreditWeight: 1 } },
   Room: null,
 };

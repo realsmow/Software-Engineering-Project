@@ -139,6 +139,43 @@ export function useRecordReturn() {
   });
 }
 
+/**
+ * #236 step 2 (instructor item 1, team decision D-01): the whole-cart buttons.
+ * One call does every line or none, and the queue reloads either way, so a
+ * refused cart shows its real state at once.
+ */
+export function useAllocateCart() {
+  const trpc = useTRPCClient();
+  const refresh = useRefreshQueue();
+
+  return useMutation({
+    mutationFn: (input: { lines: { reservationKey: number }[] }) => trpc.loan.allocateCart.mutate(input),
+    onSettled: refresh,
+  });
+}
+
+export function useConfirmPickupCart() {
+  const trpc = useTRPCClient();
+  const refresh = useRefreshQueue();
+
+  return useMutation({
+    mutationFn: (input: { usageKeys: number[]; early?: boolean }) => trpc.loan.confirmPickupCart.mutate(input),
+    onSettled: refresh,
+  });
+}
+
+/** The late penalties come back per unit, like useRecordReturn's. */
+export function useRecordReturnCart() {
+  const trpc = useTRPCClient();
+  const refresh = useRefreshQueue();
+
+  return useMutation({
+    mutationFn: (input: { usageKeys: number[] }): Promise<RecordReturnOutput[]> =>
+      trpc.loan.recordReturnCart.mutate(input),
+    onSettled: refresh,
+  });
+}
+
 /** Write a unit off as lost. Refused by the server until the row is eligible. */
 export function useMarkLost() {
   const trpc = useTRPCClient();

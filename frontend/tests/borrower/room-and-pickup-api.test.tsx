@@ -38,6 +38,7 @@ const api = vi.hoisted(() => ({
   roomAvailability: { query: vi.fn() },
   book: vi.fn(),
   confirm: vi.fn(),
+  confirmCart: vi.fn(),
   ticket: vi.fn(),
   attach: vi.fn(),
   upload: vi.fn(),
@@ -53,6 +54,7 @@ vi.mock("../../src/lib/trpc", () => ({
     loan: {
       createRoomBooking: { mutate: api.book },
       confirmMyPickup: { mutate: api.confirm },
+      confirmMyPickupCart: { mutate: api.confirmCart },
     },
     image: {
       requestUsagePhotoUpload: { mutate: api.ticket },
@@ -98,8 +100,15 @@ describe("room and pickup API regressions from the PDF", () => {
         capacity: 24,
         imageUrl: null,
         bookable: true,
+        ownerGroupKey: null,
       },
     ]);
+  });
+
+  it("keeps the department that runs the room, for its open days", () => {
+    const owned = roomResponse({ owner: { id: 5, name: "Mechanical Engineering", type: "Faculty" } });
+    expect(toRoom(owned).ownerGroupKey).toBe(5);
+    expect(toRoom(roomResponse()).ownerGroupKey).toBeNull();
   });
 
   it("does not replace an empty room or appeal API response with sample rows", async () => {
@@ -140,6 +149,7 @@ describe("room and pickup API regressions from the PDF", () => {
             resourceKey: 7603,
             name: room.name,
             serialNo: null,
+            pickupPoint: null,
             kind: "room",
             tier: "T3",
             creditWeight: 1,
@@ -188,39 +198,30 @@ describe("room and pickup API regressions from the PDF", () => {
         },
       })
     );
+    api.confirmCart.mockResolvedValue([]);
     const { wrapper } = setup();
     const { result } = renderHook(() => useFinalizePickup(), { wrapper });
+    expect(await result.current.mutateAsync([42])).toEqual({ finalizedUsageKeys: [42] });
+    expect(api.confirm.mock.calls).toEqual([[{ usageKey: 42 }]]);
+    // #236 step 2: several units go to the borrower's cart endpoint in one call.
     expect(await result.current.mutateAsync([41, 42])).toEqual({
       finalizedUsageKeys: [41, 42],
     });
-    expect(api.confirm.mock.calls).toEqual([[{ usageKey: 41 }], [{ usageKey: 42 }]]);
+    expect(api.confirmCart.mock.calls).toEqual([[{ usageKeys: [41, 42] }]]);
+    expect(api.confirm).toHaveBeenCalledTimes(1);
   });
 
-  it("reports a pickup refusal and does not confirm later units", async () => {
-    api.confirm
-      .mockResolvedValueOnce(
-        requestResponse({
-          status: "inUse",
-          usageKey: 41,
-          dueAt: "2026-09-29T09:00:00.000Z",
-          cancellable: false,
-          approval: {
-            route: "auto",
-            status: "Approved",
-            approvedBy: null,
-            autoApproved: true,
-            approvedAt: "2026-09-26T00:00:00.000Z",
-            resolvedAt: "2026-09-26T00:00:00.000Z",
-          },
-        })
-      )
-      .mockRejectedValueOnce(new Error("PICKUP_PHOTO_REQUIRED"));
+  it("reports a pickup refusal, and the server confirms none of the cart (#236 step 2)", async () => {
+    // One call for the whole cart: the server refuses it whole, so no unit is
+    // left confirmed while the rest is not.
+    api.confirmCart.mockRejectedValueOnce(new Error("PICKUP_PHOTO_REQUIRED"));
     const { wrapper } = setup();
     const { result } = renderHook(() => useFinalizePickup(), { wrapper });
     await expect(result.current.mutateAsync([41, 42, 43])).rejects.toThrow(
       "PICKUP_PHOTO_REQUIRED"
     );
-    expect(api.confirm.mock.calls).toEqual([[{ usageKey: 41 }], [{ usageKey: 42 }]]);
+    expect(api.confirmCart.mock.calls).toEqual([[{ usageKeys: [41, 42, 43] }]]);
+    expect(api.confirm).not.toHaveBeenCalled();
   });
 
   it("uploads the photo bytes with a borrower ticket and attaches the resulting URL", async () => {

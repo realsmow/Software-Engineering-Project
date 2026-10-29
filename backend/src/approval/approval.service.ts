@@ -20,6 +20,11 @@ import {
 import { BusinessError } from '../common/errors/business-error';
 import { lockRow } from '../common/db/lock-row';
 import {
+  boundToCart,
+  eachLine,
+  inCartTransaction,
+} from '../common/db/cart-transaction';
+import {
   daysBetween,
   startOfLocalDay,
   toIso,
@@ -274,22 +279,25 @@ export class ApprovalService {
    * `decide`, so one approval covers the whole borrow. A line the rules
    * refuse is reported and left pending rather than failing the rest.
    */
+  /**
+   * #236 step 2 (instructor item 1, team decision D-01): one decision for the
+   * cart's pending lines this decider may decide, in one transaction - all of
+   * them or none. A line another decider owns (another department, or a T2
+   * line for a staff member) is left pending for them and listed in `failed`
+   * with the reason; it is not a refusal of the rest.
+   */
   async decideCart(user: TrpcUser, input: DecideCartInput) {
     const lines = await this.prisma.reservations.findMany({
       where: { CartKey: input.cartKey, ApproveStatus: 'Pending' },
       select: { ReservationKey: true },
       orderBy: { ReservationKey: 'asc' },
     });
-    const decided: number[] = [];
+    const mine: number[] = [];
     const failed: { reservationKey: number; code: string }[] = [];
     for (const line of lines) {
       try {
-        await this.decide(user, {
-          reservationKey: line.ReservationKey,
-          decision: input.decision,
-          reason: input.reason,
-        });
-        decided.push(line.ReservationKey);
+        await this.decidableRow(user, line.ReservationKey);
+        mine.push(line.ReservationKey);
       } catch (error) {
         if (!(error instanceof BusinessError)) throw error;
         failed.push({
@@ -298,7 +306,91 @@ export class ApprovalService {
         });
       }
     }
-    return { decided, failed };
+    if (mine.length > 0) {
+      await inCartTransaction(this.prisma, this.audit, (db, audits) => {
+        const cart = boundToCart(this, db, audits);
+        return eachLine(mine, (reservationKey) =>
+          cart.decide(
+            user,
+            { reservationKey, decision: input.decision, reason: input.reason },
+            mine,
+          ),
+        );
+      });
+    }
+    return { decided: mine, failed };
+  }
+
+  /**
+   * The checks `decide` makes before taking any lock: the request exists, is
+   * in the decider's scope, is not their own, is still pending, and its route
+   * lets this role decide it. decideCart uses them to pick its lines.
+   */
+  private async decidableRow(user: TrpcUser, reservationKey: number) {
+    const row = await this.prisma.reservations.findUnique({
+      where: { ReservationKey: reservationKey },
+      select: { ...QUEUE_SELECT, AutoApproved: true, ResolvedAt: true },
+    });
+    if (!row) {
+      throw new BusinessError('RESERVATION_NOT_FOUND', {
+        reservationKey,
+      });
+    }
+    await this.scope.assertResourceInScope(user, row.Resource.ResourceKey);
+
+    if (row.ReservedBy === user.accountKey) {
+      // §5.9. Staff and supervisors borrow equipment too, and the one thing
+      // they may not do is sign their own request.
+      throw new BusinessError('CANNOT_APPROVE_OWN_REQUEST', {
+        reservationKey,
+      });
+    }
+    if (row.ApproveStatus !== 'Pending') {
+      throw new BusinessError(
+        row.AutoApproved ? 'ALREADY_AUTO_APPROVED' : 'ALREADY_DECIDED',
+        {
+          reservationKey,
+          status: row.ApproveStatus,
+          decidedAt: row.ResolvedAt ? toIso(row.ResolvedAt) : null,
+        },
+      );
+    }
+
+    const toBand = await this.creditTiers.tierMapper();
+    const route = this.routeOf(row, toBand);
+    if (!canDecide(route, this.deciderRole(user))) {
+      throw new BusinessError('APPROVAL_NEEDS_SUPERVISOR', {
+        reservationKey,
+        route,
+        tier: tryMapTier(row.Resource.BorrowRuleInfo.RuleName),
+      });
+    }
+
+    return row;
+  }
+
+  /**
+   * #236 step 3 (D-01): lines of a cart, other than `decided`, that are still
+   * on their way to the borrower: undecided or approved, and not collected
+   * yet. A collected item is no longer part of "cancel the whole cart".
+   */
+  private async stillOpenInCart(
+    tx: Prisma.TransactionClient,
+    cartKey: number | null | undefined,
+    decided: ReadonlySet<number>,
+  ): Promise<number> {
+    if (cartKey == null) return 0;
+    return tx.reservations.count({
+      where: {
+        CartKey: cartKey,
+        ReservationKey: { notIn: [...decided] },
+        ApproveStatus: { in: ['Pending', 'Approved'] },
+        OR: [
+          { UsageLogs: { none: {} } },
+          { UsageLogs: { some: { CurrentStatus: 'Prepared' } } },
+        ],
+      },
+    });
   }
 
   /**
@@ -323,46 +415,16 @@ export class ApprovalService {
     }
   }
 
-  async decide(user: TrpcUser, input: DecideApprovalInput) {
-    const row = await this.prisma.reservations.findUnique({
-      where: { ReservationKey: input.reservationKey },
-      select: { ...QUEUE_SELECT, AutoApproved: true, ResolvedAt: true },
-    });
-    if (!row) {
-      throw new BusinessError('RESERVATION_NOT_FOUND', {
-        reservationKey: input.reservationKey,
-      });
-    }
-    await this.scope.assertResourceInScope(user, row.Resource.ResourceKey);
-
-    if (row.ReservedBy === user.accountKey) {
-      // §5.9. Staff and supervisors borrow equipment too, and the one thing
-      // they may not do is sign their own request.
-      throw new BusinessError('CANNOT_APPROVE_OWN_REQUEST', {
-        reservationKey: input.reservationKey,
-      });
-    }
-    if (row.ApproveStatus !== 'Pending') {
-      throw new BusinessError(
-        row.AutoApproved ? 'ALREADY_AUTO_APPROVED' : 'ALREADY_DECIDED',
-        {
-          reservationKey: input.reservationKey,
-          status: row.ApproveStatus,
-          decidedAt: row.ResolvedAt ? toIso(row.ResolvedAt) : null,
-        },
-      );
-    }
-
-    const toBand = await this.creditTiers.tierMapper();
-    const route = this.routeOf(row, toBand);
-    if (!canDecide(route, this.deciderRole(user))) {
-      throw new BusinessError('APPROVAL_NEEDS_SUPERVISOR', {
-        reservationKey: input.reservationKey,
-        route,
-        tier: tryMapTier(row.Resource.BorrowRuleInfo.RuleName),
-      });
-    }
-
+  /**
+   * `batch`: the other lines of a whole-cart decision (decideCart), which are
+   * not "left in the cart" when this one is rejected.
+   */
+  async decide(
+    user: TrpcUser,
+    input: DecideApprovalInput,
+    batch: readonly number[] = [],
+  ) {
+    const row = await this.decidableRow(user, input.reservationKey);
     const now = new Date();
 
     if (input.decision === 'reject') {
@@ -388,6 +450,12 @@ export class ApprovalService {
           reservationKey: input.reservationKey,
           itemName: resourceName(row.Resource),
           reason: input.reason,
+          cartKey: row.CartKey,
+          remainingInCart: await this.stillOpenInCart(
+            tx,
+            row.CartKey,
+            new Set([input.reservationKey, ...batch]),
+          ),
         });
       });
 
@@ -428,6 +496,7 @@ export class ApprovalService {
         },
         select: {
           ReservationKey: true,
+          CartKey: true,
           StartTime: true,
           EndTime: true,
           ReservedByUser: { select: BORROWER_SELECT },
@@ -501,6 +570,12 @@ export class ApprovalService {
             reservationKey: clash.ReservationKey,
             itemName,
             reason: 'อุปกรณ์ถูกจองในช่วงเวลาที่ทับซ้อนกันแล้ว',
+            cartKey: clash.CartKey,
+            remainingInCart: await this.stillOpenInCart(
+              tx,
+              clash.CartKey,
+              new Set(clashes.map((c) => c.ReservationKey)),
+            ),
           });
         }
       }

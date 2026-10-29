@@ -28,6 +28,8 @@ export function reservation(
 function baseReservation() {
   return {
     ReservationKey: 77,
+    // QUEUE_SELECT reads it; null is a request sent on its own.
+    CartKey: null as number | null,
     ReservedBy: 42,
     Reason: 'Lab project',
     DecisionNote: null as string | null,
@@ -51,6 +53,13 @@ function baseReservation() {
       ResourceStatus: 'InStorage',
       BorrowRule: 3,
       BorrowRuleInfo: { RuleName: 'T2' },
+      // #239: the counter it is collected from (no name here).
+      ManagementGroup: {
+        ManageGroupKey: 1,
+        GroupType: 'Faculty',
+        Branch: null,
+        Club: null,
+      },
       Item: {
         ItemID: 'OSC-001',
         Item: { ItemName: 'Oscilloscope', CreditWeight: 12 },

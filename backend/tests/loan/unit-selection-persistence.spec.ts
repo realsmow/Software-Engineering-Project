@@ -373,11 +373,14 @@ describe('NFR-REL-02 / SDS 4.4: unit selection preserves reserved windows', () =
           resourceKey: f.units[0].ResourceKey,
           serialNo: serials[0].ItemID,
           reserved: true,
+          // #235: nothing else is booked, so the reserved unit fits as well as any.
+          recommended: true,
         },
         {
           resourceKey: f.units[1].ResourceKey,
           serialNo: serials[1].ItemID,
           reserved: false,
+          recommended: false,
         },
       ]);
 
@@ -388,6 +391,54 @@ describe('NFR-REL-02 / SDS 4.4: unit selection preserves reserved windows', () =
           (o) => o.reserved,
         ),
       ).toEqual([true]);
+    });
+  });
+
+  it('#235: recommends the unit whose next booking sits closest after this one', async () => {
+    await inHistoryFixture(prisma, async (tx) => {
+      const f = await pickupFixture(tx);
+      const request = await pickupRequest(f);
+      // The spare unit is booked from the next morning, so it fits this loan
+      // tightly; the reserved unit stays free for a long loan later.
+      await pickupRequest(
+        f,
+        1,
+        1,
+        new Date('2031-09-30T02:00:00.000Z'),
+        new Date('2031-10-01T10:00:00.000Z'),
+      );
+      const options = await f.loan.prepareOptions(
+        f.staff,
+        request.reservationKey,
+      );
+      expect(
+        options.map((o) => [o.resourceKey, o.reserved, o.recommended]),
+      ).toEqual([
+        [f.units[0].ResourceKey, true, false],
+        [f.units[1].ResourceKey, false, true],
+      ]);
+    });
+  });
+
+  it('#235: the unit timetable can leave out the request being prepared', async () => {
+    await inHistoryFixture(prisma, async (tx) => {
+      const f = await pickupFixture(tx);
+      const request = await pickupRequest(f);
+      const schedule = (exclude?: number) =>
+        new ItemService(f.client).unitSchedule(
+          unitScheduleInput.parse({
+            id: f.item.ItemKey,
+            from: PICKUP_START.toISOString(),
+            days: 3,
+            ...(exclude ? { exclude } : {}),
+          }),
+        );
+      const reservedBusy = async (exclude?: number) =>
+        (await schedule(exclude)).find(
+          (u) => u.resourceKey === f.units[0].ResourceKey,
+        )!.busy;
+      expect(await reservedBusy()).toHaveLength(1);
+      expect(await reservedBusy(request.reservationKey)).toEqual([]);
     });
   });
 

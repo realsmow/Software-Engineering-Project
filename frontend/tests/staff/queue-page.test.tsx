@@ -11,6 +11,7 @@ import {
 } from "../../../backend/src/loan/loan.schema";
 import type { StaffQueueBucket } from "../../src/features/staff/queue/queue.types";
 import { usagePhotosOutput } from "../../../backend/src/image/image.schema";
+import { UPLOAD } from "../../src/constants";
 import { loanResponse } from "../fixtures/api-responses";
 import { queryResult, mutationResult } from "../fixtures/query-results";
 
@@ -21,6 +22,9 @@ const mocks = vi.hoisted(() => ({
   useAllocate: vi.fn(),
   useConfirmPickup: vi.fn(),
   useRecordReturn: vi.fn(),
+  useAllocateCart: vi.fn(),
+  useConfirmPickupCart: vi.fn(),
+  useRecordReturnCart: vi.fn(),
   useMarkLost: vi.fn(),
   useStaffDecideExtension: vi.fn(),
   useStaffInspectExtension: vi.fn(),
@@ -48,6 +52,7 @@ vi.mock("../../src/features/borrower/catalog/use-equipment-types", () => ({
 vi.mock("../../src/lib/closed-days", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../src/lib/closed-days")>()),
   useHolidays: () => new Set<string>(),
+  useOpenDates: () => new Set<string>(),
 }));
 vi.mock("../../src/features/borrower/pickup/use-pickup-image-upload", () => ({
   useUsagePhotos: mocks.useUsagePhotos,
@@ -82,6 +87,10 @@ describe("StaffQueuePage", () => {
   const copyPhotos = vi.fn();
   const remindSupervisor = vi.fn();
   const recordReturn = vi.fn();
+  // #236 step 2: the whole-cart buttons make one call each.
+  const allocateCart = vi.fn();
+  const handoverCart = vi.fn();
+  const returnCart = vi.fn();
 
   const renderPage = () =>
     render(
@@ -114,6 +123,9 @@ describe("StaffQueuePage", () => {
     mocks.useRemindSupervisor.mockReturnValue(mutationResult(remindSupervisor));
     mocks.useConfirmPickup.mockReturnValue(mutationResult(vi.fn()));
     mocks.useRecordReturn.mockReturnValue(mutationResult(recordReturn));
+    mocks.useAllocateCart.mockReturnValue(mutationResult(allocateCart));
+    mocks.useConfirmPickupCart.mockReturnValue(mutationResult(handoverCart));
+    mocks.useRecordReturnCart.mockReturnValue(mutationResult(returnCart));
     mocks.useMarkLost.mockReturnValue(mutationResult(vi.fn()));
     mocks.useStaffDecideExtension.mockReturnValue(mutationResult(vi.fn()));
     mocks.useStaffInspectExtension.mockReturnValue(mutationResult(vi.fn()));
@@ -270,6 +282,31 @@ describe("StaffQueuePage", () => {
         expect(inspect).toHaveBeenCalledWith({ extensionKey: 12, condition: "Normal" })
       );
     });
+
+    it("closes the check photo picker at the 30-photo cap (#238)", async () => {
+      mocks.useStaffInspectExtension.mockReturnValue(mutationResult(vi.fn()));
+      mocks.useStaffDecideExtension.mockReturnValue(mutationResult(vi.fn()));
+      mocks.useStaffExtensionQueue.mockReturnValue(queryResult([supervisorExtension()]));
+      let n = 0;
+      uploadImage.mockImplementation(async () => ({ imageUrl: `/media/inspection/2026/10/c${n++}.jpg` }));
+      const line = openExtensionRow();
+      const files = Array.from(
+        { length: UPLOAD.MAX_PHOTOS_PER_STAGE },
+        (_, i) => new File(["x"], `c${i}.jpg`, { type: "image/jpeg" })
+      );
+
+      fireEvent.change(line.getByLabelText(i18n.t("staff.queue.extCheckPhoto")), { target: { files } });
+
+      await waitFor(() =>
+        expect(line.getAllByRole("button", { name: i18n.t("borrower.pickup.removePhoto") })).toHaveLength(
+          UPLOAD.MAX_PHOTOS_PER_STAGE
+        )
+      );
+      expect(line.getByLabelText(i18n.t("staff.queue.extCheckPhoto"))).toBeDisabled();
+      expect(
+        line.getByText(i18n.t("common.photoCount", { count: 30, max: UPLOAD.MAX_PHOTOS_PER_STAGE }))
+      ).toBeInTheDocument();
+    });
   });
 
   it("allocates the selected request and reports the assigned serial", async () => {
@@ -348,10 +385,27 @@ describe("StaffQueuePage", () => {
       screen.getByRole("button", { name: i18n.t("staff.queue.showUnitSchedule") })
     );
 
-    expect(unitSchedule).toHaveBeenCalledWith("5", expect.any(String), 14);
+    // The request itself is left out of its own unit's timetable.
+    expect(unitSchedule).toHaveBeenCalledWith("5", expect.any(String), 14, 77);
     expect(screen.getAllByLabelText(/^OSC-002 \d{4}-\d{2}-\d{2}:/).length).toBe(14);
     // D-04: who has the unit is not shown.
     expect(screen.queryByText(/Lovelace.*OSC/)).not.toBeInTheDocument();
+  });
+
+  it("#235: names the recommended unit in the unit list", () => {
+    mocks.useStaffQueue.mockReturnValue(queryResult([{ ...row, itemKey: 5 }]));
+    mocks.usePrepareOptions.mockReturnValue(
+      queryResult([
+        { resourceKey: 7, serialNo: "OSC-001", reserved: true, recommended: false },
+        { resourceKey: 8, serialNo: "OSC-002", reserved: false, recommended: true },
+      ])
+    );
+    renderPage();
+    const list = screen.getByRole("combobox", { name: i18n.t("staff.queue.pickUnit") });
+    expect(list).toHaveValue("7"); // the reserved unit stays chosen until staff pick
+    expect(
+      within(list).getByRole("option", { name: i18n.t("staff.queue.unitRecommended", { serial: "OSC-002" }) })
+    ).toBeInTheDocument();
   });
 
   describe("demo feedback: one submit for several units is one row", () => {
@@ -378,10 +432,22 @@ describe("StaffQueuePage", () => {
       fireEvent.click(
         screen.getByRole("button", { name: i18n.t("staff.queue.prepareAll", { count: 4 }) })
       );
-      await waitFor(() => expect(allocate).toHaveBeenCalledTimes(4));
-      expect(allocate.mock.calls.map(([input]) => input.reservationKey)).toEqual([
-        77, 78, 79, 80,
-      ]);
+      // #236 step 2: one call for the whole cart, every unit or none.
+      await waitFor(() => expect(allocateCart).toHaveBeenCalledTimes(1));
+      expect(allocateCart).toHaveBeenCalledWith({
+        lines: [77, 78, 79, 80].map((reservationKey) => ({ reservationKey })),
+      });
+      expect(allocate).not.toHaveBeenCalled();
+    });
+
+    it("#236 step 2: says nothing in the cart changed when the server refuses one unit", async () => {
+      mocks.useStaffQueue.mockReturnValue(queryResult(four));
+      allocateCart.mockRejectedValue(new Error("Unit taken"));
+      renderPage();
+      fireEvent.click(
+        screen.getByRole("button", { name: i18n.t("staff.queue.prepareAll", { count: 4 }) })
+      );
+      expect(await screen.findByText(new RegExp(i18n.t("staff.queue.groupNothingDone")))).toBeInTheDocument();
     });
 
     it("one cart with different items is one row (one borrow)", () => {
@@ -579,7 +645,8 @@ describe("StaffQueuePage", () => {
       mocks.useUsagePhotos.mockReturnValue(photoBy(row.borrower.accountKey));
       openHandover();
       fireEvent.click(screen.getByRole("button", { name: i18n.t("staff.queue.handoverAll", { count: 2 }) }));
-      await waitFor(() => expect(handover).toHaveBeenCalledTimes(2));
+      await waitFor(() => expect(handoverCart).toHaveBeenCalledWith({ usageKeys: [101, 102], early: false }));
+      expect(handover).not.toHaveBeenCalled();
       expect(copyPhotos).not.toHaveBeenCalled();
     });
   });
@@ -605,6 +672,75 @@ describe("StaffQueuePage", () => {
       ["after", files[0]],
       ["after", files[1]],
     ]);
+  });
+
+  it("closes the return photo picker at the 30-photo cap (#238)", () => {
+    mocks.useUsagePhotos.mockReturnValue(
+      queryResult(
+        usagePhotosOutput.strict().parse({
+          before: [],
+          after: Array.from({ length: UPLOAD.MAX_PHOTOS_PER_STAGE }, (_, i) => ({
+            imageKey: 100 + i,
+            imageUrl: `/media/inspection/after-${i}.jpg`,
+            stage: "after",
+            submittedBy: 1,
+            submittedAt: "2026-09-30T06:00:00.000Z",
+          })),
+          inspection: [],
+          evidence: [],
+        })
+      )
+    );
+    mocks.useStaffQueue.mockImplementation((bucket: string) =>
+      queryResult(
+        bucket === "onLoan"
+          ? [staffQueueRow.strict().parse({ ...row, usageKey: 9, status: "Lended", serialNo: "OSC-001" })]
+          : [row]
+      )
+    );
+    const { container } = renderPage();
+    fireEvent.click(screen.getAllByRole("button", { name: /On loan/i })[0]);
+
+    expect(container.querySelector('input[type="file"]')).toBeDisabled();
+    expect(
+      screen.getByText(i18n.t("common.photoCount", { count: 30, max: UPLOAD.MAX_PHOTOS_PER_STAGE }))
+    ).toBeInTheDocument();
+  });
+
+  it("#236 step 2: takes a whole cart back in one call and adds up the late credit", async () => {
+    const cart = [201, 202].map((usageKey, i) =>
+      staffQueueRow.strict().parse({ ...row, usageKey, reservationKey: 90 + i, cartKey: 4, status: "Lended" })
+    );
+    mocks.useStaffQueue.mockImplementation((bucket: string) => queryResult(bucket === "onLoan" ? cart : [row]));
+    mocks.useUsagePhotos.mockReturnValue(
+      queryResult(
+        usagePhotosOutput.strict().parse({
+          before: [],
+          after: [
+            {
+              imageKey: 5,
+              imageUrl: "/media/inspection/return.jpg",
+              stage: "after",
+              submittedBy: 1,
+              submittedAt: "2026-09-30T06:00:00.000Z",
+            },
+          ],
+          inspection: [],
+          evidence: [],
+        })
+      )
+    );
+    returnCart.mockResolvedValue([
+      { latePenalty: { penaltyKey: 1, creditDeducted: 3, overdueDays: 1, expiresAt: "2026-12-01T00:00:00.000Z" } },
+      { latePenalty: null },
+    ]);
+    renderPage();
+    fireEvent.click(screen.getAllByRole("button", { name: /On loan/i })[0]);
+    fireEvent.click(screen.getByRole("button", { name: i18n.t("staff.queue.returnAll", { count: 2 }) }));
+
+    await waitFor(() => expect(returnCart).toHaveBeenCalledWith({ usageKeys: [201, 202] }));
+    expect(recordReturn).not.toHaveBeenCalled();
+    expect(await screen.findByText(new RegExp(i18n.t("staff.queue.doneGroupLate", { credit: 3 })))).toBeInTheDocument();
   });
 
   it("blocks return without an after photo and displays the late penalty after return", async () => {

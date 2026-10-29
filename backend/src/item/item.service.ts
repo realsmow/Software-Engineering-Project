@@ -618,6 +618,7 @@ export class ItemService {
         where: {
           ResourceKey: { in: keys },
           ...HOLDING_RESERVATION,
+          ...(input.exclude ? { ReservationKey: { not: input.exclude } } : {}),
           StartTime: { lt: addDays(to, maxBuffer) },
           EndTime: { gt: addDays(from, -maxBuffer) },
         },

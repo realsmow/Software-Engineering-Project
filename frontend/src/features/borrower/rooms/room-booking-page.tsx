@@ -39,7 +39,9 @@ export default function RoomBookingPage() {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-  const openDates = useOpenDates();
+  const { data: room, isLoading } = useRoom(id);
+  // A weekend or holiday the admin opened counts for this room's department only.
+  const openDates = useOpenDates(room?.ownerGroupKey != null ? [room.ownerGroupKey] : undefined);
   const today = todayLocalDayKey();
   // Today and up to seven days ahead (demo feedback; was today only).
   const week = useMemo(
@@ -53,8 +55,7 @@ export default function RoomBookingPage() {
   // Derived until the borrower picks, so a holiday list that arrives late
   // still moves the default.
   const date =
-    chosen ?? week.find((d) => !isClosedDay(d, holidays)) ?? today;
-  const { data: room, isLoading } = useRoom(id);
+    chosen ?? week.find((d) => !isClosedDay(d, holidays, openDates)) ?? today;
   const { data: day } = useRoomDay(id, date);
   const freeByDay = useRoomWeek(id, week);
   const create = useCreateRoomBooking();

@@ -19,6 +19,12 @@ const t2Resource = {
   ResourceStatus: 'InStorage',
   BufferTime: 0,
   BorrowRuleInfo: { RuleName: 'T2' },
+  ManagementGroup: {
+    ManageGroupKey: 3,
+    GroupType: 'Faculty',
+    Branch: null,
+    Club: null,
+  },
   Item: {
     ItemID: 'OSC-01',
     Item: { ItemName: 'Oscilloscope', CreditWeight: 1 },

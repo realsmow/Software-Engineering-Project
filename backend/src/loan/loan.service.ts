@@ -11,6 +11,7 @@ import {
   assertPickupWindowOpen,
   assertResourceLendable,
   clashingWindowFilter,
+  HOLDING_RESERVATION,
   pickupOpensAt,
   withBuffer,
 } from '../common/booking/booking-window';
@@ -28,6 +29,11 @@ import {
 import { toPage, toSkipTake } from '../common/schemas/pagination.schema';
 import { tryMapTier, type ResourceTier } from '../common/schemas/status.schema';
 import { UNAVAILABLE_USAGE_STATES } from '../common/usage/usage-states';
+import {
+  boundToCart,
+  eachLine,
+  inCartTransaction,
+} from '../common/db/cart-transaction';
 import { countExtensionsByDesk } from '../common/approval/extension-desk';
 import { CreditTierService } from '../common/credit/credit-tier.service';
 import {
@@ -37,10 +43,13 @@ import {
 import type { TrpcUser } from '../trpc/context';
 import { toBorrowerRef } from './loan.schema';
 import type {
+  AllocateCartInput,
   AllocateLoanInput,
+  ConfirmPickupCartInput,
   ConfirmPickupInput,
   ListStaffQueueInput,
   MarkLostInput,
+  RecordReturnCartInput,
   RecordReturnInput,
   RecoverLostInput,
   SwapUnitInput,
@@ -121,6 +130,10 @@ type UsageRow = Prisma.UsageLogGetPayload<{ select: typeof USAGE_SELECT }>;
  * "lent" beside a ResourceInfo that says "in storage" is the failure this desk
  * cannot recover from by hand.
  */
+/** #235: how far either side of a booking the tightest-fit advice looks. */
+const FIT_HORIZON_DAYS = 30;
+const DAY_MS = 86_400_000;
+
 @Injectable()
 export class LoanService {
   constructor(
@@ -401,7 +414,11 @@ export class LoanService {
   async prepareOptions(user: TrpcUser, reservationKey: number) {
     const reservation = await this.prisma.reservations.findUnique({
       where: { ReservationKey: reservationKey },
-      select: { Resource: { select: RESOURCE_SELECT } },
+      select: {
+        StartTime: true,
+        EndTime: true,
+        Resource: { select: RESOURCE_SELECT },
+      },
     });
     if (!reservation?.Resource.Item) {
       throw new BusinessError('RESERVATION_NOT_FOUND', { reservationKey });
@@ -421,6 +438,7 @@ export class LoanService {
       resourceKey: number;
       serialNo: string;
       reserved: boolean;
+      recommended: boolean;
     }[] = [];
     for (const unit of units) {
       const isReserved = unit.ResourceKey === reserved.ResourceKey;
@@ -433,10 +451,90 @@ export class LoanService {
           resourceKey: unit.ResourceKey,
           serialNo: unit.Item?.ItemID ?? String(unit.ResourceKey),
           reserved: isReserved,
+          recommended: false,
         });
       }
     }
-    return options.sort((a, b) => Number(b.reserved) - Number(a.reserved));
+    options.sort((a, b) => Number(b.reserved) - Number(a.reserved));
+    await this.markTightestFit(
+      options,
+      reservationKey,
+      reservation.StartTime,
+      reservation.EndTime,
+    );
+    return options;
+  }
+
+  /**
+   * #235 (instructor item 7, team decision D-04): of the units staff may
+   * choose, mark the one whose other bookings sit closest before and after
+   * this window, so a unit with a long free stretch is kept for a long loan.
+   * Gaps count up to FIT_HORIZON_DAYS on each side; a tie keeps the first
+   * option, which is the reserved unit. One option needs no advice.
+   */
+  private async markTightestFit(
+    options: { resourceKey: number; recommended: boolean }[],
+    reservationKey: number,
+    start: Date,
+    end: Date,
+  ): Promise<void> {
+    if (options.length < 2) return;
+    const keys = options.map((o) => o.resourceKey);
+    const [units, bookings, loans] = await Promise.all([
+      this.prisma.resourceInfo.findMany({
+        where: { ResourceKey: { in: keys } },
+        select: { ResourceKey: true, BufferTime: true },
+      }),
+      this.prisma.reservations.findMany({
+        where: {
+          ResourceKey: { in: keys },
+          ReservationKey: { not: reservationKey },
+          ...HOLDING_RESERVATION,
+          StartTime: { lt: addDays(end, FIT_HORIZON_DAYS) },
+          EndTime: { gt: addDays(start, -FIT_HORIZON_DAYS) },
+        },
+        select: { ResourceKey: true, StartTime: true, EndTime: true },
+      }),
+      // Still out or awaiting a grade: busy until it is due back.
+      this.prisma.usageLog.findMany({
+        where: {
+          ResourceKey: { in: keys },
+          CurrentStatus: { in: UNAVAILABLE_USAGE_STATES },
+        },
+        select: { ResourceKey: true, DueTime: true },
+      }),
+    ]);
+    const cap = FIT_HORIZON_DAYS * DAY_MS;
+    const idle = (resourceKey: number) => {
+      const buffer =
+        units.find((u) => u.ResourceKey === resourceKey)?.BufferTime ?? 0;
+      let before = cap;
+      let after = cap;
+      for (const b of bookings.filter((x) => x.ResourceKey === resourceKey)) {
+        const busyFrom = addDays(b.StartTime, -buffer).getTime();
+        const busyTo = addDays(b.EndTime, buffer).getTime();
+        if (busyTo <= start.getTime())
+          before = Math.min(before, start.getTime() - busyTo);
+        if (busyFrom >= end.getTime())
+          after = Math.min(after, busyFrom - end.getTime());
+      }
+      for (const l of loans.filter((x) => x.ResourceKey === resourceKey)) {
+        const busyTo = addDays(l.DueTime, buffer).getTime();
+        if (busyTo <= start.getTime())
+          before = Math.min(before, start.getTime() - busyTo);
+      }
+      return before + after;
+    };
+    let best = options[0];
+    let bestIdle = idle(best.resourceKey);
+    for (const option of options.slice(1)) {
+      const gap = idle(option.resourceKey);
+      if (gap < bestIdle) {
+        best = option;
+        bestIdle = gap;
+      }
+    }
+    best.recommended = true;
   }
 
   /**
@@ -796,6 +894,47 @@ export class LoanService {
    * — carries the fact that the thing is gone. Whoever reverses this when the
    * item turns up looks for exactly that pair.
    */
+  // =========================================================================
+  // Whole-cart actions (#236 step 2, instructor item 1, team decision D-01)
+  // =========================================================================
+
+  /**
+   * Prepares every line of a cart in one transaction: all of them or none.
+   * Each line goes through `allocate` unchanged; lines run in key order, so
+   * two whole-cart actions on one cart take their row locks in one order.
+   */
+  async allocateCart(user: TrpcUser, input: AllocateCartInput) {
+    const lines = [...input.lines].sort(
+      (a, b) => a.reservationKey - b.reservationKey,
+    );
+    return inCartTransaction(this.prisma, this.audit, (db, audits) => {
+      const cart = boundToCart(this, db, audits);
+      return eachLine(lines, (line) => cart.allocate(user, line));
+    });
+  }
+
+  /** Hands every unit of a cart over together, or none (see allocateCart). */
+  async confirmPickupCart(user: TrpcUser, input: ConfirmPickupCartInput) {
+    const usageKeys = [...input.usageKeys].sort((a, b) => a - b);
+    return inCartTransaction(this.prisma, this.audit, (db, audits) => {
+      const cart = boundToCart(this, db, audits);
+      return eachLine(usageKeys, (usageKey) =>
+        cart.confirmPickup(user, { usageKey, early: input.early }),
+      );
+    });
+  }
+
+  /** Takes every unit of a cart back together, or none (see allocateCart). */
+  async recordReturnCart(user: TrpcUser, input: RecordReturnCartInput) {
+    const usageKeys = [...input.usageKeys].sort((a, b) => a - b);
+    return inCartTransaction(this.prisma, this.audit, (db, audits) => {
+      const cart = boundToCart(this, db, audits);
+      return eachLine(usageKeys, (usageKey) =>
+        cart.recordReturn(user, { usageKey }),
+      );
+    });
+  }
+
   async markLost(user: TrpcUser, input: MarkLostInput) {
     const usage = await this.readUsage(input.usageKey);
     await this.scope.assertResourceInScope(user, usage.Resource.ResourceKey);

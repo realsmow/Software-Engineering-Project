@@ -524,6 +524,11 @@ export const itemIdInput = z.object({ id: dbId });
 export const unitScheduleInput = itemIdInput.extend({
   from: z.iso.datetime(),
   days: z.number().int().min(1).max(92).default(14),
+  /**
+   * #235: a reservation to leave out, so staff preparing it see each unit as
+   * if this request were not booked yet.
+   */
+  exclude: dbId.optional(),
 });
 export type UnitScheduleInput = z.infer<typeof unitScheduleInput>;
 export const unitScheduleOutput = z.array(

@@ -1,7 +1,7 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { fmtDate, fmtDayMonth, fmtDayNum } from "@/lib/datetime";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Download, FileText } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { TierDot } from "@/components/shared/tier-badge";
@@ -24,7 +24,8 @@ import { penaltyReasonText } from "../appeals/penalty-reason";
 import { usePenaltiesByUsage, type LoanPenalty } from "../appeals/use-my-appeals";
 import { useLoanExtension, type LoanExtension } from "./use-extensions";
 import { useMyRequests, requestsInTab, type DraftSummary } from "./use-my-requests";
-import { useCancelRequest } from "./use-my-requests-api";
+import { useCancelCart, useCancelRequest } from "./use-my-requests-api";
+import { byPickupPlace } from "../pickup-points";
 
 const STATUS_TONE: Record<MyRequestStatus, BadgeTone> = {
   pending: "warn",
@@ -75,19 +76,51 @@ export default function MyLoansPage() {
   const { requests, draft, countByTab } = useMyRequests();
   const penaltiesByUsage = usePenaltiesByUsage();
   const cancelRequest = useCancelRequest();
+  const cancelWholeCart = useCancelCart();
   const clearDraft = useRequestDraft((s) => s.clear);
 
   const rows = requestsInTab(requests, tab);
   // Demo feedback: one cart is one borrow. Its lines stay separate cards
   // (they can end differently) inside one box with a whole-borrow cancel.
   const carts = groupByCart(rows);
+
+  // #236 step 3 (team decision D-01): a cart the supervisor partly refused asks
+  // whether to cancel the rest or keep it; with no answer the rest goes ahead.
+  // The refused lines sit in the history tab, so they are looked up across
+  // every request, and a notice links here with ?cart=<key>.
+  const [params] = useSearchParams();
+  const linkedCart = Number(params.get("cart")) || null;
+  // Answered on an earlier visit (a new notice link asks again), and on this one.
+  const [dismissed] = useState<ReadonlySet<number>>(readDismissedCarts);
+  const [answeredNow, setAnsweredNow] = useState<ReadonlySet<number>>(new Set());
+  // The cart whose question opened the cancel dialog, answered once it succeeds.
+  const [askingCart, setAskingCart] = useState<number | null>(null);
+  const refusedByCart = useMemo(() => {
+    const byCart = new Map<number, MyRequest[]>();
+    for (const r of requests) {
+      const refused = r.status === "rejected" || (r.status === "cancelled" && r.cartKey === linkedCart);
+      if (r.cartKey == null || !refused) continue;
+      byCart.set(r.cartKey, [...(byCart.get(r.cartKey) ?? []), r]);
+    }
+    return byCart;
+  }, [requests, linkedCart]);
+  useEffect(() => {
+    if (linkedCart === null) return;
+    document.getElementById(`cart-${linkedCart}`)?.scrollIntoView?.({ block: "center" });
+  }, [linkedCart, carts.length]);
+
+  function keepApproved(cartKey: number) {
+    setAnsweredNow((prev) => new Set(prev).add(cartKey));
+    writeDismissedCarts(new Set(readDismissedCarts()).add(cartKey));
+  }
   const showDraft = tab === "active" && draft !== null;
   const empty = rows.length === 0 && !showDraft;
 
   function closeCancelModal() {
-    if (cancelRequest.isPending) return;
+    if (cancelRequest.isPending || cancelWholeCart.isPending) return;
     setCancelTarget(null);
     setCancelCart(null);
+    setAskingCart(null);
     setCancelError(null);
   }
 
@@ -99,10 +132,13 @@ export default function MyLoansPage() {
     setCancelError(null);
 
     try {
-      for (const row of targets) {
-        if (row.reservationKey === undefined) continue;
-        await cancelRequest.mutateAsync({ reservationKey: row.reservationKey });
-      }
+      const keys = targets.flatMap((row) => (row.reservationKey === undefined ? [] : [row.reservationKey]));
+      // #236 step 2 (D-01): a whole cart is cancelled together, or not at all.
+      if (keys.length > 1) await cancelWholeCart.mutateAsync({ reservationKeys: keys });
+      else if (keys.length === 1) await cancelRequest.mutateAsync({ reservationKey: keys[0] });
+      // Cancelling from the question is the borrower's answer to it.
+      if (askingCart !== null) keepApproved(askingCart);
+      setAskingCart(null);
       setCancelTarget(null);
       setCancelCart(null);
     } catch (error) {
@@ -186,7 +222,7 @@ export default function MyLoansPage() {
           ) : null}
 
           {carts.map((lines) => {
-            const cards = lines.map((row) => (
+            const card = (row: MyRequest) => (
               <RequestCard
                 key={row.id}
                 row={row}
@@ -202,20 +238,52 @@ export default function MyLoansPage() {
                   setCancelTarget(row);
                 }}
               />
-            ));
-            if (lines.length === 1) return cards;
+            );
+            const cards = lines.map(card);
+            // #239: a cart collected at more than one counter is split by place.
+            const stops = byPickupPlace(lines, (r) => r.pickupPlace);
             const cancellable = lines.filter((r) => r.cancellable);
+            const cartKey = lines[0].cartKey;
+            const refused = cartKey != null ? (refusedByCart.get(cartKey) ?? []) : [];
+            const ask =
+              cartKey != null &&
+              refused.length > 0 &&
+              cancellable.length > 0 &&
+              !answeredNow.has(cartKey) &&
+              (!dismissed.has(cartKey) || linkedCart === cartKey);
+            if (lines.length === 1 && !ask) return cards;
             return (
               <section
-                key={`cart-${lines[0].cartKey}`}
+                key={`cart-${cartKey}`}
+                id={cartKey != null ? `cart-${cartKey}` : undefined}
                 aria-label={t("borrower.myRequests.cartTitle", { count: lines.length })}
-                className="rounded-lg border border-dashed border-line-strong p-2.5"
+                className={cn(
+                  "rounded-lg border border-dashed border-line-strong p-2.5",
+                  ask && linkedCart === cartKey && "border-solid border-[var(--s-warn-b)]",
+                )}
               >
+                {ask ? (
+                  <PartRejectedQuestion
+                    refused={refused}
+                    lines={cancellable}
+                    onCancel={(rows) => {
+                      setCancelError(null);
+                      setAskingCart(cartKey);
+                      setCancelCart(rows);
+                    }}
+                    onKeepAll={() => keepApproved(cartKey)}
+                  />
+                ) : null}
                 <div className="mb-2 flex flex-wrap items-center justify-between gap-2 px-1">
                   <span className="text-[12px] font-semibold uppercase tracking-wide text-t3">
                     {t("borrower.myRequests.cartTitle", { count: lines.length })}
+                    {stops.length > 1 ? (
+                      <span className="ml-2 font-medium normal-case tracking-normal text-t2">
+                        {t("borrower.request.pickupPoints", { count: stops.length })}
+                      </span>
+                    ) : null}
                   </span>
-                  {cancellable.length > 0 ? (
+                  {cancellable.length > 0 && !ask ? (
                     <Button
                       type="button"
                       variant="outline"
@@ -229,7 +297,23 @@ export default function MyLoansPage() {
                     </Button>
                   ) : null}
                 </div>
-                <div className="flex flex-col gap-2">{cards}</div>
+                {stops.length > 1 ? (
+                  <div className="flex flex-col gap-3">
+                    {stops.map((stop) => (
+                      <div key={stop.place ?? ""} className="flex flex-col gap-2">
+                        <div className="px-1 text-xs font-semibold text-t2">
+                          {t("borrower.request.pickupAt", {
+                            place: stop.place ?? t("borrower.request.pickupUnknown"),
+                            count: stop.rows.length,
+                          })}
+                        </div>
+                        {stop.rows.map(card)}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-2">{cards}</div>
+                )}
               </section>
             );
           })}
@@ -791,6 +875,94 @@ function exportCsv(requests: MyRequest[]): void {
 }
 
 /** Rows of one cart together, in the order the first of each appears. */
+/**
+ * #236 step 3 (team decision D-01): the supervisor refused part of a cart.
+ * Every line still on its way is listed, ticked to keep; the borrower unticks
+ * what they no longer want and those are cancelled (together, #236 step 2).
+ * "Keep everything" closes the question; with no answer the rest goes ahead.
+ */
+function PartRejectedQuestion({
+  refused,
+  lines,
+  onCancel,
+  onKeepAll,
+}: {
+  refused: MyRequest[];
+  lines: MyRequest[];
+  onCancel: (rows: MyRequest[]) => void;
+  onKeepAll: () => void;
+}) {
+  const { t } = useTranslation();
+  const [unticked, setUnticked] = useState<ReadonlySet<string>>(new Set());
+  const toCancel = lines.filter((r) => unticked.has(r.id));
+
+  function toggle(id: string) {
+    setUnticked((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  return (
+    <div className="mb-2.5 rounded border border-[var(--s-warn-b)] bg-[var(--s-warn-bg)] px-3 py-2 text-[12.5px] text-[var(--s-warn-t)]">
+      <p>{t("borrower.myRequests.partRejected", { names: refused.map((r) => r.name).join(", ") })}</p>
+      <ul className="mt-2 flex flex-col gap-1.5">
+        {lines.map((r) => (
+          <li key={r.id}>
+            <label className="inline-flex cursor-pointer items-center gap-2 text-foreground">
+              <input
+                type="checkbox"
+                checked={!unticked.has(r.id)}
+                onChange={() => toggle(r.id)}
+                aria-label={t("borrower.myRequests.keepItem", { name: r.name })}
+                className="h-4 w-4"
+              />
+              <span>{r.name}</span>
+              {r.serial ? <span className="font-mono text-[11px] text-t3">{r.serial}</span> : null}
+            </label>
+          </li>
+        ))}
+      </ul>
+      <div className="mt-2 flex flex-wrap gap-2">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          disabled={toCancel.length === 0}
+          onClick={() => onCancel(toCancel)}
+        >
+          {t("borrower.myRequests.cancelUnchosen", { count: toCancel.length })}
+        </Button>
+        <Button type="button" variant="outline" size="sm" onClick={onKeepAll}>
+          {t("borrower.myRequests.keepApproved")}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+/** Carts whose "cancel the rest?" question this browser already answered. */
+const DISMISSED_CARTS_KEY = "ulms-cart-question-dismissed";
+
+function readDismissedCarts(): ReadonlySet<number> {
+  try {
+    const raw = localStorage.getItem(DISMISSED_CARTS_KEY);
+    return new Set(raw ? (JSON.parse(raw) as number[]) : []);
+  } catch {
+    return new Set();
+  }
+}
+
+function writeDismissedCarts(keys: ReadonlySet<number>) {
+  try {
+    localStorage.setItem(DISMISSED_CARTS_KEY, JSON.stringify([...keys]));
+  } catch {
+    // Private mode or blocked storage: the question just comes back next visit.
+  }
+}
+
 function groupByCart(rows: MyRequest[]): MyRequest[][] {
   const groups = new Map<string, MyRequest[]>();
   for (const row of rows) {

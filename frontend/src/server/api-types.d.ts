@@ -1083,6 +1083,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 						kind: "room" | "equipment";
 						tier: "T0" | "T1" | "T2" | "T3" | null;
 						creditWeight: number;
+						pickupPoint: string | null;
 					};
 					startTime: string;
 					endTime: string;
@@ -2014,6 +2015,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 				id: number;
 				from: string;
 				days?: number | undefined;
+				exclude?: number | undefined;
 			};
 			output: {
 				resourceKey: number;
@@ -2760,6 +2762,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 						kind: "room" | "equipment";
 						tier: "T0" | "T1" | "T2" | "T3" | null;
 						creditWeight: number;
+						pickupPoint: string | null;
 					};
 					startTime: string;
 					endTime: string;
@@ -2813,6 +2816,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 						kind: "room" | "equipment";
 						tier: "T0" | "T1" | "T2" | "T3" | null;
 						creditWeight: number;
+						pickupPoint: string | null;
 					};
 					startTime: string;
 					endTime: string;
@@ -2866,6 +2870,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 						kind: "room" | "equipment";
 						tier: "T0" | "T1" | "T2" | "T3" | null;
 						creditWeight: number;
+						pickupPoint: string | null;
 					};
 					startTime: string;
 					endTime: string;
@@ -2913,6 +2918,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 					kind: "room" | "equipment";
 					tier: "T0" | "T1" | "T2" | "T3" | null;
 					creditWeight: number;
+					pickupPoint: string | null;
 				};
 				startTime: string;
 				endTime: string;
@@ -2957,6 +2963,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 					kind: "room" | "equipment";
 					tier: "T0" | "T1" | "T2" | "T3" | null;
 					creditWeight: number;
+					pickupPoint: string | null;
 				};
 				startTime: string;
 				endTime: string;
@@ -3000,6 +3007,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 					kind: "room" | "equipment";
 					tier: "T0" | "T1" | "T2" | "T3" | null;
 					creditWeight: number;
+					pickupPoint: string | null;
 				};
 				startTime: string;
 				endTime: string;
@@ -3026,6 +3034,94 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 				cancellable: boolean;
 				holdsRoomQuota: boolean;
 			};
+			meta: object;
+		}>;
+		cancelCart: import("@trpc/server").TRPCMutationProcedure<{
+			input: {
+				reservationKeys: number[];
+			};
+			output: {
+				reservationKey: number;
+				cartKey: number | null;
+				status: "pending" | "approved" | "preparing" | "ready" | "inUse" | "returned" | "done" | "rejected" | "cancelled";
+				resource: {
+					resourceKey: number;
+					name: string | null;
+					serialNo: string | null;
+					kind: "room" | "equipment";
+					tier: "T0" | "T1" | "T2" | "T3" | null;
+					creditWeight: number;
+					pickupPoint: string | null;
+				};
+				startTime: string;
+				endTime: string;
+				reason: string | null;
+				decisionNote: string | null;
+				requestedAt: string;
+				expiresAt: string | null;
+				approval: {
+					route: "staff" | "supervisor" | "auto";
+					status: "Pending" | "Approved" | "Rejected" | "Canceled";
+					approvedBy: {
+						accountKey: number;
+						studentId: string;
+						firstName: string;
+						lastName: string;
+						creditScore: number;
+					} | null;
+					autoApproved: boolean;
+					approvedAt: string | null;
+					resolvedAt: string | null;
+				};
+				usageKey: number | null;
+				dueAt: string | null;
+				cancellable: boolean;
+				holdsRoomQuota: boolean;
+			}[];
+			meta: object;
+		}>;
+		confirmMyPickupCart: import("@trpc/server").TRPCMutationProcedure<{
+			input: {
+				usageKeys: number[];
+			};
+			output: {
+				reservationKey: number;
+				cartKey: number | null;
+				status: "pending" | "approved" | "preparing" | "ready" | "inUse" | "returned" | "done" | "rejected" | "cancelled";
+				resource: {
+					resourceKey: number;
+					name: string | null;
+					serialNo: string | null;
+					kind: "room" | "equipment";
+					tier: "T0" | "T1" | "T2" | "T3" | null;
+					creditWeight: number;
+					pickupPoint: string | null;
+				};
+				startTime: string;
+				endTime: string;
+				reason: string | null;
+				decisionNote: string | null;
+				requestedAt: string;
+				expiresAt: string | null;
+				approval: {
+					route: "staff" | "supervisor" | "auto";
+					status: "Pending" | "Approved" | "Rejected" | "Canceled";
+					approvedBy: {
+						accountKey: number;
+						studentId: string;
+						firstName: string;
+						lastName: string;
+						creditScore: number;
+					} | null;
+					autoApproved: boolean;
+					approvedAt: string | null;
+					resolvedAt: string | null;
+				};
+				usageKey: number | null;
+				dueAt: string | null;
+				cancellable: boolean;
+				holdsRoomQuota: boolean;
+			}[];
 			meta: object;
 		}>;
 		extensionOptions: import("@trpc/server").TRPCQueryProcedure<{
@@ -3221,6 +3317,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 				resourceKey: number;
 				serialNo: string;
 				reserved: boolean;
+				recommended: boolean;
 			}[];
 			meta: object;
 		}>;
@@ -3358,6 +3455,110 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 					expiresAt: string;
 				} | null;
 			};
+			meta: object;
+		}>;
+		allocateCart: import("@trpc/server").TRPCMutationProcedure<{
+			input: {
+				lines: {
+					reservationKey: number;
+					resourceKey?: number | undefined;
+					condition?: "Normal" | "MinorDamage" | "MajorDamage" | "Broken" | "Missing" | undefined;
+					note?: string | undefined;
+				}[];
+			};
+			output: {
+				usageKey: number;
+				reservationKey: number | null;
+				status: "Pending" | "Prepared" | "Lended" | "Returned" | "Inspected";
+				borrower: {
+					accountKey: number;
+					studentId: string;
+					firstName: string;
+					lastName: string;
+					creditScore: number;
+				};
+				itemName: string | null;
+				serialNo: string | null;
+				resourceKey: number;
+				tier: "T0" | "T1" | "T2" | "T3" | null;
+				checkoutCondition: "Normal" | "MinorDamage" | "MajorDamage" | "Broken" | "Missing" | null;
+				checkoutConditionNote: string | null;
+				checkinCondition: "Normal" | "MinorDamage" | "MajorDamage" | "Broken" | "Missing" | null;
+				checkoutAt: string;
+				dueAt: string;
+				returnedAt: string | null;
+				overdueDays: number;
+				pendingExtensionKey: number | null;
+			}[];
+			meta: object;
+		}>;
+		confirmPickupCart: import("@trpc/server").TRPCMutationProcedure<{
+			input: {
+				usageKeys: number[];
+				early?: boolean | undefined;
+			};
+			output: {
+				usageKey: number;
+				reservationKey: number | null;
+				status: "Pending" | "Prepared" | "Lended" | "Returned" | "Inspected";
+				borrower: {
+					accountKey: number;
+					studentId: string;
+					firstName: string;
+					lastName: string;
+					creditScore: number;
+				};
+				itemName: string | null;
+				serialNo: string | null;
+				resourceKey: number;
+				tier: "T0" | "T1" | "T2" | "T3" | null;
+				checkoutCondition: "Normal" | "MinorDamage" | "MajorDamage" | "Broken" | "Missing" | null;
+				checkoutConditionNote: string | null;
+				checkinCondition: "Normal" | "MinorDamage" | "MajorDamage" | "Broken" | "Missing" | null;
+				checkoutAt: string;
+				dueAt: string;
+				returnedAt: string | null;
+				overdueDays: number;
+				pendingExtensionKey: number | null;
+			}[];
+			meta: object;
+		}>;
+		recordReturnCart: import("@trpc/server").TRPCMutationProcedure<{
+			input: {
+				usageKeys: number[];
+			};
+			output: {
+				loan: {
+					usageKey: number;
+					reservationKey: number | null;
+					status: "Pending" | "Prepared" | "Lended" | "Returned" | "Inspected";
+					borrower: {
+						accountKey: number;
+						studentId: string;
+						firstName: string;
+						lastName: string;
+						creditScore: number;
+					};
+					itemName: string | null;
+					serialNo: string | null;
+					resourceKey: number;
+					tier: "T0" | "T1" | "T2" | "T3" | null;
+					checkoutCondition: "Normal" | "MinorDamage" | "MajorDamage" | "Broken" | "Missing" | null;
+					checkoutConditionNote: string | null;
+					checkinCondition: "Normal" | "MinorDamage" | "MajorDamage" | "Broken" | "Missing" | null;
+					checkoutAt: string;
+					dueAt: string;
+					returnedAt: string | null;
+					overdueDays: number;
+					pendingExtensionKey: number | null;
+				};
+				latePenalty: {
+					penaltyKey: number;
+					creditDeducted: number;
+					overdueDays: number;
+					expiresAt: string;
+				} | null;
+			}[];
 			meta: object;
 		}>;
 		markLost: import("@trpc/server").TRPCMutationProcedure<{

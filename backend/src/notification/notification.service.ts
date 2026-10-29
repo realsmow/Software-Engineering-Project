@@ -295,20 +295,37 @@ export class NotificationService {
       reservationKey: number;
       itemName: string;
       reason?: string | null;
+      /** The cart this line was sent in, if any. */
+      cartKey?: number | null;
+      /** Other lines of that cart still on their way to the borrower. */
+      remainingInCart?: number;
     },
   ) {
+    const body = params.reason
+      ? `${params.itemName} · ${params.reason}`
+      : `${params.itemName} · คำขอนี้ถูกปฏิเสธ`;
+    const bodyEn = params.reason
+      ? `${params.itemName} · ${params.reason}`
+      : `${params.itemName} · This request was rejected`;
+    // #236 step 3 (team decision D-01): part of a cart refused while the rest
+    // goes on. Say so and open that cart, where the borrower ticks what to keep
+    // and the rest is cancelled; with no answer the rest goes ahead.
+    const left = params.remainingInCart ?? 0;
+    const inCart = left > 0 && params.cartKey != null;
     return this.emit(tx, {
       accountKey: params.accountKey,
       type: 'RequestRejected',
       title: 'คำขอยืมไม่ได้รับอนุมัติ',
-      body: params.reason
-        ? `${params.itemName} · ${params.reason}`
-        : `${params.itemName} · คำขอนี้ถูกปฏิเสธ`,
+      body: inCart
+        ? `${body} · ยังมีของอีก ${left} ชิ้นในตะกร้านี้ เลือกได้ว่าจะยืมชิ้นไหนต่อ`
+        : body,
       titleEn: 'Borrow request not approved',
-      bodyEn: params.reason
-        ? `${params.itemName} · ${params.reason}`
-        : `${params.itemName} · This request was rejected`,
-      linkTo: ROUTE_MY_LOANS,
+      bodyEn: inCart
+        ? `${bodyEn} · ${left} more item(s) in this cart: choose which to keep`
+        : bodyEn,
+      linkTo: inCart
+        ? `${ROUTE_MY_LOANS}?cart=${params.cartKey}`
+        : ROUTE_MY_LOANS,
       dedupeKey: reservationKeyOf(params.reservationKey),
     });
   }

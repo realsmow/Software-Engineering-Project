@@ -36,6 +36,23 @@ export function useMyRequestsApi() {
  * reports it in `cancellable`, so the button is hidden rather than the rule
  * being re-implemented here.
  */
+/**
+ * #236 step 2 (instructor item 1, team decision D-01): cancel several lines of
+ * one cart together, or none. The list reloads either way.
+ */
+export function useCancelCart() {
+  const trpc = useTRPCClient();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (input: { reservationKeys: number[] }) => trpc.loan.cancelCart.mutate(input),
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: MY_REQUESTS_KEY });
+      void queryClient.invalidateQueries({ queryKey: ["equipment-types"] });
+    },
+  });
+}
+
 export function useCancelRequest() {
   const trpc = useTRPCClient();
   const queryClient = useQueryClient();

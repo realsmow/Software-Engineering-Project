@@ -62,6 +62,8 @@ export interface Room {
   capacity: number | null;
   imageUrl: string | null;
   bookable: boolean;
+  /** The department or club that runs the room (ManagementGroup key), for its open days. */
+  ownerGroupKey: number | null;
 }
 
 export function toRoom(s: ServerRoom): Room {
@@ -73,6 +75,7 @@ export function toRoom(s: ServerRoom): Room {
     capacity: s.capacity,
     imageUrl: s.imageUrl,
     bookable: s.bookable,
+    ownerGroupKey: s.owner?.id ?? null,
   };
 }
 

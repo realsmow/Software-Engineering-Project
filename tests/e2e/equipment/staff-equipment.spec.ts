@@ -144,7 +144,12 @@ test.describe("Module 5 staff equipment management", () => {
     await expect(t2Row.getByText("Retirement request sent")).toBeVisible();
 
     await signIn(page, SUPERVISOR, /\/supervisor\/approvals$/);
-    await page.getByRole("tab", { name: "Retirements", exact: true }).click();
+    // #204 puts each pile's count in its tab, so the name is "Retirements (1)"
+    // once the counts load. Matching the bare label raced that load and lost
+    // on CI (#242); wait for the counted tab instead.
+    const retirementsTab = page.getByRole("tab", { name: /^Retirements \(\d+\)$/ });
+    await expect(retirementsTab).toBeVisible();
+    await retirementsTab.click();
     const retirementRow = page.getByRole("row").filter({ hasText: retirementReason });
     await expect(retirementRow).toBeVisible();
     await retirementRow.getByRole("button", { name: "Approve", exact: true }).click();
