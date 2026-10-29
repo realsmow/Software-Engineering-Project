@@ -79,6 +79,8 @@ export function useSetUnitLendable() {
       resourceKey: number;
       lendable: boolean;
       reason?: string;
+      /** Withdrawn because it is lent outside the system. */
+      lentOutside?: boolean;
     }): Promise<ManagedUnit> => trpc.item.setUnitLendable.mutate(input),
     onSuccess: refresh,
   });

@@ -14,6 +14,7 @@ import { ToggleSwitch } from "@/components/ui/toggle-switch";
 import { extractErrorCode, getErrorMessage } from "@/lib/error-messages";
 import { uploadAcceptAttr, validateUploadFile } from "@/lib/upload-validation";
 import { fmtDateTime } from "@/features/borrower/format";
+import { fmtDate } from "@/lib/datetime";
 import type { ConditionType } from "@/features/staff/queue/queue.types";
 import type { Tier } from "@/types/domain";
 import {
@@ -718,6 +719,21 @@ function UnitRow({ unit }: { unit: ManagedUnit }) {
     }
   }
 
+  // Requested 29 Oct 2569: out of the pool because it is lent outside the
+  // system. One click, reversed with the usual "lend again".
+  async function lendOutside() {
+    setError(null);
+    try {
+      await setLendable.mutateAsync({
+        resourceKey: unit.resourceKey,
+        lendable: false,
+        lentOutside: true,
+      });
+    } catch (e) {
+      setError(getErrorMessage(e));
+    }
+  }
+
   return (
     <tr className="border-b border-border last:border-b-0">
       <td className="px-3.5 py-2 font-mono text-xs text-foreground">
@@ -732,9 +748,18 @@ function UnitRow({ unit }: { unit: ManagedUnit }) {
         <div className="flex flex-wrap items-center gap-1.5">
           <Badge tone={statusTone(unit)}>{t(`staff.inventory.status${unit.status}`)}</Badge>
           {!unit.lendable ? (
-            <Badge tone="warn">{t("staff.inventory.withdrawn")}</Badge>
+            <Badge tone="warn">
+              {unit.withdrawal?.lentOutside
+                ? t("staff.inventory.lentOutside")
+                : t("staff.inventory.withdrawn")}
+            </Badge>
           ) : null}
         </div>
+        {!unit.lendable && unit.withdrawal?.at ? (
+          <div className="mt-0.5 text-[11px] text-t3">
+            {t("staff.inventory.withdrawnSince", { date: fmtDate(unit.withdrawal.at) })}
+          </div>
+        ) : null}
       </td>
       <td className="px-3.5 py-2 text-t2">
         {unit.condition ? t(`staff.inspection.cond${unit.condition}`) : "-"}
@@ -794,6 +819,18 @@ function UnitRow({ unit }: { unit: ManagedUnit }) {
                 >
                   {unit.lendable ? t("staff.inventory.withdraw") : t("staff.inventory.restore")}
                 </Button>
+                {unit.lendable ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={busy || outOnLoan}
+                    title={outOnLoan ? t("staff.inventory.outOnLoanHint") : undefined}
+                    onClick={() => void lendOutside()}
+                  >
+                    {t("staff.inventory.markLentOutside")}
+                  </Button>
+                ) : null}
                 <Button type="button" variant="outline" size="sm" onClick={() => setMode("retire")}>
                   {t("staff.inventory.retireUnit")}
                 </Button>

@@ -116,6 +116,19 @@ export const itemUnitOutput = z.object({
   managementGroup: managementGroupRef,
   /** Set while the unit is out; null when it is on the shelf. */
   currentDueAt: isoDateTimeNullable,
+  /**
+   * While withdrawn from lending: the latest condition note (the stated
+   * reason, if any), since when, and whether it is lent outside the system.
+   * Null while lendable.
+   */
+  withdrawal: z
+    .object({
+      note: z.string().nullable(),
+      at: isoDateTimeNullable,
+      lentOutside: z.boolean(),
+    })
+    .nullable()
+    .default(null),
 });
 
 export const itemTypeDetail = itemTypeSummary.extend({
@@ -202,6 +215,11 @@ export const setUnitLendableInput = resourceIdInput.extend({
   lendable: z.boolean(),
   /** Written to ConditionLog.Notes so the reason survives with the unit. */
   reason: z.string().trim().max(500).optional(),
+  /**
+   * Withdraw because the unit is lent outside the system: a fixed note
+   * comes first, the reason (if any) after it. Ignored when lending again.
+   */
+  lentOutside: z.boolean().optional(),
 });
 export type SetUnitLendableInput = z.infer<typeof setUnitLendableInput>;
 

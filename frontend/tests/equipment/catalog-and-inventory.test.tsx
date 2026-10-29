@@ -16,6 +16,7 @@ import type {
   ManagedUnit,
 } from "../../src/features/staff/inventory/inventory.types";
 import { getErrorMessage } from "../../src/lib/error-messages";
+import { fmtDate } from "../../src/lib/datetime";
 import { itemResponse } from "../fixtures/api-responses";
 import { queryResult } from "../fixtures/query-results";
 import { toCatalogItem } from "../../src/features/borrower/catalog/item.adapter";
@@ -297,6 +298,57 @@ describe("Module 5 staff inventory", () => {
         lendable: false,
         reason: "Awaiting calibration",
       });
+    });
+  });
+
+  describe("lent outside the system (requested 29 Oct 2569)", () => {
+    it("marks a lendable unit lent outside in one click", async () => {
+      mutateAsync.mockResolvedValue(UNIT);
+      render(<StaffInventoryPage />);
+      fireEvent.click(screen.getAllByRole("button", { name: /view units/i })[0]);
+
+      fireEvent.click(
+        screen.getByRole("button", { name: i18n.t("staff.inventory.markLentOutside") })
+      );
+
+      await waitFor(() =>
+        expect(mutateAsync).toHaveBeenCalledWith({
+          resourceKey: 501,
+          lendable: false,
+          lentOutside: true,
+        })
+      );
+    });
+
+    it("shows its own badge and since when, instead of plain withdrawn", () => {
+      const at = "2026-10-30T02:00:00.000Z";
+      const lentOut = itemUnitOutput.strict().parse({
+        ...UNIT,
+        lendable: false,
+        withdrawal: { note: "ยืมนอกระบบ", at, lentOutside: true },
+      });
+      vi.mocked(inventoryHooks.useManagedItem).mockReturnValue({
+        data: { ...DETAIL, units: [lentOut] },
+        isLoading: false,
+      } as never);
+      render(<StaffInventoryPage />);
+      fireEvent.click(screen.getAllByRole("button", { name: /view units/i })[0]);
+
+      // A missing key would render as its own name and still match below.
+      expect(
+        ["lentOutside", "markLentOutside", "withdrawnSince"].every((k) =>
+          i18n.exists(`staff.inventory.${k}`)
+        )
+      ).toBe(true);
+      expect(screen.getByText(i18n.t("staff.inventory.lentOutside"))).toBeInTheDocument();
+      expect(screen.queryByText(i18n.t("staff.inventory.withdrawn"))).not.toBeInTheDocument();
+      expect(
+        screen.getByText(i18n.t("staff.inventory.withdrawnSince", { date: fmtDate(at) }))
+      ).toBeInTheDocument();
+      // Already out of the pool: the one-click action is not offered again.
+      expect(
+        screen.queryByRole("button", { name: i18n.t("staff.inventory.markLentOutside") })
+      ).not.toBeInTheDocument();
     });
   });
 

@@ -72,6 +72,8 @@ export interface ManagedUnit {
   managementGroup: ManagementGroupRef;
   /** Set while the unit is out; null when it is on the shelf. */
   currentDueAt: string | null;
+  /** While withdrawn: the stated reason, since when, and whether it is lent outside. */
+  withdrawal: { note: string | null; at: string | null; lentOutside: boolean } | null;
 }
 
 export interface ManagedItemDetail extends ManagedItemType {

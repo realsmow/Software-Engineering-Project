@@ -2164,6 +2164,11 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 						type: "Club" | "Faculty";
 					};
 					currentDueAt: string | null;
+					withdrawal: {
+						note: string | null;
+						at: string | null;
+						lentOutside: boolean;
+					} | null;
 				}[];
 			};
 			meta: object;
@@ -2206,6 +2211,11 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 						type: "Club" | "Faculty";
 					};
 					currentDueAt: string | null;
+					withdrawal: {
+						note: string | null;
+						at: string | null;
+						lentOutside: boolean;
+					} | null;
 				}[];
 			};
 			meta: object;
@@ -2249,6 +2259,11 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 						type: "Club" | "Faculty";
 					};
 					currentDueAt: string | null;
+					withdrawal: {
+						note: string | null;
+						at: string | null;
+						lentOutside: boolean;
+					} | null;
 				}[];
 			};
 			meta: object;
@@ -2278,6 +2293,11 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 					type: "Club" | "Faculty";
 				};
 				currentDueAt: string | null;
+				withdrawal: {
+					note: string | null;
+					at: string | null;
+					lentOutside: boolean;
+				} | null;
 			}[];
 			meta: object;
 		}>;
@@ -2311,6 +2331,11 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 					type: "Club" | "Faculty";
 				};
 				currentDueAt: string | null;
+				withdrawal: {
+					note: string | null;
+					at: string | null;
+					lentOutside: boolean;
+				} | null;
 			}[];
 			meta: object;
 		}>;
@@ -2340,6 +2365,11 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 					type: "Club" | "Faculty";
 				};
 				currentDueAt: string | null;
+				withdrawal: {
+					note: string | null;
+					at: string | null;
+					lentOutside: boolean;
+				} | null;
 			};
 			meta: object;
 		}>;
@@ -2348,6 +2378,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 				resourceKey: number;
 				lendable: boolean;
 				reason?: string | undefined;
+				lentOutside?: boolean | undefined;
 			};
 			output: {
 				resourceKey: number;
@@ -2368,6 +2399,11 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 					type: "Club" | "Faculty";
 				};
 				currentDueAt: string | null;
+				withdrawal: {
+					note: string | null;
+					at: string | null;
+					lentOutside: boolean;
+				} | null;
 			};
 			meta: object;
 		}>;
@@ -2396,6 +2432,11 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 					type: "Club" | "Faculty";
 				};
 				currentDueAt: string | null;
+				withdrawal: {
+					note: string | null;
+					at: string | null;
+					lentOutside: boolean;
+				} | null;
 			};
 			meta: object;
 		}>;

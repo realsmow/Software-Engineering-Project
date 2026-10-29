@@ -59,6 +59,7 @@ const UNIT: ManagedUnit = {
   conditionLoggedAt: null,
   managementGroup: { id: 8, name: "Engineering", type: "Faculty" },
   currentDueAt: null,
+  withdrawal: null,
 };
 
 const DETAIL: ManagedItemDetail = { ...MANAGED_ITEM, units: [UNIT] };
