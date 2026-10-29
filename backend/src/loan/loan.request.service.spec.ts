@@ -564,17 +564,59 @@ describe('reservation horizon (FR-RSV-01, FR-RSV-03)', () => {
       termEnd: expect.any(String),
     });
   });
+
+  // P-10: the screen offers dates up to 90 days ahead; the server had no cap at
+  // all while TERM_END_DATE was unset (as on Render), so a 2031 booking went in.
+  const t1 = () =>
+    dbFor({ ...baseResource, BorrowRuleInfo: { RuleName: 'T1' } });
+
+  it('refuses a T1 request ending after the 90th day when TERM_END_DATE is unset', async () => {
+    const result = await service(t1()).create(user as never, {
+      startTime: '2099-04-14T02:00:00.000Z', // day 90, Tue
+      endTime: '2099-04-15T08:00:00.000Z', // day 91
+      lines: [{ resourceKey: 7 }],
+    });
+
+    expect(result.created).toHaveLength(0);
+    expect(result.rejected[0]).toMatchObject({
+      code: 'RESERVATION_TOO_FAR',
+      detail: { maxDays: 90 },
+    });
+  });
+
+  it('accepts a T1 request ending on the 90th day, the last day the screen offers', async () => {
+    const result = await service(t1()).create(user as never, {
+      startTime: '2099-04-13T02:00:00.000Z', // day 89, Mon
+      endTime: '2099-04-14T08:00:00.000Z', // day 90
+      lines: [{ resourceKey: 7 }],
+    });
+
+    expect(result.rejected).toEqual([]);
+    expect(result.created).toHaveLength(1);
+  });
+
+  it('keeps the 90-day cap when TERM_END_DATE is later or not a date', async () => {
+    for (const termEnd of ['2099-12-31', 'YYYY-MM-DD']) {
+      process.env.TERM_END_DATE = termEnd;
+      const result = await service(t1()).create(user as never, {
+        startTime: '2099-04-14T02:00:00.000Z',
+        endTime: '2099-04-15T08:00:00.000Z',
+        lines: [{ resourceKey: 7 }],
+      });
+      expect(result.rejected[0]?.code).toBe('RESERVATION_TOO_FAR');
+    }
+  });
 });
 
 // T0 swaps the same way (#227): the screen sends the first free unit.
 describe.each(['T1', 'T0'])('%s unit swap (FR-RSV-04)', (tier) => {
-  // T0 is same-day only, so stand on the morning of the window.
+  // Stand on the morning of the window: T0 is same-day only, and a T1
+  // booking may end at most 90 days ahead (P-10).
   beforeEach(() => {
-    if (tier === 'T0')
-      jest.useFakeTimers({
-        now: new Date('2099-01-14T01:00:00Z'),
-        doNotFake: ['nextTick', 'setImmediate'],
-      });
+    jest.useFakeTimers({
+      now: new Date('2099-01-14T01:00:00Z'),
+      doNotFake: ['nextTick', 'setImmediate'],
+    });
   });
   afterEach(() => jest.useRealTimers());
 

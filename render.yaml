@@ -65,6 +65,20 @@ services:
         value: /trpc
       - key: VITE_API_URL
         value: /api
+    # P-14 (NFR-SEC-01): no page of ours is meant to be framed, so refuse it
+    # (clickjacking), and send only the origin to other sites. Render already
+    # sends HSTS and nosniff. Not a full CSP: fonts come from Google Fonts and
+    # a wrong policy would break the site, so that waits for a tested change.
+    headers:
+      - path: /*
+        name: X-Frame-Options
+        value: DENY
+      - path: /*
+        name: Content-Security-Policy
+        value: "frame-ancestors 'none'"
+      - path: /*
+        name: Referrer-Policy
+        value: strict-origin-when-cross-origin
     # Same origin for the browser, so the session cookie works. Replace the
     # host if Render gave the backend a different URL. API rules come first.
     routes:

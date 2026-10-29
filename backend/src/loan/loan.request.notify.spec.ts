@@ -111,6 +111,15 @@ const future = {
   lines: [{ resourceKey: 7 }],
 };
 
+// P-10: a booking may end at most 90 days ahead; stand on the day before it.
+beforeEach(() =>
+  jest.useFakeTimers({
+    now: new Date('2099-01-11T01:00:00Z'),
+    doNotFake: ['nextTick', 'setImmediate'],
+  }),
+);
+afterEach(() => jest.useRealTimers());
+
 describe('FR-NTF-04: a request routed to a supervisor', () => {
   it('notifies every supervisor with authority over the department', async () => {
     const db = dbFor(t2Resource, [{ AccountKey: 21 }, { AccountKey: 22 }]);

@@ -1,5 +1,5 @@
 import { toBorrowerRef } from './loan.schema';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import type { Prisma } from '../generated/prisma/client';
 import { PrismaService } from '../prisma.service';
 import { AuditService } from '../common/audit/audit.service';
@@ -154,6 +154,25 @@ type RequestRow = Prisma.ReservationsGetPayload<{
  * departmental scope. This one takes a borrower and asserts ownership: the
  * only rows it will ever touch are the caller's own.
  */
+/**
+ * P-10: how many days ahead a T1/T2 booking may end. Same number as the
+ * request screen's BUSINESS.RESERVATION_MAX_DAYS (frontend/src/constants);
+ * change both together.
+ */
+export const RESERVATION_MAX_DAYS = 90;
+
+const termEndLogger = new Logger('ReservationHorizon');
+let warnedTermEnd: string | null = null;
+
+/** Once per distinct bad value, so a typo in TERM_END_DATE does not flood the log. */
+function warnBadTermEnd(value: string): void {
+  if (warnedTermEnd === value) return;
+  warnedTermEnd = value;
+  termEndLogger.warn(
+    `TERM_END_DATE "${value}" is not a YYYY-MM-DD date; the term-end check is off, the ${RESERVATION_MAX_DAYS}-day cap still applies`,
+  );
+}
+
 @Injectable()
 export class LoanRequestService {
   constructor(
@@ -486,10 +505,16 @@ export class LoanRequestService {
    * FR-RSV-01: T1/T2 may be reserved ahead, but only to the end of the current
    * term. `TERM_END_DATE` is read here, at call time, rather than into a
    * module-level constant at import time, so changing it takes effect on the
-   * next request instead of needing a restart. Left unset, this half of the
-   * check is skipped - the 90-day cap a borrower sees on the request screen
-   * (`BUSINESS.RESERVATION_MAX_DAYS`) is enforced there only, same as before
-   * this method existed.
+   * next request instead of needing a restart. A value that is not a
+   * YYYY-MM-DD date is logged and skipped rather than compared as NaN, which
+   * used to switch the check off without a word.
+   *
+   * P-10: whatever the term, the booking may not end later than the 90th day
+   * from today - the last day the request screen offers
+   * (`BUSINESS.RESERVATION_MAX_DAYS`). Before this the cap lived only in the
+   * screen, so with TERM_END_DATE unset (as on Render) a booking for 2031 was
+   * accepted. The term check runs first because its message is the more
+   * specific one when both apply.
    */
   private assertReservationHorizon(
     tier: ResourceTier,
@@ -508,14 +533,28 @@ export class LoanRequestService {
     if (tier !== 'T1' && tier !== 'T2') return;
 
     const termEnd = process.env.TERM_END_DATE;
-    if (!termEnd) return;
+    if (termEnd) {
+      // Midnight Bangkok the day after TERM_END_DATE - the first instant that
+      // no longer belongs to the current term.
+      const termEndExclusive = addDays(localTimeToUtc(termEnd, '00:00'), 1);
+      if (
+        !/^\d{4}-\d{2}-\d{2}$/.test(termEnd) ||
+        Number.isNaN(termEndExclusive.getTime())
+      ) {
+        warnBadTermEnd(termEnd);
+      } else if (endTime.getTime() >= termEndExclusive.getTime()) {
+        throw new BusinessError('RESERVATION_PAST_TERM_END', {
+          termEnd: toIso(new Date(termEndExclusive.getTime() - 1)),
+        });
+      }
+    }
 
-    // Midnight Bangkok the day after TERM_END_DATE - the first instant that
-    // no longer belongs to the current term.
-    const termEndExclusive = addDays(localTimeToUtc(termEnd, '00:00'), 1);
-    if (endTime.getTime() >= termEndExclusive.getTime()) {
-      throw new BusinessError('RESERVATION_PAST_TERM_END', {
-        termEnd: toIso(new Date(termEndExclusive.getTime() - 1)),
+    const lastDay = toLocalDayKey(addDays(new Date(), RESERVATION_MAX_DAYS));
+    const capExclusive = addDays(localTimeToUtc(lastDay, '00:00'), 1);
+    if (endTime.getTime() >= capExclusive.getTime()) {
+      throw new BusinessError('RESERVATION_TOO_FAR', {
+        maxDays: RESERVATION_MAX_DAYS,
+        lastDay,
       });
     }
   }
