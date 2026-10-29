@@ -328,7 +328,10 @@ export default function StaffQueuePage() {
                     multiple
                     className="sr-only"
                     aria-label={t("staff.queue.extCheckPhoto")}
-                    disabled={extUploading === r.extensionKey}
+                    disabled={
+                      extUploading === r.extensionKey ||
+                      (extPhotos[r.extensionKey] ?? []).length >= UPLOAD.MAX_PHOTOS_PER_STAGE
+                    }
                     onChange={(e) => {
                       const files = Array.from(e.target.files ?? []);
                       e.target.value = "";
@@ -336,6 +339,9 @@ export default function StaffQueuePage() {
                     }}
                   />
                 </label>
+                {(extPhotos[r.extensionKey] ?? []).length > 0 ? (
+                  <PhotoCount count={(extPhotos[r.extensionKey] ?? []).length} />
+                ) : null}
               </div>
               <Input
                 value={extNotes[r.extensionKey] ?? ""}
@@ -1064,7 +1070,8 @@ function PhotoGatedAction({
           accept={uploadAcceptAttr()}
           multiple
           className="sr-only"
-          disabled={upload.isPending}
+          // #238: closed at the cap; the count beside it says why.
+          disabled={upload.isPending || (photos?.[stage].length ?? 0) >= UPLOAD.MAX_PHOTOS_PER_STAGE}
           onChange={(e) => void onPick(e)}
         />
         {upload.isPending

@@ -11,6 +11,7 @@ import {
 } from "../../../backend/src/loan/loan.schema";
 import type { StaffQueueBucket } from "../../src/features/staff/queue/queue.types";
 import { usagePhotosOutput } from "../../../backend/src/image/image.schema";
+import { UPLOAD } from "../../src/constants";
 import { loanResponse } from "../fixtures/api-responses";
 import { queryResult, mutationResult } from "../fixtures/query-results";
 
@@ -269,6 +270,31 @@ describe("StaffQueuePage", () => {
       await waitFor(() =>
         expect(inspect).toHaveBeenCalledWith({ extensionKey: 12, condition: "Normal" })
       );
+    });
+
+    it("closes the check photo picker at the 30-photo cap (#238)", async () => {
+      mocks.useStaffInspectExtension.mockReturnValue(mutationResult(vi.fn()));
+      mocks.useStaffDecideExtension.mockReturnValue(mutationResult(vi.fn()));
+      mocks.useStaffExtensionQueue.mockReturnValue(queryResult([supervisorExtension()]));
+      let n = 0;
+      uploadImage.mockImplementation(async () => ({ imageUrl: `/media/inspection/2026/10/c${n++}.jpg` }));
+      const line = openExtensionRow();
+      const files = Array.from(
+        { length: UPLOAD.MAX_PHOTOS_PER_STAGE },
+        (_, i) => new File(["x"], `c${i}.jpg`, { type: "image/jpeg" })
+      );
+
+      fireEvent.change(line.getByLabelText(i18n.t("staff.queue.extCheckPhoto")), { target: { files } });
+
+      await waitFor(() =>
+        expect(line.getAllByRole("button", { name: i18n.t("borrower.pickup.removePhoto") })).toHaveLength(
+          UPLOAD.MAX_PHOTOS_PER_STAGE
+        )
+      );
+      expect(line.getByLabelText(i18n.t("staff.queue.extCheckPhoto"))).toBeDisabled();
+      expect(
+        line.getByText(i18n.t("common.photoCount", { count: 30, max: UPLOAD.MAX_PHOTOS_PER_STAGE }))
+      ).toBeInTheDocument();
     });
   });
 
@@ -605,6 +631,39 @@ describe("StaffQueuePage", () => {
       ["after", files[0]],
       ["after", files[1]],
     ]);
+  });
+
+  it("closes the return photo picker at the 30-photo cap (#238)", () => {
+    mocks.useUsagePhotos.mockReturnValue(
+      queryResult(
+        usagePhotosOutput.strict().parse({
+          before: [],
+          after: Array.from({ length: UPLOAD.MAX_PHOTOS_PER_STAGE }, (_, i) => ({
+            imageKey: 100 + i,
+            imageUrl: `/media/inspection/after-${i}.jpg`,
+            stage: "after",
+            submittedBy: 1,
+            submittedAt: "2026-09-30T06:00:00.000Z",
+          })),
+          inspection: [],
+          evidence: [],
+        })
+      )
+    );
+    mocks.useStaffQueue.mockImplementation((bucket: string) =>
+      queryResult(
+        bucket === "onLoan"
+          ? [staffQueueRow.strict().parse({ ...row, usageKey: 9, status: "Lended", serialNo: "OSC-001" })]
+          : [row]
+      )
+    );
+    const { container } = renderPage();
+    fireEvent.click(screen.getAllByRole("button", { name: /On loan/i })[0]);
+
+    expect(container.querySelector('input[type="file"]')).toBeDisabled();
+    expect(
+      screen.getByText(i18n.t("common.photoCount", { count: 30, max: UPLOAD.MAX_PHOTOS_PER_STAGE }))
+    ).toBeInTheDocument();
   });
 
   it("blocks return without an after photo and displays the late penalty after return", async () => {
