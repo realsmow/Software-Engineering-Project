@@ -100,8 +100,17 @@ describe('#220: two identical actions at once', () => {
       requests.cancel(f.users[0], { reservationKey: request.reservationKey }),
     ]);
 
-    // Either order is fine; what must never happen is both succeeding.
-    expect(settled.filter((s) => s.status === 'fulfilled')).toHaveLength(1);
+    // FR-REQ-10 (revised 29 Oct 2569): a prepared request is still the
+    // borrower's to cancel, so the cancel wins in either order. Preparing
+    // either lands first and is undone, or finds the request cancelled.
+    const [prepare, cancel] = settled;
+    expect(cancel.status).toBe('fulfilled');
+    if (prepare.status === 'rejected') {
+      expect(prepare.reason).toMatchObject({
+        businessCode: 'NOT_APPROVED_YET',
+      });
+    }
+    // What must never happen is a cancelled request keeping a prepared unit.
     const row = await prisma.reservations.findUniqueOrThrow({
       where: { ReservationKey: request.reservationKey },
       select: {
@@ -109,9 +118,145 @@ describe('#220: two identical actions at once', () => {
         UsageLogs: { select: { UsageKey: true } },
       },
     });
-    if (row.ApproveStatus === 'Canceled') expect(row.UsageLogs).toEqual([]);
-    else expect(row.UsageLogs).toHaveLength(1);
+    expect(row).toEqual({ ApproveStatus: 'Canceled', UsageLogs: [] });
   }, 20_000);
+
+  it('never cancels a loan while staff are handing it over', async () => {
+    const f = await pickupFixture(prisma);
+    const { loan, requests } = realServices();
+    const request = await pickupRequest({ ...f, service: requests });
+    const prepared = await loan.allocate(f.staff, {
+      reservationKey: request.reservationKey,
+      condition: 'Normal',
+    });
+    await prisma.images.create({
+      data: {
+        UsageKey: prepared.usageKey,
+        ResourceKey: f.units[0].ResourceKey,
+        SubmittedBy: f.users[0].accountKey,
+        SubmissionType: 'BeforePicture',
+        ImageURL: `/media/inspection/race-handover-${prepared.usageKey}.png`,
+        ActionTime: PICKUP_START,
+      },
+    });
+    freezeBusinessDate(PICKUP_START);
+
+    // The handover has marked the loan Lended but not committed yet when the
+    // borrower presses cancel: the moment a cancel must wait for, not undo.
+    const slow = withSlowStep(prisma, 'resourceInfo', 'update', 1_500);
+    const counter = new LoanService(
+      slow.client,
+      new StaffScopeService(prisma),
+      new PenaltyService(prisma),
+      new NotificationService(prisma),
+      { record: jest.fn() } as never,
+      new CreditTierService(prisma),
+    );
+    const handover = counter.confirmPickup(f.staff, {
+      usageKey: prepared.usageKey,
+    });
+    await slow.reached;
+    const settled = await Promise.allSettled([
+      handover,
+      requests.cancel(f.users[0], { reservationKey: request.reservationKey }),
+    ]);
+
+    expect({
+      outcomes: settled.map((s) =>
+        s.status === 'fulfilled'
+          ? 'ok'
+          : (s.reason as { businessCode?: string }).businessCode,
+      ),
+      request: (
+        await prisma.reservations.findUniqueOrThrow({
+          where: { ReservationKey: request.reservationKey },
+          select: { ApproveStatus: true },
+        })
+      ).ApproveStatus,
+      loan:
+        (
+          await prisma.usageLog.findUnique({
+            where: { UsageKey: prepared.usageKey },
+            select: { CurrentStatus: true },
+          })
+        )?.CurrentStatus ?? null,
+      unit: (
+        await prisma.resourceInfo.findUniqueOrThrow({
+          where: { ResourceKey: f.units[0].ResourceKey },
+          select: { ResourceStatus: true },
+        })
+      ).ResourceStatus,
+      pickupPhotos: await prisma.images.count({
+        where: { UsageKey: prepared.usageKey },
+      }),
+    }).toEqual({
+      outcomes: ['ok', 'CANNOT_CANCEL'],
+      request: 'Approved',
+      loan: 'Lended',
+      unit: 'Lended',
+      pickupPhotos: 1,
+    });
+  }, 20_000);
+
+  /**
+   * Holds every `tx[model][method]` call inside `client.$transaction` for
+   * `holdMs`, resolving `reached` first, so the test can act while that
+   * transaction has written but not committed.
+   */
+  function withSlowStep(
+    client: PrismaService,
+    model: string,
+    method: string,
+    holdMs: number,
+  ): { client: PrismaService; reached: Promise<void> } {
+    let signal!: () => void;
+    const reached = new Promise<void>((resolve) => (signal = resolve));
+    const slowTx = (tx: object) =>
+      new Proxy(tx, {
+        get(target, prop) {
+          const value = (target as Record<string | symbol, unknown>)[prop];
+          if (prop !== model) {
+            return typeof value === 'function'
+              ? (value as (...a: unknown[]) => unknown).bind(target)
+              : value;
+          }
+          return new Proxy(value as Record<string, unknown>, {
+            get(delegate, name) {
+              const fn = delegate[name as string];
+              if (name !== method || typeof fn !== 'function') return fn;
+              return async (...args: unknown[]) => {
+                signal();
+                await new Promise((resolve) => setTimeout(resolve, holdMs));
+                return (fn as (...a: unknown[]) => Promise<unknown>).apply(
+                  delegate,
+                  args,
+                );
+              };
+            },
+          });
+        },
+      });
+    const wrapped = new Proxy(client, {
+      get(target, prop) {
+        const value = (target as unknown as Record<string | symbol, unknown>)[
+          prop
+        ];
+        if (prop === '$transaction') {
+          return (work: (tx: object) => Promise<unknown>, options?: unknown) =>
+            (
+              value as (
+                w: (tx: object) => Promise<unknown>,
+                o?: unknown,
+              ) => Promise<unknown>
+            ).call(target, (tx: object) => work(slowTx(tx)), options);
+        }
+        return typeof value === 'function'
+          ? (value as (...a: unknown[]) => unknown).bind(target)
+          : value;
+      },
+    });
+    return { client: wrapped, reached };
+  }
 
   /**
    * Holds the first `parties` calls of `client[model][method]` until all of

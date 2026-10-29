@@ -849,14 +849,12 @@ export class LoanRequestService {
   /**
    * Calls off the caller's own request.
    *
-   * Allowed while nothing physical has happened yet: pending, or approved but
-   * not prepared. Once staff have set a unit aside the borrower cannot undo it
-   * from here - that unit is off the shelf and someone has to put it back, so
-   * it goes through the counter instead.
-   *
-   * A room is the exception (#162): preparing it moves nothing, so the booking
-   * stays cancellable until check-in, and the prepared row is removed exactly
-   * as the no-show job does, which frees the slots.
+   * Allowed until the borrower collects it (FR-REQ-10, revised 29 Oct 2569):
+   * pending, approved, or prepared and waiting at the counter. A prepared row
+   * is removed with its pickup photos, exactly as the no-show job does, which
+   * frees the unit's hours; staff are told to put a prepared item back on the
+   * shelf. A room counts from preparation until check-in (#162), and
+   * preparing one moves nothing, so there is nothing to tell the counter.
    */
   async cancel(user: TrpcUser, input: CancelRequestInput) {
     const row = await this.read(input.reservationKey);
@@ -874,11 +872,11 @@ export class LoanRequestService {
       });
     }
     const usage = row.UsageLogs[0] ?? null;
-    if (usage && !LoanRequestService.preparedRoom(row)) {
+    if (usage && !LoanRequestService.awaitingCollection(row)) {
       throw new BusinessError('CANNOT_CANCEL', {
         reservationKey: input.reservationKey,
         usageKey: usage.UsageKey,
-        reason: 'ALREADY_PREPARED',
+        reason: 'ALREADY_COLLECTED',
       });
     }
 
@@ -887,15 +885,28 @@ export class LoanRequestService {
       ResolvedAt: new Date(),
       DecisionNote: input.reason ?? null,
     };
-    await this.prisma.$transaction(async (tx) => {
-      // #220: staff may be preparing this very request. Lock it and re-check:
-      // a cancel that read "not prepared" must not land after the preparation.
+    const released = await this.prisma.$transaction(async (tx) => {
+      // #220: lock, then re-check under the lock. The loan row goes first when
+      // there is one, the order a handover and a unit swap use (they lock it,
+      // then touch the request), so a cancel racing a handover waits for it
+      // and then sees "collected" instead of deleting a loan already lent.
+      // The request lock serialises the cancel with staff preparing it.
+      if (usage) await lockRow(tx, 'UsageLog', usage.UsageKey);
       await lockRow(tx, 'Reservations', input.reservationKey);
       const fresh = await tx.reservations.findUniqueOrThrow({
         where: { ReservationKey: input.reservationKey },
         select: {
           ApproveStatus: true,
           UsageLogs: { select: { UsageKey: true, CurrentStatus: true } },
+          Resource: {
+            select: {
+              ManagedBy: true,
+              Item: {
+                select: { ItemID: true, Item: { select: { ItemName: true } } },
+              },
+              Room: { select: { RoomName: true } },
+            },
+          },
         },
       });
       if (
@@ -908,20 +919,22 @@ export class LoanRequestService {
         });
       }
       const freshUsage = fresh.UsageLogs[0];
-      // Only the prepared room seen above may be cleared; anything else that
-      // appeared meanwhile means it has been prepared, so it is too late.
-      if (
-        freshUsage &&
-        (!usage ||
-          freshUsage.UsageKey !== usage.UsageKey ||
-          freshUsage.CurrentStatus !== 'Prepared')
-      ) {
-        throw new BusinessError('CANNOT_CANCEL', {
-          reservationKey: input.reservationKey,
-          reason: 'ALREADY_PREPARED',
-        });
-      }
       if (freshUsage) {
+        // Already held when the read above saw it (locking again is a no-op);
+        // its first lock when staff prepared it in between. Read its state
+        // under the lock either way.
+        await lockRow(tx, 'UsageLog', freshUsage.UsageKey);
+        const { CurrentStatus } = await tx.usageLog.findUniqueOrThrow({
+          where: { UsageKey: freshUsage.UsageKey },
+          select: { CurrentStatus: true },
+        });
+        if (CurrentStatus !== 'Prepared') {
+          throw new BusinessError('CANNOT_CANCEL', {
+            reservationKey: input.reservationKey,
+            usageKey: freshUsage.UsageKey,
+            reason: 'ALREADY_COLLECTED',
+          });
+        }
         await tx.images.deleteMany({
           where: { UsageKey: freshUsage.UsageKey },
         });
@@ -931,13 +944,22 @@ export class LoanRequestService {
         where: { ReservationKey: input.reservationKey },
         data: cancelled,
       });
+      if (freshUsage && fresh.Resource.Item) {
+        await this.notifications.preparedUnitReleased(tx, {
+          manageGroupKey: fresh.Resource.ManagedBy,
+          reservationKey: input.reservationKey,
+          itemName: resourceName(fresh.Resource),
+          serialNo: fresh.Resource.Item.ItemID,
+        });
+      }
+      return freshUsage !== undefined;
     });
 
     await this.audit.record(
       { accountKey: user.accountKey },
       'update',
       `reservation/${input.reservationKey}`,
-      `Borrower cancelled the request${input.reason ? `: ${input.reason}` : ''}`,
+      `Borrower cancelled the request${released ? ' after it was prepared (unit released)' : ''}${input.reason ? `: ${input.reason}` : ''}`,
     );
 
     return this.toRequest(
@@ -950,12 +972,12 @@ export class LoanRequestService {
   // Internals
   // =========================================================================
 
-  /** A room set up but not yet checked into: still the borrower's to cancel. */
-  private static preparedRoom(row: RequestRow): boolean {
-    return (
-      row.Resource.Room !== null &&
-      row.UsageLogs[0]?.CurrentStatus === 'Prepared'
-    );
+  /**
+   * Set aside at the counter but not yet collected (a room: not yet checked
+   * into), so still the borrower's to cancel.
+   */
+  private static awaitingCollection(row: RequestRow): boolean {
+    return row.UsageLogs[0]?.CurrentStatus === 'Prepared';
   }
 
   private assertWindowShape(startTime: Date, endTime: Date): void {
@@ -1097,7 +1119,7 @@ export class LoanRequestService {
       dueAt: usage ? toIso(usage.DueTime) : null,
       cancellable:
         (row.ApproveStatus === 'Pending' || row.ApproveStatus === 'Approved') &&
-        (usage === null || LoanRequestService.preparedRoom(row)),
+        (usage === null || LoanRequestService.awaitingCollection(row)),
       holdsRoomQuota: holdsRoomQuota({
         ApproveStatus: row.ApproveStatus,
         EndTime: row.EndTime,

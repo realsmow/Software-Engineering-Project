@@ -698,6 +698,35 @@ export class NotificationService {
     });
   }
 
+  /**
+   * The borrower called off a request staff had already set aside (FR-REQ-10,
+   * revised 29 Oct 2569). The system frees the unit at once, but the box is
+   * still on the counter until someone shelves it, so the counter is told
+   * which one. Its own dedupe key: sharing `itemToPrepare`'s would make the
+   * upsert keep that older entry and drop this one.
+   */
+  preparedUnitReleased(
+    tx: Prisma.TransactionClient,
+    params: {
+      manageGroupKey: number;
+      reservationKey: number;
+      itemName: string;
+      serialNo: string | null;
+    },
+  ) {
+    const unit = params.serialNo
+      ? `${params.itemName} (${params.serialNo})`
+      : params.itemName;
+    return this.staffTask(tx, params.manageGroupKey, {
+      title: 'ผู้ยืมยกเลิกของที่เตรียมไว้แล้ว',
+      body: `${unit} · ยกเลิกแล้ว เก็บกลับเข้าที่ได้เลย`,
+      titleEn: 'Borrower cancelled a prepared item',
+      bodyEn: `${unit} · Cancelled, put it back in storage`,
+      linkTo: ROUTE_STAFF_QUEUE,
+      dedupeKey: cancelledKeyOf(params.reservationKey),
+    });
+  }
+
   /** A loan is due back within a day, or already late. */
   returnToReceive(
     tx: Prisma.TransactionClient,
@@ -1007,6 +1036,11 @@ function usageKeyOf(usageKey: number): string {
 
 function reservationKeyOf(reservationKey: number): string {
   return `reservation:${reservationKey}`;
+}
+
+/** One per request: a cancelled request cannot be cancelled again. */
+function cancelledKeyOf(reservationKey: number): string {
+  return `cancelled:${reservationKey}`;
 }
 
 function extensionKeyOf(extensionKey: number): string {
