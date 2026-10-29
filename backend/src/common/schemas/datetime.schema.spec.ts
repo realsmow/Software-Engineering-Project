@@ -11,6 +11,7 @@ import {
   rollDueOffClosedDays,
   openDayEndBefore,
   setHolidays,
+  extraOpenDays,
 } from './datetime.schema';
 
 /**
@@ -255,5 +256,55 @@ describe('#229: a loan falls due at closing time', () => {
   it('never moves a time earlier', () => {
     const late = new Date('2031-09-29T11:00:00Z');
     expect(closingTimeOn(late)).toEqual(late);
+  });
+});
+
+describe('extra open days (presentation day)', () => {
+  // 2031-09-27 is a Saturday in Bangkok; 10:00Z is 17:00 there.
+  const saturday = new Date('2031-09-27T03:00:00Z');
+  const saturdayDue = new Date('2031-09-27T10:00:00Z');
+  afterEach(() => extraOpenDays.clear());
+
+  it('keeps a weekend closed by default', () => {
+    expect(isClosedDay(saturday, 4)).toBe(true);
+    expect(rollDueOffClosedDays(saturdayDue, 4).toISOString()).toBe(
+      '2031-09-29T10:00:00.000Z',
+    );
+  });
+
+  it('opens the day for every department when none is named', () => {
+    extraOpenDays.set('2031-09-27', []);
+    expect(isClosedDay(saturday, 4)).toBe(false);
+    expect(rollDueOffClosedDays(saturdayDue, 4)).toEqual(saturdayDue);
+  });
+
+  it('opens it only for the named departments', () => {
+    extraOpenDays.set('2031-09-27', [4]);
+    expect(isClosedDay(saturday, 4)).toBe(false);
+    expect(isClosedDay(saturday, 5)).toBe(true);
+    // Another department's loan still rolls to Monday.
+    expect(rollDueOffClosedDays(saturdayDue, 5).toISOString()).toBe(
+      '2031-09-29T10:00:00.000Z',
+    );
+  });
+
+  it('opens a listed holiday too, and nothing else about it changes', () => {
+    // Tuesday 30 Sep 2031 as a holiday, then opened for department 4.
+    const tuesday = new Date('2031-09-30T03:00:00Z');
+    setHolidays(['2031-09-30']);
+    extraOpenDays.set('2031-09-30', [4]);
+    try {
+      expect(isClosedDay(tuesday, 4)).toBe(false);
+      expect(isClosedDay(tuesday, 5)).toBe(true);
+    } finally {
+      setHolidays([]);
+    }
+  });
+
+  it('rolls a Saturday due to an opened Sunday', () => {
+    extraOpenDays.set('2031-09-28', []);
+    expect(rollDueOffClosedDays(saturdayDue).toISOString()).toBe(
+      '2031-09-28T10:00:00.000Z',
+    );
   });
 });

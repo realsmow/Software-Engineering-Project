@@ -10,7 +10,7 @@ import { ImageThumb } from "@/components/shared/image-thumb";
 import { fmtDate, localInstant, todayLocalDayKey } from "@/lib/datetime";
 import { getErrorMessage } from "@/lib/error-messages";
 import { cn } from "@/lib/utils";
-import { isClosedDay, useHolidays } from "@/lib/closed-days";
+import { isClosedDay, useHolidays, useOpenDates } from "@/lib/closed-days";
 import { activeRoomBookings } from "../request-status";
 import { useMyRequests } from "../loans/use-my-requests";
 import type { Room, RoomSlot } from "./room.adapter";
@@ -39,6 +39,7 @@ export default function RoomBookingPage() {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
+  const openDates = useOpenDates();
   const today = todayLocalDayKey();
   // Today and up to seven days ahead (demo feedback; was today only).
   const week = useMemo(
@@ -232,10 +233,10 @@ export default function RoomBookingPage() {
 
               <div>
                 <div className="mb-1.5 text-xs font-medium text-t2">{t("borrower.booking.date")}</div>
-                {/* The room's week: free slots per day; weekends and holidays the counter is shut. */}
+                {/* The room's week: free slots per day; weekends and holidays shut unless the admin opened the day. */}
                 <div className="grid grid-cols-4 gap-1.5 sm:grid-cols-8">
                   {week.map((d) => {
-                    const closed = isClosedDay(d, holidays);
+                    const closed = isClosedDay(d, holidays, openDates);
                     const free = freeByDay.get(d);
                     const selected = d === date;
                     return (

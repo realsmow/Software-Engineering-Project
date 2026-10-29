@@ -580,7 +580,10 @@ export class LoanService {
     );
     const shiftedDue =
       early && daysEarly > 0
-        ? rollDueOffClosedDays(addDays(usage.DueTime, -daysEarly))
+        ? rollDueOffClosedDays(
+            addDays(usage.DueTime, -daysEarly),
+            usage.Resource.ManagedBy,
+          )
         : usage.DueTime;
     // #194: a late-in-the-day early pickup would be due already; keep the booking.
     const dueTime = shiftedDue > now ? shiftedDue : usage.DueTime;

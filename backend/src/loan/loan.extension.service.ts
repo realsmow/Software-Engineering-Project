@@ -341,7 +341,10 @@ export class LoanExtensionService {
     const asked = new Date(input.requestedDueAt);
     this.assertExtensionWindow(usage.DueTime, asked, allowance.maxBorrowDays);
     // #229: due at closing on the day asked for, like the original loan.
-    const requestedDue = rollDueOffClosedDays(closingTimeOn(asked));
+    const requestedDue = rollDueOffClosedDays(
+      closingTimeOn(asked),
+      usage.Resource.ManagedBy,
+    );
 
     const extendNo = allowance.used + 1;
     const route = extensionRouteFor({

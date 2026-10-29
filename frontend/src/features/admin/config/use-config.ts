@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTRPCClient } from "@/lib/trpc";
 import type { TechnicalConfig } from "./config.types";
-import { HOLIDAYS_QUERY_KEY } from "@/lib/closed-days";
+import { HOLIDAYS_QUERY_KEY, OPEN_DAYS_QUERY_KEY, type OpenDay } from "@/lib/closed-days";
 
 /**
  * What this server instance is running with.
@@ -56,5 +56,15 @@ export function useUpdateHolidays() {
   return useMutation({
     mutationFn: (dates: string[]) => trpc.admin.updateHolidays.mutate({ dates }),
     onSuccess: (saved) => queryClient.setQueryData(HOLIDAYS_QUERY_KEY, saved),
+  });
+}
+
+/** Weekends or holidays the counter opens anyway, per department. */
+export function useUpdateOpenDays() {
+  const trpc = useTRPCClient();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (days: OpenDay[]) => trpc.admin.updateOpenDays.mutate({ days }),
+    onSuccess: (saved) => queryClient.setQueryData(OPEN_DAYS_QUERY_KEY, saved),
   });
 }

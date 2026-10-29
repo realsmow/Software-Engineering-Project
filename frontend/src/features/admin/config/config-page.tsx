@@ -10,9 +10,12 @@ import {
   useHolidaysSetting,
   useTechnicalConfig,
   useUpdateHolidays,
+  useUpdateOpenDays,
   useUpdateWorkHours,
   useWorkHours,
 } from "./use-config";
+import { useAdminOrg } from "../org/use-org";
+import { useOpenDays, type OpenDay } from "@/lib/closed-days";
 
 /**
  * What this server instance is deployed with.
@@ -41,6 +44,7 @@ export default function AdminConfigPage() {
       <PageHeader title={t("nav.technicalConfig")} subtitle={t("admin.config.subtitle")} />
       <WorkHoursCard />
       <HolidaysCard />
+      <OpenDaysCard />
 
       {isLoading ? (
         <p className="py-16 text-center text-sm text-t3">{t("common.loading")}</p>
@@ -308,6 +312,114 @@ function HolidaysCard() {
         {save.isError && (
           <span className="text-xs text-[var(--s-alert-t)]">{t("admin.config.holidaysError")}</span>
         )}
+      </div>
+    </section>
+  );
+}
+
+/**
+ * Weekends or holidays the counter opens anyway, e.g. presentation day. Each
+ * day opens for the departments ticked, or for every department when none is.
+ */
+function OpenDaysCard() {
+  const { t } = useTranslation();
+  const { data } = useOpenDays();
+  const { data: org } = useAdminOrg();
+  const save = useUpdateOpenDays();
+  const [draft, setDraft] = useState<OpenDay[] | null>(null);
+  const [newDate, setNewDate] = useState("");
+  const days = draft ?? data?.days ?? [];
+  const groups = org?.groups ?? [];
+
+  function toggle(date: string, groupKey: number) {
+    setDraft(
+      days.map((d) =>
+        d.date !== date
+          ? d
+          : {
+              ...d,
+              groupKeys: d.groupKeys.includes(groupKey)
+                ? d.groupKeys.filter((k) => k !== groupKey)
+                : [...d.groupKeys, groupKey],
+            },
+      ),
+    );
+  }
+
+  function add() {
+    if (!newDate || days.some((d) => d.date === newDate)) return;
+    setDraft([...days, { date: newDate, groupKeys: [] }].sort((a, b) => a.date.localeCompare(b.date)));
+    setNewDate("");
+  }
+
+  if (!data) return null;
+
+  return (
+    <section className="mb-5 rounded-lg border border-border bg-card px-3.5 py-3">
+      <h2 className="text-sm font-semibold text-foreground">{t("admin.config.openDays")}</h2>
+      <p className="mt-0.5 text-xs text-t3">{t("admin.config.openDaysHint")}</p>
+
+      <ul className="mt-2.5 flex flex-col gap-2.5">
+        {days.length === 0 ? <li className="text-xs text-t3">{t("admin.config.openDaysNone")}</li> : null}
+        {days.map((d) => (
+          <li key={d.date} className="rounded border border-border px-3 py-2">
+            <div className="flex items-center justify-between gap-2">
+              <span className="font-mono text-[13px] text-foreground">{d.date}</span>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setDraft(days.filter((x) => x.date !== d.date))}
+              >
+                {t("admin.config.openDaysRemove")}
+              </Button>
+            </div>
+            <p className="mt-1 text-[11px] text-t3">
+              {d.groupKeys.length === 0 ? t("admin.config.openDaysAll") : t("admin.config.openDaysSome")}
+            </p>
+            <div className="mt-1.5 flex flex-wrap gap-1.5">
+              {groups.map((g) => {
+                const on = d.groupKeys.includes(g.id);
+                return (
+                  <button
+                    key={g.id}
+                    type="button"
+                    aria-pressed={on}
+                    onClick={() => toggle(d.date, g.id)}
+                    className={
+                      on
+                        ? "rounded-full border border-accent bg-accent px-2.5 py-1 text-[11px] text-white"
+                        : "rounded-full border border-border px-2.5 py-1 text-[11px] text-t2 hover:bg-muted"
+                    }
+                  >
+                    {g.name ?? `#${g.id}`}
+                  </button>
+                );
+              })}
+            </div>
+          </li>
+        ))}
+      </ul>
+
+      <div className="mt-2.5 flex flex-wrap items-center gap-2">
+        <Input
+          type="date"
+          className="w-44"
+          aria-label={t("admin.config.openDaysDate")}
+          value={newDate}
+          onChange={(e) => setNewDate(e.target.value)}
+        />
+        <Button type="button" variant="outline" disabled={!newDate} onClick={add}>
+          {t("admin.config.openDaysAdd")}
+        </Button>
+        <Button
+          type="button"
+          disabled={!draft || save.isPending}
+          onClick={() => save.mutate(days, { onSuccess: () => setDraft(null) })}
+        >
+          {t("common.save")}
+        </Button>
+        {save.isError && <span className="text-xs text-[var(--s-alert-t)]">{t("admin.config.workHoursError")}</span>}
       </div>
     </section>
   );

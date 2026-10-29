@@ -42,6 +42,7 @@ import { UNAVAILABLE_USAGE_STATES } from '../common/usage/usage-states';
 import { runSerializable } from '../common/db/serializable';
 import { OK } from '../common/schemas/ok.schema';
 import {
+  extraOpenDays,
   holidayList,
   setHolidays,
   workHours,
@@ -64,7 +65,12 @@ import type {
   WorkHoursSetting,
   HolidaysSetting,
 } from './admin.schema';
-import { holidaysSetting, workHoursSetting } from './admin.schema';
+import {
+  holidaysSetting,
+  openDaysSetting,
+  workHoursSetting,
+} from './admin.schema';
+import type { OpenDaysSetting } from './admin.schema';
 
 /**
  * Sort keys the client may send, mapped to real columns.
@@ -259,6 +265,12 @@ export class AdminService implements OnModuleInit {
       .catch(() => null);
     const savedHolidays = holidaysSetting.safeParse(holidayRow?.Value);
     if (savedHolidays.success) setHolidays(savedHolidays.data.dates);
+
+    const openRow = await this.prisma.systemSetting
+      ?.findUnique({ where: { Key: 'openDays' } })
+      .catch(() => null);
+    const savedOpen = openDaysSetting.safeParse(openRow?.Value);
+    if (savedOpen.success) this.applyOpenDays(savedOpen.data);
   }
 
   /** #234: the days the counter is shut besides weekends. */
@@ -287,6 +299,45 @@ export class AdminService implements OnModuleInit {
         : 'Holidays cleared',
     );
     return { dates };
+  }
+
+  /** Weekends or holidays the counter opens anyway, e.g. presentation day. */
+  openDays() {
+    return {
+      days: [...extraOpenDays]
+        .map(([date, groupKeys]) => ({ date, groupKeys }))
+        .sort((a, b) => a.date.localeCompare(b.date)),
+    };
+  }
+
+  /** Replaces the whole list; saved first and applied second, like holidays. */
+  async updateOpenDays(input: OpenDaysSetting, actor: AuditActor) {
+    await this.prisma.systemSetting.upsert({
+      where: { Key: 'openDays' },
+      create: { Key: 'openDays', Value: input },
+      update: { Value: input },
+    });
+    this.applyOpenDays(input);
+    await this.audit.record(
+      actor,
+      'config',
+      'setting/openDays',
+      input.days.length === 0
+        ? 'Extra open days cleared'
+        : `Extra open days: ${input.days
+            .map((d) =>
+              d.groupKeys.length === 0
+                ? `${d.date} (all)`
+                : `${d.date} (groups ${d.groupKeys.join(', ')})`,
+            )
+            .join('; ')}`,
+    );
+    return this.openDays();
+  }
+
+  private applyOpenDays(input: OpenDaysSetting) {
+    extraOpenDays.clear();
+    for (const day of input.days) extraOpenDays.set(day.date, day.groupKeys);
   }
 
   async updateWorkHours(input: WorkHoursSetting, actor: AuditActor) {

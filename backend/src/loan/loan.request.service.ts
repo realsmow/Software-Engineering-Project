@@ -396,8 +396,10 @@ export class LoanRequestService {
       ] as const) {
         // A pickup on a closed day is refused too: the counter is shut. A
         // return then is fine, it rolls to the next open day (#178 weekends,
-        // #234 holidays).
-        const closedDay = edge === 'START' && isClosedDay(at);
+        // #234 holidays). A day the admin opened for this department counts
+        // as open.
+        const closedDay =
+          edge === 'START' && isClosedDay(at, resource.ManagedBy);
         if (!withinWorkHours(at) || closedDay) {
           throw new BusinessError('OUTSIDE_WORK_HOURS', {
             edge,
@@ -441,7 +443,8 @@ export class LoanRequestService {
     // After the day limit: the borrower asked for a loan of open days, and
     // the weekend or holiday the counter is shut is not theirs to be charged
     // for.
-    if (!resource.Room) endTime = rollDueOffClosedDays(endTime);
+    if (!resource.Room)
+      endTime = rollDueOffClosedDays(endTime, resource.ManagedBy);
 
     return {
       resourceKey,
@@ -1110,7 +1113,7 @@ export class LoanRequestService {
 
   /** Nothing else may hold this unit over the window, buffer included. */
   private async assertWindowFree(
-    resource: { ResourceKey: number; BufferTime: number },
+    resource: { ResourceKey: number; BufferTime: number; ManagedBy: number },
     startTime: Date,
     endTime: Date,
     db: ReadClient = this.prisma,
@@ -1136,6 +1139,7 @@ export class LoanRequestService {
             openDayEndBefore(
               addDays(clash.StartTime, -resource.BufferTime),
               startTime,
+              resource.ManagedBy,
             ),
           ),
         });

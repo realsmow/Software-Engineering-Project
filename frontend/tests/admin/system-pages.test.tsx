@@ -40,6 +40,23 @@ vi.mock("../../src/features/admin/config/use-config", () => ({
   useUpdateWorkHours: useUpdateWorkHoursMock,
   useHolidaysSetting: useHolidaysSettingMock,
   useUpdateHolidays: useUpdateHolidaysMock,
+  useUpdateOpenDays: () => ({ mutate: vi.fn(), isPending: false, isError: false }),
+}));
+
+/** The work-hours card; the open-days card has its own Save. */
+function workHoursSection() {
+  return within(
+    screen.getByRole("heading", { name: i18n.t("admin.config.workHours") }).closest("section") as HTMLElement,
+  );
+}
+
+vi.mock("../../src/lib/closed-days", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../src/lib/closed-days")>()),
+  useOpenDays: () => ({ data: undefined }),
+}));
+
+vi.mock("../../src/features/admin/org/use-org", () => ({
+  useAdminOrg: () => ({ data: { faculties: [], groups: [] } }),
 }));
 
 const STATUS: SystemStatus = {
@@ -148,7 +165,7 @@ describe("IT admin status and technical configuration pages", () => {
       expect(input).toHaveValue(field === "start" ? 8 : 17);
       expect(within(input.parentElement!).getByText(":00")).toBeInTheDocument();
     }
-    const save = screen.getByRole("button", { name: i18n.t("common.save") });
+    const save = workHoursSection().getByRole("button", { name: i18n.t("common.save") });
     expect(save).toBeDisabled();
     fireEvent.change(
       screen.getByRole("spinbutton", { name: i18n.t("admin.config.work_end") }),
@@ -176,7 +193,7 @@ describe("IT admin status and technical configuration pages", () => {
         target: { value: end },
       }
     );
-    expect(screen.getByRole("button", { name: i18n.t("common.save") })).toBeDisabled();
+    expect(workHoursSection().getByRole("button", { name: i18n.t("common.save") })).toBeDisabled();
     expect(saveHours).not.toHaveBeenCalled();
   });
 

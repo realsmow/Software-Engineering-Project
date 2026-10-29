@@ -156,9 +156,30 @@ export function holidayList(): string[] {
   return [...holidays].sort();
 }
 
-/** A weekend or a listed holiday in Bangkok: the counter is shut all day. */
-export function isClosedDay(at: Date): boolean {
-  return isWeekend(at) || holidays.has(toLocalDayKey(at));
+/**
+ * The opposite of a holiday: a weekend or holiday the counter opens anyway
+ * (an open house, a presentation day), keyed `YYYY-MM-DD` in Bangkok. The
+ * value lists the departments (ManagementGroup keys) that open; an empty list
+ * opens every department.
+ *
+ * Set by the admin and loaded from SystemSetting at boot by AdminService,
+ * like the holiday list.
+ */
+export const extraOpenDays = new Map<string, number[]>();
+
+/**
+ * Whether the counter is shut all day on the day `at` falls on, for a unit of
+ * department `groupKey`: a weekend or a listed holiday, unless the admin
+ * opened that day for the department.
+ */
+export function isClosedDay(at: Date, groupKey?: number): boolean {
+  const key = toLocalDayKey(at);
+  if (!isWeekend(at) && !holidays.has(key)) return false;
+  const open = extraOpenDays.get(key);
+  if (!open) return true;
+  return (
+    open.length > 0 && (groupKey === undefined || !open.includes(groupKey))
+  );
 }
 
 /**
@@ -169,14 +190,14 @@ const MAX_CLOSED_RUN_DAYS = 400;
 
 /**
  * A due instant that lands on a closed day (weekend or listed holiday, in
- * Bangkok) moves to closing time on the next open day. The counter is shut
- * then, so a loan due that day could only come back later and would be
- * counted late (#178, #234).
+ * Bangkok, and not opened for this department) moves to closing time on the
+ * next open day. The counter is shut then, so a loan due that day could only
+ * come back later and would be counted late (#178, #234).
  */
-export function rollDueOffClosedDays(due: Date): Date {
-  if (!isClosedDay(due)) return due;
+export function rollDueOffClosedDays(due: Date, groupKey?: number): Date {
+  if (!isClosedDay(due, groupKey)) return due;
   let day = due;
-  for (let i = 0; i < MAX_CLOSED_RUN_DAYS && isClosedDay(day); i++) {
+  for (let i = 0; i < MAX_CLOSED_RUN_DAYS && isClosedDay(day, groupKey); i++) {
     day = addDays(day, 1);
   }
   return toDueDate(toLocalDayKey(day));
@@ -189,10 +210,14 @@ export function rollDueOffClosedDays(due: Date): Date {
  * capped it, so the offer moves back to closing on the last open day before
  * it instead. Unchanged if that would not be after `start`.
  */
-export function openDayEndBefore(limit: Date, start: Date): Date {
-  if (!isClosedDay(limit)) return limit;
+export function openDayEndBefore(
+  limit: Date,
+  start: Date,
+  groupKey?: number,
+): Date {
+  if (!isClosedDay(limit, groupKey)) return limit;
   let day = limit;
-  for (let i = 0; i < MAX_CLOSED_RUN_DAYS && isClosedDay(day); i++) {
+  for (let i = 0; i < MAX_CLOSED_RUN_DAYS && isClosedDay(day, groupKey); i++) {
     day = addDays(day, -1);
   }
   const end = toDueDate(toLocalDayKey(day));

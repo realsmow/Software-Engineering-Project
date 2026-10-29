@@ -32,6 +32,7 @@ export function AvailabilityCalendar({
   endDate,
   maxDate,
   holidays = NO_HOLIDAYS,
+  openDates = NO_HOLIDAYS,
   onPickup,
   onReturn,
 }: {
@@ -41,6 +42,8 @@ export function AvailabilityCalendar({
   maxDate: string;
   /** #234: the admin's holidays, closed like a weekend. */
   holidays?: ReadonlySet<string>;
+  /** Weekends or holidays the admin opened anyway (presentation day). */
+  openDates?: ReadonlySet<string>;
   onPickup: (iso: string) => void;
   onReturn: (iso: string) => void;
 }) {
@@ -85,7 +88,8 @@ export function AvailabilityCalendar({
 
   function stateOf(iso: string, counts: number[] | null): DayState {
     if (iso < today || iso > maxDate) return "past";
-    if (isClosedDay(iso, holidays)) return "closed";
+    // Weekends and holidays are shut unless the admin opened the day.
+    if (isClosedDay(iso, holidays, openDates)) return "closed";
     if (!counts || lines.length === 0) return "free";
     if (counts.some((n) => n === 0)) return "none";
     return counts.every((n, i) => n >= lines[i].qty) ? "free" : "partial";

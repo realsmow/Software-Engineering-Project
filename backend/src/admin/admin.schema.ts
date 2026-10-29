@@ -255,6 +255,25 @@ export const holidaysSetting = z.object({
 });
 export type HolidaysSetting = z.infer<typeof holidaysSetting>;
 
+/**
+ * The opposite of a holiday: a weekend or holiday the counter opens anyway,
+ * e.g. a presentation day. `groupKeys` names the departments that open; empty
+ * opens every department.
+ */
+export const openDaySetting = z.object({
+  date: isoDate,
+  groupKeys: z.array(z.number().int().positive()).max(100),
+});
+export const openDaysSetting = z.object({
+  days: z
+    .array(openDaySetting)
+    .max(60)
+    .refine((d) => new Set(d.map((x) => x.date)).size === d.length, {
+      message: 'each date once',
+    }),
+});
+export type OpenDaysSetting = z.infer<typeof openDaysSetting>;
+
 export const lendingSettingsOutput = z.object({
   workHours: workHoursSetting,
   creditTiers: z.array(creditTierSetting),

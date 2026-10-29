@@ -391,7 +391,15 @@
       "holidayDate": "Holiday to add",
       "holidayAdd": "Add holiday",
       "holidayRemove": "Remove holiday {{date}}",
-      "holidaysError": "Could not save the holidays"
+      "holidaysError": "Could not save the holidays",
+      "openDays": "Extra open days",
+      "openDaysHint": "Weekends or holidays the counter opens anyway, such as a presentation day. Pick the departments that open, or none for all of them.",
+      "openDaysNone": "No extra open days.",
+      "openDaysAll": "Open for every department. Tick departments to open only those.",
+      "openDaysSome": "Open only for the ticked departments.",
+      "openDaysRemove": "Remove",
+      "openDaysDate": "Date to open",
+      "openDaysAdd": "Add day"
     },
     "reports": {
       "subtitle": "Lending activity, counted from the records when this page opened",

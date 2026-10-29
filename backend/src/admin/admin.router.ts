@@ -20,6 +20,8 @@ import {
   adminUserDetail,
   userLoanHistory,
   workHoursSetting,
+  openDaysSetting,
+  type OpenDaysSetting,
   type WorkHoursSetting,
   holidaysSetting,
   type HolidaysSetting,
@@ -272,6 +274,23 @@ export class AdminRouter {
   @Mutation({ input: holidaysSetting, output: holidaysSetting })
   updateHolidays(@Input() input: HolidaysSetting, @Ctx() ctx: TrpcContext) {
     return this.adminService.updateHolidays(input, AdminRouter.actorFrom(ctx));
+  }
+
+  /**
+   * Weekends or holidays the counter opens anyway, e.g. presentation day,
+   * per department. Every signed-in role reads them, like holidays.
+   */
+  @UseMiddlewares(AuthMiddleware)
+  @Query({ output: openDaysSetting })
+  openDays() {
+    return this.adminService.openDays();
+  }
+
+  /** One list for the whole university, so admin only. */
+  @UseMiddlewares(AdminMiddleware)
+  @Mutation({ input: openDaysSetting, output: openDaysSetting })
+  updateOpenDays(@Input() input: OpenDaysSetting, @Ctx() ctx: TrpcContext) {
+    return this.adminService.updateOpenDays(input, AdminRouter.actorFrom(ctx));
   }
 
   // ── Technical config (IT admin) ─────────────────────────────────────────

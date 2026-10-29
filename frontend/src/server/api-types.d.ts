@@ -533,6 +533,31 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 			};
 			meta: object;
 		}>;
+		openDays: import("@trpc/server").TRPCQueryProcedure<{
+			input: void;
+			output: {
+				days: {
+					date: string;
+					groupKeys: number[];
+				}[];
+			};
+			meta: object;
+		}>;
+		updateOpenDays: import("@trpc/server").TRPCMutationProcedure<{
+			input: {
+				days: {
+					date: string;
+					groupKeys: number[];
+				}[];
+			};
+			output: {
+				days: {
+					date: string;
+					groupKeys: number[];
+				}[];
+			};
+			meta: object;
+		}>;
 		getConfig: import("@trpc/server").TRPCQueryProcedure<{
 			input: void;
 			output: {

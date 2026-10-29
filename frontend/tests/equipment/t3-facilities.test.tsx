@@ -39,6 +39,7 @@ vi.mock("../../src/features/borrower/loans/use-my-requests", () => ({
 vi.mock("../../src/lib/closed-days", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../src/lib/closed-days")>()),
   useHolidays: vi.fn(() => new Set<string>()),
+  useOpenDates: vi.fn(() => new Set<string>()),
 }));
 
 const ROOM: Room = {
