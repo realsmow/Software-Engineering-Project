@@ -510,8 +510,12 @@ describe('#236 step 3: a rejection that leaves other items in the cart', () => {
       }),
     });
     expect(notice(t)).toMatchObject({
-      Body: expect.stringContaining('ยังมีของอีก 2 ชิ้นในตะกร้านี้'),
-      BodyEn: expect.stringContaining('2 more item(s) in this cart'),
+      Body: expect.stringContaining(
+        'ยังมีของอีก 2 ชิ้นในตะกร้านี้ เลือกได้ว่าจะยืมชิ้นไหนต่อ',
+      ),
+      BodyEn: expect.stringContaining(
+        '2 more item(s) in this cart: choose which to keep',
+      ),
       LinkTo: '/my/loans?cart=9',
     });
   });

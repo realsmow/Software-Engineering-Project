@@ -381,8 +381,14 @@ describe("my requests: statuses and penalties come from the server", () => {
     renderAt(`${ROUTES.MY_LOANS}?cart=6`, <MyLoansPage />);
     const question = i18n.t("borrower.myRequests.partRejected", { names: "Probe kit" });
     const cart = (await screen.findByText(question)).closest("section")!;
+    // Every item still on its way is listed, ticked to keep.
+    expect(
+      within(cart).getByRole("checkbox", {
+        name: i18n.t("borrower.myRequests.keepItem", { name: "Oscilloscope 100MHz" }),
+      })
+    ).toBeChecked();
 
-    // Keeping what was approved only closes the question.
+    // Keeping everything only closes the question.
     fireEvent.click(within(cart).getByRole("button", { name: i18n.t("borrower.myRequests.keepApproved") }));
     expect(screen.queryByText(question)).not.toBeInTheDocument();
     expect(api).not.toHaveBeenCalledWith("loan.cancel", expect.anything());
@@ -405,10 +411,58 @@ describe("my requests: statuses and penalties come from the server", () => {
     const question = i18n.t("borrower.myRequests.partRejected", { names: "Probe kit" });
     const cart = (await screen.findByText(question)).closest("section")!;
     fireEvent.click(
-      within(cart).getByRole("button", { name: i18n.t("borrower.myRequests.cancelCart", { count: 1 }) })
+      within(cart).getByRole("checkbox", {
+        name: i18n.t("borrower.myRequests.keepItem", { name: "Oscilloscope 100MHz" }),
+      })
+    );
+    fireEvent.click(
+      within(cart).getByRole("button", { name: i18n.t("borrower.myRequests.cancelUnchosen", { count: 1 }) })
     );
     fireEvent.click(screen.getByRole("button", { name: i18n.t("borrower.myRequests.cancelConfirmYes") }));
     await waitFor(() => expect(api).toHaveBeenCalledWith("loan.cancel", { reservationKey: 62 }));
+  });
+
+  it("#236: lets the borrower keep some items and cancel the others", async () => {
+    const line = (reservationKey: number, name: string) =>
+      request({
+        reservationKey,
+        cartKey: 9,
+        status: "approved",
+        usageKey: null,
+        cancellable: true,
+        resource: { ...request({}).resource, name },
+      });
+    db.loans = [
+      request({
+        reservationKey: 81,
+        cartKey: 9,
+        status: "rejected",
+        usageKey: null,
+        cancellable: false,
+        resource: { ...request({}).resource, name: "Probe kit" },
+      }),
+      line(82, "Meter"),
+      line(83, "Scope"),
+      line(84, "Soldering iron"),
+    ];
+    renderAt(ROUTES.MY_LOANS, <MyLoansPage />);
+    const question = i18n.t("borrower.myRequests.partRejected", { names: "Probe kit" });
+    const cart = (await screen.findByText(question)).closest("section")!;
+    const keep = (name: string) =>
+      within(cart).getByRole("checkbox", { name: i18n.t("borrower.myRequests.keepItem", { name }) });
+    const cancelButton = (count: number) =>
+      within(cart).getByRole("button", { name: i18n.t("borrower.myRequests.cancelUnchosen", { count }) });
+
+    // Nothing to cancel while every item is ticked.
+    expect(cancelButton(0)).toBeDisabled();
+    fireEvent.click(keep("Scope"));
+    fireEvent.click(keep("Soldering iron"));
+    fireEvent.click(cancelButton(2));
+    fireEvent.click(screen.getByRole("button", { name: i18n.t("borrower.myRequests.cancelConfirmYes") }));
+
+    // The two unticked lines go together, in one call (#236 step 2); the meter stays.
+    await waitFor(() => expect(api).toHaveBeenCalledWith("loan.cancelCart", { reservationKeys: [83, 84] }));
+    expect(api).not.toHaveBeenCalledWith("loan.cancel", expect.anything());
   });
 
   it("shows the approver's reason on a rejected request, not a canned one", async () => {
