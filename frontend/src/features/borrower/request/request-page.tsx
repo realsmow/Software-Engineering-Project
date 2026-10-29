@@ -72,7 +72,6 @@ export default function RequestPage() {
   const createRequest = useCreateEquipmentRequest();
   const times = useRequestTimes();
   const holidays = useHolidays();
-  const openDates = useOpenDates();
   const [submitMessage, setSubmitMessage] = useState<string | null>(null);
   // Items the server refused for these exact dates. Changing the dates clears
   // it, so the checklist never shows green for what the server just refused.
@@ -101,6 +100,13 @@ export default function RequestPage() {
       }),
     [lines, catalog],
   );
+  // A day the admin opened counts only when it opened for every department
+  // this cart picks up from; the server checks each unit the same way.
+  const cartGroupKeys = useMemo(
+    () => rows.flatMap((r) => (r.item.owner ? [Number(r.item.owner.id)] : [])),
+    [rows],
+  );
+  const openDates = useOpenDates(cartGroupKeys);
 
   const t2Rows = rows.filter((r) => r.item.tier === "T2");
   const totalUnits = rows.reduce((sum, row) => sum + row.qty, 0);

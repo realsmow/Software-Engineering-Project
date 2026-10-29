@@ -47,12 +47,13 @@ const api = vi.hoisted(() => ({
   listUnits: vi.fn(),
   create: vi.fn(),
   holidays: vi.fn(),
+  openDays: vi.fn(),
 }));
 vi.mock("../../src/lib/trpc", () => ({
   useTRPCClient: () => ({
     item: { listUnits: { query: api.listUnits } },
     loan: { create: { mutate: api.create } },
-    admin: { holidays: { query: api.holidays } },
+    admin: { holidays: { query: api.holidays }, openDays: { query: api.openDays } },
   }),
 }));
 
@@ -134,6 +135,7 @@ describe("borrower request checks", () => {
     hooks.useMyCredit.mockReturnValue(queryResult(toMyCredit(creditResponse())));
     api.listUnits.mockResolvedValue(units);
     api.holidays.mockResolvedValue({ dates: [] });
+    api.openDays.mockResolvedValue({ days: [] });
   });
 
   afterEach(() => {
@@ -437,6 +439,42 @@ describe("borrower request checks", () => {
         it("keeps a valid weekday request submittable", () => {
           expect(submit).toBeEnabled();
         });
+      }
+    });
+
+    it.each([
+      { label: "opened for its department", groupKeys: [3], closed: false },
+      { label: "opened for every department", groupKeys: [] as number[], closed: false },
+      { label: "opened for another department only", groupKeys: [4], closed: true },
+    ])("open days: a Saturday pickup $label", async ({ groupKeys, closed }) => {
+      api.openDays.mockResolvedValue({ days: [{ date: "2031-10-04", groupKeys }] });
+      vi.setSystemTime(new Date("2031-10-04T00:00:00.000Z")); // Saturday 07:00 Bangkok
+      const catalogItem = toCatalogItem(
+        itemResponse({
+          tier: "T1",
+          availableUnits: 2,
+          totalUnits: 2,
+          owner: { id: 3, name: "Electrical Engineering", type: "Faculty" },
+        })
+      );
+      hooks.useEquipmentTypes.mockReturnValue(queryResult([catalogItem]));
+      useRequestDraft.getState().addItem(catalogItem.id, catalogItem.availableUnits);
+      useRequestDraft.getState().setStartDate("2031-10-04");
+      useRequestDraft.getState().setEndDate("2031-10-06");
+      useRequestDraft.getState().setPickupTime("08:00");
+      useRequestDraft.getState().setReturnTime("17:00");
+      await act(async () => {
+        renderPage();
+      });
+      // Let the open-day list arrive before judging the day.
+      await waitFor(() => expect(api.openDays).toHaveBeenCalled());
+      await act(async () => {});
+      const submit = screen.getByRole("button", { name: i18n.t("borrower.request.submit") });
+      if (closed) {
+        expect(submit).toBeDisabled();
+        expect(screen.getByText(i18n.t("borrower.request.pcPickupClosed"))).toBeInTheDocument();
+      } else {
+        await waitFor(() => expect(submit).toBeEnabled());
       }
     });
 

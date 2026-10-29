@@ -98,8 +98,15 @@ describe("room and pickup API regressions from the PDF", () => {
         capacity: 24,
         imageUrl: null,
         bookable: true,
+        ownerGroupKey: null,
       },
     ]);
+  });
+
+  it("keeps the department that runs the room, for its open days", () => {
+    const owned = roomResponse({ owner: { id: 5, name: "Mechanical Engineering", type: "Faculty" } });
+    expect(toRoom(owned).ownerGroupKey).toBe(5);
+    expect(toRoom(roomResponse()).ownerGroupKey).toBeNull();
   });
 
   it("does not replace an empty room or appeal API response with sample rows", async () => {

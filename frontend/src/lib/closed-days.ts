@@ -55,10 +55,35 @@ export function useOpenDays() {
 }
 
 /**
- * The opened dates, for any department. The screen treats them as open; the
- * server checks each unit's own department and refuses the rest.
+ * The opened dates that hold for every department in `groupKeys`: a day opened
+ * for all departments, or for each of these. With no department known, any
+ * opened date. The server checks each unit's own department either way.
  */
-export function useOpenDates(): ReadonlySet<string> {
+export function openDatesFor(
+  days: readonly OpenDay[] | undefined,
+  groupKeys: readonly number[],
+): ReadonlySet<string> {
+  if (!days || days.length === 0) return NONE;
+  return new Set(
+    days
+      .filter((d) => d.groupKeys.length === 0 || groupKeys.every((k) => d.groupKeys.includes(k)))
+      .map((d) => d.date),
+  );
+}
+
+const NO_GROUPS: readonly number[] = [];
+
+/**
+ * The opened dates for the departments a screen deals with (the cart's
+ * owners, the room's owner), so a day opened for one department is not
+ * offered for another's item only to be refused on submit.
+ */
+export function useOpenDates(groupKeys: readonly number[] = NO_GROUPS): ReadonlySet<string> {
   const { data } = useOpenDays();
-  return useMemo(() => (data ? new Set(data.days.map((d) => d.date)) : NONE), [data]);
+  // A stable key, so a new array with the same departments does not recompute.
+  const key = [...new Set(groupKeys)].sort((a, b) => a - b).join(",");
+  return useMemo(
+    () => openDatesFor(data?.days, key === "" ? NO_GROUPS : key.split(",").map(Number)),
+    [data, key],
+  );
 }
