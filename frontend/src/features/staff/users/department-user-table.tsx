@@ -52,8 +52,9 @@ export function DepartmentUserTable({
       ) : (
         // The frame clips, so the table needs its own scroller: without it the
         // status column and the ban control were cut off below about 400px,
-        // with no way to reach them.
-        <div className="overflow-x-auto">
+        // with no way to reach them. Relative, so the hidden "actions" header
+        // label is positioned inside the scroller instead of widening the page.
+        <div className="relative overflow-x-auto">
         <table className="w-full min-w-[32rem] border-collapse text-[13px]">
           <thead>
             <tr className="bg-secondary">
