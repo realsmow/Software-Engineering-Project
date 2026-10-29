@@ -1166,7 +1166,7 @@ function PrepareAction({
           >
             {options.map((o) => (
               <option key={o.resourceKey} value={o.resourceKey}>
-                {o.serialNo}
+                {o.recommended ? t("staff.queue.unitRecommended", { serial: o.serialNo }) : o.serialNo}
               </option>
             ))}
           </select>
@@ -1186,7 +1186,14 @@ function PrepareAction({
           </Button>
         ) : null}
       </div>
-      {showSchedule && row.itemKey != null ? <UnitSchedule itemKey={row.itemKey} /> : null}
+      {showSchedule && row.itemKey != null ? (
+        <UnitSchedule
+          itemKey={row.itemKey}
+          window={row.pickupAt && row.dueAt ? { start: row.pickupAt, end: row.dueAt } : null}
+          exclude={row.reservationKey}
+          options={options}
+        />
+      ) : null}
     </div>
   );
 }

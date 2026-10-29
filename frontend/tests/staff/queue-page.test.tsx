@@ -49,6 +49,7 @@ vi.mock("../../src/features/borrower/catalog/use-equipment-types", () => ({
 vi.mock("../../src/lib/closed-days", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../src/lib/closed-days")>()),
   useHolidays: () => new Set<string>(),
+  useOpenDates: () => new Set<string>(),
 }));
 vi.mock("../../src/features/borrower/pickup/use-pickup-image-upload", () => ({
   useUsagePhotos: mocks.useUsagePhotos,
@@ -374,10 +375,27 @@ describe("StaffQueuePage", () => {
       screen.getByRole("button", { name: i18n.t("staff.queue.showUnitSchedule") })
     );
 
-    expect(unitSchedule).toHaveBeenCalledWith("5", expect.any(String), 14);
+    // The request itself is left out of its own unit's timetable.
+    expect(unitSchedule).toHaveBeenCalledWith("5", expect.any(String), 14, 77);
     expect(screen.getAllByLabelText(/^OSC-002 \d{4}-\d{2}-\d{2}:/).length).toBe(14);
     // D-04: who has the unit is not shown.
     expect(screen.queryByText(/Lovelace.*OSC/)).not.toBeInTheDocument();
+  });
+
+  it("#235: names the recommended unit in the unit list", () => {
+    mocks.useStaffQueue.mockReturnValue(queryResult([{ ...row, itemKey: 5 }]));
+    mocks.usePrepareOptions.mockReturnValue(
+      queryResult([
+        { resourceKey: 7, serialNo: "OSC-001", reserved: true, recommended: false },
+        { resourceKey: 8, serialNo: "OSC-002", reserved: false, recommended: true },
+      ])
+    );
+    renderPage();
+    const list = screen.getByRole("combobox", { name: i18n.t("staff.queue.pickUnit") });
+    expect(list).toHaveValue("7"); // the reserved unit stays chosen until staff pick
+    expect(
+      within(list).getByRole("option", { name: i18n.t("staff.queue.unitRecommended", { serial: "OSC-002" }) })
+    ).toBeInTheDocument();
   });
 
   describe("demo feedback: one submit for several units is one row", () => {

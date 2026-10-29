@@ -136,12 +136,24 @@ export function useCatalogSearch(q: string) {
  * #235: one type's units and the days each is busy, for staff choosing which
  * unit to set aside. Shares its cache entries with useCartSchedule.
  */
-export function useUnitSchedule(id: string | undefined, from: string, days = 14) {
+export function useUnitSchedule(
+  id: string | undefined,
+  from: string,
+  days = 14,
+  // #235: the reservation being prepared, left out of its own unit's row.
+  exclude?: number,
+) {
   const trpc = useTRPCClient();
   return useQuery({
-    queryKey: ["unit-schedule", id ?? "", from, days],
+    queryKey: ["unit-schedule", id ?? "", from, days, exclude ?? null],
     enabled: itemKey(id) !== null,
-    queryFn: () => trpc.item.unitSchedule.query({ id: itemKey(id) as number, from, days }),
+    queryFn: () =>
+      trpc.item.unitSchedule.query({
+        id: itemKey(id) as number,
+        from,
+        days,
+        ...(exclude !== undefined ? { exclude } : {}),
+      }),
     refetchInterval: POLLING.AVAILABILITY,
   });
 }

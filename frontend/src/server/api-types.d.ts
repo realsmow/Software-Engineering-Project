@@ -2014,6 +2014,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 				id: number;
 				from: string;
 				days?: number | undefined;
+				exclude?: number | undefined;
 			};
 			output: {
 				resourceKey: number;
@@ -3221,6 +3222,7 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 				resourceKey: number;
 				serialNo: string;
 				reserved: boolean;
+				recommended: boolean;
 			}[];
 			meta: object;
 		}>;

@@ -212,6 +212,11 @@ export const prepareOptionsOutput = z.array(
     serialNo: z.string(),
     /** The unit the booking holds now. */
     reserved: z.boolean(),
+    /**
+     * #235: the unit whose bookings before and after sit closest to this one,
+     * so a unit with a long free stretch stays free for a long loan.
+     */
+    recommended: z.boolean(),
   }),
 );
 
