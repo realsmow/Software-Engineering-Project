@@ -1311,6 +1311,11 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 				maxExtendTimes: number;
 				signInMethod: "password" | "google" | null;
 				avatarUrl: string | null;
+				groups: {
+					id: number;
+					kind: "department" | "club";
+					name: string | null;
+				}[];
 			} | null;
 			meta: object;
 		}>;
@@ -1346,6 +1351,11 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 				maxExtendTimes: number;
 				signInMethod: "password" | "google" | null;
 				avatarUrl: string | null;
+				groups: {
+					id: number;
+					kind: "department" | "club";
+					name: string | null;
+				}[];
 			};
 			meta: object;
 		}>;
@@ -1370,6 +1380,11 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 					maxExtendTimes: number;
 					signInMethod: "password" | "google" | null;
 					avatarUrl: string | null;
+					groups: {
+						id: number;
+						kind: "department" | "club";
+						name: string | null;
+					}[];
 				};
 			};
 			meta: object;

@@ -34,6 +34,19 @@ export const userOutput = z.object({
   signInMethod: z.enum(['password', 'google']).nullable().default(null),
   /** Profile picture URL; null shows initials (#135). */
   avatarUrl: z.string().nullable().default(null),
+  /**
+   * Departments and clubs the account belongs to (its Authority rows), in
+   * the order they were created. The admin sets them; empty when none.
+   */
+  groups: z
+    .array(
+      z.object({
+        id: z.number().int(),
+        kind: z.enum(['department', 'club']),
+        name: z.string().nullable(),
+      }),
+    )
+    .default([]),
 });
 
 export type UserOutput = z.infer<typeof userOutput>;

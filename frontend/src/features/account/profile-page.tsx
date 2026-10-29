@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Mail, IdCard, Building2, KeyRound, Award, Camera, X } from "lucide-react";
+import { Mail, IdCard, Building2, KeyRound, Award, Camera, Users, X } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -49,6 +49,7 @@ export default function ProfilePage() {
   const creditBand = credit?.band ?? user.creditBand;
   const band = CREDIT_BANDS.find((b) => b.band === creditBand) ?? CREDIT_BANDS[0];
   const initials = user.name.trim().slice(0, 2);
+  const groupNames = (user.groups ?? []).flatMap((g) => (g.name ? [g.name] : []));
 
   return (
     <div>
@@ -91,6 +92,14 @@ export default function ProfilePage() {
               label={t("profile.faculty")}
               // auth.me sends the faculty name only; departmentId carries it.
               value={user.departmentId || t("profile.notSpecified")}
+            />
+            <DetailRow
+              icon={<Users size={15} />}
+              label={t("profile.groups")}
+              // Set by the admin; a department or club without a name is skipped.
+              value={
+                groupNames.length > 0 ? groupNames.join(" · ") : t("profile.noGroups")
+              }
             />
             <DetailRow
               icon={<KeyRound size={15} />}

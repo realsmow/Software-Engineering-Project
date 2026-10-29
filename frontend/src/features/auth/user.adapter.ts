@@ -24,6 +24,7 @@ export interface ServerUser {
   maxExtendTimes: number;
   signInMethod?: "password" | "google" | null;
   avatarUrl?: string | null;
+  groups?: { id: number; kind: "department" | "club"; name: string | null }[];
 }
 
 export function toClientUser(u: ServerUser): User {
@@ -41,5 +42,6 @@ export function toClientUser(u: ServerUser): User {
     creditBand: u.creditTier,
     signInMethod: u.signInMethod ?? null,
     avatarUrl: u.avatarUrl ?? null,
+    groups: (u.groups ?? []).map((g) => ({ ...g, id: String(g.id) })),
   };
 }

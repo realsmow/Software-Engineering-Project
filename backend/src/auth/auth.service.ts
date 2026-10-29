@@ -38,6 +38,19 @@ export class AuthService {
         Role: { select: { RoleName: true } },
         Faculty: { select: { FacultyName: true } },
         AvatarUrl: true,
+        // Departments and clubs, shown on the profile.
+        Authorities: {
+          orderBy: { ManageGroupKey: 'asc' },
+          select: {
+            ManageGroup: {
+              select: {
+                ManageGroupKey: true,
+                Branch: { select: { BranchName: true } },
+                Club: { select: { ClubName: true } },
+              },
+            },
+          },
+        },
         // HashedPassword intentionally not selected - cannot leak by accident
       },
     });

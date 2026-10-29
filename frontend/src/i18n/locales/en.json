@@ -68,6 +68,8 @@
     "credit": "Credit",
     "studentId": "Student / staff ID",
     "faculty": "Faculty",
+    "groups": "Departments and clubs",
+    "noGroups": "None yet",
     "notSpecified": "Not specified",
     "authMethod": "Sign-in method",
     "authGoogle": "Google (KU account)",

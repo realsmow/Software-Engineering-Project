@@ -68,6 +68,8 @@
     "credit": "เครดิต",
     "studentId": "รหัสนิสิต / รหัสบุคลากร",
     "faculty": "คณะ",
+    "groups": "ภาควิชาและชมรม",
+    "noGroups": "ยังไม่มีภาควิชาหรือชมรม",
     "notSpecified": "ไม่ระบุ",
     "authMethod": "วิธีเข้าสู่ระบบ",
     "authGoogle": "Google (บัญชี KU)",
