@@ -62,6 +62,17 @@ export const reportSummaryOutput = z.object({
       count: z.number().int().min(0),
     }),
   ),
+  /**
+   * Units handed over and returned per Bangkok day, oldest first, for the
+   * last 30 days including today.
+   */
+  daily: z.array(
+    z.object({
+      day: z.string(),
+      borrowed: z.number().int().min(0),
+      returned: z.number().int().min(0),
+    }),
+  ),
   /** FR-ADM-06: approved room bookings as a share of working hours, last 30 days. */
   roomUtilization: z.object({
     rooms: z.number().int().min(0),

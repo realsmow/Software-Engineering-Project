@@ -53,8 +53,8 @@ export function isBlockedByCredit(creditTier: CreditTier): boolean {
  * whatever the record.
  *
  * T3 (rooms) is approved on the spot. The server already enforces what a
- * person would check: the slot grid, the 3-hour cap, same-day only and one
- * booking at a time (room-slots.ts, loan.request.service.ts).
+ * person would check: the slot grid, the 3-hour cap, up to 7 days ahead and
+ * at most three bookings at a time (room-slots.ts, loan.request.service.ts).
  */
 export function routeFor({ tier, creditTier }: ApprovalContext): ApprovalRoute {
   // A seeding gap must cost a person's look, not an automatic yes.

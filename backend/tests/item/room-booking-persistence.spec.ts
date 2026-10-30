@@ -14,6 +14,7 @@ import { listRoomsInput } from '../../src/item/item.schema';
 import type { TrpcUser } from '../../src/trpc/context';
 import type { Prisma, RoomInfo } from '../../src/generated/prisma/client';
 import { inHistoryFixture } from '../fixtures/borrower-history';
+import { MAX_ACTIVE_ROOM_BOOKINGS } from '../../src/common/booking/room-slots';
 import { pickupFixture } from '../fixtures/pickup';
 import { requestService } from '../fixtures/loan-request';
 import { freezeBusinessDate } from '../fixtures/business-clock';
@@ -639,8 +640,13 @@ describe('selected room regressions', () => {
       // The status the old frontend rule looked at is not in its active list,
       // so the second booking was offered and then refused by the server.
       expect(booking.created[0].holdsRoomQuota).toBe(true);
-      const second = await f.book([6, 7], 0, 1);
-      expect(second.rejected[0].code).toBe('ROOM_BOOKING_LIMIT_REACHED');
+      // Up to the limit across both rooms, then one more is refused.
+      for (let i = 1; i < MAX_ACTIVE_ROOM_BOOKINGS; i++) {
+        const more = await f.book([4 + 2 * i, 5 + 2 * i], 0, i % 2);
+        expect(more.rejected).toEqual([]);
+      }
+      const over = await f.book([14, 15], 0, 1);
+      expect(over.rejected[0].code).toBe('ROOM_BOOKING_LIMIT_REACHED');
     });
   });
 
@@ -675,13 +681,16 @@ describe('selected room regressions', () => {
     });
   });
 
-  it('backend control: Approved already consumes the one-booking quota', async () => {
+  it('backend control: Approved bookings consume the room quota', async () => {
     await inHistoryFixture(db, async (tx) => {
       const f = await roomRegressionFixture(tx);
-      expect((await f.book()).created[0].status).toBe('approved');
-      const second = await f.book([4, 5], 0, 1);
-      expect(second.created).toEqual([]);
-      expect(second.rejected[0].code).toBe('ROOM_BOOKING_LIMIT_REACHED');
+      for (let i = 0; i < MAX_ACTIVE_ROOM_BOOKINGS; i++) {
+        const booking = await f.book([2 * i, 2 * i + 1], 0, i % 2);
+        expect(booking.created[0].status).toBe('approved');
+      }
+      const over = await f.book([14, 15], 0, 1);
+      expect(over.created).toEqual([]);
+      expect(over.rejected[0].code).toBe('ROOM_BOOKING_LIMIT_REACHED');
     });
   });
   for (const state of ['Prepared', 'Lended'] as const) {

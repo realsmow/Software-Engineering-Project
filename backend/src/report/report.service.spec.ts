@@ -14,6 +14,11 @@ function service(options: {
   >;
   units?: unknown[];
   usageCounts?: { ResourceKey: number; _count: { _all: number } }[];
+  moves?: {
+    CheckoutTime: Date;
+    CheckInTime: Date | null;
+    CurrentStatus: string;
+  }[];
 }) {
   const groupKeys = 'groupKeys' in options ? options.groupKeys : null;
   const groups = options.groups ?? [
@@ -47,6 +52,7 @@ function service(options: {
     usageLog: {
       count: usageCount,
       groupBy: jest.fn().mockResolvedValue(options.usageCounts ?? []),
+      findMany: jest.fn().mockResolvedValue(options.moves ?? []),
     },
     itemIndiv: { findMany: jest.fn().mockResolvedValue(options.units ?? []) },
     inspection: { findMany: jest.fn().mockResolvedValue([]) },
@@ -181,5 +187,50 @@ describe('summary', () => {
     });
     const result = await t.svc.summary(user, { topLimit: 2 });
     expect(result.topEquipment).toHaveLength(2);
+  });
+
+  it('counts handovers and returns per Bangkok day for the trend chart', async () => {
+    jest.useFakeTimers({
+      now: new Date('2031-09-30T05:00:00Z'),
+      doNotFake: ['nextTick', 'setImmediate'],
+    });
+    try {
+      const t = service({
+        moves: [
+          // 29 Sep Bangkok: out 09:00, back 30 Sep 10:00.
+          {
+            CheckoutTime: new Date('2031-09-29T02:00:00Z'),
+            CheckInTime: new Date('2031-09-30T03:00:00Z'),
+            CurrentStatus: 'Returned',
+          },
+          // 23:30 UTC on 29 Sep is already 30 Sep in Bangkok.
+          {
+            CheckoutTime: new Date('2031-09-29T23:30:00Z'),
+            CheckInTime: null,
+            CurrentStatus: 'Lended',
+          },
+          // A Prepared loan's time is the planned pickup, not a handover.
+          {
+            CheckoutTime: new Date('2031-09-30T04:00:00Z'),
+            CheckInTime: null,
+            CurrentStatus: 'Prepared',
+          },
+        ],
+      });
+      const { daily } = await t.svc.summary(user, { topLimit: 5 });
+      expect(daily).toHaveLength(30);
+      expect(daily.at(-1)).toEqual({
+        day: '2031-09-30',
+        borrowed: 1,
+        returned: 1,
+      });
+      expect(daily.at(-2)).toEqual({
+        day: '2031-09-29',
+        borrowed: 1,
+        returned: 0,
+      });
+    } finally {
+      jest.useRealTimers();
+    }
   });
 });

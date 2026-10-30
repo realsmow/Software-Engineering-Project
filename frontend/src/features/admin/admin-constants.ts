@@ -41,6 +41,8 @@ export interface AdminUser {
   govId: string; // student / staff id
   role: Role;
   departmentId: string;
+  /** Every department and club the account belongs to; one person may hold both. */
+  groups: { name: string; type: "Club" | "Faculty" }[];
   auth: "ku" | "local";
   status: AccountStatus;
   lastActiveAt: string; // ISO

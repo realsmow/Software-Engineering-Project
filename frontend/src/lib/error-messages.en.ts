@@ -24,7 +24,7 @@ export const ERROR_MESSAGES_EN: Record<string, string> = {
   ROOM_SLOTS_NOT_CONTIGUOUS: "The selected slots must be consecutive and cannot span the lunch break.",
   ROOM_SLOT_IN_THE_PAST: "This time slot has already passed.",
   ROOM_BOOKING_OUT_OF_RANGE: "Rooms can be booked from today up to 7 days ahead.",
-  ROOM_BOOKING_LIMIT_REACHED: "You already have one room booked. Cancel it or finish using it before booking another.",
+  ROOM_BOOKING_LIMIT_REACHED: "You already have 3 rooms booked, the most at once. Cancel one or finish using one before booking another.",
   ROOM_NOT_EXTENDABLE: "This room cannot be extended. If the next slot is free, please book it instead.",
   TOO_MANY_REQUESTS: "Too many requests from this device. Please wait a moment and try again.",
   PICKUP_NOT_OPEN: "It is not pickup time yet. If you arrive early, counter staff can hand it over ahead of time.",

@@ -5,7 +5,11 @@ import { tryMapTier } from '../common/schemas/status.schema';
 import { UNAVAILABLE_USAGE_STATES } from '../common/usage/usage-states';
 import type { TrpcUser } from '../trpc/context';
 import type { ReportSummaryInput } from './report.schema';
-import { workHours } from '../common/schemas/datetime.schema';
+import {
+  addDays,
+  toLocalDayKey,
+  workHours,
+} from '../common/schemas/datetime.schema';
 
 /** The window the damage and room figures cover. */
 const REPORT_DAYS = 30;
@@ -123,6 +127,33 @@ export class ReportService {
         Math.max(b.StartTime.getTime(), since.getTime()),
       0,
     );
+    // Loans handed over and returned per Bangkok day, for the trend chart. A
+    // Prepared loan's CheckoutTime is the planned pickup, not a handover.
+    const moves = await this.prisma.usageLog.findMany({
+      where: {
+        Resource: scope,
+        OR: [
+          { CheckoutTime: { gte: since }, CurrentStatus: { not: 'Prepared' } },
+          { CheckInTime: { gte: since } },
+        ],
+      },
+      select: { CheckoutTime: true, CheckInTime: true, CurrentStatus: true },
+    });
+    const daily = Array.from({ length: REPORT_DAYS }, (_, i) => {
+      const day = toLocalDayKey(addDays(now, i - REPORT_DAYS + 1));
+      return {
+        day,
+        borrowed: moves.filter(
+          (m) =>
+            m.CurrentStatus !== 'Prepared' &&
+            toLocalDayKey(m.CheckoutTime) === day,
+        ).length,
+        returned: moves.filter(
+          (m) => m.CheckInTime && toLocalDayKey(m.CheckInTime) === day,
+        ).length,
+      };
+    });
+
     // ponytail: counts every day as a working day; subtract weekends if asked.
     const openHours = rooms * REPORT_DAYS * (workHours.end - workHours.start);
     const bookedHours = Math.round(bookedMs / 360_000) / 10;
@@ -142,6 +173,7 @@ export class ReportService {
       departments: departments.sort((a, b) => b.loans - a.loans),
       topEquipment: top,
       damage,
+      daily,
       roomUtilization: {
         rooms,
         bookedHours,

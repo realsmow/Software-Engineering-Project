@@ -31,6 +31,7 @@ const report = reportSummaryOutput.strict().parse({
   ],
   damage: [],
   roomUtilization: { rooms: 0, bookedHours: 0, openHours: 0, percent: 0 },
+  daily: [],
   topEquipment: [{ itemKey: 11, name: "Multimeter", tier: "T1", count: 2 }],
 });
 

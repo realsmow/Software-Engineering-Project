@@ -79,7 +79,7 @@ export default function RoomBookingPage() {
     [slots]
   );
 
-  // One room at a time: a booking already in flight closes this form.
+  // At most MAX_T3_ACTIVE_BOOKINGS rooms at once: reaching it closes this form.
   const held = activeRoomBookings(requests);
   const heldBooking = held.length >= BUSINESS.MAX_T3_ACTIVE_BOOKINGS ? held[0] : null;
 
@@ -370,7 +370,7 @@ export default function RoomBookingPage() {
                 <Notice tone="alert">{t("borrower.booking.closedWarn")}</Notice>
               ) : heldBooking ? (
                 <Notice tone="alert">
-                  {t("borrower.booking.heldWarn", { name: heldBooking.name })}
+                  {t("borrower.booking.heldWarn", { max: BUSINESS.MAX_T3_ACTIVE_BOOKINGS })}
                 </Notice>
               ) : roomFull ? (
                 <Notice tone="alert">{t("borrower.booking.roomFullWarn")}</Notice>
@@ -425,7 +425,7 @@ export default function RoomBookingPage() {
                 <Check size={15} strokeWidth={2.4} />
               </span>
               <p className="text-xs leading-relaxed text-t3">
-                {t("borrower.booking.autoNote")}
+                {t("borrower.booking.autoNote", { max: BUSINESS.MAX_T3_ACTIVE_BOOKINGS })}
               </p>
             </div>
           </div>

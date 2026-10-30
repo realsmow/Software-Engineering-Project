@@ -47,6 +47,11 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 						name: string | null;
 						type: "Club" | "Faculty";
 					} | null;
+					groups: {
+						id: number;
+						name: string | null;
+						type: "Club" | "Faculty";
+					}[];
 				}[];
 				total: number;
 				page: number;
@@ -81,6 +86,11 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 						name: string | null;
 						type: "Club" | "Faculty";
 					} | null;
+					groups: {
+						id: number;
+						name: string | null;
+						type: "Club" | "Faculty";
+					}[];
 				}[];
 				total: number;
 				page: number;
@@ -108,6 +118,11 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 					name: string | null;
 					type: "Club" | "Faculty";
 				} | null;
+				groups: {
+					id: number;
+					name: string | null;
+					type: "Club" | "Faculty";
+				}[];
 				creditTier: "D0" | "D1" | "D2" | "D3";
 				facultyId: number | null;
 				maxBorrowDays: number;
@@ -174,6 +189,11 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 						name: string | null;
 						type: "Club" | "Faculty";
 					} | null;
+					groups: {
+						id: number;
+						name: string | null;
+						type: "Club" | "Faculty";
+					}[];
 					creditTier: "D0" | "D1" | "D2" | "D3";
 					facultyId: number | null;
 					maxBorrowDays: number;
@@ -307,6 +327,11 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 					name: string | null;
 					type: "Club" | "Faculty";
 				} | null;
+				groups: {
+					id: number;
+					name: string | null;
+					type: "Club" | "Faculty";
+				}[];
 				creditTier: "D0" | "D1" | "D2" | "D3";
 				facultyId: number | null;
 				maxBorrowDays: number;
@@ -352,6 +377,11 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 					name: string | null;
 					type: "Club" | "Faculty";
 				} | null;
+				groups: {
+					id: number;
+					name: string | null;
+					type: "Club" | "Faculty";
+				}[];
 				creditTier: "D0" | "D1" | "D2" | "D3";
 				facultyId: number | null;
 				maxBorrowDays: number;
@@ -3820,6 +3850,11 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 				damage: {
 					condition: "Normal" | "MinorDamage" | "MajorDamage" | "Broken" | "Missing";
 					count: number;
+				}[];
+				daily: {
+					day: string;
+					borrowed: number;
+					returned: number;
 				}[];
 				roomUtilization: {
 					rooms: number;

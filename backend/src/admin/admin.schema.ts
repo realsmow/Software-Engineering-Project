@@ -79,6 +79,11 @@ export const adminUserSummary = z.object({
   lastActiveAt: isoDateTimeNullable.default(null),
   /** First group the account holds an Authority in; null for plain borrowers. */
   managementGroup: managementGroupRef.nullable(),
+  /**
+   * Every group the account holds an Authority in. One account may belong to
+   * departments and clubs at the same time (one Authority row per group).
+   */
+  groups: z.array(managementGroupRef).default([]),
 });
 
 /** Re-exported: `credit.me` returns the same rows, so the shape lives in common. */

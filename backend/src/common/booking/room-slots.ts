@@ -40,8 +40,9 @@ export const ROOM_SLOT_MINUTES = 30;
 export const MAX_ROOM_BOOKING_SLOTS = 6;
 
 /**
- * Matches the frontend's `BUSINESS.MAX_T3_ACTIVE_BOOKINGS`: one room held at a
- * time, pending or approved, until its window has passed.
+ * Matches the frontend's `BUSINESS.MAX_T3_ACTIVE_BOOKINGS`: up to three room
+ * bookings held at once, pending or approved, until each window has passed
+ * (raised from one before the presentation).
  *
  * The frontend closed every "book" button past this, and nothing on the
  * server agreed, so anyone sending the request directly could hold every room
@@ -49,7 +50,7 @@ export const MAX_ROOM_BOOKING_SLOTS = 6;
  * the booking's own transaction, so it covers loan.create as well as
  * createRoomBooking and two requests sent together cannot both pass.
  */
-export const MAX_ACTIVE_ROOM_BOOKINGS = 1;
+export const MAX_ACTIVE_ROOM_BOOKINGS = 3;
 
 /**
  * The reservations that count against `MAX_ACTIVE_ROOM_BOOKINGS` for one

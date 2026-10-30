@@ -12,7 +12,7 @@ import { ImageThumb } from "@/components/shared/image-thumb";
 import { localInstant, todayLocalDayKey } from "@/lib/datetime";
 import { cn } from "@/lib/utils";
 import { CAPACITY_BANDS, TIME_SLOTS, capacityBand } from "./room-slots";
-import { activeRoomBookings, type MyRequest } from "../request-status";
+import { activeRoomBookings } from "../request-status";
 import { FacetFilters, type FilterGroup } from "../facet-filters";
 import { useMyRequests } from "../loans/use-my-requests";
 import type { Room } from "./room.adapter";
@@ -57,9 +57,9 @@ export default function RoomListPage() {
     room.bookable ? (freeByRoom.get(room.id) ?? null) : 0;
 
   /**
-   * The booking already holding a room, once the borrower is at their limit.
-   * While it stands every "book this room" button is closed - a held room is
-   * one nobody else can take, so sitting on several is not on offer.
+   * A booking already holding a room, once the borrower is at their limit
+   * (BUSINESS.MAX_T3_ACTIVE_BOOKINGS). While it stands every "book this room"
+   * button is closed - a held room is one nobody else can take.
    */
   const held = activeRoomBookings(requests);
   const heldBooking =
@@ -209,7 +209,7 @@ export default function RoomListPage() {
       />
       <NoteStrip />
       {heldBooking ? (
-        <HeldStrip booking={heldBooking} onOpen={() => navigate(ROUTES.ROOM_USE)} />
+        <HeldStrip onOpen={() => navigate(ROUTES.ROOM_USE)} />
       ) : null}
     </>
   );
@@ -283,7 +283,7 @@ export default function RoomListPage() {
 
             {heldBooking ? (
               <div className="overflow-hidden rounded-lg border border-border">
-                <HeldStrip booking={heldBooking} onOpen={() => navigate(ROUTES.ROOM_USE)} />
+                <HeldStrip onOpen={() => navigate(ROUTES.ROOM_USE)} />
               </div>
             ) : null}
 
@@ -410,15 +410,15 @@ function NoteStrip() {
 
 /**
  * Why every button is closed. Without this the list looks broken rather than
- * governed, so it names the booking in the way and where to deal with it.
+ * governed, so it says the limit is reached and where to deal with it.
  */
-function HeldStrip({ booking, onOpen }: { booking: MyRequest; onOpen: () => void }) {
+function HeldStrip({ onOpen }: { onOpen: () => void }) {
   const { t } = useTranslation();
   return (
     <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border bg-[var(--s-warn-bg)] px-3.5 py-2.5 text-xs leading-relaxed text-[var(--s-warn-t)]">
       <span className="inline-flex items-start gap-2">
         <TriangleAlert size={13} strokeWidth={2.4} className="mt-0.5 shrink-0" />
-        {t("borrower.rooms.heldNote", { name: booking.name })}
+        {t("borrower.rooms.heldNote", { max: BUSINESS.MAX_T3_ACTIVE_BOOKINGS })}
       </span>
       <Button type="button" variant="outline" size="sm" onClick={onOpen}>
         {t("borrower.rooms.heldAction")}
@@ -494,7 +494,7 @@ function BookButton({
     : full
     ? t("borrower.rooms.full")
     : held
-      ? t("borrower.rooms.held")
+      ? t("borrower.rooms.held", { max: BUSINESS.MAX_T3_ACTIVE_BOOKINGS })
       : t("borrower.rooms.book");
   return (
     <Button

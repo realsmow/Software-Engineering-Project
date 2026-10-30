@@ -34,10 +34,7 @@ export interface AdminAccountRow {
   Email: string;
   UserCredit: number;
   Role: { RoleName: string };
-  /**
-   * For the list view this is capped at one row - the summary only shows the
-   * first group. The detail view selects them all.
-   */
+  /** Every group the account holds an Authority in, list and detail alike. */
   Authorities: AuthorityRow[];
   /** Penalties in force (InEffect + not expired). Detail view only. */
   Penalties: PenaltyRow[];
@@ -76,6 +73,11 @@ export function toAdminUserSummary(
           type: first.ManageGroup.GroupType,
         }
       : null,
+    groups: row.Authorities.map((a) => ({
+      id: a.ManageGroupKey,
+      name: groupName(a.ManageGroup),
+      type: a.ManageGroup.GroupType,
+    })),
   };
 }
 

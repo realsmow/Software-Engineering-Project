@@ -23,8 +23,12 @@ export interface ServerAdminUser {
   createdAt?: string | null;
   /** Newest sign-in; null if the account never signed in. */
   lastActiveAt?: string | null;
-  managementGroup: { id: number; name: string | null; type: string } | null;
+  managementGroup: ServerGroup | null;
+  /** Every group; absent from older servers. */
+  groups?: ServerGroup[];
 }
+
+type ServerGroup = { id: number; name: string | null; type: "Club" | "Faculty" };
 
 /** KU addresses sign in by email, everyone else by their assigned user ID. */
 function authMethodFor(email: string): AdminUser["auth"] {
@@ -42,6 +46,11 @@ export function toAdminUser(s: ServerAdminUser): AdminUser {
     // which is the closest thing it has to a department. Plain borrowers have
     // none, so this is empty for most rows.
     departmentId: s.managementGroup?.name ?? "",
+    // Older servers send only the first group; fall back to it.
+    groups: (s.groups ?? (s.managementGroup ? [s.managementGroup] : [])).map((g) => ({
+      name: g.name ?? `#${g.id}`,
+      type: g.type,
+    })),
     // Derived, not stored: AccountInfo has no column recording how someone
     // signs in, and both methods hit the same password check anyway.
     auth: authMethodFor(s.email),

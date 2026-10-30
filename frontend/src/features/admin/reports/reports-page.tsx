@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { TierDot } from "@/components/shared/tier-badge";
 import { fmtDateTime } from "@/features/borrower/format";
 import { useReportSummary } from "./use-reports";
+import { ReportCharts } from "./report-charts";
 
 /**
  * Consolidated lending report.
@@ -13,9 +14,9 @@ import { useReportSummary } from "./use-reports";
  * nobody computed (412 loans, 74% utilisation) plus charts drawn from an array
  * of invented points - readable, plausible, and untrue.
  *
- * There are no charts now because the server keeps no history to draw one
- * from. Adding a time axis means aggregating UsageLog by day, which is a
- * different piece of work and should be asked for rather than faked.
+ * The charts draw the same counted figures, plus a 30-day trend the server
+ * now counts from UsageLog per Bangkok day. The tables stay below them so
+ * every number is readable without the chart.
  *
  * Scope is stated on the page: a department head sees their own departments,
  * an admin sees the institution, and the two must not be confused.
@@ -61,6 +62,8 @@ export default function AdminReportsPage() {
               />
             </div>
           </section>
+
+          <ReportCharts data={data} />
 
           <section className="overflow-hidden rounded-lg border border-border bg-card">
             <h2 className="border-b border-border px-3.5 py-2.5 text-sm font-semibold text-foreground">

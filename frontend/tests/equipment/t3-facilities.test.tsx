@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ROUTES } from "../../src/constants";
+import { BUSINESS, ROUTES } from "../../src/constants";
 import i18n from "../../src/i18n";
 import { TIME_SLOTS } from "../../src/features/borrower/rooms/room-slots";
 import { todayLocalDayKey } from "../../src/lib/datetime";
@@ -339,6 +339,14 @@ describe("Module 5 T3 facilities", () => {
 
   // Use schema-validated API records and the production adapter. These UI
   // tests do not pretend the backend quota can be bypassed (SQL controls cover it).
+  /** As many held bookings as the limit allows, so the next one is refused. */
+  function atLimit(
+    status: ReturnType<typeof requestResponse>["status"],
+    endTime: string
+  ) {
+    return Array.from({ length: BUSINESS.MAX_T3_ACTIVE_BOOKINGS }, () => heldRoom(status, endTime));
+  }
+
   function heldRoom(
     status: ReturnType<typeof requestResponse>["status"],
     endTime: string
@@ -384,7 +392,7 @@ describe("Module 5 T3 facilities", () => {
         vi.useFakeTimers({ toFake: ["Date"] });
         vi.setSystemTime(new Date("2031-09-26T00:00:00.000Z"));
         vi.mocked(myRequestsHooks.useMyRequests).mockReturnValue({
-          requests: [heldRoom(status, "2031-09-26T03:00:00.000Z")],
+          requests: atLimit(status, "2031-09-26T03:00:00.000Z"),
         } as never);
         submit = selectFreeSlot();
       });
@@ -396,12 +404,20 @@ describe("Module 5 T3 facilities", () => {
       );
     });
   }
+  it("still books while under the limit", () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2031-09-26T00:00:00.000Z"));
+    vi.mocked(myRequestsHooks.useMyRequests).mockReturnValue({
+      requests: atLimit("pending", "2031-09-26T03:00:00.000Z").slice(1),
+    } as never);
+    expect(selectFreeSlot()).not.toBeDisabled();
+  });
   for (const status of ["pending", "ready", "inUse"] as const) {
     it(`existing ${status} booking blocks a second request`, () => {
       vi.useFakeTimers({ toFake: ["Date"] });
       vi.setSystemTime(new Date("2031-09-26T00:00:00.000Z"));
       vi.mocked(myRequestsHooks.useMyRequests).mockReturnValue({
-        requests: [heldRoom(status, "2031-09-26T03:00:00.000Z")],
+        requests: atLimit(status, "2031-09-26T03:00:00.000Z"),
       } as never);
       expect(selectFreeSlot()).toBeDisabled();
     });
@@ -417,7 +433,7 @@ describe("Module 5 T3 facilities", () => {
           vi.useFakeTimers({ toFake: ["Date"] });
           vi.setSystemTime(new Date(now));
           vi.mocked(myRequestsHooks.useMyRequests).mockReturnValue({
-            requests: [heldRoom(status, "2031-09-26T03:00:00.000Z")],
+            requests: atLimit(status, "2031-09-26T03:00:00.000Z"),
           } as never);
           // A different room with a future slot; not a stale same-room slot.
           vi.mocked(roomHooks.useRoomDay).mockReturnValue({
@@ -452,7 +468,7 @@ describe("Module 5 T3 facilities", () => {
       vi.useFakeTimers({ toFake: ["Date"] });
       vi.setSystemTime(new Date("2031-09-26T02:59:59.999Z"));
       vi.mocked(myRequestsHooks.useMyRequests).mockReturnValue({
-        requests: [heldRoom(status, "2031-09-26T03:00:00.000Z")],
+        requests: atLimit(status, "2031-09-26T03:00:00.000Z"),
       } as never);
       expect(selectFreeSlot()).toBeDisabled();
     });

@@ -34,4 +34,6 @@ export interface ReportSummary {
   topEquipment: TopEquipmentRow[];
   damage: { condition: string; count: number }[];
   roomUtilization: { rooms: number; bookedHours: number; openHours: number; percent: number };
+  /** Units handed over and returned per Bangkok day, last 30 days, oldest first. */
+  daily: { day: string; borrowed: number; returned: number }[];
 }

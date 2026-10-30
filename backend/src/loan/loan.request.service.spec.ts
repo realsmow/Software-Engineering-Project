@@ -1,4 +1,5 @@
 import { LoanRequestService } from './loan.request.service';
+import { MAX_ACTIVE_ROOM_BOOKINGS } from '../common/booking/room-slots';
 import { BusinessError } from '../common/errors/business-error';
 import {
   extraOpenDays,
@@ -412,7 +413,7 @@ describe('Module 6 request validation', () => {
   });
 });
 
-describe('one room held at a time', () => {
+describe('room bookings held at once (limit MAX_ACTIVE_ROOM_BOOKINGS)', () => {
   // Rooms are same-day only, so the clock is pinned to the morning of the
   // fixture's day and the window is 09:00-10:00 Bangkok, on the slot grid.
   const roomWindow = {
@@ -466,14 +467,25 @@ describe('one room held at a time', () => {
     return db;
   }
 
-  it('refuses a second room while one is still held', async () => {
-    const result = await service(holding(1)).create(user as never, roomWindow);
+  it('refuses another room once the limit is held', async () => {
+    const result = await service(holding(MAX_ACTIVE_ROOM_BOOKINGS)).create(
+      user as never,
+      roomWindow,
+    );
     expect(result.created).toHaveLength(0);
     expect(result.rejected[0].code).toBe('ROOM_BOOKING_LIMIT_REACHED');
   });
 
   it('books the first one', async () => {
     const result = await service(holding(0)).create(user as never, roomWindow);
+    expect(result.created).toHaveLength(1);
+  });
+
+  it('still books while under the limit', async () => {
+    const result = await service(holding(MAX_ACTIVE_ROOM_BOOKINGS - 1)).create(
+      user as never,
+      roomWindow,
+    );
     expect(result.created).toHaveLength(1);
   });
 

@@ -33,7 +33,7 @@ export const BUSINESS = {
   MAX_ROOM_BOOKING_SLOTS: 6, // 3 ชั่วโมง เมื่อหนึ่งช่วงยาว 30 นาที
   // ผู้ยืมมีห้องที่ยังไม่เสร็จได้ทีละใบเดียว - ส่งคำขอแล้วห้องนั้นถูกกันไว้ให้ทันที
   // คนอื่นจองช่วงเวลานั้นซ้ำไม่ได้ จึงจองค้างไว้หลายห้องพร้อมกันไม่ได้
-  MAX_T3_ACTIVE_BOOKINGS: 1,
+  MAX_T3_ACTIVE_BOOKINGS: 3,
   RESERVATION_MAX_DAYS: 90, // จองล่วงหน้าสูงสุด 3 เดือน
   // 17:00 หลังจากนี้นับช้า 1 วัน - เวลาไทย (Asia/Bangkok), ไม่ใช่ UTC.
   // Matches DUE_HOUR_LOCAL in the backend's common/schemas/datetime.schema.ts,

@@ -414,7 +414,11 @@ export class AdminService implements OnModuleInit {
         ...toSkipTake(input),
         select: {
           ...ACCOUNT_SCALARS,
-          Authorities: { take: 1, select: AUTHORITY_SELECT },
+          // Every group: one account may sit in departments and clubs at once.
+          Authorities: {
+            select: AUTHORITY_SELECT,
+            orderBy: { ManageGroupKey: 'asc' },
+          },
         },
       }),
       this.prisma.accountInfo.count({ where }),

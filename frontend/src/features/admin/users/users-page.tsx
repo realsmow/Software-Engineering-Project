@@ -20,7 +20,6 @@ import { ChartCard } from "@/components/ui/chart-card";
 import { ChartTooltip, CHART_SERIES, axisProps, gridProps } from "@/components/ui/chart-kit";
 import type { Role } from "@/types/domain";
 import {
-  deptName,
   initials,
   type AccountStatus,
   type AdminUser,
@@ -498,7 +497,7 @@ export default function AdminUsersPage() {
   const exportCsv = () => {
     const header = ["id", "name", "email", "govId", "role", "department", "auth", "status"];
     const lines = filtered.map((u) =>
-      [u.id, u.name, u.email, u.govId, u.role, deptName(u.departmentId), u.auth, u.status]
+      [u.id, u.name, u.email, u.govId, u.role, u.groups.map((g) => g.name).join(" / "), u.auth, u.status]
         .map((v) => `"${String(v).replace(/"/g, '""')}"`)
         .join(","),
     );
@@ -534,7 +533,7 @@ export default function AdminUsersPage() {
     {
       key: "dept",
       header: t("admin.users.colDept"),
-      render: (u) => <span className="t-strong">{deptName(u.departmentId)}</span>,
+      render: (u) => <GroupList groups={u.groups} />,
     },
     {
       key: "auth",
@@ -767,7 +766,11 @@ export default function AdminUsersPage() {
             <div className="flex flex-col divide-y divide-border">
               <UserKvRow label={t("admin.users.userId")} mono>{selected.id}</UserKvRow>
               <UserKvRow label={t("admin.users.studentId")} mono>{selected.govId}</UserKvRow>
-              <UserKvRow label={t("common.department")}>{deptName(selected.departmentId)}</UserKvRow>
+              {/* A person may sit in departments and clubs at once (one Authority row each). */}
+              <UserKvRow label={t("common.department")}>
+                {namesOf(selected.groups, "Faculty")}
+              </UserKvRow>
+              <UserKvRow label={t("admin.org.clubs")}>{namesOf(selected.groups, "Club")}</UserKvRow>
               <UserKvRow label={t("admin.users.colAuth")}>
                 {selected.auth === "ku" ? t("admin.users.authKu") : t("admin.users.authLocal")}
               </UserKvRow>
@@ -1107,6 +1110,29 @@ export default function AdminUsersPage() {
           )}
         </div>
       </Modal>
+    </div>
+  );
+}
+
+/** Names of one kind of group, or "-" when there are none. */
+function namesOf(groups: AdminUser["groups"], type: "Club" | "Faculty"): string {
+  const names = groups.filter((g) => g.type === type).map((g) => g.name);
+  return names.length > 0 ? names.join(" · ") : "-";
+}
+
+/** Every department, then every club, the account belongs to. */
+function GroupList({ groups }: { groups: AdminUser["groups"] }) {
+  const { t } = useTranslation();
+  if (groups.length === 0) return <span className="text-t4">-</span>;
+  const ordered = [...groups].sort((a, b) => (a.type === b.type ? 0 : a.type === "Faculty" ? -1 : 1));
+  return (
+    <div className="flex flex-col gap-0.5">
+      {ordered.map((g) => (
+        <span key={`${g.type}-${g.name}`} className="t-strong inline-flex items-center gap-1.5">
+          {g.name}
+          {g.type === "Club" ? <Badge tone="neutral">{t("admin.users.clubTag")}</Badge> : null}
+        </span>
+      ))}
     </div>
   );
 }
