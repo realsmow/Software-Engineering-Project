@@ -44,6 +44,14 @@ describe('cleanup of test data', () => {
       where: { UserID: 'demo.admin' },
       data: { UserFName: 'Test admin' },
     });
+    // An admin whose role row is spelled in lower case, as on the server.
+    const lowerAdmin = await prisma.roleInfo.create({
+      data: { RoleName: 'admin' },
+    });
+    await prisma.accountInfo.update({
+      where: { UserID: 'demo.staff' },
+      data: { UserFName: 'Tester', RoleKey: lowerAdmin.RoleKey },
+    });
     await prisma.accountInfo.update({
       where: { UserID: 'demo.student4' },
       data: { UserID: 'tester04' },
@@ -95,8 +103,10 @@ describe('cleanup of test data', () => {
       await prisma.accountInfo.count({ where: { UserID: 'tester04' } }),
     ).toBe(0);
     expect(
-      await prisma.accountInfo.count({ where: { UserID: 'demo.admin' } }),
-    ).toBe(1);
+      await prisma.accountInfo.count({
+        where: { UserID: { in: ['demo.admin', 'demo.staff'] } },
+      }),
+    ).toBe(2);
     expect(
       await prisma.managementGroup.count({
         where: { ManageGroupKey: emptyDept.ManageGroupKey },
@@ -128,5 +138,6 @@ describe('cleanup of test data', () => {
       where: { ManageGroupKey: busyClub.ManageGroupKey },
     });
     await removeDemo(prisma, () => {});
+    await prisma.roleInfo.delete({ where: { RoleKey: lowerAdmin.RoleKey } });
   }, 180_000);
 });

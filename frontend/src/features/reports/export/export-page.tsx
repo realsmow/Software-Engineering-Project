@@ -2,8 +2,8 @@ import { useTranslation } from "react-i18next";
 import { Download } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { Button } from "@/components/ui/button";
-import { toLocalDayKey } from "@/lib/datetime";
-import { useReportSummary } from "@/features/admin/reports/use-reports";
+import { fmtTime, toLocalDayKey } from "@/lib/datetime";
+import { useReportRecords, useReportSummary } from "@/features/admin/reports/use-reports";
 import type { ReportSummary } from "@/features/admin/reports/report.types";
 
 /**
@@ -20,6 +20,11 @@ import type { ReportSummary } from "@/features/admin/reports/report.types";
 export default function ReportExportPage() {
   const { t } = useTranslation();
   const { data, isLoading, isError } = useReportSummary(50);
+  const records = useReportRecords(RECORD_DAYS);
+  const requests = records.data?.requests ?? [];
+  const late = requests.filter((r) => r.penaltyPoints > 0);
+  const refused = requests.filter((r) => r.approval === "Rejected" || r.approval === "Canceled");
+  const units = records.data?.units ?? [];
 
   return (
     <div>
@@ -44,6 +49,52 @@ export default function ReportExportPage() {
             description={t("reports.export.equipmentDesc", { count: data.topEquipment.length })}
             onDownload={() => downloadCsv(`top-equipment-${stamp(data)}.csv`, equipmentRows(data))}
             disabled={data.topEquipment.length === 0}
+          />
+          <ExportCard
+            title={t("reports.export.dailyTitle")}
+            description={t("reports.export.dailyDesc", { count: data.daily.length })}
+            onDownload={() =>
+              downloadCsv(`daily-${stamp(data)}.csv`, [
+                ["day", "borrowed", "returned"],
+                ...data.daily.map((d) => [d.day, d.borrowed, d.returned]),
+              ])
+            }
+            disabled={data.daily.length === 0}
+          />
+          <ExportCard
+            title={t("reports.export.conditionTitle")}
+            description={t("reports.export.conditionDesc")}
+            onDownload={() =>
+              downloadCsv(`return-condition-${stamp(data)}.csv`, [
+                ["condition", "inspections"],
+                ...data.damage.map((d) => [d.condition, d.count]),
+              ])
+            }
+            disabled={false}
+          />
+          <ExportCard
+            title={t("reports.export.requestsTitle")}
+            description={t("reports.export.requestsDesc", { count: requests.length, days: RECORD_DAYS })}
+            onDownload={() => downloadCsv(`requests-${stamp(data)}.csv`, requestRows(requests))}
+            disabled={requests.length === 0}
+          />
+          <ExportCard
+            title={t("reports.export.penaltiesTitle")}
+            description={t("reports.export.penaltiesDesc", { count: late.length, days: RECORD_DAYS })}
+            onDownload={() => downloadCsv(`penalties-${stamp(data)}.csv`, requestRows(late))}
+            disabled={late.length === 0}
+          />
+          <ExportCard
+            title={t("reports.export.refusedTitle")}
+            description={t("reports.export.refusedDesc", { count: refused.length, days: RECORD_DAYS })}
+            onDownload={() => downloadCsv(`rejected-cancelled-${stamp(data)}.csv`, requestRows(refused))}
+            disabled={refused.length === 0}
+          />
+          <ExportCard
+            title={t("reports.export.unitsTitle")}
+            description={t("reports.export.unitsDesc", { count: units.length })}
+            onDownload={() => downloadCsv(`inventory-${stamp(data)}.csv`, unitRows(units))}
+            disabled={units.length === 0}
           />
           <p className="text-xs text-t3">
             {data.unscoped ? t("reports.export.scopeAll") : t("reports.export.scopeMine")}
@@ -98,6 +149,42 @@ function equipmentRows(data: ReportSummary): (string | number)[][] {
   return [
     ["equipment", "tier", "times_borrowed"],
     ...data.topEquipment.map((e) => [e.name ?? `#${e.itemKey}`, e.tier ?? "", e.count]),
+  ];
+}
+
+type Records = NonNullable<ReturnType<typeof useReportRecords>["data"]>;
+
+/** How far back the request and loan files go. */
+const RECORD_DAYS = 90;
+
+/** Bangkok "2026-10-30 14:05", which spreadsheets sort and read as a date. */
+function when(value: string | null): string {
+  return value ? `${toLocalDayKey(value)} ${fmtTime(value)}` : "";
+}
+
+function requestRows(rows: Records["requests"]): (string | number)[][] {
+  return [
+    [
+      "request_id", "requested_at", "borrower_id", "borrower_name", "resource", "tag", "type",
+      "department", "start", "end", "reason", "approval", "decided_by", "decision_note",
+      "loan_status", "checkout", "due", "checkin", "return_condition", "penalty_points", "penalty_reasons",
+    ],
+    ...rows.map((r) => [
+      r.reservationKey, when(r.requestedAt), r.borrowerId, r.borrowerName, r.resource, r.tag, r.type,
+      r.department ?? "", when(r.start), when(r.end), r.reason ?? "", r.approval, r.decidedBy ?? "",
+      r.decisionNote ?? "", r.loanStatus ?? "", when(r.checkout), when(r.due), when(r.checkin),
+      r.returnCondition ?? "", r.penaltyPoints, r.penaltyReasons,
+    ]),
+  ];
+}
+
+function unitRows(rows: Records["units"]): (string | number)[][] {
+  return [
+    ["tag", "name", "type", "department", "tier", "status", "condition", "allow_borrow", "times_borrowed"],
+    ...rows.map((u) => [
+      u.tag, u.name, u.type, u.department ?? "", u.tier, u.status, u.condition ?? "",
+      u.allowBorrow ? "yes" : "no", u.timesBorrowed,
+    ]),
   ];
 }
 

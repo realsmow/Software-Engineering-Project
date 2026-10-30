@@ -1,12 +1,13 @@
 import 'dotenv/config';
 import { PrismaService } from './prisma.service';
 import { purge, type PurgeTarget } from './demo/purge';
+import { tryMapUserRole } from './common/schemas/status.schema';
 import { chooseDatabase } from './demo/database-url';
 
 /**
  * Removes everything whose name contains "test" (any case): equipment types
- * with their units, rooms, departments and clubs, and accounts - except
- * admin accounts, which are kept.
+ * with their units, rooms, departments and clubs, and accounts (login name,
+ * name or email) - except admin accounts, which are kept.
  *
  *   npm run cleanup:test-data             (list only)
  *   npm run cleanup:test-data -- --apply
@@ -64,20 +65,40 @@ export async function findTestData(prisma: PrismaService) {
   );
   const keptGroups = groups.filter((g) => !removableGroups.includes(g));
 
-  const accounts = await prisma.accountInfo.findMany({
-    where: {
-      OR: [{ UserID: like }, { UserFName: like }, { UserLName: like }],
-      NOT: { Role: { RoleName: 'Admin' } },
-    },
-    select: {
-      AccountKey: true,
-      UserID: true,
-      UserFName: true,
-      UserLName: true,
-      _count: { select: { UsageLogs: true } },
-    },
-    orderBy: { AccountKey: 'asc' },
-  });
+  // Admins are recognised the way the app does it (tryMapUserRole: any case
+  // or spacing of "admin"), and an account whose login name says admin is
+  // kept as well. Matching the exact spelling 'Admin' let one through.
+  const accounts = (
+    await prisma.accountInfo.findMany({
+      where: {
+        OR: [
+          { UserID: like },
+          { UserFName: like },
+          { UserLName: like },
+          { Email: like },
+        ],
+      },
+      select: {
+        AccountKey: true,
+        UserID: true,
+        Email: true,
+        UserFName: true,
+        UserLName: true,
+        Role: { select: { RoleName: true } },
+        _count: { select: { UsageLogs: true } },
+      },
+      orderBy: { AccountKey: 'asc' },
+    })
+  ).filter(
+    (a) =>
+      tryMapUserRole(a.Role.RoleName) !== 'admin' &&
+      !a.UserID.toLowerCase().includes('admin') &&
+      // Only the part before the @: some real students' addresses sit on a
+      // domain with "test" in it, and they are not test accounts.
+      [a.UserID, a.UserFName, a.UserLName, a.Email.split('@')[0]].some((v) =>
+        v.toLowerCase().includes('test'),
+      ),
+  );
 
   const target: PurgeTarget = {
     accountKeys: accounts.map((a) => a.AccountKey),
@@ -126,7 +147,7 @@ async function main() {
     console.log('Accounts (admins are never removed):');
     for (const a of found.accounts) {
       console.log(
-        `  ${a.AccountKey}  ${a.UserID}  ${a.UserFName} ${a.UserLName}  (${a._count.UsageLogs} loans)`,
+        `  ${a.AccountKey}  ${a.UserID}  ${a.UserFName} ${a.UserLName}  ${a.Email}  (${a._count.UsageLogs} loans)`,
       );
     }
 

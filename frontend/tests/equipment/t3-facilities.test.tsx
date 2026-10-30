@@ -51,6 +51,7 @@ const ROOM: Room = {
   imageUrl: null,
   bookable: true,
   ownerGroupKey: null,
+  ownerName: null,
 };
 
 /** Small on purpose: proves the page reads the cap from the server, not BUSINESS.MAX_ROOM_BOOKING_SLOTS. */

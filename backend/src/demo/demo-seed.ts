@@ -344,121 +344,19 @@ async function runScenarios(
   marker: Marker,
   log: (line: string) => void,
 ) {
-  const s = services(prisma);
-  const user = async (id: DemoUser): Promise<TrpcUser> => {
-    const row = await prisma.accountInfo.findUniqueOrThrow({
-      where: { AccountKey: keys[id] },
-      select: { UserCredit: true, Role: { select: { RoleName: true } } },
-    });
-    return {
-      accountKey: keys[id],
-      role: mapUserRole(row.Role.RoleName),
-      facultyKey: null,
-      creditScore: row.UserCredit,
-    };
-  };
-  const dept0 = marker.groupKeys[0];
-  const day = (offset: number) => openDay(offset, dept0);
-  const at = (dayKey: string, hour: number, minute = 0) =>
-    localTimeToUtc(
-      dayKey,
-      `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`,
-    );
-  const open = workHours.start;
-  const close = workHours.end;
-
-  const photo = async (
-    usageKey: number,
-    resourceKey: number,
-    by: number,
-    type: 'BeforePicture' | 'AfterPicture',
-    when: Date,
-  ) => {
-    const url = await storePhoto(
-      prisma,
-      marker,
-      type === 'BeforePicture' ? 0 : 1,
-    );
-    await prisma.images.create({
-      data: {
-        UsageKey: usageKey,
-        ResourceKey: resourceKey,
-        SubmittedBy: by,
-        SubmissionType: type,
-        ImageURL: url,
-        ActionTime: when,
-      },
-    });
-  };
-
-  /** Request one unit, created at `createdAt`; returns the reservation. */
-  const request = async (
-    who: DemoUser,
-    resourceKey: number,
-    start: Date,
-    end: Date,
-    createdAt: Date,
-    reason: string,
-  ) => {
-    setNow(createdAt);
-    const result = await s.requests.create(await user(who), {
-      startTime: start.toISOString(),
-      endTime: end.toISOString(),
-      lines: [{ resourceKey, reason }],
-    });
-    if (result.created.length === 0) {
-      throw new Error(`request refused: ${JSON.stringify(result.rejected)}`);
-    }
-    return result.created[0];
-  };
-  const prepare = async (reservationKey: number, when: Date) => {
-    setNow(when);
-    return s.loan.allocate(await user('demo.staff'), {
-      reservationKey,
-      condition: 'Normal',
-    });
-  };
-  const handOver = async (
-    who: DemoUser,
-    usageKey: number,
-    resourceKey: number,
-    when: Date,
-  ) => {
-    setNow(when);
-    await photo(usageKey, resourceKey, keys[who], 'BeforePicture', when);
-    await s.loan.confirmPickup(await user('demo.staff'), { usageKey });
-  };
-  const takeBack = async (
-    usageKey: number,
-    resourceKey: number,
-    when: Date,
-  ) => {
-    setNow(when);
-    await photo(
-      usageKey,
-      resourceKey,
-      keys['demo.staff'],
-      'AfterPicture',
-      when,
-    );
-    return s.loan.recordReturn(await user('demo.staff'), { usageKey });
-  };
-  const grade = async (
-    usageKey: number,
-    level: 'B0' | 'B1' | 'B2',
-    when: Date,
-    note: string,
-  ) => {
-    setNow(when);
-    const imageUrls =
-      level === 'B0' ? [] : [await storePhoto(prisma, marker, 2)];
-    return s.inspections.createInspection(await user('demo.staff'), {
-      usageKey,
-      level,
-      note,
-      imageUrls,
-    });
-  };
+  const {
+    s,
+    user,
+    day,
+    at,
+    open,
+    close,
+    request,
+    prepare,
+    handOver,
+    takeBack,
+    grade,
+  } = actions(prisma, keys, marker);
 
   const scenarios: [string, () => Promise<void>][] = [
     [
@@ -703,6 +601,146 @@ async function runScenarios(
   await s.cron.run('markOverdue');
 }
 
+/**
+ * The steps every demo loan is made of, each through the real service with
+ * the clock set to when it happened. Staff work is done as demo.staff.
+ */
+function actions(
+  prisma: PrismaService,
+  keys: Record<string, number>,
+  marker: Marker,
+) {
+  const s = services(prisma);
+  const user = async (id: string): Promise<TrpcUser> => {
+    const row = await prisma.accountInfo.findUniqueOrThrow({
+      where: { AccountKey: keys[id] },
+      select: { UserCredit: true, Role: { select: { RoleName: true } } },
+    });
+    return {
+      accountKey: keys[id],
+      role: mapUserRole(row.Role.RoleName),
+      facultyKey: null,
+      creditScore: row.UserCredit,
+    };
+  };
+  const dept0 = marker.groupKeys[0];
+  const day = (offset: number) => openDay(offset, dept0);
+  const at = (dayKey: string, hour: number, minute = 0) =>
+    localTimeToUtc(
+      dayKey,
+      `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`,
+    );
+  const open = workHours.start;
+  const close = workHours.end;
+
+  const photo = async (
+    usageKey: number,
+    resourceKey: number,
+    by: number,
+    type: 'BeforePicture' | 'AfterPicture',
+    when: Date,
+  ) => {
+    const url = await storePhoto(
+      prisma,
+      marker,
+      type === 'BeforePicture' ? 0 : 1,
+    );
+    await prisma.images.create({
+      data: {
+        UsageKey: usageKey,
+        ResourceKey: resourceKey,
+        SubmittedBy: by,
+        SubmissionType: type,
+        ImageURL: url,
+        ActionTime: when,
+      },
+    });
+  };
+
+  /** Request one unit, created at `createdAt`; returns the reservation. */
+  const request = async (
+    who: string,
+    resourceKey: number,
+    start: Date,
+    end: Date,
+    createdAt: Date,
+    reason: string,
+  ) => {
+    setNow(createdAt);
+    const result = await s.requests.create(await user(who), {
+      startTime: start.toISOString(),
+      endTime: end.toISOString(),
+      lines: [{ resourceKey, reason }],
+    });
+    if (result.created.length === 0) {
+      throw new Error(`request refused: ${JSON.stringify(result.rejected)}`);
+    }
+    return result.created[0];
+  };
+  const prepare = async (reservationKey: number, when: Date) => {
+    setNow(when);
+    return s.loan.allocate(await user('demo.staff'), {
+      reservationKey,
+      condition: 'Normal',
+    });
+  };
+  const handOver = async (
+    who: string,
+    usageKey: number,
+    resourceKey: number,
+    when: Date,
+  ) => {
+    setNow(when);
+    await photo(usageKey, resourceKey, keys[who], 'BeforePicture', when);
+    await s.loan.confirmPickup(await user('demo.staff'), { usageKey });
+  };
+  const takeBack = async (
+    usageKey: number,
+    resourceKey: number,
+    when: Date,
+  ) => {
+    setNow(when);
+    await photo(
+      usageKey,
+      resourceKey,
+      keys['demo.staff'],
+      'AfterPicture',
+      when,
+    );
+    return s.loan.recordReturn(await user('demo.staff'), { usageKey });
+  };
+  const grade = async (
+    usageKey: number,
+    level: 'B0' | 'B1' | 'B2',
+    when: Date,
+    note: string,
+  ) => {
+    setNow(when);
+    const imageUrls =
+      level === 'B0' ? [] : [await storePhoto(prisma, marker, 2)];
+    return s.inspections.createInspection(await user('demo.staff'), {
+      usageKey,
+      level,
+      note,
+      imageUrls,
+    });
+  };
+
+  return {
+    s,
+    user,
+    day,
+    at,
+    open,
+    close,
+    request,
+    prepare,
+    handOver,
+    takeBack,
+    grade,
+  };
+}
+
 /** The services, built the way the tests build them; no email is sent. */
 function services(prisma: PrismaService) {
   const audit = new AuditService(prisma);
@@ -901,6 +939,396 @@ function crc32(data: Buffer): number {
     for (let k = 0; k < 8; k++) crc = (crc >>> 1) ^ (0xedb88320 & -(crc & 1));
   }
   return ~crc >>> 0;
+}
+
+// ---------------------------------------------------------------------------
+// More data on top of an existing demo
+// ---------------------------------------------------------------------------
+
+const FIRST = [
+  'อนันต์',
+  'กิตติพงษ์',
+  'ศิริพร',
+  'ภัทรา',
+  'วรเมธ',
+  'ชนิดา',
+  'ธีรวัฒน์',
+  'พิมพ์ชนก',
+  'ณัฐธิดา',
+  'ปกรณ์',
+  'สุภาวดี',
+  'จิรายุ',
+  'ธนวัฒน์',
+  'อรอุมา',
+  'เกียรติศักดิ์',
+  'วริศรา',
+  'ศุภกร',
+  'ปวีณา',
+  'อภิสิทธิ์',
+  'กัญญาณัฐ',
+];
+const LAST = [
+  'สุขสวัสดิ์',
+  'บุญมา',
+  'แสงทอง',
+  'จันทร์เพ็ญ',
+  'ศรีวงศ์',
+  'พรหมมา',
+  'ทองคำ',
+  'วัฒนากุล',
+  'อินทร์แก้ว',
+  'ปัญญาดี',
+  'เรืองศรี',
+  'มณีรัตน์',
+  'สมบูรณ์',
+  'ชัยมงคล',
+  'รักษาวงศ์',
+  'นาคประเสริฐ',
+  'ใจงาม',
+  'พึ่งบุญ',
+  'สายสุวรรณ',
+  'คงเจริญ',
+];
+
+const MORE_CATALOGUE: typeof CATALOGUE = [
+  {
+    key: 'pi',
+    name: 'ชุด Raspberry Pi 4 พร้อมจอสัมผัส',
+    desc: 'บอร์ด 4 GB การ์ด 32 GB จอ 7 นิ้ว และพาวเวอร์ซัพพลาย',
+    weight: 2,
+    tier: 'T1',
+    dept: 0,
+    prefix: 'MCU-RPI',
+    units: 4,
+  },
+  {
+    key: 'logic',
+    name: 'ลอจิกแอนะไลเซอร์ 16 ช่อง',
+    desc: 'วิเคราะห์สัญญาณดิจิทัล I2C SPI UART',
+    weight: 2,
+    tier: 'T1',
+    dept: 0,
+    prefix: 'MCU-LGA',
+    units: 3,
+  },
+  {
+    key: 'solder',
+    name: 'สถานีบัดกรีควบคุมอุณหภูมิ',
+    desc: 'หัวแร้ง ปรับ 200-480 °C พร้อมขาตั้งและฟองน้ำ',
+    weight: 1,
+    tier: 'T0',
+    dept: 0,
+    prefix: 'MCU-SLD',
+    units: 4,
+  },
+  {
+    key: 'projector',
+    name: 'โปรเจกเตอร์พกพา Full HD',
+    desc: 'ความสว่าง 3,000 ลูเมน สาย HDMI และรีโมต',
+    weight: 3,
+    tier: 'T1',
+    dept: 1,
+    prefix: 'MED-PRJ',
+    units: 3,
+  },
+];
+
+const REASONS = [
+  'โปรเจกต์วิชาปฏิบัติการ',
+  'ทำการบ้านแล็บ',
+  'เตรียมนำเสนองานกลุ่ม',
+  'ทดลองต้นแบบโปรเจกต์จบ',
+  'ถ่ายทำวิดีโอประกอบรายวิชา',
+  'ใช้ในกิจกรรมชมรม',
+  'ฝึกใช้งานก่อนสอบปฏิบัติ',
+];
+
+export interface MoreOptions {
+  password: string;
+  students?: number;
+  loans?: number;
+  log?: (line: string) => void;
+}
+
+/**
+ * Adds students, equipment, rooms and a month of finished loans to the demo
+ * already in the database. Everything goes into the same marker, so
+ * `removeDemo` still takes it all out. Safe to run more than once.
+ */
+export async function addMoreDemo(prisma: PrismaService, options: MoreOptions) {
+  const log = options.log ?? console.log;
+  const row = await prisma.systemSetting.findUnique({ where: { Key: MARKER } });
+  if (!row) throw new Error('No demo data yet. Run seed:demo first.');
+  const marker = row.Value as unknown as Marker;
+  marker.authorityRoleKeys ??= [];
+  await loadCounterSettings(prisma);
+
+  const studentRole = await authorityRole(prisma, marker, 'Student', 0);
+  const staffRole = await authorityRole(prisma, marker, 'Lab staff', 2);
+  const roleKey = (
+    await prisma.roleInfo.findFirstOrThrow({ where: { RoleName: 'Student' } })
+  ).RoleKey;
+  const facultyKey =
+    (await prisma.facultyInfo.findFirst({ where: { FacultyName: FACULTY } }))
+      ?.FacultyKey ?? null;
+  const hashed = await hashPassword(options.password);
+
+  // Students demo.s01, demo.s02, ... continuing after any already made.
+  const existing = await prisma.accountInfo.count({
+    where: {
+      UserID: { startsWith: 'demo.s' },
+      NOT: { UserID: { startsWith: 'demo.student' } },
+    },
+  });
+  const wanted = options.students ?? 20;
+  for (let i = 0; i < wanted; i++) {
+    const n = existing + i + 1;
+    const account = await prisma.accountInfo.create({
+      data: {
+        UserID: `demo.s${String(n).padStart(2, '0')}`,
+        Email: `demo.s${String(n).padStart(2, '0')}@demo.ulms.test`,
+        HashedPassword: hashed,
+        UserFName: FIRST[(n * 7) % FIRST.length],
+        UserLName: LAST[(n * 11) % LAST.length],
+        UserCredit: BASE_CREDIT,
+        RoleKey: roleKey,
+        FacultyKey: facultyKey,
+        Authorities: {
+          create: marker.groupKeys.map((g) => ({
+            ManageGroupKey: g,
+            AuthorityRoleKey: studentRole.AuthorityRoleKey,
+          })),
+        },
+      },
+    });
+    marker.accountKeys.push(account.AccountKey);
+  }
+  await saveMarker(prisma, marker);
+
+  // Equipment and rooms, once.
+  const haveItems = await prisma.itemInfo.findMany({
+    where: { ItemKey: { in: marker.itemKeys } },
+    select: { ItemName: true },
+  });
+  for (const c of MORE_CATALOGUE) {
+    if (haveItems.some((i) => i.ItemName === c.name)) continue;
+    const rule = await prisma.borrowRule.findFirstOrThrow({
+      where: { RuleName: c.tier },
+    });
+    const item = await prisma.itemInfo.create({
+      data: { ItemName: c.name, ItemDesc: c.desc, CreditWeight: c.weight },
+    });
+    marker.itemKeys.push(item.ItemKey);
+    for (let i = 1; i <= c.units; i++) {
+      const r = await prisma.resourceInfo.create({
+        data: {
+          ManagedBy: marker.groupKeys[c.dept],
+          BorrowRule: rule.BorrowRuleKey,
+          ResourceStatus: 'InStorage',
+          ResourceType: 'Item',
+          BufferTime: 0,
+          AllowBorrow: true,
+          Item: {
+            create: {
+              ItemKey: item.ItemKey,
+              ItemID: `${c.prefix}-${String(i).padStart(3, '0')}`,
+            },
+          },
+          Eligibilities: {
+            create: [studentRole, staffRole].map((x) => ({
+              GroupKey: marker.groupKeys[c.dept],
+              RoleKey: x.AuthorityRoleKey,
+            })),
+          },
+        },
+      });
+      marker.resourceKeys.push(r.ResourceKey);
+    }
+  }
+  const roomNames = [
+    'ห้องประชุมกลุ่มย่อย 301',
+    'ห้องปฏิบัติการคอมพิวเตอร์ 402',
+  ];
+  const rooms: number[] = [];
+  const t3 = await prisma.borrowRule.findFirstOrThrow({
+    where: { RuleName: 'T3' },
+  });
+  for (const [i, name] of roomNames.entries()) {
+    const found = await prisma.roomInfo.findFirst({
+      where: { RoomName: name, ResourceKey: { in: marker.resourceKeys } },
+    });
+    if (found) {
+      rooms.push(found.RoomKey);
+      continue;
+    }
+    const room = await prisma.roomInfo.create({
+      data: {
+        RoomName: name,
+        CreditWeight: 0,
+        Capacity: i === 0 ? 8 : 40,
+        OpenTime: workHours.start * 60,
+        CloseTime: workHours.end * 60,
+        BreakStart: 720,
+        BreakEnd: 780,
+        Resource: {
+          create: {
+            ManagedBy: marker.groupKeys[i],
+            BorrowRule: t3.BorrowRuleKey,
+            ResourceType: 'Room',
+            ResourceStatus: 'InStorage',
+            AllowBorrow: true,
+            BufferTime: 0,
+            Eligibilities: {
+              create: [studentRole, staffRole].map((x) => ({
+                GroupKey: marker.groupKeys[i],
+                RoleKey: x.AuthorityRoleKey,
+              })),
+            },
+          },
+        },
+      },
+    });
+    marker.resourceKeys.push(room.ResourceKey);
+    rooms.push(room.RoomKey);
+  }
+  await saveMarker(prisma, marker);
+
+  const accounts = await prisma.accountInfo.findMany({
+    where: { AccountKey: { in: marker.accountKeys } },
+    select: { AccountKey: true, UserID: true },
+  });
+  const keys = Object.fromEntries(
+    accounts.map((a) => [a.UserID, a.AccountKey]),
+  );
+  // The nine stories keep their own students; the history uses the rest.
+  const borrowers = accounts
+    .map((a) => a.UserID)
+    .filter((id) => id.startsWith('demo.s') && !id.startsWith('demo.student'));
+  if (borrowers.length === 0) throw new Error('No students for the history.');
+
+  const units = await prisma.itemIndiv.findMany({
+    where: { ResourceKey: { in: marker.resourceKeys } },
+    select: { ResourceKey: true },
+    orderBy: { ResourceKey: 'asc' },
+  });
+  const busy = new Set(
+    (
+      await prisma.usageLog.findMany({
+        where: {
+          ResourceKey: { in: units.map((u) => u.ResourceKey) },
+          CurrentStatus: { not: 'Inspected' },
+        },
+        select: { ResourceKey: true },
+      })
+    ).map((u) => u.ResourceKey),
+  );
+
+  let seed = marker.accountKeys.length * 7919 + marker.mediaKeys.length;
+  const random = () => {
+    seed = (seed * 1103515245 + 12345) % 2147483648;
+    return seed / 2147483648;
+  };
+
+  installClock();
+  let ok = 0;
+  let skipped = 0;
+  try {
+    const a = actions(prisma, keys, marker);
+    // Each unit gets loans back to back through the last month, ending
+    // before the stories begin for units the stories use.
+    const cursor = new Map<number, number>();
+    const target = options.loans ?? 60;
+    for (let i = 0; ok + skipped < target && i < target * 4; i++) {
+      const unit = units[i % units.length].ResourceKey;
+      const from = cursor.get(unit) ?? -22 + Math.floor(random() * 3);
+      const length = 1 + Math.floor(random() * 3);
+      const late = random() < 0.12;
+      const lastDay = busy.has(unit) ? -13 : -1;
+      if (from + length + (late ? 2 : 0) > lastDay) continue;
+      cursor.set(
+        unit,
+        from + length + (late ? 2 : 0) + 1 + Math.floor(random() * 2),
+      );
+
+      const who = borrowers[Math.floor(random() * borrowers.length)];
+      const d1 = a.day(from);
+      const d2 = a.day(from + length);
+      const startHour = a.open + 1 + Math.floor(random() * 3);
+      try {
+        const r = await a.request(
+          who,
+          unit,
+          a.at(d1, startHour),
+          a.at(d2, a.close),
+          a.at(d1, a.open),
+          REASONS[Math.floor(random() * REASONS.length)],
+        );
+        if (r.status === 'pending') {
+          setNow(a.at(d1, a.open, 15));
+          await a.s.approvals.decide(await a.user('demo.supervisor'), {
+            reservationKey: r.reservationKey,
+            decision: 'approve',
+          });
+        }
+        const loan = await a.prepare(r.reservationKey, a.at(d1, a.open, 30));
+        await a.handOver(
+          who,
+          loan.usageKey,
+          loan.resourceKey,
+          a.at(d1, startHour),
+        );
+        const backDay = late
+          ? a.day(from + length + 1 + Math.floor(random() * 2))
+          : d2;
+        const backHour = late
+          ? a.open + 2
+          : a.open + 1 + Math.floor(random() * (a.close - a.open - 2));
+        await a.takeBack(
+          loan.usageKey,
+          loan.resourceKey,
+          a.at(backDay, backHour),
+        );
+        const roll = random();
+        const level = roll < 0.85 ? 'B0' : roll < 0.97 ? 'B1' : 'B2';
+        await a.grade(
+          loan.usageKey,
+          level,
+          a.at(backDay, backHour + 1),
+          level === 'B0'
+            ? 'สภาพปกติ'
+            : level === 'B1'
+              ? 'มีรอยขีดข่วนเล็กน้อย'
+              : 'ชิ้นส่วนชำรุด ต้องส่งซ่อม',
+        );
+        ok++;
+      } catch {
+        skipped++;
+      }
+    }
+
+    // A few room bookings in the coming days, so the slot grid shows use.
+    for (const [i, roomKey] of rooms.entries()) {
+      for (let k = 0; k < 3; k++) {
+        try {
+          setNow(realNow());
+          const who = borrowers[(i * 3 + k) % borrowers.length];
+          await a.s.requests.createRoomBooking(await a.user(who), {
+            roomKey,
+            date: a.day(1 + k),
+            slots: [2 + i * 2, 3 + i * 2],
+          });
+        } catch {
+          // A slot already taken by an earlier run is fine.
+        }
+      }
+    }
+  } finally {
+    restoreClock();
+    await saveMarker(prisma, marker);
+  }
+  log(
+    `  added ${wanted} students, ${ok} finished loans${skipped ? ` (${skipped} skipped by the rules)` : ''}, rooms and bookings`,
+  );
 }
 
 // ---------------------------------------------------------------------------

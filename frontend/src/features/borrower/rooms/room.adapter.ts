@@ -64,6 +64,8 @@ export interface Room {
   bookable: boolean;
   /** The department or club that runs the room (ManagementGroup key), for its open days. */
   ownerGroupKey: number | null;
+  /** That group's name for the department filter; null when it has none. */
+  ownerName: string | null;
 }
 
 export function toRoom(s: ServerRoom): Room {
@@ -76,6 +78,7 @@ export function toRoom(s: ServerRoom): Room {
     imageUrl: s.imageUrl,
     bookable: s.bookable,
     ownerGroupKey: s.owner?.id ?? null,
+    ownerName: s.owner?.name ?? null,
   };
 }
 

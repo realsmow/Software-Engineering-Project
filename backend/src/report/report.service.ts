@@ -4,7 +4,7 @@ import { StaffScopeService } from '../common/authority/staff-scope.service';
 import { tryMapTier } from '../common/schemas/status.schema';
 import { UNAVAILABLE_USAGE_STATES } from '../common/usage/usage-states';
 import type { TrpcUser } from '../trpc/context';
-import type { ReportSummaryInput } from './report.schema';
+import type { ReportRecordsInput, ReportSummaryInput } from './report.schema';
 import {
   addDays,
   toLocalDayKey,
@@ -183,6 +183,143 @@ export class ReportService {
             ? 0
             : Math.min(100, Math.round((bookedHours / openHours) * 100)),
       },
+    };
+  }
+
+  /**
+   * The rows behind the summary, for the export page: every request in the
+   * window with its loan and penalties, and every unit and room in scope.
+   */
+  async records(user: TrpcUser, input: ReportRecordsInput) {
+    const groupKeys = await this.staffScope.resolveGroupKeys(user);
+    const scope = groupKeys === null ? {} : { ManagedBy: { in: groupKeys } };
+    const now = new Date();
+    const since = addDays(now, -input.days);
+
+    const name = (a: { UserFName: string | null; UserLName: string | null }) =>
+      [a.UserFName, a.UserLName].filter(Boolean).join(' ');
+    const groupName = (g: {
+      Branch: { BranchName: string | null } | null;
+      Club: { ClubName: string | null } | null;
+    }) => g.Branch?.BranchName ?? g.Club?.ClubName ?? null;
+    const resourceSelect = {
+      ResourceType: true,
+      Item: { select: { ItemID: true, Item: { select: { ItemName: true } } } },
+      Room: { select: { RoomName: true } },
+      ManagementGroup: {
+        select: {
+          Branch: { select: { BranchName: true } },
+          Club: { select: { ClubName: true } },
+        },
+      },
+    } as const;
+
+    const reservations = await this.prisma.reservations.findMany({
+      where: { Resource: scope, StartTime: { gte: since } },
+      orderBy: { StartTime: 'desc' },
+      select: {
+        ReservationKey: true,
+        ActionTime: true,
+        StartTime: true,
+        EndTime: true,
+        Reason: true,
+        ApproveStatus: true,
+        AutoApproved: true,
+        DecisionNote: true,
+        ReservedByUser: {
+          select: { UserID: true, UserFName: true, UserLName: true },
+        },
+        ApprovedByUser: { select: { UserFName: true, UserLName: true } },
+        Resource: { select: resourceSelect },
+        UsageLogs: {
+          select: {
+            CurrentStatus: true,
+            CheckoutTime: true,
+            DueTime: true,
+            CheckInTime: true,
+            CheckInConditionLog: { select: { Condition: true } },
+            Penalties: { select: { CreditDeducted: true, Reason: true } },
+          },
+        },
+      },
+    });
+
+    const requests = reservations.map((r) => {
+      const usage = r.UsageLogs[0];
+      const res = r.Resource;
+      return {
+        reservationKey: r.ReservationKey,
+        requestedAt: r.ActionTime.toISOString(),
+        borrowerId: r.ReservedByUser.UserID,
+        borrowerName: name(r.ReservedByUser),
+        resource: res.Item?.Item.ItemName ?? res.Room?.RoomName ?? '',
+        tag: res.Item?.ItemID ?? res.Room?.RoomName ?? '',
+        type: res.ResourceType,
+        department: groupName(res.ManagementGroup),
+        start: r.StartTime.toISOString(),
+        end: r.EndTime.toISOString(),
+        reason: r.Reason,
+        approval: r.ApproveStatus,
+        decidedBy: r.ApprovedByUser
+          ? name(r.ApprovedByUser)
+          : r.AutoApproved
+            ? 'auto'
+            : null,
+        decisionNote: r.DecisionNote,
+        // A Prepared loan has not been handed over, so no checkout yet.
+        loanStatus: usage?.CurrentStatus ?? null,
+        checkout:
+          usage && usage.CurrentStatus !== 'Prepared'
+            ? usage.CheckoutTime.toISOString()
+            : null,
+        due: usage?.DueTime.toISOString() ?? null,
+        checkin: usage?.CheckInTime?.toISOString() ?? null,
+        returnCondition: usage?.CheckInConditionLog?.Condition ?? null,
+        penaltyPoints: (usage?.Penalties ?? []).reduce(
+          (sum, p) => sum + (p.CreditDeducted ?? 0),
+          0,
+        ),
+        penaltyReasons: (usage?.Penalties ?? [])
+          .map((p) => p.Reason ?? '')
+          .filter(Boolean)
+          .join('; '),
+      };
+    });
+
+    const resources = await this.prisma.resourceInfo.findMany({
+      where: scope,
+      select: {
+        ...resourceSelect,
+        ResourceStatus: true,
+        AllowBorrow: true,
+        BorrowRuleInfo: { select: { RuleName: true } },
+        CurrentCondition: { select: { Condition: true } },
+        _count: { select: { UsageLogs: true, Reservations: true } },
+      },
+    });
+    const units = resources
+      .map((u) => ({
+        tag: u.Item?.ItemID ?? u.Room?.RoomName ?? '',
+        name: u.Item?.Item.ItemName ?? u.Room?.RoomName ?? '',
+        type: u.ResourceType,
+        department: groupName(u.ManagementGroup),
+        tier: u.BorrowRuleInfo.RuleName,
+        status: u.ResourceStatus,
+        condition: u.CurrentCondition?.Condition ?? null,
+        allowBorrow: u.AllowBorrow,
+        // Rooms are booked, never handed over, so count their bookings.
+        timesBorrowed:
+          u.ResourceType === 'Room'
+            ? u._count.Reservations
+            : u._count.UsageLogs,
+      }))
+      .sort((a, b) => a.tag.localeCompare(b.tag));
+
+    return {
+      generatedAt: now.toISOString(),
+      unscoped: groupKeys === null,
+      requests,
+      units,
     };
   }
 

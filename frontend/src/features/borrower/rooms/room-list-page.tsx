@@ -19,11 +19,10 @@ import type { Room } from "./room.adapter";
 import { useFreeSlots, useRooms, useSlotTotals } from "./use-rooms";
 
 /**
- * Facet groups, in rail order. Capacity only: the building and room-type
- * facets the mock had sat on columns RoomInfo does not have, and location is
- * free text, so it is matched by the search box instead.
+ * Facet groups, in rail order: the department that runs the room, then
+ * capacity. Location is free text, so it is matched by the search box instead.
  */
-const GROUP_KEYS = ["cap"] as const;
+const GROUP_KEYS = ["owner", "cap"] as const;
 type GroupKey = (typeof GROUP_KEYS)[number];
 
 /** Matches the equipment catalog so both browse pages page identically. */
@@ -70,10 +69,32 @@ export default function RoomListPage() {
   const [filtersOpen, setFiltersOpen] = useState(false);
 
   const groups = useMemo<FilterGroup[]>(() => {
-    const countBy = (_group: GroupKey, id: string) =>
-      rooms.filter((r) => facetOf(r) === id).length;
+    const countBy = (group: GroupKey, id: string) =>
+      rooms.filter((r) => facetOf(r, group) === id).length;
+
+    // Same options as the equipment catalog's department filter.
+    const owners = new Map<string, string>();
+    for (const r of rooms) {
+      owners.set(
+        facetOf(r, "owner") ?? "unowned",
+        r.ownerName ?? t("borrower.catalog.ownerUnknown"),
+      );
+    }
+    const ownerOptions = [...owners.entries()]
+      .sort((a, b) => a[1].localeCompare(b[1], "th"))
+      .map(([id, name]) => ({
+        key: `owner:${id}`,
+        label: name,
+        chipLabel: `${t("borrower.catalog.fDept")}: ${name}`,
+        count: countBy("owner", id),
+      }));
 
     return [
+      {
+        key: "owner",
+        label: t("borrower.catalog.fDept"),
+        options: ownerOptions,
+      },
       {
         key: "cap",
         label: t("borrower.rooms.fCapacity"),
@@ -96,7 +117,7 @@ export default function RoomListPage() {
 
     const matched = rooms.filter((r) => {
       if (q && !`${r.name} ${r.location ?? ""}`.toLowerCase().includes(q)) return false;
-      return picked.every((p) => p.keys.includes(`${p.group}:${facetOf(r)}`));
+      return picked.every((p) => p.keys.includes(`${p.group}:${facetOf(r, p.group)}`));
     });
 
     // Rooms with slots left first, most first; unknown counts sort last.
@@ -542,6 +563,7 @@ function EmptyState({ onClear }: { onClear: () => void }) {
 }
 
 /** A room nobody has measured has no band, so no capacity filter matches it. */
-function facetOf(room: Room): string | null {
+function facetOf(room: Room, group: GroupKey): string | null {
+  if (group === "owner") return room.ownerGroupKey === null ? "unowned" : String(room.ownerGroupKey);
   return room.capacity === null ? null : capacityBand(room.capacity);
 }

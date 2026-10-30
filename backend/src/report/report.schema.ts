@@ -87,3 +87,54 @@ export const reportSummaryInput = z.object({
   topLimit: z.number().int().min(1).max(50).default(10),
 });
 export type ReportSummaryInput = z.infer<typeof reportSummaryInput>;
+
+export const reportRecordsInput = z.object({
+  /** Requests whose start falls in the last N days. */
+  days: z.number().int().min(1).max(365).default(90),
+});
+export type ReportRecordsInput = z.infer<typeof reportRecordsInput>;
+
+/** One row per request, with its loan if it became one. For the CSV export. */
+const requestRecord = z.object({
+  reservationKey: z.number().int(),
+  requestedAt: isoDateTime,
+  borrowerId: z.string(),
+  borrowerName: z.string(),
+  resource: z.string(),
+  tag: z.string(),
+  type: z.enum(['Item', 'Room']),
+  department: z.string().nullable(),
+  start: isoDateTime,
+  end: isoDateTime,
+  reason: z.string().nullable(),
+  approval: z.string(),
+  decidedBy: z.string().nullable(),
+  decisionNote: z.string().nullable(),
+  loanStatus: z.string().nullable(),
+  checkout: isoDateTime.nullable(),
+  due: isoDateTime.nullable(),
+  checkin: isoDateTime.nullable(),
+  returnCondition: z.string().nullable(),
+  penaltyPoints: z.number().int(),
+  penaltyReasons: z.string(),
+});
+
+/** One row per unit or room on the shelf. */
+const unitRecord = z.object({
+  tag: z.string(),
+  name: z.string(),
+  type: z.enum(['Item', 'Room']),
+  department: z.string().nullable(),
+  tier: z.string(),
+  status: z.string(),
+  condition: z.string().nullable(),
+  allowBorrow: z.boolean(),
+  timesBorrowed: z.number().int(),
+});
+
+export const reportRecordsOutput = z.object({
+  generatedAt: isoDateTime,
+  unscoped: z.boolean(),
+  requests: z.array(requestRecord),
+  units: z.array(unitRecord),
+});

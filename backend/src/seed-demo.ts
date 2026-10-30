@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import { PrismaService } from './prisma.service';
-import { removeDemo, seedDemo } from './demo/demo-seed';
+import { addMoreDemo, removeDemo, seedDemo } from './demo/demo-seed';
 import { chooseDatabase } from './demo/database-url';
 
 /**
@@ -19,7 +19,17 @@ async function main() {
   const host = await chooseDatabase();
   const prisma = new PrismaService();
   try {
-    if (process.argv.includes('--remove')) {
+    if (process.argv.includes('--more')) {
+      const password = process.env.DEMO_PASSWORD;
+      if (!password)
+        throw new Error('Set DEMO_PASSWORD (the same demo password).');
+      console.log(`Adding more demo data to ${host}`);
+      await addMoreDemo(prisma, {
+        password,
+        students: Number(process.env.DEMO_STUDENTS ?? 20),
+        loans: Number(process.env.DEMO_LOANS ?? 60),
+      });
+    } else if (process.argv.includes('--remove')) {
       console.log(`Removing demo data from ${host}`);
       await removeDemo(prisma);
     } else {

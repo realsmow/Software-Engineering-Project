@@ -17,3 +17,13 @@ export function useReportSummary(topLimit = 10) {
       trpc.report.summary.query({ topLimit }),
   });
 }
+
+/** Row-level requests, loans and units behind the report, for CSV export. */
+export function useReportRecords(days = 90) {
+  const trpc = useTRPCClient();
+
+  return useQuery({
+    queryKey: ["reports", "records", days],
+    queryFn: () => trpc.report.records.query({ days }),
+  });
+}

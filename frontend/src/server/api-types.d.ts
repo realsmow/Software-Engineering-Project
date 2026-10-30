@@ -3865,6 +3865,50 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 			};
 			meta: object;
 		}>;
+		records: import("@trpc/server").TRPCQueryProcedure<{
+			input: {
+				days?: number | undefined;
+			};
+			output: {
+				generatedAt: string;
+				unscoped: boolean;
+				requests: {
+					reservationKey: number;
+					requestedAt: string;
+					borrowerId: string;
+					borrowerName: string;
+					resource: string;
+					tag: string;
+					type: "Room" | "Item";
+					department: string | null;
+					start: string;
+					end: string;
+					reason: string | null;
+					approval: string;
+					decidedBy: string | null;
+					decisionNote: string | null;
+					loanStatus: string | null;
+					checkout: string | null;
+					due: string | null;
+					checkin: string | null;
+					returnCondition: string | null;
+					penaltyPoints: number;
+					penaltyReasons: string;
+				}[];
+				units: {
+					tag: string;
+					name: string;
+					type: "Room" | "Item";
+					department: string | null;
+					tier: string;
+					status: string;
+					condition: string | null;
+					allowBorrow: boolean;
+					timesBorrowed: number;
+				}[];
+			};
+			meta: object;
+		}>;
 	}>>;
 }>>;
 export type AppRouter = typeof appRouter;

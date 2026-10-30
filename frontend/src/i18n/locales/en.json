@@ -1438,7 +1438,19 @@
       "equipmentDesc": "{{count}} equipment types by times borrowed",
       "download": "Download CSV",
       "scopeAll": "Covers the whole university.",
-      "scopeMine": "Covers only the departments you manage."
+      "scopeMine": "Covers only the departments you manage.",
+      "dailyTitle": "Daily handovers and returns",
+      "dailyDesc": "Units handed over and returned per day, last {{count}} days",
+      "conditionTitle": "Condition at return",
+      "conditionDesc": "Return inspections in the last 30 days by condition found",
+      "requestsTitle": "All requests and loans",
+      "requestsDesc": "{{count}} in the last {{days}} days: borrower, times, status, return condition and penalties",
+      "penaltiesTitle": "Late returns and penalties",
+      "penaltiesDesc": "{{count}} with points deducted in the last {{days}} days",
+      "refusedTitle": "Rejected and cancelled requests",
+      "refusedDesc": "{{count}} in the last {{days}} days, with the reason",
+      "unitsTitle": "Equipment and room register",
+      "unitsDesc": "{{count}} units and rooms: status, latest condition and times borrowed"
     }
   }
 }

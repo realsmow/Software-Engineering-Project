@@ -737,10 +737,14 @@ export default function StaffQueuePage() {
             }}
           />
         ))}
-        {/* toInspect belongs to the inspection desk's own page and is shown
-            here only so the counter knows the backlog exists. Extensions are
-            this desk's own second pile, so its tile opens straight into it. */}
-        <CountTile label={t("staff.queue.tileToInspect")} value={counts?.toInspect} />
+        {/* toInspect belongs to the inspection desk's own page, so its tile
+            goes there. Extensions are this desk's own second pile, so its
+            tile opens straight into it. */}
+        <CountTile
+          label={t("staff.queue.tileToInspect")}
+          value={counts?.toInspect}
+          onClick={() => navigate(ROUTES.STAFF_INSPECTION)}
+        />
         <CountTile
           label={t("staff.queue.tileExtensions")}
           value={counts?.extensionsToInspect}

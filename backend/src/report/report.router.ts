@@ -2,6 +2,9 @@ import { Ctx, Input, Query, Router, UseMiddlewares } from 'nestjs-trpc';
 import { StaffMiddleware } from '../trpc/auth.middleware';
 import type { TrpcContext } from '../trpc/context';
 import {
+  reportRecordsInput,
+  reportRecordsOutput,
+  type ReportRecordsInput,
   reportSummaryInput,
   reportSummaryOutput,
   type ReportSummaryInput,
@@ -28,5 +31,11 @@ export class ReportRouter {
   @Query({ input: reportSummaryInput, output: reportSummaryOutput })
   summary(@Input() input: ReportSummaryInput, @Ctx() ctx: TrpcContext) {
     return this.reports.summary(ctx.user!, input);
+  }
+
+  /** Row-level requests, loans and units for the CSV export page. */
+  @Query({ input: reportRecordsInput, output: reportRecordsOutput })
+  records(@Input() input: ReportRecordsInput, @Ctx() ctx: TrpcContext) {
+    return this.reports.records(ctx.user!, input);
   }
 }

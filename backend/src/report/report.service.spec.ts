@@ -234,3 +234,69 @@ describe('summary', () => {
     }
   });
 });
+
+describe('ReportService.records', () => {
+  it('flattens a returned loan with its penalties, scoped to the staff departments', async () => {
+    const t = (s: string) => new Date(s);
+    const reservations = {
+      findMany: jest.fn().mockResolvedValue([
+        {
+          ReservationKey: 7,
+          ActionTime: t('2026-10-01T02:00:00Z'),
+          StartTime: t('2026-10-02T03:00:00Z'),
+          EndTime: t('2026-10-04T10:00:00Z'),
+          Reason: 'lab',
+          ApproveStatus: 'Approved',
+          AutoApproved: true,
+          DecisionNote: null,
+          ReservedByUser: { UserID: 'anan.s', UserFName: 'A', UserLName: 'S' },
+          ApprovedByUser: null,
+          Resource: {
+            ResourceType: 'Item',
+            Item: { ItemID: 'EE-DMM-002', Item: { ItemName: 'Meter' } },
+            Room: null,
+            ManagementGroup: { Branch: { BranchName: 'EE' }, Club: null },
+          },
+          UsageLogs: [
+            {
+              CurrentStatus: 'Inspected',
+              CheckoutTime: t('2026-10-02T03:00:00Z'),
+              DueTime: t('2026-10-04T10:00:00Z'),
+              CheckInTime: t('2026-10-06T10:00:00Z'),
+              CheckInConditionLog: { Condition: 'MinorDamage' },
+              Penalties: [
+                { CreditDeducted: 1, Reason: 'ReturnLate: overdue 2d' },
+                { CreditDeducted: 2, Reason: 'DamagedItem: scratch' },
+              ],
+            },
+          ],
+        },
+      ]),
+    };
+    const resourceInfo = { findMany: jest.fn().mockResolvedValue([]) };
+    const svc = new ReportService(
+      { reservations, resourceInfo } as unknown as PrismaService,
+      {
+        resolveGroupKeys: jest.fn().mockResolvedValue([2]),
+      } as unknown as StaffScopeService,
+    );
+
+    const out = await svc.records(user, { days: 90 });
+
+    expect(out.unscoped).toBe(false);
+    expect(reservations.findMany.mock.calls[0][0].where.Resource).toEqual({
+      ManagedBy: { in: [2] },
+    });
+    expect(out.requests[0]).toMatchObject({
+      borrowerId: 'anan.s',
+      borrowerName: 'A S',
+      tag: 'EE-DMM-002',
+      department: 'EE',
+      decidedBy: 'auto',
+      loanStatus: 'Inspected',
+      returnCondition: 'MinorDamage',
+      penaltyPoints: 3,
+      penaltyReasons: 'ReturnLate: overdue 2d; DamagedItem: scratch',
+    });
+  });
+});
