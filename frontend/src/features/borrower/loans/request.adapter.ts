@@ -66,6 +66,7 @@ export function toBorrowerRequest(s: ServerRequest): BorrowerRequest {
     reservationKey: s.reservationKey,
     cartKey: s.cartKey ?? null,
     holdsRoomQuota: s.holdsRoomQuota,
+    startsAt: s.startTime,
     endsAt: s.endTime,
     cancellable: s.cancellable,
     usageKey: s.usageKey,

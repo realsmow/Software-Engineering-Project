@@ -476,6 +476,61 @@ describe("my requests: statuses and penalties come from the server", () => {
       ),
     ).toBeInTheDocument();
   });
+
+  // Approval-wait round (30 Oct 2569), option C: started in the past, ends in
+  // the future, so these hold whatever day the suite runs on (until 2030).
+  const waitingLine = (reservationKey: number) =>
+    request({
+      reservationKey,
+      status: "pending",
+      usageKey: null,
+      cancellable: true,
+      startTime: "2026-01-05T01:00:00.000Z",
+      endTime: "2030-01-10T09:00:00.000Z",
+    });
+
+  it("approval-wait: asks whether to keep waiting once the period has started, and remembers 'keep waiting'", async () => {
+    db.loans = [waitingLine(81)];
+    const first = renderAt(ROUTES.MY_LOANS, <MyLoansPage />);
+    const title = i18n.t("borrower.myRequests.waitTitle");
+    const question = await screen.findByRole("group", { name: title });
+
+    fireEvent.click(within(question).getByRole("button", { name: i18n.t("borrower.myRequests.waitKeep") }));
+    expect(screen.queryByRole("group", { name: title })).not.toBeInTheDocument();
+    expect(api).not.toHaveBeenCalledWith("loan.cancel", expect.anything());
+    expect(screen.getByText("81")).toBeInTheDocument();
+
+    // A later visit does not ask again.
+    first.unmount();
+    renderAt(ROUTES.MY_LOANS, <MyLoansPage />);
+    await screen.findByText("81");
+    expect(screen.queryByRole("group", { name: title })).not.toBeInTheDocument();
+  });
+
+  it("approval-wait: cancels the request from the question", async () => {
+    db.loans = [waitingLine(82)];
+    renderAt(ROUTES.MY_LOANS, <MyLoansPage />);
+    const question = await screen.findByRole("group", { name: i18n.t("borrower.myRequests.waitTitle") });
+    fireEvent.click(
+      within(question).getByRole("button", { name: i18n.t("borrower.myRequests.waitCancel", { count: 1 }) }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: i18n.t("borrower.myRequests.cancelConfirmYes") }));
+    await waitFor(() => expect(api).toHaveBeenCalledWith("loan.cancel", { reservationKey: 82 }));
+  });
+
+  it("approval-wait: does not ask before the period starts, or about a request already approved", async () => {
+    db.loans = [
+      // Default window: starts in 2029.
+      request({ reservationKey: 83, status: "pending", usageKey: null, cancellable: true }),
+      { ...waitingLine(84), status: "approved" },
+    ];
+    renderAt(ROUTES.MY_LOANS, <MyLoansPage />);
+    await screen.findByText("83");
+    expect(screen.getByText("84")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("group", { name: i18n.t("borrower.myRequests.waitTitle") }),
+    ).not.toBeInTheDocument();
+  });
 });
 
 describe("appeals: filed against a penalty on the server", () => {
