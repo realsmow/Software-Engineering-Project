@@ -1,25 +1,23 @@
 import 'dotenv/config';
 import { PrismaService } from './prisma.service';
 import { removeDemo, seedDemo } from './demo/demo-seed';
+import { chooseDatabase } from './demo/database-url';
 
 /**
  * Presentation data for a deployed database (see demo/demo-seed.ts).
  *
- *   DATABASE_URL=<target> DEMO_PASSWORD=<shared demo password> npm run seed:demo
- *   DATABASE_URL=<target> npm run seed:demo -- --remove
+ *   DEMO_PASSWORD=<shared demo password> npm run seed:demo
+ *   npm run seed:demo -- --remove
+ *
+ * Both ask for the database URL at the prompt (hidden); Enter alone uses the
+ * local one from .env.
  *
  * DEMO_OPEN_DAY=YYYY-MM-DD also opens that weekend day for the demo
  * departments (presentation day).
  */
 async function main() {
+  const host = await chooseDatabase();
   const prisma = new PrismaService();
-  const host = (() => {
-    try {
-      return new URL(process.env.DATABASE_URL ?? '').hostname;
-    } catch {
-      throw new Error('DATABASE_URL is missing or unparseable.');
-    }
-  })();
   try {
     if (process.argv.includes('--remove')) {
       console.log(`Removing demo data from ${host}`);

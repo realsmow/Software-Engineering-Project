@@ -1,14 +1,18 @@
 import 'dotenv/config';
 import { PrismaService } from './prisma.service';
 import { purge, type PurgeTarget } from './demo/purge';
+import { chooseDatabase } from './demo/database-url';
 
 /**
  * Removes everything whose name contains "test" (any case): equipment types
  * with their units, rooms, departments and clubs, and accounts - except
  * admin accounts, which are kept.
  *
- *   DATABASE_URL=<target> npm run cleanup:test-data           (list only)
- *   DATABASE_URL=<target> npm run cleanup:test-data -- --apply
+ *   npm run cleanup:test-data             (list only)
+ *   npm run cleanup:test-data -- --apply
+ *
+ * Asks for the database URL at the prompt (hidden); Enter alone uses the
+ * local one from .env.
  *
  * A department or club is removed only when every unit it owns is in the
  * list; otherwise it is reported and kept.
@@ -86,9 +90,9 @@ export async function findTestData(prisma: PrismaService) {
 
 async function main() {
   const apply = process.argv.includes('--apply');
+  const host = await chooseDatabase();
   const prisma = new PrismaService();
   try {
-    const host = new URL(process.env.DATABASE_URL ?? '').hostname;
     const found = await findTestData(prisma);
     const groupName = (g: (typeof found.keptGroups)[number]) =>
       g.Branch?.BranchName ?? g.Club?.ClubName ?? `#${g.ManageGroupKey}`;
