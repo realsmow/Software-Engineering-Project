@@ -59,7 +59,7 @@ export default function ReportExportPage() {
                 ...data.daily.map((d) => [d.day, d.borrowed, d.returned]),
               ])
             }
-            disabled={data.daily.length === 0}
+            disabled={data.daily.every((d) => d.borrowed === 0 && d.returned === 0)}
           />
           <ExportCard
             title={t("reports.export.conditionTitle")}
@@ -70,7 +70,7 @@ export default function ReportExportPage() {
                 ...data.damage.map((d) => [d.condition, d.count]),
               ])
             }
-            disabled={false}
+            disabled={data.damage.every((d) => d.count === 0)}
           />
           <ExportCard
             title={t("reports.export.requestsTitle")}

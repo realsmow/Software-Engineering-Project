@@ -67,7 +67,7 @@ import {
   tierOptionOutput,
   unitScheduleOutput,
 } from "../../../backend/src/item/item.schema";
-import { reportSummaryOutput } from "../../../backend/src/report/report.schema";
+import { reportRecordsOutput, reportSummaryOutput } from "../../../backend/src/report/report.schema";
 
 type OutputSchema = { parse(value: unknown): unknown };
 const contracts: Record<string, OutputSchema> = {
@@ -174,6 +174,7 @@ const contracts: Record<string, OutputSchema> = {
   "notification.markRead": okOutput,
   "notification.markAllRead": okOutput,
   "report.summary": reportSummaryOutput,
+  "report.records": reportRecordsOutput,
 };
 
 export async function validateApiResponse(

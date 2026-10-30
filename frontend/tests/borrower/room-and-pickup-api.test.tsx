@@ -101,6 +101,7 @@ describe("room and pickup API regressions from the PDF", () => {
         imageUrl: null,
         bookable: true,
         ownerGroupKey: null,
+        ownerName: null,
       },
     ]);
   });

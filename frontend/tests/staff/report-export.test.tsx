@@ -12,6 +12,7 @@ import {
 
 vi.mock("../../src/features/admin/reports/use-reports", () => ({
   useReportSummary: vi.fn(),
+  useReportRecords: vi.fn(() => ({ data: undefined })),
 }));
 
 const report = reportSummaryOutput.strict().parse({
