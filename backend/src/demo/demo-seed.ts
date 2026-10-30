@@ -28,6 +28,7 @@ import { AppealService } from '../appeal/appeal.service';
 import { CronService } from '../cron/cron.service';
 import type { TrpcUser } from '../trpc/context';
 import { installClock, realNow, restoreClock, setNow } from './demo-clock';
+import { purge } from './purge';
 
 /**
  * Presentation data: demo accounts, two demo departments with their own
@@ -920,77 +921,13 @@ export async function removeDemo(prisma: PrismaService, log = console.log) {
 
   await prisma.$transaction(
     async (tx) => {
-      const usages = (
-        await tx.usageLog.findMany({
-          where: {
-            OR: [{ AccountKey: { in: A } }, { ResourceKey: { in: R } }],
-          },
-          select: { UsageKey: true },
-        })
-      ).map((u) => u.UsageKey);
-      const reservations = await tx.reservations.findMany({
-        where: { OR: [{ ReservedBy: { in: A } }, { ResourceKey: { in: R } }] },
-        select: { ReservationKey: true, CartKey: true },
+      await purge(tx, {
+        accountKeys: A,
+        resourceKeys: R,
+        itemKeys: m.itemKeys,
+        groupKeys: G,
+        mediaKeys: m.mediaKeys,
       });
-      const carts = reservations
-        .map((r) => r.CartKey)
-        .filter((k): k is number => k !== null);
-
-      await tx.notification.deleteMany({ where: { AccountKey: { in: A } } });
-      await tx.auditLog.deleteMany({ where: { ActorKey: { in: A } } });
-      await tx.images.deleteMany({
-        where: {
-          OR: [
-            { UsageKey: { in: usages } },
-            { ResourceKey: { in: R } },
-            { SubmittedBy: { in: A } },
-          ],
-        },
-      });
-      await tx.inspection.deleteMany({ where: { UsageKey: { in: usages } } });
-      await tx.appealInfo.deleteMany({ where: { FiledBy: { in: A } } });
-      await tx.penaltyInfo.deleteMany({ where: { AccountKey: { in: A } } });
-      await tx.usageLog.updateMany({
-        where: { UsageKey: { in: usages } },
-        data: { PendingExtension: null },
-      });
-      await tx.extensionRequest.deleteMany({
-        where: { UsageKey: { in: usages } },
-      });
-      await tx.usageLog.deleteMany({ where: { UsageKey: { in: usages } } });
-      await tx.resourceInfo.updateMany({
-        where: { ResourceKey: { in: R } },
-        data: { ConditionKey: null },
-      });
-      await tx.conditionLog.deleteMany({
-        where: { OR: [{ ResourceKey: { in: R } }, { LoggedBy: { in: A } }] },
-      });
-      await tx.reservations.deleteMany({
-        where: {
-          ReservationKey: { in: reservations.map((r) => r.ReservationKey) },
-        },
-      });
-      await tx.requestCart.deleteMany({
-        where: { CartKey: { in: carts }, Lines: { none: {} } },
-      });
-      await tx.eligibility.deleteMany({
-        where: { OR: [{ ResourceKey: { in: R } }, { GroupKey: { in: G } }] },
-      });
-      await tx.authority.deleteMany({
-        where: {
-          OR: [{ AccountKey: { in: A } }, { ManageGroupKey: { in: G } }],
-        },
-      });
-      await tx.itemIndiv.deleteMany({ where: { ResourceKey: { in: R } } });
-      await tx.resourceInfo.deleteMany({ where: { ResourceKey: { in: R } } });
-      await tx.itemInfo.deleteMany({ where: { ItemKey: { in: m.itemKeys } } });
-      await tx.branchInfo.deleteMany({ where: { ManageGroupKey: { in: G } } });
-      await tx.managementGroup.deleteMany({
-        where: { ManageGroupKey: { in: G } },
-      });
-      await tx.mediaFile.deleteMany({ where: { Key: { in: m.mediaKeys } } });
-      await tx.sessionInfo.deleteMany({ where: { AccountKey: { in: A } } });
-      await tx.accountInfo.deleteMany({ where: { AccountKey: { in: A } } });
       await tx.authorityRole.deleteMany({
         where: {
           AuthorityRoleKey: { in: m.authorityRoleKeys ?? [] },

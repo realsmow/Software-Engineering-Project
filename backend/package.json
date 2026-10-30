@@ -33,6 +33,7 @@
     "seed:prod": "nest build && node dist/src/seed-prod.js",
     "seed:test-users": "nest build && node dist/src/seed-test-users.js",
     "seed:demo": "nest build && node dist/src/seed-demo.js",
+    "cleanup:test-data": "nest build && node dist/src/cleanup-test-data.js",
     "import:users": "nest build && node dist/src/import-users.js",
     "docs:api": "node scripts/gen-api-docs.mjs"
   },
