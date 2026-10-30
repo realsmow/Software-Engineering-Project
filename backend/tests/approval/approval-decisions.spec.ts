@@ -31,6 +31,10 @@ const supervisor: TrpcUser = {
 };
 
 describe('ApprovalService decisions', () => {
+  // The harness request was sent on 24 Sep for 1-2 Oct 2026. Deciding it is
+  // only meaningful before that period ends, which the wall clock has passed;
+  // an approval after the end is now refused (REQUEST_PERIOD_ENDED).
+  beforeEach(() => freezeBusinessDate(new Date('2026-09-24T08:00:00.000Z')));
   afterEach(() => jest.useRealTimers());
   it('lists only the supervisor-routed rows with borrower credit and clashing requests', async () => {
     const { service, prisma, scope } = setup();

@@ -6,7 +6,9 @@ import {
 } from '../common/penalty/penalty.service';
 import {
   NotificationService,
+  reminderKeyOf,
   resourceName,
+  supervisorsForGroup,
 } from '../notification/notification.service';
 import { recomputeCredit } from '../common/credit/recompute-credit';
 import { LATE_PENALTY_HELD_OPEN } from '../common/schemas/penalty.schema';
@@ -33,6 +35,12 @@ const CHECK_GRACE_DAYS = 7;
 
 /** §5.7: two weeks past due and the thing is written off. */
 const LOST_AFTER_DAYS = 14;
+/** Approval-wait round: an undecided request starting within this many hours is brought to the supervisors again… */
+const REMIND_BEFORE_START_HOURS = 24;
+/** …once it has waited this long, so a request sent an hour ago is not announced twice. */
+const REMIND_AFTER_WAITING_HOURS = 6;
+/** The occasion of that reminder, part of its dedupe key: one per request. */
+const BEFORE_START = 'before-start';
 
 export interface CronOutcome {
   affected: number;
@@ -455,8 +463,117 @@ export class CronService {
     };
   }
 
+  /**
+   * Approval-wait round (30 Oct 2569), part 1a: a request still undecided as
+   * its borrowing period comes close goes to the department's supervisors once
+   * more. Only one that has already waited a while: a request sent this
+   * morning for tomorrow has just been announced, and a second notice an hour
+   * later would be noise.
+   */
+  private async remindBeforeStart(now: Date): Promise<number> {
+    const waiting = await this.prisma.reservations.findMany({
+      where: {
+        ApproveStatus: 'Pending',
+        StartTime: { gt: now, lte: hoursFrom(now, REMIND_BEFORE_START_HOURS) },
+        ActionTime: { lte: hoursFrom(now, -REMIND_AFTER_WAITING_HOURS) },
+      },
+      select: {
+        ReservationKey: true,
+        ReservedBy: true,
+        StartTime: true,
+        Resource: {
+          select: {
+            ManagedBy: true,
+            Item: { select: { Item: { select: { ItemName: true } } } },
+            Room: { select: { RoomName: true } },
+          },
+        },
+      },
+    });
+    // Once per request: skip those already reminded, so the count means
+    // "reminded this run" and an hourly rerun does not rewrite anything.
+    const already = new Set(
+      (
+        await this.prisma.notification.findMany({
+          where: {
+            DedupeKey: {
+              in: waiting.map((r) =>
+                reminderKeyOf(r.ReservationKey, BEFORE_START),
+              ),
+            },
+          },
+          select: { DedupeKey: true },
+        })
+      ).map((n) => n.DedupeKey),
+    );
+    let reminded = 0;
+    for (const r of waiting) {
+      if (already.has(reminderKeyOf(r.ReservationKey, BEFORE_START))) continue;
+      await this.prisma.$transaction(async (tx) => {
+        const supervisors = await supervisorsForGroup(tx, r.Resource.ManagedBy);
+        for (const s of supervisors) {
+          // A supervisor's own request is not theirs to approve (§5.9).
+          if (s.AccountKey === r.ReservedBy) continue;
+          await this.notifications.approvalReminder(tx, {
+            accountKey: s.AccountKey,
+            reservationKey: r.ReservationKey,
+            itemName: resourceName(r.Resource),
+            startTime: r.StartTime,
+            occasion: BEFORE_START,
+          });
+        }
+      });
+      reminded += 1;
+    }
+    return reminded;
+  }
+
+  /**
+   * Approval-wait round (30 Oct 2569), part 1c: a request nobody decided by
+   * the end of its borrowing period is cancelled, and the borrower is told.
+   * Until now it stayed "waiting for approval" for good, and a late approval
+   * sent the borrower to a counter that then refused the pickup (R7-18).
+   */
+  private async lapseUndecided(now: Date): Promise<number> {
+    const undecided = await this.prisma.reservations.findMany({
+      where: { ApproveStatus: 'Pending', EndTime: { lte: now } },
+      select: {
+        ReservationKey: true,
+        ReservedBy: true,
+        Resource: {
+          select: {
+            Item: { select: { Item: { select: { ItemName: true } } } },
+            Room: { select: { RoomName: true } },
+          },
+        },
+      },
+    });
+    let lapsed = 0;
+    for (const r of undecided) {
+      const cancelled = await this.prisma.$transaction(async (tx) => {
+        // Only while still undecided: a supervisor deciding at this moment
+        // holds the row lock, and once they commit this matches nothing.
+        const { count } = await tx.reservations.updateMany({
+          where: { ReservationKey: r.ReservationKey, ApproveStatus: 'Pending' },
+          data: { ApproveStatus: 'Canceled', ResolvedAt: now },
+        });
+        if (count === 0) return false;
+        await this.notifications.requestLapsed(tx, {
+          accountKey: r.ReservedBy,
+          reservationKey: r.ReservationKey,
+          itemName: resourceName(r.Resource),
+        });
+        return true;
+      });
+      if (cancelled) lapsed += 1;
+    }
+    return lapsed;
+  }
+
   private async expireStaleRequests(): Promise<CronOutcome> {
     const now = new Date();
+    const reminded = await this.remindBeforeStart(now);
+    const lapsed = await this.lapseUndecided(now);
     const stale = await this.prisma.reservations.findMany({
       where: {
         ApproveStatus: 'Approved',
@@ -537,12 +654,15 @@ export class CronService {
     }
 
     const released = keys.length + noShows.length;
+    const affected = released + lapsed;
     return {
-      affected: released,
+      affected,
       detail:
-        released === 0
+        affected === 0 && reminded === 0
           ? 'no uncollected requests past their hold'
-          : `${keys.length} uncollected request(s) and ${noShows.length} prepared no-show(s) released back to the pool`,
+          : `${keys.length} uncollected request(s) and ${noShows.length} prepared no-show(s) released back to the pool, ` +
+            `${lapsed} undecided request(s) cancelled at the end of their period, ` +
+            `${reminded} request(s) brought to the supervisors again before their start`,
     };
   }
 
@@ -576,4 +696,8 @@ export class CronService {
     }
     return newest;
   }
+}
+
+function hoursFrom(at: Date, hours: number): Date {
+  return new Date(at.getTime() + hours * 3_600_000);
 }

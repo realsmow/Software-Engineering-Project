@@ -58,7 +58,11 @@ export class CronScheduler {
     return this.jobs.runScheduled('dueSoonReminder');
   }
 
-  /** Hourly: a unit nobody collected is a unit nobody else can borrow. */
+  /**
+   * Hourly: a unit nobody collected is a unit nobody else can borrow. The same
+   * pass reminds supervisors of requests about to start undecided and cancels
+   * the ones still undecided when their period ends (approval-wait round).
+   */
   @Cron('0 * * * *', SCHEDULE)
   expireStaleRequests() {
     return this.jobs.runScheduled('expireStaleRequests');

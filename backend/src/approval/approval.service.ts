@@ -28,6 +28,7 @@ import {
   daysBetween,
   startOfLocalDay,
   toIso,
+  toLocalDayKey,
 } from '../common/schemas/datetime.schema';
 import { toPage, toSkipTake } from '../common/schemas/pagination.schema';
 import { tryMapTier, type CreditTier } from '../common/schemas/status.schema';
@@ -188,11 +189,16 @@ export class ApprovalService {
       const targets = supervisors.filter(
         (s) => s.AccountKey !== row.ReservedBy,
       );
+      // A fresh notice each hour at most (R7-19): the request's first notice
+      // has usually been read, and an upsert onto it showed nothing new.
+      const occasion = `staff:${bangkokHour(new Date())}`;
       for (const s of targets) {
-        await this.notifications.requestNeedsSupervisor(tx, {
+        await this.notifications.approvalReminder(tx, {
           accountKey: s.AccountKey,
           reservationKey,
           itemName: resourceName(row.Resource),
+          startTime: row.StartTime,
+          occasion,
         });
       }
       return targets.length;
@@ -470,6 +476,18 @@ export class ApprovalService {
         request: await this.requests.getAsDecider(input.reservationKey),
         cancelled: [],
       };
+    }
+
+    // A borrowing period that is already over cannot be lent any more. Before
+    // this check the approval went through, the borrower was told to collect
+    // by the next day, and the counter then refused the pickup with
+    // PICKUP_WINDOW_PASSED (R7-18). Refusing stays allowed: it closes the row,
+    // and the hourly job cancels it if nobody decides.
+    if (now >= row.EndTime) {
+      throw new BusinessError('REQUEST_PERIOD_ENDED', {
+        reservationKey: row.ReservationKey,
+        endedAt: toIso(row.EndTime),
+      });
     }
 
     // Approving. Everything below happens together or not at all: a unit
@@ -910,4 +928,14 @@ export class ApprovalService {
       items: items.slice(0, HISTORY_ITEMS),
     };
   }
+}
+
+/** "2026-10-30T14": the Bangkok day and hour, so a staff reminder goes out at most once an hour. */
+function bangkokHour(at: Date): string {
+  const hour = new Intl.DateTimeFormat('en-GB', {
+    hour: '2-digit',
+    hourCycle: 'h23',
+    timeZone: 'Asia/Bangkok',
+  }).format(at);
+  return `${toLocalDayKey(at)}T${hour}`;
 }
