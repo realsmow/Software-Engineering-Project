@@ -351,6 +351,28 @@ export class NotificationService {
   }
 
   /**
+   * The hourly job cancelled a request nobody decided before its borrowing
+   * period ended (approval-wait round, 30 Oct 2569). Shares `RequestRejected`
+   * like `requestExpired`, so the frontend needs no new type, but says why:
+   * the no-show wording ("not collected") would blame the borrower.
+   */
+  requestLapsed(
+    tx: Prisma.TransactionClient,
+    params: { accountKey: number; reservationKey: number; itemName: string },
+  ) {
+    return this.emit(tx, {
+      accountKey: params.accountKey,
+      type: 'RequestRejected',
+      title: 'คำขอยืมถูกยกเลิกอัตโนมัติ',
+      body: `${params.itemName} · ไม่ได้รับการพิจารณาภายในช่วงเวลาที่ขอ`,
+      titleEn: 'Borrow request cancelled automatically',
+      bodyEn: `${params.itemName} · Not decided within the requested period`,
+      linkTo: ROUTE_MY_LOANS,
+      dedupeKey: lapsedKeyOf(params.reservationKey),
+    });
+  }
+
+  /**
    * "คำขอต่อเวลาได้รับการอนุมัติ" — the loan now runs to a later date.
    *
    * Sent for the extensions a person granted *and* for the ones the system
@@ -643,6 +665,38 @@ export class NotificationService {
       bodyEn: `${params.itemName} · Awaiting approval`,
       linkTo: ROUTE_SUPERVISOR_APPROVALS,
       dedupeKey: reservationKeyOf(params.reservationKey),
+    });
+  }
+
+  /**
+   * A request still waiting on a supervisor, raised again: when staff press
+   * "remind" (demo feedback), and once by the hourly job as the borrowing
+   * period comes close (approval-wait round, 30 Oct 2569).
+   *
+   * Each occasion has its own dedupe key. Reusing `requestNeedsSupervisor`'s
+   * key turned every reminder into an upsert onto the first notice, which the
+   * supervisor had usually read already, so nothing new reached them (R7-19).
+   */
+  approvalReminder(
+    tx: Prisma.TransactionClient,
+    params: {
+      accountKey: number;
+      reservationKey: number;
+      itemName: string;
+      startTime: Date;
+      /** What sets this reminder apart from earlier ones, e.g. the hour it was sent. */
+      occasion: string;
+    },
+  ) {
+    return this.emit(tx, {
+      accountKey: params.accountKey,
+      type: 'SupervisorApprovalNeeded',
+      title: 'คำขอยืมยังรอการอนุมัติ',
+      body: `${params.itemName} · เริ่มยืม ${thaiDateTime(params.startTime)}`,
+      titleEn: 'Borrow request still awaiting approval',
+      bodyEn: `${params.itemName} · Starts ${englishDateTime(params.startTime)}`,
+      linkTo: ROUTE_SUPERVISOR_APPROVALS,
+      dedupeKey: reminderKeyOf(params.reservationKey, params.occasion),
     });
   }
 
@@ -1058,6 +1112,19 @@ function reservationKeyOf(reservationKey: number): string {
 /** One per request: a cancelled request cannot be cancelled again. */
 function cancelledKeyOf(reservationKey: number): string {
   return `cancelled:${reservationKey}`;
+}
+
+/** One per reminder occasion, so a later reminder arrives as a new unread notice. */
+export function reminderKeyOf(
+  reservationKey: number,
+  occasion: string,
+): string {
+  return `reminder:${reservationKey}:${occasion}`;
+}
+
+/** One per request: a request lapses only once. */
+function lapsedKeyOf(reservationKey: number): string {
+  return `lapsed:${reservationKey}`;
 }
 
 function extensionKeyOf(extensionKey: number): string {

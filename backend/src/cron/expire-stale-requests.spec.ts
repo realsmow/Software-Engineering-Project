@@ -10,7 +10,14 @@ import type { NotificationService } from '../notification/notification.service';
 function build(unprepared: unknown[], noShows: unknown[]) {
   const prisma = {
     reservations: {
-      findMany: jest.fn().mockResolvedValue(unprepared),
+      // Only the no-show sweep's query (approved holds) returns rows here. The
+      // same job's reminder and lapse steps ask for pending requests; they have
+      // their own test on a real database (undecided-requests-persistence).
+      findMany: jest.fn((args: { where: { ApproveStatus?: string } }) =>
+        Promise.resolve(
+          args.where.ApproveStatus === 'Approved' ? unprepared : [],
+        ),
+      ),
       updateMany: jest.fn().mockResolvedValue({ count: unprepared.length }),
       update: jest.fn().mockResolvedValue({}),
     },
@@ -19,6 +26,7 @@ function build(unprepared: unknown[], noShows: unknown[]) {
       delete: jest.fn().mockResolvedValue({}),
     },
     images: { deleteMany: jest.fn().mockResolvedValue({ count: 0 }) },
+    notification: { findMany: jest.fn().mockResolvedValue([]) },
     $transaction: jest.fn((ops: unknown[]) => Promise.all(ops)),
     cronRunLog: {
       create: jest.fn().mockResolvedValue({ RunKey: 1 }),

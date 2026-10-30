@@ -29,6 +29,7 @@ export const ERROR_MESSAGES_EN: Record<string, string> = {
   TOO_MANY_REQUESTS: "Too many requests from this device. Please wait a moment and try again.",
   PICKUP_NOT_OPEN: "It is not pickup time yet. If you arrive early, counter staff can hand it over ahead of time.",
   PICKUP_WINDOW_PASSED: "The booked period has already ended, so this can no longer be checked in. Please book a new slot.",
+  REQUEST_PERIOD_ENDED: "This request's borrowing period has already ended, so it can no longer be approved. Reject it, or leave it and the system will cancel it.",
 
   // Reservation horizon
   T0_NOT_RESERVABLE: "Equipment at this level can only be borrowed on the spot from available stock, not reserved for later days.",

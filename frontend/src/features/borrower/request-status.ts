@@ -124,6 +124,8 @@ export interface MyRequest {
   cartKey?: number | null;
   /** Server's answer: does this booking still count toward the one-room limit? */
   holdsRoomQuota?: boolean;
+  /** Exact start of the requested window (ISO), when known. */
+  startsAt?: string;
   /** Exact end of the requested window (ISO), when known. */
   endsAt?: string;
   /** Backend's authoritative answer for whether loan.cancel is still allowed. */

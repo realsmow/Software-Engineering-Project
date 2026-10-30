@@ -194,6 +194,12 @@ export const BUSINESS_ERROR_CODES = {
    */
   PICKUP_WINDOW_PASSED: 'CONFLICT',
   /**
+   * Approval-wait round (30 Oct 2569): approving a request whose borrowing
+   * period has already ended. `cause.endedAt` says when. Refusing it is still
+   * allowed, and the hourly job cancels it if nobody decides.
+   */
+  REQUEST_PERIOD_ENDED: 'CONFLICT',
+  /**
    * The requested new due date is not one this loan can be moved to — earlier
    * than the current one, in the past, or past what the borrower's band allows.
    * `cause.reason` says which.

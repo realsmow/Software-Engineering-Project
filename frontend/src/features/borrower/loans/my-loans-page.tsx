@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { fmtDate, fmtDayMonth, fmtDayNum } from "@/lib/datetime";
+import { fmtDate, fmtDateTime, fmtDayMonth, fmtDayNum } from "@/lib/datetime";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Download, FileText } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
@@ -112,6 +112,18 @@ export default function MyLoansPage() {
   function keepApproved(cartKey: number) {
     setAnsweredNow((prev) => new Set(prev).add(cartKey));
     writeDismissedCarts(new Set(readDismissedCarts()).add(cartKey));
+  }
+
+  // Approval-wait round (30 Oct 2569): requests whose period has started while
+  // a supervisor still has not decided. "Keep waiting" is remembered here; with
+  // no answer they wait too, and the hourly job cancels them when the period ends.
+  const [keptWaiting, setKeptWaiting] = useState<ReadonlySet<number>>(readKeptWaiting);
+  const now = Date.now();
+  function keepWaiting(lines: MyRequest[]) {
+    const next = new Set(keptWaiting);
+    for (const r of lines) if (r.reservationKey !== undefined) next.add(r.reservationKey);
+    setKeptWaiting(next);
+    writeKeptWaiting(next);
   }
   const showDraft = tab === "active" && draft !== null;
   const empty = rows.length === 0 && !showDraft;
@@ -251,7 +263,30 @@ export default function MyLoansPage() {
               cancellable.length > 0 &&
               !answeredNow.has(cartKey) &&
               (!dismissed.has(cartKey) || linkedCart === cartKey);
-            if (lines.length === 1 && !ask) return cards;
+            const waiting = lines.filter(
+              (r) => waitingPastStart(r, now) && !keptWaiting.has(r.reservationKey!),
+            );
+            const waitQuestion =
+              waiting.length > 0 ? (
+                <WaitingQuestion
+                  lines={waiting}
+                  onKeep={() => keepWaiting(waiting)}
+                  onCancel={() => {
+                    setCancelError(null);
+                    if (waiting.length > 1) setCancelCart(waiting);
+                    else setCancelTarget(waiting[0]);
+                  }}
+                />
+              ) : null;
+            if (lines.length === 1 && !ask) {
+              if (!waitQuestion) return cards;
+              return (
+                <div key={`wait-${lines[0].id}`} className="flex flex-col gap-2">
+                  {waitQuestion}
+                  {cards}
+                </div>
+              );
+            }
             return (
               <section
                 key={`cart-${cartKey}`}
@@ -274,6 +309,7 @@ export default function MyLoansPage() {
                     onKeepAll={() => keepApproved(cartKey)}
                   />
                 ) : null}
+                {waitQuestion}
                 <div className="mb-2 flex flex-wrap items-center justify-between gap-2 px-1">
                   <span className="text-[12px] font-semibold uppercase tracking-wide text-t3">
                     {t("borrower.myRequests.cartTitle", { count: lines.length })}
@@ -941,6 +977,80 @@ function PartRejectedQuestion({
       </div>
     </div>
   );
+}
+
+/**
+ * Approval-wait round (30 Oct 2569), option C: a request still waiting for a
+ * supervisor after its period has started. Asked here rather than by a
+ * notification, which would need a new notification type (a schema change the
+ * team has not decided on yet). The borrower may keep waiting or cancel; with no
+ * answer it waits, and the hourly job cancels it when the period ends.
+ */
+function WaitingQuestion({
+  lines,
+  onKeep,
+  onCancel,
+}: {
+  lines: MyRequest[];
+  onKeep: () => void;
+  onCancel: () => void;
+}) {
+  const { t } = useTranslation();
+  // Lines of one cart share the window; the earliest end is the honest one.
+  const until = lines
+    .map((r) => r.endsAt)
+    .filter((v): v is string => v !== undefined)
+    .sort()[0];
+  return (
+    <div
+      role="group"
+      aria-label={t("borrower.myRequests.waitTitle")}
+      className="mb-2.5 rounded border border-[var(--s-warn-b)] bg-[var(--s-warn-bg)] px-3 py-2 text-[12.5px] text-[var(--s-warn-t)]"
+    >
+      <p className="font-semibold">{t("borrower.myRequests.waitTitle")}</p>
+      <p className="mt-1">
+        {t("borrower.myRequests.waitBody", {
+          names: lines.map((r) => r.name).join(", "),
+          until: fmtDateTime(until),
+        })}
+      </p>
+      <div className="mt-2 flex flex-wrap gap-2">
+        <Button type="button" variant="outline" size="sm" onClick={onKeep}>
+          {t("borrower.myRequests.waitKeep")}
+        </Button>
+        <Button type="button" variant="outline" size="sm" onClick={onCancel}>
+          {t("borrower.myRequests.waitCancel", { count: lines.length })}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+/** Still waiting for a supervisor although the borrowing period has begun (and not yet ended). */
+function waitingPastStart(r: MyRequest, now: number): boolean {
+  if (r.status !== "pending" || !r.cancellable || r.reservationKey === undefined) return false;
+  if (!r.startsAt || !r.endsAt) return false;
+  return Date.parse(r.startsAt) <= now && now < Date.parse(r.endsAt);
+}
+
+/** Requests this browser chose to keep waiting for (the question above). */
+const KEPT_WAITING_KEY = "ulms-wait-question-kept";
+
+function readKeptWaiting(): ReadonlySet<number> {
+  try {
+    const raw = localStorage.getItem(KEPT_WAITING_KEY);
+    return new Set(raw ? (JSON.parse(raw) as number[]) : []);
+  } catch {
+    return new Set();
+  }
+}
+
+function writeKeptWaiting(keys: ReadonlySet<number>) {
+  try {
+    localStorage.setItem(KEPT_WAITING_KEY, JSON.stringify([...keys]));
+  } catch {
+    // Private mode or blocked storage: the question just comes back next visit.
+  }
 }
 
 /** Carts whose "cancel the rest?" question this browser already answered. */
