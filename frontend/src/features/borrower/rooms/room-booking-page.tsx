@@ -295,8 +295,9 @@ export default function RoomBookingPage() {
                 </p>
               ) : null}
 
-              <div className="mt-2.5 overflow-x-auto pb-1">
-                <div className="grid min-w-[730px] grid-cols-10 gap-1.5">
+              {/* As many chips as the column holds, then a new row: no time sits past the edge (R9-07). */}
+              <div className="mt-2.5 pb-1">
+                <div className="grid grid-cols-[repeat(auto-fill,minmax(68px,1fr))] gap-1.5">
                   {slots.map((slot) => {
                     const i = slot.index;
                     const isPicked = picked.has(i);
