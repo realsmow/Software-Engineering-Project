@@ -55,7 +55,7 @@ export default function ProfilePage() {
     <div>
       <PageHeader title={t("profile.title")} subtitle={t("profile.subtitle")} />
 
-      <div className="grid gap-4 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         {/* Identity */}
         <Card className="lg:col-span-1">
           <CardHeader>
@@ -76,7 +76,7 @@ export default function ProfilePage() {
           <CardHeader>
             <CardTitle>{t("profile.accountDetails")}</CardTitle>
           </CardHeader>
-          <CardContent className="grid gap-x-6 gap-y-4 py-4 sm:grid-cols-2">
+          <CardContent className="grid grid-cols-1 gap-x-6 gap-y-4 py-4 sm:grid-cols-2">
             <DetailRow
               icon={<IdCard size={15} />}
               label={t("profile.studentId")}
@@ -174,13 +174,13 @@ export default function ProfilePage() {
                 {credit.penalties.map((p) => (
                   <li
                     key={p.id}
-                    className="flex items-baseline justify-between gap-3 text-sm"
+                    className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 text-sm"
                   >
                     <span className="min-w-0 truncate text-foreground">
                       {p.itemName ? `${p.itemName} · ` : ""}
                       {penaltyReasonText(p.reason, t)}
                     </span>
-                    <span className="shrink-0 font-mono text-xs tabular-nums text-muted-foreground">
+                    <span className="font-mono text-xs tabular-nums text-muted-foreground sm:shrink-0">
                       -{p.creditDeducted} ·{" "}
                       {t("profile.penaltyUntil", {
                         date: fmtDate(p.expiresAt),
@@ -205,7 +205,10 @@ export default function ProfilePage() {
           ) : null}
           {/* Appeals live with the credit they are about (demo feedback). */}
           <CardContent className="border-t border-border py-3">
-            <Link to={ROUTES.APPEALS} className="text-sm font-medium text-accent hover:underline">
+            <Link
+              to={ROUTES.APPEALS}
+              className="text-sm font-medium text-accent hover:underline"
+            >
               {t("profile.appealsLink")}
             </Link>
           </CardContent>
@@ -501,11 +504,15 @@ function DetailRow({
   value: string;
 }) {
   return (
-    <div className="flex items-start gap-2.5">
+    <div className="flex min-w-0 items-start gap-2.5">
       <span className="mt-0.5 text-muted-foreground">{icon}</span>
       <div className="min-w-0">
         <div className="text-xs text-muted-foreground">{label}</div>
-        <div className="truncate text-sm font-medium text-foreground">{value}</div>
+        {/* Wraps instead of truncating: a long list of departments ran the
+            whole page off a phone screen (R7-12). */}
+        <div className="text-sm font-medium text-foreground [overflow-wrap:anywhere]">
+          {value}
+        </div>
       </div>
     </div>
   );
