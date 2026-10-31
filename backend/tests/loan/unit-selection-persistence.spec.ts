@@ -373,14 +373,11 @@ describe('NFR-REL-02 / SDS 4.4: unit selection preserves reserved windows', () =
           resourceKey: f.units[0].ResourceKey,
           serialNo: serials[0].ItemID,
           reserved: true,
-          // #235: nothing else is booked, so the reserved unit fits as well as any.
-          recommended: true,
         },
         {
           resourceKey: f.units[1].ResourceKey,
           serialNo: serials[1].ItemID,
           reserved: false,
-          recommended: false,
         },
       ]);
 
@@ -394,29 +391,48 @@ describe('NFR-REL-02 / SDS 4.4: unit selection preserves reserved windows', () =
     });
   });
 
-  it('#235: recommends the unit whose next booking sits closest after this one', async () => {
+  it('leaves out units that are out on loan, closed to borrowing or in repair', async () => {
     await inHistoryFixture(prisma, async (tx) => {
       const f = await pickupFixture(tx);
       const request = await pickupRequest(f);
-      // The spare unit is booked from the next morning, so it fits this loan
-      // tightly; the reserved unit stays free for a long loan later.
-      await pickupRequest(
-        f,
-        1,
-        1,
-        new Date('2031-09-30T02:00:00.000Z'),
-        new Date('2031-10-01T10:00:00.000Z'),
-      );
-      const options = await f.loan.prepareOptions(
-        f.staff,
-        request.reservationKey,
-      );
-      expect(
-        options.map((o) => [o.resourceKey, o.reserved, o.recommended]),
-      ).toEqual([
-        [f.units[0].ResourceKey, true, false],
-        [f.units[1].ResourceKey, false, true],
-      ]);
+      const spare = f.units[1].ResourceKey;
+      const keys = async () =>
+        (await f.loan.prepareOptions(f.staff, request.reservationKey)).map(
+          (o) => o.resourceKey,
+        );
+
+      await tx.resourceInfo.update({
+        where: { ResourceKey: spare },
+        data: { ResourceStatus: 'Lended' },
+      });
+      expect(await keys()).not.toContain(spare);
+
+      await tx.resourceInfo.update({
+        where: { ResourceKey: spare },
+        data: { ResourceStatus: 'InStorage', AllowBorrow: false },
+      });
+      expect(await keys()).not.toContain(spare);
+
+      await tx.resourceInfo.update({
+        where: { ResourceKey: spare },
+        data: { AllowBorrow: true },
+      });
+      const condition = await tx.conditionLog.create({
+        data: {
+          ResourceKey: spare,
+          LoggedBy: f.staff.accountKey,
+          Condition: 'MajorDamage',
+        },
+      });
+      await tx.repairLog.create({
+        data: {
+          ResourceKey: spare,
+          RepairedBy: f.staff.accountKey,
+          BeginRepairDate: new Date(),
+          ConditionBeforeRepair: condition.ConditionKey,
+        },
+      });
+      expect(await keys()).toEqual([f.units[0].ResourceKey]);
     });
   });
 

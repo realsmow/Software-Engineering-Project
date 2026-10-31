@@ -117,7 +117,8 @@ describe("StaffQueuePage", () => {
     mocks.useStaffQueue.mockReturnValue(queryResult([row]));
     mocks.useStaffExtensionQueue.mockReturnValue(queryResult([]));
     mocks.useAllocate.mockReturnValue(mutationResult(allocate));
-    mocks.usePrepareOptions.mockReturnValue(queryResult([]));
+    // Unit list still loading: prepare falls back to the booked unit.
+    mocks.usePrepareOptions.mockReturnValue(queryResult(undefined));
     mocks.useCopyGroupPhotos.mockReturnValue(mutationResult(copyPhotos));
     mocks.useWaitingOnSupervisor.mockReturnValue(queryResult([]));
     mocks.useRemindSupervisor.mockReturnValue(mutationResult(remindSupervisor));
@@ -392,20 +393,26 @@ describe("StaffQueuePage", () => {
     expect(screen.queryByText(/Lovelace.*OSC/)).not.toBeInTheDocument();
   });
 
-  it("#235: names the recommended unit in the unit list", () => {
+  it("lists the shelf units by serial, booked unit first", () => {
     mocks.useStaffQueue.mockReturnValue(queryResult([{ ...row, itemKey: 5 }]));
     mocks.usePrepareOptions.mockReturnValue(
       queryResult([
-        { resourceKey: 7, serialNo: "OSC-001", reserved: true, recommended: false },
-        { resourceKey: 8, serialNo: "OSC-002", reserved: false, recommended: true },
+        { resourceKey: 7, serialNo: "OSC-001", reserved: true },
+        { resourceKey: 8, serialNo: "OSC-002", reserved: false },
       ])
     );
     renderPage();
     const list = screen.getByRole("combobox", { name: i18n.t("staff.queue.pickUnit") });
     expect(list).toHaveValue("7"); // the reserved unit stays chosen until staff pick
-    expect(
-      within(list).getByRole("option", { name: i18n.t("staff.queue.unitRecommended", { serial: "OSC-002" }) })
-    ).toBeInTheDocument();
+    expect(within(list).getAllByRole("option").map((o) => o.textContent)).toEqual(["OSC-001", "OSC-002"]);
+  });
+
+  it("blocks preparing when no unit is on the shelf", () => {
+    mocks.useStaffQueue.mockReturnValue(queryResult([{ ...row, itemKey: 5 }]));
+    mocks.usePrepareOptions.mockReturnValue(queryResult([]));
+    renderPage();
+    expect(screen.getByText(i18n.t("staff.queue.noFreeUnit"))).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: i18n.t("staff.queue.actionPrepare") })).toBeDisabled();
   });
 
   describe("demo feedback: one submit for several units is one row", () => {

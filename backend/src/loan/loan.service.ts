@@ -11,7 +11,6 @@ import {
   assertPickupWindowOpen,
   assertResourceLendable,
   clashingWindowFilter,
-  HOLDING_RESERVATION,
   pickupOpensAt,
   withBuffer,
 } from '../common/booking/booking-window';
@@ -130,9 +129,6 @@ type UsageRow = Prisma.UsageLogGetPayload<{ select: typeof USAGE_SELECT }>;
  * "lent" beside a ResourceInfo that says "in storage" is the failure this desk
  * cannot recover from by hand.
  */
-/** #235: how far either side of a booking the tightest-fit advice looks. */
-const FIT_HORIZON_DAYS = 30;
-const DAY_MS = 86_400_000;
 
 @Injectable()
 export class LoanService {
@@ -407,9 +403,10 @@ export class LoanService {
 
   /**
    * Units staff can choose between when preparing (demo feedback: the
-   * counter, not the borrower, decides which serial goes out). The reserved
-   * unit comes first; the rest are same type, same department, and free
-   * over this booking's window.
+   * counter, not the borrower, decides which serial goes out). Only units on
+   * the shelf right now: not out, not waiting for inspection, not in repair,
+   * open for borrowing, and free over this booking's window. The reserved
+   * unit comes first when it qualifies.
    */
   async prepareOptions(user: TrpcUser, reservationKey: number) {
     const reservation = await this.prisma.reservations.findUnique({
@@ -430,6 +427,12 @@ export class LoanService {
       where: {
         ManagedBy: reserved.ManagedBy,
         Item: { ItemKey: reserved.Item!.ItemKey },
+        ResourceStatus: 'InStorage',
+        AllowBorrow: true,
+        UsageLogs: {
+          none: { CurrentStatus: { in: UNAVAILABLE_USAGE_STATES } },
+        },
+        RepairLogs: { none: { EndRepairDate: null } },
       },
       select: { ResourceKey: true, Item: { select: { ItemID: true } } },
       orderBy: { ResourceKey: 'asc' },
@@ -438,7 +441,6 @@ export class LoanService {
       resourceKey: number;
       serialNo: string;
       reserved: boolean;
-      recommended: boolean;
     }[] = [];
     for (const unit of units) {
       const isReserved = unit.ResourceKey === reserved.ResourceKey;
@@ -446,95 +448,16 @@ export class LoanService {
       const free = await this.assertUnitFree(unit.ResourceKey, reservationKey)
         .then(() => true)
         .catch(() => false);
-      if (isReserved || free) {
+      if (free) {
         options.push({
           resourceKey: unit.ResourceKey,
           serialNo: unit.Item?.ItemID ?? String(unit.ResourceKey),
           reserved: isReserved,
-          recommended: false,
         });
       }
     }
     options.sort((a, b) => Number(b.reserved) - Number(a.reserved));
-    await this.markTightestFit(
-      options,
-      reservationKey,
-      reservation.StartTime,
-      reservation.EndTime,
-    );
     return options;
-  }
-
-  /**
-   * #235 (instructor item 7, team decision D-04): of the units staff may
-   * choose, mark the one whose other bookings sit closest before and after
-   * this window, so a unit with a long free stretch is kept for a long loan.
-   * Gaps count up to FIT_HORIZON_DAYS on each side; a tie keeps the first
-   * option, which is the reserved unit. One option needs no advice.
-   */
-  private async markTightestFit(
-    options: { resourceKey: number; recommended: boolean }[],
-    reservationKey: number,
-    start: Date,
-    end: Date,
-  ): Promise<void> {
-    if (options.length < 2) return;
-    const keys = options.map((o) => o.resourceKey);
-    const [units, bookings, loans] = await Promise.all([
-      this.prisma.resourceInfo.findMany({
-        where: { ResourceKey: { in: keys } },
-        select: { ResourceKey: true, BufferTime: true },
-      }),
-      this.prisma.reservations.findMany({
-        where: {
-          ResourceKey: { in: keys },
-          ReservationKey: { not: reservationKey },
-          ...HOLDING_RESERVATION,
-          StartTime: { lt: addDays(end, FIT_HORIZON_DAYS) },
-          EndTime: { gt: addDays(start, -FIT_HORIZON_DAYS) },
-        },
-        select: { ResourceKey: true, StartTime: true, EndTime: true },
-      }),
-      // Still out or awaiting a grade: busy until it is due back.
-      this.prisma.usageLog.findMany({
-        where: {
-          ResourceKey: { in: keys },
-          CurrentStatus: { in: UNAVAILABLE_USAGE_STATES },
-        },
-        select: { ResourceKey: true, DueTime: true },
-      }),
-    ]);
-    const cap = FIT_HORIZON_DAYS * DAY_MS;
-    const idle = (resourceKey: number) => {
-      const buffer =
-        units.find((u) => u.ResourceKey === resourceKey)?.BufferTime ?? 0;
-      let before = cap;
-      let after = cap;
-      for (const b of bookings.filter((x) => x.ResourceKey === resourceKey)) {
-        const busyFrom = addDays(b.StartTime, -buffer).getTime();
-        const busyTo = addDays(b.EndTime, buffer).getTime();
-        if (busyTo <= start.getTime())
-          before = Math.min(before, start.getTime() - busyTo);
-        if (busyFrom >= end.getTime())
-          after = Math.min(after, busyFrom - end.getTime());
-      }
-      for (const l of loans.filter((x) => x.ResourceKey === resourceKey)) {
-        const busyTo = addDays(l.DueTime, buffer).getTime();
-        if (busyTo <= start.getTime())
-          before = Math.min(before, start.getTime() - busyTo);
-      }
-      return before + after;
-    };
-    let best = options[0];
-    let bestIdle = idle(best.resourceKey);
-    for (const option of options.slice(1)) {
-      const gap = idle(option.resourceKey);
-      if (gap < bestIdle) {
-        best = option;
-        bestIdle = gap;
-      }
-    }
-    best.recommended = true;
   }
 
   /**

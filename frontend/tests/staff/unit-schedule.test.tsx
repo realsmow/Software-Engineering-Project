@@ -53,7 +53,7 @@ describe("UnitSchedule for staff", () => {
     expect(cell("OSC-002", "2031-10-04")).toMatch(/Counter closed$/);
   });
 
-  it("#235: centres on this request, leaves it out, and marks choosable and recommended units", () => {
+  it("#235: centres on this request, leaves it out, and marks choosable units", () => {
     useHolidays.mockReturnValue(new Set());
     useOpenDates.mockReturnValue(new Set(["2031-10-04"])); // a Saturday the admin opened
     useUnitSchedule.mockReturnValue(
@@ -79,10 +79,7 @@ describe("UnitSchedule for staff", () => {
         itemKey={5}
         window={{ start: "2031-10-06T01:00:00.000Z", end: "2031-10-08T10:00:00.000Z" }}
         exclude={77}
-        options={[
-          { resourceKey: 1, recommended: false },
-          { resourceKey: 2, recommended: true },
-        ]}
+        options={[{ resourceKey: 1 }, { resourceKey: 2 }]}
       />
     );
 
@@ -96,7 +93,7 @@ describe("UnitSchedule for staff", () => {
       new RegExp(`Free, ${i18n.t("staff.queue.thisRequest")}$`)
     );
     const rowOf = (serial: string) => within(screen.getByText(serial).closest("tr")!);
-    expect(rowOf("OSC-002").getByText(i18n.t("staff.queue.unitRecommendedBadge"))).toBeInTheDocument();
+    expect(rowOf("OSC-002").getByText(i18n.t("staff.queue.unitChoosable"))).toBeInTheDocument();
     expect(rowOf("OSC-001").getByText(i18n.t("staff.queue.unitChoosable"))).toBeInTheDocument();
     expect(rowOf("OSC-003").getByText(i18n.t("staff.queue.unitNotFree"))).toBeInTheDocument();
   });

@@ -31,6 +31,7 @@ export function AvailabilityCalendar({
   startDate,
   endDate,
   maxDate,
+  pickupMax,
   holidays = NO_HOLIDAYS,
   openDates = NO_HOLIDAYS,
   onPickup,
@@ -40,6 +41,8 @@ export function AvailabilityCalendar({
   startDate: string;
   endDate: string | null;
   maxDate: string;
+  /** Last day a pickup may start; a T0 item is borrowed today or not at all. */
+  pickupMax?: string;
   /** #234: the admin's holidays, closed like a weekend. */
   holidays?: ReadonlySet<string>;
   /** Weekends or holidays the admin opened anyway (presentation day). */
@@ -88,6 +91,8 @@ export function AvailabilityCalendar({
 
   function stateOf(iso: string, counts: number[] | null): DayState {
     if (iso < today || iso > maxDate) return "past";
+    // Return day may run past pickupMax, the pickup itself may not.
+    if (pickupMax && iso > pickupMax && (picking === "pickup" || iso < startDate)) return "past";
     // Weekends and holidays are shut unless the admin opened the day.
     if (isClosedDay(iso, holidays, openDates)) return "closed";
     if (!counts || lines.length === 0) return "free";

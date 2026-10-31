@@ -39,7 +39,7 @@ export function UnitSchedule({
   /** This request's reservation, left out so its own unit does not look taken by it. */
   exclude?: number | null;
   /** The units staff may choose (loan.prepareOptions); without it every unit looks alike. */
-  options?: readonly { resourceKey: number; recommended: boolean }[];
+  options?: readonly { resourceKey: number }[];
 }) {
   const { t, i18n } = useTranslation();
   const holidays = useHolidays();
@@ -110,19 +110,8 @@ export function UnitSchedule({
                 <th scope="row" className="whitespace-nowrap pr-2 text-left font-normal">
                   <span className="font-mono text-t2">{u.serialNo}</span>
                   {options ? (
-                    <span
-                      className={cn(
-                        "ml-1.5 rounded px-1 py-px text-[10px]",
-                        option?.recommended
-                          ? "bg-[var(--s-ok-bg)] font-semibold text-[var(--s-ok-t)]"
-                          : "text-t3",
-                      )}
-                    >
-                      {option?.recommended
-                        ? t("staff.queue.unitRecommendedBadge")
-                        : option
-                          ? t("staff.queue.unitChoosable")
-                          : t("staff.queue.unitNotFree")}
+                    <span className="ml-1.5 rounded px-1 py-px text-[10px] text-t3">
+                      {option ? t("staff.queue.unitChoosable") : t("staff.queue.unitNotFree")}
                     </span>
                   ) : null}
                 </th>

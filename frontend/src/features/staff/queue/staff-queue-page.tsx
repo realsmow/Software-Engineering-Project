@@ -1166,7 +1166,8 @@ function PrepareAction({
   const { t } = useTranslation();
   const { data: options } = usePrepareOptions(row.reservationKey);
   const [picked, setPicked] = useState<number | null>(null);
-  const chosen = picked ?? options?.find((o) => o.reserved)?.resourceKey ?? null;
+  // Only units on the shelf are listed; the booked one is preselected when it is there.
+  const chosen = picked ?? options?.find((o) => o.reserved)?.resourceKey ?? options?.[0]?.resourceKey ?? null;
   // #235: closed until asked for, so the queue stays one line per request.
   const [showSchedule, setShowSchedule] = useState(false);
 
@@ -1182,12 +1183,19 @@ function PrepareAction({
           >
             {options.map((o) => (
               <option key={o.resourceKey} value={o.resourceKey}>
-                {o.recommended ? t("staff.queue.unitRecommended", { serial: o.serialNo }) : o.serialNo}
+                {o.serialNo}
               </option>
             ))}
           </select>
+        ) : options ? (
+          <span className="text-xs text-[var(--s-alert-t)]">{t("staff.queue.noFreeUnit")}</span>
         ) : null}
-        <Button type="button" size="sm" disabled={busy} onClick={() => onPrepare(chosen ?? undefined)}>
+        <Button
+          type="button"
+          size="sm"
+          disabled={busy || options?.length === 0}
+          onClick={() => onPrepare(chosen ?? undefined)}
+        >
           {busy ? t("common.loading") : t("staff.queue.actionPrepare")}
         </Button>
         {row.itemKey != null ? (

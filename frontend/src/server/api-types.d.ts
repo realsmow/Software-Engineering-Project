@@ -3347,7 +3347,6 @@ declare const appRouter: import("@trpc/server").TRPCBuiltRouter<{
 				resourceKey: number;
 				serialNo: string;
 				reserved: boolean;
-				recommended: boolean;
 			}[];
 			meta: object;
 		}>;

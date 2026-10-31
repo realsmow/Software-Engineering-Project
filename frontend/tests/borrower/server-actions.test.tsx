@@ -5,7 +5,7 @@ import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import i18n from "../../src/i18n";
 import { ROUTES } from "../../src/constants";
-import { fmtDate, fmtDateTime, fmtDayMonth } from "../../src/lib/datetime";
+import { fmtDate, fmtDayMonth, toLocalDayKey } from "../../src/lib/datetime";
 import HomePage from "../../src/features/borrower/home/home-page";
 import MyLoansPage from "../../src/features/borrower/loans/my-loans-page";
 import AppealsPage from "../../src/features/borrower/appeals/appeals-page";
@@ -276,11 +276,12 @@ describe("borrower home: extensions go to the server", () => {
     await waitFor(() => expect(extend).toBeEnabled());
     fireEvent.click(extend);
 
+    // The day defaults to the full allowance, so "full extension" is already chosen.
     expect(
-      screen.getByText(
-        i18n.t("borrower.myRequests.extNewDue", { date: fmtDateTime(MAX) })
-      )
-    ).toBeInTheDocument();
+      screen.getByRole("button", {
+        name: i18n.t("borrower.myRequests.extFull", { date: fmtDate(toLocalDayKey(MAX)) }),
+      })
+    ).toBeDisabled();
     fireEvent.click(
       screen.getByRole("button", { name: i18n.t("borrower.myRequests.extAskYesSup") })
     );

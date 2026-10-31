@@ -205,18 +205,13 @@ export const allocateLoanInput = reservationIdInput.extend({
 });
 export type AllocateLoanInput = z.infer<typeof allocateLoanInput>;
 
-/** Units staff may set aside for a booking: same type, free for its window. */
+/** Units staff may set aside for a booking: same type, on the shelf, free for its window. */
 export const prepareOptionsOutput = z.array(
   z.object({
     resourceKey: z.number().int(),
     serialNo: z.string(),
     /** The unit the booking holds now. */
     reserved: z.boolean(),
-    /**
-     * #235: the unit whose bookings before and after sit closest to this one,
-     * so a unit with a long free stretch stays free for a long loan.
-     */
-    recommended: z.boolean(),
   }),
 );
 

@@ -1063,6 +1063,10 @@ body.dark .login-left {
   flex: 1;
   overflow-y: auto;
   padding: 20px;
+  /* Anchors absolutely placed children (sr-only inputs) here, so they scroll
+     and clip with the body instead of stretching the page into a second
+     scrollbar. */
+  position: relative;
 }
 .body-inner {
   max-width: 1400px;

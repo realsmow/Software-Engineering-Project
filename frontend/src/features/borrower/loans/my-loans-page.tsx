@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
+import { ExtendDayField } from "./extend-day-field";
+import { StepDots } from "@/components/shared/step-dots";
 import { fmtDate, fmtDateTime, fmtDayMonth, fmtDayNum } from "@/lib/datetime";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Download, FileText } from "lucide-react";
@@ -561,7 +563,7 @@ function PenaltyLine({ penalty }: { penalty: LoanPenalty }) {
   );
 }
 
-/** Bar plus step labels. A stalled request keeps the bar where it stopped. */
+/** Dots and lines with step labels. A stalled request stays where it stopped. */
 function ProgressTrack({
   steps,
   at,
@@ -572,37 +574,13 @@ function ProgressTrack({
   stalled: boolean;
 }) {
   const { t } = useTranslation();
-  // Each label owns an equal-width column, so step i's centre sits at
-  // (i + 0.5) / steps.length. The bar stops on that centre - it should read as
-  // "we are at this step", not "past it". A finished request fills the track.
-  const finished = at >= steps.length;
-  const pct = finished ? 100 : ((at + 0.5) / steps.length) * 100;
-
   return (
-    <>
-      <div className="mt-3.5 h-1 overflow-hidden rounded-sm bg-surface-inset">
-        <div
-          className={cn("h-full rounded-sm", stalled ? "bg-[var(--s-t4)]" : "bg-accent")}
-          style={{ width: `${pct}%` }}
-        />
-      </div>
-      <div className="mt-1.5 flex">
-        {steps.map((key, i) => (
-          <span
-            key={key}
-            className={cn(
-              "flex-1 px-0.5 text-center text-[10.5px] leading-tight",
-              i < at && "text-t1",
-              i === at && !stalled && "font-semibold text-accent",
-              i === at && stalled && "font-semibold text-t4",
-              i > at && "text-t4"
-            )}
-          >
-            {t(`borrower.myRequests.${key}`)}
-          </span>
-        ))}
-      </div>
-    </>
+    <StepDots
+      className="mt-3.5"
+      labels={steps.map((key) => t(`borrower.myRequests.${key}`))}
+      at={at}
+      stalled={stalled}
+    />
   );
 }
 
@@ -749,9 +727,10 @@ function Actions({
   return (
     <>
       {asking && ext.canRequest ? (
-        <p className="mt-3 rounded border border-l-[3px] border-border border-l-accent-orange bg-[var(--s-hot-bg)] px-3 py-2 text-xs leading-relaxed text-[var(--s-hot-t)]">
-          {t(ext.askNoteKey, ext.values)} {t("borrower.myRequests.extNewDue", ext.values)}
-        </p>
+        <div className="mt-3 rounded border border-l-[3px] border-border border-l-accent-orange bg-[var(--s-hot-bg)] px-3 py-2 text-xs leading-relaxed text-[var(--s-hot-t)]">
+          <p>{t(ext.askNoteKey, ext.values)}</p>
+          <ExtendDayField extension={extension} />
+        </div>
       ) : null}
       {error ? (
         <p

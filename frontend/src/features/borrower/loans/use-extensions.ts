@@ -1,4 +1,6 @@
+import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toLocalDayKey } from "@/lib/datetime";
 import { fetchAllPages } from "@/lib/paging";
 import { queryKeys } from "@/lib/query-client";
 import { useTRPCClient } from "@/lib/trpc";
@@ -64,6 +66,20 @@ function useInvalidateExtensions() {
   };
 }
 
+const DAY_MS = 86_400_000;
+
+/**
+ * The server's `maxRequestedDueAt`, moved back to `day` at the same time of
+ * day. Bangkok has no daylight saving, so whole days are exact.
+ */
+export function onDay(maxDueAt: string, day: string): string {
+  const max = new Date(maxDueAt);
+  const back = Math.round(
+    (Date.parse(toLocalDayKey(max)) - Date.parse(day)) / DAY_MS,
+  );
+  return new Date(max.getTime() - back * DAY_MS).toISOString();
+}
+
 /**
  * Asks for more time on a loan.
  *
@@ -107,8 +123,14 @@ export interface LoanExtension {
   state: ExtensionState;
   /** Extensions already granted on this loan, per the server. */
   extensionsUsed: number;
-  /** Sends the request `state` describes. Only call while `state.canRequest`. */
+  /** Sends the request for `day`. Only call while `state.canRequest`. */
   request: () => void;
+  /** Bangkok day the loan would run to; defaults to the furthest allowed. */
+  day: string | null;
+  setDay: (day: string) => void;
+  /** The days that may be picked: after today's due date, up to the band's limit. */
+  minDay: string | null;
+  maxDay: string | null;
   /** Withdraws the open request. Only call while `state.isPending`. */
   withdraw: () => void;
   busy: boolean;
@@ -135,6 +157,14 @@ export function useLoanExtension(row: MyRequest): LoanExtension {
   const cancelExtension = useCancelExtension();
 
   const pending = pendingRows?.find((e) => e.extensionKey === pendingKey) ?? null;
+  const maxDay = options ? toLocalDayKey(options.maxRequestedDueAt) : null;
+  const minDay = options
+    ? toLocalDayKey(new Date(new Date(options.currentDueAt).getTime() + DAY_MS))
+    : null;
+  const [picked, setDay] = useState<string | null>(null);
+  // A picked day outside the current range (options refreshed) falls back to the max.
+  const day =
+    picked && minDay && maxDay && picked >= minDay && picked <= maxDay ? picked : maxDay;
   const state =
     usageKey === null
       ? NO_EXTENSION
@@ -152,7 +182,7 @@ export function useLoanExtension(row: MyRequest): LoanExtension {
       cancelExtension.reset();
       requestExtension.mutate({
         usageKey: options.usageKey,
-        requestedDueAt: options.maxRequestedDueAt,
+        requestedDueAt: onDay(options.maxRequestedDueAt, day ?? maxDay!),
       });
     },
     withdraw: () => {
@@ -160,6 +190,10 @@ export function useLoanExtension(row: MyRequest): LoanExtension {
       requestExtension.reset();
       cancelExtension.mutate({ extensionKey: pendingKey });
     },
+    day,
+    setDay,
+    minDay,
+    maxDay,
     busy: requestExtension.isPending || cancelExtension.isPending,
     error: requestExtension.error ?? cancelExtension.error,
   };

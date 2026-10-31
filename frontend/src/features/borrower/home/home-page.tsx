@@ -1,5 +1,6 @@
 import { useMemo, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
+import { ExtendDayField } from "../loans/extend-day-field";
 import { fmtDayMonth, fmtDayNum } from "@/lib/datetime";
 import { useNavigate } from "react-router-dom";
 import { Bell, ChevronDown, ChevronRight } from "lucide-react";
@@ -347,11 +348,7 @@ function LoanRow({ row }: { row: MyRequest }) {
           <p className="whitespace-normal text-[13px] leading-relaxed text-t2">
             {ext.askNoteKey ? t(ext.askNoteKey, ext.values) : null}
           </p>
-          {ext.newDueAt ? (
-            <p className="mt-2 text-[13px] font-medium text-foreground">
-              {t("borrower.myRequests.extNewDue", ext.values)}
-            </p>
-          ) : null}
+          <ExtendDayField extension={extension} />
         </Modal>
       </td>
     </tr>

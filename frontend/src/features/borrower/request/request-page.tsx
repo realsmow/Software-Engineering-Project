@@ -1,5 +1,6 @@
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
+import { StepDots } from "@/components/shared/step-dots";
 import { fmtDate, fmtDateTime } from "@/lib/datetime";
 import { DateInput } from "@/components/ui/date-input";
 import { AvailabilityCalendar } from "./availability-calendar";
@@ -114,6 +115,10 @@ export default function RequestPage() {
   const hasT1 = rows.some((r) => r.item.tier === "T1");
   // T0 is borrowed on the spot, so it may be picked up now (#189).
   const onlyT0 = rows.length > 0 && rows.every((r) => r.item.tier === "T0");
+  // T0 cannot be booked ahead (T0_NOT_RESERVABLE), so a cart holding one picks
+  // up today; later pickup days are not even offered.
+  const hasT0 = rows.some((r) => r.item.tier === "T0");
+  const pickupMax = hasT0 ? todayIso() : isoOffset(BUSINESS.RESERVATION_MAX_DAYS);
 
   // Supervisor sign-off: always for T2, and for T1 too once credit is low.
   const needsSupervisor = hasT2 || (policy.needsSupervisor && (hasT1 || hasT2));
@@ -215,6 +220,12 @@ export default function RequestPage() {
       setEndDate(iso);
     }
   }
+
+  // A draft saved for a later day, then given a T0 item, moves to today.
+  useEffect(() => {
+    if (hasT0 && startDate > pickupMax) handleStart(pickupMax);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasT0, startDate, pickupMax]);
 
   function clearItems() {
     replaceLines([]);
@@ -357,6 +368,7 @@ export default function RequestPage() {
                   days: maxDays,
                   horizon: BUSINESS.RESERVATION_MAX_DAYS,
                 })}
+                {hasT0 ? ` ${t("borrower.request.t0TodayOnly")}` : ""}
               </p>
 
               {/* From the draft, not the catalogue: the catalogue reloads when the
@@ -372,6 +384,7 @@ export default function RequestPage() {
                     startDate={startDate}
                     endDate={endDate}
                     maxDate={isoOffset(BUSINESS.RESERVATION_MAX_DAYS)}
+                    pickupMax={pickupMax}
                     holidays={holidays}
                     openDates={openDates}
                     onPickup={(iso) => {
@@ -389,7 +402,7 @@ export default function RequestPage() {
                     label={t("borrower.request.pickupDate")}
                     value={startDate}
                     min={todayIso()}
-                    max={isoOffset(BUSINESS.RESERVATION_MAX_DAYS)}
+                    max={pickupMax}
                     onChange={handleStart}
                   />
                   <RequestTimeField
@@ -545,29 +558,12 @@ export default function RequestPage() {
  */
 function StepsBar() {
   const { t } = useTranslation();
-  const steps = [t("borrower.request.step1"), t("borrower.request.step2"), t("borrower.request.step3")];
   return (
-    <div className="flex flex-wrap items-center gap-x-6 gap-y-2 rounded-lg border border-border bg-card px-3.5 py-3 shadow-sm">
-      {steps.map((label, i) => {
-        const active = i === 1;
-        return (
-          <div key={label} className="flex items-center gap-2.5">
-            <span
-              className={cn(
-                "inline-flex h-[22px] w-[22px] items-center justify-center rounded border font-mono text-xs font-semibold",
-                active
-                  ? "border-accent bg-accent text-white"
-                  : "border-border bg-transparent text-t3",
-              )}
-            >
-              {i + 1}
-            </span>
-            <span className={cn("whitespace-nowrap text-[13px]", active ? "font-semibold text-foreground" : "text-t3")}>
-              {label}
-            </span>
-          </div>
-        );
-      })}
+    <div className="rounded-lg border border-border bg-card px-3.5 py-3 shadow-sm">
+      <StepDots
+        labels={[t("borrower.request.step1"), t("borrower.request.step2"), t("borrower.request.step3")]}
+        at={1}
+      />
     </div>
   );
 }

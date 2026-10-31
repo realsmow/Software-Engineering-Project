@@ -1,5 +1,6 @@
 import { useMemo, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
+import { StepDots } from "@/components/shared/step-dots";
 import { useNavigate, useParams } from "react-router-dom";
 import { Building2, Check, TriangleAlert } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
@@ -444,38 +445,12 @@ export default function RoomBookingPage() {
  */
 function StepsBar() {
   const { t } = useTranslation();
-  const steps = [
-    t("borrower.booking.step1"),
-    t("borrower.booking.step2"),
-    t("borrower.booking.step3"),
-  ];
   return (
-    <div className="flex flex-wrap items-center gap-x-6 gap-y-2 rounded-lg border border-border bg-card px-3.5 py-3 shadow-sm">
-      {steps.map((label, i) => {
-        const active = i === 1;
-        return (
-          <div key={label} className="flex items-center gap-2.5">
-            <span
-              className={cn(
-                "inline-flex h-[22px] w-[22px] items-center justify-center rounded border font-mono text-xs font-semibold",
-                active
-                  ? "border-accent bg-accent text-white"
-                  : "border-border bg-transparent text-t3"
-              )}
-            >
-              {i + 1}
-            </span>
-            <span
-              className={cn(
-                "whitespace-nowrap text-[13px]",
-                active ? "font-semibold text-foreground" : "text-t3"
-              )}
-            >
-              {label}
-            </span>
-          </div>
-        );
-      })}
+    <div className="rounded-lg border border-border bg-card px-3.5 py-3 shadow-sm">
+      <StepDots
+        labels={[t("borrower.booking.step1"), t("borrower.booking.step2"), t("borrower.booking.step3")]}
+        at={1}
+      />
     </div>
   );
 }
