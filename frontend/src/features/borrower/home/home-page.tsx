@@ -50,7 +50,7 @@ export default function HomePage() {
         .filter((r) => r.kind === "equipment" && r.status === "inUse")
         // Soonest deadline first - that is the one the greeting talks about.
         .sort((a, b) => (a.daysLeft ?? 0) - (b.daysLeft ?? 0)),
-    [requests],
+    [requests]
   );
 
   const recent = useMemo(() => requests.slice(0, 5), [requests]);
@@ -64,7 +64,9 @@ export default function HomePage() {
     },
     {
       key: "booking",
-      count: requests.filter((r) => r.kind === "room" && STATUS_TAB[r.status] !== "history").length,
+      count: requests.filter(
+        (r) => r.kind === "room" && STATUS_TAB[r.status] !== "history"
+      ).length,
       dot: "var(--accent-blue)",
     },
   ];
@@ -117,7 +119,15 @@ interface Chip {
  * for the borrower to work out of a table. Which sentence depends on the
  * nearest deadline, so an overdue item can never be phrased as "nothing urgent".
  */
-function Greeting({ name, next, chips }: { name: string; next?: MyRequest; chips: Chip[] }) {
+function Greeting({
+  name,
+  next,
+  chips,
+}: {
+  name: string;
+  next?: MyRequest;
+  chips: Chip[];
+}) {
   const { t } = useTranslation();
   const navigate = useNavigate();
 
@@ -125,27 +135,26 @@ function Greeting({ name, next, chips }: { name: string; next?: MyRequest; chips
   const overdue = next !== undefined && left < 0;
   const soon = next !== undefined && left >= 0 && left <= 1;
 
-  const titleKey = next === undefined
-    ? "borrower.home.titleNone"
-    : overdue
-      ? "borrower.home.titleOverdue"
-      : soon
-        ? "borrower.home.titleDue"
-        : "borrower.home.titleCalm";
+  const titleKey =
+    next === undefined
+      ? "borrower.home.titleNone"
+      : overdue
+        ? "borrower.home.titleOverdue"
+        : soon
+          ? "borrower.home.titleDue"
+          : "borrower.home.titleCalm";
 
-  const body = next === undefined
-    ? t("borrower.home.bodyNone")
-    : overdue
-      ? t("borrower.home.bodyOverdue", {
-          name: next.name,
-          serial: next.serial,
-          count: Math.abs(left),
-        })
-      : t("borrower.home.bodyNext", {
-          name: next.name,
-          serial: next.serial,
-          date: fmtDay(next.dueAt ?? next.endDate),
-        });
+  // The serial is shown only where it means something (a T2 unit once one is
+  // set aside, a room, T3), so it is often empty - and the brackets go with it.
+  // The sentence used to print "()" for every T0/T1 loan (R7-14).
+  const item =
+    next === undefined ? "" : next.serial ? `${next.name} (${next.serial})` : next.name;
+  const body =
+    next === undefined
+      ? t("borrower.home.bodyNone")
+      : overdue
+        ? t("borrower.home.bodyOverdue", { item, count: Math.abs(left) })
+        : t("borrower.home.bodyNext", { item, date: fmtDay(next.dueAt ?? next.endDate) });
 
   return (
     <section className="rounded-lg border border-border bg-card px-4 py-4 shadow-sm">
@@ -154,11 +163,17 @@ function Greeting({ name, next, chips }: { name: string; next?: MyRequest; chips
           <div className="text-[11px] font-semibold uppercase tracking-[0.05em] text-t3">
             {t("borrower.home.greet", { name })}
           </div>
-          <h1 className="mt-1 text-xl font-semibold tracking-tight text-foreground">{t(titleKey)}</h1>
+          <h1 className="mt-1 text-xl font-semibold tracking-tight text-foreground">
+            {t(titleKey)}
+          </h1>
           <p
             className={cn(
               "mt-1.5 text-[13px] leading-relaxed",
-              overdue ? "text-[var(--s-alert-t)]" : soon ? "text-[var(--s-warn-t)]" : "text-t3",
+              overdue
+                ? "text-[var(--s-alert-t)]"
+                : soon
+                  ? "text-[var(--s-warn-t)]"
+                  : "text-t3"
             )}
           >
             {body}
@@ -166,7 +181,11 @@ function Greeting({ name, next, chips }: { name: string; next?: MyRequest; chips
         </div>
 
         <div className="flex flex-wrap gap-2">
-          <Button type="button" className="h-10 px-5" onClick={() => navigate(ROUTES.CATALOG)}>
+          <Button
+            type="button"
+            className="h-10 px-5"
+            onClick={() => navigate(ROUTES.CATALOG)}
+          >
             {t("borrower.home.borrowMore")}
           </Button>
           <Button
@@ -205,13 +224,22 @@ function LoansTable({ rows }: { rows: MyRequest[] }) {
   const { t } = useTranslation();
 
   if (rows.length === 0) {
-    return <p className="px-3.5 py-8 text-center text-[13px] text-t3">{t("borrower.home.noLoans")}</p>;
+    return (
+      <p className="px-3.5 py-8 text-center text-[13px] text-t3">
+        {t("borrower.home.noLoans")}
+      </p>
+    );
   }
 
+  // Below sm each row is a small card: item on top, due date and days left
+  // under it, the buttons at the right. In a sideways-scrolling table the
+  // extend button sat past the edge of a phone screen (R7-14). The same cells
+  // are restyled rather than rendered twice, because the actions cell holds
+  // the confirm dialog.
   return (
     <div className="overflow-x-auto">
-      <table className="w-full border-collapse text-[13px]">
-        <thead>
+      <table className="w-full border-collapse text-[13px] max-sm:block">
+        <thead className="max-sm:hidden">
           <tr className="bg-secondary">
             <Th>{t("borrower.home.colItem")}</Th>
             <Th nowrap>{t("borrower.home.colDue")}</Th>
@@ -221,7 +249,7 @@ function LoansTable({ rows }: { rows: MyRequest[] }) {
             </Th>
           </tr>
         </thead>
-        <tbody>
+        <tbody className="max-sm:block">
           {rows.map((row) => (
             <LoanRow key={row.id} row={row} />
           ))}
@@ -241,18 +269,18 @@ function LoanRow({ row }: { row: MyRequest }) {
   const error = extension.error ? getErrorMessage(extension.error) : null;
 
   return (
-    <tr className="border-b border-border last:border-b-0">
-      <td className="px-3.5 py-2">
+    <tr className="border-b border-border last:border-b-0 max-sm:flex max-sm:flex-wrap max-sm:items-center max-sm:gap-x-2 max-sm:gap-y-1.5 max-sm:px-3.5 max-sm:py-2.5">
+      <td className="px-3.5 py-2 max-sm:w-full max-sm:p-0">
         <div className="font-medium leading-snug text-foreground">{row.name}</div>
         <div className="mt-0.5 font-mono text-[11px] text-t4">{row.serial}</div>
       </td>
-      <td className="whitespace-nowrap px-3.5 py-2 font-mono text-xs text-t2">
+      <td className="whitespace-nowrap px-3.5 py-2 font-mono text-xs text-t2 max-sm:p-0">
         {fmtDay(row.dueAt ?? row.endDate)}
       </td>
-      <td className="whitespace-nowrap px-3.5 py-2">
+      <td className="whitespace-nowrap px-3.5 py-2 max-sm:p-0">
         <Badge tone={daysTone(left)}>{daysLabel(t, left)}</Badge>
       </td>
-      <td className="whitespace-nowrap px-3.5 py-2 text-right">
+      <td className="whitespace-nowrap px-3.5 py-2 text-right max-sm:ml-auto max-sm:p-0">
         <span className="inline-flex justify-end gap-1.5">
           {/* Shown even when someone else has to grant it: pressing sends the
               request. When the server would refuse, the tooltip says why. */}
@@ -309,7 +337,9 @@ function LoanRow({ row }: { row: MyRequest }) {
                   extension.request();
                 }}
               >
-                {ext.confirmLabelKey ? t(ext.confirmLabelKey) : t("borrower.myRequests.extend")}
+                {ext.confirmLabelKey
+                  ? t(ext.confirmLabelKey)
+                  : t("borrower.myRequests.extend")}
               </Button>
             </>
           }
@@ -333,14 +363,17 @@ function RequestsTable({ rows }: { rows: MyRequest[] }) {
 
   if (rows.length === 0) {
     return (
-      <p className="px-3.5 py-8 text-center text-[13px] text-t3">{t("borrower.home.noRequests")}</p>
+      <p className="px-3.5 py-8 text-center text-[13px] text-t3">
+        {t("borrower.home.noRequests")}
+      </p>
     );
   }
 
+  // Same phone layout as the loans table: the status column was cut off.
   return (
     <div className="overflow-x-auto">
-      <table className="w-full border-collapse text-[13px]">
-        <thead>
+      <table className="w-full border-collapse text-[13px] max-sm:block">
+        <thead className="max-sm:hidden">
           <tr className="bg-secondary">
             <Th nowrap>{t("borrower.home.colRef")}</Th>
             <Th>{t("borrower.home.colItem")}</Th>
@@ -348,15 +381,22 @@ function RequestsTable({ rows }: { rows: MyRequest[] }) {
             <Th nowrap>{t("borrower.home.colStatus")}</Th>
           </tr>
         </thead>
-        <tbody>
+        <tbody className="max-sm:block">
           {rows.map((row) => (
-            <tr key={row.id} className="border-b border-border last:border-b-0">
-              <td className="whitespace-nowrap px-3.5 py-2 font-mono text-xs">{row.id}</td>
-              <td className="px-3.5 py-2 text-foreground">{row.name}</td>
-              <td className="whitespace-nowrap px-3.5 py-2 font-mono text-xs text-t2">
+            <tr
+              key={row.id}
+              className="border-b border-border last:border-b-0 max-sm:flex max-sm:flex-wrap max-sm:items-center max-sm:gap-x-2 max-sm:gap-y-1 max-sm:px-3.5 max-sm:py-2.5"
+            >
+              <td className="whitespace-nowrap px-3.5 py-2 font-mono text-xs max-sm:p-0">
+                {row.id}
+              </td>
+              <td className="px-3.5 py-2 text-foreground max-sm:order-first max-sm:w-full max-sm:p-0">
+                {row.name}
+              </td>
+              <td className="whitespace-nowrap px-3.5 py-2 font-mono text-xs text-t2 max-sm:p-0">
                 {fmtRange(row.startDate, row.endDate)}
               </td>
-              <td className="whitespace-nowrap px-3.5 py-2">
+              <td className="whitespace-nowrap px-3.5 py-2 max-sm:ml-auto max-sm:p-0">
                 <Badge tone={STATUS_TONE[row.status]}>{t(statusKey(row.status))}</Badge>
               </td>
             </tr>
@@ -399,7 +439,7 @@ function NoticesPanel() {
         aria-expanded={open}
         className={cn(
           "flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left transition-colors hover:bg-accent-soft",
-          open && "border-b border-border",
+          open && "border-b border-border"
         )}
       >
         <Bell size={14} strokeWidth={2} className="shrink-0 text-t3" />
@@ -443,7 +483,7 @@ function NoticesPanel() {
                   onClick={() => openNotice(n)}
                   className={cn(
                     "flex gap-2.5 border-b border-border px-3.5 py-2.5 text-left last:border-b-0",
-                    "hover:bg-secondary",
+                    "hover:bg-secondary"
                   )}
                 >
                   <span className="mt-0.5 shrink-0 text-t3">
@@ -455,10 +495,15 @@ function NoticesPanel() {
                         {notificationText(n).title}
                       </span>
                       {!n.readAt ? (
-                        <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-accent" aria-hidden />
+                        <span
+                          className="h-1.5 w-1.5 shrink-0 rounded-full bg-accent"
+                          aria-hidden
+                        />
                       ) : null}
                     </span>
-                    <span className="mt-0.5 block text-xs leading-relaxed text-t3">{notificationText(n).body}</span>
+                    <span className="mt-0.5 block text-xs leading-relaxed text-t3">
+                      {notificationText(n).body}
+                    </span>
                     <span className="mt-1 block font-mono text-[11px] text-t4">
                       {fmtDay(n.createdAt)}
                     </span>
@@ -508,7 +553,7 @@ function Th({
       className={cn(
         "border-b border-border px-3.5 py-2 text-[11px] font-semibold uppercase tracking-[0.03em] text-t3",
         align === "right" ? "text-right" : "text-left",
-        nowrap && "whitespace-nowrap",
+        nowrap && "whitespace-nowrap"
       )}
     >
       {children}
@@ -539,7 +584,10 @@ function daysTone(left: number): BadgeTone {
   return "neutral";
 }
 
-function daysLabel(t: (key: string, opts?: Record<string, unknown>) => string, left: number): string {
+function daysLabel(
+  t: (key: string, opts?: Record<string, unknown>) => string,
+  left: number
+): string {
   if (left < 0) return t("borrower.myRequests.extOverdue", { count: Math.abs(left) });
   if (left === 0) return t("borrower.home.dueToday");
   return t("borrower.myRequests.extDaysLeft", { count: left });

@@ -36,12 +36,13 @@ vi.mock("../../src/lib/trpc", () => {
           {},
           {
             get: (_, proc: string) => {
-              const call = (input?: unknown) => Promise.resolve(api(`${domain}.${proc}`, input));
+              const call = (input?: unknown) =>
+                Promise.resolve(api(`${domain}.${proc}`, input));
               return { query: call, mutate: call };
             },
-          },
+          }
         ),
-    },
+    }
   );
   return { useTRPCClient: () => client };
 });
@@ -118,9 +119,13 @@ function serve(path: string, input: Record<string, unknown> | undefined): unknow
       if (db.options.route === "auto") {
         // Granted in the call, as the server does: the due date moves.
         db.loans = db.loans.map((l) =>
-          l.usageKey === input_.usageKey ? { ...l, dueAt: input_.requestedDueAt } : l,
+          l.usageKey === input_.usageKey ? { ...l, dueAt: input_.requestedDueAt } : l
         );
-        db.options = { ...db.options, extensionsUsed: db.options.extensionsUsed + 1, currentDueAt: input_.requestedDueAt };
+        db.options = {
+          ...db.options,
+          extensionsUsed: db.options.extensionsUsed + 1,
+          currentDueAt: input_.requestedDueAt,
+        };
         return { extensionKey: 98, status: "Approved" };
       }
       const pending = {
@@ -131,19 +136,34 @@ function serve(path: string, input: Record<string, unknown> | undefined): unknow
         requestedDueAt: input_.requestedDueAt,
       } as ServerExtension;
       db.pending = [pending];
-      db.options = { ...db.options, canRequest: false, blockedBy: "EXTENSION_ALREADY_PENDING", route: null, pendingExtensionKey: 99 };
+      db.options = {
+        ...db.options,
+        canRequest: false,
+        blockedBy: "EXTENSION_ALREADY_PENDING",
+        route: null,
+        pendingExtensionKey: 99,
+      };
       return pending;
     }
     case "loan.cancelExtension":
       db.pending = [];
-      db.options = { ...db.options, canRequest: true, blockedBy: null, route: "supervisor", pendingExtensionKey: null };
+      db.options = {
+        ...db.options,
+        canRequest: true,
+        blockedBy: null,
+        route: "supervisor",
+        pendingExtensionKey: null,
+      };
       return { extensionKey: 99, status: "Canceled" };
     case "appeal.appealable":
       return db.appealable;
     case "appeal.mine":
       return page(db.appeals);
     case "appeal.create": {
-      const { penaltyKey, appealReason } = input as { penaltyKey: number; appealReason: string };
+      const { penaltyKey, appealReason } = input as {
+        penaltyKey: number;
+        appealReason: string;
+      };
       const penalty = db.appealable.find((p) => p.penaltyKey === penaltyKey)!;
       const appeal = {
         appealKey: 1,
@@ -151,7 +171,13 @@ function serve(path: string, input: Record<string, unknown> | undefined): unknow
         appealReason,
         filedAt: "2026-09-23T12:00:00.000Z",
         resolvedAt: null,
-        filedBy: { accountKey: 3, studentId: "test_borrower", firstName: "N", lastName: "S", creditScore: 84 },
+        filedBy: {
+          accountKey: 3,
+          studentId: "test_borrower",
+          firstName: "N",
+          lastName: "S",
+          creditScore: 84,
+        },
         resolvedBy: null,
         penalty: { ...penalty },
         replacementPenalty: null,
@@ -192,7 +218,7 @@ function renderAt(path: string, element: ReactNode) {
           <Route path="*" element={<LocationProbe />} />
         </Routes>
       </MemoryRouter>
-    </QueryClientProvider>,
+    </QueryClientProvider>
   );
 }
 
@@ -220,38 +246,68 @@ beforeEach(() => {
   };
 });
 
+describe("borrower home: the next item due (R7-14)", () => {
+  it("names a loan without a serial with no empty brackets", async () => {
+    // T0/T1 show no serial - the counter picks the unit - and the sentence
+    // used to print "()" for them.
+    db.loans = [request({ resource: { ...request({}).resource, tier: "T0" } })];
+    renderAt(ROUTES.HOME, <HomePage />);
+    expect(
+      await screen.findByText(/Next due is Oscilloscope 100MHz on /)
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/\(\)/)).toBeNull();
+  });
+
+  it("keeps the serial in brackets when there is one", async () => {
+    renderAt(ROUTES.HOME, <HomePage />);
+    expect(
+      await screen.findByText(/Next due is Oscilloscope 100MHz \(EE-OSC-001\) on /)
+    ).toBeInTheDocument();
+  });
+});
+
 describe("borrower home: extensions go to the server", () => {
   it("sends a supervisor-routed request with the server's due date, then withdraws it on the server", async () => {
     renderAt(ROUTES.HOME, <HomePage />);
 
-    const extend = await screen.findByRole("button", { name: i18n.t("borrower.myRequests.extend") });
+    const extend = await screen.findByRole("button", {
+      name: i18n.t("borrower.myRequests.extend"),
+    });
     await waitFor(() => expect(extend).toBeEnabled());
     fireEvent.click(extend);
 
     expect(
-      screen.getByText(i18n.t("borrower.myRequests.extNewDue", { date: fmtDateTime(MAX) })),
+      screen.getByText(
+        i18n.t("borrower.myRequests.extNewDue", { date: fmtDateTime(MAX) })
+      )
     ).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: i18n.t("borrower.myRequests.extAskYesSup") }));
+    fireEvent.click(
+      screen.getByRole("button", { name: i18n.t("borrower.myRequests.extAskYesSup") })
+    );
 
     await waitFor(() =>
       expect(api).toHaveBeenCalledWith(
         "loan.requestExtension",
-        expect.objectContaining({ usageKey: 7, requestedDueAt: MAX }),
-      ),
+        expect.objectContaining({ usageKey: 7, requestedDueAt: MAX })
+      )
     );
 
     // The pending state is the server's answer after the refetch, not a local flag.
-    const withdraw = await screen.findByRole("button", { name: i18n.t("borrower.myRequests.cancelExt") });
+    const withdraw = await screen.findByRole("button", {
+      name: i18n.t("borrower.myRequests.cancelExt"),
+    });
     expect(
-      screen.getByRole("button", { name: i18n.t("borrower.myRequests.extPending") }),
+      screen.getByRole("button", { name: i18n.t("borrower.myRequests.extPending") })
     ).toBeDisabled();
 
     fireEvent.click(withdraw);
     await waitFor(() =>
-      expect(api).toHaveBeenCalledWith("loan.cancelExtension", { extensionKey: 99 }),
+      expect(api).toHaveBeenCalledWith("loan.cancelExtension", { extensionKey: 99 })
     );
     await waitFor(() =>
-      expect(screen.queryByRole("button", { name: i18n.t("borrower.myRequests.cancelExt") })).toBeNull(),
+      expect(
+        screen.queryByRole("button", { name: i18n.t("borrower.myRequests.cancelExt") })
+      ).toBeNull()
     );
   });
 
@@ -261,16 +317,20 @@ describe("borrower home: extensions go to the server", () => {
 
     expect(await screen.findByText(fmtDayMonth(DUE))).toBeInTheDocument();
 
-    const extend = screen.getByRole("button", { name: i18n.t("borrower.myRequests.extend") });
+    const extend = screen.getByRole("button", {
+      name: i18n.t("borrower.myRequests.extend"),
+    });
     await waitFor(() => expect(extend).toBeEnabled());
     fireEvent.click(extend);
-    fireEvent.click(screen.getByRole("button", { name: i18n.t("borrower.myRequests.extAskYesAuto") }));
+    fireEvent.click(
+      screen.getByRole("button", { name: i18n.t("borrower.myRequests.extAskYesAuto") })
+    );
 
     await waitFor(() =>
       expect(api).toHaveBeenCalledWith(
         "loan.requestExtension",
-        expect.objectContaining({ usageKey: 7, requestedDueAt: MAX }),
-      ),
+        expect.objectContaining({ usageKey: 7, requestedDueAt: MAX })
+      )
     );
     expect(await screen.findByText(fmtDayMonth(MAX))).toBeInTheDocument();
     expect(screen.queryByText(fmtDayMonth(DUE))).toBeNull();
@@ -280,7 +340,12 @@ describe("borrower home: extensions go to the server", () => {
 describe("my requests: statuses and penalties come from the server", () => {
   beforeEach(() => {
     db.loans = [
-      request({ reservationKey: 33, status: "returned", usageKey: 6, dueAt: "2026-09-03T11:11:31.583Z" }),
+      request({
+        reservationKey: 33,
+        status: "returned",
+        usageKey: 6,
+        dueAt: "2026-09-03T11:11:31.583Z",
+      }),
       request({
         reservationKey: 37,
         status: "rejected",
@@ -294,10 +359,16 @@ describe("my requests: statuses and penalties come from the server", () => {
 
   it("labels a returned loan as awaiting inspection and shows the deduction the server made", async () => {
     renderAt(ROUTES.MY_LOANS, <MyLoansPage />);
-    fireEvent.click(await screen.findByRole("tab", { name: new RegExp(i18n.t("borrower.myRequests.tabHistory")) }));
+    fireEvent.click(
+      await screen.findByRole("tab", {
+        name: new RegExp(i18n.t("borrower.myRequests.tabHistory")),
+      })
+    );
 
     const returned = (await screen.findByText("33")).closest("article")!;
-    expect(within(returned).getByText(i18n.t("borrower.myRequests.stReturned"))).toBeInTheDocument();
+    expect(
+      within(returned).getByText(i18n.t("borrower.myRequests.stReturned"))
+    ).toBeInTheDocument();
     expect(i18n.t("borrower.myRequests.stReturned")).toMatch(/inspection/i);
 
     const line = i18n.t("borrower.myRequests.penaltyLine", {
@@ -305,15 +376,27 @@ describe("my requests: statuses and penalties come from the server", () => {
       credit: 8,
       date: fmtDate(PENALTY.issuedAt),
     });
-    expect(await within(returned).findByText(new RegExp(escape(line)))).toBeInTheDocument();
+    expect(
+      await within(returned).findByText(new RegExp(escape(line)))
+    ).toBeInTheDocument();
 
-    fireEvent.click(within(returned).getByRole("button", { name: i18n.t("borrower.myRequests.appeal") }));
-    expect(await screen.findByTestId("location")).toHaveTextContent(`${ROUTES.APPEALS}?penalty=4`);
+    fireEvent.click(
+      within(returned).getByRole("button", { name: i18n.t("borrower.myRequests.appeal") })
+    );
+    expect(await screen.findByTestId("location")).toHaveTextContent(
+      `${ROUTES.APPEALS}?penalty=4`
+    );
   });
 
   it("shows one cart as one borrow and cancels all of it (demo feedback)", async () => {
     db.loans = [
-      request({ reservationKey: 41, cartKey: 4, status: "pending", usageKey: null, cancellable: true }),
+      request({
+        reservationKey: 41,
+        cartKey: 4,
+        status: "pending",
+        usageKey: null,
+        cancellable: true,
+      }),
       request({
         reservationKey: 42,
         cartKey: 4,
@@ -328,11 +411,17 @@ describe("my requests: statuses and penalties come from the server", () => {
       name: i18n.t("borrower.myRequests.cartTitle", { count: 2 }),
     });
     fireEvent.click(
-      within(cart).getByRole("button", { name: i18n.t("borrower.myRequests.cancelCart", { count: 2 }) }),
+      within(cart).getByRole("button", {
+        name: i18n.t("borrower.myRequests.cancelCart", { count: 2 }),
+      })
     );
-    fireEvent.click(screen.getByRole("button", { name: i18n.t("borrower.myRequests.cancelConfirmYes") }));
+    fireEvent.click(
+      screen.getByRole("button", { name: i18n.t("borrower.myRequests.cancelConfirmYes") })
+    );
     // #236 step 2: one call for the whole cart, every line or none.
-    await waitFor(() => expect(api).toHaveBeenCalledWith("loan.cancelCart", { reservationKeys: [41, 42] }));
+    await waitFor(() =>
+      expect(api).toHaveBeenCalledWith("loan.cancelCart", { reservationKeys: [41, 42] })
+    );
     expect(api).not.toHaveBeenCalledWith("loan.cancel", expect.anything());
   });
 
@@ -344,7 +433,11 @@ describe("my requests: statuses and penalties come from the server", () => {
         status: "approved",
         usageKey: null,
         cancellable: true,
-        resource: { ...request({}).resource, name: "Meter", pickupPoint: "Electrical Engineering" },
+        resource: {
+          ...request({}).resource,
+          name: "Meter",
+          pickupPoint: "Electrical Engineering",
+        },
       }),
       request({
         reservationKey: 72,
@@ -352,16 +445,24 @@ describe("my requests: statuses and penalties come from the server", () => {
         status: "approved",
         usageKey: null,
         cancellable: true,
-        resource: { ...request({}).resource, name: "Robot arm", pickupPoint: "Robotics Club" },
+        resource: {
+          ...request({}).resource,
+          name: "Robot arm",
+          pickupPoint: "Robotics Club",
+        },
       }),
     ];
     renderAt(ROUTES.MY_LOANS, <MyLoansPage />);
     const cart = await screen.findByRole("region", {
       name: i18n.t("borrower.myRequests.cartTitle", { count: 2 }),
     });
-    expect(within(cart).getByText(i18n.t("borrower.request.pickupPoints", { count: 2 }))).toBeInTheDocument();
     expect(
-      within(cart).getByText(i18n.t("borrower.request.pickupAt", { place: "Robotics Club", count: 1 }))
+      within(cart).getByText(i18n.t("borrower.request.pickupPoints", { count: 2 }))
+    ).toBeInTheDocument();
+    expect(
+      within(cart).getByText(
+        i18n.t("borrower.request.pickupAt", { place: "Robotics Club", count: 1 })
+      )
     ).toBeInTheDocument();
   });
 
@@ -376,7 +477,13 @@ describe("my requests: statuses and penalties come from the server", () => {
         decisionNote: "Not for coursework",
         resource: { ...request({}).resource, name: "Probe kit" },
       }),
-      request({ reservationKey: 52, cartKey: 6, status: "approved", usageKey: null, cancellable: true }),
+      request({
+        reservationKey: 52,
+        cartKey: 6,
+        status: "approved",
+        usageKey: null,
+        cancellable: true,
+      }),
     ];
     renderAt(`${ROUTES.MY_LOANS}?cart=6`, <MyLoansPage />);
     const question = i18n.t("borrower.myRequests.partRejected", { names: "Probe kit" });
@@ -389,7 +496,11 @@ describe("my requests: statuses and penalties come from the server", () => {
     ).toBeChecked();
 
     // Keeping everything only closes the question.
-    fireEvent.click(within(cart).getByRole("button", { name: i18n.t("borrower.myRequests.keepApproved") }));
+    fireEvent.click(
+      within(cart).getByRole("button", {
+        name: i18n.t("borrower.myRequests.keepApproved"),
+      })
+    );
     expect(screen.queryByText(question)).not.toBeInTheDocument();
     expect(api).not.toHaveBeenCalledWith("loan.cancel", expect.anything());
     expect(screen.getByText("52")).toBeInTheDocument();
@@ -405,7 +516,13 @@ describe("my requests: statuses and penalties come from the server", () => {
         cancellable: false,
         resource: { ...request({}).resource, name: "Probe kit" },
       }),
-      request({ reservationKey: 62, cartKey: 7, status: "approved", usageKey: null, cancellable: true }),
+      request({
+        reservationKey: 62,
+        cartKey: 7,
+        status: "approved",
+        usageKey: null,
+        cancellable: true,
+      }),
     ];
     renderAt(ROUTES.MY_LOANS, <MyLoansPage />);
     const question = i18n.t("borrower.myRequests.partRejected", { names: "Probe kit" });
@@ -416,10 +533,16 @@ describe("my requests: statuses and penalties come from the server", () => {
       })
     );
     fireEvent.click(
-      within(cart).getByRole("button", { name: i18n.t("borrower.myRequests.cancelUnchosen", { count: 1 }) })
+      within(cart).getByRole("button", {
+        name: i18n.t("borrower.myRequests.cancelUnchosen", { count: 1 }),
+      })
     );
-    fireEvent.click(screen.getByRole("button", { name: i18n.t("borrower.myRequests.cancelConfirmYes") }));
-    await waitFor(() => expect(api).toHaveBeenCalledWith("loan.cancel", { reservationKey: 62 }));
+    fireEvent.click(
+      screen.getByRole("button", { name: i18n.t("borrower.myRequests.cancelConfirmYes") })
+    );
+    await waitFor(() =>
+      expect(api).toHaveBeenCalledWith("loan.cancel", { reservationKey: 62 })
+    );
   });
 
   it("#236: lets the borrower keep some items and cancel the others", async () => {
@@ -449,31 +572,45 @@ describe("my requests: statuses and penalties come from the server", () => {
     const question = i18n.t("borrower.myRequests.partRejected", { names: "Probe kit" });
     const cart = (await screen.findByText(question)).closest("section")!;
     const keep = (name: string) =>
-      within(cart).getByRole("checkbox", { name: i18n.t("borrower.myRequests.keepItem", { name }) });
+      within(cart).getByRole("checkbox", {
+        name: i18n.t("borrower.myRequests.keepItem", { name }),
+      });
     const cancelButton = (count: number) =>
-      within(cart).getByRole("button", { name: i18n.t("borrower.myRequests.cancelUnchosen", { count }) });
+      within(cart).getByRole("button", {
+        name: i18n.t("borrower.myRequests.cancelUnchosen", { count }),
+      });
 
     // Nothing to cancel while every item is ticked.
     expect(cancelButton(0)).toBeDisabled();
     fireEvent.click(keep("Scope"));
     fireEvent.click(keep("Soldering iron"));
     fireEvent.click(cancelButton(2));
-    fireEvent.click(screen.getByRole("button", { name: i18n.t("borrower.myRequests.cancelConfirmYes") }));
+    fireEvent.click(
+      screen.getByRole("button", { name: i18n.t("borrower.myRequests.cancelConfirmYes") })
+    );
 
     // The two unticked lines go together, in one call (#236 step 2); the meter stays.
-    await waitFor(() => expect(api).toHaveBeenCalledWith("loan.cancelCart", { reservationKeys: [83, 84] }));
+    await waitFor(() =>
+      expect(api).toHaveBeenCalledWith("loan.cancelCart", { reservationKeys: [83, 84] })
+    );
     expect(api).not.toHaveBeenCalledWith("loan.cancel", expect.anything());
   });
 
   it("shows the approver's reason on a rejected request, not a canned one", async () => {
     renderAt(ROUTES.MY_LOANS, <MyLoansPage />);
-    fireEvent.click(await screen.findByRole("tab", { name: new RegExp(i18n.t("borrower.myRequests.tabHistory")) }));
+    fireEvent.click(
+      await screen.findByRole("tab", {
+        name: new RegExp(i18n.t("borrower.myRequests.tabHistory")),
+      })
+    );
 
     const rejected = (await screen.findByText("37")).closest("article")!;
     expect(
       within(rejected).getByText(
-        i18n.t("borrower.myRequests.decisionNote", { note: "Scope is booked for calibration that week" }),
-      ),
+        i18n.t("borrower.myRequests.decisionNote", {
+          note: "Scope is booked for calibration that week",
+        })
+      )
     ).toBeInTheDocument();
   });
 
@@ -495,7 +632,11 @@ describe("my requests: statuses and penalties come from the server", () => {
     const title = i18n.t("borrower.myRequests.waitTitle");
     const question = await screen.findByRole("group", { name: title });
 
-    fireEvent.click(within(question).getByRole("button", { name: i18n.t("borrower.myRequests.waitKeep") }));
+    fireEvent.click(
+      within(question).getByRole("button", {
+        name: i18n.t("borrower.myRequests.waitKeep"),
+      })
+    );
     expect(screen.queryByRole("group", { name: title })).not.toBeInTheDocument();
     expect(api).not.toHaveBeenCalledWith("loan.cancel", expect.anything());
     expect(screen.getByText("81")).toBeInTheDocument();
@@ -510,25 +651,38 @@ describe("my requests: statuses and penalties come from the server", () => {
   it("approval-wait: cancels the request from the question", async () => {
     db.loans = [waitingLine(82)];
     renderAt(ROUTES.MY_LOANS, <MyLoansPage />);
-    const question = await screen.findByRole("group", { name: i18n.t("borrower.myRequests.waitTitle") });
+    const question = await screen.findByRole("group", {
+      name: i18n.t("borrower.myRequests.waitTitle"),
+    });
     fireEvent.click(
-      within(question).getByRole("button", { name: i18n.t("borrower.myRequests.waitCancel", { count: 1 }) }),
+      within(question).getByRole("button", {
+        name: i18n.t("borrower.myRequests.waitCancel", { count: 1 }),
+      })
     );
-    fireEvent.click(screen.getByRole("button", { name: i18n.t("borrower.myRequests.cancelConfirmYes") }));
-    await waitFor(() => expect(api).toHaveBeenCalledWith("loan.cancel", { reservationKey: 82 }));
+    fireEvent.click(
+      screen.getByRole("button", { name: i18n.t("borrower.myRequests.cancelConfirmYes") })
+    );
+    await waitFor(() =>
+      expect(api).toHaveBeenCalledWith("loan.cancel", { reservationKey: 82 })
+    );
   });
 
   it("approval-wait: does not ask before the period starts, or about a request already approved", async () => {
     db.loans = [
       // Default window: starts in 2029.
-      request({ reservationKey: 83, status: "pending", usageKey: null, cancellable: true }),
+      request({
+        reservationKey: 83,
+        status: "pending",
+        usageKey: null,
+        cancellable: true,
+      }),
       { ...waitingLine(84), status: "approved" },
     ];
     renderAt(ROUTES.MY_LOANS, <MyLoansPage />);
     await screen.findByText("83");
     expect(screen.getByText("84")).toBeInTheDocument();
     expect(
-      screen.queryByRole("group", { name: i18n.t("borrower.myRequests.waitTitle") }),
+      screen.queryByRole("group", { name: i18n.t("borrower.myRequests.waitTitle") })
     ).not.toBeInTheDocument();
   });
 });
@@ -537,7 +691,9 @@ describe("appeals: filed against a penalty on the server", () => {
   it("files the appeal with appeal.create and lists it from appeal.mine", async () => {
     const { container } = renderAt(`${ROUTES.APPEALS}?penalty=4`, <AppealsPage />);
 
-    const textarea = await screen.findByPlaceholderText(i18n.t("borrower.appeals.whyPlaceholder"));
+    const textarea = await screen.findByPlaceholderText(
+      i18n.t("borrower.appeals.whyPlaceholder")
+    );
     // FR-APL-02: evidence photos are offered, but they go up through the loan's
     // `evidence` photo stage, not through appeal.create (checked below).
     expect(container.querySelector('input[type="file"]')).not.toBeNull();
@@ -547,16 +703,22 @@ describe("appeals: filed against a penalty on the server", () => {
     const summary = screen.getByText(i18n.t("borrower.appeals.sumCut")).parentElement!;
     expect(summary).toHaveTextContent("8");
 
-    fireEvent.change(textarea, { target: { value: "  It was returned; staff logged it late.  " } });
-    fireEvent.click(screen.getByRole("button", { name: i18n.t("borrower.appeals.send") }));
+    fireEvent.change(textarea, {
+      target: { value: "  It was returned; staff logged it late.  " },
+    });
+    fireEvent.click(
+      screen.getByRole("button", { name: i18n.t("borrower.appeals.send") })
+    );
 
     await waitFor(() =>
       expect(api).toHaveBeenCalledWith("appeal.create", {
         penaltyKey: 4,
         appealReason: "It was returned; staff logged it late.",
-      }),
+      })
     );
-    expect(await screen.findByText(i18n.t("borrower.appeals.status_pending"))).toBeInTheDocument();
+    expect(
+      await screen.findByText(i18n.t("borrower.appeals.status_pending"))
+    ).toBeInTheDocument();
     expect(screen.getByText(i18n.t("borrower.appeals.sentNote"))).toBeInTheDocument();
   });
 });
