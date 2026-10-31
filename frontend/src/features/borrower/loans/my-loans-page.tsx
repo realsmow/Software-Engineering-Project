@@ -98,7 +98,8 @@ export default function MyLoansPage() {
   const refusedByCart = useMemo(() => {
     const byCart = new Map<number, MyRequest[]>();
     for (const r of requests) {
-      const refused = r.status === "rejected" || (r.status === "cancelled" && r.cartKey === linkedCart);
+      const refused =
+        r.status === "rejected" || (r.status === "cancelled" && r.cartKey === linkedCart);
       if (r.cartKey == null || !refused) continue;
       byCart.set(r.cartKey, [...(byCart.get(r.cartKey) ?? []), r]);
     }
@@ -144,10 +145,13 @@ export default function MyLoansPage() {
     setCancelError(null);
 
     try {
-      const keys = targets.flatMap((row) => (row.reservationKey === undefined ? [] : [row.reservationKey]));
+      const keys = targets.flatMap((row) =>
+        row.reservationKey === undefined ? [] : [row.reservationKey]
+      );
       // #236 step 2 (D-01): a whole cart is cancelled together, or not at all.
       if (keys.length > 1) await cancelWholeCart.mutateAsync({ reservationKeys: keys });
-      else if (keys.length === 1) await cancelRequest.mutateAsync({ reservationKey: keys[0] });
+      else if (keys.length === 1)
+        await cancelRequest.mutateAsync({ reservationKey: keys[0] });
       // Cancelling from the question is the borrower's answer to it.
       if (askingCart !== null) keepApproved(askingCart);
       setAskingCart(null);
@@ -166,18 +170,22 @@ export default function MyLoansPage() {
       />
 
       <section className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
-        <div className="flex items-center border-b border-border px-1.5">
+        {/* R7-13: on a phone the tabs take the whole row and the export button
+            drops below them; side by side, the button sat where the History
+            tab had scrolled to, and tapping "History" downloaded a CSV. */}
+        <div className="flex flex-wrap items-center border-b border-border px-1.5">
           {/* #226: only tabs inside the tablist; arrows move between them. */}
           <div
             role="tablist"
             aria-label={t("nav.myRequests")}
-            className="flex min-w-0 items-center gap-0.5 overflow-x-auto"
+            className="flex w-full min-w-0 items-center gap-0.5 overflow-x-auto sm:w-auto"
             onKeyDown={(e) => {
               const step = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0;
               if (step === 0) return;
               e.preventDefault();
               const at = REQUEST_TABS.indexOf(tab);
-              const next = REQUEST_TABS[(at + step + REQUEST_TABS.length) % REQUEST_TABS.length];
+              const next =
+                REQUEST_TABS[(at + step + REQUEST_TABS.length) % REQUEST_TABS.length];
               setTab(next);
               document.getElementById(`my-requests-tab-${next}`)?.focus();
             }}
@@ -264,7 +272,7 @@ export default function MyLoansPage() {
               !answeredNow.has(cartKey) &&
               (!dismissed.has(cartKey) || linkedCart === cartKey);
             const waiting = lines.filter(
-              (r) => waitingPastStart(r, now) && !keptWaiting.has(r.reservationKey!),
+              (r) => waitingPastStart(r, now) && !keptWaiting.has(r.reservationKey!)
             );
             const waitQuestion =
               waiting.length > 0 ? (
@@ -294,7 +302,7 @@ export default function MyLoansPage() {
                 aria-label={t("borrower.myRequests.cartTitle", { count: lines.length })}
                 className={cn(
                   "rounded-lg border border-dashed border-line-strong p-2.5",
-                  ask && linkedCart === cartKey && "border-solid border-[var(--s-warn-b)]",
+                  ask && linkedCart === cartKey && "border-solid border-[var(--s-warn-b)]"
                 )}
               >
                 {ask ? (
@@ -943,7 +951,11 @@ function PartRejectedQuestion({
 
   return (
     <div className="mb-2.5 rounded border border-[var(--s-warn-b)] bg-[var(--s-warn-bg)] px-3 py-2 text-[12.5px] text-[var(--s-warn-t)]">
-      <p>{t("borrower.myRequests.partRejected", { names: refused.map((r) => r.name).join(", ") })}</p>
+      <p>
+        {t("borrower.myRequests.partRejected", {
+          names: refused.map((r) => r.name).join(", "),
+        })}
+      </p>
       <ul className="mt-2 flex flex-col gap-1.5">
         {lines.map((r) => (
           <li key={r.id}>
@@ -956,7 +968,9 @@ function PartRejectedQuestion({
                 className="h-4 w-4"
               />
               <span>{r.name}</span>
-              {r.serial ? <span className="font-mono text-[11px] text-t3">{r.serial}</span> : null}
+              {r.serial ? (
+                <span className="font-mono text-[11px] text-t3">{r.serial}</span>
+              ) : null}
             </label>
           </li>
         ))}
@@ -1028,7 +1042,8 @@ function WaitingQuestion({
 
 /** Still waiting for a supervisor although the borrowing period has begun (and not yet ended). */
 function waitingPastStart(r: MyRequest, now: number): boolean {
-  if (r.status !== "pending" || !r.cancellable || r.reservationKey === undefined) return false;
+  if (r.status !== "pending" || !r.cancellable || r.reservationKey === undefined)
+    return false;
   if (!r.startsAt || !r.endsAt) return false;
   return Date.parse(r.startsAt) <= now && now < Date.parse(r.endsAt);
 }

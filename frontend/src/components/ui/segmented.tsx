@@ -20,8 +20,10 @@ export function Segmented<V extends string>({
   onChange: (next: V) => void;
 }) {
   return (
+    // On a phone the options wrap instead of pushing the page wider than the
+    // screen (the approvals and audit pages did, R7-13); unchanged from sm up.
     <div
-      className="inline-flex h-9 items-center gap-0.5 rounded-md border border-border bg-secondary p-0.5"
+      className="inline-flex h-9 max-w-full items-center gap-0.5 rounded-md border border-border bg-secondary p-0.5 max-sm:h-auto max-sm:flex-wrap"
       role="tablist"
     >
       {options.map((o) => (
@@ -35,7 +37,7 @@ export function Segmented<V extends string>({
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
             o.value === value
               ? "bg-card text-foreground"
-              : "text-muted-foreground hover:text-foreground",
+              : "text-muted-foreground hover:text-foreground"
           )}
           onClick={() => onChange(o.value)}
         >

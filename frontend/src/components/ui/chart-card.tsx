@@ -25,12 +25,18 @@ export function ChartCard({
 }) {
   return (
     <Card>
-      <CardHeader className="flex-row items-center justify-between gap-3 space-y-0">
+      {/* flex-wrap: on a phone the actions drop under the title instead of
+          pushing the card past the screen (audit page, R7-13). */}
+      <CardHeader className="flex-row flex-wrap items-center justify-between gap-3 space-y-0">
         <div className="flex flex-col gap-1">
           <div className="text-sm font-semibold text-foreground">{title}</div>
-          {subtitle ? <div className="text-xs text-muted-foreground">{subtitle}</div> : null}
+          {subtitle ? (
+            <div className="text-xs text-muted-foreground">{subtitle}</div>
+          ) : null}
         </div>
-        {actions ? <div className="flex items-center gap-2">{actions}</div> : null}
+        {actions ? (
+          <div className="flex max-w-full items-center gap-2">{actions}</div>
+        ) : null}
       </CardHeader>
       <CardContent>
         <ResponsiveContainer width="100%" height={height}>
