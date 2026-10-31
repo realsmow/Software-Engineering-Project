@@ -379,6 +379,14 @@ body.dark .login-left {
   padding: 40px;
   position: relative;
 }
+/* Grid items default to min-width: auto, so the heading, the description or
+   the card could hold a 1fr column wider than the screen. Both columns may
+   shrink at every width; the rule used to apply from 375 px up only, which
+   left 360 px Android phones and 320 px iPhones scrolling sideways (R7-11). */
+.login-left,
+.login-right {
+  min-width: 0;
+}
 .login-actions {
   position: absolute;
   top: 24px;
@@ -2185,10 +2193,6 @@ body.dark .modal-overlay {
 }
 
 /* Responsive */
-@media (min-width: 375px) {
-  .login-right { min-width: 0; }
-}
-
 @media (min-width: 1280px) {
   .login-card { max-width: 400px; }
   .shell { grid-template-columns: 240px 1fr; }
@@ -2233,4 +2237,12 @@ body.dark .modal-overlay {
   .slideover {
     max-width: 100%;
   }
+}
+
+/* Small phones (320-375 px): tighter padding and a smaller headline give the
+   sign-in card the whole width (R7-11). */
+@media (max-width: 375px) {
+  .login-left { padding: 24px 20px; }
+  .login-right { padding: 24px 16px; }
+  .login-hero h1 { font-size: 28px; }
 }
