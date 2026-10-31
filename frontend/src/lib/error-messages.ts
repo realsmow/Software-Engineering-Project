@@ -239,6 +239,8 @@ export function extractErrorCode(error: unknown): string | undefined {
     const candidate =
       (data?.businessCode as string | undefined) ??
       (data?.code as string | undefined) ??
+      // The inventory page's picture checks hand over `{ businessCode }` directly.
+      (e.businessCode as string | undefined) ??
       (e.code as string | undefined);
     if (typeof candidate === "string") return candidate;
   }

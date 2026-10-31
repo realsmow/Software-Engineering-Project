@@ -1,6 +1,6 @@
-import { useState, type ChangeEvent, type ReactNode } from "react";
+import { useEffect, useState, type ChangeEvent, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { Plus } from "lucide-react";
+import { Building2, Plus } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { TierDot } from "@/components/shared/tier-badge";
 import { ImageThumb } from "@/components/shared/image-thumb";
@@ -1352,8 +1352,13 @@ function RoomRow({ room, onEdit }: { room: ManagedRoom; onEdit: () => void }) {
   return (
     <tr className="border-b border-border last:border-b-0 max-sm:flex max-sm:flex-wrap max-sm:items-center max-sm:gap-x-4 max-sm:gap-y-2 max-sm:px-3.5 max-sm:py-3">
       <td className="px-3.5 py-2 max-sm:w-full max-sm:p-0">
-        <div className="text-foreground">{room.name ?? "-"}</div>
-        <div className="mt-0.5 text-[11px] text-t4">{room.location ?? "-"}</div>
+        <div className="flex items-center gap-2.5">
+          <ImageThumb src={room.imageUrl} alt="" size={40} icon={Building2} />
+          <div className="min-w-0">
+            <div className="text-foreground">{room.name ?? "-"}</div>
+            <div className="mt-0.5 text-[11px] text-t4">{room.location ?? "-"}</div>
+          </div>
+        </div>
       </td>
       <td className="px-3.5 py-2 font-mono text-xs text-t2 max-sm:p-0">
         {clockLabel(room.openMinutes)}-{clockLabel(room.closeMinutes)}
@@ -1433,6 +1438,7 @@ function RoomDialog({
   const { data: groups } = useManagementGroupOptions();
   const createRoom = useCreateRoom();
   const updateRoom = useUpdateRoom();
+  const upload = useUploadImage();
 
   const [manageGroupKey, setManageGroupKey] = useState<number | null>(room?.managementGroup.id ?? null);
   const [name, setName] = useState(room?.name ?? "");
@@ -1446,10 +1452,44 @@ function RoomDialog({
   const [hasBreak, setHasBreak] = useState(room ? room.breakStartMinutes !== null : true);
   const [breakStart, setBreakStart] = useState(room?.breakStartMinutes ?? 720);
   const [breakEnd, setBreakEnd] = useState(room?.breakEndMinutes ?? 780);
+  // The picked file waits here until the form is saved, so Cancel leaves nothing on the server.
+  const [photo, setPhoto] = useState<{ file: File; previewUrl: string; uploadedUrl?: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const busy = createRoom.isPending || updateRoom.isPending;
+  const busy = createRoom.isPending || updateRoom.isPending || upload.isPending;
   const canSubmit = name.trim() !== "" && (mode === "edit" || manageGroupKey !== null);
+
+  // Give the preview's memory back when another file is picked or the dialog closes.
+  const previewUrl = photo?.previewUrl;
+  useEffect(() => (previewUrl ? () => URL.revokeObjectURL(previewUrl) : undefined), [previewUrl]);
+
+  function pickPhoto(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    // Let the same file be chosen again after a failure.
+    event.target.value = "";
+    if (!file) return;
+
+    const check = validateUploadFile(file);
+    if (!check.ok) {
+      setError(getErrorMessage({ businessCode: check.code }));
+      return;
+    }
+    setError(null);
+    setPhoto({ file, previewUrl: URL.createObjectURL(file) });
+  }
+
+  /**
+   * Upload at save time because the ticket expires in ten minutes. If the server
+   * then refuses the form (say, closing before opening), saving again reuses this
+   * file instead of storing a second copy.
+   */
+  async function uploadPickedPhoto(): Promise<string | undefined> {
+    if (!photo) return undefined;
+    if (photo.uploadedUrl) return photo.uploadedUrl;
+    const ticket = await upload.mutateAsync({ file: photo.file, purpose: "room" });
+    setPhoto({ ...photo, uploadedUrl: ticket.imageUrl });
+    return ticket.imageUrl;
+  }
 
   async function submit() {
     setError(null);
@@ -1460,6 +1500,7 @@ function RoomDialog({
       breakEndMinutes: hasBreak ? breakEnd : null,
     };
     try {
+      const imageUrl = await uploadPickedPhoto();
       if (mode === "create") {
         if (manageGroupKey === null) return;
         await createRoom.mutateAsync({
@@ -1467,6 +1508,7 @@ function RoomDialog({
           name: name.trim(),
           description: description.trim() || undefined,
           location: location.trim() || undefined,
+          imageUrl,
           creditWeight,
           capacity: capacity.trim() === "" ? undefined : Number(capacity),
           lendable,
@@ -1478,6 +1520,8 @@ function RoomDialog({
           name: name.trim() || undefined,
           description: description.trim(),
           location: location.trim(),
+          // Undefined leaves the current picture alone; there is no way to clear one yet.
+          imageUrl,
           creditWeight,
           capacity: capacity.trim() === "" ? null : Number(capacity),
           ...hours,
@@ -1529,6 +1573,27 @@ function RoomDialog({
 
         <Field label={t("staff.inventory.fieldRoomName")} required>
           <Input value={name} onChange={(e) => setName(e.target.value)} maxLength={200} />
+        </Field>
+
+        <Field label={t("staff.inventory.photo")}>
+          <div className="flex items-center gap-3">
+            <ImageThumb src={photo?.previewUrl ?? room?.imageUrl} alt={name} size={56} icon={Building2} />
+            <div className="min-w-0 flex-1">
+              <label className="block">
+                <span className="sr-only">{t("staff.inventory.choosePhoto")}</span>
+                <input
+                  type="file"
+                  accept={uploadAcceptAttr()}
+                  disabled={busy}
+                  onChange={pickPhoto}
+                  className="block w-full text-[11px] text-t3 file:mr-2 file:rounded file:border file:border-border file:bg-secondary file:px-2 file:py-1 file:text-[11px] file:text-foreground"
+                />
+              </label>
+              <div className="mt-1 text-[11px] text-t4">
+                {upload.isPending ? t("staff.inventory.photoUploading") : t("staff.inventory.photoHint")}
+              </div>
+            </div>
+          </div>
         </Field>
 
         <div className="grid gap-3 sm:grid-cols-2">
