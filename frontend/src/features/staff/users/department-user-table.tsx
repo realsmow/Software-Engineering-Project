@@ -54,9 +54,10 @@ export function DepartmentUserTable({
         // status column and the ban control were cut off below about 400px,
         // with no way to reach them. Relative, so the hidden "actions" header
         // label is positioned inside the scroller instead of widening the page.
+        // Below sm each row is a small card, so the controls need no sideways swipe.
         <div className="relative overflow-x-auto">
-        <table className="w-full min-w-[32rem] border-collapse text-[13px]">
-          <thead>
+        <table className="w-full border-collapse text-[13px] max-sm:block sm:min-w-[32rem]">
+          <thead className="max-sm:hidden">
             <tr className="bg-secondary">
               <Th>{t("staff.users.colPerson")}</Th>
               <Th>{t("staff.users.colRole")}</Th>
@@ -70,26 +71,30 @@ export function DepartmentUserTable({
               ) : null}
             </tr>
           </thead>
-          <tbody>
+          <tbody className="max-sm:block">
             {users.map((u) => (
-              <tr key={u.id} className="border-b border-border last:border-b-0">
-                <td className="px-3.5 py-2">
+              <tr key={u.id} className="border-b border-border last:border-b-0 max-sm:flex max-sm:flex-wrap max-sm:items-center max-sm:gap-x-3 max-sm:gap-y-1.5 max-sm:px-3.5 max-sm:py-2.5">
+                <td className="px-3.5 py-2 max-sm:w-full max-sm:p-0">
                   <div className="text-foreground">
                     {u.firstName} {u.lastName}
                   </div>
-                  <div className="mt-0.5 font-mono text-[11px] text-t4">
+                  <div className="mt-0.5 font-mono text-[11px] text-t4 max-sm:break-all">
                     {u.studentId} · {u.email}
                   </div>
                 </td>
-                <td className="px-3.5 py-2 text-t2">{t(`nav.${u.role}`)}</td>
-                <td className="px-3.5 py-2 font-mono tabular-nums text-t2">{u.creditScore}</td>
-                <td className="px-3.5 py-2">
+                <td className="px-3.5 py-2 text-t2 max-sm:p-0">{t(`nav.${u.role}`)}</td>
+                <td className="px-3.5 py-2 font-mono tabular-nums text-t2 max-sm:p-0">
+                  {/* The column heading is hidden on a phone, and a bare number says nothing. */}
+                  <span className="font-sans sm:hidden">{t("staff.users.colCredit")} </span>
+                  {u.creditScore}
+                </td>
+                <td className="px-3.5 py-2 max-sm:p-0">
                   <Badge tone={STATUS_TONE[u.status]}>
                     {t(`staff.users.status${cap(u.status)}`)}
                   </Badge>
                 </td>
                 {action ? (
-                  <td className="px-3.5 py-2 text-right">{action(u)}</td>
+                  <td className="px-3.5 py-2 text-right max-sm:ml-auto max-sm:p-0">{action(u)}</td>
                 ) : null}
               </tr>
             ))}

@@ -669,9 +669,10 @@ function Units({ itemKey }: { itemKey: number }) {
   }
 
   return (
+    // Below sm each unit is a small card, so its buttons need no sideways swipe.
     <div className="border-t border-border overflow-x-auto">
-      <table className="w-full min-w-[34rem] border-collapse text-[13px]">
-        <thead>
+      <table className="w-full border-collapse text-[13px] max-sm:block sm:min-w-[34rem]">
+        <thead className="max-sm:hidden">
           <tr className="bg-secondary">
             <Th>{t("staff.inventory.colSerial")}</Th>
             <Th>{t("common.status")}</Th>
@@ -679,7 +680,7 @@ function Units({ itemKey }: { itemKey: number }) {
             <Th className="text-right">{t("staff.inventory.colActions")}</Th>
           </tr>
         </thead>
-        <tbody>
+        <tbody className="max-sm:block">
           {detail.units.map((u) => (
             <UnitRow key={u.resourceKey} unit={u} />
           ))}
@@ -735,8 +736,8 @@ function UnitRow({ unit }: { unit: ManagedUnit }) {
   }
 
   return (
-    <tr className="border-b border-border last:border-b-0">
-      <td className="px-3.5 py-2 font-mono text-xs text-foreground">
+    <tr className="border-b border-border last:border-b-0 max-sm:flex max-sm:flex-wrap max-sm:items-center max-sm:gap-x-3 max-sm:gap-y-1.5 max-sm:px-3.5 max-sm:py-2.5">
+      <td className="px-3.5 py-2 font-mono text-xs text-foreground max-sm:w-full max-sm:p-0">
         {unit.serialNo}
         {unit.currentDueAt ? (
           <div className="mt-0.5 text-[11px] font-normal text-t4">
@@ -744,7 +745,7 @@ function UnitRow({ unit }: { unit: ManagedUnit }) {
           </div>
         ) : null}
       </td>
-      <td className="px-3.5 py-2">
+      <td className="px-3.5 py-2 max-sm:p-0">
         <div className="flex flex-wrap items-center gap-1.5">
           <Badge tone={statusTone(unit)}>{t(`staff.inventory.status${unit.status}`)}</Badge>
           {!unit.lendable ? (
@@ -761,7 +762,9 @@ function UnitRow({ unit }: { unit: ManagedUnit }) {
           </div>
         ) : null}
       </td>
-      <td className="px-3.5 py-2 text-t2">
+      <td className="px-3.5 py-2 text-t2 max-sm:p-0 max-sm:text-xs">
+        {/* The column heading is hidden on a phone, and a bare word says nothing. */}
+        <span className="sm:hidden">{t("staff.inventory.colCondition")} </span>
         {unit.condition ? t(`staff.inspection.cond${unit.condition}`) : "-"}
         {unit.conditionNote ? (
           <div className="mt-0.5 max-w-[18rem] truncate text-[11px] text-t3" title={unit.conditionNote}>
@@ -769,15 +772,15 @@ function UnitRow({ unit }: { unit: ManagedUnit }) {
           </div>
         ) : null}
       </td>
-      <td className="px-3.5 py-2 text-right">
+      <td className="px-3.5 py-2 text-right max-sm:w-full max-sm:p-0">
         {mode === "withdraw" ? (
-          <div className="flex items-center justify-end gap-2">
+          <div className="flex flex-wrap items-center justify-end gap-2">
             <Input
               autoFocus
               value={note}
               onChange={(e) => setNote(e.target.value)}
               placeholder={t("staff.inventory.reasonPlaceholder")}
-              className="h-8 w-48"
+              className="h-8 w-48 max-w-full"
             />
             <Button type="button" size="sm" disabled={busy} onClick={() => void toggle()}>
               {t("staff.inventory.confirm")}
@@ -1061,7 +1064,7 @@ function UnitRetireForm({ unit, onClose }: { unit: ManagedUnit; onClose: () => v
 
   if (sent) {
     return (
-      <div className="flex items-center justify-end gap-2">
+      <div className="flex flex-wrap items-center justify-end gap-2">
         <span className="text-[11px] text-[var(--s-ok-t)]">{t("staff.inventory.retireSent")}</span>
         <Button type="button" variant="outline" size="sm" onClick={onClose}>
           {t("common.close")}
@@ -1284,9 +1287,12 @@ function RoomsSection() {
           {t("staff.inventory.noRooms")}
         </div>
       ) : (
-        <div className="overflow-hidden rounded-lg border border-border bg-card">
-          <table className="w-full min-w-[40rem] border-collapse text-[13px]">
-            <thead>
+        // Below sm each row is a small card (the cells are restyled, not rendered twice,
+        // because the actions cell holds the retire form). Between sm and the table's own
+        // width the frame scrolls, where overflow-hidden used to cut the buttons off.
+        <div className="overflow-x-auto rounded-lg border border-border bg-card">
+          <table className="w-full border-collapse text-[13px] max-sm:block sm:min-w-[40rem]">
+            <thead className="max-sm:hidden">
               <tr className="bg-secondary">
                 <Th>{t("staff.inventory.colRoom")}</Th>
                 <Th>{t("staff.inventory.colHours")}</Th>
@@ -1294,7 +1300,7 @@ function RoomsSection() {
                 <Th className="text-right">{t("staff.inventory.colActions")}</Th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="max-sm:block">
               {rows.map((r) => (
                 <RoomRow key={r.resourceKey} room={r} onEdit={() => setEditing(r)} />
               ))}
@@ -1344,12 +1350,12 @@ function RoomRow({ room, onEdit }: { room: ManagedRoom; onEdit: () => void }) {
   }
 
   return (
-    <tr className="border-b border-border last:border-b-0">
-      <td className="px-3.5 py-2">
+    <tr className="border-b border-border last:border-b-0 max-sm:flex max-sm:flex-wrap max-sm:items-center max-sm:gap-x-4 max-sm:gap-y-2 max-sm:px-3.5 max-sm:py-3">
+      <td className="px-3.5 py-2 max-sm:w-full max-sm:p-0">
         <div className="text-foreground">{room.name ?? "-"}</div>
         <div className="mt-0.5 text-[11px] text-t4">{room.location ?? "-"}</div>
       </td>
-      <td className="px-3.5 py-2 font-mono text-xs text-t2">
+      <td className="px-3.5 py-2 font-mono text-xs text-t2 max-sm:p-0">
         {clockLabel(room.openMinutes)}-{clockLabel(room.closeMinutes)}
         {room.breakStartMinutes !== null ? (
           <div className="text-t4">
@@ -1360,8 +1366,12 @@ function RoomRow({ room, onEdit }: { room: ManagedRoom; onEdit: () => void }) {
           </div>
         ) : null}
       </td>
-      <td className="px-3.5 py-2 text-t2">{room.capacity ?? "-"}</td>
-      <td className="px-3.5 py-2 text-right">
+      <td className="px-3.5 py-2 text-t2 max-sm:p-0 max-sm:text-xs">
+        {/* The column heading is hidden on a phone, and a bare number says nothing. */}
+        <span className="sm:hidden">{t("staff.inventory.fieldCapacity")} </span>
+        {room.capacity ?? "-"}
+      </td>
+      <td className="px-3.5 py-2 text-right max-sm:w-full max-sm:p-0">
         {mode === "retire" ? (
           <div className="flex flex-wrap items-center justify-end gap-1.5">
             <Input
@@ -1369,7 +1379,7 @@ function RoomRow({ room, onEdit }: { room: ManagedRoom; onEdit: () => void }) {
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               placeholder={t("staff.inventory.retireReasonPlaceholder")}
-              className="h-8 w-48"
+              className="h-8 w-48 max-w-full"
             />
             <Button type="button" size="sm" disabled={retire.isPending || !reason.trim()} onClick={() => void sendRetirement()}>
               {t("staff.inventory.retireSubmit")}

@@ -556,7 +556,8 @@ describe("StaffQueuePage", () => {
     renderPage();
     fireEvent.click(screen.getByText(i18n.t("staff.queue.tileWaitingSupervisor")));
     expect(screen.queryByRole("button", { name: /approve/i })).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: i18n.t("staff.queue.remindSupervisor") }));
+    // Two in the DOM: the phone's and the desktop's, one hidden by CSS that jsdom does not apply.
+    fireEvent.click(screen.getAllByRole("button", { name: i18n.t("staff.queue.remindSupervisor") })[0]);
     await waitFor(() => expect(remindSupervisor).toHaveBeenCalledWith(88));
     expect(await screen.findByRole("status")).toHaveTextContent(
       i18n.t("staff.queue.reminded", { count: 2 })

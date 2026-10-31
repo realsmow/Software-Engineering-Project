@@ -105,6 +105,20 @@ export default function StaffQueuePage() {
   const remind = useRemindSupervisor();
   const [remindingKey, setRemindingKey] = useState<number | null>(null);
 
+  function remindButton(reservationKey: number) {
+    return (
+      <Button
+        type="button"
+        size="sm"
+        variant="outline"
+        disabled={remindingKey === reservationKey}
+        onClick={() => void remindSupervisor(reservationKey)}
+      >
+        {remindingKey === reservationKey ? t("common.loading") : t("staff.queue.remindSupervisor")}
+      </Button>
+    );
+  }
+
   async function remindSupervisor(reservationKey: number) {
     setRemindingKey(reservationKey);
     setResult(null);
@@ -780,9 +794,13 @@ export default function StaffQueuePage() {
               key: "borrower",
               header: t("staff.queue.colBorrower"),
               render: (r) => (
-                <span className="font-medium text-foreground">
-                  {r.borrower.firstName} {r.borrower.lastName}
-                </span>
+                <>
+                  <span className="font-medium text-foreground">
+                    {r.borrower.firstName} {r.borrower.lastName}
+                  </span>
+                  {/* On a phone the last column sits past the edge, so the button comes here. */}
+                  <div className="mt-1.5 sm:hidden">{remindButton(r.reservationKey)}</div>
+                </>
               ),
             },
             {
@@ -806,17 +824,8 @@ export default function StaffQueuePage() {
               key: "act",
               header: "",
               align: "right",
-              render: (r) => (
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  disabled={remindingKey === r.reservationKey}
-                  onClick={() => void remindSupervisor(r.reservationKey)}
-                >
-                  {remindingKey === r.reservationKey ? t("common.loading") : t("staff.queue.remindSupervisor")}
-                </Button>
-              ),
+              className: "max-sm:hidden",
+              render: (r) => remindButton(r.reservationKey),
             },
           ]}
           rows={supervisorRows ?? []}

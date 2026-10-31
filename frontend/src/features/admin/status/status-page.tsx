@@ -97,9 +97,10 @@ export default function AdminStatusPage() {
               // fit a phone, and without this they are cut off unreachably.
               // Relative, so the hidden "actions" header label is positioned
               // inside the scroller instead of widening the whole page.
+              // Below sm each row is a small card, so Run now needs no sideways swipe.
               <div className="relative overflow-x-auto">
-                <table className="w-full min-w-[36rem] border-collapse text-[13px]">
-                  <thead>
+                <table className="w-full border-collapse text-[13px] max-sm:block sm:min-w-[36rem]">
+                  <thead className="max-sm:hidden">
                     <tr className="bg-secondary">
                       <Th>{t("admin.status.colJob")}</Th>
                       <Th>{t("admin.status.colSchedule")}</Th>
@@ -111,7 +112,7 @@ export default function AdminStatusPage() {
                       </Th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="max-sm:block">
                     {jobs.map((job) => (
                       <JobRow key={job.id} job={job} />
                     ))}
@@ -142,19 +143,19 @@ function JobRow({ job }: { job: CronJob }) {
   }
 
   return (
-    <tr className="border-b border-border last:border-b-0">
-      <td className="px-3.5 py-2">
+    <tr className="border-b border-border last:border-b-0 max-sm:flex max-sm:flex-wrap max-sm:items-center max-sm:gap-x-3 max-sm:gap-y-1.5 max-sm:px-3.5 max-sm:py-2.5">
+      <td className="px-3.5 py-2 max-sm:w-full max-sm:p-0">
         <div className="text-foreground">{t(`admin.status.jobs.${job.id}.name`, { defaultValue: job.name })}</div>
         <div className="mt-0.5 font-mono text-[11px] text-t4">{job.id}</div>
       </td>
-      <td className="whitespace-nowrap px-3.5 py-2 font-mono text-xs text-t2">{t(`admin.status.jobs.${job.id}.schedule`, { defaultValue: job.schedule })}</td>
-      <td className="whitespace-nowrap px-3.5 py-2 font-mono text-xs text-t2">
+      <td className="whitespace-nowrap px-3.5 py-2 font-mono text-xs text-t2 max-sm:w-full max-sm:whitespace-normal max-sm:p-0">{t(`admin.status.jobs.${job.id}.schedule`, { defaultValue: job.schedule })}</td>
+      <td className="whitespace-nowrap px-3.5 py-2 font-mono text-xs text-t2 max-sm:w-full max-sm:whitespace-normal max-sm:p-0">
         {job.lastRunAt ? fmtDateTime(job.lastRunAt) : "-"}
         {job.durationMs !== null ? (
           <span className="ml-1.5 text-t4">{t("admin.status.ms", { ms: job.durationMs })}</span>
         ) : null}
       </td>
-      <td className="px-3.5 py-2">
+      <td className="px-3.5 py-2 max-sm:p-0">
         {/* "Not built yet" and "built but never fired" both show a null
             lastRunAt. Without this they read identically, and somebody goes
             looking for a scheduler fault that is really a missing feature. */}
@@ -168,7 +169,7 @@ function JobRow({ job }: { job: CronJob }) {
           </Badge>
         )}
       </td>
-      <td className="px-3.5 py-2 text-right">
+      <td className="px-3.5 py-2 text-right max-sm:ml-auto max-sm:p-0">
         {/* Offered on every job, including the three that cannot run: pressing
             one is how an administrator finds out what it is waiting on, and
             hiding the button would leave that unanswerable. */}
